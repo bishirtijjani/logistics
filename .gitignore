@@ -1,0 +1,21 @@
+# VTU & Logistics Platform
+
+## .gitignore
+
+node_modules/
+.env
+*.log
+logs/
+dist/
+.expo/
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+.DS_Store
+Thumbs.db

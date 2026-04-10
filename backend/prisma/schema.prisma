@@ -1,0 +1,416 @@
+// ============================================================
+// VTU & LOGISTICS PLATFORM — PRISMA SCHEMA
+// Single Source of Truth for all data models
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  CUSTOMER
+  RIDER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum TransactionType {
+  WALLET_FUNDING
+  P2P_TRANSFER_SENT
+  P2P_TRANSFER_RECEIVED
+  WITHDRAWAL
+  DELIVERY_PAYMENT
+  DELIVERY_EARNING
+  UTILITY_PAYMENT
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum DeliveryStatus {
+  REQUESTED
+  MATCHED
+  RIDER_EN_ROUTE
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  SETTLED
+  CANCELLED
+}
+
+enum RiderStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum RiderAvailability {
+  ONLINE
+  OFFLINE
+  ON_DELIVERY
+}
+
+enum VehicleType {
+  MOTORCYCLE
+  BICYCLE
+  CAR
+  VAN
+}
+
+enum UtilityType {
+  AIRTIME
+  DATA
+  ELECTRICITY
+}
+
+enum UtilityStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  MONNIFY
+  VTPASS
+}
+
+// ============================================================
+// MODELS
+// ============================================================
+
+/// Core user identity — shared by customers, riders, and admins.
+/// Role determines which parts of the system the user can access.
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  phone         String?     @unique
+  firstName     String
+  lastName      String
+  passwordHash  String
+  transactionPin String?    /// Hashed 6-digit PIN for financial operations
+  bvnHash       String?     /// Hashed BVN — never store plaintext
+  role          UserRole    @default(CUSTOMER)
+  status        UserStatus  @default(PENDING)
+  fcmToken      String?     /// Firebase Cloud Messaging token for push notifications
+  deletedAt     DateTime?   /// Soft delete
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  wallet        Wallet?
+  rider         Rider?
+  customerOrders  DeliveryOrder[] @relation("CustomerOrders")
+  ratingsGiven    Rating[]        @relation("RatingsGiven")
+  beneficiaries   SavedBeneficiary[]
+  sessions        Session[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([role, status])
+  @@map("users")
+}
+
+/// Each user has exactly ONE wallet. All financial operations flow through this.
+/// Balance must NEVER be updated directly — only through Prisma transactions
+/// that simultaneously create a Transaction record.
+model Wallet {
+  id                  String    @id @default(uuid())
+  userId              String    @unique
+  balance             Decimal   @default(0) @db.Decimal(15, 2)
+  virtualAccountNumber String?  @unique  /// Monnify virtual account
+  virtualAccountBank   String?            /// Bank name for virtual account
+  virtualAccountName   String?            /// Account name for virtual account
+  isLocked            Boolean   @default(false) /// Freeze wallet for fraud prevention
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debitTransactions    Transaction[] @relation("DebitWallet")
+  creditTransactions   Transaction[] @relation("CreditWallet")
+
+  @@index([userId])
+  @@index([virtualAccountNumber])
+  @@map("wallets")
+}
+
+/// Immutable financial ledger. Every money movement creates a Transaction.
+/// CRITICAL: Transactions are append-only. Never update or delete.
+model Transaction {
+  id              String            @id @default(uuid())
+  reference       String            @unique  /// Unique reference for idempotency
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+  amount          Decimal           @db.Decimal(15, 2)
+  fee             Decimal           @default(0) @db.Decimal(15, 2)
+  description     String?
+  metadata        Json?             /// Provider-specific data (Monnify ref, VTPass token, etc.)
+
+  // Wallet relations — a transaction debits one wallet and/or credits another
+  debitWalletId   String?
+  creditWalletId  String?
+
+  // Provider tracking
+  provider        PaymentProvider?
+  providerRef     String?           /// External provider reference
+
+  // Balances at time of transaction (for audit trail)
+  balanceBefore   Decimal?          @db.Decimal(15, 2)
+  balanceAfter    Decimal?          @db.Decimal(15, 2)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  debitWallet     Wallet?           @relation("DebitWallet", fields: [debitWalletId], references: [id])
+  creditWallet    Wallet?           @relation("CreditWallet", fields: [creditWalletId], references: [id])
+
+  @@index([debitWalletId])
+  @@index([creditWalletId])
+  @@index([reference])
+  @@index([type, status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+/// Delivery order — tracks the full lifecycle from request to settlement.
+model DeliveryOrder {
+  id              String          @id @default(uuid())
+  status          DeliveryStatus  @default(REQUESTED)
+
+  // Customer
+  customerId      String
+
+  // Rider (assigned after matching)
+  riderId         String?
+
+  // Pickup details
+  pickupAddress   String
+  pickupLat       Float
+  pickupLng       Float
+
+  // Dropoff details
+  dropoffAddress  String
+  dropoffLat      Float
+  dropoffLng      Float
+
+  // Item info
+  itemDescription String?
+  packageSize     String?         /// e.g., "small", "medium", "large"
+
+  // Pricing
+  distanceKm      Float?
+  fare            Decimal?        @db.Decimal(15, 2)
+  platformFee     Decimal         @default(0) @db.Decimal(15, 2)
+
+  // Tracking
+  transactionId   String?         /// Reference to the payment transaction
+
+  // Timestamps for each lifecycle stage
+  matchedAt       DateTime?
+  pickedUpAt      DateTime?
+  deliveredAt     DateTime?
+  settledAt       DateTime?
+  cancelledAt     DateTime?
+  cancellationReason String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  customer        User            @relation("CustomerOrders", fields: [customerId], references: [id])
+  rider           Rider?          @relation(fields: [riderId], references: [id])
+  rating          Rating?
+
+  @@index([customerId])
+  @@index([riderId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("delivery_orders")
+}
+
+/// Rider profile — linked to a User with role=RIDER.
+/// Contains vehicle info, verification docs, and performance metrics.
+model Rider {
+  id              String            @id @default(uuid())
+  userId          String            @unique
+
+  // Vehicle info
+  vehicleType     VehicleType
+  plateNumber     String
+  vehicleColor    String?
+
+  // Verification documents
+  ninNumber       String?           /// National Identification Number (hashed)
+  idDocumentUrl   String?           /// Uploaded government ID
+  vehiclePhotoUrl String?           /// Uploaded vehicle photo
+
+  // Status
+  status          RiderStatus       @default(PENDING_APPROVAL)
+  availability    RiderAvailability @default(OFFLINE)
+
+  // Performance
+  averageRating   Float             @default(0)
+  totalDeliveries Int               @default(0)
+  totalEarnings   Decimal           @default(0) @db.Decimal(15, 2)
+
+  // Location (last known)
+  lastLat         Float?
+  lastLng         Float?
+  lastLocationAt  DateTime?
+
+  deletedAt       DateTime?         /// Soft delete
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryOrders  DeliveryOrder[]
+  ratingsReceived Rating[]          @relation("RiderRatings")
+
+  @@index([userId])
+  @@index([status, availability])
+  @@index([lastLat, lastLng])
+  @@map("riders")
+}
+
+/// Utility bill payment — airtime, data, electricity.
+model UtilityPayment {
+  id              String          @id @default(uuid())
+  userId          String
+  type            UtilityType
+  status          UtilityStatus   @default(PENDING)
+
+  // Payment details
+  provider        String          /// e.g., "MTN", "AEDC", "IKEDC"
+  amount          Decimal         @db.Decimal(15, 2)
+  phoneNumber     String?         /// For airtime/data
+  meterNumber     String?         /// For electricity
+  plan            String?         /// Data plan code or description
+
+  // VTPass tracking
+  vtpassRequestId String?         @unique
+  vtpassRef       String?
+
+  // Result
+  token           String?         /// Electricity token returned
+  transactionId   String?         /// Reference to wallet Transaction
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([type, status])
+  @@index([createdAt])
+  @@map("utility_payments")
+}
+
+/// Post-delivery rating from customer to rider.
+model Rating {
+  id              String        @id @default(uuid())
+  deliveryOrderId String        @unique
+  riderId         String
+  customerId      String
+  score           Int           /// 1-5 stars
+  comment         String?
+
+  createdAt       DateTime      @default(now())
+
+  // Relations
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id])
+  rider           Rider         @relation("RiderRatings", fields: [riderId], references: [id])
+  customer        User          @relation("RatingsGiven", fields: [customerId], references: [id])
+
+  @@index([riderId])
+  @@index([customerId])
+  @@map("ratings")
+}
+
+/// Saved beneficiaries for quick repeat transfers and payments.
+model SavedBeneficiary {
+  id              String      @id @default(uuid())
+  userId          String
+  name            String      /// Display name
+  phone           String?     /// For P2P transfers
+  bankCode        String?     /// For bank withdrawals
+  accountNumber   String?     /// For bank withdrawals
+  accountName     String?     /// Verified account name
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, phone])
+  @@unique([userId, accountNumber, bankCode])
+  @@index([userId])
+  @@map("saved_beneficiaries")
+}
+
+/// User sessions for JWT refresh token tracking.
+model Session {
+  id            String    @id @default(uuid())
+  userId        String
+  refreshToken  String    @unique
+  deviceInfo    String?   /// Device model, OS version
+  ipAddress     String?
+  expiresAt     DateTime
+  isRevoked     Boolean   @default(false)
+
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Monnify webhook event log — for idempotency and audit.
+model WebhookEvent {
+  id              String    @id @default(uuid())
+  provider        String    /// "monnify" or "vtpass"
+  eventType       String    /// e.g., "SUCCESSFUL_TRANSACTION"
+  transactionRef  String    @unique  /// External reference for deduplication
+  payload         Json      /// Raw webhook payload
+  processed       Boolean   @default(false)
+  processedAt     DateTime?
+  error           String?   /// Error message if processing failed
+
+  createdAt       DateTime  @default(now())
+
+  @@index([provider, eventType])
+  @@index([transactionRef])
+  @@index([processed])
+  @@map("webhook_events")
+}
