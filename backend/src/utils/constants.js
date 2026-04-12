@@ -6,43 +6,47 @@
 
 // Redis key prefixes — all Redis keys MUST use these prefixes
 const REDIS_KEYS = {
-  RIDER_LOCATION: 'rider:location:',         // rider:location:{riderId}
-  RIDER_AVAILABILITY: 'rider:availability:',  // rider:availability:{riderId}
-  ACTIVE_DELIVERY: 'delivery:active:',        // delivery:active:{deliveryId}
-  OTP: 'otp:',                                // otp:{phone}
-  SESSION: 'session:',                        // session:{userId}
-  RATE_LIMIT: 'ratelimit:',                   // ratelimit:{ip}:{endpoint}
+  RIDER_LOCATION: "rider:location:", // rider:location:{riderId}
+  RIDER_AVAILABILITY: "rider:availability:", // rider:availability:{riderId}
+  ACTIVE_DELIVERY: "delivery:active:", // delivery:active:{deliveryId}
+  OTP: "otp:", // otp:{phone}
+  PENDING_REG: "pending_reg:", // pending_reg:{email}
+  OTP_COOLDOWN: "otp_cooldown:", // otp_cooldown:{email} — 60s between resends
+  SESSION: "session:", // session:{userId}
+  RATE_LIMIT: "ratelimit:", // ratelimit:{ip}:{endpoint}
 };
 
 // Redis TTLs (in seconds)
 const REDIS_TTL = {
-  RIDER_LOCATION: 30,          // Stale after 30s (updates every ~3s)
-  RIDER_AVAILABILITY: 3600,    // 1 hour
-  ACTIVE_DELIVERY: 86400,      // 24 hours
-  OTP: 600,                    // 10 minutes
-  SESSION: 604800,             // 7 days
+  RIDER_LOCATION: 30, // Stale after 30s (updates every ~3s)
+  RIDER_AVAILABILITY: 3600, // 1 hour
+  ACTIVE_DELIVERY: 86400, // 24 hours
+  OTP: 600, // 10 minutes
+  PENDING_REG: 600, // 10 minutes (same as OTP)
+  OTP_COOLDOWN: 60, // 60 seconds between resend requests
+  SESSION: 604800, // 7 days
 };
 
 // Delivery lifecycle — ordered states
 const DELIVERY_STATES = [
-  'REQUESTED',
-  'MATCHED',
-  'RIDER_EN_ROUTE',
-  'PICKED_UP',
-  'IN_TRANSIT',
-  'DELIVERED',
-  'SETTLED',
-  'CANCELLED',
+  "REQUESTED",
+  "MATCHED",
+  "RIDER_EN_ROUTE",
+  "PICKED_UP",
+  "IN_TRANSIT",
+  "DELIVERED",
+  "SETTLED",
+  "CANCELLED",
 ];
 
 // Valid state transitions for delivery
 const DELIVERY_TRANSITIONS = {
-  REQUESTED: ['MATCHED', 'CANCELLED'],
-  MATCHED: ['RIDER_EN_ROUTE', 'CANCELLED'],
-  RIDER_EN_ROUTE: ['PICKED_UP', 'CANCELLED'],
-  PICKED_UP: ['IN_TRANSIT'],
-  IN_TRANSIT: ['DELIVERED'],
-  DELIVERED: ['SETTLED'],
+  REQUESTED: ["MATCHED", "CANCELLED"],
+  MATCHED: ["RIDER_EN_ROUTE", "CANCELLED"],
+  RIDER_EN_ROUTE: ["PICKED_UP", "CANCELLED"],
+  PICKED_UP: ["IN_TRANSIT"],
+  IN_TRANSIT: ["DELIVERED"],
+  DELIVERED: ["SETTLED"],
   SETTLED: [],
   CANCELLED: [],
 };

@@ -2,12 +2,12 @@
  * Google Maps service — distance, geocoding, and directions.
  */
 
-const axios = require('axios');
-const { config } = require('../config');
-const { logger } = require('../utils/logger');
-const { AppError } = require('../utils/api-error');
+const axios = require("axios");
+const { config } = require("../config");
+const { logger } = require("../utils/logger");
+const { AppError } = require("../utils/api-error");
 
-const MAPS_BASE = 'https://maps.googleapis.com/maps/api';
+const MAPS_BASE = "https://maps.googleapis.com/maps/api";
 
 /**
  * Get distance and duration between two points using Distance Matrix API.
@@ -19,14 +19,14 @@ const getDistance = async (originLat, originLng, destLat, destLng) => {
         origins: `${originLat},${originLng}`,
         destinations: `${destLat},${destLng}`,
         key: config.GOOGLE_MAPS_API_KEY,
-        units: 'metric',
+        units: "metric",
       },
     });
 
     const element = response.data.rows?.[0]?.elements?.[0];
 
-    if (!element || element.status !== 'OK') {
-      throw new Error('Unable to calculate distance');
+    if (!element || element.status !== "OK") {
+      throw new Error("Unable to calculate distance");
     }
 
     return {
@@ -37,8 +37,8 @@ const getDistance = async (originLat, originLng, destLat, destLng) => {
       durationText: element.duration.text,
     };
   } catch (error) {
-    logger.error('Google Maps distance failed', { error: error.message });
-    throw AppError.internal('Unable to calculate distance');
+    logger.error("Google Maps distance failed", { error: error.message });
+    throw AppError.internal("Unable to calculate distance");
   }
 };
 
@@ -51,12 +51,12 @@ const geocodeAddress = async (address) => {
       params: {
         address,
         key: config.GOOGLE_MAPS_API_KEY,
-        components: 'country:NG',
+        components: "country:NG",
       },
     });
 
     const result = response.data.results?.[0];
-    if (!result) throw new Error('Address not found');
+    if (!result) throw new Error("Address not found");
 
     return {
       lat: result.geometry.location.lat,
@@ -65,8 +65,8 @@ const geocodeAddress = async (address) => {
       placeId: result.place_id,
     };
   } catch (error) {
-    logger.error('Geocoding failed', { address, error: error.message });
-    throw AppError.badRequest('Unable to geocode address');
+    logger.error("Geocoding failed", { address, error: error.message });
+    throw AppError.badRequest("Unable to geocode address");
   }
 };
 
@@ -83,15 +83,15 @@ const reverseGeocode = async (lat, lng) => {
     });
 
     const result = response.data.results?.[0];
-    if (!result) throw new Error('Location not found');
+    if (!result) throw new Error("Location not found");
 
     return {
       formattedAddress: result.formatted_address,
       placeId: result.place_id,
     };
   } catch (error) {
-    logger.error('Reverse geocoding failed', { lat, lng });
-    throw AppError.badRequest('Unable to determine address');
+    logger.error("Reverse geocoding failed", { lat, lng });
+    throw AppError.badRequest("Unable to determine address");
   }
 };
 
@@ -105,12 +105,12 @@ const getDirections = async (originLat, originLng, destLat, destLng) => {
         origin: `${originLat},${originLng}`,
         destination: `${destLat},${destLng}`,
         key: config.GOOGLE_MAPS_API_KEY,
-        mode: 'driving',
+        mode: "driving",
       },
     });
 
     const route = response.data.routes?.[0];
-    if (!route) throw new Error('No route found');
+    if (!route) throw new Error("No route found");
 
     return {
       polyline: route.overview_polyline?.points,
@@ -123,8 +123,77 @@ const getDirections = async (originLat, originLng, destLat, destLng) => {
       })),
     };
   } catch (error) {
-    logger.error('Directions failed', { error: error.message });
-    throw AppError.internal('Unable to get directions');
+    logger.error("Directions failed", { error: error.message });
+    throw AppError.internal("Unable to get directions");
+  }
+};
+
+/**
+ * Places Autocomplete — search for places by text query.
+ */
+const autocomplete = async (query, sessionToken) => {
+  try {
+    const params = {
+      input: query,
+      key: config.GOOGLE_MAPS_API_KEY,
+      components: "country:ng",
+      types: "geocode|establishment",
+    };
+    if (sessionToken) params.sessiontoken = sessionToken;
+
+    const response = await axios.get(`${MAPS_BASE}/place/autocomplete/json`, {
+      params,
+    });
+
+    if (
+      response.data.status !== "OK" &&
+      response.data.status !== "ZERO_RESULTS"
+    ) {
+      throw new Error(response.data.error_message || "Autocomplete failed");
+    }
+
+    return (response.data.predictions || []).map((p) => ({
+      placeId: p.place_id,
+      description: p.description,
+      mainText: p.structured_formatting?.main_text,
+      secondaryText: p.structured_formatting?.secondary_text,
+    }));
+  } catch (error) {
+    logger.error("Autocomplete failed", { query, error: error.message });
+    throw AppError.internal("Unable to search places");
+  }
+};
+
+/**
+ * Place Details — get lat/lng and formatted address for a place ID.
+ */
+const placeDetails = async (placeId, sessionToken) => {
+  try {
+    const params = {
+      place_id: placeId,
+      key: config.GOOGLE_MAPS_API_KEY,
+      fields: "geometry,formatted_address,name",
+    };
+    if (sessionToken) params.sessiontoken = sessionToken;
+
+    const response = await axios.get(`${MAPS_BASE}/place/details/json`, {
+      params,
+    });
+
+    if (response.data.status !== "OK") {
+      throw new Error(response.data.error_message || "Place details failed");
+    }
+
+    const result = response.data.result;
+    return {
+      lat: result.geometry.location.lat,
+      lng: result.geometry.location.lng,
+      formattedAddress: result.formatted_address,
+      name: result.name,
+    };
+  } catch (error) {
+    logger.error("Place details failed", { placeId, error: error.message });
+    throw AppError.internal("Unable to get place details");
   }
 };
 
@@ -133,4 +202,6 @@ module.exports = {
   geocodeAddress,
   reverseGeocode,
   getDirections,
+  autocomplete,
+  placeDetails,
 };

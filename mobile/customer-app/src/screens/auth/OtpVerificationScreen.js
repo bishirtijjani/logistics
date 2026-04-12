@@ -1,69 +1,143 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  KeyboardAvoidingView, 
-  Platform, 
-  Keyboard, 
-  TouchableWithoutFeedback 
-} from 'react-native';
-import Toast from 'react-native-toast-message';
-import { useDispatch, useSelector } from 'react-redux';
-import { verifyOtp, clearError } from '../../store/slices/authSlice';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from "react-native";
+import Toast from "react-native-toast-message";
+import { Ionicons } from "@expo/vector-icons";
+import { useDispatch, useSelector } from "react-redux";
+import { verifyOtp, clearError } from "../../store/slices/authSlice";
+import api from "../../services/api";
+
+const RESEND_COOLDOWN = 60;
 
 export default function OtpVerificationScreen({ route, navigation }) {
-  const { email } = route.params || {};
-  const [code, setCode] = useState('');
+  // mode: 'register' | 'reset'
+  const { email, mode = "register" } = route.params || {};
+  const [code, setCode] = useState("");
+  const [countdown, setCountdown] = useState(RESEND_COOLDOWN);
+  const [isResending, setIsResending] = useState(false);
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state) => state.auth);
 
-  const handleVerify = async () => {
+  // Countdown timer
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const handleVerify = useCallback(async () => {
     if (code.length !== 6) {
       Toast.show({
-        type: 'error',
-        text1: 'Validation Error',
-        text2: 'OTP must be 6 digits',
+        type: "error",
+        text1: "Enter your 6-digit code",
       });
       return;
     }
-    
+
+    if (mode === "reset") {
+      // For password reset: don't verify here — pass code to ResetPassword screen
+      // The backend will verify OTP atomically with the password update
+      navigation.navigate("ResetPassword", { email, code });
+      return;
+    }
+
+    // Registration flow — verify OTP and activate account
     dispatch(clearError());
     const resultAction = await dispatch(verifyOtp({ email, code }));
-    
+
     if (verifyOtp.fulfilled.match(resultAction)) {
       Toast.show({
-        type: 'success',
-        text1: 'Verified!',
-        text2: 'Email verified successfully.',
+        type: "success",
+        text1: "Email verified!",
+        text2: "You can now sign in.",
       });
-      // Redirect to Login as default for now, or the next stage in register funnel
-      navigation.navigate('Login');
+      navigation.navigate("Login");
     }
-  };
+  }, [code, mode, email, dispatch, navigation]);
+
+  const handleResend = useCallback(async () => {
+    if (isResending || countdown > 0) return;
+    setIsResending(true);
+    try {
+      const endpoint =
+        mode === "reset" ? "/auth/password/forgot" : "/auth/otp/send";
+      await api.post(endpoint, { email });
+      setCountdown(RESEND_COOLDOWN);
+      Toast.show({
+        type: "success",
+        text1: "Code resent",
+        text2: "Check your email for a new code.",
+      });
+    } catch {
+      // Toast already shown by api interceptor
+    } finally {
+      setIsResending(false);
+    }
+  }, [isResending, countdown, mode, email]);
+
+  const isReset = mode === "reset";
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: "#FAFAFA" }}
     >
+      <View style={{ height: 4, backgroundColor: "#EA580C" }} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View className="flex-1 justify-center p-6">
-          <View className="mb-12">
-            <Text className="text-5xl font-black text-secondary tracking-tighter mb-2">Verify{'\n'}Code.</Text>
-            <Text className="text-lg text-muted font-medium leading-relaxed">
-              We sent a 6-digit secure code to{'\n'}
-              <Text className="font-bold text-secondary">{email}</Text>
+        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 56 }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ marginBottom: 32 }}
+          >
+            <Ionicons name="arrow-back" size={24} color="#09090b" />
+          </TouchableOpacity>
+
+          <View style={{ marginBottom: 36 }}>
+            <Text
+              style={{
+                fontSize: 38,
+                fontWeight: "900",
+                color: "#09090b",
+                letterSpacing: -1.5,
+                marginBottom: 8,
+                lineHeight: 44,
+              }}
+            >
+              {isReset ? "Enter reset\ncode." : "Check your\nemail."}
+            </Text>
+            <Text style={{ fontSize: 15, color: "#6B7280", lineHeight: 22 }}>
+              We sent a 6-digit code to{" "}
+              <Text style={{ fontWeight: "700", color: "#09090b" }}>
+                {email}
+              </Text>
             </Text>
           </View>
 
-          <View className="mb-10">
+          <View style={{ marginBottom: 28 }}>
             <TextInput
-              className="bg-surface-muted text-center p-6 rounded-3xl text-secondary text-4xl font-black tracking-[0.5em] ring-2 border-2 border-transparent focus:border-primary focus:bg-surface transition-all shadow-sm shadow-black/5"
+              style={{
+                backgroundColor: "#fff",
+                borderWidth: 1.5,
+                borderColor: "#E5E7EB",
+                textAlign: "center",
+                padding: 20,
+                borderRadius: 16,
+                color: "#09090b",
+                fontSize: 32,
+                fontWeight: "900",
+                letterSpacing: 12,
+              }}
               placeholder="000000"
-              placeholderTextColor="#D1D5DB"
+              placeholderTextColor="#E5E7EB"
               keyboardType="numeric"
               maxLength={6}
               value={code}
@@ -73,25 +147,58 @@ export default function OtpVerificationScreen({ route, navigation }) {
               selectionColor="#EA580C"
               onSubmitEditing={handleVerify}
               returnKeyType="done"
+              autoFocus
             />
           </View>
 
-          <TouchableOpacity 
-            className={`w-full p-5 rounded-full items-center shadow-lg transform transition-transform ${isLoading ? 'bg-primary/70 shadow-none' : 'bg-primary shadow-primary/30 active:scale-95'}`}
+          <TouchableOpacity
+            style={{
+              width: "100%",
+              padding: 16,
+              borderRadius: 16,
+              alignItems: "center",
+              backgroundColor: isLoading ? "#EA580CB3" : "#EA580C",
+            }}
             onPress={handleVerify}
             disabled={isLoading}
+            activeOpacity={0.8}
           >
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-white text-lg font-bold tracking-wide">Verify Account</Text>
+              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+                {isReset ? "Continue" : "Confirm"}
+              </Text>
             )}
           </TouchableOpacity>
 
-          <View className="flex-row justify-center mt-8">
-            <Text className="text-muted font-medium text-base">Didn't receive the code? </Text>
-            <TouchableOpacity>
-              <Text className="text-primary font-bold text-base">Resend SMS</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              marginTop: 20,
+            }}
+          >
+            <Text style={{ color: "#6B7280", fontSize: 14 }}>
+              Didn't receive it?{" "}
+            </Text>
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={countdown > 0 || isResending}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: countdown > 0 ? "#6B7280" : "#EA580C",
+                }}
+              >
+                {isResending
+                  ? "Sending..."
+                  : countdown > 0
+                    ? `Resend in ${countdown}s`
+                    : "Resend code"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -8,88 +8,96 @@
  * - All password/PIN operations use bcrypt
  */
 
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const { OAuth2Client } = require('google-auth-library');
-const { prisma } = require('../../config/database');
-const { redis } = require('../../config/redis');
-const { config } = require('../../config');
-const { AppError } = require('../../utils/api-error');
-const { logger } = require('../../utils/logger');
-const { REDIS_KEYS, REDIS_TTL, OTP } = require('../../utils/constants');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
+const { OAuth2Client } = require("google-auth-library");
+const { prisma } = require("../../config/database");
+const { redis } = require("../../config/redis");
+const { config } = require("../../config");
+const { AppError } = require("../../utils/api-error");
+const { logger } = require("../../utils/logger");
+const { REDIS_KEYS, REDIS_TTL, OTP } = require("../../utils/constants");
 
 const SALT_ROUNDS = 12;
 
 /**
  * Register a new user.
- * Creates user + wallet in a single transaction.
+ * Stores registration data in Redis only — no DB write until OTP verified.
  */
-const register = async ({ email, firstName, lastName, phone, password, role }) => {
+const register = async ({
+  email,
+  firstName,
+  lastName,
+  phone,
+  password,
+  role,
+}) => {
+  // Only block if an ACTIVE (verified) user already has this email
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    throw AppError.conflict('Email already registered');
+    throw AppError.conflict("Email already registered");
   }
 
   if (phone) {
     const phoneExists = await prisma.user.findUnique({ where: { phone } });
     if (phoneExists) {
-      throw AppError.conflict('Phone number already registered');
+      throw AppError.conflict("Phone number already registered");
     }
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // Atomic: create user + wallet together
-  const user = await prisma.$transaction(async (tx) => {
-    const newUser = await tx.user.create({
-      data: {
-        phone,
-        firstName,
-        lastName,
-        email,
-        passwordHash,
-        role,
-        status: 'PENDING', // Requires OTP verification
-      },
-    });
-
-    await tx.wallet.create({
-      data: {
-        userId: newUser.id,
-        balance: 0,
-      },
-    });
-
-    return newUser;
+  // Store pending registration data in Redis (overwrites any previous attempt)
+  const pendingKey = `${REDIS_KEYS.PENDING_REG}${email}`;
+  const pendingData = JSON.stringify({
+    email,
+    firstName,
+    lastName,
+    phone,
+    passwordHash,
+    role,
   });
+  await redis.set(pendingKey, pendingData, "EX", REDIS_TTL.PENDING_REG);
 
-  logger.info('User registered', { userId: user.id, role });
+  logger.info("Pending registration stored in Redis", { email, role });
 
-  return { id: user.id, phone: user.phone, role: user.role };
+  return { email, role };
 };
 
 /**
  * Login — verify credentials, return tokens.
  */
-const login = async ({ email, password }) => {
+const login = async ({ email, password }, sessionMeta = {}) => {
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
-    throw AppError.unauthorized('Invalid email or password');
+    throw AppError.unauthorized("Invalid email or password");
   }
 
-  if (user.status === 'SUSPENDED') {
-    throw AppError.forbidden('Account suspended. Contact support.');
+  if (user.status === "SUSPENDED") {
+    throw AppError.forbidden("Account suspended. Contact support.");
   }
 
-  if (user.status === 'DEACTIVATED') {
-    throw AppError.forbidden('Account deactivated');
+  if (user.status === "DEACTIVATED") {
+    throw AppError.forbidden("Account deactivated");
+  }
+
+  if (user.status === "PENDING") {
+    throw AppError.forbidden(
+      "Email not verified. Please check your email for the verification code.",
+    );
+  }
+
+  if (!user.passwordHash) {
+    throw AppError.badRequest(
+      "This account uses Google sign-in. Please log in with Google.",
+    );
   }
 
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
-    throw AppError.unauthorized('Invalid email or password');
+    throw AppError.unauthorized("Invalid email or password");
   }
 
   const tokens = generateTokens(user);
@@ -100,10 +108,12 @@ const login = async ({ email, password }) => {
       userId: user.id,
       refreshToken: tokens.refreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      ipAddress: sessionMeta.ipAddress || null,
+      deviceInfo: sessionMeta.deviceInfo || null,
     },
   });
 
-  logger.info('User logged in', { userId: user.id });
+  logger.info("User logged in", { userId: user.id });
 
   return {
     user: {
@@ -122,22 +132,22 @@ const login = async ({ email, password }) => {
 /**
  * Google Auth — verify token from Expo frontend and return session.
  */
-const googleAuth = async ({ idToken, role }) => {
+const googleAuth = async ({ idToken, role }, sessionMeta = {}) => {
   const client = new OAuth2Client();
-  
+
   // Verify the provided token matches one of our Apps Client IDs
   const ticket = await client.verifyIdToken({
     idToken,
     audience: [
-      '1001895940462-lbs6fcgm1cn4fj2hhrjotltcjq6mebai.apps.googleusercontent.com', // Web (Expo Go)
-      '1001895940462-h88c8hi8r4guiu05j4dqki52poufuspk.apps.googleusercontent.com', // Android
-      '1001895940462-7urrks74vpq96kjgarrf5dj92odjr67a.apps.googleusercontent.com'  // iOS
+      "1001895940462-lbs6fcgm1cn4fj2hhrjotltcjq6mebai.apps.googleusercontent.com", // Web (Expo Go)
+      "1001895940462-h88c8hi8r4guiu05j4dqki52poufuspk.apps.googleusercontent.com", // Android
+      "1001895940462-7urrks74vpq96kjgarrf5dj92odjr67a.apps.googleusercontent.com", // iOS
     ],
   });
 
   const payload = ticket.getPayload();
   if (!payload || !payload.email) {
-    throw AppError.unauthorized('Invalid Google Token');
+    throw AppError.unauthorized("Invalid Google Token");
   }
 
   const { email, given_name, family_name } = payload;
@@ -150,11 +160,11 @@ const googleAuth = async ({ idToken, role }) => {
     user = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
-          firstName: given_name || 'Google',
-          lastName: family_name || 'User',
+          firstName: given_name || "Google",
+          lastName: family_name || "User",
           email,
-          role: role || 'CUSTOMER',
-          status: 'ACTIVE', // Automatically active since email is verified by Google
+          role: role || "CUSTOMER",
+          status: "ACTIVE", // Automatically active since email is verified by Google
         },
       });
 
@@ -168,13 +178,13 @@ const googleAuth = async ({ idToken, role }) => {
       return newUser;
     });
 
-    logger.info('New user registered via Google', { userId: user.id });
+    logger.info("New user registered via Google", { userId: user.id });
   } else {
-    if (user.status === 'SUSPENDED') {
-      throw AppError.forbidden('Account suspended. Contact support.');
+    if (user.status === "SUSPENDED") {
+      throw AppError.forbidden("Account suspended. Contact support.");
     }
-    if (user.status === 'DEACTIVATED') {
-      throw AppError.forbidden('Account deactivated');
+    if (user.status === "DEACTIVATED") {
+      throw AppError.forbidden("Account deactivated");
     }
   }
 
@@ -186,10 +196,12 @@ const googleAuth = async ({ idToken, role }) => {
       userId: user.id,
       refreshToken: tokens.refreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      ipAddress: sessionMeta.ipAddress || null,
+      deviceInfo: sessionMeta.deviceInfo || null,
     },
   });
 
-  logger.info('User logged in via Google', { userId: user.id });
+  logger.info("User logged in via Google", { userId: user.id });
 
   return {
     user: {
@@ -206,54 +218,104 @@ const googleAuth = async ({ idToken, role }) => {
 };
 
 /**
- * Generate and store OTP for phone verification.
- * OTP is stored in Redis with a 10-minute TTL.
- * Returns the OTP (for queueing via Termii).
+ * Generate and store OTP for email verification.
+ * @param {string} email
+ * @param {object} [opts]
+ * @param {boolean} [opts.checkCooldown] - Enforce 60s between requests (resend/forgot flows)
  */
-const generateOtp = async (email) => {
+const generateOtp = async (email, { checkCooldown = false } = {}) => {
+  if (checkCooldown) {
+    const cooldownKey = `${REDIS_KEYS.OTP_COOLDOWN}${email}`;
+    const ttl = await redis.ttl(cooldownKey);
+    if (ttl > 0) {
+      throw AppError.tooManyRequests(
+        `Please wait ${ttl} second${ttl === 1 ? "" : "s"} before requesting another code.`,
+      );
+    }
+    await redis.set(cooldownKey, "1", "EX", REDIS_TTL.OTP_COOLDOWN);
+  }
+
   const code = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit
   const redisKey = `${REDIS_KEYS.OTP}${email}`;
 
-  // Store OTP in Redis with expiry
-  await redis.set(redisKey, code, 'EX', REDIS_TTL.OTP);
+  await redis.set(redisKey, code, "EX", REDIS_TTL.OTP);
 
-  logger.info('OTP generated', { email });
+  // Refresh pending registration TTL so it doesn't expire before the new OTP
+  const pendingKey = `${REDIS_KEYS.PENDING_REG}${email}`;
+  const hasPending = await redis.exists(pendingKey);
+  if (hasPending) {
+    await redis.expire(pendingKey, REDIS_TTL.PENDING_REG);
+  }
+
+  logger.info("OTP generated", { email, checkCooldown });
 
   return code;
 };
 
 /**
- * Verify OTP and activate user.
+ * Verify OTP and create user from pending registration data.
  */
 const verifyOtp = async (email, code) => {
-  const redisKey = `${REDIS_KEYS.OTP}${email}`;
-  const storedCode = await redis.get(redisKey);
+  const otpKey = `${REDIS_KEYS.OTP}${email}`;
+  const storedCode = await redis.get(otpKey);
 
   if (!storedCode) {
-    throw AppError.badRequest('OTP expired or not found. Request a new one.');
+    throw AppError.badRequest("OTP expired or not found. Request a new one.");
   }
 
   if (storedCode !== code) {
-    throw AppError.badRequest('Invalid OTP code');
+    throw AppError.badRequest("Invalid OTP code");
   }
 
   // Delete OTP after successful verification
-  await redis.del(redisKey);
+  await redis.del(otpKey);
 
-  // Activate user
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw AppError.notFound('User not found');
+  // Pull pending registration data from Redis
+  const pendingKey = `${REDIS_KEYS.PENDING_REG}${email}`;
+  const pendingRaw = await redis.get(pendingKey);
 
-  if (user.status === 'PENDING') {
-    await prisma.user.update({
-      where: { email },
-      data: { status: 'ACTIVE' },
-    });
+  if (!pendingRaw) {
+    // Could be a non-registration OTP (e.g. password reset) — just verify
+    logger.info("OTP verified (no pending registration)", { email });
+    return { verified: true };
   }
 
-  logger.info('OTP verified, user activated', { email });
+  const pending = JSON.parse(pendingRaw);
 
-  return { verified: true };
+  // Create user + wallet atomically
+  const user = await prisma.$transaction(async (tx) => {
+    const newUser = await tx.user.create({
+      data: {
+        email: pending.email,
+        firstName: pending.firstName,
+        lastName: pending.lastName,
+        phone: pending.phone,
+        passwordHash: pending.passwordHash,
+        role: pending.role,
+        status: "ACTIVE", // Already verified
+      },
+    });
+
+    await tx.wallet.create({
+      data: {
+        userId: newUser.id,
+        balance: 0,
+      },
+    });
+
+    return newUser;
+  });
+
+  // Clean up Redis
+  await redis.del(pendingKey);
+
+  logger.info("OTP verified, user created", {
+    userId: user.id,
+    email,
+    role: user.role,
+  });
+
+  return { verified: true, userId: user.id };
 };
 
 /**
@@ -266,7 +328,7 @@ const refreshAccessToken = async (refreshToken) => {
   });
 
   if (!session || session.isRevoked || session.expiresAt < new Date()) {
-    throw AppError.unauthorized('Invalid or expired refresh token');
+    throw AppError.unauthorized("Invalid or expired refresh token");
   }
 
   const tokens = generateTokens(session.user);
@@ -296,7 +358,7 @@ const setTransactionPin = async (userId, pin) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
   if (user.transactionPin) {
-    throw AppError.conflict('Transaction PIN already set. Use change PIN.');
+    throw AppError.conflict("Transaction PIN already set. Use change PIN.");
   }
 
   const hashedPin = await bcrypt.hash(pin, SALT_ROUNDS);
@@ -306,7 +368,7 @@ const setTransactionPin = async (userId, pin) => {
     data: { transactionPin: hashedPin },
   });
 
-  logger.info('Transaction PIN set', { userId });
+  logger.info("Transaction PIN set", { userId });
 };
 
 /**
@@ -322,7 +384,7 @@ const changeTransactionPin = async (userId, currentPin, newPin) => {
     data: { transactionPin: hashedPin },
   });
 
-  logger.info('Transaction PIN changed', { userId });
+  logger.info("Transaction PIN changed", { userId });
 };
 
 /**
@@ -335,7 +397,7 @@ const verifyTransactionPin = async (userId, pin) => {
   });
 
   if (!user.transactionPin) {
-    throw AppError.badRequest('Transaction PIN not set');
+    throw AppError.badRequest("Transaction PIN not set");
   }
 
   const isValid = await bcrypt.compare(pin, user.transactionPin);
@@ -347,26 +409,60 @@ const verifyTransactionPin = async (userId, pin) => {
 };
 
 /**
- * Reset password — requires OTP verification first.
+ * Request password reset — generates and returns OTP if user is ACTIVE.
+ * Silently succeeds for unknown/inactive emails (don't leak existence).
+ */
+const requestPasswordReset = async (email) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user || user.status !== "ACTIVE") {
+    logger.info("Password reset requested for unknown/inactive email", {
+      email,
+    });
+    return null; // Caller will respond generically
+  }
+
+  const code = await generateOtp(email, { checkCooldown: true });
+  return code;
+};
+
+/**
+ * Reset password — verifies OTP then updates password atomically.
  */
 const resetPassword = async (email, code, newPassword) => {
-  // Verify OTP
-  await verifyOtp(email, code);
+  // Verify OTP (also handles pending_reg cleanup if somehow present)
+  const otpKey = `${REDIS_KEYS.OTP}${email}`;
+  const storedCode = await redis.get(otpKey);
+
+  if (!storedCode) {
+    throw AppError.badRequest("OTP expired or not found. Request a new one.");
+  }
+  if (storedCode !== code) {
+    throw AppError.badRequest("Invalid reset code.");
+  }
+
+  await redis.del(otpKey);
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.status !== "ACTIVE") {
+    throw AppError.badRequest("No active account found for this email.");
+  }
 
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-  await prisma.user.update({
-    where: { email },
-    data: { passwordHash },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { email },
+      data: { passwordHash },
+    }),
+    // Revoke all existing sessions — force re-login on all devices
+    prisma.session.updateMany({
+      where: { userId: user.id },
+      data: { isRevoked: true },
+    }),
+  ]);
 
-  // Revoke all existing sessions (force re-login)
-  await prisma.session.updateMany({
-    where: { user: { email } },
-    data: { isRevoked: true },
-  });
-
-  logger.info('Password reset', { email });
+  logger.info("Password reset successful", { email });
 };
 
 /**
@@ -391,15 +487,113 @@ const getProfile = async (userId) => {
       firstName: true,
       lastName: true,
       email: true,
+      profilePicture: true,
+      dateOfBirth: true,
+      address: true,
+      kycStatus: true,
       role: true,
       status: true,
+      transactionPin: true,
       createdAt: true,
     },
   });
 
-  if (!user) throw AppError.notFound('User not found');
+  if (!user) throw AppError.notFound("User not found");
 
-  return user;
+  return {
+    ...user,
+    hasPinSet: !!user.transactionPin,
+    transactionPin: undefined, // Never expose the hash
+  };
+};
+
+/**
+ * Update user profile — name, phone, address, dateOfBirth.
+ */
+const updateProfile = async (userId, data) => {
+  // If phone is being changed, check uniqueness
+  if (data.phone) {
+    const phoneOwner = await prisma.user.findUnique({
+      where: { phone: data.phone },
+    });
+    if (phoneOwner && phoneOwner.id !== userId) {
+      throw AppError.conflict("Phone number already in use");
+    }
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(data.firstName && { firstName: data.firstName }),
+      ...(data.lastName && { lastName: data.lastName }),
+      ...(data.phone && { phone: data.phone }),
+      ...(data.address !== undefined && { address: data.address }),
+      ...(data.dateOfBirth && { dateOfBirth: new Date(data.dateOfBirth) }),
+    },
+    select: {
+      id: true,
+      phone: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      profilePicture: true,
+      dateOfBirth: true,
+      address: true,
+      kycStatus: true,
+      role: true,
+      status: true,
+      transactionPin: true,
+      createdAt: true,
+    },
+  });
+
+  return {
+    ...user,
+    hasPinSet: !!user.transactionPin,
+    transactionPin: undefined,
+  };
+};
+
+/**
+ * Update profile picture URL.
+ */
+const updateProfilePicture = async (userId, url) => {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { profilePicture: url },
+  });
+  logger.info("Profile picture updated", { userId });
+};
+
+/**
+ * Verify BVN — stores hashed BVN and updates KYC status.
+ * In production, integrate with a BVN verification provider (e.g. Smile ID, Flutterwave).
+ * The provider call should happen here before setting VERIFIED.
+ */
+const verifyBvn = async (userId, { bvn, firstName, lastName }) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw AppError.notFound("User not found");
+
+  if (user.kycStatus === "VERIFIED") {
+    throw AppError.conflict("BVN already verified");
+  }
+
+  // TODO: Replace with actual BVN provider API call
+  // e.g. const result = await bvnProvider.verify({ bvn, firstName, lastName });
+  // if (!result.matched) throw AppError.badRequest("BVN verification failed");
+
+  const bvnHash = await bcrypt.hash(bvn, SALT_ROUNDS);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      bvnHash,
+      kycStatus: "VERIFIED",
+    },
+  });
+
+  logger.info("BVN verified", { userId });
+  return { kycStatus: "VERIFIED" };
 };
 
 /**
@@ -424,7 +618,7 @@ const generateTokens = (user) => {
   const refreshToken = jwt.sign(
     { id: user.id, jti: uuidv4() },
     config.JWT_REFRESH_SECRET,
-    { expiresIn: config.JWT_REFRESH_EXPIRY }
+    { expiresIn: config.JWT_REFRESH_EXPIRY },
   );
 
   return { accessToken, refreshToken };
@@ -440,8 +634,12 @@ module.exports = {
   setTransactionPin,
   changeTransactionPin,
   verifyTransactionPin,
+  requestPasswordReset,
   resetPassword,
   updateFcmToken,
   getProfile,
+  updateProfile,
+  updateProfilePicture,
+  verifyBvn,
   logout,
 };

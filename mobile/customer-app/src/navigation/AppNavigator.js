@@ -1,31 +1,117 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useSelector } from 'react-redux';
+import React, { useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useSelector, useDispatch } from "react-redux";
+import { hydrateAuth } from "../store/slices/authSlice";
 
-// Screens
-import LoginScreen from '../screens/auth/LoginScreen';
-import RegisterScreen from '../screens/auth/RegisterScreen';
-import OtpVerificationScreen from '../screens/auth/OtpVerificationScreen';
-import HomeScreen from '../screens/main/HomeScreen';
+// Auth Screens
+import LoginScreen from "../screens/auth/LoginScreen";
+import RegisterScreen from "../screens/auth/RegisterScreen";
+import OtpVerificationScreen from "../screens/auth/OtpVerificationScreen";
+import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
+import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
+
+// Main
+import MainTabNavigator from "./MainTabNavigator";
+
+// Profile Screens
+import EditProfileScreen from "../screens/profile/EditProfileScreen";
+import ProfilePhotoScreen from "../screens/profile/ProfilePhotoScreen";
+import BvnVerificationScreen from "../screens/profile/BvnVerificationScreen";
+import SetPinScreen from "../screens/profile/SetPinScreen";
+import ChangePinScreen from "../screens/profile/ChangePinScreen";
+import SecuritySettingsScreen from "../screens/profile/SecuritySettingsScreen";
+import NotificationSettingsScreen from "../screens/profile/NotificationSettingsScreen";
+import SavedAddressesScreen from "../screens/profile/SavedAddressesScreen";
+import HelpSupportScreen from "../screens/profile/HelpSupportScreen";
+import LegalScreen from "../screens/profile/LegalScreen";
+import AboutScreen from "../screens/profile/AboutScreen";
+
+// Location
+import LocationPickerScreen from "../screens/location/LocationPickerScreen";
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const { isAuthenticated, isHydrating } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(hydrateAuth());
+  }, [dispatch]);
+
+  if (isHydrating) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#f4f4f7",
+        }}
+      >
+        <ActivityIndicator size="large" color="#EA580C" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           // Main App
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="ProfilePhoto" component={ProfilePhotoScreen} />
+            <Stack.Screen
+              name="BvnVerification"
+              component={BvnVerificationScreen}
+            />
+            <Stack.Screen name="SetPin" component={SetPinScreen} />
+            <Stack.Screen name="ChangePin" component={ChangePinScreen} />
+            <Stack.Screen
+              name="SecuritySettings"
+              component={SecuritySettingsScreen}
+            />
+            <Stack.Screen
+              name="NotificationSettings"
+              component={NotificationSettingsScreen}
+            />
+            <Stack.Screen
+              name="SavedAddresses"
+              component={SavedAddressesScreen}
+            />
+            <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+            <Stack.Screen name="Legal" component={LegalScreen} />
+            <Stack.Screen name="About" component={AboutScreen} />
+            <Stack.Screen
+              name="LocationPicker"
+              component={LocationPickerScreen}
+              options={{
+                presentation: "modal",
+                animation: "slide_from_bottom",
+              }}
+            />
+          </>
         ) : (
           // Auth Flow
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="OtpVerification" component={OtpVerificationScreen} />
+            <Stack.Screen
+              name="OtpVerification"
+              component={OtpVerificationScreen}
+            />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+            />
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+            />
           </>
         )}
       </Stack.Navigator>

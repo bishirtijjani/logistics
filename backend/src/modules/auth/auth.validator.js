@@ -5,15 +5,18 @@
  * via the validate middleware BEFORE reaching the controller.
  */
 
-const { z } = require('zod');
+const { z } = require("zod");
 
 const registerSchema = z.object({
   email: z.string().email(),
-  phone: z.string().regex(/^0[789][01]\d{8}$/, 'Invalid Nigerian phone number').optional(),
+  phone: z
+    .string()
+    .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number")
+    .optional(),
   firstName: z.string().min(2).max(50),
   lastName: z.string().min(2).max(50),
   password: z.string().min(8).max(72),
-  role: z.enum(['CUSTOMER', 'RIDER']).default('CUSTOMER'),
+  role: z.enum(["CUSTOMER", "RIDER"]).default("CUSTOMER"),
 });
 
 const loginSchema = z.object({
@@ -31,12 +34,18 @@ const sendOtpSchema = z.object({
 });
 
 const setPinSchema = z.object({
-  pin: z.string().length(6).regex(/^\d{6}$/, 'PIN must be 6 digits'),
+  pin: z
+    .string()
+    .length(6)
+    .regex(/^\d{6}$/, "PIN must be 6 digits"),
 });
 
 const changePinSchema = z.object({
   currentPin: z.string().length(6),
-  newPin: z.string().length(6).regex(/^\d{6}$/, 'PIN must be 6 digits'),
+  newPin: z
+    .string()
+    .length(6)
+    .regex(/^\d{6}$/, "PIN must be 6 digits"),
 });
 
 const resetPasswordSchema = z.object({
@@ -45,14 +54,43 @@ const resetPasswordSchema = z.object({
   newPassword: z.string().min(8).max(72),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
 const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
 const verifyBvnSchema = z.object({
-  bvn: z.string().length(11).regex(/^\d{11}$/, 'BVN must be 11 digits'),
+  bvn: z
+    .string()
+    .length(11)
+    .regex(/^\d{11}$/, "BVN must be 11 digits"),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
+});
+
+const updateFcmTokenSchema = z.object({
+  fcmToken: z.string().min(1, "FCM token is required"),
+});
+
+const updateProfileSchema = z.object({
+  firstName: z.string().min(2).max(50).optional(),
+  lastName: z.string().min(2).max(50).optional(),
+  phone: z
+    .string()
+    .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number")
+    .optional(),
+  address: z.string().max(255).optional(),
+  dateOfBirth: z
+    .string()
+    .refine((val) => !isNaN(Date.parse(val)), "Invalid date format")
+    .optional(),
+});
+
+const updateProfilePictureSchema = z.object({
+  url: z.string().url("Invalid URL").optional(),
 });
 
 module.exports = {
@@ -60,9 +98,13 @@ module.exports = {
   loginSchema,
   verifyOtpSchema,
   sendOtpSchema,
+  forgotPasswordSchema,
   setPinSchema,
   changePinSchema,
   resetPasswordSchema,
   refreshTokenSchema,
   verifyBvnSchema,
+  updateFcmTokenSchema,
+  updateProfileSchema,
+  updateProfilePictureSchema,
 };

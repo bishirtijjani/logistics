@@ -1,20 +1,46 @@
-import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React from "react";
+import { TouchableOpacity, Text, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../theme";
 
-export default function SocialAuthButton({ onPress, iconName, text, isLoading, color = '#DB4437' }) {
+export default function SocialAuthButton({
+  onPress,
+  iconName,
+  text,
+  isLoading,
+  color = "#DB4437",
+}) {
   return (
     <TouchableOpacity
-      className="w-full flex-row items-center justify-center p-4 rounded-full bg-surface-muted border border-surface-muted shadow-sm shadow-black/5 active:scale-95 transition-transform mt-6 mb-4"
+      style={{
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderWidth: 1.5,
+        borderColor: colors.border,
+        marginTop: 12,
+      }}
       onPress={onPress}
       disabled={isLoading}
+      activeOpacity={0.7}
     >
       {isLoading ? (
-        <ActivityIndicator color="#09090b" />
+        <ActivityIndicator color={colors.text} />
       ) : (
         <>
-          <Ionicons name={iconName} size={24} color={color} style={{ marginRight: 12 }} />
-          <Text className="text-secondary font-bold text-lg tracking-wide">{text}</Text>
+          <Ionicons
+            name={iconName}
+            size={20}
+            color={color}
+            style={{ marginRight: 10 }}
+          />
+          <Text style={{ color: colors.text, fontWeight: "600", fontSize: 15 }}>
+            Continue with {text}
+          </Text>
         </>
       )}
     </TouchableOpacity>

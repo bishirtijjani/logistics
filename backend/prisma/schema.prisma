@@ -29,6 +29,13 @@ enum UserStatus {
   DEACTIVATED
 }
 
+enum KycStatus {
+  NONE
+  PENDING
+  VERIFIED
+  FAILED
+}
+
 enum TransactionType {
   WALLET_FUNDING
   P2P_TRANSFER_SENT
@@ -105,18 +112,22 @@ enum PaymentProvider {
 /// Core user identity — shared by customers, riders, and admins.
 /// Role determines which parts of the system the user can access.
 model User {
-  id            String      @id @default(uuid())
-  email         String      @unique
-  phone         String?     @unique
-  firstName     String
-  lastName      String
-  passwordHash  String
-  transactionPin String?    /// Hashed 6-digit PIN for financial operations
-  bvnHash       String?     /// Hashed BVN — never store plaintext
-  role          UserRole    @default(CUSTOMER)
-  status        UserStatus  @default(PENDING)
-  fcmToken      String?     /// Firebase Cloud Messaging token for push notifications
-  deletedAt     DateTime?   /// Soft delete
+  id             String      @id @default(uuid())
+  email          String      @unique
+  phone          String?     @unique
+  firstName      String
+  lastName       String
+  passwordHash   String?     /// Null for OAuth-only users (Google sign-in)
+  transactionPin String?     /// Hashed 6-digit PIN for financial operations
+  bvnHash        String?     /// Hashed BVN — never store plaintext
+  profilePicture String?     /// URL to profile picture (cloud storage)
+  dateOfBirth    DateTime?   /// For KYC identity confirmation
+  address        String?     /// Primary address text
+  kycStatus      KycStatus   @default(NONE)
+  role           UserRole    @default(CUSTOMER)
+  status         UserStatus  @default(PENDING)
+  fcmToken       String?     /// Firebase Cloud Messaging token for push notifications
+  deletedAt      DateTime?   /// Soft delete
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

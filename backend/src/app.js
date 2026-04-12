@@ -8,22 +8,23 @@
  * without starting an HTTP server.
  */
 
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const { errorHandler } = require('./middlewares/error.middleware');
-const { generalLimiter } = require('./middlewares/rate-limit.middleware');
-const { logger } = require('./utils/logger');
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const { errorHandler } = require("./middlewares/error.middleware");
+const { generalLimiter } = require("./middlewares/rate-limit.middleware");
+const { logger } = require("./utils/logger");
 
 // Route imports
-const authRoutes = require('./modules/auth/auth.routes');
-const walletRoutes = require('./modules/wallet/wallet.routes');
-const deliveryRoutes = require('./modules/delivery/delivery.routes');
-const utilityRoutes = require('./modules/utility/utility.routes');
-const riderRoutes = require('./modules/rider/rider.routes');
-const adminRoutes = require('./modules/admin/admin.routes');
-const webhookRoutes = require('./modules/webhook/webhook.routes');
+const authRoutes = require("./modules/auth/auth.routes");
+const walletRoutes = require("./modules/wallet/wallet.routes");
+const deliveryRoutes = require("./modules/delivery/delivery.routes");
+const utilityRoutes = require("./modules/utility/utility.routes");
+const riderRoutes = require("./modules/rider/rider.routes");
+const adminRoutes = require("./modules/admin/admin.routes");
+const webhookRoutes = require("./modules/webhook/webhook.routes");
+const mapsRoutes = require("./modules/maps/maps.routes");
 
 const createApp = () => {
   const app = express();
@@ -31,7 +32,7 @@ const createApp = () => {
   // --------------- Security & Parsing ---------------
   app.use(helmet());
   app.use(cors());
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
 
   // --------------- Rate Limiting ---------------
@@ -41,15 +42,15 @@ const createApp = () => {
 
   // --------------- Request Logging ---------------
   app.use(
-    morgan('short', {
+    morgan("short", {
       stream: { write: (message) => logger.info(message.trim()) },
-    })
+    }),
   );
 
   // --------------- Health Check ---------------
-  app.get('/health', (_req, res) => {
+  app.get("/health", (_req, res) => {
     res.json({
-      status: 'ok',
+      status: "ok",
       environment: process.env.NODE_ENV,
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
@@ -57,7 +58,7 @@ const createApp = () => {
   });
 
   // --------------- API Routes ---------------
-  const API_PREFIX = '/api/v1';
+  const API_PREFIX = "/api/v1";
 
   app.use(`${API_PREFIX}/auth`, authRoutes);
   app.use(`${API_PREFIX}/wallet`, walletRoutes);
@@ -66,12 +67,13 @@ const createApp = () => {
   app.use(`${API_PREFIX}/rider`, riderRoutes);
   app.use(`${API_PREFIX}/admin`, adminRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhookRoutes);
+  app.use(`${API_PREFIX}/maps`, mapsRoutes);
 
   // --------------- 404 Handler ---------------
   app.use((_req, res) => {
     res.status(404).json({
       success: false,
-      message: 'Route not found',
+      message: "Route not found",
       data: null,
     });
   });

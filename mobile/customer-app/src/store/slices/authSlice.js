@@ -1,74 +1,144 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as SecureStore from 'expo-secure-store';
-import api from '../../services/api';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import * as SecureStore from "expo-secure-store";
+import api from "../../services/api";
 
 // Async Thunks
-export const login = createAsyncThunk('auth/login', async (credentials, { rejectWithValue }) => {
-  try {
-    const response = await api.post('/auth/login', credentials);
-    const { user, tokens } = response.data;
-    await SecureStore.setItemAsync('accessToken', tokens.accessToken);
-    await SecureStore.setItemAsync('refreshToken', tokens.refreshToken);
-    return { user, tokens };
-  } catch (error) {
-    return rejectWithValue(error.message);
-  }
-});
 
-export const loginWithGoogle = createAsyncThunk('auth/loginWithGoogle', async (idToken, { rejectWithValue }) => {
-  try {
-    const response = await api.post('/auth/google', { idToken, role: 'CUSTOMER' });
-    const { user, tokens } = response.data;
-    await SecureStore.setItemAsync('accessToken', tokens.accessToken);
-    await SecureStore.setItemAsync('refreshToken', tokens.refreshToken);
-    return { user, tokens };
-  } catch (error) {
-    return rejectWithValue(error.message);
-  }
-});
+/**
+ * Check SecureStore for existing tokens on app startup.
+ * If a valid access token exists, fetch the user profile to restore the session.
+ */
+export const hydrateAuth = createAsyncThunk(
+  "auth/hydrate",
+  async (_, { rejectWithValue }) => {
+    try {
+      const accessToken = await SecureStore.getItemAsync("accessToken");
+      if (!accessToken) return null;
 
-export const register = createAsyncThunk('auth/register', async (userData, { rejectWithValue }) => {
-  try {
-    const response = await api.post('/auth/register', userData);
-    return response.data;
-  } catch (error) {
-    return rejectWithValue(error.message);
-  }
-});
-
-export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (verificationData, { rejectWithValue }) => {
-  try {
-    const response = await api.post('/auth/otp/verify', verificationData);
-    return response.data;
-  } catch (error) {
-    return rejectWithValue(error.message);
-  }
-});
-
-export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
-  try {
-    const refreshToken = await SecureStore.getItemAsync('refreshToken');
-    if (refreshToken) {
-      await api.post('/auth/logout', { refreshToken });
+      const response = await api.get("/auth/profile");
+      return { user: response.data };
+    } catch (error) {
+      // Token expired or invalid — clear stored tokens
+      await SecureStore.deleteItemAsync("accessToken");
+      await SecureStore.deleteItemAsync("refreshToken");
+      return null;
     }
-  } catch (error) {
-    console.warn('Logout API failed, continuing local logout', error);
-  } finally {
-    await SecureStore.deleteItemAsync('accessToken');
-    await SecureStore.deleteItemAsync('refreshToken');
-  }
-});
+  },
+);
+
+export const login = createAsyncThunk(
+  "auth/login",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/login", credentials);
+      const { user, tokens } = response.data;
+      await SecureStore.setItemAsync("accessToken", tokens.accessToken);
+      await SecureStore.setItemAsync("refreshToken", tokens.refreshToken);
+      return { user, tokens };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const loginWithGoogle = createAsyncThunk(
+  "auth/loginWithGoogle",
+  async (idToken, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/google", {
+        idToken,
+        role: "CUSTOMER",
+      });
+      const { user, tokens } = response.data;
+      await SecureStore.setItemAsync("accessToken", tokens.accessToken);
+      await SecureStore.setItemAsync("refreshToken", tokens.refreshToken);
+      return { user, tokens };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const register = createAsyncThunk(
+  "auth/register",
+  async (userData, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/register", userData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const verifyOtp = createAsyncThunk(
+  "auth/verifyOtp",
+  async (verificationData, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/otp/verify", verificationData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const logout = createAsyncThunk(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      const refreshToken = await SecureStore.getItemAsync("refreshToken");
+      if (refreshToken) {
+        await api.post("/auth/logout", { refreshToken });
+      }
+    } catch (error) {
+      console.warn("Logout API failed, continuing local logout", error);
+    } finally {
+      await SecureStore.deleteItemAsync("accessToken");
+      await SecureStore.deleteItemAsync("refreshToken");
+    }
+  },
+);
+
+export const requestPasswordReset = createAsyncThunk(
+  "auth/requestPasswordReset",
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/password/forgot", { email });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ email, code, newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/password/reset", {
+        email,
+        code,
+        newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
 
 const initialState = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isHydrating: true,
   error: null,
   pendingEmail: null,
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -79,6 +149,18 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Hydrate auth from stored tokens
+    builder.addCase(hydrateAuth.fulfilled, (state, action) => {
+      state.isHydrating = false;
+      if (action.payload) {
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+      }
+    });
+    builder.addCase(hydrateAuth.rejected, (state) => {
+      state.isHydrating = false;
+    });
+
     // Login
     builder.addCase(login.pending, (state) => {
       state.isLoading = true;
@@ -117,7 +199,7 @@ const authSlice = createSlice({
     builder.addCase(register.fulfilled, (state, action) => {
       state.isLoading = false;
       // We will set pending email so OTP screen knows the email
-      state.pendingEmail = action.meta.arg.email; 
+      state.pendingEmail = action.meta.arg.email;
     });
     builder.addCase(register.rejected, (state, action) => {
       state.isLoading = false;
@@ -142,6 +224,32 @@ const authSlice = createSlice({
     builder.addCase(logout.fulfilled, (state) => {
       state.user = null;
       state.isAuthenticated = false;
+    });
+
+    // Request password reset
+    builder.addCase(requestPasswordReset.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    });
+    builder.addCase(requestPasswordReset.fulfilled, (state) => {
+      state.isLoading = false;
+    });
+    builder.addCase(requestPasswordReset.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    });
+
+    // Reset password
+    builder.addCase(resetPassword.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    });
+    builder.addCase(resetPassword.fulfilled, (state) => {
+      state.isLoading = false;
+    });
+    builder.addCase(resetPassword.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
     });
   },
 });
