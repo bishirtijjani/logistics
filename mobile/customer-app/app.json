@@ -19,7 +19,7 @@
         "NSLocationWhenInUseUsageDescription": "We need your location to show nearby services and delivery options."
       },
       "config": {
-        "googleMapsApiKey": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
+        "googleMapsApiKey": "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI"
       }
     },
     "android": {
@@ -30,7 +30,7 @@
       "edgeToEdgeEnabled": true,
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+          "apiKey": "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI"
         }
       }
     },
