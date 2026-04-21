@@ -11,7 +11,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
-const { OAuth2Client } = require("google-auth-library");
 const { prisma } = require("../../config/database");
 const { redis } = require("../../config/redis");
 const { config } = require("../../config");
@@ -90,9 +89,7 @@ const login = async ({ email, password }, sessionMeta = {}) => {
   }
 
   if (!user.passwordHash) {
-    throw AppError.badRequest(
-      "This account uses Google sign-in. Please log in with Google.",
-    );
+    throw AppError.badRequest("Password is required to login");
   }
 
   const isValid = await bcrypt.compare(password, user.passwordHash);
@@ -114,94 +111,6 @@ const login = async ({ email, password }, sessionMeta = {}) => {
   });
 
   logger.info("User logged in", { userId: user.id });
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      status: user.status,
-      hasPinSet: !!user.transactionPin,
-    },
-    tokens,
-  };
-};
-
-/**
- * Google Auth — verify token from Expo frontend and return session.
- */
-const googleAuth = async ({ idToken, role }, sessionMeta = {}) => {
-  const client = new OAuth2Client();
-
-  // Verify the provided token matches one of our Apps Client IDs
-  const ticket = await client.verifyIdToken({
-    idToken,
-    audience: [
-      "1001895940462-lbs6fcgm1cn4fj2hhrjotltcjq6mebai.apps.googleusercontent.com", // Web (Expo Go)
-      "1001895940462-h88c8hi8r4guiu05j4dqki52poufuspk.apps.googleusercontent.com", // Android
-      "1001895940462-7urrks74vpq96kjgarrf5dj92odjr67a.apps.googleusercontent.com", // iOS
-    ],
-  });
-
-  const payload = ticket.getPayload();
-  if (!payload || !payload.email) {
-    throw AppError.unauthorized("Invalid Google Token");
-  }
-
-  const { email, given_name, family_name } = payload;
-
-  let user = await prisma.user.findUnique({ where: { email } });
-
-  if (!user) {
-    // Note: No password hash needed for OAuth users
-    // They also bypass manual OTP since Google verified their email
-    user = await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          firstName: given_name || "Google",
-          lastName: family_name || "User",
-          email,
-          role: role || "CUSTOMER",
-          status: "ACTIVE", // Automatically active since email is verified by Google
-        },
-      });
-
-      await tx.wallet.create({
-        data: {
-          userId: newUser.id,
-          balance: 0,
-        },
-      });
-
-      return newUser;
-    });
-
-    logger.info("New user registered via Google", { userId: user.id });
-  } else {
-    if (user.status === "SUSPENDED") {
-      throw AppError.forbidden("Account suspended. Contact support.");
-    }
-    if (user.status === "DEACTIVATED") {
-      throw AppError.forbidden("Account deactivated");
-    }
-  }
-
-  // Issue session
-  const tokens = generateTokens(user);
-
-  await prisma.session.create({
-    data: {
-      userId: user.id,
-      refreshToken: tokens.refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      ipAddress: sessionMeta.ipAddress || null,
-      deviceInfo: sessionMeta.deviceInfo || null,
-    },
-  });
-
-  logger.info("User logged in via Google", { userId: user.id });
 
   return {
     user: {
@@ -627,7 +536,6 @@ const generateTokens = (user) => {
 module.exports = {
   register,
   login,
-  googleAuth,
   generateOtp,
   verifyOtp,
   refreshAccessToken,

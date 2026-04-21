@@ -12,20 +12,11 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  register,
-  loginWithGoogle,
-  clearError,
-} from "../../store/slices/authSlice";
+import { register, clearError } from "../../store/slices/authSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
 import FormInput from "../../components/FormInput";
-import SocialAuthButton from "../../components/SocialAuthButton";
-
-WebBrowser.maybeCompleteAuthSession();
 
 const registerSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -43,15 +34,6 @@ export default function RegisterScreen({ navigation }) {
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId:
-      "1001895940462-lbs6fcgm1cn4fj2hhrjotltcjq6mebai.apps.googleusercontent.com",
-    iosClientId:
-      "1001895940462-7urrks74vpq96kjgarrf5dj92odjr67a.apps.googleusercontent.com",
-    androidClientId:
-      "1001895940462-h88c8hi8r4guiu05j4dqki52poufuspk.apps.googleusercontent.com",
-  });
-
   const {
     control,
     handleSubmit,
@@ -60,22 +42,6 @@ export default function RegisterScreen({ navigation }) {
     resolver: zodResolver(registerSchema),
     defaultValues: { firstName: "", lastName: "", email: "", password: "" },
   });
-
-  React.useEffect(() => {
-    if (response?.type === "success") {
-      const { idToken } = response.authentication;
-      if (idToken) {
-        dispatch(loginWithGoogle(idToken))
-          .unwrap()
-          .then(() => {
-            Toast.show({ type: "success", text1: "Google Auth Successful!" });
-          })
-          .catch((err) => {
-            Toast.show({ type: "error", text1: "Auth Failed", text2: err });
-          });
-      }
-    }
-  }, [response, dispatch]);
 
   const onSubmit = async (data) => {
     dispatch(clearError());
@@ -235,30 +201,6 @@ export default function RegisterScreen({ navigation }) {
               </Text>
             )}
           </TouchableOpacity>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 20,
-              marginBottom: 4,
-            }}
-          >
-            <View style={{ flex: 1, height: 1, backgroundColor: "#E5E7EB" }} />
-            <Text
-              style={{ marginHorizontal: 14, color: "#6B7280", fontSize: 13 }}
-            >
-              or continue with
-            </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: "#E5E7EB" }} />
-          </View>
-
-          <SocialAuthButton
-            text="Google"
-            iconName="logo-google"
-            onPress={() => promptAsync()}
-            isLoading={!request}
-          />
 
           <View
             style={{

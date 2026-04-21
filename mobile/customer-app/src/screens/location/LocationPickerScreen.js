@@ -30,6 +30,7 @@ export default function LocationPickerScreen({ navigation, route }) {
 
   const mapRef = useRef(null);
   const searchTimeout = useRef(null);
+  const geocodeTimeout = useRef(null);
   const sessionToken = useRef(`${Date.now()}-${Math.random()}`);
 
   const [region, setRegion] = useState({
@@ -50,26 +51,44 @@ export default function LocationPickerScreen({ navigation, route }) {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
-  // Reverse geocode the map center when user stops dragging
+  // Reverse geocode the map center when user stops dragging (debounced)
   const handleRegionChangeComplete = useCallback(
-    async (newRegion) => {
+    (newRegion) => {
       setRegion(newRegion);
       if (showSearch) return; // Don't geocode while searching
 
-      setIsGeocoding(true);
-      try {
-        const { data } = await api.get("/maps/reverse-geocode", {
-          params: {
-            lat: newRegion.latitude,
-            lng: newRegion.longitude,
-          },
-        });
-        setAddress(data.data?.formattedAddress || "Unknown location");
-      } catch {
-        setAddress("Unable to determine address");
-      } finally {
-        setIsGeocoding(false);
+      // Clear any pending geocode
+      if (geocodeTimeout.current) {
+        clearTimeout(geocodeTimeout.current);
       }
+
+      // Show loading state immediately
+      setIsGeocoding(true);
+      // Clear address temporarily to indicate change
+      setAddress("");
+
+      // Debounce the API call - wait 600ms after user stops dragging
+      geocodeTimeout.current = setTimeout(async () => {
+        try {
+          const { data } = await api.get("/maps/reverse-geocode", {
+            params: {
+              lat: newRegion.latitude,
+              lng: newRegion.longitude,
+            },
+          });
+          const formattedAddress = data.data?.formattedAddress;
+          if (formattedAddress) {
+            setAddress(formattedAddress);
+          } else {
+            setAddress("Unknown location");
+          }
+        } catch (err) {
+          console.error("Reverse geocode error:", err);
+          setAddress("Unable to determine address");
+        } finally {
+          setIsGeocoding(false);
+        }
+      }, 600);
     },
     [showSearch],
   );
@@ -131,6 +150,15 @@ export default function LocationPickerScreen({ navigation, route }) {
     } finally {
       setIsGeocoding(false);
     }
+  }, []);
+
+  // Cleanup geocode timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (geocodeTimeout.current) {
+        clearTimeout(geocodeTimeout.current);
+      }
+    };
   }, []);
 
   // Re-center on GPS

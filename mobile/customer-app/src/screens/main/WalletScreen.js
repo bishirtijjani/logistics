@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchWallet } from "../../store/slices/walletSlice";
 import { colors } from "../../theme";
+import Toast from "react-native-toast-message";
 
 function formatNaira(amount) {
   return (
@@ -22,7 +23,7 @@ function formatNaira(amount) {
   );
 }
 
-export default function WalletScreen() {
+export default function WalletScreen({ navigation }) {
   const dispatch = useDispatch();
   const { balance, isLoading } = useSelector((state) => state.wallet);
   const [showBalance, setShowBalance] = useState(true);
@@ -31,7 +32,8 @@ export default function WalletScreen() {
     dispatch(fetchWallet());
   }, [dispatch]);
 
-  const transactions = []; // will be populated from API
+  // Transactions will be populated from API - placeholder for now
+  const transactions = [];
 
   return (
     <SafeAreaView
@@ -134,6 +136,7 @@ export default function WalletScreen() {
             </Text>
             <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity
+                onPress={() => navigation.navigate("FundWallet")}
                 style={{
                   flex: 1,
                   backgroundColor: colors.primary,
@@ -157,27 +160,19 @@ export default function WalletScreen() {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                onPress={() => Toast.show({ type: "info", text1: "Coming Soon", text2: "P2P transfers will be available soon!" })}
                 style={{
                   flex: 1,
-                  backgroundColor: "#ffffff12",
+                  backgroundColor: colors.surface,
                   paddingVertical: 13,
                   borderRadius: 13,
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: 1,
-                  borderColor: "#ffffff10",
                 }}
               >
-                <Ionicons name="arrow-up" size={18} color={colors.white} />
-                <Text
-                  style={{
-                    color: colors.white,
-                    fontWeight: "800",
-                    fontSize: 14,
-                    marginLeft: 6,
-                  }}
-                >
+                <Ionicons name="send" size={18} color={colors.text} />
+                <Text style={{ marginLeft: 6, color: colors.text, fontWeight: "700" }}>
                   Send
                 </Text>
               </TouchableOpacity>

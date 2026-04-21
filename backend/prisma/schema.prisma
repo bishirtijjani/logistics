@@ -117,7 +117,7 @@ model User {
   phone          String?     @unique
   firstName      String
   lastName       String
-  passwordHash   String?     /// Null for OAuth-only users (Google sign-in)
+  passwordHash   String?     /// Hashed password for email/password login
   transactionPin String?     /// Hashed 6-digit PIN for financial operations
   bvnHash        String?     /// Hashed BVN — never store plaintext
   profilePicture String?     /// URL to profile picture (cloud storage)

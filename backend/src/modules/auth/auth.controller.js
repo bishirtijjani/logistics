@@ -49,21 +49,6 @@ const login = async (req, res, next) => {
   }
 };
 
-const googleAuth = async (req, res, next) => {
-  try {
-    const sessionMeta = {
-      ipAddress: req.ip,
-      deviceInfo: req.headers["user-agent"] || null,
-    };
-    const result = await authService.googleAuth(req.body, sessionMeta);
-    res
-      .status(200)
-      .json(ApiResponse.success("Google Login successful", result));
-  } catch (error) {
-    next(error);
-  }
-};
-
 const sendOtp = async (req, res, next) => {
   try {
     // Enforce 60s cooldown for resend requests
@@ -229,7 +214,6 @@ const logout = async (req, res, next) => {
 module.exports = {
   register,
   login,
-  googleAuth,
   sendOtp,
   verifyOtp,
   refreshToken,

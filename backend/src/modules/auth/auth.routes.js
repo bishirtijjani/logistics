@@ -37,7 +37,6 @@ router.post(
   authController.register,
 );
 router.post("/login", authLimiter, validate(loginSchema), authController.login);
-router.post("/google", authLimiter, authController.googleAuth);
 router.post(
   "/otp/send",
   otpLimiter,

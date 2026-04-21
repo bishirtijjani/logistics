@@ -16,6 +16,7 @@ import {
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 // SKIN A — Bold Lagos
 
@@ -354,9 +355,22 @@ export default function HomeScreen({ navigation }) {
           >
             {coreServices.map((item) => {
               const Icon = resolveIcon(item);
+              const handlePress = () => {
+                if (item.name === "Delivery") {
+                  navigation.navigate("CreateDelivery");
+                } else if (item.name === "Food" || item.name === "Pharmacy" || item.name === "Groceries") {
+                  // Coming soon toast
+                  Toast.show({
+                    type: "info",
+                    text1: "Coming Soon",
+                    text2: `${item.name} ordering will be available soon!`,
+                  });
+                }
+              };
               return (
                 <TouchableOpacity
                   key={item.id}
+                  onPress={handlePress}
                   style={{ width: "23%", alignItems: "center" }}
                 >
                   <View
@@ -424,9 +438,29 @@ export default function HomeScreen({ navigation }) {
           >
             {vtuServices.map((item) => {
               const Icon = resolveIcon(item);
+              const handlePress = () => {
+                if (item.name === "Airtime") {
+                  navigation.navigate("Airtime");
+                } else if (item.name === "Data") {
+                  navigation.navigate("Data");
+                } else if (item.name === "Electricity") {
+                  Toast.show({
+                    type: "info",
+                    text1: "Coming Soon",
+                    text2: "Electricity payments will be available soon!",
+                  });
+                } else if (item.name === "Transfer") {
+                  Toast.show({
+                    type: "info",
+                    text1: "Coming Soon",
+                    text2: "P2P transfers will be available soon!",
+                  });
+                }
+              };
               return (
                 <TouchableOpacity
                   key={item.id}
+                  onPress={handlePress}
                   style={{ width: "23%", alignItems: "center" }}
                 >
                   <View
@@ -536,6 +570,7 @@ export default function HomeScreen({ navigation }) {
             </Text>
           </View>
           <TouchableOpacity
+            onPress={() => navigation.navigate("CreateDelivery")}
             style={{
               backgroundColor: "#EA580C",
               paddingHorizontal: 18,
@@ -726,6 +761,10 @@ export default function HomeScreen({ navigation }) {
             </View>
             <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                  navigation.navigate("FundWallet");
+                }}
                 style={{
                   flex: 1,
                   backgroundColor: "#EA580C",

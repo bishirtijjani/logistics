@@ -13,6 +13,12 @@ const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const { DELIVERY_TRANSITIONS } = require('../../utils/constants');
 const { config } = require('../../config');
+const mapsService = require('../../services/maps.service');
+const { deliveryQueue } = require('../../queues');
+const { DELIVERY_JOBS } = require('../../queues/jobs');
+const { getIO } = require('../../sockets');
+const { DELIVERY, getDeliveryRoom, getRiderPoolRoom } = require('../../sockets/events');
+const notificationService = require('../../services/notification.service');
 
 /**
  * Calculate fare based on distance.
@@ -28,14 +34,22 @@ const calculateFare = (distanceKm) => {
  * Estimate delivery fare without creating an order.
  */
 const estimateFare = async ({ pickupLat, pickupLng, dropoffLat, dropoffLng }) => {
-  // TODO: Use maps.service to get actual road distance
-  // For now, use Haversine formula for straight-line distance
-  const distanceKm = haversineDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+  // Use Google Maps to get actual road distance and ETA
+  const distanceResult = await mapsService.getDistance(
+    pickupLat,
+    pickupLng,
+    dropoffLat,
+    dropoffLng
+  );
+
+  const distanceKm = distanceResult.distanceKm;
+  const estimatedTimeMinutes = Math.ceil(distanceResult.durationSeconds / 60);
   const fare = calculateFare(distanceKm);
   const platformFee = Math.ceil((fare * config.DELIVERY_PLATFORM_FEE_PERCENT) / 100);
 
   return {
     distanceKm: Math.round(distanceKm * 10) / 10,
+    estimatedTimeMinutes,
     fare,
     platformFee,
     totalCharge: fare,
@@ -79,8 +93,23 @@ const createOrder = async (customerId, orderData) => {
 
   logger.info('Delivery order created', { orderId: order.id, customerId });
 
-  // TODO: Queue rider matching job
-  // TODO: Emit socket event for nearby riders
+  // Queue rider matching job
+  await deliveryQueue.add(DELIVERY_JOBS.BROADCAST_TO_RIDERS, {
+    orderId: order.id,
+    pickupLat: orderData.pickupLat,
+    pickupLng: orderData.pickupLng,
+    fare: estimate.fare,
+    distanceKm: estimate.distanceKm,
+  }, {
+    delay: 1000, // 1 second delay to allow transaction to commit
+  });
+
+  // Schedule auto-cancel if no rider accepts within 5 minutes
+  await deliveryQueue.add(DELIVERY_JOBS.AUTO_CANCEL_UNMATCHED, {
+    orderId: order.id,
+  }, {
+    delay: 5 * 60 * 1000, // 5 minutes
+  });
 
   return order;
 };
@@ -132,11 +161,35 @@ const updateStatus = async (orderId, newStatus, userId, cancellationReason) => {
 
   // If delivered, trigger settlement
   if (newStatus === 'DELIVERED') {
-    // TODO: Queue settlement job
+    await deliveryQueue.add(DELIVERY_JOBS.SETTLE_DELIVERY, { orderId }, {
+      delay: 5000, // 5 second delay to allow customer to verify delivery
+    });
   }
 
-  // TODO: Emit socket event for status change
-  // TODO: Send push notification
+  // Emit socket event for status change
+  const io = getIO();
+  io.to(getDeliveryRoom(orderId)).emit(DELIVERY.STATUS_CHANGED, {
+    orderId,
+    status: newStatus,
+    timestamp: new Date(),
+  });
+
+  // Send push notification
+  const customer = await prisma.user.findUnique({
+    where: { id: order.customerId },
+    select: { fcmToken: true },
+  });
+
+  if (customer?.fcmToken) {
+    switch (newStatus) {
+      case 'MATCHED':
+        await notificationService.notifyRiderAssigned(customer.fcmToken, orderId);
+        break;
+      case 'DELIVERED':
+        await notificationService.notifyDeliveryComplete(customer.fcmToken, orderId, order.fare);
+        break;
+    }
+  }
 
   return updated;
 };

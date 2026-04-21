@@ -31,6 +31,20 @@ import AboutScreen from "../screens/profile/AboutScreen";
 // Location
 import LocationPickerScreen from "../screens/location/LocationPickerScreen";
 
+// Delivery Screens
+import CreateDeliveryScreen from "../screens/delivery/CreateDeliveryScreen";
+import TrackDeliveryScreen from "../screens/delivery/TrackDeliveryScreen";
+import RateDeliveryScreen from "../screens/delivery/RateDeliveryScreen";
+
+// Wallet Screens
+import FundWalletScreen from "../screens/wallet/FundWalletScreen";
+import TransactionHistoryScreen from "../screens/wallet/TransactionHistoryScreen";
+
+// Utility Screens
+import AirtimeScreen from "../screens/utility/AirtimeScreen";
+import DataScreen from "../screens/utility/DataScreen";
+import UtilityHistoryScreen from "../screens/utility/UtilityHistoryScreen";
+
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -94,6 +108,20 @@ export default function AppNavigator() {
                 animation: "slide_from_bottom",
               }}
             />
+
+            {/* Delivery Flow */}
+            <Stack.Screen name="CreateDelivery" component={CreateDeliveryScreen} />
+            <Stack.Screen name="TrackDelivery" component={TrackDeliveryScreen} />
+            <Stack.Screen name="RateDelivery" component={RateDeliveryScreen} />
+
+            {/* Wallet Screens */}
+            <Stack.Screen name="FundWallet" component={FundWalletScreen} />
+            <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
+
+            {/* Utility Screens */}
+            <Stack.Screen name="Airtime" component={AirtimeScreen} />
+            <Stack.Screen name="Data" component={DataScreen} />
+            <Stack.Screen name="UtilityHistory" component={UtilityHistoryScreen} />
           </>
         ) : (
           // Auth Flow

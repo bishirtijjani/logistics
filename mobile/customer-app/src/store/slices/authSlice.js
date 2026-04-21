@@ -41,24 +41,6 @@ export const login = createAsyncThunk(
   },
 );
 
-export const loginWithGoogle = createAsyncThunk(
-  "auth/loginWithGoogle",
-  async (idToken, { rejectWithValue }) => {
-    try {
-      const response = await api.post("/auth/google", {
-        idToken,
-        role: "CUSTOMER",
-      });
-      const { user, tokens } = response.data;
-      await SecureStore.setItemAsync("accessToken", tokens.accessToken);
-      await SecureStore.setItemAsync("refreshToken", tokens.refreshToken);
-      return { user, tokens };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  },
-);
-
 export const register = createAsyncThunk(
   "auth/register",
   async (userData, { rejectWithValue }) => {
@@ -172,21 +154,6 @@ const authSlice = createSlice({
       state.user = action.payload.user;
     });
     builder.addCase(login.rejected, (state, action) => {
-      state.isLoading = false;
-      state.error = action.payload;
-    });
-
-    // Google Login
-    builder.addCase(loginWithGoogle.pending, (state) => {
-      state.isLoading = true;
-      state.error = null;
-    });
-    builder.addCase(loginWithGoogle.fulfilled, (state, action) => {
-      state.isLoading = false;
-      state.isAuthenticated = true;
-      state.user = action.payload.user;
-    });
-    builder.addCase(loginWithGoogle.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload;
     });
