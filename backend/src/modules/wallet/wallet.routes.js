@@ -1,5 +1,5 @@
 /**
- * Wallet routes — /api/v1/wallet
+ * Wallet routes — /api/wallet
  */
 
 const { Router } = require('express');

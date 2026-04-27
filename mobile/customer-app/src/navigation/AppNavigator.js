@@ -36,6 +36,14 @@ import CreateDeliveryScreen from "../screens/delivery/CreateDeliveryScreen";
 import TrackDeliveryScreen from "../screens/delivery/TrackDeliveryScreen";
 import RateDeliveryScreen from "../screens/delivery/RateDeliveryScreen";
 
+// Provider Screens (NEW - Unified Request Architecture)
+import ProviderBrowseScreen from "../screens/provider/ProviderBrowseScreen";
+import ProviderMenuScreen from "../screens/provider/ProviderMenuScreen";
+
+// Request Screens (NEW - Unified Request Architecture)
+import CheckoutScreen from "../screens/request/CheckoutScreen";
+import RequestTrackingScreen from "../screens/request/RequestTrackingScreen";
+
 // Wallet Screens
 import FundWalletScreen from "../screens/wallet/FundWalletScreen";
 import TransactionHistoryScreen from "../screens/wallet/TransactionHistoryScreen";
@@ -113,6 +121,14 @@ export default function AppNavigator() {
             <Stack.Screen name="CreateDelivery" component={CreateDeliveryScreen} />
             <Stack.Screen name="TrackDelivery" component={TrackDeliveryScreen} />
             <Stack.Screen name="RateDelivery" component={RateDeliveryScreen} />
+
+            {/* Provider Flow (NEW - Unified Request Architecture) */}
+            <Stack.Screen name="ProviderBrowse" component={ProviderBrowseScreen} />
+            <Stack.Screen name="ProviderMenu" component={ProviderMenuScreen} />
+
+            {/* Request Flow (NEW - Unified Request Architecture) */}
+            <Stack.Screen name="Checkout" component={CheckoutScreen} />
+            <Stack.Screen name="RequestTracking" component={RequestTrackingScreen} />
 
             {/* Wallet Screens */}
             <Stack.Screen name="FundWallet" component={FundWalletScreen} />

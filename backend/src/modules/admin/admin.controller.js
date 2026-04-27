@@ -23,6 +23,15 @@ const reviewRider = async (req, res, next) => {
   }
 };
 
+const getAllUsers = async (req, res, next) => {
+  try {
+    const { users, total, page, limit } = await adminService.getAllUsers(req.query);
+    res.json(ApiResponse.paginated('All users', users, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateUserStatus = async (req, res, next) => {
   try {
     const result = await adminService.updateUserStatus(req.params.userId, req.body.status);
@@ -50,10 +59,187 @@ const getDashboard = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// Admin Request Management Controllers
+// ============================================================
+
+const getAllRequests = async (req, res, next) => {
+  try {
+    const { requests, total, page, limit } = await adminService.getAllRequests(req.query);
+    res.json(ApiResponse.paginated('All requests', requests, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const reassignRider = async (req, res, next) => {
+  try {
+    const result = await adminService.reassignRider(req.params.requestId, req.body.newRiderId);
+    res.json(ApiResponse.success('Rider reassigned', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const forceCancelRequest = async (req, res, next) => {
+  try {
+    const result = await adminService.forceCancelRequest(req.params.requestId, req.body.reason);
+    res.json(ApiResponse.success('Request cancelled', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const adminUpdateRequestStatus = async (req, res, next) => {
+  try {
+    const result = await adminService.adminUpdateRequestStatus(
+      req.params.requestId,
+      req.body.status,
+      req.body.reason
+    );
+    res.json(ApiResponse.success('Request status updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Admin Provider Management Controllers
+// ============================================================
+
+const getAllProviders = async (req, res, next) => {
+  try {
+    const { providers, total, page, limit } = await adminService.getAllProviders(req.query);
+    res.json(ApiResponse.paginated('All providers', providers, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const approveProvider = async (req, res, next) => {
+  try {
+    const result = await adminService.approveProvider(req.params.providerId);
+    res.json(ApiResponse.success('Provider approved', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectProvider = async (req, res, next) => {
+  try {
+    const result = await adminService.rejectProvider(req.params.providerId, req.body.reason);
+    res.json(ApiResponse.success('Provider rejected', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const suspendProvider = async (req, res, next) => {
+  try {
+    const result = await adminService.suspendProvider(req.params.providerId, req.body.reason);
+    res.json(ApiResponse.success('Provider suspended', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const unsuspendProvider = async (req, res, next) => {
+  try {
+    const result = await adminService.unsuspendProvider(req.params.providerId);
+    res.json(ApiResponse.success('Provider unsuspended', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateProviderCommission = async (req, res, next) => {
+  try {
+    const result = await adminService.updateProviderCommission(
+      req.params.providerId,
+      req.body.commissionRate
+    );
+    res.json(ApiResponse.success('Provider commission updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Admin Rider Management Controllers
+// ============================================================
+
+const getAllRiders = async (req, res, next) => {
+  try {
+    const { riders, total, page, limit } = await adminService.getAllRiders(req.query);
+    res.json(ApiResponse.paginated('All riders', riders, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderEarnings = async (req, res, next) => {
+  try {
+    const result = await adminService.getRiderEarnings(req.params.riderId, req.query);
+    res.json(ApiResponse.success('Rider earnings', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderDeliveryHistory = async (req, res, next) => {
+  try {
+    const { deliveries, total, page, limit } = await adminService.getRiderDeliveryHistory(
+      req.params.riderId,
+      req.query
+    );
+    res.json(ApiResponse.paginated('Rider delivery history', deliveries, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Platform Settings Controllers
+// ============================================================
+
+const getPlatformSettings = async (req, res, next) => {
+  try {
+    const settings = await adminService.getPlatformSettings();
+    res.json(ApiResponse.success('Platform settings', settings));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updatePlatformSettings = async (req, res, next) => {
+  try {
+    const result = await adminService.updatePlatformSettings(req.body);
+    res.json(ApiResponse.success('Platform settings updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
+  getAllUsers,
   updateUserStatus,
   getTransactions,
   getDashboard,
+  getAllRequests,
+  reassignRider,
+  forceCancelRequest,
+  adminUpdateRequestStatus,
+  getAllProviders,
+  approveProvider,
+  rejectProvider,
+  suspendProvider,
+  unsuspendProvider,
+  updateProviderCommission,
+  getAllRiders,
+  getRiderEarnings,
+  getRiderDeliveryHistory,
+  getPlatformSettings,
+  updatePlatformSettings,
 };

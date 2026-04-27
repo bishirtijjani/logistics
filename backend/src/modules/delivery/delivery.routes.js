@@ -1,5 +1,5 @@
 /**
- * Delivery routes — /api/v1/delivery
+ * Delivery routes — /api/delivery
  */
 
 const { Router } = require('express');

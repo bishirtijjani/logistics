@@ -13,12 +13,14 @@ const { startPaymentWorker } = require('./workers/payment.worker');
 const { startNotificationWorker } = require('./workers/notification.worker');
 const { startDeliveryWorker } = require('./workers/delivery.worker');
 const { startUtilityWorker } = require('./workers/utility.worker');
+const { startRequestWorker } = require('./workers/request.worker');  // NEW
 
 // Queue instances — import these in services to add jobs
 const paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
 const notificationQueue = new Queue(QUEUES.NOTIFICATION, { connection: redis });
 const deliveryQueue = new Queue(QUEUES.DELIVERY, { connection: redis });
 const utilityQueue = new Queue(QUEUES.UTILITY, { connection: redis });
+const requestQueue = new Queue(QUEUES.REQUEST, { connection: redis });  // NEW
 
 /**
  * Initialize all queues and start workers.
@@ -28,6 +30,7 @@ const initializeQueues = () => {
   startNotificationWorker();
   startDeliveryWorker();
   startUtilityWorker();
+  startRequestWorker();  // NEW
 
   logger.info('All queue workers started', {
     queues: Object.values(QUEUES),
@@ -40,4 +43,5 @@ module.exports = {
   notificationQueue,
   deliveryQueue,
   utilityQueue,
+  requestQueue,  // NEW
 };

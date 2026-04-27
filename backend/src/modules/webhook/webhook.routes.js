@@ -1,5 +1,5 @@
 /**
- * Webhook routes — /api/v1/webhooks
+ * Webhook routes — /api/webhooks
  *
  * These endpoints receive callbacks from external providers.
  * They do NOT require JWT auth — they use provider-specific verification.

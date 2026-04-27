@@ -77,7 +77,7 @@ Every API response follows this format:
 - Services NEVER access `req` or `res`
 
 ### Route Rules
-- All routes are prefixed with `/api/v1/`
+- All routes are prefixed with `/api`
 - Apply `authenticate` middleware for protected routes
 - Apply `authorize('ROLE')` for role-restricted routes
 - Apply `validate(schema)` for request validation
@@ -246,3 +246,92 @@ const walletSlice = createSlice({
    - Use a **Stacked Card UI**, not rigid Bento grids. Provide massive, thumb-friendly touch targets.
    - Utility icons should map to 3x3 pill grids.
 5. **Logistics Integration:** The map is the absolute bottom layer. All delivery interactions must happen inside rounded Bottom Sheets sliding over the map.
+
+---
+
+## 13. Unified Request Architecture — NEW
+
+> **This section is LAW.** All code must treat every business activity as a Request that follows the same lifecycle, regardless of type.
+
+### Core Principle
+
+**Everything is a Request.** Food ordering, grocery shopping, pharmacy orders, and package delivery are all types of `Request`. They share the same lifecycle, the same tracking, the same financial settlement, and the same admin interface.
+
+### Request Lifecycle (Universal)
+
+```
+REQUESTED → ACCEPTED → PROCESSING → READY_FOR_PICKUP → RIDER_ASSIGNED → RIDER_EN_ROUTE → PICKED_UP → IN_TRANSIT → DELIVERED → SETTLED
+```
+
+- **Food:** Goes through ALL phases (restaurant accepts, cooks, prepares, rider picks up, delivers)
+- **Package:** Skips ACCEPTED/PROCESSING (no provider), goes from REQUESTED directly to READY_FOR_PICKUP, then rider assigned
+
+### Rules
+
+1. **No hardcoded assumptions about request type.** The system must adapt based on `request.type`, not hardcoded logic.
+2. **All financial actions flow through the wallet.** Even cash payments create a transaction record.
+3. **Settlement splits must exist from day one.** Every request must record: `customerPaid`, `providerEarning`, `riderEarning`, `platformEarning`.
+4. **Socket events use `request:` namespace**, not `delivery:`.
+5. **Status display maps to plain language** based on the request type (e.g., "Preparing your order" for food, "Package ready for pickup" for package).
+6. **The same tracking screen works for all types** — it adapts based on the request data.
+7. **Admin sees all requests in one interface** — filtering only by type when needed.
+
+### Database Rules (Request Model)
+
+- `Request.type` determines behavior, not separate tables or endpoints.
+- `Request.providerId` is optional — package deliveries have no provider.
+- `Request.providerEarning` is `0` for package deliveries.
+- All timestamps (`acceptedAt`, `processingAt`, `readyAt`, etc.) exist on every request, but may be `null`.
+
+### API Rules (Request Endpoints)
+
+- Use `/api/requests` for ALL request operations.
+- Do NOT create separate `/food/orders`, `/grocery/orders`, `/delivery/orders` endpoints.
+- The `type` field in the request body determines the business logic.
+
+### Frontend Rules
+
+- One tracking screen component serves ALL request types.
+- One order history list shows ALL request types.
+- Status labels adapt based on request type:
+  - Food: "Order received", "Preparing", "Ready for pickup", "Rider on the way"
+  - Package: "Request received", "Ready for pickup", "Rider on the way", "Delivered"
+
+### Financial Rules
+
+- When a customer pays, the money belongs to the PLATFORM first.
+- The platform then logically splits it: provider share, rider share, platform commission.
+- These records MUST exist even if actual disbursement is manual or deferred.
+- Provider wallets track `availableBalance` (cleared) and `pendingBalance` (in escrow).
+
+---
+
+## 14. Financial Settlement Rules — NEW
+
+> **Every request triggers a settlement. Every settlement creates auditable records.**
+
+### Settlement Flow
+
+1. **Customer Payment:** Debit customer wallet, credit platform holding account.
+2. **On Delivery:** Trigger settlement worker.
+3. **Splits:**
+   - Provider (if applicable): `subtotal` - `providerCommission`
+   - Rider: `deliveryFee` - `platformDeliveryFee`
+   - Platform: `platformFee` + `platformDeliveryFee`
+
+### Wallet Rules
+
+1. **Customer Wallet:** Single balance, all transactions append-only.
+2. **Provider Wallet:** Separate `availableBalance` and `pendingBalance`. Available can be withdrawn. Pending is held in escrow.
+3. **Rider Wallet:** Single balance, tracks earnings per request.
+4. **Platform Revenue:** Tracked as a separate ledger (not in user/provider wallets).
+
+### Transaction Types
+
+- `REQUEST_PAYMENT` — Customer pays for request
+- `REQUEST_REFUND` — Customer refunded (cancelled request)
+- `PROVIDER_EARNING` — Provider credited for fulfilled request
+- `RIDER_EARNING` — Rider credited for completed delivery
+- `PLATFORM_FEE` — Platform commission recorded
+- `PROVIDER_WITHDRAWAL` — Provider withdraws earnings
+- `RIDER_WITHDRAWAL` — Rider withdraws earnings (future)

@@ -16,6 +16,7 @@ const { logger } = require('../utils/logger');
 const { CONNECTION, getUserRoom, getRiderPoolRoom } = require('./events');
 const { registerTrackingHandlers } = require('./handlers/tracking.handler');
 const { registerDeliveryHandlers } = require('./handlers/delivery.handler');
+const { registerRequestHandlers } = require('./handlers/request.handler');
 
 let io = null;
 
@@ -74,6 +75,7 @@ const initializeSocket = (httpServer) => {
     // Register event handlers
     registerTrackingHandlers(io, socket);
     registerDeliveryHandlers(io, socket);
+    registerRequestHandlers(io, socket);
 
     // --- Disconnect ---
     socket.on(CONNECTION.DISCONNECT, (reason) => {

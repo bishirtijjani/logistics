@@ -13,6 +13,7 @@ const QUEUES = {
   NOTIFICATION: 'notification-queue',
   DELIVERY: 'delivery-queue',
   UTILITY: 'utility-queue',
+  REQUEST: 'request-queue',  // NEW: Unified request queue
 };
 
 // --- Job types per queue ---
@@ -55,6 +56,17 @@ const UTILITY_JOBS = {
   REFUND_FAILED: 'refund-failed',
 };
 
+const REQUEST_JOBS = {
+  /** Broadcast new request to nearby riders */
+  BROADCAST_TO_RIDERS: 'broadcast-to-riders',
+  /** Settle request payment after completion */
+  SETTLE_REQUEST: 'settle-request',
+  /** Refund cancelled request */
+  REFUND_REQUEST: 'refund-request',
+  /** Auto-cancel unmatched requests after timeout */
+  AUTO_CANCEL_UNMATCHED: 'auto-cancel-unmatched',
+};
+
 // --- Default job options ---
 const DEFAULT_JOB_OPTIONS = {
   attempts: 3,
@@ -77,5 +89,6 @@ module.exports = {
   NOTIFICATION_JOBS,
   DELIVERY_JOBS,
   UTILITY_JOBS,
+  REQUEST_JOBS,  // NEW
   DEFAULT_JOB_OPTIONS,
 };

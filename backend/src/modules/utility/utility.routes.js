@@ -1,5 +1,5 @@
 /**
- * Utility routes — /api/v1/utilities
+ * Utility routes — /api/utilities
  */
 
 const { Router } = require('express');

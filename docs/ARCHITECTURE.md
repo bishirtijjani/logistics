@@ -10,7 +10,7 @@ graph TB
     end
 
     subgraph Backend
-        API["Express API Server<br/>/api/v1/*"]
+        API["Express API Server<br/>/api/*"]
         WS["Socket.io Server<br/>(Real-Time)"]
         BQ["BullMQ Workers<br/>(Background Jobs)"]
     end
@@ -81,7 +81,7 @@ flowchart LR
 ## 3. Delivery Lifecycle State Machine
 
 ```mermaid
-stateDiagram-v2
+stateDiagram
     [*] --> REQUESTED: Customer submits order
 
     REQUESTED --> MATCHED: Rider accepts job

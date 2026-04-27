@@ -1,5 +1,5 @@
 /**
- * Maps routes — /api/v1/maps
+ * Maps routes — /api/maps
  */
 
 const { Router } = require("express");
@@ -16,21 +16,18 @@ const router = Router();
 
 router.get(
   "/autocomplete",
-  authenticate,
   validate(autocompleteSchema, "query"),
   mapsController.autocomplete,
 );
 
 router.get(
   "/place-details",
-  authenticate,
   validate(placeDetailsSchema, "query"),
   mapsController.placeDetails,
 );
 
 router.get(
   "/reverse-geocode",
-  authenticate,
   validate(reverseGeocodeSchema, "query"),
   mapsController.reverseGeocode,
 );

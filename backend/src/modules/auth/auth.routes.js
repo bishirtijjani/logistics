@@ -1,5 +1,5 @@
 /**
- * Auth routes — /api/v1/auth
+ * Auth routes — /api/auth
  */
 
 const { Router } = require("express");

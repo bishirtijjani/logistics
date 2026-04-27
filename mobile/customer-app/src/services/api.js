@@ -3,7 +3,14 @@ import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
 
 // Load base URL from environment variables, fallback for local dev
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000/api/v1';
+// For physical device testing, use your computer's LAN IP (e.g., http://192.168.1.100:3000)
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000';
+
+// Full API URL with version prefix for HTTP requests
+export const BASE_URL = `${API_BASE}/api`;
+
+// Base server URL for Socket.io 
+export const SOCKET_URL = API_BASE;
 
 const api = axios.create({
   baseURL: BASE_URL,

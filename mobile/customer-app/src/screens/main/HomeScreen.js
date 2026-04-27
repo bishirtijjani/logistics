@@ -18,40 +18,56 @@ import {
 } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 
-// SKIN A — Bold Lagos
+// UNIFIED REQUEST ARCHITECTURE
+// Everything is a Request. Food is just the first type of request.
+// Request Lifecycle: REQUESTED → ACCEPTED → PROCESSING → READY → RIDER_ASSIGNED → PICKED_UP → IN_TRANSIT → DELIVERED → SETTLED
 
-const coreServices = [
+const requestTypes = [
   {
-    id: "1",
+    id: "FOOD",
     name: "Food",
     icon: "hamburger",
     color: "#EA580C",
     bg: "#FFF0E8",
-    type: "FontAwesome5",
+    iconType: "FontAwesome5",
+    description: "Order from restaurants",
+    hasProvider: true,
+    hasPreparation: true,
   },
   {
-    id: "2",
-    name: "Delivery",
+    id: "PACKAGE",
+    name: "Package",
     icon: "moped",
     color: "#2563EB",
     bg: "#EFF6FF",
-    type: "MaterialCommunityIcons",
+    iconType: "MaterialCommunityIcons",
+    description: "Send or receive packages",
+    hasProvider: false,
+    hasPreparation: false,
   },
   {
-    id: "3",
+    id: "PHARMACY",
     name: "Pharmacy",
     icon: "pill",
     color: "#059669",
     bg: "#ECFDF5",
-    type: "MaterialCommunityIcons",
+    iconType: "MaterialCommunityIcons",
+    description: "Order medicines",
+    hasProvider: true,
+    hasPreparation: true,
+    comingSoon: true,
   },
   {
-    id: "4",
+    id: "GROCERY",
     name: "Groceries",
     icon: "basket",
     color: "#7C3AED",
     bg: "#F5F3FF",
-    type: "MaterialCommunityIcons",
+    iconType: "MaterialCommunityIcons",
+    description: "Shop supermarkets",
+    hasProvider: true,
+    hasPreparation: true,
+    comingSoon: true,
   },
 ];
 
@@ -64,7 +80,7 @@ const vtuServices = [
     type: "Ionicons",
   },
   {
-    id: "v2",
+    id: "PACKAGE",
     name: "Data",
     icon: "wifi-outline",
     color: "#2563EB",
@@ -87,8 +103,8 @@ const vtuServices = [
 ];
 
 function resolveIcon(item) {
-  if (item.type === "MaterialCommunityIcons") return MaterialCommunityIcons;
-  if (item.type === "FontAwesome5") return FontAwesome5;
+  if (item.iconType === "MaterialCommunityIcons") return MaterialCommunityIcons;
+  if (item.iconType === "FontAwesome5") return FontAwesome5;
   return Ionicons;
 }
 
@@ -105,7 +121,7 @@ function formatNaira(amount) {
 export default function HomeScreen({ navigation }) {
   const { user } = useSelector((state) => state.auth);
   const { balance } = useSelector((state) => state.wallet);
-  const { city, isLoaded: locationLoaded } = useSelector(
+  const { city, latitude, longitude, isLoaded: locationLoaded } = useSelector(
     (state) => state.location,
   );
   const dispatch = useDispatch();
@@ -235,7 +251,7 @@ export default function HomeScreen({ navigation }) {
               fontWeight: "500",
             }}
           >
-            Search food, services, items...
+            Search restaurants, food, items...
           </Text>
         </TouchableOpacity>
 
@@ -321,7 +337,7 @@ export default function HomeScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
-        {/* Core Services */}
+          {/* Request Types - Unified Architecture */}
         <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
           <View
             style={{
@@ -339,7 +355,7 @@ export default function HomeScreen({ navigation }) {
                 letterSpacing: -0.5,
               }}
             >
-              Services
+              What do you need?
             </Text>
             <View
               style={{
@@ -353,17 +369,34 @@ export default function HomeScreen({ navigation }) {
           <View
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            {coreServices.map((item) => {
+            {requestTypes.map((item) => {
               const Icon = resolveIcon(item);
               const handlePress = () => {
-                if (item.name === "Delivery") {
-                  navigation.navigate("CreateDelivery");
-                } else if (item.name === "Food" || item.name === "Pharmacy" || item.name === "Groceries") {
-                  // Coming soon toast
+                // UNIFIED REQUEST FLOW
+                // All request types follow the same flow internally
+                // Only the UI and provider selection differs
+                
+                if (item.comingSoon) {
                   Toast.show({
                     type: "info",
                     text1: "Coming Soon",
                     text2: `${item.name} ordering will be available soon!`,
+                  });
+                  return;
+                }
+                
+                if (item.id === "FOOD") {
+                  // Food: Browse providers (restaurants) → Select items → Checkout → Track
+                  navigation.navigate("ProviderBrowse", {
+                    type: item.id,
+                    lat: latitude,
+                    lng: longitude,
+                  });
+                } else if (item.id === "PACKAGE") {
+                  // Package: Direct request creation (no provider browsing)
+                  navigation.navigate("CreateDelivery", {
+                    requestType: item.id,
+                    hasProvider: false
                   });
                 }
               };
@@ -384,9 +417,27 @@ export default function HomeScreen({ navigation }) {
                       marginBottom: 8,
                       borderWidth: 1.5,
                       borderColor: item.color + "25",
+                      opacity: item.comingSoon ? 0.6 : 1,
                     }}
                   >
                     <Icon name={item.icon} size={26} color={item.color} />
+                    {item.comingSoon && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: -4,
+                          right: -4,
+                          backgroundColor: "#6B7280",
+                          borderRadius: 8,
+                          paddingHorizontal: 4,
+                          paddingVertical: 2,
+                        }}
+                      >
+                        <Text style={{ fontSize: 8, color: "#fff", fontWeight: "700" }}>
+                          SOON
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   <Text
                     style={{
@@ -394,6 +445,7 @@ export default function HomeScreen({ navigation }) {
                       fontWeight: "700",
                       color: "#09090b",
                       textAlign: "center",
+                      opacity: item.comingSoon ? 0.6 : 1,
                     }}
                   >
                     {item.name}

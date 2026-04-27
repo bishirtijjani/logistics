@@ -5,6 +5,7 @@ import profileReducer from "./slices/profileSlice";
 import locationReducer from "./slices/locationSlice";
 import deliveryReducer from "./slices/deliverySlice";
 import utilityReducer from "./slices/utilitySlice";
+import requestReducer from "./slices/requestSlice";  // NEW: Unified request slice
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     location: locationReducer,
     delivery: deliveryReducer,
     utility: utilityReducer,
+    request: requestReducer,  // NEW: Unified request reducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

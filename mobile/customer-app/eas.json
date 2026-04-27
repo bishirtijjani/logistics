@@ -9,7 +9,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://logistics.codeket.com/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://logistics.codeket.com/api"
       }
     },
     "production": {

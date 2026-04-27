@@ -2,13 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
+  StyleSheet,
   TouchableOpacity,
   TextInput,
+  Keyboard,
   FlatList,
   ActivityIndicator,
-  StyleSheet,
-  Keyboard,
   Platform,
+  Dimensions,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
@@ -76,7 +78,8 @@ export default function LocationPickerScreen({ navigation, route }) {
               lng: newRegion.longitude,
             },
           });
-          const formattedAddress = data.data?.formattedAddress;
+          console.log("Reverse geocode response:", JSON.stringify(data, null, 2));
+          const formattedAddress = data.formattedAddress;
           if (formattedAddress) {
             setAddress(formattedAddress);
           } else {
@@ -109,8 +112,10 @@ export default function LocationPickerScreen({ navigation, route }) {
         const { data } = await api.get("/maps/autocomplete", {
           params: { query: text, sessionToken: sessionToken.current },
         });
-        setPredictions(data.data || []);
-      } catch {
+        console.log("Autocomplete response:", JSON.stringify(data, null, 2));
+        setPredictions(data || []);
+      } catch (error) {
+        console.log("Autocomplete error:", error);
         setPredictions([]);
       } finally {
         setIsSearching(false);
@@ -134,7 +139,7 @@ export default function LocationPickerScreen({ navigation, route }) {
         },
       });
 
-      const place = data.data;
+      const place = data;
       sessionToken.current = `${Date.now()}-${Math.random()}`;
 
       const newRegion = {
@@ -207,6 +212,30 @@ export default function LocationPickerScreen({ navigation, route }) {
         showsMyLocationButton={false}
       />
 
+      {/* Animated tooltip above pin */}
+      <View style={styles.tooltipContainer} pointerEvents="none">
+        <Animated.View
+          style={[
+            styles.tooltip,
+            {
+              opacity: address ? 1 : 0,
+              transform: [{ translateY: address ? 0 : -10 }],
+            },
+          ]}
+        >
+          <View style={styles.tooltipArrow} />
+          <View style={styles.tooltipContent}>
+            {isGeocoding ? (
+              <ActivityIndicator size="small" color="#EA580C" />
+            ) : (
+              <Text style={styles.tooltipText} numberOfLines={2}>
+                {address || "Move the map to select a location"}
+              </Text>
+            )}
+          </View>
+        </Animated.View>
+      </View>
+
       {/* Fixed center pin */}
       <View style={styles.pinContainer} pointerEvents="none">
         <Ionicons name="location" size={40} color="#EA580C" />
@@ -215,57 +244,35 @@ export default function LocationPickerScreen({ navigation, route }) {
 
       {/* Top bar */}
       <SafeAreaView style={styles.topBar} edges={["top"]}>
-        {showSearch ? (
-          <View style={styles.searchRow}>
-            <TouchableOpacity
-              onPress={() => {
-                setShowSearch(false);
-                setQuery("");
-                setPredictions([]);
-                Keyboard.dismiss();
-              }}
-              style={styles.backBtn}
-            >
-              <Ionicons name="arrow-back" size={22} color="#09090b" />
-            </TouchableOpacity>
-            <View style={styles.searchInputWrap}>
-              <Ionicons name="search-outline" size={18} color="#6B7280" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search for a place..."
-                placeholderTextColor="#9CA3AF"
-                value={query}
-                onChangeText={handleSearch}
-                autoFocus
-                returnKeyType="search"
-              />
-              {query.length > 0 && (
-                <TouchableOpacity onPress={() => handleSearch("")}>
-                  <Ionicons name="close-circle" size={18} color="#9CA3AF" />
-                </TouchableOpacity>
-              )}
-            </View>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <Ionicons name="arrow-back" size={22} color="#09090b" />
+          </TouchableOpacity>
+          <View style={styles.searchInputWrap}>
+            <Ionicons name="search-outline" size={18} color="#6B7280" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search for a place..."
+              placeholderTextColor="#9CA3AF"
+              value={query}
+              onChangeText={handleSearch}
+              returnKeyType="search"
+            />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch("")}>
+                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
           </View>
-        ) : (
-          <View style={styles.headerRow}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-            >
-              <Ionicons name="arrow-back" size={22} color="#09090b" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Choose Location</Text>
-            <TouchableOpacity
-              onPress={() => setShowSearch(true)}
-              style={styles.searchBtn}
-            >
-              <Ionicons name="search" size={20} color="#09090b" />
-            </TouchableOpacity>
-          </View>
-        )}
+        </View>
+      </SafeAreaView>
 
-        {/* Search results */}
-        {showSearch && predictions.length > 0 && (
+      {/* Search results */}
+      {predictions.length > 0 && (
+        <View style={styles.predictionsWrapper}>
           <View style={styles.predictionsContainer}>
             <FlatList
               data={predictions}
@@ -292,17 +299,19 @@ export default function LocationPickerScreen({ navigation, route }) {
               )}
             />
           </View>
-        )}
-        {showSearch && isSearching && (
-          <View style={styles.predictionsContainer}>
-            <ActivityIndicator
-              size="small"
-              color="#EA580C"
-              style={{ padding: 16 }}
-            />
-          </View>
-        )}
-      </SafeAreaView>
+        </View>
+      )}
+      {isSearching && (
+        <View style={styles.predictionsContainer}>
+          <ActivityIndicator
+            size="small"
+            color="#EA580C"
+            style={{ padding: 16 }}
+          />
+        </View>
+      )}
+
+      {/* GPS button */}
 
       {/* GPS button */}
       <TouchableOpacity
@@ -361,13 +370,60 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(234,88,12,0.3)",
     marginTop: -4,
   },
-  // --- Top bar ---
-  topBar: {
+  // --- Tooltip ---
+  tooltipContainer: {
     position: "absolute",
-    top: 0,
+    top: "50%",
+    left: "50%",
+    marginLeft: -80,
+    marginTop: -90,
+    width: 160,
+    alignItems: "center",
+    zIndex: 2,
+  },
+  tooltip: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    maxWidth: 160,
+  },
+  tooltipArrow: {
+    position: "absolute",
+    bottom: -8,
+    left: "50%",
+    marginLeft: -8,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderTopWidth: 8,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderTopColor: "#fff",
+  },
+  tooltipContent: {
+    alignItems: "center",
+  },
+  tooltipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#09090b",
+    textAlign: "center",
+    lineHeight: 16,
+  },
+  // --- Top bar ---
+  predictionsWrapper: {
+    position: "absolute",
+    top: 110,
     left: 0,
     right: 0,
-    zIndex: 10,
+    zIndex: 100,
   },
   headerRow: {
     flexDirection: "row",
@@ -446,7 +502,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 10,
+    zIndex: 100,
   },
   predictionRow: {
     flexDirection: "row",

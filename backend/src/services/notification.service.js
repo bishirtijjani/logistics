@@ -163,6 +163,28 @@ const notifyNewJob = (fcmToken, orderId, fare, distance) =>
     data: { type: 'NEW_JOB', orderId },
   });
 
+// Unified request notification templates
+const notifyProviderAccepted = (fcmToken, requestId) =>
+  sendToDevice(fcmToken, {
+    title: 'Order Accepted 🏪',
+    body: 'Your order has been accepted by the provider',
+    data: { type: 'REQUEST_ACCEPTED', requestId },
+  });
+
+const notifyOrderPickedUp = (fcmToken, requestId) =>
+  sendToDevice(fcmToken, {
+    title: 'Order Picked Up 📦',
+    body: 'Your order has been picked up and is on the way',
+    data: { type: 'REQUEST_PICKED_UP', requestId },
+  });
+
+const notifyRequestCancelled = (fcmToken, requestId, reason) =>
+  sendToDevice(fcmToken, {
+    title: 'Order Cancelled ❌',
+    body: reason || 'Your order has been cancelled',
+    data: { type: 'REQUEST_CANCELLED', requestId },
+  });
+
 module.exports = {
   sendToDevice,
   sendToMultiple,
@@ -171,4 +193,7 @@ module.exports = {
   notifyRiderAssigned,
   notifyDeliveryComplete,
   notifyNewJob,
+  notifyProviderAccepted,
+  notifyOrderPickedUp,
+  notifyRequestCancelled,
 };

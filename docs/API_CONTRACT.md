@@ -1,6 +1,6 @@
 # API Contract
 
-> Base URL: `/api/v1`
+> Base URL: `/api`
 > All responses follow the standard envelope format.
 
 ---

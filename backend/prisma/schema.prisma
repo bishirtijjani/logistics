@@ -20,6 +20,7 @@ enum UserRole {
   CUSTOMER
   RIDER
   ADMIN
+  PROVIDER  // NEW: Merchant/provider role
 }
 
 enum UserStatus {
@@ -34,6 +35,46 @@ enum KycStatus {
   PENDING
   VERIFIED
   FAILED
+}
+
+// ============================================================
+// UNIFIED REQUEST ARCHITECTURE — NEW ENUMS
+// ============================================================
+
+enum RequestType {
+  FOOD
+  GROCERY
+  PHARMACY
+  PACKAGE
+  // Future: APPAREL, ELECTRONICS, etc.
+}
+
+enum RequestStatus {
+  REQUESTED         // Customer placed order
+  ACCEPTED          // Provider accepted (if applicable)
+  PROCESSING        // Provider preparing (if applicable)
+  READY_FOR_PICKUP  // Ready for rider
+  RIDER_ASSIGNED    // Rider matched
+  RIDER_EN_ROUTE    // Rider going to pickup
+  PICKED_UP         // Rider has item
+  IN_TRANSIT        // Rider delivering to customer
+  DELIVERED         // Rider delivered
+  SETTLED           // Financial settlement complete
+  CANCELLED         // Cancelled by any party
+}
+
+enum ProviderType {
+  RESTAURANT
+  GROCERY
+  PHARMACY
+  // Future: RETAIL, BOUTIQUE, etc.
+}
+
+enum ProviderStatus {
+  PENDING_APPROVAL
+  APPROVED
+  SUSPENDED
+  REJECTED
 }
 
 enum TransactionType {
@@ -135,7 +176,9 @@ model User {
   // Relations
   wallet        Wallet?
   rider         Rider?
-  customerOrders  DeliveryOrder[] @relation("CustomerOrders")
+  provider      Provider?         // NEW: If user is a merchant
+  requests      Request[]         @relation("CustomerRequests")  // NEW: Unified requests
+  customerOrders  DeliveryOrder[] @relation("CustomerOrders")   // LEGACY: To be migrated
   ratingsGiven    Rating[]        @relation("RatingsGiven")
   beneficiaries   SavedBeneficiary[]
   sessions        Session[]
@@ -257,7 +300,7 @@ model DeliveryOrder {
   // Relations
   customer        User            @relation("CustomerOrders", fields: [customerId], references: [id])
   rider           Rider?          @relation(fields: [riderId], references: [id])
-  rating          Rating?
+  ratings         Rating[]        // LEGACY: Support old ratings during migration
 
   @@index([customerId])
   @@index([riderId])
@@ -303,7 +346,8 @@ model Rider {
 
   // Relations
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deliveryOrders  DeliveryOrder[]
+  requests        Request[]         // NEW: Unified requests
+  deliveryOrders  DeliveryOrder[]   // LEGACY: To be migrated
   ratingsReceived Rating[]          @relation("RiderRatings")
 
   @@index([userId])
@@ -343,24 +387,37 @@ model UtilityPayment {
   @@map("utility_payments")
 }
 
-/// Post-delivery rating from customer to rider.
+/// Post-delivery rating from customer to rider (and optionally provider).
 model Rating {
   id              String        @id @default(uuid())
-  deliveryOrderId String        @unique
+  
+  // LEGACY: Link to old DeliveryOrder (will be removed after migration)
+  deliveryOrderId String?       @unique
+  deliveryOrder   DeliveryOrder? @relation(fields: [deliveryOrderId], references: [id])
+  
+  // NEW: Link to unified Request
+  requestId       String?       @unique
+  request         Request?      @relation(fields: [requestId], references: [id])
+  
   riderId         String
   customerId      String
-  score           Int           /// 1-5 stars
-  comment         String?
+  
+  // Can rate both provider and rider (if applicable)
+  providerScore   Int?          // 1-5 stars for provider (if food/grocery/pharmacy)
+  riderScore      Int?          // 1-5 stars for rider
+  
+  providerComment String?
+  riderComment    String?
 
   createdAt       DateTime      @default(now())
 
   // Relations
-  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id])
   rider           Rider         @relation("RiderRatings", fields: [riderId], references: [id])
   customer        User          @relation("RatingsGiven", fields: [customerId], references: [id])
 
   @@index([riderId])
   @@index([customerId])
+  @@index([requestId])
   @@map("ratings")
 }
 
@@ -385,6 +442,262 @@ model SavedBeneficiary {
   @@index([userId])
   @@map("saved_beneficiaries")
 }
+
+// ============================================================
+// UNIFIED REQUEST ARCHITECTURE — NEW MODELS
+// ============================================================
+
+/// Provider — Restaurants, Supermarkets, Pharmacies
+model Provider {
+  id              String          @id @default(uuid())
+  
+  // User account (optional — standalone providers possible)
+  userId          String?         @unique
+  user            User?           @relation(fields: [userId], references: [id])
+  
+  type            ProviderType
+  status          ProviderStatus  @default(PENDING_APPROVAL)
+  
+  // Business info
+  name            String
+  description     String?
+  phone           String
+  email           String?
+  
+  // Location
+  address         String
+  lat             Float
+  lng             Float
+  
+  // Operating hours
+  openingTime     String          @default("08:00")
+  closingTime     String          @default("22:00")
+  
+  // Media
+  logoUrl         String?
+  coverImageUrl   String?
+  
+  // Settings
+  isActive        Boolean         @default(true)
+  isOpen          Boolean         @default(false)
+  commissionRate  Float           @default(15)  // Platform commission %
+  
+  // Performance
+  averageRating   Float           @default(0)
+  totalOrders     Int             @default(0)
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  requests        Request[]
+  products        Product[]
+  wallet          ProviderWallet?
+  
+  @@index([type])
+  @@index([status])
+  @@index([isActive, isOpen])
+  @@index([lat, lng])
+  @@map("providers")
+}
+
+/// Provider Wallet — Separate from user wallet, tracks earnings
+model ProviderWallet {
+  id               String   @id @default(uuid())
+  providerId       String   @unique
+  provider         Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  // Available for withdrawal
+  availableBalance Decimal @default(0) @db.Decimal(15, 2)
+  
+  // Held in escrow (pending settlement)
+  pendingBalance   Decimal @default(0) @db.Decimal(15, 2)
+  
+  // Total all-time earnings
+  totalEarnings    Decimal @default(0) @db.Decimal(15, 2)
+  
+  // Bank details for payout
+  bankCode         String?
+  accountNumber    String?
+  accountName      String?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("provider_wallets")
+}
+
+/// Product — Menu items, grocery products, pharmacy items
+model Product {
+  id          String   @id @default(uuid())
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  category    String
+  
+  basePrice   Decimal  @db.Decimal(15, 2)
+  
+  // Variations (JSON for flexibility)
+  variations  Json?
+  
+  // Options/Addons
+  options     Json?
+  
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  requestItems RequestItem[]
+  
+  @@index([providerId])
+  @@index([category])
+  @@map("products")
+}
+
+/// Request — THE CENTRAL ENTITY (replaces DeliveryOrder)
+/// Food, Grocery, Pharmacy, Package — all unified here
+model Request {
+  id              String          @id @default(uuid())
+  type            RequestType     // FOOD, GROCERY, PHARMACY, PACKAGE
+  status          RequestStatus   @default(REQUESTED)
+  
+  // Customer
+  customerId      String
+  customer        User            @relation("CustomerRequests", fields: [customerId], references: [id])
+  
+  // Provider (optional — package deliveries have no provider)
+  providerId      String?
+  provider        Provider?         @relation(fields: [providerId], references: [id])
+  
+  // Rider (assigned later)
+  riderId         String?
+  rider           Rider?            @relation(fields: [riderId], references: [id])
+  
+  // Locations
+  pickupAddress   String
+  pickupLat     Float
+  pickupLng     Float
+  pickupName    String?           // "KFC Katsina", "John's House"
+  
+  dropoffAddress  String
+  dropoffLat    Float
+  dropoffLng    Float
+  dropoffName   String?           // Customer's name or custom label
+  
+  // Pricing
+  subtotal        Decimal         @db.Decimal(15, 2)  // Items cost (0 for package)
+  deliveryFee     Decimal         @db.Decimal(15, 2)  // Always calculated
+  platformFee     Decimal         @db.Decimal(15, 2)  // Platform commission
+  tax             Decimal         @default(0) @db.Decimal(15, 2)
+  total           Decimal         @db.Decimal(15, 2)  // What customer pays
+  
+  // Financial splits (CRITICAL — must exist from day one)
+  customerPaid    Decimal         @db.Decimal(15, 2)
+  providerEarning Decimal         @default(0) @db.Decimal(15, 2)
+  riderEarning    Decimal         @default(0) @db.Decimal(15, 2)
+  platformEarning Decimal         @default(0) @db.Decimal(15, 2)
+  
+  // Distance/Time
+  distanceKm      Float?
+  estimatedMinutes Int?
+  
+  // Financial record
+  transactionId   String?
+  
+  // Cancellation
+  cancelledAt     DateTime?
+  cancelledBy     String?         // customer, provider, rider, system
+  cancellationReason String?
+  
+  // Timestamps for lifecycle
+  acceptedAt      DateTime?
+  processingAt    DateTime?
+  readyAt         DateTime?
+  riderAssignedAt DateTime?
+  riderEnRouteAt  DateTime?
+  pickedUpAt      DateTime?
+  inTransitAt     DateTime?
+  deliveredAt     DateTime?
+  settledAt       DateTime?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  items           RequestItem[]     // For food/grocery/pharmacy
+  packageDetails  PackageDetail?    // For package delivery
+  rating          Rating?
+  
+  @@index([customerId])
+  @@index([providerId])
+  @@index([riderId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("requests")
+}
+
+/// RequestItem — Items within a request (food, groceries, pharmacy)
+model RequestItem {
+  id          String   @id @default(uuid())
+  requestId   String
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  // Can link to product or be free-form
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  
+  // Or free-form entry
+  name        String
+  description String?
+  
+  // Pricing at time of order
+  unitPrice   Decimal  @db.Decimal(15, 2)
+  quantity    Int      @default(1)
+  
+  // Variations/Options (JSON)
+  variations  Json?
+  
+  totalPrice  Decimal  @db.Decimal(15, 2)  // unitPrice * quantity + variation costs
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([requestId])
+  @@index([productId])
+  @@map("request_items")
+}
+
+/// PackageDetail — For package delivery (no provider)
+model PackageDetail {
+  id          String   @id @default(uuid())
+  requestId   String   @unique
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  
+  description String
+  size        String   // SMALL, MEDIUM, LARGE
+  weight      Float?
+  
+  // Contact info at pickup
+  senderName    String
+  senderPhone   String
+  
+  // Recipient info
+  recipientName   String
+  recipientPhone  String
+  
+  // Special instructions
+  instructions  String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("package_details")
+}
+
 
 /// User sessions for JWT refresh token tracking.
 model Session {

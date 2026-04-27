@@ -59,6 +59,72 @@ const getEarnings = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// Admin Rider Controllers
+// ============================================================
+
+const getAllRiders = async (req, res, next) => {
+  try {
+    const { page, limit, status, availability } = req.query;
+
+    const result = await riderService.getAllRiders({
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+      status,
+      availability,
+    });
+
+    res.json(
+      ApiResponse.success('Riders retrieved', result.riders, {
+        page: result.page,
+        limit: result.limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / result.limit),
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderDetails = async (req, res, next) => {
+  try {
+    const { riderId } = req.params;
+
+    const rider = await riderService.getRiderDetails(riderId);
+
+    res.json(ApiResponse.success('Rider details', rider));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateRiderStatus = async (req, res, next) => {
+  try {
+    const { riderId } = req.params;
+    const { status } = req.body;
+    const adminId = req.user.id;
+
+    const rider = await riderService.updateRiderStatus(riderId, status, adminId);
+
+    res.json(ApiResponse.success('Rider status updated', rider));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderEarningsAdmin = async (req, res, next) => {
+  try {
+    const { riderId } = req.params;
+
+    const earnings = await riderService.getRiderEarningsAdmin(riderId);
+
+    res.json(ApiResponse.success('Rider earnings', earnings));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   getProfile,
@@ -66,4 +132,9 @@ module.exports = {
   updateLocation,
   acceptJob,
   getEarnings,
+  // Admin controllers
+  getAllRiders,
+  getRiderDetails,
+  updateRiderStatus,
+  getRiderEarningsAdmin,
 };

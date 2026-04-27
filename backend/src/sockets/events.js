@@ -43,7 +43,7 @@ const RIDER = {
   JOB_TAKEN: 'rider:job:taken',
 };
 
-// --- Delivery lifecycle events ---
+// --- Delivery lifecycle events (LEGACY - kept for backward compatibility) ---
 const DELIVERY = {
   // Server → Customer/Rider: status changed
   STATUS_CHANGED: 'delivery:status:changed',
@@ -64,6 +64,39 @@ const DELIVERY = {
   LEAVE_ROOM: 'delivery:room:leave',
 };
 
+// --- Unified Request lifecycle events (NEW) ---
+const REQUEST = {
+  // Server → Customer/Provider/Rider: request created
+  CREATED: 'request:created',
+
+  // Server → Customer/Provider/Rider: status changed
+  STATUS_CHANGED: 'request:status:changed',
+
+  // Server → Customer: provider accepted the request
+  PROVIDER_ACCEPTED: 'request:provider:accepted',
+
+  // Server → System: provider marked ready for pickup
+  PROVIDER_READY: 'request:provider:ready',
+
+  // Server → Customer/Provider/Rider: rider assigned
+  RIDER_ASSIGNED: 'request:rider:assigned',
+
+  // Server → Customer/Provider/Rider: rider location update
+  RIDER_LOCATION: 'request:rider:location',
+
+  // Server → Customer/Provider/Rider: request completed
+  COMPLETED: 'request:completed',
+
+  // Server → Customer/Provider/Rider: request cancelled
+  CANCELLED: 'request:cancelled',
+
+  // Customer/Provider/Rider → Server: join request tracking room
+  JOIN_ROOM: 'request:room:join',
+
+  // Customer/Provider/Rider → Server: leave request tracking room
+  LEAVE_ROOM: 'request:room:leave',
+};
+
 // --- Wallet events ---
 const WALLET = {
   // Server → User: balance updated (funding, transfer, payment)
@@ -82,10 +115,22 @@ const NOTIFICATION = {
 // --- Room naming helpers ---
 
 /**
- * Get the room name for a specific delivery order.
+ * Get the room name for a specific delivery order (LEGACY).
  * Both the customer and rider join this room during active delivery.
  */
 const getDeliveryRoom = (orderId) => `delivery:${orderId}`;
+
+/**
+ * Get the room name for a specific request (NEW - unified).
+ * Customer, provider, and rider join this room during active request.
+ */
+const getRequestRoom = (requestId) => `request:${requestId}`;
+
+/**
+ * Get the provider room name.
+ * Used for sending new orders to providers.
+ */
+const getProviderRoom = (providerId) => `provider:${providerId}`;
 
 /**
  * Get the personal room name for a user.
@@ -103,9 +148,12 @@ module.exports = {
   CONNECTION,
   RIDER,
   DELIVERY,
+  REQUEST,  // NEW
   WALLET,
   NOTIFICATION,
   getDeliveryRoom,
+  getRequestRoom,  // NEW
+  getProviderRoom,  // NEW
   getUserRoom,
   getRiderPoolRoom,
 };

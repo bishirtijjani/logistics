@@ -16,34 +16,34 @@ const rateLimit = require('express-rate-limit');
 const { ApiResponse } = require('../utils/api-response');
 
 /**
- * Auth endpoints — 5 attempts per 15 minutes per IP.
+ * Auth endpoints — 5 attempts per 2 minutes per IP.
  */
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 2 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: ApiResponse.error('Too many login attempts. Try again in 15 minutes.'),
+  message: ApiResponse.error('Too many login attempts. Try again in 2 minutes.'),
   keyGenerator: (req) => req.ip,
 });
 
 /**
- * OTP endpoints — 3 attempts per 10 minutes per phone number.
+ * OTP endpoints — 3 attempts per 2 minutes per phone number.
  */
 const otpLimiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
+  windowMs: 2 * 60 * 1000,
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  message: ApiResponse.error('Too many OTP requests. Try again in 10 minutes.'),
+  message: ApiResponse.error('Too many OTP requests. Try again in 2 minutes.'),
   keyGenerator: (req) => req.body?.phone || req.ip,
 });
 
 /**
- * PIN verification — 3 attempts per 30 minutes.
+ * PIN verification — 3 attempts per 5 minutes.
  */
 const pinLimiter = rateLimit({
-  windowMs: 30 * 60 * 1000,
+  windowMs: 5 * 60 * 1000,
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,

@@ -129,26 +129,20 @@ const getDirections = async (originLat, originLng, destLat, destLng) => {
 };
 
 /**
- * Places Autocomplete — search for places by text query.
+ * Places Autocomplete — using legacy Places Autocomplete API.
  */
 const autocomplete = async (query, sessionToken) => {
   try {
-    const params = {
-      input: query,
-      key: config.GOOGLE_MAPS_API_KEY,
-      components: "country:ng",
-      types: "geocode|establishment",
-    };
-    if (sessionToken) params.sessiontoken = sessionToken;
-
     const response = await axios.get(`${MAPS_BASE}/place/autocomplete/json`, {
-      params,
+      params: {
+        input: query,
+        key: config.GOOGLE_MAPS_API_KEY,
+        components: "country:ng",
+        types: "geocode|establishment",
+      },
     });
 
-    if (
-      response.data.status !== "OK" &&
-      response.data.status !== "ZERO_RESULTS"
-    ) {
+    if (response.data.status !== "OK" && response.data.status !== "ZERO_RESULTS") {
       throw new Error(response.data.error_message || "Autocomplete failed");
     }
 
@@ -165,19 +159,16 @@ const autocomplete = async (query, sessionToken) => {
 };
 
 /**
- * Place Details — get lat/lng and formatted address for a place ID.
+ * Place Details — get lat/lng and formatted address for a place ID using Places Details API.
  */
 const placeDetails = async (placeId, sessionToken) => {
   try {
-    const params = {
-      place_id: placeId,
-      key: config.GOOGLE_MAPS_API_KEY,
-      fields: "geometry,formatted_address,name",
-    };
-    if (sessionToken) params.sessiontoken = sessionToken;
-
     const response = await axios.get(`${MAPS_BASE}/place/details/json`, {
-      params,
+      params: {
+        place_id: placeId,
+        key: config.GOOGLE_MAPS_API_KEY,
+        fields: "geometry,formatted_address,name",
+      },
     });
 
     if (response.data.status !== "OK") {
@@ -189,7 +180,7 @@ const placeDetails = async (placeId, sessionToken) => {
       lat: result.geometry.location.lat,
       lng: result.geometry.location.lng,
       formattedAddress: result.formatted_address,
-      name: result.name,
+      placeId: placeId,
     };
   } catch (error) {
     logger.error("Place details failed", { placeId, error: error.message });

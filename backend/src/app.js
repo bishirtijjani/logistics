@@ -25,6 +25,8 @@ const riderRoutes = require("./modules/rider/rider.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
 const webhookRoutes = require("./modules/webhook/webhook.routes");
 const mapsRoutes = require("./modules/maps/maps.routes");
+const requestRoutes = require("./modules/request/request.routes");  // NEW: Unified request routes
+const providerRoutes = require("./modules/provider/provider.routes");  // NEW: Provider routes
 
 const createApp = () => {
   const app = express();
@@ -58,7 +60,7 @@ const createApp = () => {
   });
 
   // --------------- API Routes ---------------
-  const API_PREFIX = "/api/v1";
+  const API_PREFIX = "/api";
 
   app.use(`${API_PREFIX}/auth`, authRoutes);
   app.use(`${API_PREFIX}/wallet`, walletRoutes);
@@ -68,6 +70,8 @@ const createApp = () => {
   app.use(`${API_PREFIX}/admin`, adminRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhookRoutes);
   app.use(`${API_PREFIX}/maps`, mapsRoutes);
+  app.use(`${API_PREFIX}/requests`, requestRoutes);
+  app.use(`${API_PREFIX}/providers`, providerRoutes);
 
   // --------------- 404 Handler ---------------
   app.use((_req, res) => {

@@ -1,5 +1,5 @@
 /**
- * Rider routes — /api/v1/rider
+ * Rider routes — /api/rider
  */
 
 const { Router } = require('express');
@@ -27,5 +27,11 @@ router.patch('/availability', authorize('RIDER'), validate(updateAvailabilitySch
 router.post('/location', authorize('RIDER'), validate(updateLocationSchema), riderController.updateLocation);
 router.post('/accept', authorize('RIDER'), validate(acceptJobSchema), riderController.acceptJob);
 router.get('/earnings', authorize('RIDER'), riderController.getEarnings);
+
+// Admin routes
+router.get('/admin/all', authorize('ADMIN'), riderController.getAllRiders);
+router.get('/admin/:riderId', authorize('ADMIN'), riderController.getRiderDetails);
+router.patch('/admin/:riderId/status', authorize('ADMIN'), riderController.updateRiderStatus);
+router.get('/admin/:riderId/earnings', authorize('ADMIN'), riderController.getRiderEarningsAdmin);
 
 module.exports = router;

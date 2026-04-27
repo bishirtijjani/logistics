@@ -220,6 +220,160 @@ const getEarnings = async (userId) => {
   };
 };
 
+// ============================================================
+// Admin Rider Management Functions
+// ============================================================
+
+const getAllRiders = async ({ page, limit, status, availability }) => {
+  const where = {
+    ...(status && { status }),
+    ...(availability && { availability }),
+  };
+
+  const [riders, total] = await Promise.all([
+    prisma.rider.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        wallet: { select: { balance: true } },
+      },
+    }),
+    prisma.rider.count({ where }),
+  ]);
+
+  return { riders, total, page, limit };
+};
+
+const getRiderDetails = async (riderId) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          createdAt: true,
+        },
+      },
+      wallet: { select: { balance: true } },
+    },
+  });
+
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  return rider;
+};
+
+const updateRiderStatus = async (riderId, status, adminId) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+  });
+
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  const validStatuses = ['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTED'];
+  if (!validStatuses.includes(status)) {
+    throw AppError.badRequest('Invalid rider status');
+  }
+
+  const updated = await prisma.rider.update({
+    where: { id: riderId },
+    data: { status },
+  });
+
+  logger.info('Rider status updated by admin', { riderId, status, adminId });
+
+  return updated;
+};
+
+const getRiderEarningsAdmin = async (riderId) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    include: { wallet: true },
+  });
+
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const weekStart = new Date(today);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+
+  const monthStart = new Date(today);
+  monthStart.setDate(1);
+
+  const [todayEarnings, weekEarnings, monthEarnings] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: {
+        creditWalletId: rider.wallet.id,
+        type: 'DELIVERY_EARNING',
+        status: 'COMPLETED',
+        createdAt: { gte: today },
+      },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    prisma.transaction.aggregate({
+      where: {
+        creditWalletId: rider.wallet.id,
+        type: 'DELIVERY_EARNING',
+        status: 'COMPLETED',
+        createdAt: { gte: weekStart },
+      },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    prisma.transaction.aggregate({
+      where: {
+        creditWalletId: rider.wallet.id,
+        type: 'DELIVERY_EARNING',
+        status: 'COMPLETED',
+        createdAt: { gte: monthStart },
+      },
+      _sum: { amount: true },
+      _count: true,
+    }),
+  ]);
+
+  return {
+    riderId,
+    riderName: `${rider.user.firstName} ${rider.user.lastName}`,
+    walletBalance: Number(rider.wallet.balance),
+    today: {
+      earnings: todayEarnings._sum.amount || 0,
+      deliveries: todayEarnings._count,
+    },
+    thisWeek: {
+      earnings: weekEarnings._sum.amount || 0,
+      deliveries: weekEarnings._count,
+    },
+    thisMonth: {
+      earnings: monthEarnings._sum.amount || 0,
+      deliveries: monthEarnings._count,
+    },
+    allTime: {
+      earnings: rider.totalEarnings,
+      deliveries: rider.totalDeliveries,
+    },
+    averageRating: rider.averageRating,
+  };
+};
+
 module.exports = {
   registerRider,
   getProfile,
@@ -227,4 +381,9 @@ module.exports = {
   updateLocation,
   acceptJob,
   getEarnings,
+  // Admin functions
+  getAllRiders,
+  getRiderDetails,
+  updateRiderStatus,
+  getRiderEarningsAdmin,
 };

@@ -7,7 +7,7 @@
 
 import { io } from "socket.io-client";
 import * as SecureStore from "expo-secure-store";
-import { API_BASE_URL } from "./api";
+import { SOCKET_URL } from "./api";
 import Toast from "react-native-toast-message";
 
 class SocketService {
@@ -31,7 +31,7 @@ class SocketService {
         return;
       }
 
-      this.socket = io(API_BASE_URL, {
+      this.socket = io(SOCKET_URL, {
         auth: { token },
         transports: ["websocket"],
         timeout: 10000,
@@ -190,6 +190,27 @@ class SocketService {
 
   onWalletBalanceUpdated(callback) {
     return this.on("walletBalanceUpdated", callback);
+  }
+
+  // Request event listeners (NEW - Unified Request Architecture)
+  onRequestStatusChanged(callback) {
+    return this.on("requestStatusChanged", callback);
+  }
+
+  onRequestRiderAssigned(callback) {
+    return this.on("requestRiderAssigned", callback);
+  }
+
+  onRequestRiderLocation(callback) {
+    return this.on("requestRiderLocation", callback);
+  }
+
+  onRequestCompleted(callback) {
+    return this.on("requestCompleted", callback);
+  }
+
+  onRequestCancelled(callback) {
+    return this.on("requestCancelled", callback);
   }
 
   /**

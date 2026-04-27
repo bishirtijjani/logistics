@@ -125,7 +125,7 @@ The following are explicitly excluded from this engagement. They may be consider
 |---|---|
 | Food / Restaurant Ordering | Menu-based food ordering is a separate product type. Not in V1. |
 | Scheduled Future Deliveries | All deliveries are on-demand only. No advance booking in V1. |
-| In-App Business Accounts | Individual user accounts only. Merchant accounts are a V2 feature. |
+| In-App Business Accounts | Individual user accounts only. Merchant accounts are a future feature. |
 | Surge or Dynamic Pricing | Flat distance-based pricing in V1. |
 | Cable TV / Betting Payments | Utility module is limited to airtime, data, and electricity in V1. |
 | Referral or Loyalty Program | No referral rewards or points system in V1. |
