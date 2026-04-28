@@ -2,23 +2,23 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,jsx}",
   ],
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
-        },
+        primary: '#EA580C',    // Burnt Orange - actionable
+        secondary: '#09090b',  // Charcoal/Deep Zinc - headers, key elements
+        background: '#FAFAFA', // Matte white for the whole app
+        surface: '#FFFFFF',    // Pure white for cards/modals
+        'surface-muted': '#F3F4F6', // Soft grey for text inputs, borders
+        text: '#09090b',       // Default charcoal text
+        muted: '#6B7280',      // Muted description text
+        error: '#EF4444',      // Validation
+        success: '#10B981',    // Confirmed actions
+        // Component-compat aliases
+        brand: '#EA580C',
+        dark: '#09090b',
       },
     },
   },
