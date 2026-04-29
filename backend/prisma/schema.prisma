@@ -4,11 +4,11 @@
 // ============================================================
 
 generator client {
-  provider = "prisma-client-js"
+  merchant = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  merchant = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,7 +20,7 @@ enum UserRole {
   CUSTOMER
   RIDER
   ADMIN
-  PROVIDER  // NEW: Merchant/provider role
+  MERCHANT  // NEW: Merchant/merchant role
 }
 
 enum UserStatus {
@@ -51,8 +51,8 @@ enum RequestType {
 
 enum RequestStatus {
   REQUESTED         // Customer placed order
-  ACCEPTED          // Provider accepted (if applicable)
-  PROCESSING        // Provider preparing (if applicable)
+  ACCEPTED          // Merchant accepted (if applicable)
+  PROCESSING        // Merchant preparing (if applicable)
   READY_FOR_PICKUP  // Ready for rider
   RIDER_ASSIGNED    // Rider matched
   RIDER_EN_ROUTE    // Rider going to pickup
@@ -63,14 +63,14 @@ enum RequestStatus {
   CANCELLED         // Cancelled by any party
 }
 
-enum ProviderType {
+enum MerchantType {
   RESTAURANT
   GROCERY
   PHARMACY
   // Future: RETAIL, BOUTIQUE, etc.
 }
 
-enum ProviderStatus {
+enum MerchantStatus {
   PENDING_APPROVAL
   APPROVED
   SUSPENDED
@@ -141,7 +141,7 @@ enum UtilityStatus {
   REFUNDED
 }
 
-enum PaymentProvider {
+enum PaymentMerchant {
   MONNIFY
   VTPASS
 }
@@ -176,7 +176,7 @@ model User {
   // Relations
   wallet        Wallet?
   rider         Rider?
-  provider      Provider?         // NEW: If user is a merchant
+  merchant      Merchant?         // NEW: If user is a merchant
   requests      Request[]         @relation("CustomerRequests")  // NEW: Unified requests
   customerOrders  DeliveryOrder[] @relation("CustomerOrders")   // LEGACY: To be migrated
   ratingsGiven    Rating[]        @relation("RatingsGiven")
@@ -224,15 +224,15 @@ model Transaction {
   amount          Decimal           @db.Decimal(15, 2)
   fee             Decimal           @default(0) @db.Decimal(15, 2)
   description     String?
-  metadata        Json?             /// Provider-specific data (Monnify ref, VTPass token, etc.)
+  metadata        Json?             /// Merchant-specific data (Monnify ref, VTPass token, etc.)
 
   // Wallet relations — a transaction debits one wallet and/or credits another
   debitWalletId   String?
   creditWalletId  String?
 
-  // Provider tracking
-  provider        PaymentProvider?
-  providerRef     String?           /// External provider reference
+  // Merchant tracking
+  merchant        PaymentMerchant?
+  merchantRef     String?           /// External merchant reference
 
   // Balances at time of transaction (for audit trail)
   balanceBefore   Decimal?          @db.Decimal(15, 2)
@@ -364,7 +364,7 @@ model UtilityPayment {
   status          UtilityStatus   @default(PENDING)
 
   // Payment details
-  provider        String          /// e.g., "MTN", "AEDC", "IKEDC"
+  merchant        String          /// e.g., "MTN", "AEDC", "IKEDC"
   amount          Decimal         @db.Decimal(15, 2)
   phoneNumber     String?         /// For airtime/data
   meterNumber     String?         /// For electricity
@@ -387,7 +387,7 @@ model UtilityPayment {
   @@map("utility_payments")
 }
 
-/// Post-delivery rating from customer to rider (and optionally provider).
+/// Post-delivery rating from customer to rider (and optionally merchant).
 model Rating {
   id              String        @id @default(uuid())
   
@@ -402,11 +402,11 @@ model Rating {
   riderId         String
   customerId      String
   
-  // Can rate both provider and rider (if applicable)
-  providerScore   Int?          // 1-5 stars for provider (if food/grocery/pharmacy)
+  // Can rate both merchant and rider (if applicable)
+  merchantScore   Int?          // 1-5 stars for merchant (if food/grocery/pharmacy)
   riderScore      Int?          // 1-5 stars for rider
   
-  providerComment String?
+  merchantComment String?
   riderComment    String?
 
   createdAt       DateTime      @default(now())
@@ -447,16 +447,16 @@ model SavedBeneficiary {
 // UNIFIED REQUEST ARCHITECTURE — NEW MODELS
 // ============================================================
 
-/// Provider — Restaurants, Supermarkets, Pharmacies
-model Provider {
+/// Merchant — Restaurants, Supermarkets, Pharmacies
+model Merchant {
   id              String          @id @default(uuid())
   
-  // User account (optional — standalone providers possible)
+  // User account (optional — standalone merchants possible)
   userId          String?         @unique
   user            User?           @relation(fields: [userId], references: [id])
   
-  type            ProviderType
-  status          ProviderStatus  @default(PENDING_APPROVAL)
+  type            MerchantType
+  status          MerchantStatus  @default(PENDING_APPROVAL)
   
   // Business info
   name            String
@@ -492,20 +492,20 @@ model Provider {
   // Relations
   requests        Request[]
   products        Product[]
-  wallet          ProviderWallet?
+  wallet          MerchantWallet?
   
   @@index([type])
   @@index([status])
   @@index([isActive, isOpen])
   @@index([lat, lng])
-  @@map("providers")
+  @@map("merchants")
 }
 
-/// Provider Wallet — Separate from user wallet, tracks earnings
-model ProviderWallet {
+/// Merchant Wallet — Separate from user wallet, tracks earnings
+model MerchantWallet {
   id               String   @id @default(uuid())
-  providerId       String   @unique
-  provider         Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  merchantId       String   @unique
+  merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   
   // Available for withdrawal
   availableBalance Decimal @default(0) @db.Decimal(15, 2)
@@ -524,14 +524,14 @@ model ProviderWallet {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  @@map("provider_wallets")
+  @@map("merchant_wallets")
 }
 
 /// Product — Menu items, grocery products, pharmacy items
 model Product {
   id          String   @id @default(uuid())
-  providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  merchantId  String
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   
   name        String
   description String?
@@ -554,7 +554,7 @@ model Product {
   // Relations
   requestItems RequestItem[]
   
-  @@index([providerId])
+  @@index([merchantId])
   @@index([category])
   @@map("products")
 }
@@ -570,9 +570,9 @@ model Request {
   customerId      String
   customer        User            @relation("CustomerRequests", fields: [customerId], references: [id])
   
-  // Provider (optional — package deliveries have no provider)
-  providerId      String?
-  provider        Provider?         @relation(fields: [providerId], references: [id])
+  // Merchant (optional — package deliveries have no merchant)
+  merchantId      String?
+  merchant        Merchant?         @relation(fields: [merchantId], references: [id])
   
   // Rider (assigned later)
   riderId         String?
@@ -598,7 +598,7 @@ model Request {
   
   // Financial splits (CRITICAL — must exist from day one)
   customerPaid    Decimal         @db.Decimal(15, 2)
-  providerEarning Decimal         @default(0) @db.Decimal(15, 2)
+  merchantEarning Decimal         @default(0) @db.Decimal(15, 2)
   riderEarning    Decimal         @default(0) @db.Decimal(15, 2)
   platformEarning Decimal         @default(0) @db.Decimal(15, 2)
   
@@ -611,7 +611,7 @@ model Request {
   
   // Cancellation
   cancelledAt     DateTime?
-  cancelledBy     String?         // customer, provider, rider, system
+  cancelledBy     String?         // customer, merchant, rider, system
   cancellationReason String?
   
   // Timestamps for lifecycle
@@ -634,7 +634,7 @@ model Request {
   rating          Rating?
   
   @@index([customerId])
-  @@index([providerId])
+  @@index([merchantId])
   @@index([riderId])
   @@index([status])
   @@index([type])
@@ -672,7 +672,7 @@ model RequestItem {
   @@map("request_items")
 }
 
-/// PackageDetail — For package delivery (no provider)
+/// PackageDetail — For package delivery (no merchant)
 model PackageDetail {
   id          String   @id @default(uuid())
   requestId   String   @unique
@@ -723,7 +723,7 @@ model Session {
 /// Monnify webhook event log — for idempotency and audit.
 model WebhookEvent {
   id              String    @id @default(uuid())
-  provider        String    /// "monnify" or "vtpass"
+  merchant        String    /// "monnify" or "vtpass"
   eventType       String    /// e.g., "SUCCESSFUL_TRANSACTION"
   transactionRef  String    @unique  /// External reference for deduplication
   payload         Json      /// Raw webhook payload
@@ -733,7 +733,7 @@ model WebhookEvent {
 
   createdAt       DateTime  @default(now())
 
-  @@index([provider, eventType])
+  @@index([merchant, eventType])
   @@index([transactionRef])
   @@index([processed])
   @@map("webhook_events")

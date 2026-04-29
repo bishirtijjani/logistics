@@ -66,34 +66,34 @@ const DELIVERY = {
 
 // --- Unified Request lifecycle events (NEW) ---
 const REQUEST = {
-  // Server → Customer/Provider/Rider: request created
+  // Server → Customer/Merchant/Rider: request created
   CREATED: 'request:created',
 
-  // Server → Customer/Provider/Rider: status changed
+  // Server → Customer/Merchant/Rider: status changed
   STATUS_CHANGED: 'request:status:changed',
 
-  // Server → Customer: provider accepted the request
-  PROVIDER_ACCEPTED: 'request:provider:accepted',
+  // Server → Customer: merchant accepted the request
+  MERCHANT_ACCEPTED: 'request:merchant:accepted',
 
-  // Server → System: provider marked ready for pickup
-  PROVIDER_READY: 'request:provider:ready',
+  // Server → System: merchant marked ready for pickup
+  MERCHANT_READY: 'request:merchant:ready',
 
-  // Server → Customer/Provider/Rider: rider assigned
+  // Server → Customer/Merchant/Rider: rider assigned
   RIDER_ASSIGNED: 'request:rider:assigned',
 
-  // Server → Customer/Provider/Rider: rider location update
+  // Server → Customer/Merchant/Rider: rider location update
   RIDER_LOCATION: 'request:rider:location',
 
-  // Server → Customer/Provider/Rider: request completed
+  // Server → Customer/Merchant/Rider: request completed
   COMPLETED: 'request:completed',
 
-  // Server → Customer/Provider/Rider: request cancelled
+  // Server → Customer/Merchant/Rider: request cancelled
   CANCELLED: 'request:cancelled',
 
-  // Customer/Provider/Rider → Server: join request tracking room
+  // Customer/Merchant/Rider → Server: join request tracking room
   JOIN_ROOM: 'request:room:join',
 
-  // Customer/Provider/Rider → Server: leave request tracking room
+  // Customer/Merchant/Rider → Server: leave request tracking room
   LEAVE_ROOM: 'request:room:leave',
 };
 
@@ -122,15 +122,15 @@ const getDeliveryRoom = (orderId) => `delivery:${orderId}`;
 
 /**
  * Get the room name for a specific request (NEW - unified).
- * Customer, provider, and rider join this room during active request.
+ * Customer, merchant, and rider join this room during active request.
  */
 const getRequestRoom = (requestId) => `request:${requestId}`;
 
 /**
- * Get the provider room name.
- * Used for sending new orders to providers.
+ * Get the merchant room name.
+ * Used for sending new orders to merchants.
  */
-const getProviderRoom = (providerId) => `provider:${providerId}`;
+const getMerchantRoom = (merchantId) => `merchant:${merchantId}`;
 
 /**
  * Get the personal room name for a user.
@@ -153,7 +153,7 @@ module.exports = {
   NOTIFICATION,
   getDeliveryRoom,
   getRequestRoom,  // NEW
-  getProviderRoom,  // NEW
+  getMerchantRoom,  // NEW
   getUserRoom,
   getRiderPoolRoom,
 };

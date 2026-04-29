@@ -21,7 +21,7 @@ This proposal covers the design, development, and deployment of VTU & Logistics 
 | Module | What It Does | Powered By |
 |---|---|---|
 | **Digital Wallet** | Each user gets a unique Nigerian bank account number. Fund your wallet by transferring to it from any bank app. Send money to other users, withdraw to your bank, or use your balance to pay for everything else in the app. | Monnify |
-| **Utility Payments** | Buy airtime and data bundles for MTN, Airtel, Glo, and 9mobile. Pay electricity bills for any DISCO provider across Nigeria. Everything is instant and paid from your wallet balance. | VTPass |
+| **Utility Payments** | Buy airtime and data bundles for MTN, Airtel, Glo, and 9mobile. Pay electricity bills for any DISCO merchant across Nigeria. Everything is instant and paid from your wallet balance. | VTPass |
 | **Delivery & Logistics** | Request pickup and dropoff of any item within Katsina State. A registered rider accepts the job, collects the item, and delivers it while you track them live on a map. Payment is automatic from your wallet on delivery. | Google Maps + In-house |
 
 The platform consists of two mobile applications — a **Customer App** for end users and a **Rider App** for delivery personnel — both connected to the same backend system.
@@ -30,7 +30,7 @@ The platform consists of two mobile applications — a **Customer App** for end 
 
 ## 2. How the System is Structured
 
-The Customer App and Rider App each communicate with a shared backend server over a secure connection. The backend handles all business logic and connects to external providers for payments, utilities, maps, and notifications. Users never interact with these providers directly — everything goes through the app.
+The Customer App and Rider App each communicate with a shared backend server over a secure connection. The backend handles all business logic and connects to external merchants for payments, utilities, maps, and notifications. Users never interact with these merchants directly — everything goes through the app.
 
 ### 2.1 Wallet Money Flow
 
@@ -48,8 +48,8 @@ A delivery moves through seven stages from the moment a customer places a reques
 | **Backend Server** | Node.js + Express | Handles all transactions, delivery logic, and user management. Designed to handle many users at the same time reliably. |
 | **Database** | PostgreSQL | A financial-grade database. Every wallet transaction is recorded with full accuracy — no rounding errors, no data loss. |
 | **Real-Time Tracking** | Socket.io | Streams the rider's live GPS location to the customer's map every 3 seconds during an active delivery. |
-| **Payments** | Monnify | A CBN-licensed payment provider that handles the virtual accounts, wallet funding, and bank disbursements legally and compliantly. |
-| **Utility Bills** | VTPass | A Nigerian bill-payment aggregator supporting all major networks and electricity providers. |
+| **Payments** | Monnify | A CBN-licensed payment merchant that handles the virtual accounts, wallet funding, and bank disbursements legally and compliantly. |
+| **Utility Bills** | VTPass | A Nigerian bill-payment aggregator supporting all major networks and electricity merchants. |
 | **Maps & Navigation** | Google Maps Platform | Powers address search, distance calculation, fare estimation, and the live tracking map. |
 | **Notifications** | Firebase FCM | Delivers push notifications to both apps for delivery updates, payment confirmations, and money transfers. |
 
@@ -87,8 +87,8 @@ The following tables define every feature included in Version 1 of the platform.
 |---|---|
 | **Airtime Top-Up** | Purchase airtime for any of the four major Nigerian networks (MTN, Airtel, Glo, 9mobile) for yourself or any phone number. |
 | **Data Bundle Purchase** | Browse and purchase data bundles for all four networks. Packages are fetched live from VTPass to ensure they are always up to date. |
-| **Electricity Token** | Pay electricity bills for any DISCO provider across Nigeria by entering the meter number. The payment token is delivered in the app and via SMS to the registered number. |
-| **Bill Purchase History** | A separate log of all utility purchases with provider, beneficiary, amount, reference number, and status. |
+| **Electricity Token** | Pay electricity bills for any DISCO merchant across Nigeria by entering the meter number. The payment token is delivered in the app and via SMS to the registered number. |
+| **Bill Purchase History** | A separate log of all utility purchases with merchant, beneficiary, amount, reference number, and status. |
 
 ### 3.4 Delivery & Logistics — Customer Features
 

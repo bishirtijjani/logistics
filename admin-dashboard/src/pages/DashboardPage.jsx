@@ -39,8 +39,8 @@ export default function DashboardPage() {
       color: 'bg-purple-500',
     },
     {
-      title: 'Providers',
-      value: stats?.totalProviders || 0,
+      title: 'Merchants',
+      value: stats?.totalMerchants || 0,
       icon: Store,
       color: 'bg-orange-500',
     },

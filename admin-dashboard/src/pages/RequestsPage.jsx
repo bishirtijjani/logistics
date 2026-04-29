@@ -139,7 +139,7 @@ export default function RequestsPage() {
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rider</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
@@ -167,10 +167,10 @@ export default function RequestsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {request.provider ? (
+                    {request.merchant ? (
                       <div className="flex items-center gap-2">
                         <Store size={16} />
-                        {request.provider.name}
+                        {request.merchant.name}
                       </div>
                     ) : (
                       <span className="text-gray-400">-</span>
@@ -284,15 +284,15 @@ export default function RequestsPage() {
                 </div>
               </div>
 
-              {selectedRequest.provider && (
+              {selectedRequest.merchant && (
                 <div className="border-t border-gray-200 pt-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Provider Information</h3>
+                  <h3 className="font-semibold text-gray-900 mb-3">Merchant Information</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Store size={16} className="text-gray-400" />
-                      <span className="text-gray-600">{selectedRequest.provider.name}</span>
+                      <span className="text-gray-600">{selectedRequest.merchant.name}</span>
                     </div>
-                    <p className="text-sm text-gray-500">Type: {selectedRequest.provider.type}</p>
+                    <p className="text-sm text-gray-500">Type: {selectedRequest.merchant.type}</p>
                   </div>
                 </div>
               )}

@@ -11,7 +11,7 @@
 | Folder | Purpose | Rules |
 |---|---|---|
 | `modules/` | Feature modules (auth, wallet, delivery, utility, rider, admin, webhook) | One folder per domain. Each module has: `*.routes.js`, `*.controller.js`, `*.service.js`, `*.validator.js` |
-| `services/` | External API integrations (Monnify, VTPass, Maps, FCM, Termii) | One file per provider. No business logic — only API communication |
+| `services/` | External API integrations (Monnify, VTPass, Maps, FCM, Termii) | One file per merchant. No business logic — only API communication |
 | `middlewares/` | Express middleware (auth, validation, roles, errors) | Shared across all modules. Never module-specific |
 | `sockets/` | Socket.io events and handlers | Events in `events.js`. One handler file per domain |
 | `queues/` | BullMQ jobs and workers | Job types in `jobs.js`. One worker file per queue |
@@ -264,13 +264,13 @@ REQUESTED → ACCEPTED → PROCESSING → READY_FOR_PICKUP → RIDER_ASSIGNED �
 ```
 
 - **Food:** Goes through ALL phases (restaurant accepts, cooks, prepares, rider picks up, delivers)
-- **Package:** Skips ACCEPTED/PROCESSING (no provider), goes from REQUESTED directly to READY_FOR_PICKUP, then rider assigned
+- **Package:** Skips ACCEPTED/PROCESSING (no merchant), goes from REQUESTED directly to READY_FOR_PICKUP, then rider assigned
 
 ### Rules
 
 1. **No hardcoded assumptions about request type.** The system must adapt based on `request.type`, not hardcoded logic.
 2. **All financial actions flow through the wallet.** Even cash payments create a transaction record.
-3. **Settlement splits must exist from day one.** Every request must record: `customerPaid`, `providerEarning`, `riderEarning`, `platformEarning`.
+3. **Settlement splits must exist from day one.** Every request must record: `customerPaid`, `merchantEarning`, `riderEarning`, `platformEarning`.
 4. **Socket events use `request:` namespace**, not `delivery:`.
 5. **Status display maps to plain language** based on the request type (e.g., "Preparing your order" for food, "Package ready for pickup" for package).
 6. **The same tracking screen works for all types** — it adapts based on the request data.
@@ -279,8 +279,8 @@ REQUESTED → ACCEPTED → PROCESSING → READY_FOR_PICKUP → RIDER_ASSIGNED �
 ### Database Rules (Request Model)
 
 - `Request.type` determines behavior, not separate tables or endpoints.
-- `Request.providerId` is optional — package deliveries have no provider.
-- `Request.providerEarning` is `0` for package deliveries.
+- `Request.merchantId` is optional — package deliveries have no merchant.
+- `Request.merchantEarning` is `0` for package deliveries.
 - All timestamps (`acceptedAt`, `processingAt`, `readyAt`, etc.) exist on every request, but may be `null`.
 
 ### API Rules (Request Endpoints)
@@ -300,9 +300,9 @@ REQUESTED → ACCEPTED → PROCESSING → READY_FOR_PICKUP → RIDER_ASSIGNED �
 ### Financial Rules
 
 - When a customer pays, the money belongs to the PLATFORM first.
-- The platform then logically splits it: provider share, rider share, platform commission.
+- The platform then logically splits it: merchant share, rider share, platform commission.
 - These records MUST exist even if actual disbursement is manual or deferred.
-- Provider wallets track `availableBalance` (cleared) and `pendingBalance` (in escrow).
+- Merchant wallets track `availableBalance` (cleared) and `pendingBalance` (in escrow).
 
 ---
 
@@ -315,23 +315,23 @@ REQUESTED → ACCEPTED → PROCESSING → READY_FOR_PICKUP → RIDER_ASSIGNED �
 1. **Customer Payment:** Debit customer wallet, credit platform holding account.
 2. **On Delivery:** Trigger settlement worker.
 3. **Splits:**
-   - Provider (if applicable): `subtotal` - `providerCommission`
+   - Merchant (if applicable): `subtotal` - `merchantCommission`
    - Rider: `deliveryFee` - `platformDeliveryFee`
    - Platform: `platformFee` + `platformDeliveryFee`
 
 ### Wallet Rules
 
 1. **Customer Wallet:** Single balance, all transactions append-only.
-2. **Provider Wallet:** Separate `availableBalance` and `pendingBalance`. Available can be withdrawn. Pending is held in escrow.
+2. **Merchant Wallet:** Separate `availableBalance` and `pendingBalance`. Available can be withdrawn. Pending is held in escrow.
 3. **Rider Wallet:** Single balance, tracks earnings per request.
-4. **Platform Revenue:** Tracked as a separate ledger (not in user/provider wallets).
+4. **Platform Revenue:** Tracked as a separate ledger (not in user/merchant wallets).
 
 ### Transaction Types
 
 - `REQUEST_PAYMENT` — Customer pays for request
 - `REQUEST_REFUND` — Customer refunded (cancelled request)
-- `PROVIDER_EARNING` — Provider credited for fulfilled request
+- `MERCHANT_EARNING` — Merchant credited for fulfilled request
 - `RIDER_EARNING` — Rider credited for completed delivery
 - `PLATFORM_FEE` — Platform commission recorded
-- `PROVIDER_WITHDRAWAL` — Provider withdraws earnings
+- `MERCHANT_WITHDRAWAL` — Merchant withdraws earnings
 - `RIDER_WITHDRAWAL` — Rider withdraws earnings (future)

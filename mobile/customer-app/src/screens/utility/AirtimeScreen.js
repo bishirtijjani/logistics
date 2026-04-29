@@ -14,7 +14,7 @@ import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { buyAirtime } from "../../store/slices/utilitySlice";
 
-const PROVIDERS = [
+const MERCHANTS = [
   { id: "mtn", name: "MTN", color: "#FFCC00", icon: "cellular" },
   { id: "airtel", name: "Airtel", color: "#FF0000", icon: "cellular" },
   { id: "glo", name: "Glo", color: "#00AA00", icon: "cellular" },
@@ -28,7 +28,7 @@ export default function AirtimeScreen({ navigation }) {
   const { balance } = useSelector((state) => state.wallet);
   const { isLoading } = useSelector((state) => state.utility);
 
-  const [provider, setProvider] = useState("mtn");
+  const [merchant, setMerchant] = useState("mtn");
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [showPinSheet, setShowPinSheet] = useState(false);
@@ -63,7 +63,7 @@ export default function AirtimeScreen({ navigation }) {
     try {
       await dispatch(
         buyAirtime({
-          provider,
+          merchant,
           phone: phone.trim(),
           amount: Number(amount),
           pin,
@@ -77,7 +77,7 @@ export default function AirtimeScreen({ navigation }) {
     }
   };
 
-  const selectedProvider = PROVIDERS.find((p) => p.id === provider);
+  const selectedMerchant = MERCHANTS.find((p) => p.id === merchant);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
@@ -114,26 +114,26 @@ export default function AirtimeScreen({ navigation }) {
           </View>
         ) : null}
 
-        {/* Provider Selection */}
+        {/* Merchant Selection */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>
-          Select Provider
+          Select Merchant
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 20 }}>
-          {PROVIDERS.map((p) => (
+          {MERCHANTS.map((p) => (
             <TouchableOpacity
               key={p.id}
-              onPress={() => setProvider(p.id)}
+              onPress={() => setMerchant(p.id)}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: provider === p.id ? colors.primary : colors.surface,
+                backgroundColor: merchant === p.id ? colors.primary : colors.surface,
                 borderRadius: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 marginRight: 8,
                 marginBottom: 8,
                 borderWidth: 2,
-                borderColor: provider === p.id ? colors.primary : colors.border,
+                borderColor: merchant === p.id ? colors.primary : colors.border,
               }}
             >
               <View
@@ -149,7 +149,7 @@ export default function AirtimeScreen({ navigation }) {
                 style={{
                   fontSize: 14,
                   fontWeight: "700",
-                  color: provider === p.id ? colors.white : colors.text,
+                  color: merchant === p.id ? colors.white : colors.text,
                 }}
               >
                 {p.name}
@@ -270,9 +270,9 @@ export default function AirtimeScreen({ navigation }) {
             }}
           >
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
-              <Text style={{ fontSize: 14, color: colors.textMuted }}>Provider</Text>
+              <Text style={{ fontSize: 14, color: colors.textMuted }}>Merchant</Text>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>
-                {selectedProvider?.name}
+                {selectedMerchant?.name}
               </Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
@@ -332,7 +332,7 @@ export default function AirtimeScreen({ navigation }) {
         onClose={() => setShowPinSheet(false)}
         onConfirm={handlePinConfirm}
         title="Confirm Purchase"
-        subtitle={`You will be charged ₦${Number(amount).toLocaleString()} for ${selectedProvider?.name} airtime`}
+        subtitle={`You will be charged ₦${Number(amount).toLocaleString()} for ${selectedMerchant?.name} airtime`}
       />
     </SafeAreaView>
   );

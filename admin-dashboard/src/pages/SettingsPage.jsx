@@ -13,7 +13,7 @@ export default function SettingsPage() {
     platformName: 'VTU Logistics',
     defaultCurrency: 'NGN',
     timezone: 'Africa/Lagos',
-    defaultProviderCommission: 15,
+    defaultMerchantCommission: 15,
     defaultRiderCommission: 10,
     minDeliveryFee: 500,
     maxDeliveryFee: 5000,
@@ -39,7 +39,7 @@ export default function SettingsPage() {
         platformName: platformSettings.platformName || 'VTU Logistics',
         defaultCurrency: platformSettings.defaultCurrency || 'NGN',
         timezone: platformSettings.timezone || 'Africa/Lagos',
-        defaultProviderCommission: platformSettings.defaultProviderCommission || 15,
+        defaultMerchantCommission: platformSettings.defaultMerchantCommission || 15,
         defaultRiderCommission: platformSettings.defaultRiderCommission || 10,
         minDeliveryFee: platformSettings.minDeliveryFee || 500,
         maxDeliveryFee: platformSettings.maxDeliveryFee || 5000,
@@ -195,13 +195,13 @@ export default function SettingsPage() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Default Provider Commission (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Default Merchant Commission (%)</label>
                   <div className="relative">
                     <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                       type="number"
-                      value={platformForm.defaultProviderCommission}
-                      onChange={(e) => setPlatformForm({ ...platformForm, defaultProviderCommission: parseFloat(e.target.value) })}
+                      value={platformForm.defaultMerchantCommission}
+                      onChange={(e) => setPlatformForm({ ...platformForm, defaultMerchantCommission: parseFloat(e.target.value) })}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                       min="0"
                       max="100"

@@ -1,10 +1,10 @@
 # Merchant Dashboard
 
-A React-based web dashboard for merchants/providers to manage their orders, products, earnings, and analytics.
+A React-based web dashboard for merchants/merchants to manage their orders, products, earnings, and analytics.
 
 ## Features
 
-- **Authentication**: Secure login with PROVIDER role
+- **Authentication**: Secure login with MERCHANT role
 - **Orders Management**: View, accept, reject, and update order statuses
 - **Menu Management**: Create, edit, delete, and toggle product availability
 - **Earnings**: View wallet balance, transaction history, and request withdrawals
@@ -77,7 +77,7 @@ src/
 
 ## API Endpoints
 
-The dashboard communicates with the backend at `/api/providers/merchant/:providerId/`:
+The dashboard communicates with the backend at `/api/merchants/merchant/:merchantId/`:
 
 - `GET /profile` - Get merchant profile
 - `PATCH /profile` - Update merchant profile

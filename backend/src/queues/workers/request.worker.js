@@ -55,7 +55,7 @@ const settleRequest = async (job) => {
       where: { id: requestId },
       include: {
         customer: { include: { wallet: true } },
-        provider: { include: { wallet: true } },
+        merchant: { include: { wallet: true } },
         rider: { include: { user: { include: { wallet: true } } } },
       },
     });
@@ -63,32 +63,32 @@ const settleRequest = async (job) => {
     if (!request) throw new Error('Request not found');
     if (request.status !== 'DELIVERED') throw new Error('Request not in DELIVERED state');
     
-    const providerEarning = Number(request.providerEarning);
+    const merchantEarning = Number(request.merchantEarning);
     const riderEarning = Number(request.riderEarning);
     const platformEarning = Number(request.platformEarning);
     
     const reference = `SETTLE-${requestId}-${Date.now()}`;
     
-    // Credit provider wallet (if applicable)
-    if (request.provider && providerEarning > 0) {
-      await tx.providerWallet.update({
-        where: { providerId: request.providerId },
+    // Credit merchant wallet (if applicable)
+    if (request.merchant && merchantEarning > 0) {
+      await tx.merchantWallet.update({
+        where: { merchantId: request.merchantId },
         data: {
-          pendingBalance: { increment: providerEarning },
-          totalEarnings: { increment: providerEarning },
+          pendingBalance: { increment: merchantEarning },
+          totalEarnings: { increment: merchantEarning },
         },
       });
       
-      // Create provider earning transaction
+      // Create merchant earning transaction
       await tx.transaction.create({
         data: {
-          reference: `${reference}-PROVIDER`,
-          type: 'PROVIDER_EARNING',
+          reference: `${reference}-MERCHANT`,
+          type: 'MERCHANT_EARNING',
           status: 'COMPLETED',
-          amount: providerEarning,
+          amount: merchantEarning,
           fee: 0,
           description: `Earning for request ${requestId}`,
-          providerId: request.providerId,
+          merchantId: request.merchantId,
           requestId: request.id,
         },
       });
@@ -135,15 +135,15 @@ const settleRequest = async (job) => {
       data: { status: 'SETTLED', settledAt: new Date() },
     });
     
-    // Update provider stats (if applicable)
-    if (request.provider) {
-      await tx.provider.update({
-        where: { id: request.providerId },
+    // Update merchant stats (if applicable)
+    if (request.merchant) {
+      await tx.merchant.update({
+        where: { id: request.merchantId },
         data: { totalOrders: { increment: 1 } },
       });
     }
     
-    return { providerEarning, riderEarning, platformEarning };
+    return { merchantEarning, riderEarning, platformEarning };
   });
   
   logger.info('Request settled', { requestId, ...result });

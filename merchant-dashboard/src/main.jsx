@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Provider } from 'react-redux'
+import { Merchant } from 'react-redux'
 import { store } from './store/store.js'
 import './index.css'
 import LoginPage from './pages/LoginPage.jsx'
@@ -22,12 +22,12 @@ function ProtectedRoute({ children }) {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Provider store={store}>
+    <Merchant store={store}>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
-            path="/dashboard/:providerId/*"
+            path="/dashboard/:merchantId/*"
             element={
               <ProtectedRoute>
                 <Layout />
@@ -44,6 +44,6 @@ createRoot(document.getElementById('root')).render(
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
-    </Provider>
+    </Merchant>
   </StrictMode>,
 )

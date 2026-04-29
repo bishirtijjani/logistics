@@ -10,11 +10,11 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Update `schema.prisma` with unified models:
   - ✅ `Request` model with type polymorphism
   - ✅ `RequestItem` model for line items
-  - ✅ `Provider` model for merchants
-  - ✅ `ProviderWallet` model for provider earnings
+  - ✅ `Merchant` model for merchants
+  - ✅ `MerchantWallet` model for merchant earnings
   - ✅ `Product` model for inventory
   - ✅ `PackageDetail` model for package deliveries
-  - ✅ Update `User` model with provider and requests relations
+  - ✅ Update `User` model with merchant and requests relations
   - ✅ Update `Rider` model with requests relation
   - ✅ Update `Rating` model to support both legacy and new requests
 - ✅ Create manual SQL migration file (`backend/prisma/migrations/20260422_unified_request/migration.sql`)
@@ -38,25 +38,25 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Create `request.routes.js` with REST endpoints
 - ✅ Register routes in `app.js` under `/api/requests`
 
-### Backend — Provider Module
-- ✅ Create `provider.validator.js` with Zod schemas:
-  - ✅ `createProviderSchema` for admin creation
-  - ✅ `updateProviderSchema` for profile updates
-  - ✅ `listProvidersSchema` with location filtering
-  - ✅ `toggleProviderStatusSchema` for open/closed
+### Backend — Merchant Module
+- ✅ Create `merchant.validator.js` with Zod schemas:
+  - ✅ `createMerchantSchema` for admin creation
+  - ✅ `updateMerchantSchema` for profile updates
+  - ✅ `listMerchantsSchema` with location filtering
+  - ✅ `toggleMerchantStatusSchema` for open/closed
   - ✅ `updateCommissionSchema` for admin commission updates
-- ✅ Create `provider.service.js` with business logic:
-  - ✅ `createProvider` with wallet initialization
-  - ✅ `getProviders` with location-based filtering
-  - ✅ `getProviderById` with products
-  - ✅ `updateProvider` with authorization
-  - ✅ `toggleProviderStatus` for availability
-  - ✅ `getProviderWallet` with authorization
-  - ✅ `getProviderOrders` with filtering
-  - ✅ `updateProviderCommission` for admin
-- ✅ Create `provider.controller.js` with HTTP handlers
-- ✅ Create `provider.routes.js` with REST endpoints
-- ✅ Register routes in `app.js` under `/api/providers`
+- ✅ Create `merchant.service.js` with business logic:
+  - ✅ `createMerchant` with wallet initialization
+  - ✅ `getMerchants` with location-based filtering
+  - ✅ `getMerchantById` with products
+  - ✅ `updateMerchant` with authorization
+  - ✅ `toggleMerchantStatus` for availability
+  - ✅ `getMerchantWallet` with authorization
+  - ✅ `getMerchantOrders` with filtering
+  - ✅ `updateMerchantCommission` for admin
+- ✅ Create `merchant.controller.js` with HTTP handlers
+- ✅ Create `merchant.routes.js` with REST endpoints
+- ✅ Register routes in `app.js` under `/api/merchants`
 
 ### Backend — Queue Jobs
 - ✅ Add `REQUEST` queue to `jobs.js`
@@ -76,8 +76,8 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Add `REQUEST` event constants to `events.js`:
   - ✅ `REQUEST.CREATED`
   - ✅ `REQUEST.STATUS_CHANGED`
-  - ✅ `REQUEST.PROVIDER_ACCEPTED`
-  - ✅ `REQUEST.PROVIDER_READY`
+  - ✅ `REQUEST.MERCHANT_ACCEPTED`
+  - ✅ `REQUEST.MERCHANT_READY`
   - ✅ `REQUEST.RIDER_ASSIGNED`
   - ✅ `REQUEST.RIDER_LOCATION`
   - ✅ `REQUEST.COMPLETED`
@@ -86,7 +86,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ `REQUEST.LEAVE_ROOM`
 - ✅ Add room helpers:
   - ✅ `getRequestRoom`
-  - ✅ `getProviderRoom`
+  - ✅ `getMerchantRoom`
 
 ### Frontend — Redux State
 - ✅ Create `requestSlice.js` with async thunks:
@@ -99,20 +99,20 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Add reducer to Redux store
 - ✅ Add socket update action `updateRequestFromSocket`
 
-### Frontend — Provider Screens
-- ✅ Create `ProviderBrowseScreen.js`:
-  - ✅ Fetch providers by type and location
-  - ✅ Display provider cards with ratings
+### Frontend — Merchant Screens
+- ✅ Create `MerchantBrowseScreen.js`:
+  - ✅ Fetch merchants by type and location
+  - ✅ Display merchant cards with ratings
   - ✅ Show open/closed status
-  - ✅ Navigate to provider menu
-- ✅ Create `ProviderMenuScreen.js`:
-  - ✅ Fetch provider details and products
+  - ✅ Navigate to merchant menu
+- ✅ Create `MerchantMenuScreen.js`:
+  - ✅ Fetch merchant details and products
   - ✅ Display product list
   - ✅ Cart management (add/remove/update quantity)
   - ✅ Show cart footer with total
 - ✅ Add routes to `AppNavigator.js`:
-  - ✅ `ProviderBrowse`
-  - ✅ `ProviderMenu`
+  - ✅ `MerchantBrowse`
+  - ✅ `MerchantMenu`
 
 ### Frontend — HomeScreen
 - ✅ Update `HomeScreen.js` to use unified `requestTypes` array
@@ -134,11 +134,11 @@ This document outlines the implementation roadmap for the unified request archit
 - ❌ Test `/api/requests/:id/status` PATCH endpoint (skipped - user won't test until Phase 5)
 - ❌ Test `/api/requests/:id` DELETE endpoint (skipped - user won't test until Phase 5)
 - ❌ Test `/api/requests/:id/rate` POST endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/providers` GET endpoint with location filtering (skipped - user won't test until Phase 5)
-- ❌ Test `/api/providers/:id` GET endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/providers/:id` PATCH endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/providers/:id/wallet` GET endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/providers/:id/orders` GET endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/api/merchants` GET endpoint with location filtering (skipped - user won't test until Phase 5)
+- ❌ Test `/api/merchants/:id` GET endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/api/merchants/:id` PATCH endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/api/merchants/:id/wallet` GET endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/api/merchants/:id/orders` GET endpoint (skipped - user won't test until Phase 5)
 
 ### Frontend — Checkout Flow
 - ✅ Create `CheckoutScreen.js`:
@@ -152,22 +152,22 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Handle wallet payment (deduct balance)
   - ✅ Navigate to tracking screen on success
 - ✅ Add `CheckoutScreen` to `AppNavigator`
-- ✅ Update `ProviderMenuScreen` checkout button to navigate to `CheckoutScreen`
+- ✅ Update `MerchantMenuScreen` checkout button to navigate to `CheckoutScreen`
 
 ### Frontend — Request Tracking
 - ✅ Create `RequestTrackingScreen.js`:
   - ✅ Fetch request details by ID
   - ✅ Display status timeline (stepper)
-  - ✅ Show provider information
+  - ✅ Show merchant information
   - ✅ Show rider information when assigned
   - ❌ Display map with rider location (requires map library integration)
   - ❌ Show estimated time of arrival (not implemented)
   - ✅ Cancel button (before pickup)
-  - ❌ Call button (to rider/provider) (not implemented)
+  - ❌ Call button (to rider/merchant) (not implemented)
   - ✅ Rate button (after delivery)
 - ✅ Add status-specific UI:
-  - ✅ REQUESTED: "Waiting for provider acceptance"
-  - ✅ ACCEPTED: "Provider is preparing your order"
+  - ✅ REQUESTED: "Waiting for merchant acceptance"
+  - ✅ ACCEPTED: "Merchant is preparing your order"
   - ✅ PROCESSING: "Your order is being prepared"
   - ✅ READY_FOR_PICKUP: "Order ready, waiting for rider"
   - ✅ RIDER_ASSIGNED: "Rider assigned, on the way to pickup"
@@ -181,11 +181,11 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Update navigation after checkout to go to tracking screen
 
 ### Frontend — HomeScreen Integration
-- ✅ Update Food button to navigate to `ProviderBrowse` with type='FOOD'
-- ✅ Update Grocery button to navigate to `ProviderBrowse` with type='GROCERY'
-- ✅ Update Pharmacy button to navigate to `ProviderBrowse` with type='PHARMACY'
+- ✅ Update Food button to navigate to `MerchantBrowse` with type='FOOD'
+- ✅ Update Grocery button to navigate to `MerchantBrowse` with type='GROCERY'
+- ✅ Update Pharmacy button to navigate to `MerchantBrowse` with type='PHARMACY'
 - ✅ Update Delivery button to navigate to package delivery flow (existing)
-- ✅ Pass user location to ProviderBrowse if available
+- ✅ Pass user location to MerchantBrowse if available
 
 ---
 
@@ -195,24 +195,24 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Update socket handlers to emit `request:` events:
   - ✅ Emit `REQUEST.CREATED` when request is created
   - ✅ Emit `REQUEST.STATUS_CHANGED` on status updates
-  - ❌ Emit `REQUEST.PROVIDER_ACCEPTED` when provider accepts (requires provider dashboard)
-  - ❌ Emit `REQUEST.PROVIDER_READY` when provider marks ready (requires provider dashboard)
+  - ❌ Emit `REQUEST.MERCHANT_ACCEPTED` when merchant accepts (requires merchant dashboard)
+  - ❌ Emit `REQUEST.MERCHANT_READY` when merchant marks ready (requires merchant dashboard)
   - ✅ Emit `REQUEST.RIDER_ASSIGNED` when rider is assigned
   - ✅ Emit `REQUEST.COMPLETED` when delivery is complete
   - ✅ Emit `REQUEST.CANCELLED` when request is cancelled
 - ✅ Implement room management:
   - ✅ Join request room on tracking screen
   - ✅ Leave request room on screen unmount
-  - ✅ Join provider room for provider-specific events
+  - ✅ Join merchant room for merchant-specific events
 - ✅ Implement rider location broadcasting
 - ❌ Test socket event flow end-to-end (not tested - user won't test until Phase 5)
 
 ### Frontend — Socket Client
 - ✅ Update mobile socket service to listen to `request:` events:
-  - ✅ `REQUEST.CREATED` (provider app)
+  - ✅ `REQUEST.CREATED` (merchant app)
   - ✅ `REQUEST.STATUS_CHANGED` (all roles)
-  - ✅ `REQUEST.PROVIDER_ACCEPTED` (customer)
-  - ✅ `REQUEST.PROVIDER_READY` (customer/rider)
+  - ✅ `REQUEST.MERCHANT_ACCEPTED` (customer)
+  - ✅ `REQUEST.MERCHANT_READY` (customer/rider)
   - ✅ `REQUEST.RIDER_ASSIGNED` (customer)
   - ✅ `REQUEST.RIDER_LOCATION` (customer)
   - ✅ `REQUEST.COMPLETED` (all roles)
@@ -227,7 +227,7 @@ This document outlines the implementation roadmap for the unified request archit
 ### Push Notifications
 - ✅ Integrate push notification service (FCM) (service structure complete, requires FCM credentials)
 - ✅ Send push on status changes:
-  - ✅ Provider acceptance
+  - ✅ Merchant acceptance
   - ✅ Rider assignment
   - ✅ Order pickup
   - ✅ Order delivery
@@ -244,13 +244,13 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Reassign rider to request (reassignRider)
   - ✅ Force cancel request with reason (forceCancelRequest)
   - ✅ Update request status (admin override) (adminUpdateRequestStatus)
-- ✅ Add admin-specific endpoints to provider module:
-  - ✅ List all providers with filtering (getAllProviders)
-  - ✅ Approve provider (approveProvider)
-  - ✅ Reject provider (rejectProvider)
-  - ✅ Suspend provider (suspendProvider)
-  - ✅ Unsuspend provider (unsuspendProvider)
-  - ✅ Update provider commission (updateProviderCommission)
+- ✅ Add admin-specific endpoints to merchant module:
+  - ✅ List all merchants with filtering (getAllMerchants)
+  - ✅ Approve merchant (approveMerchant)
+  - ✅ Reject merchant (rejectMerchant)
+  - ✅ Suspend merchant (suspendMerchant)
+  - ✅ Unsuspend merchant (unsuspendMerchant)
+  - ✅ Update merchant commission (updateMerchantCommission)
 - ✅ Add rider management endpoints:
   - ✅ List all riders (getAllRiders)
   - ✅ List pending riders (getPendingRiders)
@@ -277,7 +277,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Total requests count (UI exists, data from backend)
   - ✅ Active requests count (UI exists, data from backend)
   - ✅ Total revenue (UI exists, data from backend)
-  - ✅ Total providers (UI exists, data from backend)
+  - ✅ Total merchants (UI exists, data from backend)
   - ✅ Total riders (UI exists, data from backend)
   - ✅ Charts for trends (revenue and request trends using Recharts)
 - ✅ Build requests management page:
@@ -287,15 +287,15 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Reassign rider action
   - ✅ Force cancel action
   - ✅ View transaction details
-- ✅ Build providers management page:
-  - ✅ Table of all providers (UI exists)
+- ✅ Build merchants management page:
+  - ✅ Table of all merchants (UI exists)
   - ✅ Filter by type, status (UI exists)
-  - ✅ View provider details modal
-  - ✅ Approve pending providers
-  - ✅ Reject pending providers
-  - ✅ Suspend/unsuspend providers
+  - ✅ View merchant details modal
+  - ✅ Approve pending merchants
+  - ✅ Reject pending merchants
+  - ✅ Suspend/unsuspend merchants
   - ✅ Update commission rates
-  - ✅ View provider wallet
+  - ✅ View merchant wallet
 - ✅ Build riders management page:
   - ✅ Table of all riders (UI exists)
   - ✅ Filter by status, availability (UI exists)
@@ -322,7 +322,7 @@ This document outlines the implementation roadmap for the unified request archit
 ## Phase 5 — Merchant Dashboard ✅ (Completed)
 
 ### Backend — Merchant Endpoints
-- ✅ Add merchant-specific endpoints to provider module:
+- ✅ Add merchant-specific endpoints to merchant module:
   - ✅ Get merchant profile (getMerchantProfile)
   - ✅ Update merchant profile (updateMerchantProfile)
   - ✅ Get merchant orders (getMerchantOrders)
@@ -341,7 +341,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Get order history (getMerchantOrderHistory)
   - ✅ Get earnings breakdown (getMerchantEarningsBreakdown)
 - ✅ Add Zod validation schemas for all merchant endpoints
-- ✅ Register merchant routes in provider.routes.js under /api/providers/merchant
+- ✅ Register merchant routes in merchant.routes.js under /api/merchants/merchant
 
 ### Frontend — Merchant Dashboard (Web)
 - ✅ Set up React web app with Vite
@@ -349,7 +349,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Configure Tailwind CSS and project structure
 - ✅ Set up Redux store with slices (auth, orders, products, earnings, analytics, settings)
 - ✅ Create API client (lib/api.js) with baseURL /api and auth interceptor
-- ✅ Implement authentication with PROVIDER role (authSlice)
+- ✅ Implement authentication with MERCHANT role (authSlice)
 - ✅ Create login page with form validation
 - ✅ Create merchant layout with sidebar navigation (Orders, Menu, Earnings, Analytics, Settings)
 - ✅ Build orders page:
@@ -378,8 +378,8 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Profile settings form
   - ✅ Operating hours configuration
   - ✅ Notification preferences (toggle switches)
-- ✅ Add route protection for authenticated providers
-- ✅ Update main.jsx with routing and Redux provider
+- ✅ Add route protection for authenticated merchants
+- ✅ Update main.jsx with routing and Redux merchant
 - ✅ Create README.md for merchant dashboard
 
 ---
@@ -413,8 +413,8 @@ This document outlines the implementation roadmap for the unified request archit
 ### Customer App Enhancements
 - [ ] Add saved addresses management
 - [ ] Add order history page
-- [ ] Add favorites/bookmarked providers
-- [ ] Add search functionality for providers
+- [ ] Add favorites/bookmarked merchants
+- [ ] Add search functionality for merchants
 - [ ] Add filters (rating, price, distance, delivery time)
 - [ ] Add reorder functionality
 - [ ] Add split payment options

@@ -31,8 +31,8 @@ const REQUEST_STATUSES = [
 const createRequestSchema = z.object({
   type: z.enum(REQUEST_TYPES),
   
-  // Provider (required for FOOD/GROCERY/PHARMACY, optional for PACKAGE)
-  providerId: z.string().uuid().optional(),
+  // Merchant (required for FOOD/GROCERY/PHARMACY, optional for PACKAGE)
+  merchantId: z.string().uuid().optional(),
   
   // Locations (required for all types)
   pickupAddress: z.string().min(5, 'Pickup address is required'),
@@ -73,12 +73,12 @@ const createRequestSchema = z.object({
   // Payment method
   paymentMethod: z.enum(['WALLET', 'CASH', 'CARD']).default('WALLET'),
 }).refine((data) => {
-  // Validation: If type is PACKAGE, providerId should be null
-  if (data.type === 'PACKAGE' && data.providerId) {
+  // Validation: If type is PACKAGE, merchantId should be null
+  if (data.type === 'PACKAGE' && data.merchantId) {
     return false;
   }
-  // Validation: If type is FOOD/GROCERY/PHARMACY, providerId is required
-  if (['FOOD', 'GROCERY', 'PHARMACY'].includes(data.type) && !data.providerId) {
+  // Validation: If type is FOOD/GROCERY/PHARMACY, merchantId is required
+  if (['FOOD', 'GROCERY', 'PHARMACY'].includes(data.type) && !data.merchantId) {
     return false;
   }
   // Validation: If type is PACKAGE, package details are required
@@ -119,18 +119,18 @@ const listRequestsSchema = z.object({
 // ============================================================
 
 const rateRequestSchema = z.object({
-  providerScore: z.number().int().min(1).max(5).optional(),
-  providerComment: z.string().optional(),
+  merchantScore: z.number().int().min(1).max(5).optional(),
+  merchantComment: z.string().optional(),
   riderScore: z.number().int().min(1).max(5).optional(),
   riderComment: z.string().optional(),
 }).refine((data) => {
   // At least one score must be provided
-  if (!data.providerScore && !data.riderScore) {
+  if (!data.merchantScore && !data.riderScore) {
     return false;
   }
   return true;
 }, {
-  message: 'At least one score (provider or rider) must be provided',
+  message: 'At least one score (merchant or rider) must be provided',
 });
 
 // ============================================================

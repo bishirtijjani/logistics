@@ -1,5 +1,5 @@
 /**
- * ProviderMenuScreen — View provider menu/products and place orders
+ * MerchantMenuScreen — View merchant menu/products and place orders
  * Part of the unified request architecture
  */
 
@@ -19,20 +19,20 @@ import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import theme from '../../theme';
 
-const ProviderMenuScreen = () => {
+const MerchantMenuScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { providerId, type } = route.params;
+  const { merchantId, type } = route.params;
 
-  const [provider, setProvider] = useState(null);
+  const [merchant, setMerchant] = useState(null);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProviderDetails = async () => {
+  const fetchMerchantDetails = async () => {
     try {
-      const response = await api.get(`/api/providers/${providerId}`);
-      setProvider(response.data.data);
+      const response = await api.get(`/api/merchants/${merchantId}`);
+      setMerchant(response.data.data);
       setProducts(response.data.data.products || []);
     } catch (error) {
       Toast.show({
@@ -46,8 +46,8 @@ const ProviderMenuScreen = () => {
   };
 
   useEffect(() => {
-    fetchProviderDetails();
-  }, [providerId]);
+    fetchMerchantDetails();
+  }, [merchantId]);
 
   const addToCart = (product) => {
     const existing = cart.find((item) => item.id === product.id);
@@ -134,7 +134,7 @@ const ProviderMenuScreen = () => {
     <View style={styles.emptyContainer}>
       <Ionicons name="restaurant-outline" size={64} color={theme.colors.text.secondary} />
       <Text style={styles.emptyTitle}>Menu not available</Text>
-      <Text style={styles.emptySubtitle}>This provider hasn't added any items yet</Text>
+      <Text style={styles.emptySubtitle}>This merchant hasn't added any items yet</Text>
     </View>
   );
 
@@ -149,27 +149,27 @@ const ProviderMenuScreen = () => {
   return (
     <View style={styles.container}>
       <ScrollView style={styles.content}>
-        {/* Provider Header */}
+        {/* Merchant Header */}
         <Image
-          source={{ uri: provider?.coverImageUrl || 'https://via.placeholder.com/400x200' }}
+          source={{ uri: merchant?.coverImageUrl || 'https://via.placeholder.com/400x200' }}
           style={styles.coverImage}
         />
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
           </TouchableOpacity>
-          <View style={styles.providerHeader}>
+          <View style={styles.merchantHeader}>
             <Image
-              source={{ uri: provider?.logoUrl || 'https://via.placeholder.com/50' }}
+              source={{ uri: merchant?.logoUrl || 'https://via.placeholder.com/50' }}
               style={styles.logo}
             />
-            <View style={styles.providerInfo}>
-              <Text style={styles.providerName}>{provider?.name}</Text>
+            <View style={styles.merchantInfo}>
+              <Text style={styles.merchantName}>{merchant?.name}</Text>
               <View style={styles.metaRow}>
                 <Ionicons name="star" size={14} color="#FFA500" />
-                <Text style={styles.rating}>{provider?.averageRating?.toFixed(1)}</Text>
+                <Text style={styles.rating}>{merchant?.averageRating?.toFixed(1)}</Text>
                 <Text style={styles.separator}>•</Text>
-                <Text style={styles.address}>{provider?.address}</Text>
+                <Text style={styles.address}>{merchant?.address}</Text>
               </View>
             </View>
           </View>
@@ -200,7 +200,7 @@ const ProviderMenuScreen = () => {
           </View>
           <TouchableOpacity
             style={styles.checkoutButton}
-            onPress={() => navigation.navigate('Checkout', { cart, providerId, type })}
+            onPress={() => navigation.navigate('Checkout', { cart, merchantId, type })}
           >
             <Text style={styles.checkoutButtonText}>Checkout</Text>
           </TouchableOpacity>
@@ -239,7 +239,7 @@ const styles = {
     padding: 8,
     marginBottom: 8,
   },
-  providerHeader: {
+  merchantHeader: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -249,10 +249,10 @@ const styles = {
     borderRadius: 8,
     marginRight: 12,
   },
-  providerInfo: {
+  merchantInfo: {
     flex: 1,
   },
-  providerName: {
+  merchantName: {
     fontSize: 18,
     fontWeight: '600',
     color: theme.colors.text.primary,
@@ -419,4 +419,4 @@ const styles = {
   },
 };
 
-export default ProviderMenuScreen;
+export default MerchantMenuScreen;

@@ -5,7 +5,7 @@ import { fetchSettings, updateSettings } from '../store/slices/settingsSlice.js'
 import { Store, Save, Bell, Clock } from 'lucide-react'
 
 export default function SettingsPage() {
-  const { providerId } = useParams()
+  const { merchantId } = useParams()
   const dispatch = useDispatch()
   const { settings, loading } = useSelector((state) => state.settings)
   const [activeTab, setActiveTab] = useState('profile')
@@ -27,8 +27,8 @@ export default function SettingsPage() {
   })
 
   useEffect(() => {
-    dispatch(fetchSettings({ providerId }))
-  }, [dispatch, providerId])
+    dispatch(fetchSettings({ merchantId }))
+  }, [dispatch, merchantId])
 
   useEffect(() => {
     if (settings) {
@@ -54,7 +54,7 @@ export default function SettingsPage() {
     e.preventDefault()
     try {
       await dispatch(updateSettings({
-        providerId,
+        merchantId,
         ...formData,
       })).unwrap()
       alert('Profile updated successfully')
@@ -67,7 +67,7 @@ export default function SettingsPage() {
     e.preventDefault()
     try {
       await dispatch(updateSettings({
-        providerId,
+        merchantId,
         ...notificationSettings,
       })).unwrap()
       alert('Notification settings updated successfully')

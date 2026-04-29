@@ -4,7 +4,7 @@ import api from '../../lib/api'
 export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }) => {
-    const response = await api.post('/auth/login', { email, password, role: 'PROVIDER' })
+    const response = await api.post('/auth/login', { email, password, role: 'MERCHANT' })
     return response.data.data
   }
 )

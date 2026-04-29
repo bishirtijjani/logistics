@@ -14,7 +14,7 @@ import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { buyData, fetchDataPlans } from "../../store/slices/utilitySlice";
 
-const PROVIDERS = [
+const MERCHANTS = [
   { id: "mtn", name: "MTN", color: "#FFCC00" },
   { id: "airtel", name: "Airtel", color: "#FF0000" },
   { id: "glo", name: "Glo", color: "#00AA00" },
@@ -26,15 +26,15 @@ export default function DataScreen({ navigation }) {
   const { balance } = useSelector((state) => state.wallet);
   const { dataPlans, isLoading } = useSelector((state) => state.utility);
 
-  const [provider, setProvider] = useState("mtn");
+  const [merchant, setMerchant] = useState("mtn");
   const [phone, setPhone] = useState("");
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showPinSheet, setShowPinSheet] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    dispatch(fetchDataPlans(provider));
-  }, [dispatch, provider]);
+    dispatch(fetchDataPlans(merchant));
+  }, [dispatch, merchant]);
 
   const handlePurchase = () => {
     if (!phone.trim() || phone.length < 10) {
@@ -60,7 +60,7 @@ export default function DataScreen({ navigation }) {
     try {
       await dispatch(
         buyData({
-          provider,
+          merchant,
           phone: phone.trim(),
           planCode: selectedPlan.code,
           amount: selectedPlan.amount,
@@ -74,7 +74,7 @@ export default function DataScreen({ navigation }) {
     }
   };
 
-  const selectedProvider = PROVIDERS.find((p) => p.id === provider);
+  const selectedMerchant = MERCHANTS.find((p) => p.id === merchant);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
@@ -111,29 +111,29 @@ export default function DataScreen({ navigation }) {
           </View>
         ) : null}
 
-        {/* Provider Selection */}
+        {/* Merchant Selection */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>
-          Select Provider
+          Select Merchant
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 20 }}>
-          {PROVIDERS.map((p) => (
+          {MERCHANTS.map((p) => (
             <TouchableOpacity
               key={p.id}
               onPress={() => {
-                setProvider(p.id);
+                setMerchant(p.id);
                 setSelectedPlan(null);
               }}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: provider === p.id ? colors.primary : colors.surface,
+                backgroundColor: merchant === p.id ? colors.primary : colors.surface,
                 borderRadius: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 marginRight: 8,
                 marginBottom: 8,
                 borderWidth: 2,
-                borderColor: provider === p.id ? colors.primary : colors.border,
+                borderColor: merchant === p.id ? colors.primary : colors.border,
               }}
             >
               <View
@@ -149,7 +149,7 @@ export default function DataScreen({ navigation }) {
                 style={{
                   fontSize: 14,
                   fontWeight: "700",
-                  color: provider === p.id ? colors.white : colors.text,
+                  color: merchant === p.id ? colors.white : colors.text,
                 }}
               >
                 {p.name}
@@ -299,7 +299,7 @@ export default function DataScreen({ navigation }) {
         title="Confirm Purchase"
         subtitle={`You will be charged ₦${
           selectedPlan ? Number(selectedPlan.amount).toLocaleString() : 0
-        } for ${selectedProvider?.name} data`}
+        } for ${selectedMerchant?.name} data`}
       />
     </SafeAreaView>
   );

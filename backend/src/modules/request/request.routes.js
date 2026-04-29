@@ -25,7 +25,7 @@ router.use(authenticate);
 // Public endpoints (any authenticated user)
 // ============================================================
 
-// List requests (customers see theirs, riders see theirs, providers see theirs)
+// List requests (customers see theirs, riders see theirs, merchants see theirs)
 router.get('/', validate(listRequestsSchema, 'query'), requestController.getRequests);
 
 // Get single request details
@@ -45,11 +45,11 @@ router.delete('/:requestId', authorize('CUSTOMER'), validate(cancelRequestSchema
 router.post('/:requestId/rate', authorize('CUSTOMER'), validate(rateRequestSchema), requestController.rateRequest);
 
 // ============================================================
-// Provider endpoints
+// Merchant endpoints
 // ============================================================
 
-// Update request status (provider: ACCEPTED, PROCESSING, READY_FOR_PICKUP)
-router.patch('/:requestId/status', authorize('PROVIDER', 'RIDER', 'ADMIN'), validate(updateStatusSchema), requestController.updateStatus);
+// Update request status (merchant: ACCEPTED, PROCESSING, READY_FOR_PICKUP)
+router.patch('/:requestId/status', authorize('MERCHANT', 'RIDER', 'ADMIN'), validate(updateStatusSchema), requestController.updateStatus);
 
 // ============================================================
 // Rider endpoints

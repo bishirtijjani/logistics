@@ -3,16 +3,16 @@ import api from '../../lib/api'
 
 export const fetchWallet = createAsyncThunk(
   'earnings/fetchWallet',
-  async ({ providerId }) => {
-    const response = await api.get(`/providers/merchant/${providerId}/wallet`)
+  async ({ merchantId }) => {
+    const response = await api.get(`/merchants/merchant/${merchantId}/wallet`)
     return response.data.data
   }
 )
 
 export const requestWithdrawal = createAsyncThunk(
   'earnings/requestWithdrawal',
-  async ({ providerId, amount, bankAccount }) => {
-    const response = await api.post(`/providers/merchant/${providerId}/wallet/withdraw`, { amount, bankAccount })
+  async ({ merchantId, amount, bankAccount }) => {
+    const response = await api.post(`/merchants/merchant/${merchantId}/wallet/withdraw`, { amount, bankAccount })
     return response.data.data
   }
 )

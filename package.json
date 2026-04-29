@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@expo/vector-icons": "^15.1.1",
-    "@react-navigation/bottom-tabs": "^7.15.9",
-    "expo-updates": "~55.0.20"
-  }
-}

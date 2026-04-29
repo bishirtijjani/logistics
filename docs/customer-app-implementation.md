@@ -385,7 +385,7 @@ Create `backend/src/services/vtpass.service.js`:
 ```javascript
 // Required methods:
 - authenticate() → Get API token
-- fetchDataPlans(provider) → MTN, Airtel, Glo, 9mobile bundles
+- fetchDataPlans(merchant) → MTN, Airtel, Glo, 9mobile bundles
 - buyAirtime({ requestId, phone, amount, serviceID })
 - buyData({ requestId, phone, serviceID, variationCode, amount })
 - queryTransactionStatus(requestId)
@@ -404,7 +404,7 @@ Create `mobile/customer-app/src/screens/utility/AirtimeScreen.js`:
 ┌─────────────────────────────┐
 │  Buy Airtime          [X]   │
 ├─────────────────────────────┤
-│  Provider: [MTN ▼]          │
+│  Merchant: [MTN ▼]          │
 │                             │
 │  Phone Number               │
 │  [080********    ] [📞]     │
@@ -422,8 +422,8 @@ Create `mobile/customer-app/src/screens/utility/AirtimeScreen.js`:
 #### 4.3 Mobile: Data Screen
 
 Create `mobile/customer-app/src/screens/utility/DataScreen.js`:
-- Provider selection
-- Fetch plans from `GET /utilities/data-plans?provider=MTN`
+- Merchant selection
+- Fetch plans from `GET /utilities/data-plans?merchant=MTN`
 - Plan selection with price and data volume
 - Phone number input
 - PIN confirmation
@@ -469,7 +469,7 @@ Configure for:
 | Rider Matching | Broadcast → acceptance → assignment |
 | Live Tracking | Socket updates, map marker movement |
 | Delivery Complete | Auto-debit, receipt, rating prompt |
-| Airtime Purchase | Provider, amount, PIN, success |
+| Airtime Purchase | Merchant, amount, PIN, success |
 | Error Handling | Offline mode, API failures, retry |
 
 #### 5.5 Deployment

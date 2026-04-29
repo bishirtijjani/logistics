@@ -476,8 +476,8 @@ const updateProfilePicture = async (userId, url) => {
 
 /**
  * Verify BVN — stores hashed BVN and updates KYC status.
- * In production, integrate with a BVN verification provider (e.g. Smile ID, Flutterwave).
- * The provider call should happen here before setting VERIFIED.
+ * In production, integrate with a BVN verification merchant (e.g. Smile ID, Flutterwave).
+ * The merchant call should happen here before setting VERIFIED.
  */
 const verifyBvn = async (userId, { bvn, firstName, lastName }) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -487,8 +487,8 @@ const verifyBvn = async (userId, { bvn, firstName, lastName }) => {
     throw AppError.conflict("BVN already verified");
   }
 
-  // TODO: Replace with actual BVN provider API call
-  // e.g. const result = await bvnProvider.verify({ bvn, firstName, lastName });
+  // TODO: Replace with actual BVN merchant API call
+  // e.g. const result = await bvnMerchant.verify({ bvn, firstName, lastName });
   // if (!result.matched) throw AppError.badRequest("BVN verification failed");
 
   const bvnHash = await bcrypt.hash(bvn, SALT_ROUNDS);

@@ -3,30 +3,30 @@ import api from '../../lib/api'
 
 export const fetchSalesSummary = createAsyncThunk(
   'analytics/fetchSalesSummary',
-  async ({ providerId, period = '7d' }) => {
-    const response = await api.get(`/providers/merchant/${providerId}/analytics/sales?period=${period}`)
+  async ({ merchantId, period = '7d' }) => {
+    const response = await api.get(`/merchants/merchant/${merchantId}/analytics/sales?period=${period}`)
     return response.data.data
   }
 )
 
 export const fetchOrderHistory = createAsyncThunk(
   'analytics/fetchOrderHistory',
-  async ({ providerId, page = 1, limit = 20, startDate, endDate }) => {
+  async ({ merchantId, page = 1, limit = 20, startDate, endDate }) => {
     const params = new URLSearchParams({
       page,
       limit,
       ...(startDate && { startDate }),
       ...(endDate && { endDate }),
     })
-    const response = await api.get(`/providers/merchant/${providerId}/analytics/orders?${params}`)
+    const response = await api.get(`/merchants/merchant/${merchantId}/analytics/orders?${params}`)
     return response.data.data
   }
 )
 
 export const fetchEarningsBreakdown = createAsyncThunk(
   'analytics/fetchEarningsBreakdown',
-  async ({ providerId, period = '7d' }) => {
-    const response = await api.get(`/providers/merchant/${providerId}/analytics/earnings?period=${period}`)
+  async ({ merchantId, period = '7d' }) => {
+    const response = await api.get(`/merchants/merchant/${merchantId}/analytics/earnings?period=${period}`)
     return response.data.data
   }
 )

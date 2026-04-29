@@ -26,7 +26,7 @@ const adminRoutes = require("./modules/admin/admin.routes");
 const webhookRoutes = require("./modules/webhook/webhook.routes");
 const mapsRoutes = require("./modules/maps/maps.routes");
 const requestRoutes = require("./modules/request/request.routes");  // NEW: Unified request routes
-const providerRoutes = require("./modules/provider/provider.routes");  // NEW: Provider routes
+const merchantRoutes = require("./modules/merchant/merchant.routes");  // NEW: Merchant routes
 
 const createApp = () => {
   const app = express();
@@ -71,7 +71,7 @@ const createApp = () => {
   app.use(`${API_PREFIX}/webhooks`, webhookRoutes);
   app.use(`${API_PREFIX}/maps`, mapsRoutes);
   app.use(`${API_PREFIX}/requests`, requestRoutes);
-  app.use(`${API_PREFIX}/providers`, providerRoutes);
+  app.use(`${API_PREFIX}/merchants`, merchantRoutes);
 
   // --------------- 404 Handler ---------------
   app.use((_req, res) => {

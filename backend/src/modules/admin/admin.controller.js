@@ -104,61 +104,61 @@ const adminUpdateRequestStatus = async (req, res, next) => {
 };
 
 // ============================================================
-// Admin Provider Management Controllers
+// Admin Merchant Management Controllers
 // ============================================================
 
-const getAllProviders = async (req, res, next) => {
+const getAllMerchants = async (req, res, next) => {
   try {
-    const { providers, total, page, limit } = await adminService.getAllProviders(req.query);
-    res.json(ApiResponse.paginated('All providers', providers, page, limit, total));
+    const { merchants, total, page, limit } = await adminService.getAllMerchants(req.query);
+    res.json(ApiResponse.paginated('All merchants', merchants, page, limit, total));
   } catch (error) {
     next(error);
   }
 };
 
-const approveProvider = async (req, res, next) => {
+const approveMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.approveProvider(req.params.providerId);
-    res.json(ApiResponse.success('Provider approved', result));
+    const result = await adminService.approveMerchant(req.params.merchantId);
+    res.json(ApiResponse.success('Merchant approved', result));
   } catch (error) {
     next(error);
   }
 };
 
-const rejectProvider = async (req, res, next) => {
+const rejectMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.rejectProvider(req.params.providerId, req.body.reason);
-    res.json(ApiResponse.success('Provider rejected', result));
+    const result = await adminService.rejectMerchant(req.params.merchantId, req.body.reason);
+    res.json(ApiResponse.success('Merchant rejected', result));
   } catch (error) {
     next(error);
   }
 };
 
-const suspendProvider = async (req, res, next) => {
+const suspendMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.suspendProvider(req.params.providerId, req.body.reason);
-    res.json(ApiResponse.success('Provider suspended', result));
+    const result = await adminService.suspendMerchant(req.params.merchantId, req.body.reason);
+    res.json(ApiResponse.success('Merchant suspended', result));
   } catch (error) {
     next(error);
   }
 };
 
-const unsuspendProvider = async (req, res, next) => {
+const unsuspendMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.unsuspendProvider(req.params.providerId);
-    res.json(ApiResponse.success('Provider unsuspended', result));
+    const result = await adminService.unsuspendMerchant(req.params.merchantId);
+    res.json(ApiResponse.success('Merchant unsuspended', result));
   } catch (error) {
     next(error);
   }
 };
 
-const updateProviderCommission = async (req, res, next) => {
+const updateMerchantCommission = async (req, res, next) => {
   try {
-    const result = await adminService.updateProviderCommission(
-      req.params.providerId,
+    const result = await adminService.updateMerchantCommission(
+      req.params.merchantId,
       req.body.commissionRate
     );
-    res.json(ApiResponse.success('Provider commission updated', result));
+    res.json(ApiResponse.success('Merchant commission updated', result));
   } catch (error) {
     next(error);
   }
@@ -231,12 +231,12 @@ module.exports = {
   reassignRider,
   forceCancelRequest,
   adminUpdateRequestStatus,
-  getAllProviders,
-  approveProvider,
-  rejectProvider,
-  suspendProvider,
-  unsuspendProvider,
-  updateProviderCommission,
+  getAllMerchants,
+  approveMerchant,
+  rejectMerchant,
+  suspendMerchant,
+  unsuspendMerchant,
+  updateMerchantCommission,
   getAllRiders,
   getRiderEarnings,
   getRiderDeliveryHistory,

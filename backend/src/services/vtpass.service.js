@@ -99,7 +99,7 @@ const payElectricity = async ({ requestId, serviceID, meterNumber, meterType, am
 };
 
 /**
- * Get available data plans for a provider.
+ * Get available data plans for a merchant.
  */
 const getDataPlans = async (serviceID) => {
   try {

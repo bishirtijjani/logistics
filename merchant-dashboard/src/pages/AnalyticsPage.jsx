@@ -26,16 +26,16 @@ import {
 } from 'recharts'
 
 export default function AnalyticsPage() {
-  const { providerId } = useParams()
+  const { merchantId } = useParams()
   const dispatch = useDispatch()
   const { salesSummary, orderHistory, earningsBreakdown, loading } = useSelector((state) => state.analytics)
   const [period, setPeriod] = useState('7d')
 
   useEffect(() => {
-    dispatch(fetchSalesSummary({ providerId, period }))
-    dispatch(fetchOrderHistory({ providerId, page: 1, limit: 10 }))
-    dispatch(fetchEarningsBreakdown({ providerId, period }))
-  }, [dispatch, providerId, period])
+    dispatch(fetchSalesSummary({ merchantId, period }))
+    dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
+    dispatch(fetchEarningsBreakdown({ merchantId, period }))
+  }, [dispatch, merchantId, period])
 
   const stats = [
     {
@@ -97,9 +97,9 @@ export default function AnalyticsPage() {
           </select>
           <button
             onClick={() => {
-              dispatch(fetchSalesSummary({ providerId, period }))
-              dispatch(fetchOrderHistory({ providerId, page: 1, limit: 10 }))
-              dispatch(fetchEarningsBreakdown({ providerId, period }))
+              dispatch(fetchSalesSummary({ merchantId, period }))
+              dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
+              dispatch(fetchEarningsBreakdown({ merchantId, period }))
             }}
             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >

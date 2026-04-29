@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 
 export default function MenuPage() {
-  const { providerId } = useParams()
+  const { merchantId } = useParams()
   const dispatch = useDispatch()
   const { products, loading } = useSelector((state) => state.products)
   const [showModal, setShowModal] = useState(false)
@@ -36,8 +36,8 @@ export default function MenuPage() {
   })
 
   useEffect(() => {
-    dispatch(fetchProducts({ providerId }))
-  }, [dispatch, providerId])
+    dispatch(fetchProducts({ merchantId }))
+  }, [dispatch, merchantId])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -52,14 +52,14 @@ export default function MenuPage() {
 
     try {
       if (editingProduct) {
-        await dispatch(updateProduct({ providerId, productId: editingProduct.id, productData })).unwrap()
+        await dispatch(updateProduct({ merchantId, productId: editingProduct.id, productData })).unwrap()
       } else {
-        await dispatch(createProduct({ providerId, productData })).unwrap()
+        await dispatch(createProduct({ merchantId, productData })).unwrap()
       }
       setShowModal(false)
       setEditingProduct(null)
       setFormData({ name: '', description: '', price: '', category: '', imageUrl: '', stock: '' })
-      dispatch(fetchProducts({ providerId }))
+      dispatch(fetchProducts({ merchantId }))
     } catch (err) {
       console.error('Failed to save product:', err)
     }
@@ -81,8 +81,8 @@ export default function MenuPage() {
   const handleDelete = async (productId) => {
     if (confirm('Are you sure you want to delete this product?')) {
       try {
-        await dispatch(deleteProduct({ providerId, productId })).unwrap()
-        dispatch(fetchProducts({ providerId }))
+        await dispatch(deleteProduct({ merchantId, productId })).unwrap()
+        dispatch(fetchProducts({ merchantId }))
       } catch (err) {
         console.error('Failed to delete product:', err)
       }
@@ -91,8 +91,8 @@ export default function MenuPage() {
 
   const handleToggleAvailability = async (productId, isAvailable) => {
     try {
-      await dispatch(toggleProductAvailability({ providerId, productId, isAvailable })).unwrap()
-      dispatch(fetchProducts({ providerId }))
+      await dispatch(toggleProductAvailability({ merchantId, productId, isAvailable })).unwrap()
+      dispatch(fetchProducts({ merchantId }))
     } catch (err) {
       console.error('Failed to toggle availability:', err)
     }
@@ -121,7 +121,7 @@ export default function MenuPage() {
             />
           </div>
           <button
-            onClick={() => dispatch(fetchProducts({ providerId }))}
+            onClick={() => dispatch(fetchProducts({ merchantId }))}
             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <RefreshCw className="w-5 h-5" />

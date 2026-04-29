@@ -1,5 +1,5 @@
 /**
- * ProviderBrowseScreen — Browse providers (restaurants, grocery stores, pharmacies)
+ * MerchantBrowseScreen — Browse merchants (restaurants, grocery stores, pharmacies)
  * Part of the unified request architecture
  */
 
@@ -19,16 +19,16 @@ import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import theme from '../../theme';
 
-const ProviderBrowseScreen = () => {
+const MerchantBrowseScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { type, lat, lng } = route.params;
 
-  const [providers, setProviders] = useState([]);
+  const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchProviders = async () => {
+  const fetchMerchants = async () => {
     try {
       const params = new URLSearchParams();
       params.append('type', type);
@@ -39,13 +39,13 @@ const ProviderBrowseScreen = () => {
       }
       params.append('openNow', 'true');
 
-      const response = await api.get(`/api/providers?${params.toString()}`);
-      setProviders(response.data.data);
+      const response = await api.get(`/api/merchants?${params.toString()}`);
+      setMerchants(response.data.data);
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: error.response?.data?.message || 'Failed to load providers',
+        text2: error.response?.data?.message || 'Failed to load merchants',
       });
     } finally {
       setLoading(false);
@@ -54,12 +54,12 @@ const ProviderBrowseScreen = () => {
   };
 
   useEffect(() => {
-    fetchProviders();
+    fetchMerchants();
   }, [type, lat, lng]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchProviders();
+    fetchMerchants();
   };
 
   const getTypeLabel = (type) => {
@@ -71,17 +71,17 @@ const ProviderBrowseScreen = () => {
     return labels[type] || type;
   };
 
-  const renderProvider = ({ item }) => (
+  const renderMerchant = ({ item }) => (
     <TouchableOpacity
-      style={styles.providerCard}
-      onPress={() => navigation.navigate('ProviderMenu', { providerId: item.id, type })}
+      style={styles.merchantCard}
+      onPress={() => navigation.navigate('MerchantMenu', { merchantId: item.id, type })}
       activeOpacity={0.7}
     >
       <Image
         source={{ uri: item.coverImageUrl || 'https://via.placeholder.com/400x200' }}
         style={styles.coverImage}
       />
-      <View style={styles.providerInfo}>
+      <View style={styles.merchantInfo}>
         <View style={styles.headerRow}>
           <Image
             source={{ uri: item.logoUrl || 'https://via.placeholder.com/50' }}
@@ -145,8 +145,8 @@ const ProviderBrowseScreen = () => {
       </View>
 
       <FlatList
-        data={providers}
-        renderItem={renderProvider}
+        data={merchants}
+        renderItem={renderMerchant}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmpty}
@@ -193,7 +193,7 @@ const styles = {
   listContent: {
     padding: 16,
   },
-  providerCard: {
+  merchantCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
     marginBottom: 16,
@@ -209,7 +209,7 @@ const styles = {
     height: 120,
     resizeMode: 'cover',
   },
-  providerInfo: {
+  merchantInfo: {
     padding: 12,
   },
   headerRow: {
@@ -305,4 +305,4 @@ const styles = {
   },
 };
 
-export default ProviderBrowseScreen;
+export default MerchantBrowseScreen;

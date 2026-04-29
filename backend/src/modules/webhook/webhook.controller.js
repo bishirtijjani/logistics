@@ -1,5 +1,5 @@
 /**
- * Webhook controller — processes external provider callbacks.
+ * Webhook controller — processes external merchant callbacks.
  *
  * SECURITY:
  * - Monnify webhooks are verified via hash signature
@@ -46,7 +46,7 @@ const handleMonnify = async (req, res, next) => {
     // 3. Log the event
     await prisma.webhookEvent.create({
       data: {
-        provider: 'monnify',
+        merchant: 'monnify',
         eventType: eventType || 'UNKNOWN',
         transactionRef: transactionRef || `unknown-${Date.now()}`,
         payload: req.body,
@@ -76,7 +76,7 @@ const handleVtpass = async (req, res, next) => {
 
     await prisma.webhookEvent.create({
       data: {
-        provider: 'vtpass',
+        merchant: 'vtpass',
         eventType: 'STATUS_UPDATE',
         transactionRef,
         payload: req.body,

@@ -80,27 +80,27 @@ const adminUpdateRequestStatusSchema = z.object({
   reason: z.string().optional(),
 });
 
-// Admin provider management schemas
-const listAllProvidersSchema = z.object({
+// Admin merchant management schemas
+const listAllMerchantsSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   type: z.enum(['FOOD', 'GROCERY', 'PHARMACY']).optional(),
   status: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'REJECTED']).optional(),
 });
 
-const approveProviderSchema = z.object({});
+const approveMerchantSchema = z.object({});
 
-const rejectProviderSchema = z.object({
+const rejectMerchantSchema = z.object({
   reason: z.string().min(1, 'Reason is required').max(500),
 });
 
-const suspendProviderSchema = z.object({
+const suspendMerchantSchema = z.object({
   reason: z.string().min(1, 'Reason is required').max(500),
 });
 
-const unsuspendProviderSchema = z.object({});
+const unsuspendMerchantSchema = z.object({});
 
-const updateProviderCommissionSchema = z.object({
+const updateMerchantCommissionSchema = z.object({
   commissionRate: z.number().min(0).max(100),
 });
 
@@ -134,12 +134,12 @@ module.exports = {
   reassignRiderSchema,
   forceCancelRequestSchema,
   adminUpdateRequestStatusSchema,
-  listAllProvidersSchema,
-  approveProviderSchema,
-  rejectProviderSchema,
-  suspendProviderSchema,
-  unsuspendProviderSchema,
-  updateProviderCommissionSchema,
+  listAllMerchantsSchema,
+  approveMerchantSchema,
+  rejectMerchantSchema,
+  suspendMerchantSchema,
+  unsuspendMerchantSchema,
+  updateMerchantCommissionSchema,
   listAllRidersSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,

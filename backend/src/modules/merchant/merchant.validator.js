@@ -1,19 +1,19 @@
 /**
- * Provider validator schemas
+ * Merchant validator schemas
  */
 
 const { z } = require('zod');
 
-const PROVIDER_TYPES = ['RESTAURANT', 'GROCERY', 'PHARMACY'];
-const PROVIDER_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTED'];
+const MERCHANT_TYPES = ['RESTAURANT', 'GROCERY', 'PHARMACY'];
+const MERCHANT_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTED'];
 
 // ============================================================
-// Create Provider Schema
+// Create Merchant Schema
 // ============================================================
 
-const createProviderSchema = z.object({
-  type: z.enum(PROVIDER_TYPES),
-  name: z.string().min(2, 'Provider name is required'),
+const createMerchantSchema = z.object({
+  type: z.enum(MERCHANT_TYPES),
+  name: z.string().min(2, 'Merchant name is required'),
   description: z.string().optional(),
   phone: z.string().min(10, 'Valid phone number is required'),
   email: z.string().email('Valid email is required').optional(),
@@ -28,10 +28,10 @@ const createProviderSchema = z.object({
 });
 
 // ============================================================
-// Update Provider Schema
+// Update Merchant Schema
 // ============================================================
 
-const updateProviderSchema = z.object({
+const updateMerchantSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().optional(),
   phone: z.string().min(10).optional(),
@@ -47,12 +47,12 @@ const updateProviderSchema = z.object({
 });
 
 // ============================================================
-// List Providers Schema
+// List Merchants Schema
 // ============================================================
 
-const listProvidersSchema = z.object({
-  type: z.enum(PROVIDER_TYPES).optional(),
-  status: z.enum(PROVIDER_STATUSES).optional(),
+const listMerchantsSchema = z.object({
+  type: z.enum(MERCHANT_TYPES).optional(),
+  status: z.enum(MERCHANT_STATUSES).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
   radius: z.number().min(0.1).max(50).default(10),
@@ -62,10 +62,10 @@ const listProvidersSchema = z.object({
 });
 
 // ============================================================
-// Toggle Provider Status Schema
+// Toggle Merchant Status Schema
 // ============================================================
 
-const toggleProviderStatusSchema = z.object({
+const toggleMerchantStatusSchema = z.object({
   isOpen: z.boolean(),
 });
 
@@ -130,7 +130,7 @@ const merchantProductsSchema = z.object({
 const createProductSchema = z.object({
   name: z.string().min(2, 'Product name is required'),
   description: z.string().optional(),
-  price: z.number().positive('Price must be positive'),
+  basePrice: z.number().positive('Price must be positive'),
   category: z.string().optional(),
   imageUrl: z.string().url().optional(),
   isAvailable: z.boolean().default(true),
@@ -140,7 +140,7 @@ const createProductSchema = z.object({
 const updateProductSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().optional(),
-  price: z.number().positive().optional(),
+  basePrice: z.number().positive().optional(),
   category: z.string().optional(),
   imageUrl: z.string().url().optional(),
   isAvailable: z.boolean().optional(),
@@ -163,13 +163,13 @@ const merchantOrderHistorySchema = z.object({
 });
 
 module.exports = {
-  createProviderSchema,
-  updateProviderSchema,
-  listProvidersSchema,
-  toggleProviderStatusSchema,
+  createMerchantSchema,
+  updateMerchantSchema,
+  listMerchantsSchema,
+  toggleMerchantStatusSchema,
   updateCommissionSchema,
-  PROVIDER_TYPES,
-  PROVIDER_STATUSES,
+  MERCHANT_TYPES,
+  MERCHANT_STATUSES,
   // Merchant dashboard schemas
   updateMerchantProfileSchema,
   merchantOrdersSchema,

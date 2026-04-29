@@ -164,10 +164,10 @@ const notifyNewJob = (fcmToken, orderId, fare, distance) =>
   });
 
 // Unified request notification templates
-const notifyProviderAccepted = (fcmToken, requestId) =>
+const notifyMerchantAccepted = (fcmToken, requestId) =>
   sendToDevice(fcmToken, {
     title: 'Order Accepted 🏪',
-    body: 'Your order has been accepted by the provider',
+    body: 'Your order has been accepted by the merchant',
     data: { type: 'REQUEST_ACCEPTED', requestId },
   });
 
@@ -193,7 +193,7 @@ module.exports = {
   notifyRiderAssigned,
   notifyDeliveryComplete,
   notifyNewJob,
-  notifyProviderAccepted,
+  notifyMerchantAccepted,
   notifyOrderPickedUp,
   notifyRequestCancelled,
 };

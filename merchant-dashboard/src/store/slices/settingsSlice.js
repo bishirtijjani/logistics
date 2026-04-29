@@ -3,16 +3,16 @@ import api from '../../lib/api'
 
 export const fetchSettings = createAsyncThunk(
   'settings/fetch',
-  async ({ providerId }) => {
-    const response = await api.get(`/providers/merchant/${providerId}/profile`)
+  async ({ merchantId }) => {
+    const response = await api.get(`/merchants/merchant/${merchantId}/profile`)
     return response.data.data
   }
 )
 
 export const updateSettings = createAsyncThunk(
   'settings/update',
-  async ({ providerId, ...settings }) => {
-    const response = await api.patch(`/providers/merchant/${providerId}/profile`, settings)
+  async ({ merchantId, ...settings }) => {
+    const response = await api.patch(`/merchants/merchant/${merchantId}/profile`, settings)
     return response.data.data
   }
 )

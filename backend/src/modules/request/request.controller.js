@@ -154,7 +154,7 @@ const rateRequest = async (req, res, next) => {
 
 const getAllRequestsAdmin = async (req, res, next) => {
   try {
-    const { type, status, page, limit, startDate, endDate, customerId, providerId, riderId } = req.query;
+    const { type, status, page, limit, startDate, endDate, customerId, merchantId, riderId } = req.query;
     
     const result = await requestService.getAllRequestsAdmin({
       type,
@@ -164,7 +164,7 @@ const getAllRequestsAdmin = async (req, res, next) => {
       startDate,
       endDate,
       customerId,
-      providerId,
+      merchantId,
       riderId,
     });
     

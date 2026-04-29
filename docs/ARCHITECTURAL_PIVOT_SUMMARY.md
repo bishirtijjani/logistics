@@ -29,11 +29,11 @@
 **Core Insight:** All business activities follow the same pattern:
 
 ```
-Request Created → Provider Processing → Rider Fulfillment → Financial Settlement
+Request Created → Merchant Processing → Rider Fulfillment → Financial Settlement
 ```
 
 Whether it's a burger from KFC, groceries from a supermarket, or a document delivery, the underlying structure is **identical**. The only difference is:
-1. **Type of provider** (restaurant, supermarket, none for package)
+1. **Type of merchant** (restaurant, supermarket, none for package)
 2. **Preparation phase** (cooking, packing, none for package)
 3. **Product catalog** (menu items, grocery items, none for package)
 
@@ -59,12 +59,12 @@ model Request {
   status RequestStatus  // Unified lifecycle
   
   // All requests have these
-  customerId, providerId?, riderId
+  customerId, merchantId?, riderId
   pickupAddress, dropoffAddress
   subtotal, deliveryFee, platformFee, total
   
   // Financial splits (CRITICAL)
-  customerPaid, providerEarning, riderEarning, platformEarning
+  customerPaid, merchantEarning, riderEarning, platformEarning
   
   // Relations
   items RequestItem[]  // For food/grocery/pharmacy
@@ -72,10 +72,10 @@ model Request {
 }
 ```
 
-### 2. New Entity: `Provider` (Merchants)
+### 2. New Entity: `Merchant` (Merchants)
 
-Restaurants, supermarkets, pharmacies are now first-class `Provider` entities with:
-- Their own wallet (`ProviderWallet` with `availableBalance` and `pendingBalance`)
+Restaurants, supermarkets, pharmacies are now first-class `Merchant` entities with:
+- Their own wallet (`MerchantWallet` with `availableBalance` and `pendingBalance`)
 - Product catalogs
 - Order management interface
 - Earnings tracking
@@ -86,13 +86,13 @@ Restaurants, supermarkets, pharmacies are now first-class `Provider` entities wi
 **Before:**
 - Customer pays rider directly (or confusing flow)
 - No clear tracking of who gets what
-- No provider earnings tracking
+- No merchant earnings tracking
 
 **After:**
 1. Customer pays → Money goes to **Platform** first
 2. Platform holds money in escrow
 3. On delivery, system splits:
-   - Provider gets `subtotal - commission`
+   - Merchant gets `subtotal - commission`
    - Rider gets `deliveryFee - platformFee`
    - Platform keeps `platformFee + deliveryPlatformFee`
 4. Records exist from day one, even if manual payout
@@ -103,11 +103,11 @@ Restaurants, supermarkets, pharmacies are now first-class `Provider` entities wi
 
 ```
 REQUESTED
-  ↓ (provider accepts, if applicable)
+  ↓ (merchant accepts, if applicable)
 ACCEPTED
-  ↓ (provider prepares, if applicable)
+  ↓ (merchant prepares, if applicable)
 PROCESSING
-  ↓ (provider marks ready, if applicable)
+  ↓ (merchant marks ready, if applicable)
 READY_FOR_PICKUP
   ↓ (system assigns rider)
 RIDER_ASSIGNED
@@ -124,7 +124,7 @@ SETTLED
 ```
 
 **Adaptations by type:**
-- **Package:** Skips ACCEPTED/PROCESSING (no provider)
+- **Package:** Skips ACCEPTED/PROCESSING (no merchant)
 - **Food:** Goes through ALL phases
 - **Grocery/Pharmacy:** Same as food
 
@@ -139,7 +139,7 @@ SETTLED
 - One `TrackRequestScreen` works for ALL types
 - Status labels adapt: "Preparing your order" (food) vs "Ready for pickup" (package)
 - Same order history shows everything
-- Search discovers all provider types
+- Search discovers all merchant types
 
 ---
 
@@ -168,8 +168,8 @@ SETTLED
 **Purpose:** Complete API specification
 **Key endpoints:**
 - `/api/requests` — Unified request CRUD
-- `/api/providers` — Provider browsing and management
-- `/api/provider/wallet` — Provider earnings
+- `/api/merchants` — Merchant browsing and management
+- `/api/merchant/wallet` — Merchant earnings
 - `/api/search` — Universal search
 
 ### 5. `CONVENTIONS.md` (Updated)
@@ -183,18 +183,18 @@ SETTLED
 **New models:**
 - `Request` (replaces `DeliveryOrder`)
 - `RequestItem` (for food/grocery/pharmacy)
-- `Provider` (merchants)
-- `ProviderWallet` (earnings tracking)
+- `Merchant` (merchants)
+- `MerchantWallet` (earnings tracking)
 - `Product` (catalog items)
 - `PackageDetail` (for package delivery)
-- Updated `Transaction` (with request/provider links)
+- Updated `Transaction` (with request/merchant links)
 
 ### 7. `mobilDtomer-app/src/reens/main/HomeScreen.js` (Updated)
 **Khynges:**
 - Updated `counified requictesqsttmpes`
 - Added architecture comments
 - Updated navigation to use unified flow
-- Food now navigates to `ProviderBrowse` instead of "Coming Soon"
+- Food now navigates to `MerchantBrowse` instead of "Coming Soon"
 - Package navigates to `CreateDelivery` with `requestType: PACKAGE`
 - Added "Coming Soon" badges for Pharmacy/Grocery
 
@@ -206,7 +206,7 @@ SETTLED
 
 **Add Groceries:**
 1. Add `GROCERY` to `RequestType` enum
-2. Onboard grocery stores as `Provider` with `type: GROCERY`
+2. Onboard grocery stores as `Merchant` with `type: GROCERY`
 3. Done — existing UI works immediately
 
 **Add Apparel/Electronics (Future):**
@@ -225,8 +225,8 @@ Customers see:
 ### 3. Clear Financial Tracking
 
 From day one:
-- Every request records `providerEarning`, `riderEarning`, `platformEarning`
-- Provider wallets track `available` vs `pending`
+- Every request records `merchantEarning`, `riderEarning`, `platformEarning`
+- Merchant wallets track `available` vs `pending`
 - Audit trail for every naira
 - Ready for automated payouts
 
@@ -236,7 +236,7 @@ Admins can:
 - See all requests on one screen
 - Filter by type when needed
 - Intervene (reassign, cancel, refund) consistently
-- Manage all providers in one place
+- Manage all merchants in one place
 
 ### 5. Scalable Rider Experience
 
@@ -251,33 +251,33 @@ Riders see:
 ## Implementation Roadmap
 
 ### Phase 1: Database (Week 1)
-- [ ] Create new tables (`Request`, `Provider`, `Product`, etc.)
+- [ ] Create new tables (`Request`, `Merchant`, `Product`, etc.)
 - [ ] Migrate existing `DeliveryOrder` → `Request` (as `PACKAGE` type)
 - [ ] Verify data integrity
 
 ### Phase 2: Backend (Week 2)
 - [ ] Build `request` module with unified endpoints
-- [ ] Build `provider` module
+- [ ] Build `merchant` module
 - [ ] Update socket events to use `request:` namespace
 - [ ] Implement settlement logic
 
 ### Phase 3: Merchant Dashboard (Week 2-3)
 - [ ] React-based dashboard
-- [ ] Provider authentication
+- [ ] Merchant authentication
 - [ ] Order management (Accept → Process → Ready)
 - [ ] Wallet/earnings view
 - [ ] Withdrawal requests
 
 ### Phase 4: Customer App (Week 3-4)
 - [ ] Discovery/search screens
-- [ ] Provider browse (restaurants)
-- [ ] Provider menu (food catalog)
+- [ ] Merchant browse (restaurants)
+- [ ] Merchant menu (food catalog)
 - [ ] Cart and checkout
 - [ ] Universal tracking screen
 
 ### Phase 5: Admin Dashboard (Week 4)
 - [ ] Global request monitor
-- [ ] Provider management (approve, suspend, commission)
+- [ ] Merchant management (approve, suspend, commission)
 - [ ] Intervention tools
 - [ ] Financial reconciliation
 
@@ -291,15 +291,15 @@ Riders see:
 
 ## Critical Design Decisions
 
-### 1. Provider is Optional
+### 1. Merchant is Optional
 
-**Decision:** `Request.providerId` is nullable  
-**Why:** Package deliveries have no provider — customer is the sender  
-**Impact:** Food/grocery/pharmacy require provider, package skips provider phase
+**Decision:** `Request.merchantId` is nullable  
+**Why:** Package deliveries have no merchant — customer is the sender  
+**Impact:** Food/grocery/pharmacy require merchant, package skips merchant phase
 
 ### 2. Financial Splits Recorded Immediately
 
-**Decision:** Every request stores `providerEarning`, `riderEarning`, `platformEarning`  
+**Decision:** Every request stores `merchantEarning`, `riderEarning`, `platformEarning`  
 **Why:** Audit trail from day one, even if payouts are manual initially  
 **Impact:** Can reconcile finances accurately, automate payouts later
 
@@ -309,9 +309,9 @@ Riders see:
 **Why:** Consistent UX, less code, easier maintenance  
 **Impact:** Shows different status labels based on type ("Preparing" vs "Ready for pickup")
 
-### 4. Provider Wallet Separate from User Wallet
+### 4. Merchant Wallet Separate from User Wallet
 
-**Decision:** `ProviderWallet` with `availableBalance` and `pendingBalance`  
+**Decision:** `MerchantWallet` with `availableBalance` and `pendingBalance`  
 **Why:** Merchants need to see what's available to withdraw vs. what's in escrow  
 **Impact:** Clear separation, supports settlement delays
 
@@ -351,7 +351,7 @@ If critical issues:
 | Time to add new request type | < 1 day | Configuration changes only |
 | Settlement accuracy | 100% | Financial reconciliation |
 | Customer UX consistency | Same screens | All types use tracking screen |
-| Provider onboarding time | < 30 min | Self-service dashboard |
+| Merchant onboarding time | < 30 min | Self-service dashboard |
 | Admin intervention time | < 30 sec | Cancel/reassign/resolve |
 | Code duplication | Near 0% | Shared request logic |
 

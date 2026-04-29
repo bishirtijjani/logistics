@@ -5,7 +5,7 @@ Admin dashboard for managing the VTU Logistics platform.
 ## Features
 
 ### Dashboard Overview
-- Real-time statistics for requests, revenue, providers, riders, and users
+- Real-time statistics for requests, revenue, merchants, riders, and users
 - Revenue trend charts (line chart)
 - Request trend charts (bar chart)
 
@@ -16,13 +16,13 @@ Admin dashboard for managing the VTU Logistics platform.
 - Force cancel requests with reason
 - Update request status
 
-### Provider Management
-- View all providers with filtering (status, search)
-- Provider details modal with wallet information
-- Approve pending providers
-- Reject providers with reason
-- Suspend/unsuspend providers
-- Update provider commission rates
+### Merchant Management
+- View all merchants with filtering (status, search)
+- Merchant details modal with wallet information
+- Approve pending merchants
+- Reject merchants with reason
+- Suspend/unsuspend merchants
+- Update merchant commission rates
 
 ### Rider Management
 - View all riders with filtering (status, availability)
@@ -45,7 +45,7 @@ Admin dashboard for managing the VTU Logistics platform.
 
 ### Platform Settings
 - Platform configuration (name, currency, timezone, support contact)
-- Commission defaults (provider commission, rider commission, delivery fees)
+- Commission defaults (merchant commission, rider commission, delivery fees)
 - Notification settings (email, push, SMS, order alerts, rider alerts, payment alerts)
 
 ## Tech Stack
@@ -69,7 +69,7 @@ admin-dashboard/
 │   ├── pages/            # Page components
 │   │   ├── DashboardPage.jsx
 │   │   ├── RequestsPage.jsx
-│   │   ├── ProvidersPage.jsx
+│   │   ├── MerchantsPage.jsx
 │   │   ├── RidersPage.jsx
 │   │   ├── UsersPage.jsx
 │   │   ├── TransactionsPage.jsx
@@ -79,7 +79,7 @@ admin-dashboard/
 │   │       ├── authSlice.js
 │   │       ├── dashboardSlice.js
 │   │       ├── requestsSlice.js
-│   │       ├── providersSlice.js
+│   │       ├── merchantsSlice.js
 │   │       ├── ridersSlice.js
 │   │       ├── usersSlice.js
 │   │       ├── transactionsSlice.js
@@ -138,13 +138,13 @@ The admin dashboard communicates with the backend API via `/api/admin` endpoints
 - `PATCH /api/admin/requests/:requestId/cancel` - Force cancel request
 - `PATCH /api/admin/requests/:requestId/status` - Update request status
 
-#### Providers
-- `GET /api/admin/providers` - Get all providers (with filters)
-- `PATCH /api/admin/providers/:providerId/approve` - Approve provider
-- `PATCH /api/admin/providers/:providerId/reject` - Reject provider
-- `PATCH /api/admin/providers/:providerId/suspend` - Suspend provider
-- `PATCH /api/admin/providers/:providerId/unsuspend` - Unsuspend provider
-- `PATCH /api/admin/providers/:providerId/commission` - Update commission rate
+#### Merchants
+- `GET /api/admin/merchants` - Get all merchants (with filters)
+- `PATCH /api/admin/merchants/:merchantId/approve` - Approve merchant
+- `PATCH /api/admin/merchants/:merchantId/reject` - Reject merchant
+- `PATCH /api/admin/merchants/:merchantId/suspend` - Suspend merchant
+- `PATCH /api/admin/merchants/:merchantId/unsuspend` - Unsuspend merchant
+- `PATCH /api/admin/merchants/:merchantId/commission` - Update commission rate
 
 #### Riders
 - `GET /api/admin/riders` - Get all riders (with filters)
@@ -171,7 +171,7 @@ The application uses Redux Toolkit for state management. Each feature has its ow
 - `authSlice` - Authentication state
 - `dashboardSlice` - Dashboard statistics
 - `requestsSlice` - Requests data and actions
-- `providersSlice` - Providers data and actions
+- `merchantsSlice` - Merchants data and actions
 - `ridersSlice` - Riders data and actions
 - `usersSlice` - Users data and actions
 - `transactionsSlice` - Transactions data and actions

@@ -30,7 +30,7 @@ export default function CheckoutScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useDispatch();
-  const { cart, providerId, type } = route.params;
+  const { cart, merchantId, type } = route.params;
   const { balance } = useSelector((state) => state.wallet);
   const { user } = useSelector((state) => state.auth);
   const { isCreating } = useSelector((state) => state.request);
@@ -83,7 +83,7 @@ export default function CheckoutScreen() {
     try {
       const requestData = {
         type,
-        providerId,
+        merchantId,
         items: cart.map((item) => ({
           productId: item.id,
           name: item.name,
@@ -92,7 +92,7 @@ export default function CheckoutScreen() {
           quantity: item.quantity,
           totalPrice: Number(item.basePrice) * item.quantity,
         })),
-        pickupAddress: 'Provider Location',
+        pickupAddress: 'Merchant Location',
         pickupLat: 0,
         pickupLng: 0,
         dropoffAddress: selectedAddress.address,
@@ -125,23 +125,23 @@ export default function CheckoutScreen() {
   };
 
   const renderCartItem = (item) => (
-    <View key={item.id} style={styles.cartItem}>
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+    <View key={item.id} className="flex-row justify-between items-center py-2 border-b" style={{ borderBottomColor: theme.colors.border }}>
+      <View className="flex-1">
+        <Text className="text-sm font-medium mb-1" style={{ color: theme.colors.text.primary }}>{item.name}</Text>
+        <Text className="text-xs" style={{ color: theme.colors.text.secondary }}>Qty: {item.quantity}</Text>
       </View>
-      <Text style={styles.itemPrice}>₦{(Number(item.basePrice) * item.quantity).toLocaleString()}</Text>
+      <Text className="text-sm font-semibold" style={{ color: theme.colors.text.primary }}>₦{(Number(item.basePrice) * item.quantity).toLocaleString()}</Text>
     </View>
   );
 
   const renderAddressCard = () => {
     if (selectedAddress) {
       return (
-        <TouchableOpacity style={styles.addressCard} onPress={handleAddressSelect}>
+        <TouchableOpacity className="flex-row items-center bg-white rounded-xl p-4 border" style={{ borderColor: theme.colors.border }} onPress={handleAddressSelect}>
           <Ionicons name="location" size={20} color={theme.colors.primary} />
-          <View style={styles.addressInfo}>
-            <Text style={styles.addressLabel}>{selectedAddress.label || 'Selected Address'}</Text>
-            <Text style={styles.addressText} numberOfLines={1}>
+          <View className="flex-1 ml-3">
+            <Text className="text-sm font-semibold mb-1" style={{ color: theme.colors.text.primary }}>{selectedAddress.label || 'Selected Address'}</Text>
+            <Text className="text-sm" style={{ color: theme.colors.text.secondary }} numberOfLines={1}>
               {selectedAddress.address}
             </Text>
           </View>
@@ -151,9 +151,9 @@ export default function CheckoutScreen() {
     }
 
     return (
-      <TouchableOpacity style={styles.addressCardEmpty} onPress={handleAddressSelect}>
+      <TouchableOpacity className="flex-row items-center justify-center bg-white rounded-xl p-4 border border-dashed" style={{ borderColor: theme.colors.border }} onPress={handleAddressSelect}>
         <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
-        <Text style={styles.addAddressText}>Add Delivery Address</Text>
+        <Text className="text-sm font-medium ml-2" style={{ color: theme.colors.primary }}>Add Delivery Address</Text>
       </TouchableOpacity>
     );
   };
@@ -163,7 +163,8 @@ export default function CheckoutScreen() {
     return (
       <TouchableOpacity
         key={method.id}
-        style={[styles.paymentMethod, isSelected && styles.paymentMethodSelected]}
+        className={`flex-row items-center bg-white rounded-xl p-4 mb-2 border ${isSelected ? 'border-orange-600' : 'border-gray-200'}`}
+        style={{ backgroundColor: isSelected ? theme.colors.primary + '10' : undefined }}
         onPress={() => setPaymentMethod(method.id)}
       >
         <Ionicons
@@ -171,11 +172,11 @@ export default function CheckoutScreen() {
           size={20}
           color={isSelected ? theme.colors.primary : theme.colors.text.secondary}
         />
-        <Text style={[styles.paymentMethodText, isSelected && styles.paymentMethodTextSelected]}>
+        <Text className={`flex-1 ml-3 text-sm ${isSelected ? 'font-semibold' : ''}`} style={{ color: theme.colors.text.primary }}>
           {method.label}
         </Text>
         {method.id === 'wallet' && (
-          <Text style={styles.walletBalance}>₦{Number(balance).toLocaleString()}</Text>
+          <Text className="text-sm font-semibold" style={{ color: theme.colors.primary }}>₦{Number(balance).toLocaleString()}</Text>
         )}
       </TouchableOpacity>
     );
@@ -183,51 +184,52 @@ export default function CheckoutScreen() {
 
   if (isCreating) {
     return (
-      <View style={styles.loadingContainer}>
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Placing your order...</Text>
+        <Text className="mt-4 text-base" style={{ color: theme.colors.text.secondary }}>Placing your order...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={['top']}>
+      <View className="flex-row items-center px-4 py-4 bg-white border-b" style={{ borderBottomColor: theme.colors.border }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} className="p-2">
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <View style={styles.headerSpacer} />
+        <Text className="flex-1 text-lg font-semibold text-center" style={{ color: theme.colors.text.primary }}>Checkout</Text>
+        <View className="w-10" />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         {/* Cart Items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
-          <View style={styles.cartItems}>
+        <View className="mb-6">
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Order Summary</Text>
+          <View className="bg-white rounded-xl p-3">
             {cart.map(renderCartItem)}
           </View>
         </View>
 
         {/* Delivery Address */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Address</Text>
+        <View className="mb-6">
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Delivery Address</Text>
           {renderAddressCard()}
         </View>
 
         {/* Payment Method */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
+        <View className="mb-6">
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Payment Method</Text>
           {renderPaymentMethod({ id: 'wallet', label: 'Wallet Balance' })}
           {renderPaymentMethod({ id: 'card', label: 'Card (Coming Soon)' })}
           {renderPaymentMethod({ id: 'cash', label: 'Cash on Delivery' })}
         </View>
 
         {/* Special Instructions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Special Instructions</Text>
+        <View className="mb-6">
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Special Instructions</Text>
           <TextInput
-            style={styles.instructionsInput}
+            className="bg-white rounded-xl p-4 text-sm border"
+            style={{ color: theme.colors.text.primary, borderColor: theme.colors.border }}
             placeholder="Add any special requests (optional)"
             value={specialInstructions}
             onChangeText={setSpecialInstructions}
@@ -237,51 +239,51 @@ export default function CheckoutScreen() {
         </View>
 
         {/* Cost Breakdown */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cost Breakdown</Text>
-          <View style={styles.costRow}>
-            <Text style={styles.costLabel}>Subtotal</Text>
-            <Text style={styles.costValue}>₦{subtotal.toLocaleString()}</Text>
+        <View className="mb-6">
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Cost Breakdown</Text>
+          <View className="flex-row justify-between py-2">
+            <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Subtotal</Text>
+            <Text className="text-sm" style={{ color: theme.colors.text.primary }}>₦{subtotal.toLocaleString()}</Text>
           </View>
-          <View style={styles.costRow}>
-            <Text style={styles.costLabel}>Delivery Fee</Text>
-            <Text style={styles.costValue}>₦{DELIVERY_FEE.toLocaleString()}</Text>
+          <View className="flex-row justify-between py-2">
+            <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Delivery Fee</Text>
+            <Text className="text-sm" style={{ color: theme.colors.text.primary }}>₦{DELIVERY_FEE.toLocaleString()}</Text>
           </View>
-          <View style={styles.costRow}>
-            <Text style={styles.costLabel}>Platform Fee</Text>
-            <Text style={styles.costValue}>₦{PLATFORM_FEE.toLocaleString()}</Text>
+          <View className="flex-row justify-between py-2">
+            <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Platform Fee</Text>
+            <Text className="text-sm" style={{ color: theme.colors.text.primary }}>₦{PLATFORM_FEE.toLocaleString()}</Text>
           </View>
-          <View style={[styles.costRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>₦{total.toLocaleString()}</Text>
+          <View className="flex-row justify-between py-3 border-t mt-1" style={{ borderTopColor: theme.colors.border }}>
+            <Text className="text-base font-semibold" style={{ color: theme.colors.text.primary }}>Total</Text>
+            <Text className="text-base font-bold" style={{ color: theme.colors.primary }}>₦{total.toLocaleString()}</Text>
           </View>
         </View>
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.placeOrderButton} onPress={handlePlaceOrder}>
-          <Text style={styles.placeOrderButtonText}>Place Order - ₦{total.toLocaleString()}</Text>
+      <View className="bg-white px-4 py-4 border-t" style={{ borderTopColor: theme.colors.border }}>
+        <TouchableOpacity className="bg-orange-600 py-4 rounded-xl items-center" onPress={handlePlaceOrder}>
+          <Text className="text-base font-bold text-white">Place Order - ₦{total.toLocaleString()}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Confirm Order</Text>
-            <Text style={styles.modalText}>
+        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View className="bg-white rounded-2xl p-6 w-[80%] max-w-[320px]">
+            <Text className="text-lg font-bold mb-3 text-center" style={{ color: theme.colors.text.primary }}>Confirm Order</Text>
+            <Text className="text-sm mb-6 text-center" style={{ color: theme.colors.text.secondary }}>
               Are you sure you want to place this order for ₦{total.toLocaleString()}?
             </Text>
-            <View style={styles.modalButtons}>
+            <View className="flex-row gap-3">
               <TouchableOpacity
-                style={styles.modalButtonCancel}
+                className="flex-1 py-3 rounded-lg items-center bg-gray-200"
                 onPress={() => setShowConfirmModal(false)}
               >
-                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+                <Text className="text-sm font-semibold" style={{ color: theme.colors.text.primary }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButtonConfirm} onPress={confirmOrder}>
-                <Text style={styles.modalButtonConfirmText}>Confirm</Text>
+              <TouchableOpacity className="flex-1 py-3 rounded-lg items-center bg-orange-600" onPress={confirmOrder}>
+                <Text className="text-sm font-semibold text-white">Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -290,270 +292,3 @@ export default function CheckoutScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginBottom: 12,
-  },
-  cartItems: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 12,
-  },
-  cartItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.text.primary,
-    marginBottom: 4,
-  },
-  itemQuantity: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
-  },
-  itemPrice: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-  },
-  addressCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  addressCardEmpty: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
-  },
-  addressInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  addressLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 13,
-    color: theme.colors.text.secondary,
-  },
-  addAddressText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.primary,
-    marginLeft: 8,
-  },
-  paymentMethod: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  paymentMethodSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '10',
-  },
-  paymentMethodText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 14,
-    color: theme.colors.text.primary,
-  },
-  paymentMethodTextSelected: {
-    fontWeight: '600',
-  },
-  walletBalance: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
-  instructionsInput: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 14,
-    color: theme.colors.text.primary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    textAlignVertical: 'top',
-  },
-  costRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  costLabel: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-  },
-  costValue: {
-    fontSize: 14,
-    color: theme.colors.text.primary,
-  },
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    paddingTop: 12,
-    marginTop: 4,
-  },
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-  },
-  totalValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
-  footer: {
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  placeOrderButton: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  placeOrderButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: theme.colors.text.secondary,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 24,
-    width: '80%',
-    maxWidth: 320,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  modalText: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButtonCancel: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  modalButtonCancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-  },
-  modalButtonConfirm: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-  },
-  modalButtonConfirmText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-};

@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Modal,
-  StyleSheet,
   Animated,
   Dimensions,
   Vibration,
@@ -105,17 +104,13 @@ export default function PinBottomSheet({
   };
 
   const renderPinDots = () => (
-    <View style={styles.pinContainer}>
+    <View className="flex-row justify-center mb-8">
       {Array.from({ length: PIN_LENGTH }).map((_, index) => (
         <View
           key={index}
-          style={[
-            styles.pinDot,
-            index < pin.length && styles.pinDotFilled,
-            error && styles.pinDotError,
-          ]}
+          className={`w-4 h-4 rounded-full border-2 mx-2 items-center justify-center ${index < pin.length ? 'border-orange-600 bg-orange-600/20' : 'border-gray-200'} ${error ? 'border-red-500' : ''}`}
         >
-          {index < pin.length && <View style={styles.pinDotInner} />}
+          {index < pin.length && <View className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.primary }} />}
         </View>
       ))}
     </View>
@@ -130,22 +125,22 @@ export default function PinBottomSheet({
     ];
 
     return (
-      <View style={styles.keypad}>
+      <View className="mb-3">
         {keys.map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.keypadRow}>
+          <View key={rowIndex} className="flex-row justify-between mb-3">
             {row.map((key) => (
               <TouchableOpacity
                 key={key}
-                style={[styles.keypadKey, key === "forgot" && styles.keypadKeyWide]}
+                className={`w-20 h-14 rounded-xl bg-white items-center justify-center ${key === "forgot" ? "w-20" : ""}`}
                 onPress={() => handleKeyPress(key)}
                 disabled={isLocked && key !== "backspace"}
               >
                 {key === "backspace" ? (
                   <Ionicons name="backspace-outline" size={24} color={colors.text} />
                 ) : key === "forgot" ? (
-                  <Text style={styles.forgotText}>Forgot?</Text>
+                  <Text className="text-xs font-semibold" style={{ color: colors.primary }}>Forgot?</Text>
                 ) : (
-                  <Text style={styles.keypadKeyText}>{key}</Text>
+                  <Text className="text-2xl font-semibold" style={{ color: colors.text }}>{key}</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -157,23 +152,21 @@ export default function PinBottomSheet({
 
   return (
     <Modal visible={isVisible} transparent animationType="none" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <TouchableOpacity style={styles.backdrop} onPress={onClose} activeOpacity={1} />
+      <View className="flex-1 justify-end">
+        <TouchableOpacity className="absolute inset-0" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }} onPress={onClose} activeOpacity={1} />
 
         <Animated.View
-          style={[
-            styles.sheet,
-            { transform: [{ translateY: slideAnimation }] },
-          ]}
+          className="bg-white rounded-t-3xl px-6 pb-8"
+          style={{ maxHeight: height * 0.85, transform: [{ translateY: slideAnimation }] }}
         >
           {/* Handle */}
-          <View style={styles.handle} />
+          <View className="w-10 h-1 bg-gray-200 rounded self-center mt-3 mb-4" />
 
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <View className="items-center mb-6 relative">
+            <Text className="text-xl font-extrabold mb-2" style={{ color: colors.text }}>{title}</Text>
+            <Text className="text-sm text-center" style={{ color: colors.textMuted }}>{subtitle}</Text>
+            <TouchableOpacity className="absolute right-0 top-0 p-1" onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -181,9 +174,9 @@ export default function PinBottomSheet({
           {/* Error */}
           {error ? (
             <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
-              <View style={styles.errorContainer}>
+              <View className="flex-row items-center rounded-xl p-3 mb-4" style={{ backgroundColor: colors.error + "15" }}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text style={styles.errorText}>{error}</Text>
+                <Text className="ml-2 text-xs font-medium flex-1" style={{ color: colors.error }}>{error}</Text>
               </View>
             </Animated.View>
           ) : null}
@@ -197,142 +190,11 @@ export default function PinBottomSheet({
           {renderKeypad()}
 
           {/* Cancel Button */}
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelText}>Cancel</Text>
+          <TouchableOpacity className="items-center py-3" onPress={onClose}>
+            <Text className="text-base font-semibold" style={{ color: colors.textMuted }}>Cancel</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  sheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: height * 0.85,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 24,
-    position: "relative",
-  },
-  closeButton: {
-    position: "absolute",
-    right: 0,
-    top: 0,
-    padding: 4,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
-  errorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.error + "15",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  errorText: {
-    marginLeft: 8,
-    fontSize: 13,
-    color: colors.error,
-    fontWeight: "500",
-    flex: 1,
-  },
-  pinContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 32,
-  },
-  pinDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.border,
-    marginHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pinDotFilled: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + "20",
-  },
-  pinDotError: {
-    borderColor: colors.error,
-  },
-  pinDotInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-  keypad: {
-    marginBottom: 16,
-  },
-  keypadRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  keypadKey: {
-    width: 80,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  keypadKeyWide: {
-    width: 80,
-  },
-  keypadKeyText: {
-    fontSize: 24,
-    fontWeight: "600",
-    color: colors.text,
-  },
-  forgotText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  cancelButton: {
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  cancelText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textMuted,
-  },
-});

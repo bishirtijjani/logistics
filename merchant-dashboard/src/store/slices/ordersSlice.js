@@ -3,37 +3,37 @@ import api from '../../lib/api'
 
 export const fetchOrders = createAsyncThunk(
   'orders/fetchAll',
-  async ({ providerId, page = 1, limit = 20, status }) => {
+  async ({ merchantId, page = 1, limit = 20, status }) => {
     const params = new URLSearchParams({
       page,
       limit,
       ...(status && { status }),
     })
-    const response = await api.get(`/providers/merchant/${providerId}/orders?${params}`)
+    const response = await api.get(`/merchants/merchant/${merchantId}/orders?${params}`)
     return response.data.data
   }
 )
 
 export const acceptOrder = createAsyncThunk(
   'orders/accept',
-  async ({ providerId, requestId }) => {
-    const response = await api.patch(`/providers/merchant/${providerId}/orders/${requestId}/accept`)
+  async ({ merchantId, requestId }) => {
+    const response = await api.patch(`/merchants/merchant/${merchantId}/orders/${requestId}/accept`)
     return response.data.data
   }
 )
 
 export const rejectOrder = createAsyncThunk(
   'orders/reject',
-  async ({ providerId, requestId, reason }) => {
-    const response = await api.patch(`/providers/merchant/${providerId}/orders/${requestId}/reject`, { reason })
+  async ({ merchantId, requestId, reason }) => {
+    const response = await api.patch(`/merchants/merchant/${merchantId}/orders/${requestId}/reject`, { reason })
     return response.data.data
   }
 )
 
 export const updateOrderStatus = createAsyncThunk(
   'orders/updateStatus',
-  async ({ providerId, requestId, status }) => {
-    const response = await api.patch(`/providers/merchant/${providerId}/orders/${requestId}/status`, { status })
+  async ({ merchantId, requestId, status }) => {
+    const response = await api.patch(`/merchants/merchant/${merchantId}/orders/${requestId}/status`, { status })
     return response.data.data
   }
 )

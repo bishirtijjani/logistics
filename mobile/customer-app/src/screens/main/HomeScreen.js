@@ -31,7 +31,7 @@ const requestTypes = [
     bg: "#FFF0E8",
     iconType: "FontAwesome5",
     description: "Order from restaurants",
-    hasProvider: true,
+    hasMerchant: true,
     hasPreparation: true,
   },
   {
@@ -42,7 +42,7 @@ const requestTypes = [
     bg: "#EFF6FF",
     iconType: "MaterialCommunityIcons",
     description: "Send or receive packages",
-    hasProvider: false,
+    hasMerchant: false,
     hasPreparation: false,
   },
   {
@@ -53,7 +53,7 @@ const requestTypes = [
     bg: "#ECFDF5",
     iconType: "MaterialCommunityIcons",
     description: "Order medicines",
-    hasProvider: true,
+    hasMerchant: true,
     hasPreparation: true,
     comingSoon: true,
   },
@@ -65,7 +65,7 @@ const requestTypes = [
     bg: "#F5F3FF",
     iconType: "MaterialCommunityIcons",
     description: "Shop supermarkets",
-    hasProvider: true,
+    hasMerchant: true,
     hasPreparation: true,
     comingSoon: true,
   },
@@ -374,7 +374,7 @@ export default function HomeScreen({ navigation }) {
               const handlePress = () => {
                 // UNIFIED REQUEST FLOW
                 // All request types follow the same flow internally
-                // Only the UI and provider selection differs
+                // Only the UI and merchant selection differs
                 
                 if (item.comingSoon) {
                   Toast.show({
@@ -386,17 +386,17 @@ export default function HomeScreen({ navigation }) {
                 }
                 
                 if (item.id === "FOOD") {
-                  // Food: Browse providers (restaurants) → Select items → Checkout → Track
-                  navigation.navigate("ProviderBrowse", {
+                  // Food: Browse merchants (restaurants) → Select items → Checkout → Track
+                  navigation.navigate("MerchantBrowse", {
                     type: item.id,
                     lat: latitude,
                     lng: longitude,
                   });
                 } else if (item.id === "PACKAGE") {
-                  // Package: Direct request creation (no provider browsing)
+                  // Package: Direct request creation (no merchant browsing)
                   navigation.navigate("CreateDelivery", {
                     requestType: item.id,
-                    hasProvider: false
+                    hasMerchant: false
                   });
                 }
               };

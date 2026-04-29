@@ -39,3 +39,6 @@ export const spacing = {
   lg: 20,
   xl: 32,
 };
+
+const theme = { colors, radius, spacing };
+export default theme;

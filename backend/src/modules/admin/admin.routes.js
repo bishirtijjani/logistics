@@ -17,12 +17,12 @@ const {
   reassignRiderSchema,
   forceCancelRequestSchema,
   adminUpdateRequestStatusSchema,
-  listAllProvidersSchema,
-  approveProviderSchema,
-  rejectProviderSchema,
-  suspendProviderSchema,
-  unsuspendProviderSchema,
-  updateProviderCommissionSchema,
+  listAllMerchantsSchema,
+  approveMerchantSchema,
+  rejectMerchantSchema,
+  suspendMerchantSchema,
+  unsuspendMerchantSchema,
+  updateMerchantCommissionSchema,
   listAllRidersSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,
@@ -42,13 +42,13 @@ router.patch('/requests/:requestId/reassign', validate(reassignRiderSchema), adm
 router.patch('/requests/:requestId/cancel', validate(forceCancelRequestSchema), adminController.forceCancelRequest);
 router.patch('/requests/:requestId/status', validate(adminUpdateRequestStatusSchema), adminController.adminUpdateRequestStatus);
 
-// Provider management
-router.get('/providers', validate(listAllProvidersSchema, 'query'), adminController.getAllProviders);
-router.patch('/providers/:providerId/approve', validate(approveProviderSchema), adminController.approveProvider);
-router.patch('/providers/:providerId/reject', validate(rejectProviderSchema), adminController.rejectProvider);
-router.patch('/providers/:providerId/suspend', validate(suspendProviderSchema), adminController.suspendProvider);
-router.patch('/providers/:providerId/unsuspend', validate(unsuspendProviderSchema), adminController.unsuspendProvider);
-router.patch('/providers/:providerId/commission', validate(updateProviderCommissionSchema), adminController.updateProviderCommission);
+// Merchant management
+router.get('/merchants', validate(listAllMerchantsSchema, 'query'), adminController.getAllMerchants);
+router.patch('/merchants/:merchantId/approve', validate(approveMerchantSchema), adminController.approveMerchant);
+router.patch('/merchants/:merchantId/reject', validate(rejectMerchantSchema), adminController.rejectMerchant);
+router.patch('/merchants/:merchantId/suspend', validate(suspendMerchantSchema), adminController.suspendMerchant);
+router.patch('/merchants/:merchantId/unsuspend', validate(unsuspendMerchantSchema), adminController.unsuspendMerchant);
+router.patch('/merchants/:merchantId/commission', validate(updateMerchantCommissionSchema), adminController.updateMerchantCommission);
 
 // Rider management
 router.get('/riders/pending', validate(listPendingRidersSchema, 'query'), adminController.getPendingRiders);

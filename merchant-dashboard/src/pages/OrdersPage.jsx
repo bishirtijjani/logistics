@@ -14,19 +14,19 @@ import {
 import { format } from 'date-fns'
 
 export default function OrdersPage() {
-  const { providerId } = useParams()
+  const { merchantId } = useParams()
   const dispatch = useDispatch()
   const { orders, loading, total, page, limit } = useSelector((state) => state.orders)
   const [filter, setFilter] = useState('')
   const [selectedOrder, setSelectedOrder] = useState(null)
 
   useEffect(() => {
-    dispatch(fetchOrders({ providerId, status: filter || undefined }))
-  }, [dispatch, providerId, filter])
+    dispatch(fetchOrders({ merchantId, status: filter || undefined }))
+  }, [dispatch, merchantId, filter])
 
   const handleAccept = async (orderId) => {
     try {
-      await dispatch(acceptOrder({ providerId, requestId: orderId })).unwrap()
+      await dispatch(acceptOrder({ merchantId, requestId: orderId })).unwrap()
     } catch (err) {
       console.error('Failed to accept order:', err)
     }
@@ -36,7 +36,7 @@ export default function OrdersPage() {
     const reason = prompt('Enter reason for rejection:')
     if (reason) {
       try {
-        await dispatch(rejectOrder({ providerId, requestId: orderId, reason })).unwrap()
+        await dispatch(rejectOrder({ merchantId, requestId: orderId, reason })).unwrap()
       } catch (err) {
         console.error('Failed to reject order:', err)
       }
@@ -45,7 +45,7 @@ export default function OrdersPage() {
 
   const handleStatusUpdate = async (orderId, status) => {
     try {
-      await dispatch(updateOrderStatus({ providerId, requestId: orderId, status })).unwrap()
+      await dispatch(updateOrderStatus({ merchantId, requestId: orderId, status })).unwrap()
     } catch (err) {
       console.error('Failed to update status:', err)
     }
@@ -89,7 +89,7 @@ export default function OrdersPage() {
             </select>
           </div>
           <button
-            onClick={() => dispatch(fetchOrders({ providerId, status: filter || undefined }))}
+            onClick={() => dispatch(fetchOrders({ merchantId, status: filter || undefined }))}
             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
@@ -207,14 +207,14 @@ export default function OrdersPage() {
             <div className="flex gap-2">
               <button
                 disabled={page === 1}
-                onClick={() => dispatch(fetchOrders({ providerId, status: filter || undefined, page: page - 1 }))}
+                onClick={() => dispatch(fetchOrders({ merchantId, status: filter || undefined, page: page - 1 }))}
                 className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
               <button
                 disabled={page * limit >= total}
-                onClick={() => dispatch(fetchOrders({ providerId, status: filter || undefined, page: page + 1 }))}
+                onClick={() => dispatch(fetchOrders({ merchantId, status: filter || undefined, page: page + 1 }))}
                 className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next

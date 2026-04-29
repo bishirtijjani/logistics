@@ -3,7 +3,7 @@ import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import RequestsPage from './pages/RequestsPage'
-import ProvidersPage from './pages/ProvidersPage'
+import MerchantsPage from './pages/MerchantsPage'
 import RidersPage from './pages/RidersPage'
 import UsersPage from './pages/UsersPage'
 import TransactionsPage from './pages/TransactionsPage'
@@ -34,7 +34,7 @@ function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="requests" element={<RequestsPage />} />
-        <Route path="providers" element={<ProvidersPage />} />
+        <Route path="merchants" element={<MerchantsPage />} />
         <Route path="riders" element={<RidersPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="transactions" element={<TransactionsPage />} />

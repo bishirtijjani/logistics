@@ -15,7 +15,7 @@ import { logout } from '../store/slices/authSlice'
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/requests', icon: Package, label: 'Requests' },
-  { path: '/providers', icon: Store, label: 'Providers' },
+  { path: '/merchants', icon: Store, label: 'Merchants' },
   { path: '/riders', icon: Bike, label: 'Riders' },
   { path: '/users', icon: Users, label: 'Users' },
   { path: '/transactions', icon: Receipt, label: 'Transactions' },

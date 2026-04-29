@@ -3,15 +3,15 @@ This is just a template for Prompts, IGNORE IT !!!
 I want to continue implementing the logistics app's unified request architecture.
 
 **Current State (Phase 1 Complete):**
-- Database schema updated with unified models (Request, Provider, ProviderWallet, Product, RequestItem, PackageDetail)
+- Database schema updated with unified models (Request, Merchant, MerchantWallet, Product, RequestItem, PackageDetail)
 - SQL migration file created (not yet executed)
 - Request backend module complete (/api/requests)
-- Provider backend module complete (/api/providers)
+- Merchant backend module complete (/api/merchants)
 - Queue jobs for settlement/refund created
 - Socket events (request: namespace) added
 - Redux requestSlice created
-- ProviderBrowseScreen and ProviderMenuScreen created
-- Navigation updated with provider routes
+- MerchantBrowseScreen and MerchantMenuScreen created
+- Navigation updated with merchant routes
 
 **Pending (Phase 2):**
 - Database migration execution
@@ -30,11 +30,11 @@ I want to continue implementing the logistics app's unified request architecture
 - CONVENTIONS.md — Coding standards
 - backend/prisma/schema.prisma — Data models
 - backend/src/modules/request/* — Request module (validator, service, controller, routes)
-- backend/src/modules/provider/* — Provider module (validator, service, controller, routes)
+- backend/src/modules/merchant/* — Merchant module (validator, service, controller, routes)
 - backend/src/queues/workers/request.worker.js — Settlement queue jobs
 - backend/src/sockets/events.js — Socket event definitions
 - mobile/customer-app/src/store/slices/requestSlice.js — Redux state
-- mobile/customer-app/src/screens/provider/* — Provider screens
+- mobile/customer-app/src/screens/merchant/* — Merchant screens
 - mobile/customer-app/src/navigation/AppNavigator.js — Navigation structure
  
 **Specific requirements:**
@@ -52,15 +52,15 @@ Example 1: Checkout Screen Implementation
 I want to implement the checkout screen for the logistics app.
 
 **Current State (Phase 1 Complete):**
-- Database schema updated with unified models (Request, Provider, ProviderWallet, Product, RequestItem, PackageDetail)
+- Database schema updated with unified models (Request, Merchant, MerchantWallet, Product, RequestItem, PackageDetail)
 - SQL migration file created (not yet executed)
 - Request backend module complete (/api/requests)
-- Provider backend module complete (/api/providers)
+- Merchant backend module complete (/api/merchants)
 - Queue jobs for settlement/refund created
 - Socket events (request: namespace) added
 - Redux requestSlice created
-- ProviderBrowseScreen and ProviderMenuScreen created
-- Navigation updated with provider routes
+- MerchantBrowseScreen and MerchantMenuScreen created
+- Navigation updated with merchant routes
 
 **Pending (Phase 2):**
 - Database migration execution
@@ -79,15 +79,15 @@ I want to implement the checkout screen for the logistics app.
 - CONVENTIONS.md — Coding standards
 - backend/prisma/schema.prisma — Data models
 - backend/src/modules/request/* — Request module (validator, service, controller, routes)
-- backend/src/modules/provider/* — Provider module (validator, service, controller, routes)
+- backend/src/modules/merchant/* — Merchant module (validator, service, controller, routes)
 - backend/src/queues/workers/request.worker.js — Settlement queue jobs
 - backend/src/sockets/events.js — Socket event definitions
 - mobile/customer-app/src/store/slices/requestSlice.js — Redux state
-- mobile/customer-app/src/screens/provider/* — Provider screens
+- mobile/customer-app/src/screens/merchant/* — Merchant screens
 - mobile/customer-app/src/navigation/AppNavigator.js — Navigation structure
  
 **Specific requirements:**
-- Build the checkout screen that takes cart items from ProviderMenuScreen
+- Build the checkout screen that takes cart items from MerchantMenuScreen
 - Create a request of type FOOD via POST /api/requests
 - Include delivery address, payment method, and special instructions
 - Show order summary with itemized costs, delivery fee, and total
@@ -105,15 +105,15 @@ Example 2: Request Tracking Screen
 I want to implement the unified request tracking screen for the logistics app.
 
 **Current State (Phase 1 Complete):**
-- Database schema updated with unified models (Request, Provider, ProviderWallet, Product, RequestItem, PackageDetail)
+- Database schema updated with unified models (Request, Merchant, MerchantWallet, Product, RequestItem, PackageDetail)
 - SQL migration file created (not yet executed)
 - Request backend module complete (/api/requests)
-- Provider backend module complete (/api/providers)
+- Merchant backend module complete (/api/merchants)
 - Queue jobs for settlement/refund created
 - Socket events (request: namespace) added
 - Redux requestSlice created
-- ProviderBrowseScreen and ProviderMenuScreen created
-- Navigation updated with provider routes
+- MerchantBrowseScreen and MerchantMenuScreen created
+- Navigation updated with merchant routes
 
 **Pending (Phase 2):**
 - Database migration execution
@@ -132,22 +132,22 @@ I want to implement the unified request tracking screen for the logistics app.
 - CONVENTIONS.md — Coding standards
 - backend/prisma/schema.prisma — Data models
 - backend/src/modules/request/* — Request module (validator, service, controller, routes)
-- backend/src/modules/provider/* — Provider module (validator, service, controller, routes)
+- backend/src/modules/merchant/* — Merchant module (validator, service, controller, routes)
 - backend/src/queues/workers/request.worker.js — Settlement queue jobs
 - backend/src/sockets/events.js — Socket event definitions
 - mobile/customer-app/src/store/slices/requestSlice.js — Redux state
-- mobile/customer-app/src/screens/provider/* — Provider screens
+- mobile/customer-app/src/screens/merchant/* — Merchant screens
 - mobile/customer-app/src/navigation/AppNavigator.js — Navigation structure
  
 **Specific requirements:**
 - Create a unified tracking screen that adapts based on request type (FOOD, GROCERY, PHARMACY, PACKAGE)
 - Display status timeline (stepper) showing current lifecycle state
-- Show provider information with ratings
+- Show merchant information with ratings
 - Show rider information when assigned
 - Display map with rider location when applicable
 - Show estimated time of arrival
 - Add cancel button (before pickup)
-- Add call button (to rider/provider)
+- Add call button (to rider/merchant)
 - Add rate button (after delivery)
 - Use the existing Redux requestSlice for state management
 - Listen to socket events for real-time status updates

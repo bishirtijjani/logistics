@@ -2,12 +2,12 @@
  * Request socket handler — unified request architecture.
  *
  * ROOMS:
- * - request:{requestId} — customer, provider, and rider join this room
- * - provider:{providerId} — provider-specific room for new orders
+ * - request:{requestId} — customer, merchant, and rider join this room
+ * - merchant:{merchantId} — merchant-specific room for new orders
  * - Events in request room: status changes, rider location, completion
  */
 
-const { REQUEST, getRequestRoom, getProviderRoom, getUserRoom } = require('../events');
+const { REQUEST, getRequestRoom, getMerchantRoom, getUserRoom } = require('../events');
 const { logger } = require('../../utils/logger');
 
 const registerRequestHandlers = (io, socket) => {
@@ -48,17 +48,17 @@ const registerRequestHandlers = (io, socket) => {
   });
 
   /**
-   * Join provider room to receive new order notifications.
-   * Payload: { providerId: string }
+   * Join merchant room to receive new order notifications.
+   * Payload: { merchantId: string }
    */
-  socket.on(REQUEST.JOIN_PROVIDER_ROOM, (data) => {
-    const { providerId } = data;
-    if (!providerId) return;
+  socket.on(REQUEST.JOIN_MERCHANT_ROOM, (data) => {
+    const { merchantId } = data;
+    if (!merchantId) return;
 
-    const room = getProviderRoom(providerId);
+    const room = getMerchantRoom(merchantId);
     socket.join(room);
 
-    logger.debug('Joined provider room', {
+    logger.debug('Joined merchant room', {
       userId: socket.user.id,
       role: socket.user.role,
       room,
@@ -66,17 +66,17 @@ const registerRequestHandlers = (io, socket) => {
   });
 
   /**
-   * Leave provider room.
-   * Payload: { providerId: string }
+   * Leave merchant room.
+   * Payload: { merchantId: string }
    */
-  socket.on(REQUEST.LEAVE_PROVIDER_ROOM, (data) => {
-    const { providerId } = data;
-    if (!providerId) return;
+  socket.on(REQUEST.LEAVE_MERCHANT_ROOM, (data) => {
+    const { merchantId } = data;
+    if (!merchantId) return;
 
-    const room = getProviderRoom(providerId);
+    const room = getMerchantRoom(merchantId);
     socket.leave(room);
 
-    logger.debug('Left provider room', {
+    logger.debug('Left merchant room', {
       userId: socket.user.id,
       role: socket.user.role,
       room,
@@ -112,33 +112,33 @@ const registerRequestHandlers = (io, socket) => {
 
 /**
  * Emit REQUEST.CREATED when a new request is created.
- * Sends to provider room if has provider, or rider pool if no provider.
+ * Sends to merchant room if has merchant, or rider pool if no merchant.
  */
 const emitRequestCreated = (io, request) => {
-  if (request.providerId) {
-    // Send to provider room for provider acceptance
-    const providerRoom = getProviderRoom(request.providerId);
-    io.to(providerRoom).emit(REQUEST.CREATED, {
+  if (request.merchantId) {
+    // Send to merchant room for merchant acceptance
+    const merchantRoom = getMerchantRoom(request.merchantId);
+    io.to(merchantRoom).emit(REQUEST.CREATED, {
       requestId: request.id,
       type: request.type,
       customerId: request.customerId,
-      providerId: request.providerId,
+      merchantId: request.merchantId,
       items: request.items,
       total: Number(request.total),
       pickupAddress: request.pickupAddress,
       dropoffAddress: request.dropoffAddress,
       createdAt: request.createdAt,
     });
-    logger.info('REQUEST.CREATED emitted to provider', { requestId: request.id, providerId: request.providerId });
+    logger.info('REQUEST.CREATED emitted to merchant', { requestId: request.id, merchantId: request.merchantId });
   } else {
     // Send to rider pool for direct matching (package delivery)
-    logger.info('REQUEST.CREATED - no provider, rider matching via queue', { requestId: request.id });
+    logger.info('REQUEST.CREATED - no merchant, rider matching via queue', { requestId: request.id });
   }
 };
 
 /**
  * Emit REQUEST.STATUS_CHANGED on status updates.
- * Sends to request room (customer, provider, rider).
+ * Sends to request room (customer, merchant, rider).
  */
 const emitStatusChanged = (io, requestId, status, metadata = {}) => {
   const room = getRequestRoom(requestId);
@@ -152,33 +152,33 @@ const emitStatusChanged = (io, requestId, status, metadata = {}) => {
 };
 
 /**
- * Emit REQUEST.PROVIDER_ACCEPTED when provider accepts order.
+ * Emit REQUEST.MERCHANT_ACCEPTED when merchant accepts order.
  * Sends to customer's personal room.
  */
-const emitProviderAccepted = (io, requestId, customerId, providerInfo) => {
-  io.to(getUserRoom(customerId)).emit(REQUEST.PROVIDER_ACCEPTED, {
+const emitMerchantAccepted = (io, requestId, customerId, merchantInfo) => {
+  io.to(getUserRoom(customerId)).emit(REQUEST.MERCHANT_ACCEPTED, {
     requestId,
-    provider: providerInfo,
+    merchant: merchantInfo,
     timestamp: Date.now(),
   });
-  logger.info('REQUEST.PROVIDER_ACCEPTED emitted', { requestId, customerId });
+  logger.info('REQUEST.MERCHANT_ACCEPTED emitted', { requestId, customerId });
 };
 
 /**
- * Emit REQUEST.PROVIDER_READY when provider marks order ready.
+ * Emit REQUEST.MERCHANT_READY when merchant marks order ready.
  * Sends to request room and customer.
  */
-const emitProviderReady = (io, requestId, customerId) => {
+const emitMerchantReady = (io, requestId, customerId) => {
   const room = getRequestRoom(requestId);
-  io.to(room).emit(REQUEST.PROVIDER_READY, {
+  io.to(room).emit(REQUEST.MERCHANT_READY, {
     requestId,
     timestamp: Date.now(),
   });
-  io.to(getUserRoom(customerId)).emit(REQUEST.PROVIDER_READY, {
+  io.to(getUserRoom(customerId)).emit(REQUEST.MERCHANT_READY, {
     requestId,
     timestamp: Date.now(),
   });
-  logger.info('REQUEST.PROVIDER_READY emitted', { requestId });
+  logger.info('REQUEST.MERCHANT_READY emitted', { requestId });
 };
 
 /**
@@ -236,8 +236,8 @@ module.exports = {
   registerRequestHandlers,
   emitRequestCreated,
   emitStatusChanged,
-  emitProviderAccepted,
-  emitProviderReady,
+  emitMerchantAccepted,
+  emitMerchantReady,
   emitRiderAssigned,
   emitCompleted,
   emitCancelled,

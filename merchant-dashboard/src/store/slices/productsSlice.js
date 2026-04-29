@@ -3,41 +3,41 @@ import api from '../../lib/api'
 
 export const fetchProducts = createAsyncThunk(
   'products/fetchAll',
-  async ({ providerId, page = 1, limit = 20 }) => {
+  async ({ merchantId, page = 1, limit = 20 }) => {
     const params = new URLSearchParams({ page, limit })
-    const response = await api.get(`/providers/merchant/${providerId}/products?${params}`)
+    const response = await api.get(`/merchants/merchant/${merchantId}/products?${params}`)
     return response.data.data
   }
 )
 
 export const createProduct = createAsyncThunk(
   'products/create',
-  async ({ providerId, productData }) => {
-    const response = await api.post(`/providers/merchant/${providerId}/products`, productData)
+  async ({ merchantId, productData }) => {
+    const response = await api.post(`/merchants/merchant/${merchantId}/products`, productData)
     return response.data.data
   }
 )
 
 export const updateProduct = createAsyncThunk(
   'products/update',
-  async ({ providerId, productId, productData }) => {
-    const response = await api.put(`/providers/merchant/${providerId}/products/${productId}`, productData)
+  async ({ merchantId, productId, productData }) => {
+    const response = await api.put(`/merchants/merchant/${merchantId}/products/${productId}`, productData)
     return response.data.data
   }
 )
 
 export const deleteProduct = createAsyncThunk(
   'products/delete',
-  async ({ providerId, productId }) => {
-    await api.delete(`/providers/merchant/${providerId}/products/${productId}`)
+  async ({ merchantId, productId }) => {
+    await api.delete(`/merchants/merchant/${merchantId}/products/${productId}`)
     return productId
   }
 )
 
 export const toggleProductAvailability = createAsyncThunk(
   'products/toggleAvailability',
-  async ({ providerId, productId, isAvailable }) => {
-    const response = await api.patch(`/providers/merchant/${providerId}/products/${productId}/availability`, { isAvailable })
+  async ({ merchantId, productId, isAvailable }) => {
+    const response = await api.patch(`/merchants/merchant/${merchantId}/products/${productId}/availability`, { isAvailable })
     return response.data.data
   }
 )

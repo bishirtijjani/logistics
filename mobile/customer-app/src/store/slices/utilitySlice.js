@@ -4,10 +4,10 @@ import api from "../../services/api";
 // Async thunks
 export const buyAirtime = createAsyncThunk(
   "utility/buyAirtime",
-  async ({ provider, phone, amount, pin }, { rejectWithValue }) => {
+  async ({ merchant, phone, amount, pin }, { rejectWithValue }) => {
     try {
       const response = await api.post("/utilities/airtime", {
-        serviceID: provider,
+        serviceID: merchant,
         phone,
         amount,
         pin,
@@ -21,10 +21,10 @@ export const buyAirtime = createAsyncThunk(
 
 export const buyData = createAsyncThunk(
   "utility/buyData",
-  async ({ provider, phone, planCode, amount, pin }, { rejectWithValue }) => {
+  async ({ merchant, phone, planCode, amount, pin }, { rejectWithValue }) => {
     try {
       const response = await api.post("/utilities/data", {
-        serviceID: provider,
+        serviceID: merchant,
         phone,
         variationCode: planCode,
         amount,
@@ -39,9 +39,9 @@ export const buyData = createAsyncThunk(
 
 export const fetchDataPlans = createAsyncThunk(
   "utility/fetchDataPlans",
-  async (provider, { rejectWithValue }) => {
+  async (merchant, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/utilities/data-plans?provider=${provider}`);
+      const response = await api.get(`/utilities/data-plans?merchant=${merchant}`);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to fetch data plans");

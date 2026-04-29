@@ -6,7 +6,7 @@ import { Wallet, ArrowUpRight, RefreshCw, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function EarningsPage() {
-  const { providerId } = useParams()
+  const { merchantId } = useParams()
   const dispatch = useDispatch()
   const { wallet, loading } = useSelector((state) => state.earnings)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
@@ -18,14 +18,14 @@ export default function EarningsPage() {
   })
 
   useEffect(() => {
-    dispatch(fetchWallet({ providerId }))
-  }, [dispatch, providerId])
+    dispatch(fetchWallet({ merchantId }))
+  }, [dispatch, merchantId])
 
   const handleWithdrawal = async (e) => {
     e.preventDefault()
     try {
       await dispatch(requestWithdrawal({
-        providerId,
+        merchantId,
         amount: parseFloat(withdrawalForm.amount),
         bankAccount: {
           bankName: withdrawalForm.bankName,
@@ -35,7 +35,7 @@ export default function EarningsPage() {
       })).unwrap()
       setShowWithdrawModal(false)
       setWithdrawalForm({ amount: '', bankName: '', accountNumber: '', accountName: '' })
-      dispatch(fetchWallet({ providerId }))
+      dispatch(fetchWallet({ merchantId }))
     } catch (err) {
       console.error('Failed to request withdrawal:', err)
     }
@@ -49,7 +49,7 @@ export default function EarningsPage() {
           <p className="text-gray-600">View your wallet balance and transactions</p>
         </div>
         <button
-          onClick={() => dispatch(fetchWallet({ providerId }))}
+          onClick={() => dispatch(fetchWallet({ merchantId }))}
           className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <RefreshCw className="w-5 h-5" />

@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document represents a fundamental architectural pivot for the VTU Logistics Platform. The current system treats food ordering, package delivery, utilities, and wallet as separate products. This document proposes a **unified request-centric architecture** where everything revolves around a single concept: **a request that is created, processed by a provider, fulfilled by a rider, and settled financially**.
+This document represents a fundamental architectural pivot for the VTU Logistics Platform. The current system treats food ordering, package delivery, utilities, and wallet as separate products. This document proposes a **unified request-centric architecture** where everything revolves around a single concept: **a request that is created, processed by a merchant, fulfilled by a rider, and settled financially**.
 
 **Food is just the first type of request, not a special case.**
 
@@ -19,7 +19,7 @@ This document represents a fundamental architectural pivot for the VTU Logistics
 All business activities in this platform follow the same fundamental pattern:
 
 ```
-Customer Request → Provider Processing → Rider Fulfillment → Financial Settlement
+Customer Request → Merchant Processing → Rider Fulfillment → Financial Settlement
 ```
 
 Whether it's:
@@ -28,7 +28,7 @@ Whether it's:
 - **Package**: Customer sends documents → Pickup location → Rider delivers
 - **Pharmacy**: Customer orders medicine → Pharmacy prepares → Rider delivers
 
-The underlying structure is **identical**. The only difference is the type of provider and whether there's a preparation phase.
+The underlying structure is **identical**. The only difference is the type of merchant and whether there's a preparation phase.
 
 ---
 
@@ -39,20 +39,20 @@ The underlying structure is **identical**. The only difference is the type of pr
 **State:** `REQUESTED`  
 **Actors:** Customer
 
-### Phase 2: Provider Acceptance  
-**Trigger:** Merchant/Provider accepts the request  
+### Phase 2: Merchant Acceptance  
+**Trigger:** Merchant/Merchant accepts the request  
 **State:** `ACCEPTED`  
-**Actors:** Provider (optional for package delivery)
+**Actors:** Merchant (optional for package delivery)
 
-### Phase 3: Provider Processing
-**Trigger:** Provider begins preparation/packing  
+### Phase 3: Merchant Processing
+**Trigger:** Merchant begins preparation/packing  
 **State:** `PROCESSING`  
-**Actors:** Provider (restaurant cooks, supermarket packs, etc.)
+**Actors:** Merchant (restaurant cooks, supermarket packs, etc.)
 
 ### Phase 4: Ready for Pickup
-**Trigger:** Provider signals item is ready  
+**Trigger:** Merchant signals item is ready  
 **State:** `READY_FOR_PICKUP`  
-**Actors:** Provider  
+**Actors:** Merchant  
 **Action:** System assigns rider (if not already assigned)
 
 ### Phase 5: Rider Assigned
@@ -88,7 +88,7 @@ The underlying structure is **identical**. The only difference is the type of pr
 ### Alternative: Cancelled
 **Can occur:** Any time before `PICKED_UP`  
 **State:** `CANCELLED`  
-**Actors:** Customer, Provider, or System
+**Actors:** Customer, Merchant, or System
 
 ---
 
@@ -110,9 +110,9 @@ model Request {
   customerId      String
   customer        User          @relation(fields: [customerId], references: [id])
   
-  // Provider (optional — package delivery has no provider)
-  providerId      String?
-  provider        Provider?     @relation(fields: [providerId], references: [id])
+  // Merchant (optional — package delivery has no merchant)
+  merchantId      String?
+  merchant        Merchant?     @relation(fields: [merchantId], references: [id])
   
   // Rider (assigned later)
   riderId         String?
@@ -138,7 +138,7 @@ model Request {
   
   // Split tracking (crucial for financial transparency)
   customerPaid    Decimal       @db.Decimal(15, 2)  // What was actually charged
-  providerEarning Decimal       @default(0) @db.Decimal(15, 2)
+  merchantEarning Decimal       @default(0) @db.Decimal(15, 2)
   riderEarning    Decimal       @default(0) @db.Decimal(15, 2)
   platformEarning Decimal       @default(0) @db.Decimal(15, 2)
   
@@ -151,7 +151,7 @@ model Request {
   
   // Cancellation
   cancelledAt     DateTime?
-  cancelledBy     String?       // customer, provider, rider, system
+  cancelledBy     String?       // customer, merchant, rider, system
   cancellationReason String?
   
   // Timestamps for lifecycle
@@ -174,7 +174,7 @@ model Request {
   rating          Rating?
   
   @@index([customerId])
-  @@index([providerId])
+  @@index([merchantId])
   @@index([riderId])
   @@index([status])
   @@index([type])
@@ -237,18 +237,18 @@ model RequestItem {
 }
 ```
 
-### 3. Provider — Merchants, Restaurants, etc.
+### 3. Merchant — Merchants, Restaurants, etc.
 
 ```prisma
-model Provider {
+model Merchant {
   id              String        @id @default(uuid())
   
-  // User account (optional — providers can have login)
+  // User account (optional — merchants can have login)
   userId          String?       @unique
   user            User?         @relation(fields: [userId], references: [id])
   
-  // Provider type determines UI/behavior
-  type            ProviderType
+  // Merchant type determines UI/behavior
+  type            MerchantType
   
   // Business info
   name            String        // "KFC Katsina", "Big Basket Supermarket"
@@ -286,14 +286,14 @@ model Provider {
   // Relations
   requests        Request[]
   products        Product[]     // For restaurants/stores with catalogs
-  wallet          ProviderWallet?
+  wallet          MerchantWallet?
   
   @@index([type])
   @@index([isActive, isOpen])
-  @@map("providers")
+  @@map("merchants")
 }
 
-enum ProviderType {
+enum MerchantType {
   RESTAURANT
   GROCERY
   PHARMACY
@@ -301,13 +301,13 @@ enum ProviderType {
 }
 ```
 
-### 4. Product — For Catalog-Based Providers
+### 4. Product — For Catalog-Based Merchants
 
 ```prisma
 model Product {
   id          String   @id @default(uuid())
-  providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  merchantId  String
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   
   name        String
   description String?
@@ -333,19 +333,19 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  @@index([providerId])
+  @@index([merchantId])
   @@index([category])
   @@map("products")
 }
 ```
 
-### 5. ProviderWallet — Separate from User Wallet
+### 5. MerchantWallet — Separate from User Wallet
 
 ```prisma
-model ProviderWallet {
+model MerchantWallet {
   id              String   @id @default(uuid())
-  providerId      String   @unique
-  provider        Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  merchantId      String   @unique
+  merchant        Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   
   // Available for withdrawal
   availableBalance Decimal @default(0) @db.Decimal(15, 2)
@@ -364,11 +364,11 @@ model ProviderWallet {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
-  @@map("provider_wallets")
+  @@map("merchant_wallets")
 }
 ```
 
-### 6. PackageDetail — For Package Delivery (No Provider)
+### 6. PackageDetail — For Package Delivery (No Merchant)
 
 ```prisma
 model PackageDetail {
@@ -422,25 +422,25 @@ The full amount sits in the platform's control wallet. It's **not** immediately 
 **When:** Request status → `SETTLED`  
 **Actions:**
 1. Calculate splits
-2. Credit provider wallet (if applicable)
+2. Credit merchant wallet (if applicable)
 3. Credit rider wallet
 4. Platform keeps remainder
 
 ```
 Platform Wallet: -₦5,500
-  → Provider Wallet (available): +₦3,500
+  → Merchant Wallet (available): +₦3,500
   → Rider Wallet: +₦1,500
   → Platform Revenue: +₦500
 ```
 
-### 4. Provider Withdrawal
+### 4. Merchant Withdrawal
 
-**When:** Provider requests payout  
+**When:** Merchant requests payout  
 **Action:** Move from `availableBalance` to their bank account
 
 ### Key Principle
 
-**All financial records exist from day one.** Even if we're not automating payouts yet, the `providerEarning`, `riderEarning`, and `platformEarning` fields are populated on every request. This enables:
+**All financial records exist from day one.** Even if we're not automating payouts yet, the `merchantEarning`, `riderEarning`, and `platformEarning` fields are populated on every request. This enables:
 - Accurate reporting
 - Future withdrawal automation  
 - Audit trails
@@ -458,8 +458,8 @@ All events use the `request:` namespace and work for any request type.
 |-------|-----------|---------|-------------|
 | `request:created` | Server → Customer | `{ requestId, type, status }` | Confirm request creation |
 | `request:status:changed` | Server → All parties | `{ requestId, status, timestamp }` | Universal status update |
-| `request:provider:accepted` | Server → Customer | `{ providerId, providerName, estimatedReadyTime }` | Provider accepts |
-| `request:provider:ready` | Server → System | `{ requestId }` | Item ready for pickup |
+| `request:merchant:accepted` | Server → Customer | `{ merchantId, merchantName, estimatedReadyTime }` | Merchant accepts |
+| `request:merchant:ready` | Server → System | `{ requestId }` | Item ready for pickup |
 | `request:rider:assigned` | Server → All | `{ riderId, name, vehicle, eta }` | Rider matched |
 | `request:rider:location` | Rider → Server → Customer | `{ lat, lng, timestamp }` | Live tracking |
 | `request:completed` | Server → All | `{ requestId, settlement }` | Delivery + payment complete |
@@ -470,9 +470,9 @@ All events use the `request:` namespace and work for any request type.
 | Room | Members | Purpose |
 |------|---------|---------|
 | `user:{userId}` | Individual | Personal notifications |
-| `provider:{providerId}` | Provider + System | New orders, status updates |
+| `merchant:{merchantId}` | Merchant + System | New orders, status updates |
 | `riders:available` | Online riders | Job broadcasts |
-| `request:{requestId}` | Customer + Provider + Rider | Tracking, coordination |
+| `request:{requestId}` | Customer + Merchant + Rider | Tracking, coordination |
 
 ---
 
@@ -482,35 +482,35 @@ All events use the `request:` namespace and work for any request type.
 
 ```
 POST   /api/requests                    # Create any type of request
-GET    /api/requests                    # List my requests (customer/rider/provider)
+GET    /api/requests                    # List my requests (customer/rider/merchant)
 GET    /api/requests/:id               # Get request details
-PATCH  /api/requests/:id/status        # Update status (provider/rider)
+PATCH  /api/requests/:id/status        # Update status (merchant/rider)
 DELETE /api/requests/:id               # Cancel (customer, before pickup)
 
 POST   /api/requests/:id/rate           # Rate completed request
 
-GET    /api/providers                   # List providers (filter by type, location)
-GET    /api/providers/:id               # Get provider details
-GET    /api/providers/:id/products      # Get provider's catalog
-GET    /api/providers/:id/requests      # Get provider's orders (merchant dashboard)
-PATCH  /api/providers/:id/status        # Update provider status (open/closed)
+GET    /api/merchants                   # List merchants (filter by type, location)
+GET    /api/merchants/:id               # Get merchant details
+GET    /api/merchants/:id/products      # Get merchant's catalog
+GET    /api/merchants/:id/requests      # Get merchant's orders (merchant dashboard)
+PATCH  /api/merchants/:id/status        # Update merchant status (open/closed)
 
-POST   /api/provider-wallet/withdraw   # Request payout
+POST   /api/merchant-wallet/withdraw   # Request payout
 
 GET    /api/search?q=burger&lat=13.0&lng=7.6&type=food
 GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 ```
 
-### Provider Endpoints
+### Merchant Endpoints
 
 ```
-GET    /api/providers                   # List providers (filter by type, location)
-GET    /api/providers/:id               # Get provider details
-GET    /api/providers/:id/products      # Get provider's catalog
-GET    /api/providers/:id/requests      # Get provider's orders (merchant dashboard)
-PATCH  /api/providers/:id/status        # Update provider status (open/closed)
+GET    /api/merchants                   # List merchants (filter by type, location)
+GET    /api/merchants/:id               # Get merchant details
+GET    /api/merchants/:id/products      # Get merchant's catalog
+GET    /api/merchants/:id/requests      # Get merchant's orders (merchant dashboard)
+PATCH  /api/merchants/:id/status        # Update merchant status (open/closed)
 
-POST   /api/provider-wallet/withdraw   # Request payout
+POST   /api/merchant-wallet/withdraw   # Request payout
 ```
 
 ### Discovery/Search Endpoints
@@ -529,15 +529,15 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 **1. Discovery (Home)**
 - Search bar (universal search)
 - Category pills: Food, Groceries, Pharmacy, Package
-- Nearby providers (if location-based)
+- Nearby merchants (if location-based)
 - Recent/recommended
 
-**2. Provider Browse**
-- List/grid of providers
+**2. Merchant Browse**
+- List/grid of merchants
 - Filters: Rating, delivery time, price range
-- Provider cards: Logo, name, rating, delivery time, minimum order
+- Merchant cards: Logo, name, rating, delivery time, minimum order
 
-**3. Provider Menu (if catalog-based)**
+**3. Merchant Menu (if catalog-based)**
 - Categories
 - Product cards with variations/options
 - Cart management
@@ -553,13 +553,13 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 **5. Tracking Screen (Universal)**
 - Map with rider location
 - Status timeline (plain language)
-- Provider info (if applicable)
+- Merchant info (if applicable)
 - Rider info
 - Support/Chat buttons
 
 ### Status Display Mapping
 
-| System Status | Customer-Facing | Provider-Facing | Rider-Facing |
+| System Status | Customer-Facing | Merchant-Facing | Rider-Facing |
 |---------------|-----------------|-----------------|--------------|
 | `REQUESTED` | "Order received" | "New order" | — |
 | `ACCEPTED` | "Preparing your order" | "Order accepted" | — |
@@ -596,7 +596,7 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 
 **1. Global Request Monitor**
 - Live map of all active requests
-- Filter by: Type, Status, Provider, Rider
+- Filter by: Type, Status, Merchant, Rider
 - Drill down to any request
 
 **2. Intervention Tools**
@@ -605,16 +605,16 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 - Refund customer
 - Contact any party
 
-**3. Provider Management**
-- Approve new providers
-- View provider performance
+**3. Merchant Management**
+- Approve new merchants
+- View merchant performance
 - Adjust commission rates
 - Suspend/activate
 
 **4. Financial Overview**
 - Daily/weekly revenue
 - Settlement tracking
-- Provider payouts pending
+- Merchant payouts pending
 - Rider earnings
 
 ---
@@ -623,7 +623,7 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 
 ### Phase 1: Database Migration (Week 1)
 
-1. Create new tables: `Request`, `RequestItem`, `Provider`, `Product`, `ProviderWallet`, `PackageDetail`
+1. Create new tables: `Request`, `RequestItem`, `Merchant`, `Product`, `MerchantWallet`, `PackageDetail`
 2. Migrate existing `DeliveryOrder` data to `Request` (mark as `type: PACKAGE`)
 3. Update Prisma client
 4. Verify data integrity
@@ -631,22 +631,22 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 ### Phase 2: Backend API (Weeks 1-2)
 
 1. Create `request` module with unified endpoints
-2. Create `provider` module
-3. Update wallet logic for provider settlements
+2. Create `merchant` module
+3. Update wallet logic for merchant settlements
 4. Update socket handlers for unified events
 
-### Phase 3: Provider Dashboard (Week 2-3)
+### Phase 3: Merchant Dashboard (Week 2-3)
 
 1. Build React-based merchant dashboard
-2. Provider auth (separate from customer auth)
+2. Merchant auth (separate from customer auth)
 3. Order management UI
 4. Wallet/earnings view
 
 ### Phase 4: Customer App Updates (Weeks 3-4)
 
 1. Update HomeScreen with unified search
-2. Build ProviderBrowseScreen
-3. Build ProviderMenuScreen (for food)
+2. Build MerchantBrowseScreen
+3. Build MerchantMenuScreen (for food)
 4. Update CreateRequestScreen (works for all types)
 5. Update TrackRequestScreen (universal tracking)
 
@@ -655,14 +655,14 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 1. Build admin dashboard
 2. Global request monitor
 3. Intervention tools
-4. Provider management
+4. Merchant management
 
 ### Phase 6: Testing & Launch (Week 5)
 
 1. End-to-end testing with food orders
 2. Package delivery testing
 3. Financial reconciliation testing
-4. Soft launch with limited providers
+4. Soft launch with limited merchants
 
 ---
 
@@ -685,8 +685,8 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 |---------|-----|
 | `DeliveryOrder` table | `Request` table |
 | Food separate from delivery | Food is a request type |
-| No provider concept | First-class `Provider` model |
-| Rider earnings only | Provider + Rider + Platform splits |
+| No merchant concept | First-class `Merchant` model |
+| Rider earnings only | Merchant + Rider + Platform splits |
 | Package delivery special case | Just another request type |
 | Status: `MATCHED` | Status: `RIDER_ASSIGNED` |
 | Delivery-specific sockets | Unified `request:*` sockets |
@@ -694,7 +694,7 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 ### What Stays the Same
 
 - User authentication and roles
-- Wallet infrastructure (extended for providers)
+- Wallet infrastructure (extended for merchants)
 - Rider management and location tracking
 - Queue/worker infrastructure
 - External service integrations (Maps, Monnify, etc.)

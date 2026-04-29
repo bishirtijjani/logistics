@@ -1,7 +1,7 @@
 /**
  * Redux store configuration — Customer App.
  *
- * Single store instance. Import in App.js and wrap with <Provider>.
+ * Single store instance. Import in App.js and wrap with <Merchant>.
  */
 
 const { configureStore } = require('@reduxjs/toolkit');

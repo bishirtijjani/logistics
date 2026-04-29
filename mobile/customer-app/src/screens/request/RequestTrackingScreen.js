@@ -1,6 +1,6 @@
 /**
  * RequestTrackingScreen — Unified request tracking with status timeline
- * Displays request progress, provider/rider info, and actions
+ * Displays request progress, merchant/rider info, and actions
  */
 
 import React, { useState, useEffect } from 'react';
@@ -11,7 +11,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  TextInput,
+  Linking,
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +27,7 @@ import { fetchRequestById, cancelRequest, rateRequest, updateRequestFromSocket, 
 
 const STATUS_STEPS = [
   { key: 'REQUESTED', label: 'Order Placed', icon: 'receipt-outline' },
-  { key: 'ACCEPTED', label: 'Provider Accepted', icon: 'storefront-outline' },
+  { key: 'ACCEPTED', label: 'Merchant Accepted', icon: 'storefront-outline' },
   { key: 'PROCESSING', label: 'Preparing', icon: 'restaurant-outline' },
   { key: 'READY_FOR_PICKUP', label: 'Ready for Pickup', icon: 'cube-outline' },
   { key: 'RIDER_ASSIGNED', label: 'Rider Assigned', icon: 'person-outline' },
@@ -36,8 +39,8 @@ const STATUS_STEPS = [
 ];
 
 const STATUS_MESSAGES = {
-  REQUESTED: 'Waiting for provider acceptance',
-  ACCEPTED: 'Provider is preparing your order',
+  REQUESTED: 'Waiting for merchant acceptance',
+  ACCEPTED: 'Merchant is preparing your order',
   PROCESSING: 'Your order is being prepared',
   READY_FOR_PICKUP: 'Order ready, waiting for rider',
   RIDER_ASSIGNED: 'Rider assigned, on the way to pickup',
@@ -49,7 +52,22 @@ const STATUS_MESSAGES = {
   CANCELLED: 'Order cancelled',
 };
 
-d   socketService.joinRequestRoom(requestId);
+const RequestTrackingScreen = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const dispatch = useDispatch();
+  const { requestId } = route.params;
+  const { currentRequest, isLoading } = useSelector((state) => state.request);
+  const [merchantRating, setMerchantRating] = useState(5);
+  const [riderRating, setRiderRating] = useState(5);
+  const [merchantComment, setMerchantComment] = useState('');
+  const [riderComment, setRiderComment] = useState('');
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isRating, setIsRating] = useState(false);
+
+  useEffect(() => {
+    socketService.joinRequestRoom(requestId);
 
     // Listen for socket events
     const unsubscribeStatus = socketService.onRequestStatusChanged((data) => {
@@ -131,9 +149,9 @@ d   socketService.joinRequestRoom(requestId);
         rateRequest({
           requestId,
           ratingData: {
-            providerScore: providerRating,
+            merchantScore: merchantRating,
             riderScore: currentRequest.rider ? riderRating : null,
-            providerComment,
+            merchantComment,
             riderComment: currentRequest.rider ? riderComment : null,
           },
         })
@@ -158,9 +176,16 @@ d   socketService.joinRequestRoom(requestId);
     return STATUS_STEPS.findIndex((step) => step.key === currentRequest.status);
   };
 
+  const calculateETA = (distanceKm) => {
+    const avgSpeed = 20; // km/h
+    const minutes = (distanceKm / avgSpeed) * 60;
+    if (minutes < 60) return `${Math.round(minutes)} min`;
+    return `${Math.round(minutes / 60)} hr`;
+  };
+
   const renderStarRating = (rating, setRating) => {
     return (
-      <View style={styles.starContainer}>
+      <View className="flex-row justify-center mb-3">
         {[1, 2, 3, 4, 5].map((star) => (
           <TouchableOpacity key={star} onPress={() => setRating(star)}>
             <Ionicons
@@ -176,21 +201,21 @@ d   socketService.joinRequestRoom(requestId);
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>Loading order details...</Text>
+        <Text className="mt-4 text-base" style={{ color: theme.colors.text.secondary }}>Loading order details...</Text>
       </View>
     );
   }
 
   if (!currentRequest) {
     return (
-      <View style={styles.errorContainer}>
+      <View className="flex-1 justify-center items-center p-8">
         <Ionicons name="alert-circle-outline" size={64} color={theme.colors.text.secondary} />
-        <Text style={styles.errorTitle}>Order Not Found</Text>
-        <Text style={styles.errorText}>Unable to load order details</Text>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
+        <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: theme.colors.text.primary }}>Order Not Found</Text>
+        <Text className="text-sm mb-6" style={{ color: theme.colors.text.secondary }}>Unable to load order details</Text>
+        <TouchableOpacity className="px-6 py-3 rounded-lg" style={{ backgroundColor: theme.colors.primary }} onPress={() => navigation.goBack()}>
+          <Text className="text-sm font-semibold text-white">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -201,45 +226,37 @@ d   socketService.joinRequestRoom(requestId);
   const canRate = ['DELIVERED', 'SETTLED'].includes(currentRequest.status);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={['top']}>
+      <View className="flex-row items-center justify-between px-4 py-4" style={{ backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} className="p-2">
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Tracking</Text>
-        <TouchableOpacity style={styles.headerButton}>
+        <Text className="text-lg font-semibold" style={{ color: theme.colors.text.primary }}>Order Tracking</Text>
+        <TouchableOpacity className="p-2">
           <Ionicons name="call-outline" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         {/* Status Timeline */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Status</Text>
-          <View style={styles.statusCard}>
-            <Text style={styles.statusMessage}>{STATUS_MESSAGES[currentRequest.status] || 'Processing'}</Text>
-            <View style={styles.timeline}>
+        <View className="mb-6">
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Order Status</Text>
+          <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
+            <Text className="text-lg font-bold mb-5 text-center" style={{ color: theme.colors.primary }}>{STATUS_MESSAGES[currentRequest.status] || 'Processing'}</Text>
+            <View className="pl-2">
               {STATUS_STEPS.map((step, index) => {
                 const isCompleted = index <= currentStepIndex;
                 const isCurrent = index === currentStepIndex;
                 return (
-                  <View key={step.key} style={styles.timelineStep}>
-                    <View style={styles.timelineIconContainer}>
-                      <Vi
-         ewutton}
-          onPress={() => {
-            if (currentRequest.rider?.user?.phone) {
-              handleCall(currentRequest.rider.user.phone);
-            } else if (currentRequest.provider?.phone) {
-              handleCall(crrenReques.provider.phe);
-            }
-          }
-        
-                        style={[
-                          styles.timelineIcon,
-                          isCompleted && styles.timelineIconCompleted,
-                          isCurrent && styles.timelineIconCurrent,
-                        ]}
+                  <View key={step.key} className="flex-row items-center mb-4">
+                    <View className="items-center mr-3">
+                      <View
+                        className="w-8 h-8 rounded-full items-center justify-center"
+                        style={{
+                          backgroundColor: isCompleted ? theme.colors.primary : theme.colors.border,
+                          borderWidth: isCurrent ? 2 : 0,
+                          borderColor: isCurrent ? theme.colors.primary + '40' : undefined,
+                        }}
                       >
                         <Ionicons
                           name={step.icon}
@@ -249,19 +266,17 @@ d   socketService.joinRequestRoom(requestId);
                       </View>
                       {index < STATUS_STEPS.length - 1 && (
                         <View
-                          style={[
-                            styles.timelineLine,
-                            index < currentStepIndex && styles.timelineLineCompleted,
-                          ]}
+                          className="w-0.5 h-6 mt-1"
+                          style={{ backgroundColor: index < currentStepIndex ? theme.colors.primary : theme.colors.border }}
                         />
                       )}
                     </View>
                     <Text
-                      style={[
-                        styles.timelineLabel,
-                        isCompleted && styles.timelineLabelCompleted,
-                        isCurrent && styles.timelineLabelCurrent,
-                      ]}
+                      className="text-sm"
+                      style={{
+                        color: isCompleted ? theme.colors.text.primary : theme.colors.text.secondary,
+                        fontWeight: isCompleted ? '500' : 'normal',
+                      }}
                     >
                       {step.label}
                     </Text>
@@ -272,18 +287,18 @@ d   socketService.joinRequestRoom(requestId);
           </View>
         </View>
 
-        {/* Provider Info */}
-        {currentRequest.provider && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Provider</Text>
-            <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
+        {/* Merchant Info */}
+        {currentRequest.merchant && (
+          <View className="mb-6">
+            <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Merchant</Text>
+            <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
+              <View className="flex-row items-center mb-3">
                 <Ionicons name="storefront-outline" size={20} color={theme.colors.primary} />
-                <Text style={styles.infoLabel}>{currentRequest.provider.name}</Text>
+                <Text className="text-sm font-semibold ml-3" style={{ color: theme.colors.text.primary }}>{currentRequest.merchant.name}</Text>
               </View>
-              <View style={styles.infoRow}>
+              <View className="flex-row items-center mb-3">
                 <Ionicons name="location-outline" size={20} color={theme.colors.text.secondary} />
-                <Text style={styles.infoValue}>{currentRequest.pickupAddress}</Text>
+                <Text className="text-sm ml-3" style={{ color: theme.colors.text.secondary }}>{currentRequest.pickupAddress}</Text>
               </View>
             </View>
           </View>
@@ -291,18 +306,19 @@ d   socketService.joinRequestRoom(requestId);
 
         {/* Rider Info */}
         {currentRequest.rider && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Rider</Text>
-            <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
+          <View className="mb-6">
+            <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Rider</Text>
+            <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
+              <View className="flex-row items-center mb-3">
                 <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
-                <Text style={styles.infoLabel}>{currentRequest.rider.user.firstName} {currentRequest.rider.user.lastName}</Text>
+                <Text className="text-sm font-semibold ml-3" style={{ color: theme.colors.text.primary }}>{currentRequest.rider.user.firstName} {currentRequest.rider.user.lastName}</Text>
               </View>
-              <View style={styles.infoRow}>
+              <View className="flex-row items-center mb-3">
                 <Ionicons name="call-outline" size={20} color={theme.colors.text.secondary} />
-                <Text style={styles.infoValue}>{currentRequest.rider.user.phone}</Text>
+                <Text className="text-sm ml-3" style={{ color: theme.colors.text.secondary }}>{currentRequest.rider.user.phone}</Text>
                 <TouchableOpacity
-                  style={styles.callButton}
+                  className="ml-auto p-2 rounded-full"
+                  style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
                   onPress={() => handleCall(currentRequest.rider.user.phone)}
                 >
                   <Ionicons name="call" size={20} color={theme.colors.primary} />
@@ -314,31 +330,18 @@ d   socketService.joinRequestRoom(requestId);
 
         {/* Map with Rider Location */}
         {currentRequest.rider && currentRequest.riderLocation && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Live Tracking</Text>
-            <View style={styles.mapContainer}>
+          <View className="mb-6">
+            <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Live Tracking</Text>
+            <View className="h-50 rounded-xl overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
               <MapView
-                style={styles.map}
+                className="w-full h-full"
                 initialRegion={{
                   latitude: currentRequest.riderLocation.lat,
                   longitude: currentRequest.riderLocation.lng,
                   latitudeDelta: 0.01,
                   longitudeDelta: 0.01,
                 }}
-              >()}</Text>
-            </View>
-            {currentRequest.distanceKm && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Distance</Text>
-                <Text style={styles.detailValue}>{currentRequest.distanceKm.toFixed(1)} km</Text>
-              </View>
-            )}
-            {currentRequest.distanceKm && calculateETA(currentRequest.distanceKm) && 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Estimated Time</Text>
-                <Text style={styles.detailValue}>{calculateETA(currentRequest.distanceKm min
-                  {/*
-            )} Rider marker */}
+              >
                 <Marker
                   coordinate={{
                     latitude: currentRequest.riderLocation.lat,
@@ -347,11 +350,10 @@ d   socketService.joinRequestRoom(requestId);
                   title="Rider"
                   description={`${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`}
                 >
-                  <View style={styles.markerContainer}>
+                  <View className="rounded-xl p-2" style={{ backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
                     <Ionicons name="bicycle" size={24} color={theme.colors.primary} />
                   </View>
                 </Marker>
-                {/* Destination marker */}
                 {currentRequest.dropoffLat && currentRequest.dropoffLng && (
                   <Marker
                     coordinate={{
@@ -361,7 +363,7 @@ d   socketService.joinRequestRoom(requestId);
                     title="Destination"
                     description={currentRequest.dropoffAddress}
                   >
-                    <View style={styles.markerContainer}>
+                    <View className="rounded-xl p-2" style={{ backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
                       <Ionicons name="home" size={24} color={theme.colors.error} />
                     </View>
                   </Marker>
@@ -372,51 +374,53 @@ d   socketService.joinRequestRoom(requestId);
         )}
 
         {/* Order Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Details</Text>
-          <View style={styles.infoCard}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Order ID</Text>
-              <Text style={styles.detailValue}>#{currentRequest.id.slice(0, 8)}</Text>
+        <View className="mb-6">
+          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Order Details</Text>
+          <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
+            <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+              <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Order ID</Text>
+              <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>#{currentRequest.id.slice(0, 8)}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Total</Text>
-              <Text style={styles.detailValue}>₦{Number(currentRequest.total).toLocaleString()}</Text>
+            <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+              <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Total</Text>
+              <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>₦{Number(currentRequest.total).toLocaleString()}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Delivery Address</Text>
-              <Text style={styles.detailValue}>{currentRequest.dropoffAddress}</Text>
+            <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+              <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Delivery Address</Text>
+              <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>{currentRequest.dropoffAddress}</Text>
             </View>
             {currentRequest.specialInstructions && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Instructions</Text>
-                <Text style={styles.detailValue}>{currentRequest.specialInstructions}</Text>
+              <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+                <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Instructions</Text>
+                <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>{currentRequest.specialInstructions}</Text>
               </View>
             )}
           </View>
         </View>
 
         {/* Actions */}
-        <View style={styles.section}>
+        <View className="mb-6">
           {canCancel && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
+              className="py-4 rounded-xl items-center mb-3"
+              style={{ backgroundColor: '#EF4444' }}
               onPress={handleCancel}
               disabled={isCancelling}
             >
               {isCancelling ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.cancelButtonText}>Cancel Order</Text>
+                <Text className="text-base font-semibold text-white">Cancel Order</Text>
               )}
             </TouchableOpacity>
           )}
           {canRate && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.rateButton]}
+              className="py-4 rounded-xl items-center mb-3"
+              style={{ backgroundColor: theme.colors.primary }}
               onPress={() => setShowRatingModal(true)}
             >
-              <Text style={styles.rateButtonText}>Rate Order</Text>
+              <Text className="text-base font-semibold text-white">Rate Order</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -424,25 +428,27 @@ d   socketService.joinRequestRoom(requestId);
 
       {/* Rating Modal */}
       {showRatingModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Rate Your Experience</Text>
+        <View className="absolute top-0 left-0 right-0 bottom-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View className="rounded-2xl p-6 w-[90%] max-w-[400px]" style={{ backgroundColor: theme.colors.surface }}>
+            <Text className="text-lg font-bold mb-5 text-center" style={{ color: theme.colors.text.primary }}>Rate Your Experience</Text>
             
-            <Text style={styles.ratingLabel}>Provider Rating</Text>
-            {renderStarRating(providerRating, setProviderRating)}
+            <Text className="text-sm font-semibold mb-2 mt-4" style={{ color: theme.colors.text.primary }}>Merchant Rating</Text>
+            {renderStarRating(merchantRating, setMerchantRating)}
             <TextInput
-              style={styles.commentInput}
-              placeholder="Comment about provider (optional)"
-              value={providerComment}
-              onChangeText={setProviderComment}
+              className="rounded-lg p-3 text-sm mb-4"
+              style={{ backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
+              placeholder="Comment about merchant (optional)"
+              value={merchantComment}
+              onChangeText={setMerchantComment}
             />
 
             {currentRequest.rider && (
               <>
-                <Text style={styles.ratingLabel}>Rider Rating</Text>
+                <Text className="text-sm font-semibold mb-2 mt-4" style={{ color: theme.colors.text.primary }}>Rider Rating</Text>
                 {renderStarRating(riderRating, setRiderRating)}
                 <TextInput
-                  style={styles.commentInput}
+                  className="rounded-lg p-3 text-sm mb-4"
+                  style={{ backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
                   placeholder="Comment about rider (optional)"
                   value={riderComment}
                   onChangeText={setRiderComment}
@@ -450,22 +456,24 @@ d   socketService.joinRequestRoom(requestId);
               </>
             )}
 
-            <View style={styles.modalButtons}>
+            <View className="flex-row gap-3 mt-2">
               <TouchableOpacity
-                style={styles.modalButtonCancel}
+                className="flex-1 py-3 rounded-lg items-center"
+                style={{ backgroundColor: theme.colors.border }}
                 onPress={() => setShowRatingModal(false)}
               >
-                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+                <Text className="text-sm font-semibold" style={{ color: theme.colors.text.primary }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalButtonConfirm}
+                className="flex-1 py-3 rounded-lg items-center"
+                style={{ backgroundColor: theme.colors.primary }}
                 onPress={handleRate}
                 disabled={isRating}
               >
                 {isRating ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.modalButtonConfirmText}>Submit</Text>
+                  <Text className="text-sm font-semibold text-white">Submit</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -474,304 +482,6 @@ d   socketService.joinRequestRoom(requestId);
       )}
     </SafeAreaView>
   );
-}
+};
 
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  headerButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginBottom: 12,
-  },
-  statusCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-  },
-  statusMessage: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.primary,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  timeline: {
-    paddingLeft: 8,
-  },
-  timelineStep: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  timelineIconContainer: {
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  timelineIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineIconCompleted: {
-    backgroundColor: theme.colors.primary,
-  },
-  timelineIconCurrent: {
-    backgroundColor: theme.colors.primary,
-    borderWidth: 2,
-    borderColor: theme.colors.primary + '40',
-  },
-  timelineLine: {
-    width: 2,
-    height: 24,
-    backgroundColor: theme.colors.border,
-    marginTop: 4,
-  },
-  timelineLineCompleted: {
-    backgroundColor: theme.colors.primary,
-  },
-  timelineLabel: {
-    fontSize: 13,
-    color: theme.colors.text.secondary,
-  },
-  timelineLabelCompleted: {
-    color: theme.colors.text.primary,
-    fontWeight: '500',
-  },
-  timelineLabelCurrent: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  infoCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginLeft: 12,
-  },
-  infoValue: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-    marginLeft: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: theme.colors.text.primary,
-  },
-  actionButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cancelButton: {
-    backgroundColor: '#EF4444',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  rateButton: {
-    backgroundColor: theme.colors.primary,
-  },
-  rateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: theme.colors.text.secondary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-    marginBottom: 24,
-  },
-  backButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  ratingLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  starContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  commentInput: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: theme.colors.text.primary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginBottom: 16,
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  modalButtonCancel: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  modalButtonCancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-  },
-  modalButtonConfirm: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    backgroundColor: theme.colors.primary,
-    alignItems: 'center',
-  },
-  modalButtonConfirmText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  callButton: {
-    marginLeft: 'auto',
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-  },
-  mapContainer: {
-    height: 200,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: theme.colors.background,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
-  markerContainer: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-});
+export default RequestTrackingScreen;

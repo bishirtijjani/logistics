@@ -20,10 +20,10 @@ export default function LoginPage() {
 
     try {
       const result = await dispatch(login({ email, password })).unwrap()
-      if (result.user.providerId) {
-        navigate(`/dashboard/${result.user.providerId}`)
+      if (result.user.merchantId) {
+        navigate(`/dashboard/${result.user.merchantId}`)
       } else {
-        setError('No provider account associated with this user')
+        setError('No merchant account associated with this user')
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.')

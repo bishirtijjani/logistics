@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { fetchAllProviders, approveProvider, rejectProvider, suspendProvider, unsuspendProvider, updateProviderCommission } from '../store/slices/providersSlice'
+import { fetchAllMerchants, approveMerchant, rejectMerchant, suspendMerchant, unsuspendMerchant, updateMerchantCommission } from '../store/slices/merchantsSlice'
 import { Store, Check, X, Shield, ShieldAlert, MoreVertical, Mail, Phone, DollarSign, MapPin, Eye, Edit, X as CloseIcon } from 'lucide-react'
 
 const STATUS_COLORS = {
@@ -10,88 +10,88 @@ const STATUS_COLORS = {
   REJECTED: 'bg-gray-100 text-gray-800',
 }
 
-export default function ProvidersPage() {
+export default function MerchantsPage() {
   const dispatch = useDispatch()
-  const { providers, total, page, loading } = useSelector((state) => state.providers)
+  const { merchants, total, page, loading } = useSelector((state) => state.merchants)
   const [filters, setFilters] = useState({ type: '', status: '' })
   const [rejectionReason, setRejectionReason] = useState('')
   const [suspensionReason, setSuspensionReason] = useState('')
   const [commissionRate, setCommissionRate] = useState('')
-  const [selectedProvider, setSelectedProvider] = useState(null)
+  const [selectedMerchant, setSelectedMerchant] = useState(null)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [showCommissionModal, setShowCommissionModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
 
   useEffect(() => {
-    dispatch(fetchAllProviders({ page: 1, limit: 20, ...filters }))
+    dispatch(fetchAllMerchants({ page: 1, limit: 20, ...filters }))
   }, [dispatch, filters])
 
   const handleFilterChange = (key, value) => {
     setFilters({ ...filters, [key]: value })
   }
 
-  const handleApprove = async (providerId) => {
-    await dispatch(approveProvider(providerId))
-    dispatch(fetchAllProviders({ page: 1, limit: 20, ...filters }))
+  const handleApprove = async (merchantId) => {
+    await dispatch(approveMerchant(merchantId))
+    dispatch(fetchAllMerchants({ page: 1, limit: 20, ...filters }))
   }
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) return
-    await dispatch(rejectProvider({ providerId: selectedProvider.id, reason: rejectionReason }))
+    await dispatch(rejectMerchant({ merchantId: selectedMerchant.id, reason: rejectionReason }))
     setShowRejectModal(false)
     setRejectionReason('')
-    setSelectedProvider(null)
-    dispatch(fetchAllProviders({ page: 1, limit: 20, ...filters }))
+    setSelectedMerchant(null)
+    dispatch(fetchAllMerchants({ page: 1, limit: 20, ...filters }))
   }
 
   const handleSuspend = async () => {
     if (!suspensionReason.trim()) return
-    await dispatch(suspendProvider({ providerId: selectedProvider.id, reason: suspensionReason }))
+    await dispatch(suspendMerchant({ merchantId: selectedMerchant.id, reason: suspensionReason }))
     setShowSuspendModal(false)
     setSuspensionReason('')
-    setSelectedProvider(null)
-    dispatch(fetchAllProviders({ page: 1, limit: 20, ...filters }))
+    setSelectedMerchant(null)
+    dispatch(fetchAllMerchants({ page: 1, limit: 20, ...filters }))
   }
 
-  const handleUnsuspend = async (providerId) => {
-    await dispatch(unsuspendProvider(providerId))
-    dispatch(fetchAllProviders({ page: 1, limit: 20, ...filters }))
+  const handleUnsuspend = async (merchantId) => {
+    await dispatch(unsuspendMerchant(merchantId))
+    dispatch(fetchAllMerchants({ page: 1, limit: 20, ...filters }))
   }
 
   const handleUpdateCommission = async () => {
     if (!commissionRate || isNaN(commissionRate)) return
-    await dispatch(updateProviderCommission({ providerId: selectedProvider.id, commissionRate: parseFloat(commissionRate) }))
+    await dispatch(updateMerchantCommission({ merchantId: selectedMerchant.id, commissionRate: parseFloat(commissionRate) }))
     setShowCommissionModal(false)
     setCommissionRate('')
-    setSelectedProvider(null)
-    dispatch(fetchAllProviders({ page: 1, limit: 20, ...filters }))
+    setSelectedMerchant(null)
+    dispatch(fetchAllMerchants({ page: 1, limit: 20, ...filters }))
   }
 
-  const openRejectModal = (provider) => {
-    setSelectedProvider(provider)
+  const openRejectModal = (merchant) => {
+    setSelectedMerchant(merchant)
     setShowRejectModal(true)
   }
 
-  const openSuspendModal = (provider) => {
-    setSelectedProvider(provider)
+  const openSuspendModal = (merchant) => {
+    setSelectedMerchant(merchant)
     setShowSuspendModal(true)
   }
 
-  const openCommissionModal = (provider) => {
-    setSelectedProvider(provider)
-    setCommissionRate(provider.commissionRate?.toString() || '')
+  const openCommissionModal = (merchant) => {
+    setSelectedMerchant(merchant)
+    setCommissionRate(merchant.commissionRate?.toString() || '')
     setShowCommissionModal(true)
   }
 
-  const openDetailsModal = (provider) => {
-    setSelectedProvider(provider)
+  const openDetailsModal = (merchant) => {
+    setSelectedMerchant(merchant)
     setShowDetailsModal(true)
   }
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Providers Management</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Merchants Management</h1>
 
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <div className="flex gap-4 flex-wrap">
@@ -121,14 +121,14 @@ export default function ProvidersPage() {
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500">Loading providers...</div>
-        ) : providers.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">No providers found</div>
+          <div className="p-12 text-center text-gray-500">Loading merchants...</div>
+        ) : merchants.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">No merchants found</div>
         ) : (
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Provider</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Merchant</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wallet</th>
@@ -137,59 +137,59 @@ export default function ProvidersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {providers.map((provider) => (
-                <tr key={provider.id} className="hover:bg-gray-50">
+              {merchants.map((merchant) => (
+                <tr key={merchant.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
                         <Store size={20} className="text-primary-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{provider.name}</p>
-                        <p className="text-xs text-gray-500">{provider.user?.email}</p>
+                        <p className="text-sm font-medium text-gray-900">{merchant.name}</p>
+                        <p className="text-xs text-gray-500">{merchant.user?.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{provider.type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{merchant.type}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[provider.status]}`}>
-                      {provider.status}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[merchant.status]}`}>
+                      {merchant.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <DollarSign size={16} />
-                      ₦{provider.wallet?.availableBalance?.toLocaleString() || 0}
+                      ₦{merchant.wallet?.availableBalance?.toLocaleString() || 0}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{provider.commissionRate}%</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{merchant.commissionRate}%</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex gap-2">
-                      <button onClick={() => openDetailsModal(provider)} className="p-2 text-gray-400 hover:text-gray-600" title="View Details">
+                      <button onClick={() => openDetailsModal(merchant)} className="p-2 text-gray-400 hover:text-gray-600" title="View Details">
                         <Eye size={18} />
                       </button>
-                      {provider.status === 'PENDING' && (
+                      {merchant.status === 'PENDING' && (
                         <>
-                          <button onClick={() => handleApprove(provider.id)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200" title="Approve">
+                          <button onClick={() => handleApprove(merchant.id)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200" title="Approve">
                             <Check size={18} />
                           </button>
-                          <button onClick={() => openRejectModal(provider)} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Reject">
+                          <button onClick={() => openRejectModal(merchant)} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Reject">
                             <X size={18} />
                           </button>
                         </>
                       )}
-                      {provider.status === 'ACTIVE' && (
+                      {merchant.status === 'ACTIVE' && (
                         <>
-                          <button onClick={() => openCommissionModal(provider)} className="p-2 text-gray-400 hover:text-gray-600" title="Edit Commission">
+                          <button onClick={() => openCommissionModal(merchant)} className="p-2 text-gray-400 hover:text-gray-600" title="Edit Commission">
                             <Edit size={18} />
                           </button>
-                          <button onClick={() => openSuspendModal(provider)} className="p-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200" title="Suspend">
+                          <button onClick={() => openSuspendModal(merchant)} className="p-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200" title="Suspend">
                             <ShieldAlert size={18} />
                           </button>
                         </>
                       )}
-                      {provider.status === 'SUSPENDED' && (
-                        <button onClick={() => handleUnsuspend(provider.id)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200" title="Unsuspend">
+                      {merchant.status === 'SUSPENDED' && (
+                        <button onClick={() => handleUnsuspend(merchant.id)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200" title="Unsuspend">
                           <Shield size={18} />
                         </button>
                       )}
@@ -203,11 +203,11 @@ export default function ProvidersPage() {
       </div>
 
       {/* Details Modal */}
-      {showDetailsModal && selectedProvider && (
+      {showDetailsModal && selectedMerchant && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Provider Details</h2>
+              <h2 className="text-xl font-bold text-gray-900">Merchant Details</h2>
               <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-gray-600">
                 <CloseIcon size={24} />
               </button>
@@ -215,22 +215,22 @@ export default function ProvidersPage() {
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500">Provider Name</p>
-                  <p className="font-medium text-gray-900">{selectedProvider.name}</p>
+                  <p className="text-sm text-gray-500">Merchant Name</p>
+                  <p className="font-medium text-gray-900">{selectedMerchant.name}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Type</p>
-                  <p className="font-medium text-gray-900">{selectedProvider.type}</p>
+                  <p className="font-medium text-gray-900">{selectedMerchant.type}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selectedProvider.status]}`}>
-                    {selectedProvider.status}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selectedMerchant.status]}`}>
+                    {selectedMerchant.status}
                   </span>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Commission Rate</p>
-                  <p className="font-medium text-gray-900">{selectedProvider.commissionRate}%</p>
+                  <p className="font-medium text-gray-900">{selectedMerchant.commissionRate}%</p>
                 </div>
               </div>
 
@@ -239,11 +239,11 @@ export default function ProvidersPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Mail size={16} className="text-gray-400" />
-                    <span className="text-gray-600">{selectedProvider.user?.email}</span>
+                    <span className="text-gray-600">{selectedMerchant.user?.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone size={16} className="text-gray-400" />
-                    <span className="text-gray-600">{selectedProvider.user?.phone}</span>
+                    <span className="text-gray-600">{selectedMerchant.user?.phone}</span>
                   </div>
                 </div>
               </div>
@@ -252,7 +252,7 @@ export default function ProvidersPage() {
                 <h3 className="font-semibold text-gray-900 mb-3">Location</h3>
                 <div className="flex items-start gap-2">
                   <MapPin size={16} className="text-gray-400 mt-1" />
-                  <p className="text-gray-600">{selectedProvider.address}</p>
+                  <p className="text-gray-600">{selectedMerchant.address}</p>
                 </div>
               </div>
 
@@ -261,11 +261,11 @@ export default function ProvidersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Available Balance</p>
-                    <p className="font-medium text-gray-900">₦{selectedProvider.wallet?.availableBalance?.toLocaleString() || 0}</p>
+                    <p className="font-medium text-gray-900">₦{selectedMerchant.wallet?.availableBalance?.toLocaleString() || 0}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Pending Balance</p>
-                    <p className="font-medium text-gray-900">₦{selectedProvider.wallet?.pendingBalance?.toLocaleString() || 0}</p>
+                    <p className="font-medium text-gray-900">₦{selectedMerchant.wallet?.pendingBalance?.toLocaleString() || 0}</p>
                   </div>
                 </div>
               </div>
@@ -283,7 +283,7 @@ export default function ProvidersPage() {
       {showRejectModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Provider</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Merchant</h3>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
@@ -292,7 +292,7 @@ export default function ProvidersPage() {
               rows={3}
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowRejectModal(false); setRejectionReason(''); setSelectedProvider(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={() => { setShowRejectModal(false); setRejectionReason(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Cancel
               </button>
               <button onClick={handleReject} disabled={!rejectionReason.trim()} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -307,7 +307,7 @@ export default function ProvidersPage() {
       {showSuspendModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Suspend Provider</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Suspend Merchant</h3>
             <textarea
               value={suspensionReason}
               onChange={(e) => setSuspensionReason(e.target.value)}
@@ -316,7 +316,7 @@ export default function ProvidersPage() {
               rows={3}
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowSuspendModal(false); setSuspensionReason(''); setSelectedProvider(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={() => { setShowSuspendModal(false); setSuspensionReason(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Cancel
               </button>
               <button onClick={handleSuspend} disabled={!suspensionReason.trim()} className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -343,7 +343,7 @@ export default function ProvidersPage() {
               step="0.1"
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowCommissionModal(false); setCommissionRate(''); setSelectedProvider(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={() => { setShowCommissionModal(false); setCommissionRate(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 Cancel
               </button>
               <button onClick={handleUpdateCommission} disabled={!commissionRate || isNaN(commissionRate)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">

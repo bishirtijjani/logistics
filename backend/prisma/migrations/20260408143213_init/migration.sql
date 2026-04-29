@@ -29,7 +29,7 @@ CREATE TYPE "UtilityType" AS ENUM ('AIRTIME', 'DATA', 'ELECTRICITY');
 CREATE TYPE "UtilityStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED');
 
 -- CreateEnum
-CREATE TYPE "PaymentProvider" AS ENUM ('MONNIFY', 'VTPASS');
+CREATE TYPE "PaymentMerchant" AS ENUM ('MONNIFY', 'VTPASS');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -78,8 +78,8 @@ CREATE TABLE "transactions" (
     "metadata" JSONB,
     "debitWalletId" TEXT,
     "creditWalletId" TEXT,
-    "provider" "PaymentProvider",
-    "providerRef" TEXT,
+    "merchant" "PaymentMerchant",
+    "merchantRef" TEXT,
     "balanceBefore" DECIMAL(15,2),
     "balanceAfter" DECIMAL(15,2),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -149,7 +149,7 @@ CREATE TABLE "utility_payments" (
     "userId" TEXT NOT NULL,
     "type" "UtilityType" NOT NULL,
     "status" "UtilityStatus" NOT NULL DEFAULT 'PENDING',
-    "provider" TEXT NOT NULL,
+    "merchant" TEXT NOT NULL,
     "amount" DECIMAL(15,2) NOT NULL,
     "phoneNumber" TEXT,
     "meterNumber" TEXT,
@@ -209,7 +209,7 @@ CREATE TABLE "sessions" (
 -- CreateTable
 CREATE TABLE "webhook_events" (
     "id" TEXT NOT NULL,
-    "provider" TEXT NOT NULL,
+    "merchant" TEXT NOT NULL,
     "eventType" TEXT NOT NULL,
     "transactionRef" TEXT NOT NULL,
     "payload" JSONB NOT NULL,
@@ -336,7 +336,7 @@ CREATE INDEX "sessions_expiresAt_idx" ON "sessions"("expiresAt");
 CREATE UNIQUE INDEX "webhook_events_transactionRef_key" ON "webhook_events"("transactionRef");
 
 -- CreateIndex
-CREATE INDEX "webhook_events_provider_eventType_idx" ON "webhook_events"("provider", "eventType");
+CREATE INDEX "webhook_events_merchant_eventType_idx" ON "webhook_events"("merchant", "eventType");
 
 -- CreateIndex
 CREATE INDEX "webhook_events_transactionRef_idx" ON "webhook_events"("transactionRef");

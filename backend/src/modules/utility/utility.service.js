@@ -15,7 +15,7 @@ const { logger } = require('../../utils/logger');
 /**
  * Buy airtime — deduct wallet, call VTPass, record result.
  */
-const buyAirtime = async (userId, { phone, amount, provider }) => {
+const buyAirtime = async (userId, { phone, amount, merchant }) => {
   const reference = `AIR-${uuidv4()}`;
 
   const result = await prisma.$transaction(async (tx) => {
@@ -40,9 +40,9 @@ const buyAirtime = async (userId, { phone, amount, provider }) => {
         type: 'UTILITY_PAYMENT',
         status: 'PROCESSING',
         amount,
-        description: `${provider} airtime - ${phone}`,
+        description: `${merchant} airtime - ${phone}`,
         debitWalletId: wallet.id,
-        provider: 'VTPASS',
+        merchant: 'VTPASS',
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -53,7 +53,7 @@ const buyAirtime = async (userId, { phone, amount, provider }) => {
       data: {
         userId,
         type: 'AIRTIME',
-        provider,
+        merchant,
         amount,
         phoneNumber: phone,
         vtpassRequestId: reference,
@@ -68,7 +68,7 @@ const buyAirtime = async (userId, { phone, amount, provider }) => {
   // TODO: Queue VTPass API call via BullMQ
   // The worker will call VTPass and update the status to COMPLETED or FAILED
 
-  logger.info('Airtime purchase initiated', { userId, provider, amount, reference });
+  logger.info('Airtime purchase initiated', { userId, merchant, amount, reference });
 
   return result;
 };
@@ -76,7 +76,7 @@ const buyAirtime = async (userId, { phone, amount, provider }) => {
 /**
  * Buy data bundle.
  */
-const buyData = async (userId, { phone, provider, planCode, amount }) => {
+const buyData = async (userId, { phone, merchant, planCode, amount }) => {
   const reference = `DATA-${uuidv4()}`;
 
   const result = await prisma.$transaction(async (tx) => {
@@ -98,9 +98,9 @@ const buyData = async (userId, { phone, provider, planCode, amount }) => {
         type: 'UTILITY_PAYMENT',
         status: 'PROCESSING',
         amount,
-        description: `${provider} data - ${phone}`,
+        description: `${merchant} data - ${phone}`,
         debitWalletId: wallet.id,
-        provider: 'VTPASS',
+        merchant: 'VTPASS',
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -110,7 +110,7 @@ const buyData = async (userId, { phone, provider, planCode, amount }) => {
       data: {
         userId,
         type: 'DATA',
-        provider,
+        merchant,
         amount,
         phoneNumber: phone,
         plan: planCode,
@@ -125,7 +125,7 @@ const buyData = async (userId, { phone, provider, planCode, amount }) => {
 
   // TODO: Queue VTPass API call
 
-  logger.info('Data purchase initiated', { userId, provider, planCode, reference });
+  logger.info('Data purchase initiated', { userId, merchant, planCode, reference });
 
   return result;
 };
@@ -157,7 +157,7 @@ const payElectricity = async (userId, { meterNumber, disco, meterType, amount })
         amount,
         description: `${disco} electricity - ${meterNumber}`,
         debitWalletId: wallet.id,
-        provider: 'VTPASS',
+        merchant: 'VTPASS',
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -167,7 +167,7 @@ const payElectricity = async (userId, { meterNumber, disco, meterType, amount })
       data: {
         userId,
         type: 'ELECTRICITY',
-        provider: disco,
+        merchant: disco,
         amount,
         meterNumber,
         plan: meterType,

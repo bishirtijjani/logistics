@@ -197,7 +197,7 @@ Rate a completed delivery.
 {
   "phone": "08012345678",
   "amount": 500,
-  "provider": "MTN",
+  "merchant": "MTN",
   "pin": "123456"
 }
 ```
@@ -206,7 +206,7 @@ Rate a completed delivery.
 ```json
 {
   "phone": "08012345678",
-  "provider": "MTN",
+  "merchant": "MTN",
   "planCode": "mtn-data-500",
   "amount": 500,
   "pin": "123456"
@@ -279,7 +279,7 @@ Apply to become a rider.
 
 ## Webhooks
 
-> No JWT auth. Verified via provider-specific mechanisms.
+> No JWT auth. Verified via merchant-specific mechanisms.
 
 ### POST `/webhooks/monnify`
 Receives wallet funding confirmation from Monnify. Verified via HMAC-SHA512 signature in `monnify-signature` header.

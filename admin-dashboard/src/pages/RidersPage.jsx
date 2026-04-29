@@ -96,7 +96,7 @@ export default function RidersPage() {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-500">Loading riders...</div>
-        ) : riders.length === 0 ? (
+        ) : !riders?.length ? (
           <div className="p-12 text-center text-gray-500">No riders found</div>
         ) : (
           <table className="w-full">

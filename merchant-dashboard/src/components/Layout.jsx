@@ -18,7 +18,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const location = useLocation()
-  const { providerId } = useParams()
+  const { merchantId } = useParams()
   const { user } = useSelector((state) => state.auth)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -28,11 +28,11 @@ export default function Layout() {
   }
 
   const navigation = [
-    { name: 'Orders', href: `/dashboard/${providerId}/orders`, icon: ShoppingBag },
-    { name: 'Menu', href: `/dashboard/${providerId}/menu`, icon: Utensils },
-    { name: 'Earnings', href: `/dashboard/${providerId}/earnings`, icon: Wallet },
-    { name: 'Analytics', href: `/dashboard/${providerId}/analytics`, icon: BarChart3 },
-    { name: 'Settings', href: `/dashboard/${providerId}/settings`, icon: Settings },
+    { name: 'Orders', href: `/dashboard/${merchantId}/orders`, icon: ShoppingBag },
+    { name: 'Menu', href: `/dashboard/${merchantId}/menu`, icon: Utensils },
+    { name: 'Earnings', href: `/dashboard/${merchantId}/earnings`, icon: Wallet },
+    { name: 'Analytics', href: `/dashboard/${merchantId}/analytics`, icon: BarChart3 },
+    { name: 'Settings', href: `/dashboard/${merchantId}/settings`, icon: Settings },
   ]
 
   const isActive = (path) => location.pathname === path
@@ -130,7 +130,7 @@ export default function Layout() {
             <div className="flex-1" />
             <div className="flex items-center gap-4">
               <div className="hidden sm:block text-sm text-gray-600">
-                {user?.providerId && `Provider ID: ${user.providerId}`}
+                {user?.merchantId && `Merchant ID: ${user.merchantId}`}
               </div>
             </div>
           </div>

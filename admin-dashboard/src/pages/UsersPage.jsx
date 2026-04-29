@@ -5,7 +5,7 @@ import { User, Phone, Mail, Calendar, MoreVertical, Search, Eye, Shield, ShieldA
 
 const ROLE_COLORS = {
   CUSTOMER: 'bg-blue-100 text-blue-800',
-  PROVIDER: 'bg-green-100 text-green-800',
+  MERCHANT: 'bg-green-100 text-green-800',
   RIDER: 'bg-purple-100 text-purple-800',
   ADMIN: 'bg-red-100 text-red-800',
 }
@@ -90,7 +90,7 @@ export default function UsersPage() {
           >
             <option value="">All Roles</option>
             <option value="CUSTOMER">Customer</option>
-            <option value="PROVIDER">Provider</option>
+            <option value="MERCHANT">Merchant</option>
             <option value="RIDER">Rider</option>
             <option value="ADMIN">Admin</option>
           </select>
@@ -106,7 +106,7 @@ export default function UsersPage() {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-500">Loading users...</div>
-        ) : users.length === 0 ? (
+        ) : !users?.length ? (
           <div className="p-12 text-center text-gray-500">No users found</div>
         ) : (
           <table className="w-full">

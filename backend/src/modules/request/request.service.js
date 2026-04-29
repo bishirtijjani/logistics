@@ -18,8 +18,8 @@ const { REQUEST, getRequestRoom, getRiderPoolRoom } = require('../../sockets/eve
 const {
   emitRequestCreated,
   emitStatusChanged,
-  emitProviderAccepted,
-  emitProviderReady,
+  emitMerchantAccepted,
+  emitMerchantReady,
   emitRiderAssigned,
   emitCompleted,
   emitCancelled,
@@ -88,7 +88,7 @@ const calculatePricing = async (requestData) => {
   const total = subtotal + deliveryFee;
   
   // Calculate splits
-  const providerEarning = subtotal > 0 ? subtotal - platformItemFee : 0;
+  const merchantEarning = subtotal > 0 ? subtotal - platformItemFee : 0;
   const riderEarning = deliveryFee - platformDeliveryFee;
   const platformEarning = platformFee;
   
@@ -99,7 +99,7 @@ const calculatePricing = async (requestData) => {
     deliveryFee,
     platformFee,
     total,
-    providerEarning,
+    merchantEarning,
     riderEarning,
     platformEarning,
   };
@@ -110,7 +110,7 @@ const calculatePricing = async (requestData) => {
 // ============================================================
 
 const createRequest = async (customerId, requestData) => {
-  const { type, providerId, items, package: packageDetails, ...locationData } = requestData;
+  const { type, merchantId, items, package: packageDetails, ...locationData } = requestData;
   
   // Check customer has sufficient balance
   const wallet = await prisma.wallet.findUnique({ where: { userId: customerId } });
@@ -133,7 +133,7 @@ const createRequest = async (customerId, requestData) => {
         type,
         status: 'REQUESTED',
         customerId,
-        providerId: providerId || null,
+        merchantId: merchantId || null,
         ...locationData,
         ...pricing,
         customerPaid: pricing.total,
@@ -200,9 +200,9 @@ const createRequest = async (customerId, requestData) => {
   
   logger.info('Request created', { requestId: request.id, type, customerId });
   
-  // Queue rider matching job (if no provider, go directly to rider matching)
-  // If has provider, wait for provider to accept first
-  if (!providerId) {
+  // Queue rider matching job (if no merchant, go directly to rider matching)
+  // If has merchant, wait for merchant to accept first
+  if (!merchantId) {
     await requestQueue.add(REQUEST_JOBS.BROADCAST_TO_RIDERS, {
       requestId: request.id,
       pickupLat: locationData.pickupLat,
@@ -213,7 +213,7 @@ const createRequest = async (customerId, requestData) => {
       delay: 1000,
     });
   } else {
-    // Notify provider of new order via socket
+    // Notify merchant of new order via socket
     const io = getIO();
     emitRequestCreated(io, request);
   }
@@ -237,7 +237,7 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
     where: { id: requestId },
     include: {
       customer: { select: { id: true, fcmToken: true } },
-      provider: { select: { id: true, userId: true } },
+      merchant: { select: { id: true, userId: true } },
       rider: { select: { id: true, userId: true } },
     },
   });
@@ -256,8 +256,8 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
   if (role === 'CUSTOMER' && newStatus !== 'CANCELLED') {
     throw AppError.forbidden('Customers can only cancel requests');
   }
-  if (role === 'PROVIDER' && !['ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'CANCELLED'].includes(newStatus)) {
-    throw AppError.forbidden('Providers can only accept, process, mark ready, or cancel');
+  if (role === 'MERCHANT' && !['ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'CANCELLED'].includes(newStatus)) {
+    throw AppError.forbidden('Merchants can only accept, process, mark ready, or cancel');
   }
   if (role === 'RIDER' && !['RIDER_EN_ROUTE', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'].includes(newStatus)) {
     throw AppError.forbidden('Riders can only update rider-specific statuses');
@@ -361,7 +361,7 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
   if (request.customer?.fcmToken) {
     switch (newStatus) {
       case 'ACCEPTED':
-        await notificationService.notifyProviderAccepted(request.customer.fcmToken, requestId);
+        await notificationService.notifyMerchantAccepted(request.customer.fcmToken, requestId);
         break;
       case 'RIDER_ASSIGNED':
         await notificationService.notifyRiderAssigned(request.customer.fcmToken, requestId);
@@ -386,7 +386,7 @@ const getRequests = async (userId, role, { page, limit, type, status }) => {
   const where = {
     ...(role === 'CUSTOMER' ? { customerId: userId } : {}),
     ...(role === 'RIDER' ? { riderId: userId } : {}),
-    ...(role === 'PROVIDER' ? { providerId: userId } : {}),
+    ...(role === 'MERCHANT' ? { merchantId: userId } : {}),
     ...(type && { type }),
     ...(status && { status }),
   };
@@ -398,7 +398,7 @@ const getRequests = async (userId, role, { page, limit, type, status }) => {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        provider: { select: { id: true, name: true, type: true } },
+        merchant: { select: { id: true, name: true, type: true } },
         rider: { select: { id: true, vehicleType: true, plateNumber: true, averageRating: true } },
         rating: true,
       },
@@ -413,12 +413,12 @@ const getRequests = async (userId, role, { page, limit, type, status }) => {
 // Admin Functions
 // ============================================================
 
-const getAllRequestsAdmin = async ({ page, limit, type, status, startDate, endDate, customerId, providerId, riderId }) => {
+const getAllRequestsAdmin = async ({ page, limit, type, status, startDate, endDate, customerId, merchantId, riderId }) => {
   const where = {
     ...(type && { type }),
     ...(status && { status }),
     ...(customerId && { customerId }),
-    ...(providerId && { providerId }),
+    ...(merchantId && { merchantId }),
     ...(riderId && { riderId }),
     ...(startDate && { createdAt: { gte: new Date(startDate) } }),
     ...(endDate && { createdAt: { lte: new Date(endDate) } }),
@@ -432,7 +432,7 @@ const getAllRequestsAdmin = async ({ page, limit, type, status, startDate, endDa
       take: limit,
       include: {
         customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        provider: { select: { id: true, name: true, phone: true, type: true } },
+        merchant: { select: { id: true, name: true, phone: true, type: true } },
         rider: {
           select: {
             id: true,
@@ -579,7 +579,7 @@ const adminUpdateStatus = async (requestId, newStatus, adminId) => {
     data: { status: newStatus },
     include: {
       customer: { select: { id: true, firstName: true, lastName: true, fcmToken: true } },
-      provider: { select: { id: true, name: true } },
+      merchant: { select: { id: true, name: true } },
       rider: { select: { id: true, user: { select: { firstName: true, lastName: true } } } },
     },
   });
@@ -604,7 +604,7 @@ const getRequestById = async (requestId, userId, role) => {
     where: { id: requestId },
     include: {
       customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-      provider: { select: { id: true, name: true, phone: true, address: true, type: true } },
+      merchant: { select: { id: true, name: true, phone: true, address: true, type: true } },
       rider: {
         select: {
           id: true,
@@ -630,7 +630,7 @@ const getRequestById = async (requestId, userId, role) => {
   if (role === 'RIDER' && request.riderId !== userId) {
     throw AppError.forbidden('Not your assigned request');
   }
-  if (role === 'PROVIDER' && request.providerId !== userId) {
+  if (role === 'MERCHANT' && request.merchantId !== userId) {
     throw AppError.forbidden('Not your request');
   }
   
@@ -677,25 +677,25 @@ const rateRequest = async (requestId, customerId, ratingData) => {
     });
   }
   
-  // Update provider average rating if provider score provided
-  if (ratingData.providerScore && request.providerId) {
-    const providerRequests = await prisma.request.findMany({
-      where: { providerId: request.providerId },
+  // Update merchant average rating if merchant score provided
+  if (ratingData.merchantScore && request.merchantId) {
+    const merchantRequests = await prisma.request.findMany({
+      where: { merchantId: request.merchantId },
       select: { id: true },
     });
-    const requestIds = providerRequests.map(r => r.id);
+    const requestIds = merchantRequests.map(r => r.id);
     
     const ratings = await prisma.rating.aggregate({
       where: { 
         requestId: { in: requestIds },
-        providerScore: { not: null },
+        merchantScore: { not: null },
       },
-      _avg: { providerScore: true },
+      _avg: { merchantScore: true },
     });
     
-    await prisma.provider.update({
-      where: { id: request.providerId },
-      data: { averageRating: ratings._avg.providerScore || 0 },
+    await prisma.merchant.update({
+      where: { id: request.merchantId },
+      data: { averageRating: ratings._avg.merchantScore || 0 },
     });
   }
   

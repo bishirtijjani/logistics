@@ -1,5 +1,5 @@
 /**
- * Admin service — rider approvals, user management, transaction oversight, request management, provider management.
+ * Admin service — rider approvals, user management, transaction oversight, request management, merchant management.
  */
 
 const { prisma } = require('../../config/database');
@@ -145,14 +145,14 @@ const getDashboardStats = async () => {
   const [
     totalUsers,
     totalRiders,
-    totalProviders,
+    totalMerchants,
     totalRequests,
     activeRequests,
     totalTransactionVolume,
   ] = await Promise.all([
     prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
     prisma.rider.count({ where: { status: 'APPROVED' } }),
-    prisma.provider.count({ where: { status: 'ACTIVE' } }),
+    prisma.merchant.count({ where: { status: 'ACTIVE' } }),
     prisma.request.count(),
     prisma.request.count({
       where: { status: { in: ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'RIDER_ASSIGNED', 'RIDER_EN_ROUTE', 'PICKED_UP', 'IN_TRANSIT'] } },
@@ -166,7 +166,7 @@ const getDashboardStats = async () => {
   return {
     totalUsers,
     totalRiders,
-    totalProviders,
+    totalMerchants,
     totalRequests,
     activeRequests,
     totalRevenue: totalTransactionVolume._sum.amount || 0,
@@ -196,7 +196,7 @@ const getAllRequests = async ({ page = 1, limit = 20, type, status, startDate, e
       take: limit,
       include: {
         customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        provider: { select: { id: true, name: true, type: true } },
+        merchant: { select: { id: true, name: true, type: true } },
         rider: { select: { id: true, user: { select: { firstName: true, lastName: true, phone: true } } } },
         items: true,
       },
@@ -292,20 +292,20 @@ const adminUpdateRequestStatus = async (requestId, status, reason) => {
 };
 
 // ============================================================
-// Admin Provider Management
+// Admin Merchant Management
 // ============================================================
 
 /**
- * List all providers with filtering.
+ * List all merchants with filtering.
  */
-const getAllProviders = async ({ page = 1, limit = 20, type, status }) => {
+const getAllMerchants = async ({ page = 1, limit = 20, type, status }) => {
   const where = {
     ...(type && { type }),
     ...(status && { status }),
   };
 
-  const [providers, total] = await Promise.all([
-    prisma.provider.findMany({
+  const [merchants, total] = await Promise.all([
+    prisma.merchant.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
@@ -327,117 +327,117 @@ const getAllProviders = async ({ page = 1, limit = 20, type, status }) => {
         },
       },
     }),
-    prisma.provider.count({ where }),
+    prisma.merchant.count({ where }),
   ]);
 
-  return { providers, total, page, limit };
+  return { merchants, total, page, limit };
 };
 
 /**
- * Approve a pending provider.
+ * Approve a pending merchant.
  */
-const approveProvider = async (providerId) => {
-  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
-  if (!provider) throw AppError.notFound('Provider not found');
-  if (provider.status !== 'PENDING') throw AppError.badRequest('Provider is not pending');
+const approveMerchant = async (merchantId) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (merchant.status !== 'PENDING') throw AppError.badRequest('Merchant is not pending');
 
-  const updated = await prisma.provider.update({
-    where: { id: providerId },
+  const updated = await prisma.merchant.update({
+    where: { id: merchantId },
     data: { status: 'ACTIVE' },
   });
 
-  logger.info('Provider approved', { providerId });
+  logger.info('Merchant approved', { merchantId });
 
-  // TODO: Send notification to provider
+  // TODO: Send notification to merchant
 
   return updated;
 };
 
 /**
- * Reject a pending provider.
+ * Reject a pending merchant.
  */
-const rejectProvider = async (providerId, reason) => {
-  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
-  if (!provider) throw AppError.notFound('Provider not found');
-  if (provider.status !== 'PENDING') throw AppError.badRequest('Provider is not pending');
+const rejectMerchant = async (merchantId, reason) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (merchant.status !== 'PENDING') throw AppError.badRequest('Merchant is not pending');
 
-  const updated = await prisma.provider.update({
-    where: { id: providerId },
+  const updated = await prisma.merchant.update({
+    where: { id: merchantId },
     data: { status: 'REJECTED' },
   });
 
-  logger.info('Provider rejected', { providerId, reason });
+  logger.info('Merchant rejected', { merchantId, reason });
 
-  // TODO: Send notification to provider
+  // TODO: Send notification to merchant
 
   return updated;
 };
 
 /**
- * Suspend a provider.
+ * Suspend a merchant.
  */
-const suspendProvider = async (providerId, reason) => {
-  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
-  if (!provider) throw AppError.notFound('Provider not found');
-  if (provider.status === 'SUSPENDED') throw AppError.badRequest('Provider is already suspended');
+const suspendMerchant = async (merchantId, reason) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (merchant.status === 'SUSPENDED') throw AppError.badRequest('Merchant is already suspended');
 
-  const updated = await prisma.provider.update({
-    where: { id: providerId },
+  const updated = await prisma.merchant.update({
+    where: { id: merchantId },
     data: { status: 'SUSPENDED' },
   });
 
-  // Lock provider wallet
-  await prisma.providerWallet.update({
-    where: { providerId },
+  // Lock merchant wallet
+  await prisma.merchantWallet.update({
+    where: { merchantId },
     data: { isLocked: true },
   });
 
-  logger.info('Provider suspended', { providerId, reason });
+  logger.info('Merchant suspended', { merchantId, reason });
 
-  // TODO: Send notification to provider
+  // TODO: Send notification to merchant
 
   return updated;
 };
 
 /**
- * Unsuspend a provider.
+ * Unsuspend a merchant.
  */
-const unsuspendProvider = async (providerId) => {
-  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
-  if (!provider) throw AppError.notFound('Provider not found');
-  if (provider.status !== 'SUSPENDED') throw AppError.badRequest('Provider is not suspended');
+const unsuspendMerchant = async (merchantId) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (merchant.status !== 'SUSPENDED') throw AppError.badRequest('Merchant is not suspended');
 
-  const updated = await prisma.provider.update({
-    where: { id: providerId },
+  const updated = await prisma.merchant.update({
+    where: { id: merchantId },
     data: { status: 'ACTIVE' },
   });
 
-  // Unlock provider wallet
-  await prisma.providerWallet.update({
-    where: { providerId },
+  // Unlock merchant wallet
+  await prisma.merchantWallet.update({
+    where: { merchantId },
     data: { isLocked: false },
   });
 
-  logger.info('Provider unsuspended', { providerId });
+  logger.info('Merchant unsuspended', { merchantId });
 
-  // TODO: Send notification to provider
+  // TODO: Send notification to merchant
 
   return updated;
 };
 
 /**
- * Update provider commission rate.
+ * Update merchant commission rate.
  */
-const updateProviderCommission = async (providerId, commissionRate) => {
-  const provider = await prisma.provider.findUnique({ where: { id: providerId } });
-  if (!provider) throw AppError.notFound('Provider not found');
+const updateMerchantCommission = async (merchantId, commissionRate) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
 
-  const updated = await prisma.provider.update({
-    where: { id: providerId },
+  const updated = await prisma.merchant.update({
+    where: { id: merchantId },
     data: { commissionRate },
   });
 
-  logger.info('Provider commission updated', { providerId, commissionRate });
+  logger.info('Merchant commission updated', { merchantId, commissionRate });
 
   return updated;
 };
@@ -549,7 +549,7 @@ const getPlatformSettings = async () => {
     platformName: 'VTU Logistics',
     defaultCurrency: 'NGN',
     timezone: 'Africa/Lagos',
-    defaultProviderCommission: 15,
+    defaultMerchantCommission: 15,
     defaultRiderCommission: 10,
     minDeliveryFee: 500,
     maxDeliveryFee: 5000,
@@ -586,12 +586,12 @@ module.exports = {
   reassignRider,
   forceCancelRequest,
   adminUpdateRequestStatus,
-  getAllProviders,
-  approveProvider,
-  rejectProvider,
-  suspendProvider,
-  unsuspendProvider,
-  updateProviderCommission,
+  getAllMerchants,
+  approveMerchant,
+  rejectMerchant,
+  suspendMerchant,
+  unsuspendMerchant,
+  updateMerchantCommission,
   getAllRiders,
   getRiderEarnings,
   getRiderDeliveryHistory,
