@@ -211,6 +211,45 @@ const logout = async (req, res, next) => {
   }
 };
 
+const getNotificationPreferences = async (req, res, next) => {
+  try {
+    const prefs = await authService.getNotificationPreferences(req.user.id);
+    res.status(200).json(ApiResponse.success("Notification preferences", prefs));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateNotificationPreferences = async (req, res, next) => {
+  try {
+    const prefs = await authService.updateNotificationPreferences(
+      req.user.id,
+      req.body
+    );
+    res.status(200).json(ApiResponse.success("Preferences updated", prefs));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getUploadSignature = async (req, res, next) => {
+  try {
+    const signature = authService.getCloudinaryUploadSignature(req.user.id);
+    res.status(200).json(ApiResponse.success("Upload signature", signature));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteAccount = async (req, res, next) => {
+  try {
+    const result = await authService.deleteAccount(req.user.id);
+    res.status(200).json(ApiResponse.success("Account deleted", result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -227,4 +266,8 @@ module.exports = {
   updateProfilePicture,
   verifyBvn,
   logout,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  getUploadSignature,
+  deleteAccount,
 };

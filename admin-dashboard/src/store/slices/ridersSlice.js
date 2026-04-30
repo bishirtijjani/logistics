@@ -67,10 +67,10 @@ const ridersSlice = createSlice({
       })
       .addCase(fetchAllRiders.fulfilled, (state, action) => {
         state.loading = false
-        state.riders = action.payload.riders
-        state.total = action.payload.total
-        state.page = action.payload.page
-        state.limit = action.payload.limit
+        state.riders = action.payload
+        state.total = action.meta?.total || 0
+        state.page = action.meta?.page || 1
+        state.limit = action.meta?.limit || 20
       })
       .addCase(fetchAllRiders.rejected, (state, action) => {
         state.loading = false

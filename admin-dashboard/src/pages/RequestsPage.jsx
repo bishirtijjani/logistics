@@ -28,6 +28,7 @@ export default function RequestsPage() {
   const [showReassignModal, setShowReassignModal] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [newRiderId, setNewRiderId] = useState('')
+  const [actionLoading, setActionLoading] = useState(null)
 
   useEffect(() => {
     dispatch(fetchAllRequests({ page: 1, limit: 20 }))
@@ -52,7 +53,9 @@ export default function RequestsPage() {
 
   const handleReassignRider = async () => {
     if (!newRiderId) return
+    setActionLoading('reassign')
     await dispatch(reassignRider({ requestId: selectedRequest.id, newRiderId }))
+    setActionLoading(null)
     setShowReassignModal(false)
     setNewRiderId('')
     dispatch(fetchAllRequests({ page, limit: 20, ...filters }))
@@ -60,7 +63,9 @@ export default function RequestsPage() {
 
   const handleForceCancel = async () => {
     if (!cancelReason.trim()) return
+    setActionLoading('cancel')
     await dispatch(forceCancelRequest({ requestId: selectedRequest.id, reason: cancelReason }))
+    setActionLoading(null)
     setShowCancelModal(false)
     setCancelReason('')
     setShowDetailsModal(false)
@@ -413,10 +418,17 @@ export default function RequestsPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleForceCancel}
-                disabled={!cancelReason.trim()}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!cancelReason.trim() || actionLoading === 'cancel'}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Confirm Cancel
+                {actionLoading === 'cancel' ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Confirm Cancel'
+                )}
               </button>
               <button
                 onClick={() => { setShowCancelModal(false); setCancelReason('') }}
@@ -445,10 +457,17 @@ export default function RequestsPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleReassignRider}
-                disabled={!newRiderId.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!newRiderId.trim() || actionLoading === 'reassign'}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Confirm Reassign
+                {actionLoading === 'reassign' ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Reassigning...
+                  </>
+                ) : (
+                  'Confirm Reassign'
+                )}
               </button>
               <button
                 onClick={() => { setShowReassignModal(false); setNewRiderId('') }}

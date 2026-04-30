@@ -515,6 +515,156 @@ const logout = async (refreshToken) => {
   });
 };
 
+/**
+ * Get notification preferences for a user.
+ * Creates default preferences if none exist.
+ */
+const getNotificationPreferences = async (userId) => {
+  let prefs = await prisma.notificationPreferences.findUnique({
+    where: { userId },
+  });
+
+  if (!prefs) {
+    prefs = await prisma.notificationPreferences.create({
+      data: {
+        userId,
+        pushEnabled: true,
+        orderUpdates: true,
+        promotions: true,
+        walletAlerts: true,
+        emailEnabled: true,
+        emailPromotions: false,
+        smsEnabled: false,
+      },
+    });
+  }
+
+  return prefs;
+};
+
+/**
+ * Update notification preferences.
+ */
+const updateNotificationPreferences = async (userId, data) => {
+  const prefs = await prisma.notificationPreferences.upsert({
+    where: { userId },
+    create: {
+      userId,
+      pushEnabled: data.pushEnabled ?? true,
+      orderUpdates: data.orderUpdates ?? true,
+      promotions: data.promotions ?? true,
+      walletAlerts: data.walletAlerts ?? true,
+      emailEnabled: data.emailEnabled ?? true,
+      emailPromotions: data.emailPromotions ?? false,
+      smsEnabled: data.smsEnabled ?? false,
+    },
+    update: {
+      ...(data.pushEnabled !== undefined && { pushEnabled: data.pushEnabled }),
+      ...(data.orderUpdates !== undefined && { orderUpdates: data.orderUpdates }),
+      ...(data.promotions !== undefined && { promotions: data.promotions }),
+      ...(data.walletAlerts !== undefined && { walletAlerts: data.walletAlerts }),
+      ...(data.emailEnabled !== undefined && { emailEnabled: data.emailEnabled }),
+      ...(data.emailPromotions !== undefined && { emailPromotions: data.emailPromotions }),
+      ...(data.smsEnabled !== undefined && { smsEnabled: data.smsEnabled }),
+    },
+  });
+
+  logger.info("Notification preferences updated", { userId });
+  return prefs;
+};
+
+/**
+ * Generate Cloudinary upload signature for direct browser upload.
+ */
+const getCloudinaryUploadSignature = (userId) => {
+  const cloudName = config.CLOUDINARY_CLOUD_NAME;
+  const apiKey = config.CLOUDINARY_API_KEY;
+  const apiSecret = config.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw AppError.serviceUnavailable("Cloudinary not configured");
+  }
+
+  const timestamp = Math.round(new Date().getTime() / 1000);
+  const folder = `vtu-logistics/profiles/${userId}`;
+  const publicId = `profile_${timestamp}`;
+
+  // Generate signature
+  const signatureString = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+  const signature = require("crypto")
+    .createHash("sha1")
+    .update(signatureString)
+    .digest("hex");
+
+  return {
+    signature,
+    timestamp,
+    apiKey,
+    cloudName,
+    folder,
+    publicId,
+  };
+};
+
+/**
+ * Delete user account (soft delete - anonymize data).
+ */
+const deleteAccount = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      wallet: true,
+      orders: { take: 1 },
+      requests: { take: 1, where: { status: { in: ["PENDING", "ACCEPTED", "IN_PROGRESS"] } } },
+    },
+  });
+
+  if (!user) {
+    throw AppError.notFound("User not found");
+  }
+
+  // Check for active deliveries/requests
+  if (user.requests.length > 0) {
+    throw AppError.conflict(
+      "Cannot delete account with active deliveries. Please complete or cancel all deliveries first."
+    );
+  }
+
+  // Check for wallet balance
+  if (user.wallet && parseFloat(user.wallet.balance.toString()) > 0) {
+    throw AppError.conflict(
+      "Please withdraw your wallet balance before deleting your account."
+    );
+  }
+
+  // Revoke all sessions
+  await prisma.session.updateMany({
+    where: { userId, isRevoked: false },
+    data: { isRevoked: true },
+  });
+
+  // Anonymize user data (soft delete)
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      email: `deleted_${userId}@deleted.local`,
+      phone: `deleted_${userId}`,
+      firstName: "Deleted",
+      lastName: "User",
+      address: null,
+      profilePicture: null,
+      isActive: false,
+      fcmToken: null,
+      kycStatus: "PENDING",
+      kycData: null,
+      transactionPin: null,
+    },
+  });
+
+  logger.info("User account deleted", { userId });
+  return { message: "Account deleted successfully" };
+};
+
 // --- Internal helpers ---
 
 const generateTokens = (user) => {
@@ -550,4 +700,8 @@ module.exports = {
   updateProfilePicture,
   verifyBvn,
   logout,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+  getCloudinaryUploadSignature,
+  deleteAccount,
 };

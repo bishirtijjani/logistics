@@ -66,10 +66,10 @@ const requestsSlice = createSlice({
       })
       .addCase(fetchAllRequests.fulfilled, (state, action) => {
         state.loading = false
-        state.requests = action.payload.requests
-        state.total = action.payload.total
-        state.page = action.payload.page
-        state.limit = action.payload.limit
+        state.requests = action.payload
+        state.total = action.meta?.total || 0
+        state.page = action.meta?.page || 1
+        state.limit = action.meta?.limit || 20
       })
       .addCase(fetchAllRequests.rejected, (state, action) => {
         state.loading = false

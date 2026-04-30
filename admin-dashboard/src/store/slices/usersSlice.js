@@ -50,20 +50,34 @@ const usersSlice = createSlice({
       })
       .addCase(fetchAllUsers.fulfilled, (state, action) => {
         state.loading = false
-        state.users = action.payload.users
-        state.total = action.payload.total
-        state.page = action.payload.page
-        state.limit = action.payload.limit
+        state.users = action.payload
+        state.total = action.meta?.total || 0
+        state.page = action.meta?.page || 1
+        state.limit = action.meta?.limit || 20
       })
       .addCase(fetchAllUsers.rejected, (state, action) => {
         state.loading = false
         state.error = action.error.message
       })
-      .addCase(suspendUser.fulfilled, (state) => {
+      .addCase(suspendUser.fulfilled, (state, action) => {
         state.loading = false
+        const updatedUser = action.payload
+        if (updatedUser && updatedUser.id) {
+          const index = state.users.findIndex((u) => u.id === updatedUser.id)
+          if (index !== -1) {
+            state.users[index] = updatedUser
+          }
+        }
       })
-      .addCase(unsuspendUser.fulfilled, (state) => {
+      .addCase(unsuspendUser.fulfilled, (state, action) => {
         state.loading = false
+        const updatedUser = action.payload
+        if (updatedUser && updatedUser.id) {
+          const index = state.users.findIndex((u) => u.id === updatedUser.id)
+          if (index !== -1) {
+            state.users[index] = updatedUser
+          }
+        }
       })
   },
 })

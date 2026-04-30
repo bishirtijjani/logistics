@@ -12,7 +12,7 @@ export const fetchPlatformSettings = createAsyncThunk(
 export const updatePlatformSettings = createAsyncThunk(
   'settings/updatePlatform',
   async (settings) => {
-    const response = await api.put('/admin/settings', settings)
+    const response = await api.patch('/admin/settings', settings)
     return response.data.data
   }
 )

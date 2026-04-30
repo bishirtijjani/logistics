@@ -52,6 +52,11 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: isDev ? z.string().default('') : z.string().min(1),
   FIREBASE_CLIENT_EMAIL: isDev ? z.string().default('') : z.string().email(),
 
+  // Cloudinary — required in production, optional in dev
+  CLOUDINARY_CLOUD_NAME: isDev ? z.string().default('') : z.string().min(1),
+  CLOUDINARY_API_KEY: isDev ? z.string().default('') : z.string().min(1),
+  CLOUDINARY_API_SECRET: isDev ? z.string().default('') : z.string().min(1),
+
   // Termii — required in production, optional in dev
   TERMII_BASE_URL: isDev ? z.string().default('https://api.ng.termii.com') : z.string().url(),
   TERMII_API_KEY: isDev ? z.string().default('') : z.string().min(1),

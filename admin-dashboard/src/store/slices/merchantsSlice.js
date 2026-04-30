@@ -74,10 +74,10 @@ const merchantsSlice = createSlice({
       })
       .addCase(fetchAllMerchants.fulfilled, (state, action) => {
         state.loading = false
-        state.merchants = action.payload.merchants
-        state.total = action.payload.total
-        state.page = action.payload.page
-        state.limit = action.payload.limit
+        state.merchants = action.payload
+        state.total = action.meta?.total || 0
+        state.page = action.meta?.page || 1
+        state.limit = action.meta?.limit || 20
       })
       .addCase(fetchAllMerchants.rejected, (state, action) => {
         state.loading = false

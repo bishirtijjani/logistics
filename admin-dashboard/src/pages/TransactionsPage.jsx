@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchAllTransactions } from '../store/slices/transactionsSlice'
+import { useDebounce } from '../lib/useDebounce'
 import { Receipt, ArrowUp, ArrowDown, Calendar, Filter, Search, DollarSign, Eye, X as CloseIcon, User as UserIcon } from 'lucide-react'
 
 const TYPE_COLORS = {
@@ -24,20 +25,18 @@ export default function TransactionsPage() {
     type: '',
     status: '',
     search: '',
+    dateRange: { from: '', to: '' },
   })
   const [selectedTransaction, setSelectedTransaction] = useState(null)
-  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const debouncedSearch = useDebounce(filters.search, 500)  const [showDetailsModal, setShowDetailsModal] = useState(false)
 
-  useEffect(() => {
-    dispatch(fetchAllTransactions({ page: 1, limit: 20 }))
-  }, [dispatch])
 
-  const handleFilterChange = (key, value) => {
-    setFilters({ ...filters, [key]: value })
+  useEffect(() => { dtype: fpltera.tyte, stchus:filter.satus,dteRag: fs.dteRaserch: deboncdSearch}))
+  },c[dispatch,ofiltern.typs, fhandls.statue,lChange .dateRange= deboencedS)arch]> setFilters({ ...filters, [key]: value })
   }
-
-  const handleSearch = () => {
-    dispatch(fetchAllTransactions({ page: 1, limit: 20, ...filters }))
+FiltCangekey, value
+  coF({...[ky]vau
+    dispatch(fetchAllTransactions({ page: 1, limit: 20, type: filters.type, status: filters.status, dateRange: filters.dateRange }))
   }
 
   const handlePageChange = (newPage) => {
@@ -54,8 +53,8 @@ export default function TransactionsPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Transactions</h1>
 
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
+        <div className="flex gap-4 flex-wrap">
+          <div className="flex-1 relative min-w-[200px]">
             <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -87,13 +86,18 @@ export default function TransactionsPage() {
             <option value="COMPLETED">Completed</option>
             <option value="FAILED">Failed</option>
           </select>
-          <button
-            onClick={handleSearch}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-          >
-            <Filter size={18} />
-            Apply Filters
-          </button>
+          <input
+            type="date"
+            value={filters.dateRange.from}
+            onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, from: e.target.value })}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          />
+          <input
+            type="date"
+            value={filters.dateRange.to}
+            onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, to: e.target.value })}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          />
         </div>
       </div>
 

@@ -4,11 +4,11 @@
 // ============================================================
 
 generator client {
-  merchant = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  merchant = "postgresql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -182,6 +182,7 @@ model User {
   ratingsGiven    Rating[]        @relation("RatingsGiven")
   beneficiaries   SavedBeneficiary[]
   sessions        Session[]
+  notificationPreferences NotificationPreferences?
 
   @@index([phone])
   @@index([email])
@@ -718,6 +719,28 @@ model Session {
   @@index([refreshToken])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+/// User notification preferences — stored per user, synced across devices.
+model NotificationPreferences {
+  id                  String    @id @default(uuid())
+  userId              String    @unique
+  pushEnabled         Boolean   @default(true)
+  orderUpdates        Boolean   @default(true)
+  promotions          Boolean   @default(true)
+  walletAlerts        Boolean   @default(true)
+  emailEnabled        Boolean   @default(true)
+  emailPromotions     Boolean   @default(false)
+  smsEnabled          Boolean   @default(false)
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notification_preferences")
 }
 
 /// Monnify webhook event log — for idempotency and audit.

@@ -1,10 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import RequestsPage from './pages/RequestsPage'
 import MerchantsPage from './pages/MerchantsPage'
 import RidersPage from './pages/RidersPage'
+import PendingRidersPage from './pages/PendingRidersPage'
 import UsersPage from './pages/UsersPage'
 import TransactionsPage from './pages/TransactionsPage'
 import SettingsPage from './pages/SettingsPage'
@@ -21,26 +23,31 @@ function ProtectedRoute({ children }) {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="requests" element={<RequestsPage />} />
-        <Route path="merchants" element={<MerchantsPage />} />
-        <Route path="riders" element={<RidersPage />} />
-        <Route path="users" element={<UsersPage />} />
-        <Route path="transactions" element={<TransactionsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
-    </Routes>
+    <ErrorBoundary>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="requests" element={<RequestsPage />} />
+          <Route path="merchants" element={<MerchantsPage />} />
+          <Route path="riders" element={<RidersPage />} />
+          <Route path="pending-riders" element={<PendingRidersPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      <Toaster position="top-right" richColors />
+    </ErrorBoundary>
   )
 }
 

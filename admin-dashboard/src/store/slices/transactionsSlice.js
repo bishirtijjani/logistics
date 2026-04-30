@@ -12,7 +12,7 @@ export const fetchAllTransactions = createAsyncThunk(
       ...(dateRange?.from && { fromDate: dateRange.from }),
       ...(dateRange?.to && { toDate: dateRange.to }),
     })
-    const response = await api.get(`/transactions?${params}`)
+    const response = await api.get(`/admin/transactions?${params}`)
     return response.data.data
   }
 )
@@ -36,10 +36,10 @@ const transactionsSlice = createSlice({
       })
       .addCase(fetchAllTransactions.fulfilled, (state, action) => {
         state.loading = false
-        state.transactions = action.payload.transactions
-        state.total = action.payload.total
-        state.page = action.payload.page
-        state.limit = action.payload.limit
+        state.transactions = action.payload
+        state.total = action.meta?.total || 0
+        state.page = action.meta?.page || 1
+        state.limit = action.meta?.limit || 20
       })
       .addCase(fetchAllTransactions.rejected, (state, action) => {
         state.loading = false

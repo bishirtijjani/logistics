@@ -25,6 +25,7 @@ const {
   verifyBvnSchema,
   updateProfileSchema,
   updateProfilePictureSchema,
+  updateNotificationPreferencesSchema,
 } = require("./auth.validator");
 
 const router = Router();
@@ -105,5 +106,32 @@ router.post(
   authController.verifyBvn,
 );
 router.post("/logout", authenticate, authController.logout);
+
+// Notification preferences
+router.get(
+  "/notification-preferences",
+  authenticate,
+  authController.getNotificationPreferences,
+);
+router.patch(
+  "/notification-preferences",
+  authenticate,
+  validate(updateNotificationPreferencesSchema),
+  authController.updateNotificationPreferences,
+);
+
+// Profile picture upload (Cloudinary signature)
+router.post(
+  "/upload-signature",
+  authenticate,
+  authController.getUploadSignature,
+);
+
+// Delete account
+router.delete(
+  "/account",
+  authenticate,
+  authController.deleteAccount,
+);
 
 module.exports = router;

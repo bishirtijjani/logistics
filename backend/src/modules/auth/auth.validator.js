@@ -93,6 +93,16 @@ const updateProfilePictureSchema = z.object({
   url: z.string().url("Invalid URL").optional(),
 });
 
+const updateNotificationPreferencesSchema = z.object({
+  pushEnabled: z.boolean().optional(),
+  orderUpdates: z.boolean().optional(),
+  promotions: z.boolean().optional(),
+  walletAlerts: z.boolean().optional(),
+  emailEnabled: z.boolean().optional(),
+  emailPromotions: z.boolean().optional(),
+  smsEnabled: z.boolean().optional(),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -107,4 +117,5 @@ module.exports = {
   updateFcmTokenSchema,
   updateProfileSchema,
   updateProfilePictureSchema,
+  updateNotificationPreferencesSchema,
 };
