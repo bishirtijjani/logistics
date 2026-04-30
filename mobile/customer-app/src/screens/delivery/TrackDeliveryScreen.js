@@ -136,27 +136,26 @@ export default function TrackDeliveryScreen({ navigation, route }) {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: colors.background }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text className="mt-4" style={{ color: colors.textMuted }}>Loading delivery...</Text>
+        <Text style={{ marginTop: 16, color: colors.textMuted }}>Loading delivery...</Text>
       </View>
     );
   }
 
   if (error || !delivery) {
     return (
-      <SafeAreaView className="flex-1 p-5" style={{ backgroundColor: colors.background }} edges={["top"]}>
-        <View className="flex-1 justify-center items-center">
+      <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: colors.background }} edges={["top"]}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
-          <Text className="mt-4 text-center" style={{ color: colors.text }}>
+          <Text style={{ marginTop: 16, textAlign: 'center', color: colors.text }}>
             {error || "Delivery not found"}
           </Text>
           <TouchableOpacity
             onPress={fetchDelivery}
-            className="mt-5 px-6 py-3 rounded-xl"
-            style={{ backgroundColor: colors.primary }}
+            style={{ marginTop: 20, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, backgroundColor: colors.primary }}
           >
-            <Text className="text-white font-bold" style={{ color: colors.white }}>Retry</Text>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>Retry</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -167,12 +166,12 @@ export default function TrackDeliveryScreen({ navigation, route }) {
   const canCancel = ["REQUESTED", "MATCHED"].includes(delivery.status);
 
   return (
-    <View className="flex-1" style={{ backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Map */}
       <MapView
         ref={mapRef}
-        className="absolute inset-0"
-        merchant={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
         initialRegion={{
           latitude: delivery.pickupLat,
           longitude: delivery.pickupLng,
@@ -186,7 +185,7 @@ export default function TrackDeliveryScreen({ navigation, route }) {
           title="Pickup"
           description={delivery.pickupAddress}
         >
-          <View className="w-9 h-9 rounded-full items-center justify-center border-2" style={{ backgroundColor: colors.success, borderColor: colors.white, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: colors.success, borderColor: colors.white, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}>
             <Ionicons name="cube" size={16} color={colors.white} />
           </View>
         </Marker>
@@ -197,7 +196,7 @@ export default function TrackDeliveryScreen({ navigation, route }) {
           title="Dropoff"
           description={delivery.dropoffAddress}
         >
-          <View className="w-9 h-9 rounded-full items-center justify-center border-2" style={{ backgroundColor: colors.primary, borderColor: colors.white, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: colors.primary, borderColor: colors.white, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}>
             <Ionicons name="flag" size={16} color={colors.white} />
           </View>
         </Marker>
@@ -205,7 +204,7 @@ export default function TrackDeliveryScreen({ navigation, route }) {
         {/* Rider Marker */}
         {riderLocation && delivery.status !== "DELIVERED" && delivery.status !== "CANCELLED" && (
           <Marker coordinate={riderLocation} title="Rider">
-            <View className="w-9 h-9 rounded-full items-center justify-center border-2" style={{ backgroundColor: colors.dark, borderColor: colors.white, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 2, backgroundColor: colors.dark, borderColor: colors.white, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4 }}>
               <Ionicons name="bicycle" size={16} color={colors.primary} />
             </View>
           </Marker>
@@ -236,31 +235,35 @@ export default function TrackDeliveryScreen({ navigation, route }) {
       </MapView>
 
       {/* Top Bar */}
-      <SafeAreaView className="absolute top-0 left-0 right-0 flex-row items-center justify-between px-4 pt-2 z-10" edges={["top"]}>
+      <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 8, zIndex: 10 }} edges={["top"]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-full bg-white items-center justify-center shadow-sm"
+          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
         >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <View className="px-3 py-1.5 rounded-full" style={{ backgroundColor: colors.primary }}>
-          <Text className="text-xs font-bold text-white capitalize" style={{ color: colors.white }}>{delivery.status.replace("_", " ")}</Text>
+        <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: colors.primary }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.white, textTransform: 'capitalize' }}>{delivery.status.replace("_", " ")}</Text>
         </View>
       </SafeAreaView>
 
       {/* Bottom Sheet */}
-      <SafeAreaView className="absolute bottom-0 left-0 right-0 bg-white rounded-t-6 px-5 pt-5 pb-4 shadow-lg" edges={["bottom"]}>
+      <SafeAreaView style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 8 }} edges={["bottom"]}>
         {/* Status Timeline */}
-        <View className="flex-row justify-between mb-5">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
           {STATUS_STEPS.map((step, index) => {
             const isCompleted = index <= currentStep;
             const isCurrent = index === currentStep;
 
             return (
-              <View key={step.key} className="items-center flex-1">
+              <View key={step.key} style={{ alignItems: 'center', flex: 1 }}>
                 <View
-                  className={`w-6 h-6 rounded-full items-center justify-center ${isCurrent ? 'border-3' : ''}`}
                   style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     backgroundColor: isCompleted ? colors.success : colors.surfaceMuted,
                     borderColor: isCurrent ? colors.primary : "transparent",
                     borderWidth: isCurrent ? 3 : 0,
@@ -269,15 +272,13 @@ export default function TrackDeliveryScreen({ navigation, route }) {
                   {isCompleted && <Ionicons name="checkmark" size={12} color={colors.white} />}
                 </View>
                 <Text
-                  className="text-xs font-semibold mt-1"
-                  style={{ color: isCurrent ? colors.text : colors.textMuted }}
+                  style={{ fontSize: 12, fontWeight: '600', marginTop: 4, color: isCurrent ? colors.text : colors.textMuted }}
                 >
                   {step.label}
                 </Text>
                 {index < STATUS_STEPS.length - 1 && (
                   <View
-                    className="absolute top-3 right-1/2 left-1/2 h-0.5 w-full -z-10"
-                    style={{ backgroundColor: index < currentStep ? colors.success : colors.border }}
+                    style={{ position: 'absolute', top: 12, right: '50%', left: '50%', height: 2, width: '100%', zIndex: -10, backgroundColor: index < currentStep ? colors.success : colors.border }}
                   />
                 )}
               </View>
@@ -287,44 +288,44 @@ export default function TrackDeliveryScreen({ navigation, route }) {
 
         {/* Rider Card (if assigned) */}
         {delivery.rider && delivery.status !== "REQUESTED" && delivery.status !== "CANCELLED" && (
-          <View className="flex-row items-center bg-gray-900 rounded-xl p-4 mb-4">
-            <View className="flex-1 flex-row items-center">
-              <View className="w-12 h-12 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.primary }}>
-                <Text className="text-lg font-extrabold" style={{ color: colors.white }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#111827', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginRight: 12, backgroundColor: colors.primary }}>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: colors.white }}>
                   {(delivery.rider.user?.firstName?.[0] || "") +
                     (delivery.rider.user?.lastName?.[0] || "")}
                 </Text>
               </View>
-              <View className="flex-1">
-                <Text className="text-base font-bold" style={{ color: colors.white }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: colors.white }}>
                   {delivery.rider.user?.firstName} {delivery.rider.user?.lastName}
                 </Text>
-                <View className="flex-row items-center mt-1">
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                   <Ionicons name="star" size={12} color="#F59E0B" />
-                  <Text className="ml-1 text-xs" style={{ color: colors.textMuted }}>
+                  <Text style={{ marginLeft: 4, fontSize: 12, color: colors.textMuted }}>
                     {delivery.rider.averageRating?.toFixed(1) || "4.5"}
                   </Text>
-                  <Text className="ml-3 text-xs" style={{ color: colors.textMuted }}>
+                  <Text style={{ marginLeft: 12, fontSize: 12, color: colors.textMuted }}>
                     {delivery.rider.vehicleType} • {delivery.rider.plateNumber}
                   </Text>
                 </View>
               </View>
             </View>
-            <TouchableOpacity onPress={handleCallRider} className="w-11 h-11 rounded-full items-center justify-center" style={{ backgroundColor: colors.success }}>
+            <TouchableOpacity onPress={handleCallRider} style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.success }}>
               <Ionicons name="call" size={20} color={colors.white} />
             </TouchableOpacity>
           </View>
         )}
 
         {/* Delivery Details */}
-        <View className="bg-white rounded-xl p-4 mb-3">
-          <View className="flex-row items-center mb-2">
+        <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <Ionicons name="cube-outline" size={18} color={colors.textMuted} />
-            <Text className="ml-2 text-sm font-semibold" style={{ color: colors.text }}>Order #{delivery.id.slice(-6)}</Text>
+            <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.text }}>Order #{delivery.id.slice(-6)}</Text>
           </View>
-          <View className="flex-row items-center mb-2">
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <Ionicons name="cash-outline" size={18} color={colors.textMuted} />
-            <Text className="ml-2 text-sm font-semibold" style={{ color: colors.text }}>₦{delivery.fare?.toLocaleString()}</Text>
+            <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.text }}>₦{delivery.fare?.toLocaleString()}</Text>
           </View>
         </View>
 
@@ -333,15 +334,14 @@ export default function TrackDeliveryScreen({ navigation, route }) {
           <TouchableOpacity
             onPress={handleCancel}
             disabled={cancelling}
-            className={`flex-row items-center justify-center rounded-xl py-3.5 ${cancelling ? 'opacity-60' : ''}`}
-            style={{ backgroundColor: colors.error + "15" }}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 14, backgroundColor: colors.error + "15", opacity: cancelling ? 0.6 : 1 }}
           >
             {cancelling ? (
               <ActivityIndicator size="small" color={colors.error} />
             ) : (
               <>
                 <Ionicons name="close-circle" size={18} color={colors.error} />
-                <Text className="ml-2 font-bold text-base" style={{ color: colors.error }}>Cancel Delivery</Text>
+                <Text style={{ marginLeft: 8, fontWeight: '700', fontSize: 16, color: colors.error }}>Cancel Delivery</Text>
               </>
             )}
           </TouchableOpacity>
@@ -350,27 +350,27 @@ export default function TrackDeliveryScreen({ navigation, route }) {
 
       {/* Rating Modal (shown on completion) */}
       {showRatingModal && (
-        <View className="absolute inset-0" style={{ backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
-          <View className="bg-white rounded-3xl p-6 items-center" style={{ width: width - 48 }}>
-            <Text className="text-xl font-extrabold mb-2" style={{ color: colors.text }}>Delivery Complete!</Text>
-            <Text className="text-sm mb-6 text-center" style={{ color: colors.textMuted }}>How was your delivery experience?</Text>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 24, alignItems: "center", width: width - 48 }}>
+            <Text style={{ fontSize: 20, fontWeight: '800', marginBottom: 8, color: colors.text }}>Delivery Complete!</Text>
+            <Text style={{ fontSize: 14, marginBottom: 24, textAlign: "center", color: colors.textMuted }}>How was your delivery experience?</Text>
             <TouchableOpacity
               onPress={() => {
                 setShowRatingModal(false);
                 navigation.replace("RateDelivery", { orderId, riderId: delivery.riderId });
               }}
-              className="bg-orange-600 rounded-xl py-4 px-8 w-full items-center mb-3"
+              style={{ backgroundColor: '#EA580C', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 32, width: '100%', alignItems: "center", marginBottom: 12 }}
             >
-              <Text className="text-white font-extrabold text-base" style={{ color: colors.white }}>Rate Rider</Text>
+              <Text style={{ color: colors.white, fontWeight: '800', fontSize: 16 }}>Rate Rider</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
                 setShowRatingModal(false);
                 navigation.goBack();
               }}
-              className="py-3"
+              style={{ paddingVertical: 12 }}
             >
-              <Text className="font-semibold" style={{ color: colors.textMuted }}>Skip for now</Text>
+              <Text style={{ fontWeight: '600', color: colors.textMuted }}>Skip for now</Text>
             </TouchableOpacity>
           </View>
         </View>

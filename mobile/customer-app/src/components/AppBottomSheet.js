@@ -28,7 +28,7 @@ const AppBottomSheet = forwardRef(({ children, snapPoints = ['25%', '50%'], onCl
       backgroundStyle={{ backgroundColor: '#fff', borderRadius: 24 }}
       handleIndicatorStyle={{ backgroundColor: '#e5e7eb', width: 40 }}
     >
-      <View className="flex-1 p-6 bg-white rounded-t-3xl shadow-sm">
+      <View style={{ flex: 1, padding: 24, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}>
         {children}
       </View>
     </BottomSheet>

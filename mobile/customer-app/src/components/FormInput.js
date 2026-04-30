@@ -14,23 +14,22 @@ const FormInput = forwardRef(
     const [isPasswordHidden, setIsPasswordHidden] = useState(secureTextEntry);
 
     return (
-      <View className="mb-5">
-        {label && <Text className="text-xs font-semibold mb-1.5 ml-0.5" style={{ color: colors.textMuted }}>{label}</Text>}
+      <View style={{ marginBottom: 20 }}>
+        {label && <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 6, marginLeft: 2, color: colors.textMuted }}>{label}</Text>}
         <View
-          className={`flex-row items-center bg-white px-4 rounded-xl border-2 ${error ? 'border-red-500' : isFocused ? 'border-orange-600' : 'border-gray-200'}`}
+          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, borderRadius: 12, borderWidth: 2, borderColor: error ? '#EF4444' : isFocused ? '#EA580C' : '#E5E7EB' }}
         >
           {icon && (
             <Ionicons
               name={icon}
               size={18}
               color={isFocused ? colors.primary : "#D1D5DB"}
-              className="mr-2.5"
+              style={{ marginRight: 10 }}
             />
           )}
           <TextInput
             ref={ref}
-            className="flex-1 py-4 text-base font-medium"
-            style={{ color: colors.text }}
+            style={{ flex: 1, paddingVertical: 16, fontSize: 16, fontWeight: '500', color: colors.text }}
             placeholderTextColor="#D1D5DB"
             selectionColor={colors.primary}
             secureTextEntry={isPasswordHidden}
@@ -47,7 +46,7 @@ const FormInput = forwardRef(
           {secureTextEntry !== undefined && (
             <TouchableOpacity
               onPress={() => setIsPasswordHidden(!isPasswordHidden)}
-              className="pl-3 py-2"
+              style={{ paddingLeft: 12, paddingVertical: 8 }}
             >
               <Ionicons
                 name={isPasswordHidden ? "eye-off-outline" : "eye-outline"}
@@ -57,7 +56,7 @@ const FormInput = forwardRef(
             </TouchableOpacity>
           )}
         </View>
-        {error && <Text className="text-xs mt-1.5 ml-0.5 font-medium" style={{ color: colors.error }}>{error}</Text>}
+        {error && <Text style={{ fontSize: 12, marginTop: 6, marginLeft: 2, fontWeight: '500', color: colors.error }}>{error}</Text>}
       </View>
     );
   },

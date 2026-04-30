@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,18 @@ import {
   StatusBar,
   ScrollView,
   Switch,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 import { colors } from "../../theme";
+import {
+  fetchNotificationPreferences,
+  updateNotificationPreferences,
+} from "../../store/slices/profileSlice";
 
 const INITIAL_SETTINGS = {
   pushEnabled: true,
@@ -22,12 +30,94 @@ const INITIAL_SETTINGS = {
 };
 
 export default function NotificationSettingsScreen({ navigation }) {
+  const dispatch = useDispatch();
+  const { notificationPreferences, isLoading, isUpdating, error } = useSelector(
+    (state) => state.profile
+  );
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Load preferences on mount
+  useEffect(() => {
+    dispatch(fetchNotificationPreferences());
+  }, [dispatch]);
+
+  // Update local state when preferences load from backend
+  useEffect(() => {
+    if (notificationPreferences) {
+      setSettings({
+        pushEnabled: notificationPreferences.pushEnabled ?? true,
+        orderUpdates: notificationPreferences.orderUpdates ?? true,
+        promotions: notificationPreferences.promotions ?? true,
+        walletAlerts: notificationPreferences.walletAlerts ?? true,
+        emailEnabled: notificationPreferences.emailEnabled ?? true,
+        emailPromotions: notificationPreferences.emailPromotions ?? false,
+        smsEnabled: notificationPreferences.smsEnabled ?? false,
+      });
+    }
+  }, [notificationPreferences]);
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: error,
+      });
+    }
+  }, [error]);
+
+  // Warn about unsaved changes when leaving
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (!hasUnsavedChanges) return;
+
+      e.preventDefault();
+      Alert.alert(
+        "Unsaved Changes",
+        "You have unsaved changes. Save before leaving?",
+        [
+          { text: "Discard", style: "destructive", onPress: () => navigation.dispatch(e.data.action) },
+          { text: "Save", onPress: () => handleSave(navigation.dispatch(e.data.action)) },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+    });
+
+    return unsubscribe;
+  }, [navigation, hasUnsavedChanges, settings]);
 
   const toggle = (key) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-    // TODO: Persist to backend
+    setSettings((prev) => {
+      const newSettings = { ...prev, [key]: !prev[key] };
+      setHasUnsavedChanges(true);
+      return newSettings;
+    });
   };
+
+  const handleSave = useCallback(
+    async (afterSaveCallback) => {
+      const result = await dispatch(updateNotificationPreferences(settings));
+      
+      if (updateNotificationPreferences.fulfilled.match(result)) {
+        setHasUnsavedChanges(false);
+        Toast.show({
+          type: "success",
+          text1: "Saved",
+          text2: "Notification preferences updated",
+        });
+        if (afterSaveCallback) afterSaveCallback();
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: result.payload || "Failed to save preferences",
+        });
+      }
+    },
+    [dispatch, settings]
+  );
 
   const renderToggle = (icon, label, sub, key, parentKey) => {
     const disabled = parentKey && !settings[parentKey];
@@ -121,35 +211,68 @@ export default function NotificationSettingsScreen({ navigation }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
+          justifyContent: "space-between",
           paddingHorizontal: 20,
           paddingVertical: 16,
         }}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 14,
-          }}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: "900",
-            color: colors.text,
-            letterSpacing: -0.5,
-          }}
-        >
-          Notifications
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: colors.surfaceMuted,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 14,
+            }}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "900",
+              color: colors.text,
+              letterSpacing: -0.5,
+            }}
+          >
+            Notifications
+          </Text>
+        </View>
+        {isUpdating ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <TouchableOpacity
+            onPress={() => handleSave()}
+            disabled={!hasUnsavedChanges}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 8,
+              backgroundColor: hasUnsavedChanges ? colors.primary : colors.border,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "600",
+                color: hasUnsavedChanges ? "#fff" : colors.textMuted,
+              }}
+            >
+              Save
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {isLoading && (
+        <View style={{ paddingVertical: 20, alignItems: "center" }}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}

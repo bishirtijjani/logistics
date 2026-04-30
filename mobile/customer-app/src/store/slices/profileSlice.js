@@ -53,11 +53,59 @@ export const verifyBvn = createAsyncThunk(
   },
 );
 
+export const fetchNotificationPreferences = createAsyncThunk(
+  "profile/fetchNotificationPreferences",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/auth/notification-preferences");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const updateNotificationPreferences = createAsyncThunk(
+  "profile/updateNotificationPreferences",
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await api.patch("/auth/notification-preferences", data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const getUploadSignature = createAsyncThunk(
+  "profile/getUploadSignature",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/upload-signature");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 export const setTransactionPin = createAsyncThunk(
   "profile/setPin",
   async (pin, { rejectWithValue }) => {
     try {
       const response = await api.post("/auth/pin", { pin });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const deleteAccount = createAsyncThunk(
+  "profile/deleteAccount",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.delete("/auth/account");
       return response.data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -82,6 +130,7 @@ export const changeTransactionPin = createAsyncThunk(
 
 const initialState = {
   profile: null,
+  notificationPreferences: null,
   isLoading: false,
   isUpdating: false,
   error: null,
@@ -147,6 +196,34 @@ const profileSlice = createSlice({
       state.error = action.payload;
     });
 
+    // Fetch notification preferences
+    builder.addCase(fetchNotificationPreferences.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    });
+    builder.addCase(fetchNotificationPreferences.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.notificationPreferences = action.payload;
+    });
+    builder.addCase(fetchNotificationPreferences.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload;
+    });
+
+    // Update notification preferences
+    builder.addCase(updateNotificationPreferences.pending, (state) => {
+      state.isUpdating = true;
+      state.error = null;
+    });
+    builder.addCase(updateNotificationPreferences.fulfilled, (state, action) => {
+      state.isUpdating = false;
+      state.notificationPreferences = action.payload;
+    });
+    builder.addCase(updateNotificationPreferences.rejected, (state, action) => {
+      state.isUpdating = false;
+      state.error = action.payload;
+    });
+
     // Set PIN
     builder.addCase(setTransactionPin.pending, (state) => {
       state.isUpdating = true;
@@ -172,6 +249,21 @@ const profileSlice = createSlice({
       state.isUpdating = false;
     });
     builder.addCase(changeTransactionPin.rejected, (state, action) => {
+      state.isUpdating = false;
+      state.error = action.payload;
+    });
+
+    // Delete account
+    builder.addCase(deleteAccount.pending, (state) => {
+      state.isUpdating = true;
+      state.error = null;
+    });
+    builder.addCase(deleteAccount.fulfilled, (state) => {
+      state.isUpdating = false;
+      state.profile = null;
+      state.notificationPreferences = null;
+    });
+    builder.addCase(deleteAccount.rejected, (state, action) => {
       state.isUpdating = false;
       state.error = action.payload;
     });

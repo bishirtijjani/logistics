@@ -185,7 +185,7 @@ const RequestTrackingScreen = () => {
 
   const renderStarRating = (rating, setRating) => {
     return (
-      <View className="flex-row justify-center mb-3">
+      <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 12 }}>
         {[1, 2, 3, 4, 5].map((star) => (
           <TouchableOpacity key={star} onPress={() => setRating(star)}>
             <Ionicons
@@ -201,21 +201,21 @@ const RequestTrackingScreen = () => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.colors.background }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text className="mt-4 text-base" style={{ color: theme.colors.text.secondary }}>Loading order details...</Text>
+        <Text style={{ marginTop: 16, fontSize: 16, color: theme.colors.text.secondary }}>Loading order details...</Text>
       </View>
     );
   }
 
   if (!currentRequest) {
     return (
-      <View className="flex-1 justify-center items-center p-8">
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
         <Ionicons name="alert-circle-outline" size={64} color={theme.colors.text.secondary} />
-        <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: theme.colors.text.primary }}>Order Not Found</Text>
-        <Text className="text-sm mb-6" style={{ color: theme.colors.text.secondary }}>Unable to load order details</Text>
-        <TouchableOpacity className="px-6 py-3 rounded-lg" style={{ backgroundColor: theme.colors.primary }} onPress={() => navigation.goBack()}>
-          <Text className="text-sm font-semibold text-white">Go Back</Text>
+        <Text style={{ fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8, color: theme.colors.text.primary }}>Order Not Found</Text>
+        <Text style={{ fontSize: 14, marginBottom: 24, color: theme.colors.text.secondary }}>Unable to load order details</Text>
+        <TouchableOpacity style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, backgroundColor: theme.colors.primary }} onPress={() => navigation.goBack()}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -226,33 +226,37 @@ const RequestTrackingScreen = () => {
   const canRate = ['DELIVERED', 'SETTLED'].includes(currentRequest.status);
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={['top']}>
-      <View className="flex-row items-center justify-between px-4 py-4" style={{ backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} className="p-2">
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold" style={{ color: theme.colors.text.primary }}>Order Tracking</Text>
-        <TouchableOpacity className="p-2">
+        <Text style={{ fontSize: 18, fontWeight: '600', color: theme.colors.text.primary }}>Order Tracking</Text>
+        <TouchableOpacity style={{ padding: 8 }}>
           <Ionicons name="call-outline" size={24} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Status Timeline */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Order Status</Text>
-          <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
-            <Text className="text-lg font-bold mb-5 text-center" style={{ color: theme.colors.primary }}>{STATUS_MESSAGES[currentRequest.status] || 'Processing'}</Text>
-            <View className="pl-2">
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Order Status</Text>
+          <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center', color: theme.colors.primary }}>{STATUS_MESSAGES[currentRequest.status] || 'Processing'}</Text>
+            <View style={{ paddingLeft: 8 }}>
               {STATUS_STEPS.map((step, index) => {
                 const isCompleted = index <= currentStepIndex;
                 const isCurrent = index === currentStepIndex;
                 return (
-                  <View key={step.key} className="flex-row items-center mb-4">
-                    <View className="items-center mr-3">
+                  <View key={step.key} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{ alignItems: 'center', marginRight: 12 }}>
                       <View
-                        className="w-8 h-8 rounded-full items-center justify-center"
                         style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           backgroundColor: isCompleted ? theme.colors.primary : theme.colors.border,
                           borderWidth: isCurrent ? 2 : 0,
                           borderColor: isCurrent ? theme.colors.primary + '40' : undefined,
@@ -266,14 +270,13 @@ const RequestTrackingScreen = () => {
                       </View>
                       {index < STATUS_STEPS.length - 1 && (
                         <View
-                          className="w-0.5 h-6 mt-1"
-                          style={{ backgroundColor: index < currentStepIndex ? theme.colors.primary : theme.colors.border }}
+                          style={{ width: 2, height: 24, marginTop: 4, backgroundColor: index < currentStepIndex ? theme.colors.primary : theme.colors.border }}
                         />
                       )}
                     </View>
                     <Text
-                      className="text-sm"
                       style={{
+                        fontSize: 14,
                         color: isCompleted ? theme.colors.text.primary : theme.colors.text.secondary,
                         fontWeight: isCompleted ? '500' : 'normal',
                       }}
@@ -289,16 +292,16 @@ const RequestTrackingScreen = () => {
 
         {/* Merchant Info */}
         {currentRequest.merchant && (
-          <View className="mb-6">
-            <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Merchant</Text>
-            <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
-              <View className="flex-row items-center mb-3">
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Merchant</Text>
+            <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="storefront-outline" size={20} color={theme.colors.primary} />
-                <Text className="text-sm font-semibold ml-3" style={{ color: theme.colors.text.primary }}>{currentRequest.merchant.name}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: theme.colors.text.primary }}>{currentRequest.merchant.name}</Text>
               </View>
-              <View className="flex-row items-center mb-3">
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="location-outline" size={20} color={theme.colors.text.secondary} />
-                <Text className="text-sm ml-3" style={{ color: theme.colors.text.secondary }}>{currentRequest.pickupAddress}</Text>
+                <Text style={{ fontSize: 14, marginLeft: 12, color: theme.colors.text.secondary }}>{currentRequest.pickupAddress}</Text>
               </View>
             </View>
           </View>
@@ -306,19 +309,18 @@ const RequestTrackingScreen = () => {
 
         {/* Rider Info */}
         {currentRequest.rider && (
-          <View className="mb-6">
-            <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Rider</Text>
-            <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
-              <View className="flex-row items-center mb-3">
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Rider</Text>
+            <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
-                <Text className="text-sm font-semibold ml-3" style={{ color: theme.colors.text.primary }}>{currentRequest.rider.user.firstName} {currentRequest.rider.user.lastName}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: theme.colors.text.primary }}>{currentRequest.rider.user.firstName} {currentRequest.rider.user.lastName}</Text>
               </View>
-              <View className="flex-row items-center mb-3">
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="call-outline" size={20} color={theme.colors.text.secondary} />
-                <Text className="text-sm ml-3" style={{ color: theme.colors.text.secondary }}>{currentRequest.rider.user.phone}</Text>
+                <Text style={{ fontSize: 14, marginLeft: 12, color: theme.colors.text.secondary }}>{currentRequest.rider.user.phone}</Text>
                 <TouchableOpacity
-                  className="ml-auto p-2 rounded-full"
-                  style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
+                  style={{ marginLeft: 'auto', padding: 8, borderRadius: 20, backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
                   onPress={() => handleCall(currentRequest.rider.user.phone)}
                 >
                   <Ionicons name="call" size={20} color={theme.colors.primary} />
@@ -330,11 +332,11 @@ const RequestTrackingScreen = () => {
 
         {/* Map with Rider Location */}
         {currentRequest.rider && currentRequest.riderLocation && (
-          <View className="mb-6">
-            <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Live Tracking</Text>
-            <View className="h-50 rounded-xl overflow-hidden" style={{ backgroundColor: theme.colors.background }}>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Live Tracking</Text>
+            <View style={{ height: 200, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.background }}>
               <MapView
-                className="w-full h-full"
+                style={{ width: '100%', height: '100%' }}
                 initialRegion={{
                   latitude: currentRequest.riderLocation.lat,
                   longitude: currentRequest.riderLocation.lng,
@@ -350,7 +352,7 @@ const RequestTrackingScreen = () => {
                   title="Rider"
                   description={`${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`}
                 >
-                  <View className="rounded-xl p-2" style={{ backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
+                  <View style={{ borderRadius: 12, padding: 8, backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
                     <Ionicons name="bicycle" size={24} color={theme.colors.primary} />
                   </View>
                 </Marker>
@@ -363,7 +365,7 @@ const RequestTrackingScreen = () => {
                     title="Destination"
                     description={currentRequest.dropoffAddress}
                   >
-                    <View className="rounded-xl p-2" style={{ backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
+                    <View style={{ borderRadius: 12, padding: 8, backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
                       <Ionicons name="home" size={24} color={theme.colors.error} />
                     </View>
                   </Marker>
@@ -374,53 +376,51 @@ const RequestTrackingScreen = () => {
         )}
 
         {/* Order Details */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Order Details</Text>
-          <View className="rounded-xl p-4" style={{ backgroundColor: theme.colors.surface }}>
-            <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-              <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Order ID</Text>
-              <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>#{currentRequest.id.slice(0, 8)}</Text>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Order Details</Text>
+          <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+              <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Order ID</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>#{currentRequest.id.slice(0, 8)}</Text>
             </View>
-            <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-              <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Total</Text>
-              <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>₦{Number(currentRequest.total).toLocaleString()}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+              <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Total</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>₦{Number(currentRequest.total).toLocaleString()}</Text>
             </View>
-            <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-              <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Delivery Address</Text>
-              <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>{currentRequest.dropoffAddress}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+              <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Delivery Address</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>{currentRequest.dropoffAddress}</Text>
             </View>
             {currentRequest.specialInstructions && (
-              <View className="flex-row justify-between py-2" style={{ borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Instructions</Text>
-                <Text className="text-sm font-medium" style={{ color: theme.colors.text.primary }}>{currentRequest.specialInstructions}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+                <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Instructions</Text>
+                <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>{currentRequest.specialInstructions}</Text>
               </View>
             )}
           </View>
         </View>
 
         {/* Actions */}
-        <View className="mb-6">
+        <View style={{ marginBottom: 24 }}>
           {canCancel && (
             <TouchableOpacity
-              className="py-4 rounded-xl items-center mb-3"
-              style={{ backgroundColor: '#EF4444' }}
+              style={{ paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: '#EF4444' }}
               onPress={handleCancel}
               disabled={isCancelling}
             >
               {isCancelling ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text className="text-base font-semibold text-white">Cancel Order</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>Cancel Order</Text>
               )}
             </TouchableOpacity>
           )}
           {canRate && (
             <TouchableOpacity
-              className="py-4 rounded-xl items-center mb-3"
-              style={{ backgroundColor: theme.colors.primary }}
+              style={{ paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: theme.colors.primary }}
               onPress={() => setShowRatingModal(true)}
             >
-              <Text className="text-base font-semibold text-white">Rate Order</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>Rate Order</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -428,15 +428,14 @@ const RequestTrackingScreen = () => {
 
       {/* Rating Modal */}
       {showRatingModal && (
-        <View className="absolute top-0 left-0 right-0 bottom-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View className="rounded-2xl p-6 w-[90%] max-w-[400px]" style={{ backgroundColor: theme.colors.surface }}>
-            <Text className="text-lg font-bold mb-5 text-center" style={{ color: theme.colors.text.primary }}>Rate Your Experience</Text>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ borderRadius: 16, padding: 24, width: '90%', maxWidth: 400, backgroundColor: theme.colors.surface }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center', color: theme.colors.text.primary }}>Rate Your Experience</Text>
             
-            <Text className="text-sm font-semibold mb-2 mt-4" style={{ color: theme.colors.text.primary }}>Merchant Rating</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16, color: theme.colors.text.primary }}>Merchant Rating</Text>
             {renderStarRating(merchantRating, setMerchantRating)}
             <TextInput
-              className="rounded-lg p-3 text-sm mb-4"
-              style={{ backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
+              style={{ borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 16, backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
               placeholder="Comment about merchant (optional)"
               value={merchantComment}
               onChangeText={setMerchantComment}
@@ -444,11 +443,10 @@ const RequestTrackingScreen = () => {
 
             {currentRequest.rider && (
               <>
-                <Text className="text-sm font-semibold mb-2 mt-4" style={{ color: theme.colors.text.primary }}>Rider Rating</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16, color: theme.colors.text.primary }}>Rider Rating</Text>
                 {renderStarRating(riderRating, setRiderRating)}
                 <TextInput
-                  className="rounded-lg p-3 text-sm mb-4"
-                  style={{ backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
+                  style={{ borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 16, backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
                   placeholder="Comment about rider (optional)"
                   value={riderComment}
                   onChangeText={setRiderComment}
@@ -456,24 +454,22 @@ const RequestTrackingScreen = () => {
               </>
             )}
 
-            <View className="flex-row gap-3 mt-2">
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
               <TouchableOpacity
-                className="flex-1 py-3 rounded-lg items-center"
-                style={{ backgroundColor: theme.colors.border }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: theme.colors.border }}
                 onPress={() => setShowRatingModal(false)}
               >
-                <Text className="text-sm font-semibold" style={{ color: theme.colors.text.primary }}>Cancel</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 py-3 rounded-lg items-center"
-                style={{ backgroundColor: theme.colors.primary }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: theme.colors.primary }}
                 onPress={handleRate}
                 disabled={isRating}
               >
                 {isRating ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text className="text-sm font-semibold text-white">Submit</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Submit</Text>
                 )}
               </TouchableOpacity>
             </View>

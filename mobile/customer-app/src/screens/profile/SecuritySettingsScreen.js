@@ -7,16 +7,21 @@ import {
   ScrollView,
   Switch,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 import { logout } from "../../store/slices/authSlice";
+import { deleteAccount } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
 
 export default function SecuritySettingsScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { isLoading } = useSelector((state) => state.profile);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleChangePassword = () => {
     navigation.navigate("ForgotPassword");
@@ -44,14 +49,32 @@ export default function SecuritySettingsScreen({ navigation }) {
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
-      "This action is permanent and cannot be undone. All your data will be deleted.",
+      "This action is permanent and cannot be undone. All your data will be deleted.\n\n• Complete all active deliveries first\n• Withdraw your wallet balance\n• This cannot be reversed",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete",
+          text: "Delete Forever",
           style: "destructive",
-          onPress: () => {
-            // TODO: Call delete account endpoint
+          onPress: async () => {
+            setDeleting(true);
+            const result = await dispatch(deleteAccount());
+            setDeleting(false);
+            
+            if (deleteAccount.fulfilled.match(result)) {
+              Toast.show({
+                type: "success",
+                text1: "Account Deleted",
+                text2: "Your account has been permanently deleted",
+              });
+              // Logout and navigate to login
+              dispatch(logout());
+            } else {
+              Toast.show({
+                type: "error",
+                text1: "Cannot Delete Account",
+                text2: result.payload || "Please complete deliveries and withdraw balance first",
+              });
+            }
           },
         },
       ],

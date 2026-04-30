@@ -7,14 +7,16 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
-import { updateProfilePicture } from "../../store/slices/profileSlice";
+import { updateProfilePicture, getUploadSignature } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
+import api from "../../services/api";
 
 export default function ProfilePhotoScreen({ navigation }) {
   const dispatch = useDispatch();
@@ -72,23 +74,89 @@ export default function ProfilePhotoScreen({ navigation }) {
     ]);
   };
 
+  const uploadToCloudinary = async (uri, signatureData) => {
+    // Create form data for upload
+    const formData = new FormData();
+    
+    // Get file info
+    const filename = uri.split('/').pop();
+    const match = /\.(.+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+    
+    // Append file
+    formData.append('file', {
+      uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+      name: filename,
+      type,
+    });
+    
+    // Append Cloudinary params
+    formData.append('api_key', signatureData.apiKey);
+    formData.append('timestamp', signatureData.timestamp);
+    formData.append('signature', signatureData.signature);
+    formData.append('folder', signatureData.folder);
+    formData.append('public_id', signatureData.publicId);
+
+    // Upload to Cloudinary
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Cloudinary upload failed: ${error}`);
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
   const handleSave = async () => {
     if (!localUri) return;
     setUploading(true);
 
-    // In production, upload to cloud storage first, then pass the URL.
-    // For now, we send the local URI as a placeholder.
-    // TODO: Replace with actual upload to S3/Cloudinary
-    const result = await dispatch(updateProfilePicture(localUri));
+    try {
+      // Step 1: Get Cloudinary signature from backend
+      const signatureResult = await dispatch(getUploadSignature());
+      
+      if (!getUploadSignature.fulfilled.match(signatureResult)) {
+        throw new Error('Failed to get upload signature');
+      }
 
-    setUploading(false);
-    if (updateProfilePicture.fulfilled.match(result)) {
+      const signatureData = signatureResult.payload;
+
+      // Step 2: Upload to Cloudinary
+      const cloudinaryUrl = await uploadToCloudinary(localUri, signatureData);
+
+      // Step 3: Save URL to backend
+      const result = await dispatch(updateProfilePicture(cloudinaryUrl));
+
+      if (updateProfilePicture.fulfilled.match(result)) {
+        Toast.show({
+          type: "success",
+          text1: "Photo updated",
+          text2: "Your profile photo has been saved.",
+        });
+        navigation.goBack();
+      } else {
+        throw new Error(result.payload || 'Failed to save profile picture');
+      }
+    } catch (error) {
       Toast.show({
-        type: "success",
-        text1: "Photo updated",
-        text2: "Your profile photo has been saved.",
+        type: "error",
+        text1: "Upload failed",
+        text2: error.message || "Could not upload photo. Please try again.",
       });
-      navigation.goBack();
+    } finally {
+      setUploading(false);
     }
   };
 

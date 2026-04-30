@@ -104,13 +104,13 @@ export default function PinBottomSheet({
   };
 
   const renderPinDots = () => (
-    <View className="flex-row justify-center mb-8">
+    <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 32 }}>
       {Array.from({ length: PIN_LENGTH }).map((_, index) => (
         <View
           key={index}
-          className={`w-4 h-4 rounded-full border-2 mx-2 items-center justify-center ${index < pin.length ? 'border-orange-600 bg-orange-600/20' : 'border-gray-200'} ${error ? 'border-red-500' : ''}`}
+          style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, marginHorizontal: 8, alignItems: 'center', justifyContent: 'center', borderColor: error ? '#EF4444' : index < pin.length ? '#EA580C' : '#E5E7EB', backgroundColor: index < pin.length ? 'rgba(234,88,12,0.2)' : 'transparent' }}
         >
-          {index < pin.length && <View className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.primary }} />}
+          {index < pin.length && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />}
         </View>
       ))}
     </View>
@@ -125,22 +125,22 @@ export default function PinBottomSheet({
     ];
 
     return (
-      <View className="mb-3">
+      <View style={{ marginBottom: 12 }}>
         {keys.map((row, rowIndex) => (
-          <View key={rowIndex} className="flex-row justify-between mb-3">
+          <View key={rowIndex} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             {row.map((key) => (
               <TouchableOpacity
                 key={key}
-                className={`w-20 h-14 rounded-xl bg-white items-center justify-center ${key === "forgot" ? "w-20" : ""}`}
+                style={{ width: 80, height: 56, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}
                 onPress={() => handleKeyPress(key)}
                 disabled={isLocked && key !== "backspace"}
               >
                 {key === "backspace" ? (
                   <Ionicons name="backspace-outline" size={24} color={colors.text} />
                 ) : key === "forgot" ? (
-                  <Text className="text-xs font-semibold" style={{ color: colors.primary }}>Forgot?</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>Forgot?</Text>
                 ) : (
-                  <Text className="text-2xl font-semibold" style={{ color: colors.text }}>{key}</Text>
+                  <Text style={{ fontSize: 24, fontWeight: '600', color: colors.text }}>{key}</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -152,21 +152,20 @@ export default function PinBottomSheet({
 
   return (
     <Modal visible={isVisible} transparent animationType="none" onRequestClose={onClose}>
-      <View className="flex-1 justify-end">
-        <TouchableOpacity className="absolute inset-0" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }} onPress={onClose} activeOpacity={1} />
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.5)" }} onPress={onClose} activeOpacity={1} />
 
         <Animated.View
-          className="bg-white rounded-t-3xl px-6 pb-8"
-          style={{ maxHeight: height * 0.85, transform: [{ translateY: slideAnimation }] }}
+          style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 24, paddingBottom: 32, maxHeight: height * 0.85, transform: [{ translateY: slideAnimation }] }}
         >
           {/* Handle */}
-          <View className="w-10 h-1 bg-gray-200 rounded self-center mt-3 mb-4" />
+          <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 16 }} />
 
           {/* Header */}
-          <View className="items-center mb-6 relative">
-            <Text className="text-xl font-extrabold mb-2" style={{ color: colors.text }}>{title}</Text>
-            <Text className="text-sm text-center" style={{ color: colors.textMuted }}>{subtitle}</Text>
-            <TouchableOpacity className="absolute right-0 top-0 p-1" onPress={onClose}>
+          <View style={{ alignItems: 'center', marginBottom: 24, position: 'relative' }}>
+            <Text style={{ fontSize: 20, fontWeight: '800', marginBottom: 8, color: colors.text }}>{title}</Text>
+            <Text style={{ fontSize: 14, textAlign: 'center', color: colors.textMuted }}>{subtitle}</Text>
+            <TouchableOpacity style={{ position: 'absolute', right: 0, top: 0, padding: 4 }} onPress={onClose}>
               <Ionicons name="close" size={24} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -174,9 +173,9 @@ export default function PinBottomSheet({
           {/* Error */}
           {error ? (
             <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
-              <View className="flex-row items-center rounded-xl p-3 mb-4" style={{ backgroundColor: colors.error + "15" }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: colors.error + "15" }}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text className="ml-2 text-xs font-medium flex-1" style={{ color: colors.error }}>{error}</Text>
+                <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '500', flex: 1, color: colors.error }}>{error}</Text>
               </View>
             </Animated.View>
           ) : null}
@@ -190,8 +189,8 @@ export default function PinBottomSheet({
           {renderKeypad()}
 
           {/* Cancel Button */}
-          <TouchableOpacity className="items-center py-3" onPress={onClose}>
-            <Text className="text-base font-semibold" style={{ color: colors.textMuted }}>Cancel</Text>
+          <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 12 }} onPress={onClose}>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textMuted }}>Cancel</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>

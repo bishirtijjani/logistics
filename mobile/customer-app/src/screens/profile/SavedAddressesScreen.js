@@ -1,18 +1,91 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  TextInput,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 import { colors } from "../../theme";
+import { updateProfile, fetchProfile } from "../../store/slices/profileSlice";
 
 export default function SavedAddressesScreen({ navigation }) {
-  // TODO: Wire to backend saved addresses endpoint
-  const addresses = [];
+  const dispatch = useDispatch();
+  const { profile, isUpdating } = useSelector((state) => state.profile);
+  
+  const [address, setAddress] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Load address from profile
+  useEffect(() => {
+    if (profile?.address) {
+      setAddress(profile.address);
+    }
+  }, [profile]);
+
+  // Warn about unsaved changes
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (!hasChanges) return;
+      
+      e.preventDefault();
+      Alert.alert(
+        "Unsaved Changes",
+        "You have unsaved changes. Save before leaving?",
+        [
+          { text: "Discard", style: "destructive", onPress: () => navigation.dispatch(e.data.action) },
+          { text: "Save", onPress: () => handleSave(navigation.dispatch(e.data.action)) },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+    });
+
+    return unsubscribe;
+  }, [navigation, hasChanges, address]);
+
+  const handleAddressChange = (text) => {
+    setAddress(text);
+    setHasChanges(true);
+  };
+
+  const handleSave = useCallback(
+    async (afterSaveCallback) => {
+      if (!address.trim()) {
+        Toast.show({
+          type: "error",
+          text1: "Address Required",
+          text2: "Please enter your address",
+        });
+        return;
+      }
+
+      const result = await dispatch(updateProfile({ address: address.trim() }));
+
+      if (updateProfile.fulfilled.match(result)) {
+        setHasChanges(false);
+        Toast.show({
+          type: "success",
+          text1: "Address Saved",
+          text2: "Your delivery address has been updated",
+        });
+        if (afterSaveCallback) afterSaveCallback();
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: result.payload || "Failed to save address",
+        });
+      }
+    },
+    [dispatch, address]
+  );
 
   return (
     <SafeAreaView
@@ -22,129 +95,195 @@ export default function SavedAddressesScreen({ navigation }) {
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <View style={{ height: 4, backgroundColor: colors.primary }} />
 
+      {/* Header */}
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
+          justifyContent: "space-between",
           paddingHorizontal: 20,
           paddingVertical: 16,
         }}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
-            alignItems: "center",
-            justifyContent: "center",
-            marginRight: 14,
-          }}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: "900",
-            color: colors.text,
-            letterSpacing: -0.5,
-            flex: 1,
-          }}
-        >
-          Saved Addresses
-        </Text>
-        <TouchableOpacity
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: colors.primary,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Ionicons name="add" size={22} color={colors.white} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              backgroundColor: colors.surfaceMuted,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 14,
+            }}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "900",
+              color: colors.text,
+              letterSpacing: -0.5,
+            }}
+          >
+            Delivery Address
+          </Text>
+        </View>
+        {isUpdating ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <TouchableOpacity
+            onPress={() => handleSave()}
+            disabled={!hasChanges}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 8,
+              backgroundColor: hasChanges ? colors.primary : colors.border,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: "600",
+                color: hasChanges ? "#fff" : colors.textMuted,
+              }}
+            >
+              Save
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: 48,
-          flex: addresses.length === 0 ? 1 : undefined,
-        }}
+        contentContainerStyle={{ padding: 20 }}
       >
-        {addresses.length === 0 ? (
+        {/* Address Info Card */}
+        <View
+          style={{
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            padding: 20,
+            borderWidth: 1.5,
+            borderColor: colors.border,
+          }}
+        >
           <View
             style={{
-              flex: 1,
+              flexDirection: "row",
               alignItems: "center",
-              justifyContent: "center",
-              paddingHorizontal: 40,
+              marginBottom: 16,
             }}
           >
             <View
               style={{
-                width: 72,
-                height: 72,
-                borderRadius: 36,
-                backgroundColor: colors.surfaceMuted,
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                backgroundColor: colors.primary + "20",
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 16,
+                marginRight: 14,
               }}
             >
-              <Ionicons
-                name="location-outline"
-                size={32}
-                color={colors.textLight}
-              />
+              <Ionicons name="home-outline" size={24} color={colors.primary} />
             </View>
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "800",
-                color: colors.text,
-                marginBottom: 8,
-                textAlign: "center",
-              }}
-            >
-              No saved addresses
-            </Text>
-            <Text
-              style={{
-                fontSize: 14,
-                color: colors.textMuted,
-                textAlign: "center",
-                lineHeight: 20,
-              }}
-            >
-              Save your favourite addresses for faster delivery booking.
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.primary,
-                paddingHorizontal: 24,
-                paddingVertical: 14,
-                borderRadius: 14,
-                marginTop: 24,
-              }}
-              activeOpacity={0.8}
-            >
+            <View style={{ flex: 1 }}>
               <Text
                 style={{
-                  color: colors.white,
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: "700",
+                  color: colors.text,
+                  marginBottom: 2,
                 }}
               >
-                Add Address
+                Primary Address
               </Text>
-            </TouchableOpacity>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: colors.textMuted,
+                }}
+              >
+                Used for all deliveries
+              </Text>
+            </View>
           </View>
-        ) : null}
+
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "600",
+              color: colors.textMuted,
+              marginBottom: 8,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Full Address
+          </Text>
+          <TextInput
+            value={address}
+            onChangeText={handleAddressChange}
+            placeholder="Enter your full delivery address..."
+            placeholderTextColor={colors.textLight}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            style={{
+              backgroundColor: colors.background,
+              borderRadius: 12,
+              padding: 16,
+              fontSize: 15,
+              color: colors.text,
+              borderWidth: 1.5,
+              borderColor: hasChanges ? colors.primary : colors.border,
+              minHeight: 120,
+              lineHeight: 22,
+            }}
+          />
+
+          {hasChanges && (
+            <Text
+              style={{
+                fontSize: 12,
+                color: colors.primary,
+                marginTop: 8,
+              }}
+            >
+              <Ionicons name="information-circle" size={12} /> You have unsaved changes
+            </Text>
+          )}
+        </View>
+
+        {/* Tips */}
+        <View
+          style={{
+            marginTop: 24,
+            backgroundColor: colors.surfaceMuted,
+            borderRadius: 12,
+            padding: 16,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "700",
+              color: colors.text,
+              marginBottom: 8,
+            }}
+          >
+            <Ionicons name="bulb-outline" size={16} /> Tips for accurate delivery
+          </Text>
+          <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 20 }}>
+            • Include house number and street name{"\n"}
+            • Add nearby landmark for easier location{"\n"}
+            • Include city and state information
+          </Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

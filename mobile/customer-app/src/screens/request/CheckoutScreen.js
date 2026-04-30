@@ -125,23 +125,23 @@ export default function CheckoutScreen() {
   };
 
   const renderCartItem = (item) => (
-    <View key={item.id} className="flex-row justify-between items-center py-2 border-b" style={{ borderBottomColor: theme.colors.border }}>
-      <View className="flex-1">
-        <Text className="text-sm font-medium mb-1" style={{ color: theme.colors.text.primary }}>{item.name}</Text>
-        <Text className="text-xs" style={{ color: theme.colors.text.secondary }}>Qty: {item.quantity}</Text>
+    <View key={item.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 4, color: theme.colors.text.primary }}>{item.name}</Text>
+        <Text style={{ fontSize: 12, color: theme.colors.text.secondary }}>Qty: {item.quantity}</Text>
       </View>
-      <Text className="text-sm font-semibold" style={{ color: theme.colors.text.primary }}>₦{(Number(item.basePrice) * item.quantity).toLocaleString()}</Text>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>₦{(Number(item.basePrice) * item.quantity).toLocaleString()}</Text>
     </View>
   );
 
   const renderAddressCard = () => {
     if (selectedAddress) {
       return (
-        <TouchableOpacity className="flex-row items-center bg-white rounded-xl p-4 border" style={{ borderColor: theme.colors.border }} onPress={handleAddressSelect}>
+        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: theme.colors.border }} onPress={handleAddressSelect}>
           <Ionicons name="location" size={20} color={theme.colors.primary} />
-          <View className="flex-1 ml-3">
-            <Text className="text-sm font-semibold mb-1" style={{ color: theme.colors.text.primary }}>{selectedAddress.label || 'Selected Address'}</Text>
-            <Text className="text-sm" style={{ color: theme.colors.text.secondary }} numberOfLines={1}>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 4, color: theme.colors.text.primary }}>{selectedAddress.label || 'Selected Address'}</Text>
+            <Text style={{ fontSize: 14, color: theme.colors.text.secondary }} numberOfLines={1}>
               {selectedAddress.address}
             </Text>
           </View>
@@ -151,9 +151,9 @@ export default function CheckoutScreen() {
     }
 
     return (
-      <TouchableOpacity className="flex-row items-center justify-center bg-white rounded-xl p-4 border border-dashed" style={{ borderColor: theme.colors.border }} onPress={handleAddressSelect}>
+      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.border }} onPress={handleAddressSelect}>
         <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
-        <Text className="text-sm font-medium ml-2" style={{ color: theme.colors.primary }}>Add Delivery Address</Text>
+        <Text style={{ fontSize: 14, fontWeight: '500', marginLeft: 8, color: theme.colors.primary }}>Add Delivery Address</Text>
       </TouchableOpacity>
     );
   };
@@ -163,8 +163,7 @@ export default function CheckoutScreen() {
     return (
       <TouchableOpacity
         key={method.id}
-        className={`flex-row items-center bg-white rounded-xl p-4 mb-2 border ${isSelected ? 'border-orange-600' : 'border-gray-200'}`}
-        style={{ backgroundColor: isSelected ? theme.colors.primary + '10' : undefined }}
+        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 8, borderWidth: 1, borderColor: isSelected ? '#EA580C' : '#E5E7EB', backgroundColor: isSelected ? theme.colors.primary + '10' : '#fff' }}
         onPress={() => setPaymentMethod(method.id)}
       >
         <Ionicons
@@ -172,11 +171,11 @@ export default function CheckoutScreen() {
           size={20}
           color={isSelected ? theme.colors.primary : theme.colors.text.secondary}
         />
-        <Text className={`flex-1 ml-3 text-sm ${isSelected ? 'font-semibold' : ''}`} style={{ color: theme.colors.text.primary }}>
+        <Text style={{ flex: 1, marginLeft: 12, fontSize: 14, fontWeight: isSelected ? '600' : '400', color: theme.colors.text.primary }}>
           {method.label}
         </Text>
         {method.id === 'wallet' && (
-          <Text className="text-sm font-semibold" style={{ color: theme.colors.primary }}>₦{Number(balance).toLocaleString()}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.primary }}>₦{Number(balance).toLocaleString()}</Text>
         )}
       </TouchableOpacity>
     );
@@ -184,52 +183,51 @@ export default function CheckoutScreen() {
 
   if (isCreating) {
     return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: theme.colors.background }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text className="mt-4 text-base" style={{ color: theme.colors.text.secondary }}>Placing your order...</Text>
+        <Text style={{ marginTop: 16, fontSize: 16, color: theme.colors.text.secondary }}>Placing your order...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.colors.background }} edges={['top']}>
-      <View className="flex-row items-center px-4 py-4 bg-white border-b" style={{ borderBottomColor: theme.colors.border }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} className="p-2">
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <Text className="flex-1 text-lg font-semibold text-center" style={{ color: theme.colors.text.primary }}>Checkout</Text>
-        <View className="w-10" />
+        <Text style={{ flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center', color: theme.colors.text.primary }}>Checkout</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Cart Items */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Order Summary</Text>
-          <View className="bg-white rounded-xl p-3">
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Order Summary</Text>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12 }}>
             {cart.map(renderCartItem)}
           </View>
         </View>
 
         {/* Delivery Address */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Delivery Address</Text>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Delivery Address</Text>
           {renderAddressCard()}
         </View>
 
         {/* Payment Method */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Payment Method</Text>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Payment Method</Text>
           {renderPaymentMethod({ id: 'wallet', label: 'Wallet Balance' })}
           {renderPaymentMethod({ id: 'card', label: 'Card (Coming Soon)' })}
           {renderPaymentMethod({ id: 'cash', label: 'Cash on Delivery' })}
         </View>
 
         {/* Special Instructions */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Special Instructions</Text>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Special Instructions</Text>
           <TextInput
-            className="bg-white rounded-xl p-4 text-sm border"
-            style={{ color: theme.colors.text.primary, borderColor: theme.colors.border }}
+            style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, fontSize: 14, borderWidth: 1, color: theme.colors.text.primary, borderColor: theme.colors.border }}
             placeholder="Add any special requests (optional)"
             value={specialInstructions}
             onChangeText={setSpecialInstructions}
@@ -239,51 +237,51 @@ export default function CheckoutScreen() {
         </View>
 
         {/* Cost Breakdown */}
-        <View className="mb-6">
-          <Text className="text-base font-semibold mb-3" style={{ color: theme.colors.text.primary }}>Cost Breakdown</Text>
-          <View className="flex-row justify-between py-2">
-            <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Subtotal</Text>
-            <Text className="text-sm" style={{ color: theme.colors.text.primary }}>₦{subtotal.toLocaleString()}</Text>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Cost Breakdown</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+            <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Subtotal</Text>
+            <Text style={{ fontSize: 14, color: theme.colors.text.primary }}>₦{subtotal.toLocaleString()}</Text>
           </View>
-          <View className="flex-row justify-between py-2">
-            <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Delivery Fee</Text>
-            <Text className="text-sm" style={{ color: theme.colors.text.primary }}>₦{DELIVERY_FEE.toLocaleString()}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+            <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Delivery Fee</Text>
+            <Text style={{ fontSize: 14, color: theme.colors.text.primary }}>₦{DELIVERY_FEE.toLocaleString()}</Text>
           </View>
-          <View className="flex-row justify-between py-2">
-            <Text className="text-sm" style={{ color: theme.colors.text.secondary }}>Platform Fee</Text>
-            <Text className="text-sm" style={{ color: theme.colors.text.primary }}>₦{PLATFORM_FEE.toLocaleString()}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+            <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Platform Fee</Text>
+            <Text style={{ fontSize: 14, color: theme.colors.text.primary }}>₦{PLATFORM_FEE.toLocaleString()}</Text>
           </View>
-          <View className="flex-row justify-between py-3 border-t mt-1" style={{ borderTopColor: theme.colors.border }}>
-            <Text className="text-base font-semibold" style={{ color: theme.colors.text.primary }}>Total</Text>
-            <Text className="text-base font-bold" style={{ color: theme.colors.primary }}>₦{total.toLocaleString()}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: 1, marginTop: 4, borderTopColor: theme.colors.border }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.text.primary }}>Total</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.colors.primary }}>₦{total.toLocaleString()}</Text>
           </View>
         </View>
       </ScrollView>
 
       {/* Footer */}
-      <View className="bg-white px-4 py-4 border-t" style={{ borderTopColor: theme.colors.border }}>
-        <TouchableOpacity className="bg-orange-600 py-4 rounded-xl items-center" onPress={handlePlaceOrder}>
-          <Text className="text-base font-bold text-white">Place Order - ₦{total.toLocaleString()}</Text>
+      <View style={{ backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 16, borderTopWidth: 1, borderTopColor: theme.colors.border }}>
+        <TouchableOpacity style={{ backgroundColor: '#EA580C', paddingVertical: 16, borderRadius: 12, alignItems: 'center' }} onPress={handlePlaceOrder}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Place Order - ₦{total.toLocaleString()}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <View className="absolute inset-0" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View className="bg-white rounded-2xl p-6 w-[80%] max-w-[320px]">
-            <Text className="text-lg font-bold mb-3 text-center" style={{ color: theme.colors.text.primary }}>Confirm Order</Text>
-            <Text className="text-sm mb-6 text-center" style={{ color: theme.colors.text.secondary }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '80%', maxWidth: 320 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12, textAlign: 'center', color: theme.colors.text.primary }}>Confirm Order</Text>
+            <Text style={{ fontSize: 14, marginBottom: 24, textAlign: 'center', color: theme.colors.text.secondary }}>
               Are you sure you want to place this order for ₦{total.toLocaleString()}?
             </Text>
-            <View className="flex-row gap-3">
+            <View style={{ flexDirection: 'row', gap: 12 }}>
               <TouchableOpacity
-                className="flex-1 py-3 rounded-lg items-center bg-gray-200"
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: '#E5E7EB' }}
                 onPress={() => setShowConfirmModal(false)}
               >
-                <Text className="text-sm font-semibold" style={{ color: theme.colors.text.primary }}>Cancel</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-1 py-3 rounded-lg items-center bg-orange-600" onPress={confirmOrder}>
-                <Text className="text-sm font-semibold text-white">Confirm</Text>
+              <TouchableOpacity style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: '#EA580C' }} onPress={confirmOrder}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
