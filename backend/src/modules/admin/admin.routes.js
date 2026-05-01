@@ -68,4 +68,7 @@ router.get('/transactions', validate(transactionOverviewSchema, 'query'), adminC
 router.get('/settings', adminController.getPlatformSettings);
 router.patch('/settings', validate(updatePlatformSettingsSchema), adminController.updatePlatformSettings);
 
+// Audit logs
+router.get('/audit-logs', adminController.getAuditLogs);
+
 module.exports = router;

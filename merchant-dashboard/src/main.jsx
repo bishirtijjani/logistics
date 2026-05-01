@@ -1,49 +1,17 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Merchant } from 'react-redux'
+import { Provider } from 'react-redux'
 import { store } from './store/store.js'
+import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import './index.css'
-import LoginPage from './pages/LoginPage.jsx'
-import Layout from './components/Layout.jsx'
-import OrdersPage from './pages/OrdersPage.jsx'
-import MenuPage from './pages/MenuPage.jsx'
-import EarningsPage from './pages/EarningsPage.jsx'
-import AnalyticsPage from './pages/AnalyticsPage.jsx'
-import SettingsPage from './pages/SettingsPage.jsx'
-
-function ProtectedRoute({ children }) {
-  const isAuthenticated = localStorage.getItem('merchant_token')
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-  return children
-}
+import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Merchant store={store}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/dashboard/:merchantId/*"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="orders" element={<OrdersPage />} />
-            <Route path="menu" element={<MenuPage />} />
-            <Route path="earnings" element={<EarningsPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route index element={<Navigate to="orders" replace />} />
-          </Route>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </Merchant>
+    <Provider store={store}>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </Provider>
   </StrictMode>,
 )

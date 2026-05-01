@@ -19,3 +19,4 @@ android/
 web-build/
 .DS_Store
 Thumbs.db
+.aider*

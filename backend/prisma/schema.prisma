@@ -761,3 +761,23 @@ model WebhookEvent {
   @@index([processed])
   @@map("webhook_events")
 }
+
+/// Audit log — tracks all admin actions for compliance and debugging.
+model AuditLog {
+  id          String   @id @default(uuid())
+  adminUserId String
+  action      String   /// "APPROVE_MERCHANT", "SUSPEND_USER", etc.
+  entityType  String   /// "MERCHANT", "USER", "RIDER", "REQUEST", etc.
+  entityId    String   /// ID of the affected entity
+  details     Json?    /// Additional context (e.g., reason, old value, new value)
+  ipAddress   String?
+  userAgent   String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([adminUserId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

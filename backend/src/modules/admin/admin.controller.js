@@ -220,6 +220,19 @@ const updatePlatformSettings = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// Audit Log Controllers
+// ============================================================
+
+const getAuditLogs = async (req, res, next) => {
+  try {
+    const { logs, total, page, limit } = await adminService.getAuditLogs(req.query);
+    res.json(ApiResponse.paginated('Audit logs', logs, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
@@ -242,4 +255,5 @@ module.exports = {
   getRiderDeliveryHistory,
   getPlatformSettings,
   updatePlatformSettings,
+  getAuditLogs,
 };

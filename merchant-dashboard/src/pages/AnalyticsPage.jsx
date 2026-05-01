@@ -58,38 +58,22 @@ export default function AnalyticsPage() {
     },
   ]
 
-  const revenueData = [
-    { month: 'Mon', revenue: 45000 },
-    { month: 'Tue', revenue: 52000 },
-    { month: 'Wed', revenue: 48000 },
-    { month: 'Thu', revenue: 61000 },
-    { month: 'Fri', revenue: 59000 },
-    { month: 'Sat', revenue: 72000 },
-    { month: 'Sun', revenue: 68000 },
-  ]
-
-  const ordersData = [
-    { day: 'Mon', orders: 12 },
-    { day: 'Tue', orders: 15 },
-    { day: 'Wed', orders: 13 },
-    { day: 'Thu', orders: 18 },
-    { day: 'Fri', orders: 16 },
-    { day: 'Sat', orders: 22 },
-    { day: 'Sun', orders: 19 },
-  ]
+  // Use real data from API - salesSummary should contain revenue and order trends
+  const revenueData = salesSummary?.revenueTrend || []
+  const ordersData = salesSummary?.orderTrend || []
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-gray-600">Track your sales and performance</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Analytics</h1>
+          <p className="text-gray-600 dark:text-gray-400">Track your sales and performance</p>
         </div>
         <div className="flex items-center gap-3">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
           >
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
@@ -101,7 +85,7 @@ export default function AnalyticsPage() {
               dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
               dispatch(fetchEarningsBreakdown({ merchantId, period }))
             }}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
           </button>
@@ -117,11 +101,11 @@ export default function AnalyticsPage() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {stats.map((stat) => (
-              <div key={stat.name} className="bg-white rounded-xl shadow-sm p-6">
+              <div key={stat.name} className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">{stat.name}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{stat.name}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{stat.value}</p>
                   </div>
                   <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
                     <stat.icon className="w-6 h-6 text-white" />
@@ -134,7 +118,7 @@ export default function AnalyticsPage() {
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Revenue Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -146,8 +130,8 @@ export default function AnalyticsPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Orders Trend</h3>
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Orders Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={ordersData}>
                   <CartesianGrid strokeDasharray="3 3" />

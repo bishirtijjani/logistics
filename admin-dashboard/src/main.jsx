@@ -1,17 +1,20 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { Merchant } from 'react-redux'
+import { Provider } from 'react-redux'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { store } from './store/store.js'
+import { ThemeProvider } from './contexts/ThemeContext.jsx'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Merchant store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </Merchant>
+    <Provider store={store}>
+      <ThemeProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ThemeProvider>
+    </Provider>
   </React.StrictMode>,
 )

@@ -347,6 +347,24 @@ const unsuspendMerchant = async (merchantId, adminId) => {
   return updated;
 };
 
+const deleteMerchant = async (merchantId, adminId) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+  });
+
+  if (!merchant) throw AppError.notFound('Merchant not found');
+
+  // Soft delete by setting isActive to false
+  const updated = await prisma.merchant.update({
+    where: { id: merchantId },
+    data: { isActive: false },
+  });
+
+  logger.info('Merchant deleted', { merchantId, adminId });
+
+  return updated;
+};
+
 // ============================================================
 // Merchant Dashboard Functions
 // ============================================================
@@ -818,6 +836,7 @@ module.exports = {
   rejectMerchant,
   suspendMerchant,
   unsuspendMerchant,
+  deleteMerchant,
   // Merchant dashboard functions
   getMerchantProfile,
   acceptMerchantOrder,

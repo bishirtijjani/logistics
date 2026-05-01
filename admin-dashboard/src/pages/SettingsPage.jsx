@@ -71,17 +71,17 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
 
       <div className="flex gap-6">
-        <div className="w-64 bg-white rounded-xl shadow-sm p-4">
+        <div className="w-64 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
           <nav className="space-y-1">
             <button
               onClick={() => setActiveTab('platform')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 activeTab === 'platform'
-                  ? 'bg-primary-50 text-primary-700 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               <Globe size={20} />
@@ -91,8 +91,8 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('commissions')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 activeTab === 'commissions'
-                  ? 'bg-primary-50 text-primary-700 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               <Percent size={20} />
@@ -102,8 +102,8 @@ export default function SettingsPage() {
               onClick={() => setActiveTab('notifications')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 activeTab === 'notifications'
-                  ? 'bg-primary-50 text-primary-700 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               <Bell size={20} />
@@ -114,25 +114,25 @@ export default function SettingsPage() {
 
         <div className="flex-1">
           {activeTab === 'platform' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Platform Configuration</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Platform Configuration</h2>
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Platform Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platform Name</label>
                   <input
                     type="text"
                     value={platformForm.platformName}
                     onChange={(e) => setPlatformForm({ ...platformForm, platformName: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Default Currency</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Currency</label>
                   <select
                     value={platformForm.defaultCurrency}
                     onChange={(e) => setPlatformForm({ ...platformForm, defaultCurrency: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none dark:bg-gray-700 dark:text-white"
                   >
                     <option value="NGN">Nigerian Naira (₦)</option>
                     <option value="USD">US Dollar ($)</option>
@@ -140,18 +140,18 @@ export default function SettingsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Timezone</label>
                   <select
                     value={platformForm.timezone}
                     onChange={(e) => setPlatformForm({ ...platformForm, timezone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none dark:bg-gray-700 dark:text-white"
                   >
                     <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
                     <option value="UTC">UTC</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Support Email</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Support Email</label>
                   <div className="relative">
                     <Mail size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -163,7 +163,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Support Phone</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Support Phone</label>
                   <div className="relative">
                     <Phone size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -190,12 +190,12 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'commissions' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Commission Defaults</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Commission Defaults</h2>
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Default Merchant Commission (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Merchant Commission (%)</label>
                   <div className="relative">
                     <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -209,7 +209,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Default Rider Commission (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Rider Commission (%)</label>
                   <div className="relative">
                     <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -223,7 +223,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Delivery Fee</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Minimum Delivery Fee</label>
                   <div className="relative">
                     <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -236,7 +236,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Delivery Fee</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maximum Delivery Fee</label>
                   <div className="relative">
                     <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
@@ -264,14 +264,14 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Notification Settings</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Notification Settings</h2>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">Email Notifications</p>
-                    <p className="text-sm text-gray-500">Receive notifications via email</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Email Notifications</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive notifications via email</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -284,10 +284,10 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">Push Notifications</p>
-                    <p className="text-sm text-gray-500">Receive push notifications in browser</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Push Notifications</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive push notifications in browser</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -300,10 +300,10 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">SMS Notifications</p>
-                    <p className="text-sm text-gray-500">Receive notifications via SMS</p>
+                    <p className="font-medium text-gray-900 dark:text-white">SMS Notifications</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive notifications via SMS</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -316,10 +316,10 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">New Order Alerts</p>
-                    <p className="text-sm text-gray-500">Alert when new orders are placed</p>
+                    <p className="font-medium text-gray-900 dark:text-white">New Order Alerts</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Alert when new orders are placed</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -332,10 +332,10 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">Rider Status Alerts</p>
-                    <p className="text-sm text-gray-500">Alert when rider status changes</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Rider Status Alerts</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Alert when rider status changes</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -348,10 +348,10 @@ export default function SettingsPage() {
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">Payment Alerts</p>
-                    <p className="text-sm text-gray-500">Alert on payment events</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Payment Alerts</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Alert on payment events</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input

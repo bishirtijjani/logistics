@@ -290,6 +290,21 @@ const unsuspendMerchant = async (req, res, next) => {
   }
 };
 
+const deleteMerchant = async (req, res, next) => {
+  try {
+    const { merchantId } = req.params;
+    const adminId = req.user.id;
+
+    await merchantService.deleteMerchant(merchantId, adminId);
+
+    res.json(
+      ApiResponse.success('Merchant deleted successfully', { success: true })
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ============================================================
 // Merchant Dashboard Controllers
 // ============================================================
@@ -555,6 +570,7 @@ module.exports = {
   rejectMerchant,
   suspendMerchant,
   unsuspendMerchant,
+  deleteMerchant,
   // Merchant dashboard controllers
   getMerchantProfile,
   acceptMerchantOrder,

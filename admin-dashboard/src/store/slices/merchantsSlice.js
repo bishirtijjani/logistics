@@ -55,6 +55,22 @@ export const updateMerchantCommission = createAsyncThunk(
   }
 )
 
+export const createMerchant = createAsyncThunk(
+  'merchants/create',
+  async (merchantData) => {
+    const response = await api.post('/admin/merchants', merchantData)
+    return response.data.data
+  }
+)
+
+export const deleteMerchant = createAsyncThunk(
+  'merchants/delete',
+  async (merchantId) => {
+    const response = await api.delete(`/admin/merchants/${merchantId}`)
+    return merchantId
+  }
+)
+
 const merchantsSlice = createSlice({
   name: 'merchants',
   initialState: {
@@ -112,6 +128,14 @@ const merchantsSlice = createSlice({
         if (index !== -1) {
           state.merchants[index] = action.payload
         }
+      })
+      .addCase(createMerchant.fulfilled, (state, action) => {
+        state.merchants.unshift(action.payload)
+        state.total += 1
+      })
+      .addCase(deleteMerchant.fulfilled, (state, action) => {
+        state.merchants = state.merchants.filter((m) => m.id !== action.payload)
+        state.total -= 1
       })
   },
 })

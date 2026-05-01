@@ -4,6 +4,7 @@ export default {
     "./index.html",
     "./src/**/*.{js,jsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -19,6 +20,12 @@ export default {
         // Component-compat aliases
         brand: '#EA580C',
         dark: '#09090b',
+        // Dark mode colors
+        'dark-background': '#09090b',
+        'dark-surface': '#1a1a1a',
+        'dark-surface-muted': '#2a2a2a',
+        'dark-text': '#FAFAFA',
+        'dark-muted': '#9CA3AF',
       },
     },
   },

@@ -7,6 +7,23 @@ const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 
 /**
+ * Create an audit log entry.
+ */
+const createAuditLog = async (adminUserId, action, entityType, entityId, details, ipAddress, userAgent) => {
+  await prisma.auditLog.create({
+    data: {
+      adminUserId,
+      action,
+      entityType,
+      entityId,
+      details,
+      ipAddress,
+      userAgent,
+    },
+  });
+};
+
+/**
  * List all riders pending approval.
  */
 const getPendingRiders = async ({ page = 1, limit = 20 }) => {
@@ -575,6 +592,52 @@ const updatePlatformSettings = async (settings) => {
   return { success: true, settings };
 };
 
+// ============================================================
+// Audit Log
+// ============================================================
+
+/**
+ * Get audit logs with filters.
+ */
+const getAuditLogs = async ({ page = 1, limit = 20, action, entityType, startDate, endDate }) => {
+  const where = {};
+
+  if (action) {
+    where.action = { contains: action, mode: 'insensitive' };
+  }
+
+  if (entityType) {
+    where.entityType = entityType;
+  }
+
+  if (startDate || endDate) {
+    where.createdAt = {};
+    if (startDate) {
+      where.createdAt.gte = new Date(startDate);
+    }
+    if (endDate) {
+      where.createdAt.lte = new Date(endDate);
+    }
+  }
+
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        adminUser: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    }),
+    prisma.auditLog.count({ where }),
+  ]);
+
+  return { logs, total, page, limit };
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
@@ -597,4 +660,6 @@ module.exports = {
   getRiderDeliveryHistory,
   getPlatformSettings,
   updatePlatformSettings,
+  createAuditLog,
+  getAuditLogs,
 };

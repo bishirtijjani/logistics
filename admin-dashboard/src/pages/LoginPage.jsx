@@ -16,15 +16,15 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
     setLoading(true)
 
     try {
       const response = await api.post('/auth/login', { email, password })
       const { user, tokens } = response.data.data
-      
+
       if (user.role !== 'ADMIN') {
         setError('Access denied. Admin only.')
+        setLoading(false)
         return
       }
 
@@ -35,6 +35,16 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleEmailChange = (e) => {
+    setEmail(e.target.value)
+    if (error) setError('')
+  }
+
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value)
+    if (error) setError('')
   }
 
   return (
@@ -63,7 +73,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 className="w-full px-4 py-2 border border-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                 placeholder="admin@vtulogistics.com"
                 required
@@ -72,16 +82,18 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-secondary mb-1">
-               d v className="relative">
-                <iPassword
-              </  label>
-              <i  nput{showPassword ? 'text' : ''}
+                Password
+              </label>
+              <div className="relative">
+                <input
                   id="password"
-                  type="password"
-                  value={password}pr-10 
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                 >
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={handlePasswordChange}
+                  className="w-full px-4 py-2 border border-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none pr-10"
+                  placeholder="••••••••"
+                  required
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -89,9 +101,7 @@ export default function LoginPage() {
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
-              </div placeholder="••••••••"
-                required
-              />
+              </div>
             </div>
 
             <button

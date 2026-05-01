@@ -84,6 +84,9 @@ router.patch('/:merchantId/suspend', authorize('ADMIN'), merchantController.susp
 // Unsuspend merchant (admin only)
 router.patch('/:merchantId/unsuspend', authorize('ADMIN'), merchantController.unsuspendMerchant);
 
+// Delete merchant (admin only)
+router.delete('/:merchantId', authorize('ADMIN'), merchantController.deleteMerchant);
+
 // ============================================================
 // Merchant Dashboard Endpoints
 // ============================================================

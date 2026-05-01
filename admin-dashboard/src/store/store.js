@@ -8,6 +8,7 @@ import usersReducer from './slices/usersSlice.js'
 import transactionsReducer from './slices/transactionsSlice.js'
 import settingsReducer from './slices/settingsSlice.js'
 import pendingRidersReducer from './slices/pendingRidersSlice.js'
+import auditLogsReducer from './slices/auditLogsSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -20,5 +21,6 @@ export const store = configureStore({
     transactions: transactionsReducer,
     settings: settingsReducer,
     pendingRiders: pendingRidersReducer,
+    auditLogs: auditLogsReducer,
   },
 })
