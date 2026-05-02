@@ -70,12 +70,10 @@ export default function MenuPage() {
     name: '',
     description: ''
   })
-  const [selectedCategory, setSelectedCategory] = useState('')
   const [sortBy, setSortBy] = useState('name') // name, price, stock, category
   const [lowStockThreshold, setLowStockThreshold] = useState(10)
   const [showLowStockAlert, setShowLowStockAlert] = useState(false)
   const [showInventoryModal, setShowInventoryModal] = useState(false)
-  const [stockAdjustments, setStockAdjustments] = useState([])
 
   useEffect(() => {
     dispatch(fetchProducts({ merchantId }))
@@ -643,7 +641,6 @@ export default function MenuPage() {
             )
           })}
         </div>
-      </div>
       </div>
 
       {loading ? (
