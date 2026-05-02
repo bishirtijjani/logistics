@@ -3,11 +3,16 @@ import api from '../../lib/api'
 
 export const fetchOrders = createAsyncThunk(
   'orders/fetchAll',
-  async ({ merchantId, page = 1, limit = 20, status }) => {
+  async ({ merchantId, page = 1, limit = 20, status, search, startDate, endDate, minPrice, maxPrice }) => {
     const params = new URLSearchParams({
       page,
       limit,
       ...(status && { status }),
+      ...(search && { search }),
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+      ...(minPrice && { minPrice }),
+      ...(maxPrice && { maxPrice }),
     })
     const response = await api.get(`/merchants/merchant/${merchantId}/orders?${params}`)
     return response.data.data

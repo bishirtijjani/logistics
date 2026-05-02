@@ -10,8 +10,21 @@ import {
   Filter,
   RefreshCw,
   Eye,
+  Search,
+  Calendar,
+  DollarSign,
+  Printer,
+  XCircle,
+  Edit3,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { TableSkeleton } from '../components/LoadingSkeleton.jsx'
+import { showErrorToast, showSuccessToast } from '../utils/toast.js'
+import { useWebSocket } from '../hooks/useWebSocket.js'
+import ConnectionStatus from '../components/ConnectionStatus.jsx'
+import OrderDetailsModal from '../components/OrderDetailsModal.jsx'
 
 export default function OrdersPage() {
   const { merchantId } = useParams()
@@ -19,16 +32,60 @@ export default function OrdersPage() {
   const { orders, loading, total, page, limit } = useSelector((state) => state.orders)
   const [filter, setFilter] = useState('')
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' })
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [selectedOrders, setSelectedOrders] = useState(new Set())
+  const [showBulkActionModal, setShowBulkActionModal] = useState(false)
+  const [bulkAction, setBulkAction] = useState('')
+  const [showOrderDetails, setShowOrderDetails] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportFormat, setExportFormat] = useState('csv')
+  const [showOrderModification, setShowOrderModification] = useState(false)
+  const [modifyingOrder, setModifyingOrder] = useState(null)
+  const [modifiedOrderData, setModifiedOrderData] = useState({
+    items: [],
+    specialInstructions: '',
+    notes: '',
+    deliveryAddress: ''
+  })
+  const [exportFields, setExportFields] = useState({
+    orderId: true,
+    customer: true,
+    status: true,
+    total: true,
+    date: true,
+    items: true,
+    deliveryLocation: false,
+    specialInstructions: false
+  })
+  
+  // WebSocket for real-time updates
+  const { isConnected, connectionStatus, reconnect } = useWebSocket(merchantId)
 
   useEffect(() => {
-    dispatch(fetchOrders({ merchantId, status: filter || undefined }))
-  }, [dispatch, merchantId, filter])
+    const params = {
+      merchantId,
+      status: filter || undefined,
+      search: searchTerm || undefined,
+      startDate: dateRange.start || undefined,
+      endDate: dateRange.end || undefined,
+      minPrice: priceRange.min || undefined,
+      maxPrice: priceRange.max || undefined,
+    }
+    
+    // Remove undefined values
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key])
+    
+    dispatch(fetchOrders(params))
+  }, [dispatch, merchantId, filter, searchTerm, dateRange, priceRange])
 
   const handleAccept = async (orderId) => {
     try {
       await dispatch(acceptOrder({ merchantId, requestId: orderId })).unwrap()
     } catch (err) {
-      console.error('Failed to accept order:', err)
+      showErrorToast('Failed to accept order. Please try again.')
     }
   }
 
@@ -38,7 +95,7 @@ export default function OrdersPage() {
       try {
         await dispatch(rejectOrder({ merchantId, requestId: orderId, reason })).unwrap()
       } catch (err) {
-        console.error('Failed to reject order:', err)
+        showErrorToast('Failed to reject order. Please try again.')
       }
     }
   }
@@ -47,49 +104,443 @@ export default function OrdersPage() {
     try {
       await dispatch(updateOrderStatus({ merchantId, requestId: orderId, status })).unwrap()
     } catch (err) {
-      console.error('Failed to update status:', err)
+      showErrorToast('Failed to update order status. Please try again.')
     }
+  }
+
+  const handleModifyOrder = (order) => {
+    setModifyingOrder(order)
+    setModifiedOrderData({
+      items: [...order.items],
+      specialInstructions: order.specialInstructions || '',
+      notes: order.notes || '',
+      deliveryAddress: order.deliveryLocation?.address || ''
+    })
+    setShowOrderModification(true)
+  }
+
+  const handleSaveOrderModification = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/orders/${modifyingOrder.id}/modify`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(modifiedOrderData)
+      })
+      
+      if (response.ok) {
+        // Refresh orders to show updated data
+        dispatch(fetchOrders({ merchantId }))
+        setShowOrderModification(false)
+        showSuccessToast('Order modified successfully')
+      } else {
+        throw new Error('Failed to modify order')
+      }
+    } catch (err) {
+      showErrorToast('Failed to modify order. Please try again.')
+    }
+  }
+
+  const handleAddItem = () => {
+    setModifiedOrderData({
+      ...modifiedOrderData,
+      items: [
+        ...modifiedOrderData.items,
+        {
+          id: Date.now(),
+          name: '',
+          price: 0,
+          quantity: 1,
+          customItem: true
+        }
+      ]
+    })
+  }
+
+  const handleUpdateItem = (index, field, value) => {
+    const updatedItems = [...modifiedOrderData.items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: value
+    }
+    setModifiedOrderData({
+      ...modifiedOrderData,
+      items: updatedItems
+    })
+  }
+
+  const handleRemoveItem = (index) => {
+    const updatedItems = modifiedOrderData.items.filter((_, i) => i !== index)
+    setModifiedOrderData({
+      ...modifiedOrderData,
+      items: updatedItems
+    })
+  }
+
+  const handleSelectOrder = (orderId) => {
+    const newSelected = new Set(selectedOrders)
+    if (newSelected.has(orderId)) {
+      newSelected.delete(orderId)
+    } else {
+      newSelected.add(orderId)
+    }
+    setSelectedOrders(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    if (selectedOrders.size === orders.length) {
+      setSelectedOrders(new Set())
+    } else {
+      setSelectedOrders(new Set(orders.map(order => order.id)))
+    }
+  }
+
+  const handleBulkAction = (action) => {
+    if (selectedOrders.size === 0) {
+      showErrorToast('Please select at least one order')
+      return
+    }
+    setBulkAction(action)
+    setShowBulkActionModal(true)
+  }
+
+  const executeBulkAction = async () => {
+    try {
+      const orderIds = Array.from(selectedOrders)
+      
+      if (bulkAction === 'accept') {
+        await Promise.all(orderIds.map(id => dispatch(acceptOrder({ merchantId, requestId: id })).unwrap()))
+        showSuccessToast(`${orderIds.length} orders accepted successfully`)
+      } else if (bulkAction === 'reject') {
+        await Promise.all(orderIds.map(id => dispatch(rejectOrder({ merchantId, requestId: id })).unwrap()))
+        showSuccessToast(`${orderIds.length} orders rejected successfully`)
+      } else if (bulkAction === 'cancel') {
+        await Promise.all(orderIds.map(id => dispatch(updateOrderStatus({ merchantId, requestId: id, status: 'CANCELLED' })).unwrap()))
+        showSuccessToast(`${orderIds.length} orders cancelled successfully`)
+      }
+      
+      setShowBulkActionModal(false)
+      setSelectedOrders(new Set())
+      dispatch(fetchOrders({ merchantId }))
+    } catch (err) {
+      showErrorToast(`Failed to ${bulkAction} orders. Please try again.`)
+    }
+  }
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+      await dispatch(updateOrderStatus({ merchantId, requestId: orderId, status: 'CANCELLED' })).unwrap()
+      showSuccessToast('Order cancelled successfully')
+    } catch (err) {
+      showErrorToast('Failed to cancel order. Please try again.')
+    }
+  }
+
+  const handlePrintReceipt = (order) => {
+    const printWindow = window.open('', '_blank')
+    const receiptContent = `
+      <html>
+        <head>
+          <title>Order Receipt #${order.id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .order-details { margin-bottom: 20px; }
+            .items { border-top: 1px solid #ccc; padding-top: 10px; }
+            .total { text-align: right; font-weight: bold; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Order Receipt</h1>
+            <p>Order #${order.id}</p>
+            <p>${new Date(order.createdAt).toLocaleString()}</p>
+          </div>
+          <div class="order-details">
+            <p><strong>Customer:</strong> ${order.customerName}</p>
+            <p><strong>Status:</strong> ${order.status}</p>
+            <p><strong>Total:</strong> $${order.total.toFixed(2)}</p>
+          </div>
+          <div class="items">
+            <h3>Items</h3>
+            ${order.items.map(item => `<p>${item.name} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</p>`).join('')}
+          </div>
+          <div class="total">
+            <p>Total: $${order.total.toFixed(2)}</p>
+          </div>
+        </body>
+      </html>
+    `
+    printWindow.document.write(receiptContent)
+    printWindow.document.close()
+    printWindow.print()
+  }
+
+  const handleExport = () => {
+    setShowExportModal(true)
+  }
+
+  const executeExport = () => {
+    const ordersToExport = selectedOrders.size > 0 ? 
+      orders.filter(order => selectedOrders.has(order.id)) : 
+      orders
+
+    if (exportFormat === 'csv') {
+      exportToCSV(ordersToExport)
+    } else if (exportFormat === 'pdf') {
+      exportToPDF(ordersToExport)
+    }
+    
+    setShowExportModal(false)
+  }
+
+  const exportToCSV = (ordersToExport) => {
+    const headers = []
+    const rows = []
+
+    // Build headers based on selected fields
+    if (exportFields.orderId) headers.push('Order ID')
+    if (exportFields.customer) headers.push('Customer Name')
+    if (exportFields.customer) headers.push('Customer Email')
+    if (exportFields.customer) headers.push('Customer Phone')
+    if (exportFields.status) headers.push('Status')
+    if (exportFields.total) headers.push('Total')
+    if (exportFields.date) headers.push('Order Date')
+    if (exportFields.items) headers.push('Items')
+    if (exportFields.deliveryLocation) headers.push('Delivery Address')
+    if (exportFields.specialInstructions) headers.push('Special Instructions')
+
+    // Build rows
+    ordersToExport.forEach(order => {
+      const row = []
+      
+      if (exportFields.orderId) row.push(`#${order.id.slice(0, 8)}`)
+      if (exportFields.customer) {
+        row.push(`${order.customer?.firstName || ''} ${order.customer?.lastName || ''}`.trim())
+        row.push(order.customer?.email || '')
+        row.push(order.customer?.phone || '')
+      }
+      if (exportFields.status) row.push(order.status?.replace(/_/g, ' ') || '')
+      if (exportFields.total) row.push(order.total?.toString() || '0')
+      if (exportFields.date) row.push(format(new Date(order.createdAt), 'yyyy-MM-dd HH:mm:ss'))
+      if (exportFields.items) {
+        const itemsText = order.items?.map(item => 
+          `${item.name} x${item.quantity} (₦${item.price})`
+        ).join('; ') || ''
+        row.push(itemsText)
+      }
+      if (exportFields.deliveryLocation) row.push(order.deliveryLocation?.address || '')
+      if (exportFields.specialInstructions) row.push(order.specialInstructions || '')
+      
+      rows.push(row)
+    })
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n')
+
+    // Download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `orders_export_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    showSuccessToast('Orders exported successfully')
+  }
+
+  const exportToPDF = (ordersToExport) => {
+    // For now, we'll create a simple text-based PDF export
+    // In a real application, you'd use a library like jsPDF
+    let pdfContent = 'ORDERS EXPORT REPORT\n'
+    pdfContent += `Generated: ${format(new Date(), 'yyyy-MM-dd HH:mm:ss')}\n`
+    pdfContent += `Total Orders: ${ordersToExport.length}\n\n`
+    pdfContent += '=' .repeat(80) + '\n\n'
+
+    ordersToExport.forEach((order, index) => {
+      pdfContent += `Order #${index + 1}\n`
+      pdfContent += `Order ID: #${order.id.slice(0, 8)}\n`
+      
+      if (exportFields.customer) {
+        pdfContent += `Customer: ${order.customer?.firstName || ''} ${order.customer?.lastName || ''}\n`
+        pdfContent += `Email: ${order.customer?.email || 'N/A'}\n`
+        pdfContent += `Phone: ${order.customer?.phone || 'N/A'}\n`
+      }
+      
+      if (exportFields.status) pdfContent += `Status: ${order.status?.replace(/_/g, ' ') || 'N/A'}\n`
+      if (exportFields.total) pdfContent += `Total: ₦${order.total || '0'}\n`
+      if (exportFields.date) pdfContent += `Date: ${format(new Date(order.createdAt), 'yyyy-MM-dd HH:mm:ss')}\n`
+      
+      if (exportFields.items && order.items) {
+        pdfContent += 'Items:\n'
+        order.items.forEach(item => {
+          pdfContent += `  - ${item.name} x${item.quantity} = ₦${item.price * item.quantity}\n`
+        })
+      }
+      
+      if (exportFields.deliveryLocation) {
+        pdfContent += `Delivery Address: ${order.deliveryLocation?.address || 'N/A'}\n`
+      }
+      
+      if (exportFields.specialInstructions) {
+        pdfContent += `Special Instructions: ${order.specialInstructions || 'None'}\n`
+      }
+      
+      pdfContent += '\n' + '-'.repeat(40) + '\n\n'
+    })
+
+    // Create and download PDF receipt
+    const blob = new Blob([pdfContent], { type: 'text/plain;charset=utf-8;' })
+    // Note: In production, replace with proper PDF library like jsPDF
+    // For now, using text format as PDF placeholder
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `orders_export_${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.txt`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    showSuccessToast('Orders exported successfully (PDF format - text file)')
   }
 
   const getStatusColor = (status) => {
     const colors = {
-      REQUESTED: 'bg-yellow-100 text-yellow-800',
-      ACCEPTED: 'bg-blue-100 text-blue-800',
-      PROCESSING: 'bg-purple-100 text-purple-800',
-      READY_FOR_PICKUP: 'bg-green-100 text-green-800',
-      RIDER_ASSIGNED: 'bg-indigo-100 text-indigo-800',
-      DELIVERED: 'bg-green-100 text-green-800',
-      CANCELLED: 'bg-red-100 text-red-800',
+      REQUESTED: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      ACCEPTED: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      PROCESSING: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+      READY_FOR_PICKUP: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      RIDER_ASSIGNED: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
+      DELIVERED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
     }
-    return colors[status] || 'bg-gray-100 text-gray-800'
+    return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600">Manage incoming and ongoing orders</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Orders</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage incoming and ongoing orders</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <ConnectionStatus 
+            isConnected={isConnected} 
+            connectionStatus={connectionStatus} 
+            onReconnect={reconnect} 
+          />
         </div>
         <div className="flex items-center gap-3">
+          {/* Search Input */}
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search by order ID or customer name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-64 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+            />
+          </div>
+          
+          {/* Status Filter */}
+          <div className="relative">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
             >
               <option value="">All Status</option>
               <option value="REQUESTED">Requested</option>
               <option value="ACCEPTED">Accepted</option>
               <option value="PROCESSING">Processing</option>
               <option value="READY_FOR_PICKUP">Ready for Pickup</option>
+              <option value="RIDER_ASSIGNED">Rider Assigned</option>
               <option value="DELIVERED">Delivered</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
+          
+          {/* Advanced Filters Toggle */}
           <button
-            onClick={() => dispatch(fetchOrders({ merchantId, status: filter || undefined }))}
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+          >
+            Advanced Filters
+          </button>
+          
+          {/* Export Button */}
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <Printer className="w-4 h-4" />
+            Export
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Bulk Action Buttons */}
+          {selectedOrders.size > 0 && (
+            <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
+              <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                {selectedOrders.size} selected
+              </span>
+              <button
+                onClick={() => handleBulkAction('accept')}
+                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+              >
+                Accept All
+              </button>
+              <button
+                onClick={() => handleBulkAction('reject')}
+                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
+              >
+                Reject All
+              </button>
+              <button
+                onClick={() => handleBulkAction('cancel')}
+                className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 transition-colors"
+              >
+                Cancel All
+              </button>
+              <button
+                onClick={() => setSelectedOrders(new Set())}
+                className="px-3 py-1 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+          
+          <button
+            onClick={() => {
+              const params = {
+                merchantId,
+                status: filter || undefined,
+                search: searchTerm || undefined,
+                startDate: dateRange.start || undefined,
+                endDate: dateRange.end || undefined,
+                minPrice: priceRange.min || undefined,
+                maxPrice: priceRange.max || undefined,
+              }
+              
+              // Remove undefined values
+              Object.keys(params).forEach(key => params[key] === undefined && delete params[key])
+              
+              dispatch(fetchOrders(params))
+            }}
             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
@@ -97,22 +548,107 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      {/* Advanced Filters */}
+      {showAdvancedFilters && (
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Advanced Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Date Range Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.start}
+                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.end}
+                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            
+            {/* Price Range Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <DollarSign className="w-4 h-4 inline mr-1" />
+                Min Price
+              </label>
+              <input
+                type="number"
+                placeholder="0.00"
+                value={priceRange.min}
+                onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <DollarSign className="w-4 h-4 inline mr-1" />
+                Max Price
+              </label>
+              <input
+                type="number"
+                placeholder="999.99"
+                value={priceRange.max}
+                onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+          
+          {/* Clear Filters Button */}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                setSearchTerm('')
+                setFilter('')
+                setDateRange({ start: '', end: '' })
+                setPriceRange({ min: '', max: '' })
+              }}
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm"
+            >
+              Clear All Filters
+            </button>
+          </div>
         </div>
+      )}
+
+      {loading ? (
+        <TableSkeleton rows={5} columns={6} />
       ) : !orders || orders.length === 0 ? (
         <div className="text-center py-12">
-          <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No orders found</h3>
-          <p className="text-gray-600">Orders will appear here when customers place them</p>
+          <Package className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No orders found</h3>
+          <p className="text-gray-600 dark:text-gray-400">Orders will appear here when customers place them</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
                 <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedOrders.size === orders.length && orders.length > 0}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Order ID
                   </th>
@@ -133,10 +669,18 @@ export default function OrdersPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                 {orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={order.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${selectedOrders.has(order.id) ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrders.has(order.id)}
+                        onChange={() => handleSelectOrder(order.id)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                       #{order.id.slice(0, 8)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -147,7 +691,7 @@ export default function OrdersPage() {
                         {order.status.replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100">
                       ₦{order.total?.toLocaleString() || '0'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -156,24 +700,52 @@ export default function OrdersPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setSelectedOrder(order)}
+                          onClick={() => setShowOrderDetails(true)}
                           className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          title="View Details"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handlePrintReceipt(order)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title="Print Receipt"
+                        >
+                          <Printer className="w-4 h-4" />
                         </button>
                         {order.status === 'REQUESTED' && (
                           <>
                             <button
                               onClick={() => handleAccept(order.id)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                              title="Accept Order"
                             >
                               <Check className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleReject(order.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                              title="Reject Order"
                             >
                               <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {(order.status === 'REQUESTED' || order.status === 'ACCEPTED') && (
+                          <>
+                            <button
+                              onClick={() => handleModifyOrder(order)}
+                              className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                              title="Modify Order"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleCancelOrder(order.id)}
+                              className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+                              title="Cancel Order"
+                            >
+                              <XCircle className="w-4 h-4" />
                             </button>
                           </>
                         )}
@@ -224,58 +796,341 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Order Details Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Order Details</h2>
+      {/* Bulk Action Confirmation Modal */}
+      {showBulkActionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl p-6 max-w-md w-full">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Confirm Bulk Action
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Are you sure you want to {bulkAction} {selectedOrders.size} order{selectedOrders.size > 1 ? 's' : ''}?
+              </p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowBulkActionModal(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeBulkAction}
+                className={`px-4 py-2 text-white rounded-lg font-medium ${
+                  bulkAction === 'accept' ? 'bg-green-600 hover:bg-green-700' :
+                  bulkAction === 'reject' ? 'bg-red-600 hover:bg-red-700' :
+                  'bg-orange-600 hover:bg-orange-700'
+                }`}
+              >
+                {bulkAction === 'accept' ? 'Accept' : bulkAction === 'reject' ? 'Reject' : 'Cancel'} {selectedOrders.size} Order{selectedOrders.size > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl p-6 max-w-md w-full">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Export Orders
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Export {selectedOrders.size > 0 ? selectedOrders.size : orders.length} order{selectedOrders.size > 1 || orders.length > 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Export Format */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Export Format
+              </label>
+              <div className="flex gap-2">
                 <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setExportFormat('csv')}
+                  className={`flex-1 px-3 py-2 rounded-lg border ${
+                    exportFormat === 'csv'
+                      ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                      : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  CSV
+                </button>
+                <button
+                  onClick={() => setExportFormat('pdf')}
+                  className={`flex-1 px-3 py-2 rounded-lg border ${
+                    exportFormat === 'pdf'
+                      ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                      : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300'
+                  }`}
+                >
+                  PDF
+                </button>
+              </div>
+            </div>
+
+            {/* Export Fields */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Export Fields
+              </label>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.orderId}
+                    onChange={(e) => setExportFields({...exportFields, orderId: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Order ID</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.customer}
+                    onChange={(e) => setExportFields({...exportFields, customer: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Customer Information</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.status}
+                    onChange={(e) => setExportFields({...exportFields, status: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Order Status</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.total}
+                    onChange={(e) => setExportFields({...exportFields, total: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Total Amount</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.date}
+                    onChange={(e) => setExportFields({...exportFields, date: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Order Date</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.items}
+                    onChange={(e) => setExportFields({...exportFields, items: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Order Items</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.deliveryLocation}
+                    onChange={(e) => setExportFields({...exportFields, deliveryLocation: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Delivery Location</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={exportFields.specialInstructions}
+                    onChange={(e) => setExportFields({...exportFields, specialInstructions: e.target.checked})}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Special Instructions</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeExport}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Export {exportFormat.toUpperCase()}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Details Modal */}
+      {showOrderDetails && (
+        <OrderDetailsModal
+          order={orders.find(o => selectedOrders.has(o.id)) || orders[0]}
+          onClose={() => setShowOrderDetails(false)}
+        />
+      )}
+
+      {/* Order Modification Modal */}
+      {showOrderModification && modifyingOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  Modify Order #{modifyingOrder.id.slice(0, 8)}
+                </h2>
+                <button
+                  onClick={() => setShowOrderModification(false)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Order ID</p>
-                  <p className="font-semibold text-gray-900">#{selectedOrder.id.slice(0, 8)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Status</p>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedOrder.status)}`}>
-                    {selectedOrder.status.replace(/_/g, ' ')}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Customer</p>
-                  <p className="font-semibold text-gray-900">
-                    {selectedOrder.customer?.firstName} {selectedOrder.customer?.lastName}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Phone</p>
-                  <p className="font-semibold text-gray-900">{selectedOrder.customer?.phone}</p>
-                </div>
-              </div>
+
+            <div className="p-6 space-y-6">
+              {/* Order Items */}
               <div>
-                <p className="text-sm text-gray-600 mb-2">Items</p>
-                <div className="border border-gray-200 rounded-lg divide-y divide-gray-200">
-                  {selectedOrder.items?.map((item, index) => (
-                    <div key={index} className="p-3 flex justify-between">
-                      <span className="text-gray-900">{item.name}</span>
-                      <span className="font-semibold">₦{item.price?.toLocaleString()} x {item.quantity}</span>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Order Items</h3>
+                  <button
+                    onClick={handleAddItem}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Item
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  {modifiedOrderData.items.map((item, index) => (
+                    <div key={item.id} className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <input
+                          type="text"
+                          placeholder="Item name"
+                          value={item.name}
+                          onChange={(e) => handleUpdateItem(index, 'name', e.target.value)}
+                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Price"
+                          value={item.price}
+                          onChange={(e) => handleUpdateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Quantity"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                          className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                        />
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 py-2">
+                          Total: ₦{(item.price * item.quantity).toLocaleString()}
+                        </div>
+                      </div>
+                      {item.customItem && (
+                        <button
+                          onClick={() => handleRemoveItem(index)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                <p className="text-lg font-semibold text-gray-900">Total</p>
-                <p className="text-2xl font-bold text-blue-600">₦{selectedOrder.total?.toLocaleString() || '0'}</p>
+
+              {/* Special Instructions */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Special Instructions
+                </label>
+                <textarea
+                  value={modifiedOrderData.specialInstructions}
+                  onChange={(e) => setModifiedOrderData({
+                    ...modifiedOrderData,
+                    specialInstructions: e.target.value
+                  })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                  placeholder="Add special instructions for this order..."
+                />
+              </div>
+
+              {/* Order Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Order Notes (Internal)
+                </label>
+                <textarea
+                  value={modifiedOrderData.notes}
+                  onChange={(e) => setModifiedOrderData({
+                    ...modifiedOrderData,
+                    notes: e.target.value
+                  })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                  placeholder="Add internal notes about this order..."
+                />
+              </div>
+
+              {/* Delivery Address */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Delivery Address
+                </label>
+                <textarea
+                  value={modifiedOrderData.deliveryAddress}
+                  onChange={(e) => setModifiedOrderData({
+                    ...modifiedOrderData,
+                    deliveryAddress: e.target.value
+                  })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                  placeholder="Update delivery address..."
+                />
+              </div>
+
+              {/* Order Summary */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    New Total:
+                  </span>
+                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    ₦{modifiedOrderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowOrderModification(false)}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveOrderModification}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
               </div>
             </div>
           </div>

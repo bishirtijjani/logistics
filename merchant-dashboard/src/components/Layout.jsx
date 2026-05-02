@@ -7,6 +7,8 @@ import {
   Utensils,
   Wallet,
   BarChart3,
+  MessageCircle,
+  Megaphone,
   Settings,
   LogOut,
   Store,
@@ -36,6 +38,8 @@ export default function Layout() {
     { name: 'Menu', href: `/dashboard/${merchantId}/menu`, icon: Utensils },
     { name: 'Earnings', href: `/dashboard/${merchantId}/earnings`, icon: Wallet },
     { name: 'Analytics', href: `/dashboard/${merchantId}/analytics`, icon: BarChart3 },
+    { name: 'Support', href: `/dashboard/${merchantId}/support`, icon: MessageCircle },
+    { name: 'Marketing', href: `/dashboard/${merchantId}/marketing`, icon: Megaphone },
     { name: 'Settings', href: `/dashboard/${merchantId}/settings`, icon: Settings },
   ]
 

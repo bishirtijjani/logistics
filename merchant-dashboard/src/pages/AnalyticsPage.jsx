@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useParams } from 'react-router-dom'
 import {
@@ -6,11 +6,17 @@ import {
   fetchOrderHistory,
   fetchEarningsBreakdown,
 } from '../store/slices/analyticsSlice.js'
+import { showSuccessToast, showErrorToast, showLoadingToast, dismissToast } from '../utils/toast.js'
+import LoadingSkeleton, { CardSkeleton, ChartSkeleton } from '../components/LoadingSkeleton.jsx'
 import {
   TrendingUp,
   DollarSign,
   ShoppingCart,
   RefreshCw,
+  AlertTriangle,
+  BarChart3,
+  Calendar,
+  Download,
 } from 'lucide-react'
 import {
   LineChart,
@@ -28,14 +34,137 @@ import {
 export default function AnalyticsPage() {
   const { merchantId } = useParams()
   const dispatch = useDispatch()
-  const { salesSummary, orderHistory, earningsBreakdown, loading } = useSelector((state) => state.analytics)
+  const { salesSummary, orderHistory, earningsBreakdown, loading, error } = useSelector((state) => state.analytics)
   const [period, setPeriod] = useState('7d')
+  const [isCustomRange, setIsCustomRange] = useState(false)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [refreshInterval, setRefreshInterval] = useState(30000) // 30 seconds
+  const intervalRef = useRef(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
+
+  // Data caching strategy
+  const cacheRef = useRef({
+    salesSummary: null,
+    orderHistory: null,
+    earningsBreakdown: null,
+    timestamp: null,
+    cacheExpiry: 5 * 60 * 1000 // 5 minutes
+  })
+
+  const fetchAnalyticsData = useCallback(async (useCache = true) => {
+    const now = Date.now()
+    const cache = cacheRef.current
+
+    // Check if cache is valid
+    if (useCache && cache.timestamp && (now - cache.timestamp) < cache.cacheExpiry) {
+      console.log('Using cached data')
+      return
+    }
+
+    const params = { merchantId }
+    if (isCustomRange && startDate && endDate) {
+      params.startDate = startDate
+      params.endDate = endDate
+    } else {
+      params.period = period
+    }
+
+    try {
+      await Promise.all([
+        dispatch(fetchSalesSummary(params)),
+        dispatch(fetchOrderHistory({ ...params, page: 1, limit: 10 })),
+        dispatch(fetchEarningsBreakdown(params))
+      ])
+      
+      // Update cache
+      cacheRef.current = {
+        salesSummary: salesSummary,
+        orderHistory: orderHistory,
+        earningsBreakdown: earningsBreakdown,
+        timestamp: now,
+        cacheExpiry: cache.cacheExpiry
+      }
+      setLastUpdated(new Date())
+    } catch (error) {
+      console.error('Failed to fetch analytics data:', error)
+    }
+  }, [dispatch, merchantId, period, isCustomRange, startDate, endDate, salesSummary, orderHistory, earningsBreakdown])
 
   useEffect(() => {
-    dispatch(fetchSalesSummary({ merchantId, period }))
-    dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
-    dispatch(fetchEarningsBreakdown({ merchantId, period }))
-  }, [dispatch, merchantId, period])
+    fetchAnalyticsData()
+  }, [fetchAnalyticsData])
+
+  // Auto-refresh functionality
+  useEffect(() => {
+    if (autoRefresh) {
+      intervalRef.current = setInterval(() => {
+        fetchAnalyticsData(false) // Don't use cache for auto-refresh
+      }, refreshInterval)
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [autoRefresh, refreshInterval, fetchAnalyticsData])
+
+  const handleCustomRangeSubmit = () => {
+    if (startDate && endDate) {
+      setIsCustomRange(true)
+      fetchAnalyticsData(false) // Don't use cache for custom range
+    }
+  }
+
+  const handlePeriodChange = (newPeriod) => {
+    setPeriod(newPeriod)
+    setIsCustomRange(false)
+    setStartDate('')
+    setEndDate('')
+  }
+
+  const exportData = async (format = 'csv') => {
+    try {
+      const params = { merchantId, format }
+      if (isCustomRange && startDate && endDate) {
+        params.startDate = startDate
+        params.endDate = endDate
+      } else {
+        params.period = period
+      }
+
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/merchants/${merchantId}/analytics/export?${new URLSearchParams(params)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `analytics_export_${new Date().toISOString().split('T')[0]}.${format}`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        showSuccessToast(`Analytics exported as ${format.toUpperCase()}`)
+      } else {
+        throw new Error('Failed to export data')
+      }
+    } catch (error) {
+      showErrorToast('Failed to export analytics data')
+    }
+  }
 
   const stats = [
     {
@@ -68,34 +197,159 @@ export default function AnalyticsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Analytics</h1>
           <p className="text-gray-600 dark:text-gray-400">Track your sales and performance</p>
+          {lastUpdated && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Period Selector */}
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => handlePeriodChange(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
           >
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
             <option value="90d">Last 90 Days</option>
+            <option value="custom">Custom Range</option>
           </select>
+
+          {/* Custom Date Range */}
+          {period === 'custom' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+              />
+              <span className="text-gray-500">to</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+              />
+              <button
+                onClick={handleCustomRangeSubmit}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                Apply
+              </button>
+            </div>
+          )}
+
+          {/* Auto Refresh Toggle */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="autoRefresh"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="autoRefresh" className="text-sm text-gray-700 dark:text-gray-300">
+              Auto-refresh
+            </label>
+            {autoRefresh && (
+              <select
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                className="px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded text-sm"
+              >
+                <option value={15000}>15s</option>
+                <option value={30000}>30s</option>
+                <option value={60000}>1m</option>
+                <option value={300000}>5m</option>
+              </select>
+            )}
+          </div>
+
+          {/* Export Button */}
           <button
-            onClick={() => {
-              dispatch(fetchSalesSummary({ merchantId, period }))
-              dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
-              dispatch(fetchEarningsBreakdown({ merchantId, period }))
+            onClick={() => exportData('csv')}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+
+          {/* Refresh Button */}
+          <button
+            onClick={async () => {
+              const toastId = showLoadingToast('Refreshing analytics data...')
+              try {
+                await fetchAnalyticsData(false)
+                dismissToast(toastId)
+                showSuccessToast('Analytics data refreshed successfully!')
+              } catch (error) {
+                dismissToast(toastId)
+                showErrorToast('Failed to refresh analytics data')
+              }
             }}
             className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            title="Refresh data"
           >
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      {error ? (
+        <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Failed to load analytics</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              dispatch(fetchSalesSummary({ merchantId, period }))
+              dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
+              dispatch(fetchEarningsBreakdown({ merchantId, period }))
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
+      ) : !salesSummary || (revenueData.length === 0 && ordersData.length === 0) ? (
+        <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No analytics data available</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Start receiving orders to see your sales analytics and performance metrics here.
+          </p>
+          <button
+            onClick={() => {
+              dispatch(fetchSalesSummary({ merchantId, period }))
+              dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
+              dispatch(fetchEarningsBreakdown({ merchantId, period }))
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Refresh Data
+          </button>
+        </div>
+      ) : loading ? (
+        <>
+          {/* Stats Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+
+          {/* Charts Skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
+        </>
       ) : (
         <>
           {/* Stats Cards */}
@@ -117,7 +371,7 @@ export default function AnalyticsPage() {
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Revenue Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
@@ -146,26 +400,167 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Earnings Breakdown */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Earnings Breakdown</h3>
+          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Earnings Breakdown</h3>
             {earningsBreakdown ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">Total Earnings</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Earnings</p>
                   <p className="text-3xl font-bold text-green-600">
                     ₦{earningsBreakdown.totalEarnings?.toLocaleString() || '0'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">Total Withdrawals</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Withdrawals</p>
                   <p className="text-3xl font-bold text-red-600">
                     ₦{earningsBreakdown.totalWithdrawals?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-600">No earnings data available</p>
+              <p className="text-gray-600 dark:text-gray-400">No earnings data available</p>
             )}
+          </div>
+
+          {/* Advanced Analytics Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Product Performance Analysis */}
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Product Performance</h3>
+              <div className="space-y-4">
+                {salesSummary?.topProducts?.slice(0, 5).map((product, index) => (
+                  <div key={product.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{product.orders} orders</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-gray-900 dark:text-gray-100">₦{product.revenue.toLocaleString()}</p>
+                      <p className="text-sm text-green-600">+{product.growth}%</p>
+                    </div>
+                  </div>
+                )) || <p className="text-gray-600 dark:text-gray-400">No product data available</p>}
+              </div>
+            </div>
+
+            {/* Customer Analytics */}
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Customer Analytics</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Customers</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {salesSummary?.customerAnalytics?.totalCustomers || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Repeat Customers</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {salesSummary?.customerAnalytics?.repeatCustomers || 0}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Customer Lifetime Value</p>
+                <p className="text-xl font-bold text-green-600">
+                  ₦{salesSummary?.customerAnalytics?.ltv?.toLocaleString() || '0'}
+                </p>
+              </div>
+            </div>
+
+            {/* Peak Hours Analysis */}
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Peak Hours Analysis</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={salesSummary?.peakHours || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="hour" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="orders" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Conversion Tracking */}
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Conversion Tracking</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Total Views</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {salesSummary?.conversionTracking?.totalViews?.toLocaleString() || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Total Orders</span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                    {salesSummary?.conversionTracking?.totalOrders || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Conversion Rate</span>
+                  <span className="font-medium text-green-600">
+                    {salesSummary?.conversionTracking?.conversionRate || 0}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Delivery Zone Performance */}
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Delivery Zone Performance</h3>
+              <div className="space-y-3">
+                {salesSummary?.deliveryZones?.slice(0, 4).map((zone, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{zone.name}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{zone.orders} orders</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Avg Time</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{zone.avgDeliveryTime}m</p>
+                    </div>
+                  </div>
+                )) || <p className="text-gray-600 dark:text-gray-400">No delivery zone data available</p>}
+              </div>
+            </div>
+
+            {/* Cancellation Rate Analysis */}
+            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Cancellation Analysis</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Orders</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    {salesSummary?.cancellationAnalysis?.totalOrders || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Cancelled</p>
+                  <p className="text-xl font-bold text-red-600">
+                    {salesSummary?.cancellationAnalysis?.cancelledOrders || 0}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Cancellation Rate</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-red-600 h-2 rounded-full" 
+                      style={{ width: `${salesSummary?.cancellationAnalysis?.cancellationRate || 0}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-red-600">
+                    {salesSummary?.cancellationAnalysis?.cancellationRate || 0}%
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </>
       )}
