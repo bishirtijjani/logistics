@@ -112,11 +112,58 @@ async function main() {
 
   console.log(`✅ Test rider created: ${riderUser.email} (approved, balance: ₦15,000)`);
 
+  // Create test merchant
+  const merchantPassword = await bcrypt.hash('merchant123', SALT_ROUNDS);
+  const merchantPin = await bcrypt.hash('333333', SALT_ROUNDS);
+
+  const merchantUser = await prisma.user.upsert({
+    where: { email: 'merchant@test.com' },
+    update: {},
+    create: {
+      phone: '08055556666',
+      firstName: 'Test',
+      lastName: 'Merchant',
+      email: 'merchant@test.com',
+      passwordHash: merchantPassword,
+      transactionPin: merchantPin,
+      role: 'MERCHANT',
+      status: 'ACTIVE',
+      wallet: {
+        create: {
+          balance: 25000,
+          virtualAccountNumber: '8055556666',
+          virtualAccountBank: 'Wema Bank',
+          virtualAccountName: 'VTU-Test Merchant',
+        },
+      },
+      merchant: {
+        create: {
+          type: 'RESTAURANT',
+          name: 'Test Restaurant',
+          description: 'A test restaurant for development',
+          phone: '08055556666',
+          email: 'merchant@test.com',
+          address: '123 Test Street, Katsina',
+          lat: 13.0059,
+          lng: 7.6017,
+          status: 'APPROVED',
+          averageRating: 4.2,
+          deliveryRadius: 5.0,
+          deliveryFee: 200,
+          minimumOrder: 500,
+        },
+      },
+    },
+  });
+
+  console.log(`✅ Test merchant created: ${merchantUser.email} (approved, balance: ₦25,000)`);
+
   console.log('\n🌱 Seeding complete!');
   console.log('---');
   console.log('Admin login:    admin@vtulogistics.com / admin123456 (PIN: 000000)');
   console.log('Customer login: customer@test.com / customer123 (PIN: 111111)');
   console.log('Rider login:    rider@test.com / rider123456 (PIN: 222222)');
+  console.log('Merchant login: merchant@test.com / merchant123 (PIN: 333333)');
 }
 
 main()
