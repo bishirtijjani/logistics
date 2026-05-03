@@ -37,6 +37,12 @@ router.post(
   validate(registerSchema),
   authController.register,
 );
+router.post(
+  "/merchant/register",
+  registrationLimiter,
+  validate(merchantRegisterSchema),
+  authController.merchantRegister,
+);
 router.post("/login", authLimiter, validate(loginSchema), authController.login);
 router.post(
   "/otp/send",

@@ -28,13 +28,13 @@ export default function DashboardPage() {
       title: 'Total Requests',
       value: stats?.totalRequests || 0,
       icon: Package,
-      color: 'bg-blue-500',
+      color: 'bg-primary',
     },
     {
       title: 'Active Requests',
       value: stats?.activeRequests || 0,
       icon: TrendingUp,
-      color: 'bg-green-500',
+      color: 'bg-success',
     },
     {
       title: 'Total Revenue',
@@ -82,21 +82,21 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Dashboard</h1>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading dashboard...</div>
+        <div className="text-center py-12 text-muted dark:text-dark-muted">Loading dashboard...</div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {statCards.map((card) => {
               const Icon = card.icon
               return (
-                <div key={card.title} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+                <div key={card.title} className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{card.title}</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{card.value}</p>
+                      <p className="text-sm font-medium text-muted dark:text-dark-muted">{card.title}</p>
+                      <p className="text-2xl font-bold text-text dark:text-dark-text mt-1">{card.value}</p>
                     </div>
                     <div className={`${card.color} p-3 rounded-lg`}>
                       <Icon size={24} className="text-white" />
@@ -108,8 +108,8 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Trends</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Revenue Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -121,8 +121,8 @@ export default function DashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Request Trends</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Request Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={requestsData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -138,77 +138,77 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
             {/* Pending Merchants */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Merchants</h3>
-                <Link to="/merchants" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                <h3 className="text-lg font-semibold text-text dark:text-dark-text">Pending Merchants</h3>
+                <Link to="/merchants" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">
                   View All
                 </Link>
               </div>
               <div className="space-y-3">
                 {stats?.pendingMerchants?.slice(0, 3)?.map((merchant) => (
-                  <div key={merchant.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div key={merchant.id} className="flex items-center justify-between p-3 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                        <Store size={16} className="text-primary-600 dark:text-primary-300" />
+                      <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                        <Store size={16} className="text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{merchant.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{merchant.type}</p>
+                        <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.name}</p>
+                        <p className="text-xs text-muted dark:text-dark-muted">{merchant.type}</p>
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <button className="p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400">
+                      <button className="p-1.5 bg-success/10 text-success rounded hover:bg-success/20 dark:bg-success/20 dark:text-success">
                         <Check size={14} />
                       </button>
-                      <button className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400">
+                      <button className="p-1.5 bg-error/10 text-error rounded hover:bg-error/20 dark:bg-error/20 dark:text-error">
                         <X size={14} />
                       </button>
                     </div>
                   </div>
                 )) || (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No pending merchants</p>
+                  <p className="text-sm text-muted dark:text-dark-muted text-center py-4">No pending merchants</p>
                 )}
               </div>
             </div>
 
             {/* Failed Transactions */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Failed Transactions</h3>
-                <Link to="/transactions" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                <h3 className="text-lg font-semibold text-text dark:text-dark-text">Failed Transactions</h3>
+                <Link to="/transactions" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">
                   View All
                 </Link>
               </div>
               <div className="space-y-3">
                 {stats?.failedTransactions?.slice(0, 3)?.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div key={transaction.id} className="flex items-center justify-between p-3 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">#{transaction.id.slice(-8)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">₦{transaction.amount?.toLocaleString()}</p>
+                      <p className="text-sm font-medium text-text dark:text-dark-text">#{transaction.id.slice(-8)}</p>
+                      <p className="text-xs text-muted dark:text-dark-muted">₦{transaction.amount?.toLocaleString()}</p>
                     </div>
-                    <span className="text-xs text-red-600 dark:text-red-400 font-medium">Failed</span>
+                    <span className="text-xs text-error font-medium">Failed</span>
                   </div>
                 )) || (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No failed transactions</p>
+                  <p className="text-sm text-muted dark:text-dark-muted text-center py-4">No failed transactions</p>
                 )}
               </div>
             </div>
 
             {/* Pending Riders */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pending Riders</h3>
-                <Link to="/pending-riders" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
+                <h3 className="text-lg font-semibold text-text dark:text-dark-text">Pending Riders</h3>
+                <Link to="/pending-riders" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">
                   View All
                 </Link>
               </div>
               <div className="text-center py-4">
-                <div className="w-16 h-16 mx-auto mb-3 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                  <UserCheck size={32} className="text-primary-600 dark:text-primary-300" />
+                <div className="w-16 h-16 mx-auto mb-3 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center">
+                  <UserCheck size={32} className="text-primary" />
                 </div>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.pendingRiders || 0}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Pending Applications</p>
+                <p className="text-3xl font-bold text-text dark:text-dark-text">{stats?.pendingRiders || 0}</p>
+                <p className="text-sm text-muted dark:text-dark-muted">Pending Applications</p>
               </div>
             </div>
           </div>

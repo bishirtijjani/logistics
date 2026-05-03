@@ -683,8 +683,109 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
+const merchantRegister = async ({
+  email,
+  phone,
+  firstName,
+  lastName,
+  password,
+  businessName,
+  businessType,
+  businessPhone,
+  businessEmail,
+  businessAddress,
+  lat,
+  lng,
+  openingTime,
+  closingTime,
+}) => {
+  // Check if user already exists
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    throw AppError.conflict("Email already registered");
+  }
+
+  // Check if phone already exists
+  const phoneExists = await prisma.user.findUnique({ where: { phone } });
+  if (phoneExists) {
+    throw AppError.conflict("Phone number already registered");
+  }
+
+  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  const pinHash = await bcrypt.hash("000000", SALT_ROUNDS); // Default PIN for merchants
+
+  // Create user with merchant role and merchant profile
+  const user = await prisma.user.create({
+    data: {
+      email,
+      phone,
+      firstName,
+      lastName,
+      passwordHash,
+      transactionPin: pinHash,
+      role: 'MERCHANT',
+      status: 'PENDING', // Pending email verification
+      wallet: {
+        create: {
+          balance: 0,
+        },
+      },
+      merchant: {
+        create: {
+          type: businessType,
+          name: businessName,
+          description: `${businessType} business`,
+          phone: businessPhone,
+          email: businessEmail,
+          address: businessAddress,
+          lat,
+          lng,
+          openingTime,
+          closingTime,
+          status: 'PENDING_APPROVAL', // Merchant needs admin approval
+          averageRating: 0,
+          isOpen: false,
+          isActive: true,
+        },
+      },
+    },
+    include: {
+      merchant: true,
+    },
+  });
+
+  // Create merchant wallet
+  await prisma.merchantWallet.create({
+    data: {
+      merchantId: user.merchant.id,
+      availableBalance: 0,
+      pendingBalance: 0,
+      totalEarnings: 0,
+    },
+  });
+
+  // Generate OTP for email verification
+  const code = await generateOtp(email);
+
+  logger.info("Merchant registered successfully", { 
+    userId: user.id, 
+    email, 
+    businessName,
+    merchantId: user.merchant.id 
+  });
+
+  return { 
+    email, 
+    userId: user.id,
+    merchantId: user.merchant.id,
+    businessName,
+    devOtp: code, // Include OTP in dev mode for testing
+  };
+};
+
 module.exports = {
   register,
+  merchantRegister,
   login,
   generateOtp,
   verifyOtp,

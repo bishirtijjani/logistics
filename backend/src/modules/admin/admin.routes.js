@@ -71,4 +71,39 @@ router.patch('/settings', validate(updatePlatformSettingsSchema), adminControlle
 // Audit logs
 router.get('/audit-logs', adminController.getAuditLogs);
 
+// Platform analytics
+router.get('/analytics/revenue', adminController.getRevenueAnalytics);
+router.get('/analytics/orders', adminController.getOrderAnalytics);
+router.get('/analytics/customers', adminController.getCustomerAnalytics);
+router.get('/analytics/geographic', adminController.getGeographicAnalytics);
+router.get('/analytics/realtime', adminController.getRealtimeMetrics);
+
+// Withdrawal management
+router.get('/withdrawals/pending', adminController.getPendingWithdrawals);
+router.patch('/withdrawals/:withdrawalId/approve', adminController.approveWithdrawal);
+router.patch('/withdrawals/:withdrawalId/reject', adminController.rejectWithdrawal);
+router.get('/withdrawals/history', adminController.getWithdrawalHistory);
+
+// Dispute resolution
+router.get('/disputes', adminController.getDisputes);
+router.patch('/disputes/:disputeId/resolve', adminController.resolveDispute);
+
+// Support management
+router.get('/support/tickets', adminController.getSupportTickets);
+router.patch('/support/tickets/:ticketId/status', adminController.updateTicketStatus);
+
+// Marketing oversight
+router.get('/marketing/campaigns', adminController.getPlatformCampaigns);
+router.get('/marketing/discounts', adminController.getDiscountCodes);
+router.patch('/marketing/discounts/:discountId/approve', adminController.approveDiscountCode);
+router.patch('/marketing/discounts/:discountId/reject', adminController.rejectDiscountCode);
+
+// Rider operations
+router.get('/riders/performance', adminController.getRiderPerformance);
+router.get('/riders/realtime', adminController.getRiderRealtimeLocation);
+
+// Safety & compliance
+router.get('/safety/incidents', adminController.getSafetyIncidents);
+router.get('/safety/compliance', adminController.getComplianceReport);
+
 module.exports = router;

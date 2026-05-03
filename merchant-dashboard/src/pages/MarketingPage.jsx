@@ -302,11 +302,11 @@ export default function MarketingPage() {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
       case 'completed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-      case 'draft': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+      case 'draft': return 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'
       case 'expired': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
       case 'sent': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
       case 'scheduled': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
+      default: return 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'
     }
   }
 
@@ -318,13 +318,13 @@ export default function MarketingPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Marketing Tools</h1>
-        <p className="text-gray-600 dark:text-gray-400">Manage campaigns, discounts, and customer engagement</p>
+        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Marketing Tools</h1>
+        <p className="text-muted dark:text-dark-muted">Manage campaigns, discounts, and customer engagement</p>
       </div>
 
       {/* Tabs */}
       <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm mb-6">
-        <div className="border-b border-gray-200 dark:border-gray-700">
+        <div className="border-b border-surface-muted dark:border-dark-surface-muted">
           <div className="flex space-x-8 px-6">
             {['campaigns', 'discounts', 'loyalty', 'email'].map((tab) => (
               <button
@@ -332,8 +332,8 @@ export default function MarketingPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
                   activeTab === tab
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    ? 'border-primary text-primary dark:text-primary'
+                    : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
                 }`}
               >
                 {tab === 'discounts' ? 'Discount Codes' : tab}
@@ -347,7 +347,7 @@ export default function MarketingPage() {
       {activeTab === 'campaigns' && (
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Promotional Campaigns</h2>
+            <h2 className="text-lg font-semibold text-text dark:text-dark-text">Promotional Campaigns</h2>
             <button
               onClick={() => setShowCampaignModal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -365,7 +365,7 @@ export default function MarketingPage() {
                     {campaign.status}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button className="p-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                    <button className="p-1 text-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
                       <Edit className="w-4 h-4" />
                     </button>
                     <button className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
@@ -373,21 +373,21 @@ export default function MarketingPage() {
                     </button>
                   </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{campaign.name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{campaign.description}</p>
+                <h3 className="font-semibold text-text dark:text-dark-text mb-2">{campaign.name}</h3>
+                <p className="text-sm text-muted dark:text-dark-muted mb-4">{campaign.description}</p>
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Budget</span>
+                    <span className="text-muted dark:text-dark-muted">Budget</span>
                     <span className="font-medium">₦{campaign.budget.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Spent</span>
+                    <span className="text-muted dark:text-dark-muted">Spent</span>
                     <span className="font-medium">₦{campaign.spent.toLocaleString()}</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-surface-muted dark:bg-dark-surface-muted rounded-full h-2">
                     <div 
-                      className="bg-blue-600 h-2 rounded-full" 
+                      className="bg-primary h-2 rounded-full" 
                       style={{ width: `${(campaign.spent / campaign.budget) * 100}%` }}
                     />
                   </div>
@@ -395,11 +395,11 @@ export default function MarketingPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400">Impressions</p>
+                    <p className="text-muted dark:text-dark-muted">Impressions</p>
                     <p className="font-medium">{campaign.performance.impressions.toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400">Conversions</p>
+                    <p className="text-muted dark:text-dark-muted">Conversions</p>
                     <p className="font-medium">{campaign.performance.conversions}</p>
                   </div>
                 </div>
@@ -413,7 +413,7 @@ export default function MarketingPage() {
       {activeTab === 'discounts' && (
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Discount Codes</h2>
+            <h2 className="text-lg font-semibold text-text dark:text-dark-text">Discount Codes</h2>
             <button
               onClick={() => setShowDiscountModal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -426,58 +426,58 @@ export default function MarketingPage() {
           <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+                <thead className="bg-surface-muted dark:bg-dark-surface-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">
                       Code
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">
                       Type
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">
                       Value
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">
                       Usage
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">
                       Revenue
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
                   {discountCodes.map((discount) => (
-                    <tr key={discount.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <tr key={discount.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900 dark:text-gray-100">{discount.code}</span>
+                          <span className="font-medium text-text dark:text-dark-text">{discount.code}</span>
                           <button
                             onClick={() => copyToClipboard(discount.code)}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="text-muted hover:text-text dark:hover:text-dark-text"
                           >
                             <Copy className="w-3 h-3" />
                           </button>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-900 dark:text-gray-100 capitalize">{discount.type}</span>
+                        <span className="text-sm text-text dark:text-dark-text capitalize">{discount.type}</span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span className="text-sm font-medium text-text dark:text-dark-text">
                           {discount.type === 'percentage' ? `${discount.value}%` : `₦${discount.value}`}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                        <div className="text-sm text-text dark:text-dark-text">
                           {discount.used} / {discount.usageLimit}
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 mt-1">
+                        <div className="w-full bg-surface-muted dark:bg-dark-surface-muted rounded-full h-1 mt-1">
                           <div 
                             className="bg-blue-600 h-1 rounded-full" 
                             style={{ width: `${(discount.used / discount.usageLimit) * 100}%` }}
@@ -489,7 +489,7 @@ export default function MarketingPage() {
                           {discount.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text dark:text-dark-text">
                         ₦{discount.revenue.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -515,7 +515,7 @@ export default function MarketingPage() {
       {activeTab === 'loyalty' && (
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Loyalty Program</h2>
+            <h2 className="text-lg font-semibold text-text dark:text-dark-text">Loyalty Program</h2>
             <button
               onClick={() => setShowLoyaltyModal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -530,22 +530,22 @@ export default function MarketingPage() {
               <div className="lg:col-span-2 space-y-6">
                 {/* Program Overview */}
                 <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">{loyaltyProgram.name}</h3>
+                  <h3 className="font-semibold text-text dark:text-dark-text mb-4">{loyaltyProgram.name}</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Members</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{loyaltyProgram.activeMembers.toLocaleString()}</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">Active Members</p>
+                      <p className="text-2xl font-bold text-text dark:text-dark-text">{loyaltyProgram.activeMembers.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Points Issued</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">Points Issued</p>
                       <p className="text-2xl font-bold text-blue-600">{loyaltyProgram.totalPointsIssued.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Points Redeemed</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">Points Redeemed</p>
                       <p className="text-2xl font-bold text-green-600">{loyaltyProgram.totalPointsRedeemed.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Redemption Rate</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">Redemption Rate</p>
                       <p className="text-2xl font-bold text-purple-600">{loyaltyProgram.redemptionRate} pts</p>
                     </div>
                   </div>
@@ -553,10 +553,10 @@ export default function MarketingPage() {
 
                 {/* Loyalty Tiers */}
                 <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Membership Tiers</h3>
+                  <h3 className="font-semibold text-text dark:text-dark-text mb-4">Membership Tiers</h3>
                   <div className="space-y-4">
                     {loyaltyProgram.tiers.map((tier, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <div key={index} className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                         <div className="flex items-center gap-4">
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                             index === 0 ? 'bg-amber-100 dark:bg-amber-900/30' :
@@ -570,13 +570,13 @@ export default function MarketingPage() {
                             }`} />
                           </div>
                           <div>
-                            <h4 className="font-medium text-gray-900 dark:text-gray-100">{tier.name}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{tier.benefits}</p>
+                            <h4 className="font-medium text-text dark:text-dark-text">{tier.name}</h4>
+                            <p className="text-sm text-muted dark:text-dark-muted">{tier.benefits}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{tier.members} members</p>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{tier.minPoints}+ pts</p>
+                          <p className="text-sm text-muted dark:text-dark-muted">{tier.members} members</p>
+                          <p className="text-sm font-medium text-text dark:text-dark-text">{tier.minPoints}+ pts</p>
                         </div>
                       </div>
                     ))}
@@ -586,19 +586,19 @@ export default function MarketingPage() {
 
               {/* Settings */}
               <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Program Settings</h3>
+                <h3 className="font-semibold text-text dark:text-dark-text mb-4">Program Settings</h3>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Points per ₦1</p>
-                    <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{loyaltyProgram.pointsPerNaira} point</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Points per ₦1</p>
+                    <p className="text-lg font-medium text-text dark:text-dark-text">{loyaltyProgram.pointsPerNaira} point</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Redemption Rate</p>
-                    <p className="text-lg font-medium text-gray-900 dark:text-gray-100">₦{loyaltyProgram.redemptionRate} = 100 pts</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Redemption Rate</p>
+                    <p className="text-lg font-medium text-text dark:text-dark-text">₦{loyaltyProgram.redemptionRate} = 100 pts</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Welcome Bonus</p>
-                    <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{loyaltyProgram.welcomeBonus} points</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Welcome Bonus</p>
+                    <p className="text-lg font-medium text-text dark:text-dark-text">{loyaltyProgram.welcomeBonus} points</p>
                   </div>
                 </div>
               </div>
@@ -611,7 +611,7 @@ export default function MarketingPage() {
       {activeTab === 'email' && (
         <div>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Email Marketing</h2>
+            <h2 className="text-lg font-semibold text-text dark:text-dark-text">Email Marketing</h2>
             <button
               onClick={() => setShowEmailModal(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -629,40 +629,40 @@ export default function MarketingPage() {
                     {campaign.status}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button className="p-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                    <button className="p-1 text-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button className="p-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
+                    <button className="p-1 text-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
                       <Edit className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">{campaign.subject}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 capitalize">{campaign.template} template</p>
+                <h3 className="font-semibold text-text dark:text-dark-text mb-2">{campaign.subject}</h3>
+                <p className="text-sm text-muted dark:text-dark-muted mb-4 capitalize">{campaign.template} template</p>
                 
                 {campaign.status === 'sent' && (
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Sent</span>
+                      <span className="text-muted dark:text-dark-muted">Sent</span>
                       <span className="font-medium">{campaign.performance.sent.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Opened</span>
+                      <span className="text-muted dark:text-dark-muted">Opened</span>
                       <span className="font-medium">{campaign.performance.opened.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Clicked</span>
+                      <span className="text-muted dark:text-dark-muted">Clicked</span>
                       <span className="font-medium">{campaign.performance.clicked.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Converted</span>
+                      <span className="text-muted dark:text-dark-muted">Converted</span>
                       <span className="font-medium">{campaign.performance.converted}</span>
                     </div>
                   </div>
                 )}
 
                 {campaign.status === 'scheduled' && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-sm text-muted dark:text-dark-muted">
                     Scheduled for {campaign.scheduledDate}
                   </div>
                 )}
@@ -676,29 +676,29 @@ export default function MarketingPage() {
       {showCampaignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Create Campaign</h2>
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">Create Campaign</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Campaign Name
                 </label>
                 <input
                   type="text"
                   value={newCampaign.name}
                   onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Type
                 </label>
                 <select
                   value={newCampaign.type}
                   onChange={(e) => setNewCampaign({ ...newCampaign, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="promotion">Promotion</option>
                   <option value="announcement">Announcement</option>
@@ -706,62 +706,62 @@ export default function MarketingPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Description
                 </label>
                 <textarea
                   value={newCampaign.description}
                   onChange={(e) => setNewCampaign({ ...newCampaign, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Start Date
                   </label>
                   <input
                     type="date"
                     value={newCampaign.startDate}
                     onChange={(e) => setNewCampaign({ ...newCampaign, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     End Date
                   </label>
                   <input
                     type="date"
                     value={newCampaign.endDate}
                     onChange={(e) => setNewCampaign({ ...newCampaign, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Budget (₦)
                 </label>
                 <input
                   type="number"
                   value={newCampaign.budget}
                   onChange={(e) => setNewCampaign({ ...newCampaign, budget: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3 justify-end">
               <button
                 onClick={() => setShowCampaignModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
               >
                 Cancel
               </button>
               <button
                 onClick={createCampaign}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
               >
                 Create Campaign
               </button>
@@ -774,108 +774,108 @@ export default function MarketingPage() {
       {showDiscountModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Create Discount Code</h2>
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">Create Discount Code</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Code
                 </label>
                 <input
                   type="text"
                   value={newDiscount.code}
                   onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   placeholder="e.g., SAVE20"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Type
                   </label>
                   <select
                     value={newDiscount.type}
                     onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   >
                     <option value="percentage">Percentage</option>
                     <option value="fixed">Fixed Amount</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Value
                   </label>
                   <input
                     type="number"
                     value={newDiscount.value}
                     onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                     placeholder={newDiscount.type === 'percentage' ? '20' : '500'}
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Min Order (₦)
                   </label>
                   <input
                     type="number"
                     value={newDiscount.minOrder}
                     onChange={(e) => setNewDiscount({ ...newDiscount, minOrder: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Usage Limit
                   </label>
                   <input
                     type="number"
                     value={newDiscount.usageLimit}
                     onChange={(e) => setNewDiscount({ ...newDiscount, usageLimit: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Start Date
                   </label>
                   <input
                     type="date"
                     value={newDiscount.startDate}
                     onChange={(e) => setNewDiscount({ ...newDiscount, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     End Date
                   </label>
                   <input
                     type="date"
                     value={newDiscount.endDate}
                     onChange={(e) => setNewDiscount({ ...newDiscount, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3 justify-end">
               <button
                 onClick={() => setShowDiscountModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
               >
                 Cancel
               </button>
               <button
                 onClick={createDiscountCode}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
               >
                 Create Discount
               </button>
@@ -888,67 +888,67 @@ export default function MarketingPage() {
       {showLoyaltyModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Configure Loyalty Program</h2>
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">Configure Loyalty Program</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Program Name
                 </label>
                 <input
                   type="text"
                   value={newLoyalty.name}
                   onChange={(e) => setNewLoyalty({ ...newLoyalty, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Points per ₦1
                   </label>
                   <input
                     type="number"
                     value={newLoyalty.pointsPerNaira}
                     onChange={(e) => setNewLoyalty({ ...newLoyalty, pointsPerNaira: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Redemption Rate (₦)
                   </label>
                   <input
                     type="number"
                     value={newLoyalty.redemptionRate}
                     onChange={(e) => setNewLoyalty({ ...newLoyalty, redemptionRate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Welcome Bonus (points)
                 </label>
                 <input
                   type="number"
                   value={newLoyalty.welcomeBonus}
                   onChange={(e) => setNewLoyalty({ ...newLoyalty, welcomeBonus: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3 justify-end">
               <button
                 onClick={() => setShowLoyaltyModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
               >
                 Cancel
               </button>
               <button
                 onClick={updateLoyaltyProgram}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
               >
                 Save Changes
               </button>
@@ -961,29 +961,29 @@ export default function MarketingPage() {
       {showEmailModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Create Email Campaign</h2>
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">Create Email Campaign</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Subject
                 </label>
                 <input
                   type="text"
                   value={newEmail.subject}
                   onChange={(e) => setNewEmail({ ...newEmail, subject: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Template
                 </label>
                 <select
                   value={newEmail.template}
                   onChange={(e) => setNewEmail({ ...newEmail, template: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="promotion">Promotion</option>
                   <option value="announcement">Announcement</option>
@@ -992,24 +992,24 @@ export default function MarketingPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Content
                 </label>
                 <textarea
                   value={newEmail.content}
                   onChange={(e) => setNewEmail({ ...newEmail, content: e.target.value })}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Recipient List
                 </label>
                 <select
                   value={newEmail.recipientList}
                   onChange={(e) => setNewEmail({ ...newEmail, recipientList: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="all">All Customers</option>
                   <option value="active">Active Customers</option>
@@ -1018,21 +1018,21 @@ export default function MarketingPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Scheduled Date
                 </label>
                 <input
                   type="datetime-local"
                   value={newEmail.scheduledDate}
                   onChange={(e) => setNewEmail({ ...newEmail, scheduledDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3 justify-end">
+            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3 justify-end">
               <button
                 onClick={() => setShowEmailModal(false)}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
               >
                 Cancel
               </button>
@@ -1040,7 +1040,7 @@ export default function MarketingPage() {
                 onClick={() => {
                   createEmailCampaign()
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
               >
                 Create Campaign
               </button>

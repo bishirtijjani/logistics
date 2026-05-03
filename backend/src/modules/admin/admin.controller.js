@@ -233,6 +233,203 @@ const getAuditLogs = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// Platform Analytics Controllers
+// ============================================================
+
+const getRevenueAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await adminService.getRevenueAnalytics(req.query);
+    res.json(ApiResponse.success('Revenue analytics', analytics));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getOrderAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await adminService.getOrderAnalytics(req.query);
+    res.json(ApiResponse.success('Order analytics', analytics));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCustomerAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await adminService.getCustomerAnalytics(req.query);
+    res.json(ApiResponse.success('Customer analytics', analytics));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getGeographicAnalytics = async (req, res, next) => {
+  try {
+    const analytics = await adminService.getGeographicAnalytics(req.query);
+    res.json(ApiResponse.success('Geographic analytics', analytics));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRealtimeMetrics = async (req, res, next) => {
+  try {
+    const metrics = await adminService.getRealtimeMetrics();
+    res.json(ApiResponse.success('Real-time metrics', metrics));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Financial Operations - Withdrawal Management Controllers
+// ============================================================
+
+const getPendingWithdrawals = async (req, res, next) => {
+  try {
+    const { withdrawals, total, page, limit } = await adminService.getPendingWithdrawals(req.query);
+    res.json(ApiResponse.paginated('Pending withdrawals', withdrawals, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const approveWithdrawal = async (req, res, next) => {
+  try {
+    const result = await adminService.approveWithdrawal(req.params.withdrawalId);
+    res.json(ApiResponse.success('Withdrawal approved', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectWithdrawal = async (req, res, next) => {
+  try {
+    const result = await adminService.rejectWithdrawal(req.params.withdrawalId, req.body.reason);
+    res.json(ApiResponse.success('Withdrawal rejected', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getWithdrawalHistory = async (req, res, next) => {
+  try {
+    const { withdrawals, total, page, limit } = await adminService.getWithdrawalHistory(req.query);
+    res.json(ApiResponse.paginated('Withdrawal history', withdrawals, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getDisputes = async (req, res, next) => {
+  try {
+    const { disputes, total, page, limit } = await adminService.getDisputes(req.query);
+    res.json(ApiResponse.paginated('Disputes', disputes, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resolveDispute = async (req, res, next) => {
+  try {
+    const result = await adminService.resolveDispute(req.params.disputeId, req.body.resolution, req.body.notes);
+    res.json(ApiResponse.success('Dispute resolved', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getSupportTickets = async (req, res, next) => {
+  try {
+    const { tickets, total, page, limit } = await adminService.getSupportTickets(req.query);
+    res.json(ApiResponse.paginated('Support tickets', tickets, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateTicketStatus = async (req, res, next) => {
+  try {
+    const result = await adminService.updateTicketStatus(req.params.ticketId, req.body.status, req.body.notes);
+    res.json(ApiResponse.success('Ticket status updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getPlatformCampaigns = async (req, res, next) => {
+  try {
+    const { campaigns, total, page, limit } = await adminService.getPlatformCampaigns(req.query);
+    res.json(ApiResponse.paginated('Platform campaigns', campaigns, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getDiscountCodes = async (req, res, next) => {
+  try {
+    const { discounts, total, page, limit } = await adminService.getDiscountCodes(req.query);
+    res.json(ApiResponse.paginated('Discount codes', discounts, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const approveDiscountCode = async (req, res, next) => {
+  try {
+    const result = await adminService.approveDiscountCode(req.params.discountId);
+    res.json(ApiResponse.success('Discount code approved', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const rejectDiscountCode = async (req, res, next) => {
+  try {
+    const result = await adminService.rejectDiscountCode(req.params.discountId, req.body.reason);
+    res.json(ApiResponse.success('Discount code rejected', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderPerformance = async (req, res, next) => {
+  try {
+    const { riders, total, page, limit } = await adminService.getRiderPerformance(req.query);
+    res.json(ApiResponse.paginated('Rider performance', riders, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderRealtimeLocation = async (req, res, next) => {
+  try {
+    const riders = await adminService.getRiderRealtimeLocation();
+    res.json(ApiResponse.success('Rider locations', riders));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getSafetyIncidents = async (req, res, next) => {
+  try {
+    const { incidents, total, page, limit } = await adminService.getSafetyIncidents(req.query);
+    res.json(ApiResponse.paginated('Safety incidents', incidents, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getComplianceReport = async (req, res, next) => {
+  try {
+    const report = await adminService.getComplianceReport();
+    res.json(ApiResponse.success('Compliance report', report));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
@@ -256,4 +453,25 @@ module.exports = {
   getPlatformSettings,
   updatePlatformSettings,
   getAuditLogs,
+  getRevenueAnalytics,
+  getOrderAnalytics,
+  getCustomerAnalytics,
+  getGeographicAnalytics,
+  getRealtimeMetrics,
+  getPendingWithdrawals,
+  approveWithdrawal,
+  rejectWithdrawal,
+  getWithdrawalHistory,
+  getDisputes,
+  resolveDispute,
+  getSupportTickets,
+  updateTicketStatus,
+  getPlatformCampaigns,
+  getDiscountCodes,
+  approveDiscountCode,
+  rejectDiscountCode,
+  getRiderPerformance,
+  getRiderRealtimeLocation,
+  getSafetyIncidents,
+  getComplianceReport,
 };

@@ -8,15 +8,15 @@ import { User, Phone, Mail, Calendar, MoreVertical, Search, Eye, Shield, ShieldA
 import Pagination from '../components/Pagination'
 
 const ROLE_COLORS = {
-  CUSTOMER: 'bg-blue-100 text-blue-800',
-  MERCHANT: 'bg-green-100 text-green-800',
+  CUSTOMER: 'bg-primary/10 text-primary',
+  MERCHANT: 'bg-success/10 text-success',
   RIDER: 'bg-purple-100 text-purple-800',
-  ADMIN: 'bg-red-100 text-red-800',
+  ADMIN: 'bg-error/10 text-error',
 }
 
 const STATUS_COLORS = {
-  ACTIVE: 'bg-green-100 text-green-800',
-  SUSPENDED: 'bg-red-100 text-red-800',
+  ACTIVE: 'bg-success/10 text-success',
+  SUSPENDED: 'bg-error/10 text-error',
 }
 
 export default function UsersPage() {
@@ -133,25 +133,25 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Users Management</h1>
+      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Users Management</h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
         <div className="flex gap-4 justify-between items-center">
           <div className="flex gap-4">
           <div className="flex-1 relative">
-            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
               placeholder="Search by name, email, or phone..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
             />
           </div>
           <select
             value={filters.role}
             onChange={(e) => handleFilterChange('role', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
           >
             <option value="">All Roles</option>
             <option value="CUSTOMER">Customer</option>
@@ -172,7 +172,7 @@ export default function UsersPage() {
               <button
                 onClick={handleBulkUnsuspend}
                 disabled={actionLoading === 'bulkUnsuspend'}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 flex items-center gap-2"
               >
                 <Shield size={18} />
                 Bulk Unsuspend
@@ -182,7 +182,7 @@ export default function UsersPage() {
           <button
             onClick={handleExportCSV}
             disabled={users.length === 0}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Download size={18} />
             Export CSV
@@ -190,55 +190,55 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading users...</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">Loading users...</div>
         ) : !users?.length ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">No users found</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">No users found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <thead className="bg-surface-muted dark:bg-dark-surface-muted border-b border-surface-muted dark:border-dark-surface-muted">
               <tr>
-                <th className="px-4 py-4 text-left">
+                <th className="px-4 py-4 w-10">
                   <input
                     type="checkbox"
-                    checked={selectedUsers.length === users.length && users.length > 0}
+                    checked={selectedUsers.length === users.length}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="w-4 h-4 rounded border-surface-muted text-primary focus:ring-primary"
                   />
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">User</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Joined</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">User</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Contact</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Role</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Joined</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+            <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr key={user.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                   <td className="px-4 py-4 whitespace-nowrap">
                     <input
                       type="checkbox"
                       checked={selectedUsers.includes(user.id)}
                       onChange={() => handleSelectUser(user.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      className="w-4 h-4 rounded border-surface-muted text-primary focus:ring-primary"
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <User size={20} className="text-primary-600" />
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User size={20} className="text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{user.firstName} {user.lastName}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+                        <p className="text-sm font-medium text-text dark:text-dark-text">{user.firstName} {user.lastName}</p>
+                        <p className="text-sm text-muted dark:text-dark-muted">{user.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1">
                         <Phone size={14} />
@@ -251,18 +251,18 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[user.status] || 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[user.status] || 'bg-surface-muted text-muted'}`}>
                       {user.status || 'ACTIVE'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex gap-2">
-                      <button onClick={() => handleViewDetails(user)} className="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-200" title="View Details">
+                      <button onClick={() => handleViewDetails(user)} className="p-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text" title="View Details">
                         <Eye size={18} />
                       </button>
                       {user.status !== 'SUSPENDED' && (
-                        <button onClick={() => openSuspendModal(user)} className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-200" title="Suspend">
+                        <button onClick={() => openSuspendModal(user)} className="p-2 text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text" title="Suspend">
                           <ShieldAlert size={18} />
                         </button>
                       )}
@@ -270,11 +270,11 @@ export default function UsersPage() {
                         <button 
                           onClick={() => handleUnsuspend(user.id)} 
                           disabled={actionLoading === user.id}
-                          className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+                          className="p-2 text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text disabled:opacity-50 disabled:cursor-not-allowed" 
                           title="Unsuspend"
                         >
                           {actionLoading === user.id ? (
-                            <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-muted border-t-transparent rounded-full animate-spin" />
                           ) : (
                             <Shield size={18} />
                           )}
@@ -304,48 +304,48 @@ export default function UsersPage() {
       {/* Details Modal */}
       {showDetailsModal && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">User Details</h2>
-              <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-200">
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">User Details</h2>
+              <button onClick={() => setShowDetailsModal(false)} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text">
                 <CloseIcon size={24} />
               </button>
             </div>
             <div className="p-6 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center">
-                  <User size={32} className="text-primary-600" />
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User size={32} className="text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-xl font-semibold text-text dark:text-dark-text">
                     {selectedUser.firstName} {selectedUser.lastName}
                   </h3>
-                  <p className="text-gray-500 dark:text-gray-400">{selectedUser.email}</p>
+                  <p className="text-muted dark:text-dark-muted">{selectedUser.email}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Phone</p>
+                <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Phone</p>
                   <p className="font-medium flex items-center gap-2">
                     <Phone size={16} />
                     {selectedUser.phone}
                   </p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Role</p>
+                <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Role</p>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${ROLE_COLORS[selectedUser.role]}`}>
                     {selectedUser.role}
                   </span>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Status</p>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selectedUser.status] || 'bg-green-100 text-green-800'}`}>
+                <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Status</p>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selectedUser.status] || 'bg-success/10 text-success'}`}>
                     {selectedUser.status || 'ACTIVE'}
                   </span>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Joined</p>
+                <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Joined</p>
                   <p className="font-medium flex items-center gap-2">
                     <Calendar size={16} />
                     {new Date(selectedUser.createdAt).toLocaleDateString()}
@@ -353,8 +353,8 @@ export default function UsersPage() {
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-              <button onClick={() => setShowDetailsModal(false)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted">
+              <button onClick={() => setShowDetailsModal(false)} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Close
               </button>
             </div>
@@ -365,18 +365,18 @@ export default function UsersPage() {
       {/* Bulk Suspend Modal */}
       {showBulkSuspendModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bulk Suspend Users</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">You are about to suspend {selectedUsers.length} user(s). Please provide a reason.</p>
+          <div className="bg-surface dark:bg-dark-surface rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Bulk Suspend Users</h3>
+            <p className="text-sm text-muted dark:text-dark-muted mb-4">You are about to suspend {selectedUsers.length} user(s). Please provide a reason.</p>
             <textarea
               value={suspendReason}
               onChange={(e) => setSuspendReason(e.target.value)}
               placeholder="Enter suspension reason..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-4 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
               rows={3}
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowBulkSuspendModal(false); setSuspendReason(''); setSelectedUsers([]) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={() => { setShowBulkSuspendModal(false); setSuspendReason(''); setSelectedUsers([]) }} className="px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
                 Cancel
               </button>
               <button 
@@ -394,17 +394,17 @@ export default function UsersPage() {
       {/* Suspend Modal */}
       {showSuspendModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Suspend User</h3>
+          <div className="bg-surface dark:bg-dark-surface rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Suspend User</h3>
             <textarea
               value={suspendReason}
               onChange={(e) => setSuspendReason(e.target.value)}
               placeholder="Enter suspension reason..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-4 dark:bg-gray-700 dark:text-white"
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
               rows={3}
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowSuspendModal(false); setSuspendReason(''); setSelectedUser(null) }} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button onClick={() => { setShowSuspendModal(false); setSuspendReason(''); setSelectedUser(null) }} className="px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
                 Cancel
               </button>
               <button 

@@ -195,10 +195,10 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Analytics</h1>
-          <p className="text-gray-600 dark:text-gray-400">Track your sales and performance</p>
+          <h1 className="text-2xl font-bold text-text dark:text-dark-text">Analytics</h1>
+          <p className="text-muted dark:text-dark-muted">Track your sales and performance</p>
           {lastUpdated && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-muted dark:text-dark-muted mt-1">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </p>
           )}
@@ -208,7 +208,7 @@ export default function AnalyticsPage() {
           <select
             value={period}
             onChange={(e) => handlePeriodChange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
           >
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
@@ -223,18 +223,18 @@ export default function AnalyticsPage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm"
               />
-              <span className="text-gray-500">to</span>
+              <span className="text-muted dark:text-dark-muted">to</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm"
               />
               <button
                 onClick={handleCustomRangeSubmit}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                className="px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
               >
                 Apply
               </button>
@@ -248,16 +248,16 @@ export default function AnalyticsPage() {
               id="autoRefresh"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted rounded focus:ring-primary"
             />
-            <label htmlFor="autoRefresh" className="text-sm text-gray-700 dark:text-gray-300">
+            <label htmlFor="autoRefresh" className="text-sm text-text dark:text-dark-text">
               Auto-refresh
             </label>
             {autoRefresh && (
               <select
                 value={refreshInterval}
                 onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                className="px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded text-sm"
+                className="px-2 py-1 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded text-sm dark:text-dark-text"
               >
                 <option value={15000}>15s</option>
                 <option value={30000}>30s</option>
@@ -270,7 +270,7 @@ export default function AnalyticsPage() {
           {/* Export Button */}
           <button
             onClick={() => exportData('csv')}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm"
+            className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors flex items-center gap-2 text-sm text-text dark:text-dark-text"
           >
             <Download className="w-4 h-4" />
             Export
@@ -289,7 +289,7 @@ export default function AnalyticsPage() {
                 showErrorToast('Failed to refresh analytics data')
               }
             }}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="p-2 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg transition-colors"
             title="Refresh data"
           >
             <RefreshCw className="w-5 h-5" />
@@ -298,30 +298,30 @@ export default function AnalyticsPage() {
       </div>
 
       {error ? (
-        <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-surface dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
+          <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Failed to load analytics</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-2">Failed to load analytics</h3>
+          <p className="text-muted dark:text-dark-muted mb-4">{error}</p>
           <button
             onClick={() => {
               dispatch(fetchSalesSummary({ merchantId, period }))
               dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
               dispatch(fetchEarningsBreakdown({ merchantId, period }))
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             Try Again
           </button>
         </div>
       ) : !salesSummary || (revenueData.length === 0 && ordersData.length === 0) ? (
-        <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BarChart3 className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+        <div className="bg-surface dark:bg-dark-surface rounded-lg shadow-sm p-8 text-center">
+          <div className="w-16 h-16 bg-surface-muted dark:bg-dark-surface-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="w-8 h-8 text-muted dark:text-dark-muted" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No analytics data available</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-2">No analytics data available</h3>
+          <p className="text-muted dark:text-dark-muted mb-4">
             Start receiving orders to see your sales analytics and performance metrics here.
           </p>
           <button
@@ -330,7 +330,7 @@ export default function AnalyticsPage() {
               dispatch(fetchOrderHistory({ merchantId, page: 1, limit: 10 }))
               dispatch(fetchEarningsBreakdown({ merchantId, period }))
             }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             Refresh Data
           </button>
@@ -355,11 +355,11 @@ export default function AnalyticsPage() {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {stats.map((stat) => (
-              <div key={stat.name} className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <div key={stat.name} className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{stat.name}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{stat.value}</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">{stat.name}</p>
+                    <p className="text-2xl font-bold text-text dark:text-dark-text mt-1">{stat.value}</p>
                   </div>
                   <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
                     <stat.icon className="w-6 h-6 text-white" />
@@ -371,8 +371,8 @@ export default function AnalyticsPage() {
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Revenue Trend</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Revenue Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -384,8 +384,8 @@ export default function AnalyticsPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Orders Trend</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Orders Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={ordersData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -400,80 +400,80 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Earnings Breakdown */}
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Earnings Breakdown</h3>
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Earnings Breakdown</h3>
             {earningsBreakdown ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Earnings</p>
-                  <p className="text-3xl font-bold text-green-600">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-2">Total Earnings</p>
+                  <p className="text-3xl font-bold text-success">
                     ₦{earningsBreakdown.totalEarnings?.toLocaleString() || '0'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Total Withdrawals</p>
-                  <p className="text-3xl font-bold text-red-600">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-2">Total Withdrawals</p>
+                  <p className="text-3xl font-bold text-error">
                     ₦{earningsBreakdown.totalWithdrawals?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-600 dark:text-gray-400">No earnings data available</p>
+              <p className="text-muted dark:text-dark-muted">No earnings data available</p>
             )}
           </div>
 
           {/* Advanced Analytics Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Product Performance Analysis */}
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Product Performance</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Product Performance</h3>
               <div className="space-y-4">
                 {salesSummary?.topProducts?.slice(0, 5).map((product, index) => (
                   <div key={product.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">#{index + 1}</span>
+                      <span className="text-sm font-medium text-muted dark:text-dark-muted">#{index + 1}</span>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{product.orders} orders</p>
+                        <p className="font-medium text-text dark:text-dark-text">{product.name}</p>
+                        <p className="text-sm text-muted dark:text-dark-muted">{product.orders} orders</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900 dark:text-gray-100">₦{product.revenue.toLocaleString()}</p>
-                      <p className="text-sm text-green-600">+{product.growth}%</p>
+                      <p className="font-medium text-text dark:text-dark-text">₦{product.revenue.toLocaleString()}</p>
+                      <p className="text-sm text-success">+{product.growth}%</p>
                     </div>
                   </div>
-                )) || <p className="text-gray-600 dark:text-gray-400">No product data available</p>}
+                )) || <p className="text-muted dark:text-dark-muted">No product data available</p>}
               </div>
             </div>
 
             {/* Customer Analytics */}
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Customer Analytics</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Customer Analytics</h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Customers</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-sm text-muted dark:text-dark-muted">Total Customers</p>
+                  <p className="text-2xl font-bold text-text dark:text-dark-text">
                     {salesSummary?.customerAnalytics?.totalCustomers || 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Repeat Customers</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-sm text-muted dark:text-dark-muted">Repeat Customers</p>
+                  <p className="text-2xl font-bold text-primary">
                     {salesSummary?.customerAnalytics?.repeatCustomers || 0}
                   </p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Customer Lifetime Value</p>
-                <p className="text-xl font-bold text-green-600">
+                <p className="text-sm text-muted dark:text-dark-muted mb-2">Customer Lifetime Value</p>
+                <p className="text-xl font-bold text-success">
                   ₦{salesSummary?.customerAnalytics?.ltv?.toLocaleString() || '0'}
                 </p>
               </div>
             </div>
 
             {/* Peak Hours Analysis */}
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Peak Hours Analysis</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Peak Hours Analysis</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={salesSummary?.peakHours || []}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -486,24 +486,24 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Conversion Tracking */}
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Conversion Tracking</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Conversion Tracking</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Total Views</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="text-sm text-muted dark:text-dark-muted">Total Views</span>
+                  <span className="font-medium text-text dark:text-dark-text">
                     {salesSummary?.conversionTracking?.totalViews?.toLocaleString() || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Total Orders</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="text-sm text-muted dark:text-dark-muted">Total Orders</span>
+                  <span className="font-medium text-text dark:text-dark-text">
                     {salesSummary?.conversionTracking?.totalOrders || 0}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Conversion Rate</span>
-                  <span className="font-medium text-green-600">
+                  <span className="text-sm text-muted dark:text-dark-muted">Conversion Rate</span>
+                  <span className="font-medium text-success">
                     {salesSummary?.conversionTracking?.conversionRate || 0}%
                   </span>
                 </div>
@@ -511,51 +511,51 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Delivery Zone Performance */}
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Delivery Zone Performance</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Delivery Zone Performance</h3>
               <div className="space-y-3">
                 {salesSummary?.deliveryZones?.slice(0, 4).map((zone, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{zone.name}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{zone.orders} orders</p>
+                      <p className="font-medium text-text dark:text-dark-text">{zone.name}</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">{zone.orders} orders</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Avg Time</p>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{zone.avgDeliveryTime}m</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">Avg Time</p>
+                      <p className="font-medium text-text dark:text-dark-text">{zone.avgDeliveryTime}m</p>
                     </div>
                   </div>
-                )) || <p className="text-gray-600 dark:text-gray-400">No delivery zone data available</p>}
+                )) || <p className="text-muted dark:text-dark-muted">No delivery zone data available</p>}
               </div>
             </div>
 
             {/* Cancellation Rate Analysis */}
-            <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Cancellation Analysis</h3>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Cancellation Analysis</h3>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Orders</p>
-                  <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <p className="text-sm text-muted dark:text-dark-muted">Total Orders</p>
+                  <p className="text-xl font-bold text-text dark:text-dark-text">
                     {salesSummary?.cancellationAnalysis?.totalOrders || 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Cancelled</p>
-                  <p className="text-xl font-bold text-red-600">
+                  <p className="text-sm text-muted dark:text-dark-muted">Cancelled</p>
+                  <p className="text-xl font-bold text-error">
                     {salesSummary?.cancellationAnalysis?.cancelledOrders || 0}
                   </p>
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Cancellation Rate</p>
+                <p className="text-sm text-muted dark:text-dark-muted mb-2">Cancellation Rate</p>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="flex-1 bg-surface-muted dark:bg-dark-surface-muted rounded-full h-2">
                     <div 
-                      className="bg-red-600 h-2 rounded-full" 
+                      className="bg-error h-2 rounded-full" 
                       style={{ width: `${salesSummary?.cancellationAnalysis?.cancellationRate || 0}%` }}
                     />
                   </div>
-                  <span className="text-sm font-medium text-red-600">
+                  <span className="text-sm font-medium text-error">
                     {salesSummary?.cancellationAnalysis?.cancellationRate || 0}%
                   </span>
                 </div>

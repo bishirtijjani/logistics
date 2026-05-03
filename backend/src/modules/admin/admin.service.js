@@ -638,6 +638,698 @@ const getAuditLogs = async ({ page = 1, limit = 20, action, entityType, startDat
   return { logs, total, page, limit };
 };
 
+// ============================================================
+// Platform Analytics Functions
+// ============================================================
+
+/**
+ * Get platform revenue analytics
+ */
+const getRevenueAnalytics = async ({ startDate, endDate, groupBy = 'day' }) => {
+  const where = {
+    status: 'COMPLETED',
+    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
+    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+  };
+
+  const [totalRevenue, revenueByMerchant, revenueTrend] = await Promise.all([
+    prisma.transaction.aggregate({
+      where,
+      _sum: { amount: true },
+      _count: true,
+    }),
+    prisma.transaction.groupBy({
+      by: ['merchantId'],
+      where,
+      _sum: { amount: true },
+      _count: true,
+      orderBy: { _sum: { amount: 'desc' } },
+      take: 10,
+    }),
+    prisma.$queryRaw`
+      SELECT 
+        DATE(createdAt) as date,
+        SUM(amount) as revenue,
+        COUNT(*) as transactions
+      FROM "Transaction"
+      WHERE status = 'COMPLETED'
+        ${startDate ? prisma.$queryRaw`AND createdAt >= ${new Date(startDate)}` : prisma.$queryRaw``}
+        ${endDate ? prisma.$queryRaw`AND createdAt <= ${new Date(endDate)}` : prisma.$queryRaw``}
+      GROUP BY DATE(createdAt)
+      ORDER BY date DESC
+      LIMIT 30
+    `,
+  ]);
+
+  return {
+    totalRevenue: totalRevenue._sum.amount || 0,
+    totalTransactions: totalRevenue._count || 0,
+    topMerchants: revenueByMerchant,
+    revenueTrend: revenueTrend,
+  };
+};
+
+/**
+ * Get platform order analytics
+ */
+const getOrderAnalytics = async ({ startDate, endDate }) => {
+  const where = {
+    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
+    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+  };
+
+  const [totalOrders, ordersByStatus, ordersByType, avgDeliveryTime, cancellationRate] = await Promise.all([
+    prisma.request.count({ where }),
+    prisma.request.groupBy({
+      by: ['status'],
+      where,
+      _count: true,
+    }),
+    prisma.request.groupBy({
+      by: ['type'],
+      where,
+      _count: true,
+    }),
+    prisma.request.aggregate({
+      where: { ...where, status: 'COMPLETED' },
+      _avg: { deliveryTime: true },
+    }),
+    prisma.request.aggregate({
+      where: { ...where, status: 'CANCELLED' },
+      _count: true,
+    }),
+  ]);
+
+  return {
+    totalOrders,
+    ordersByStatus,
+    ordersByType,
+    avgDeliveryTime: avgDeliveryTime._avg.deliveryTime || 0,
+    cancellationRate: totalOrders > 0 ? (cancellationRate._count / totalOrders) * 100 : 0,
+  };
+};
+
+/**
+ * Get platform customer analytics
+ */
+const getCustomerAnalytics = async ({ startDate, endDate }) => {
+  const where = {
+    role: 'CUSTOMER',
+    deletedAt: null,
+    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
+    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+  };
+
+  const [totalCustomers, newCustomers, topCustomersByOrders, customerRetention] = await Promise.all([
+    prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
+    prisma.user.count({ where }),
+    prisma.$queryRaw`
+      SELECT 
+        u.id,
+        u.firstName,
+        u.lastName,
+        u.email,
+        COUNT(r.id) as orderCount,
+        SUM(t.amount) as totalSpent
+      FROM "User" u
+      LEFT JOIN "Request" r ON u.id = r.customerId
+      LEFT JOIN "Transaction" t ON r.id = t.requestId
+      WHERE u.role = 'CUSTOMER' AND u.deletedAt IS NULL
+      GROUP BY u.id, u.firstName, u.lastName, u.email
+      ORDER BY orderCount DESC
+      LIMIT 10
+    `,
+    prisma.$queryRaw`
+      SELECT 
+        COUNT(DISTINCT customer_id) as returningCustomers,
+        COUNT(DISTINCT customer_id) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as newCustomers
+      FROM "Request"
+    `,
+  ]);
+
+  return {
+    totalCustomers,
+    newCustomers,
+    topCustomers: topCustomersByOrders,
+    retention: customerRetention[0] || { returningCustomers: 0, newCustomers: 0 },
+  };
+};
+
+/**
+ * Get geographic analytics
+ */
+const getGeographicAnalytics = async ({ startDate, endDate }) => {
+  const where = {
+    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
+    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+  };
+
+  const [ordersByLocation, merchantDistribution] = await Promise.all([
+    prisma.$queryRaw`
+      SELECT 
+        ROUND(dropoff_lat::numeric, 2) as lat,
+        ROUND(dropoff_lng::numeric, 2) as lng,
+        COUNT(*) as orderCount
+      FROM "Request"
+      WHERE dropoff_lat IS NOT NULL AND dropoff_lng IS NOT NULL
+        ${startDate ? prisma.$queryRaw`AND created_at >= ${new Date(startDate)}` : prisma.$queryRaw``}
+        ${endDate ? prisma.$queryRaw`AND created_at <= ${new Date(endDate)}` : prisma.$queryRaw``}
+      GROUP BY ROUND(dropoff_lat::numeric, 2), ROUND(dropoff_lng::numeric, 2)
+      ORDER BY orderCount DESC
+      LIMIT 20
+    `,
+    prisma.$queryRaw`
+      SELECT 
+        m.type,
+        m.name,
+        COUNT(r.id) as orderCount,
+        SUM(t.amount) as totalRevenue
+      FROM "Merchant" m
+      LEFT JOIN "Request" r ON m.id = r.merchantId
+      LEFT JOIN "Transaction" t ON r.id = t.requestId
+      WHERE m.status = 'ACTIVE'
+        ${startDate ? prisma.$queryRaw`AND r.created_at >= ${new Date(startDate)}` : prisma.$queryRaw``}
+        ${endDate ? prisma.$queryRaw`AND r.created_at <= ${new Date(endDate)}` : prisma.$queryRaw``}
+      GROUP BY m.id, m.type, m.name
+      ORDER BY totalRevenue DESC
+    `,
+  ]);
+
+  return {
+    ordersByLocation,
+    merchantDistribution,
+  };
+};
+
+/**
+ * Get real-time platform metrics
+ */
+const getRealtimeMetrics = async () => {
+  const [activeRequests, recentOrders, systemHealth] = await Promise.all([
+    prisma.request.count({
+      where: { status: { in: ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'RIDER_EN_ROUTE', 'IN_TRANSIT'] } },
+    }),
+    prisma.request.findMany({
+      where: { createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      include: { customer: true, merchant: true },
+    }),
+    {
+      activeRiders: await prisma.rider.count({ where: { status: 'APPROVED', isAvailable: true } }),
+      activeMerchants: await prisma.merchant.count({ where: { status: 'ACTIVE', isOpen: true } }),
+    },
+  ]);
+
+  return {
+    activeRequests,
+    recentOrders,
+    systemHealth,
+  };
+};
+
+// ============================================================
+// Financial Operations - Withdrawal Management
+// ============================================================
+
+/**
+ * Get pending withdrawal requests
+ */
+const getPendingWithdrawals = async ({ page = 1, limit = 20 }) => {
+  const skip = (page - 1) * limit;
+
+  const [withdrawals, total] = await Promise.all([
+    prisma.merchantWalletTransaction.findMany({
+      where: {
+        type: 'WITHDRAWAL',
+        status: 'PENDING',
+      },
+      include: {
+        merchantWallet: {
+          include: {
+            merchant: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.merchantWalletTransaction.count({
+      where: {
+        type: 'WITHDRAWAL',
+        status: 'PENDING',
+      },
+    }),
+  ]);
+
+  return { withdrawals, total, page, limit };
+};
+
+/**
+ * Approve withdrawal request
+ */
+const approveWithdrawal = async (withdrawalId) => {
+  const withdrawal = await prisma.merchantWalletTransaction.findUnique({
+    where: { id: withdrawalId },
+    include: {
+      merchantWallet: {
+        include: {
+          merchant: true,
+        },
+      },
+    },
+  });
+
+  if (!withdrawal) {
+    throw new Error('Withdrawal not found');
+  }
+
+  if (withdrawal.status !== 'PENDING') {
+    throw new Error('Withdrawal is not in pending status');
+  }
+
+  // Update withdrawal status
+  const updatedWithdrawal = await prisma.merchantWalletTransaction.update({
+    where: { id: withdrawalId },
+    data: {
+      status: 'COMPLETED',
+      processedAt: new Date(),
+    },
+  });
+
+  // Create audit log
+  await createAuditLog({
+    action: 'APPROVE_WITHDRAWAL',
+    entityType: 'MerchantWalletTransaction',
+    entityId: withdrawalId,
+    details: {
+      amount: withdrawal.amount,
+      merchantId: withdrawal.merchantWallet.merchantId,
+    },
+  });
+
+  return updatedWithdrawal;
+};
+
+/**
+ * Reject withdrawal request
+ */
+const rejectWithdrawal = async (withdrawalId, reason) => {
+  const withdrawal = await prisma.merchantWalletTransaction.findUnique({
+    where: { id: withdrawalId },
+    include: {
+      merchantWallet: true,
+    },
+  });
+
+  if (!withdrawal) {
+    throw new Error('Withdrawal not found');
+  }
+
+  if (withdrawal.status !== 'PENDING') {
+    throw new Error('Withdrawal is not in pending status');
+  }
+
+  // Update withdrawal status
+  const updatedWithdrawal = await prisma.merchantWalletTransaction.update({
+    where: { id: withdrawalId },
+    data: {
+      status: 'REJECTED',
+      processedAt: new Date(),
+      metadata: {
+        rejectionReason: reason,
+      },
+    },
+  });
+
+  // Refund the amount back to merchant wallet
+  await prisma.merchantWallet.update({
+    where: { id: withdrawal.merchantWalletId },
+    data: {
+      availableBalance: {
+        increment: withdrawal.amount,
+      },
+    },
+  });
+
+  // Create audit log
+  await createAuditLog({
+    action: 'REJECT_WITHDRAWAL',
+    entityType: 'MerchantWalletTransaction',
+    entityId: withdrawalId,
+    details: {
+      amount: withdrawal.amount,
+      reason,
+      merchantId: withdrawal.merchantWallet.merchantId,
+    },
+  });
+
+  return updatedWithdrawal;
+};
+
+/**
+ * Get withdrawal history
+ */
+const getWithdrawalHistory = async ({ page = 1, limit = 20, status, startDate, endDate }) => {
+  const skip = (page - 1) * limit;
+  const where = {
+    type: 'WITHDRAWAL',
+    ...(status && { status }),
+    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
+    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+  };
+
+  const [withdrawals, total] = await Promise.all([
+    prisma.merchantWalletTransaction.findMany({
+      where,
+      include: {
+        merchantWallet: {
+          include: {
+            merchant: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.merchantWalletTransaction.count({ where }),
+  ]);
+
+  return { withdrawals, total, page, limit };
+};
+
+// ============================================================
+// Dispute Resolution
+// ============================================================
+
+const getDisputes = async ({ page = 1, limit = 20, status }) => {
+  const skip = (page - 1) * limit;
+  const where = {
+    ...(status && { status }),
+  };
+
+  const [disputes, total] = await Promise.all([
+    prisma.dispute.findMany({
+      where,
+      include: {
+        request: {
+          include: {
+            customer: true,
+            merchant: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.dispute.count({ where }),
+  ]);
+
+  return { disputes, total, page, limit };
+};
+
+const resolveDispute = async (disputeId, resolution, notes) => {
+  const dispute = await prisma.dispute.update({
+    where: { id: disputeId },
+    data: {
+      status: 'RESOLVED',
+      resolution,
+      notes,
+      resolvedAt: new Date(),
+    },
+  });
+
+  await createAuditLog({
+    action: 'RESOLVE_DISPUTE',
+    entityType: 'Dispute',
+    entityId: disputeId,
+    details: { resolution, notes },
+  });
+
+  return dispute;
+};
+
+// ============================================================
+// Support Management
+// ============================================================
+
+const getSupportTickets = async ({ page = 1, limit = 20, status }) => {
+  const skip = (page - 1) * limit;
+  const where = {
+    ...(status && { status }),
+  };
+
+  const [tickets, total] = await Promise.all([
+    prisma.supportTicket.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.supportTicket.count({ where }),
+  ]);
+
+  return { tickets, total, page, limit };
+};
+
+const updateTicketStatus = async (ticketId, status, notes) => {
+  const ticket = await prisma.supportTicket.update({
+    where: { id: ticketId },
+    data: { status, notes },
+  });
+
+  await createAuditLog({
+    action: 'UPDATE_TICKET_STATUS',
+    entityType: 'SupportTicket',
+    entityId: ticketId,
+    details: { status, notes },
+  });
+
+  return ticket;
+};
+
+// ============================================================
+// Marketing Oversight
+// ============================================================
+
+const getPlatformCampaigns = async ({ page = 1, limit = 20 }) => {
+  const skip = (page - 1) * limit;
+
+  const [campaigns, total] = await Promise.all([
+    prisma.platformCampaign.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.platformCampaign.count(),
+  ]);
+
+  return { campaigns, total, page, limit };
+};
+
+const getDiscountCodes = async ({ page = 1, limit = 20, status }) => {
+  const skip = (page - 1) * limit;
+  const where = {
+    ...(status && { status }),
+  };
+
+  const [discounts, total] = await Promise.all([
+    prisma.discountCode.findMany({
+      where,
+      include: {
+        merchant: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.discountCode.count({ where }),
+  ]);
+
+  return { discounts, total, page, limit };
+};
+
+const approveDiscountCode = async (discountId) => {
+  const discount = await prisma.discountCode.update({
+    where: { id: discountId },
+    data: { status: 'APPROVED' },
+  });
+
+  await createAuditLog({
+    action: 'APPROVE_DISCOUNT',
+    entityType: 'DiscountCode',
+    entityId: discountId,
+    details: { code: discount.code },
+  });
+
+  return discount;
+};
+
+const rejectDiscountCode = async (discountId, reason) => {
+  const discount = await prisma.discountCode.update({
+    where: { id: discountId },
+    data: { 
+      status: 'REJECTED',
+      rejectionReason: reason,
+    },
+  });
+
+  await createAuditLog({
+    action: 'REJECT_DISCOUNT',
+    entityType: 'DiscountCode',
+    entityId: discountId,
+    details: { code: discount.code, reason },
+  });
+
+  return discount;
+};
+
+// ============================================================
+// Rider Operations
+// ============================================================
+
+const getRiderPerformance = async ({ page = 1, limit = 20, startDate, endDate }) => {
+  const skip = (page - 1) * limit;
+  const where = {
+    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
+    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+  };
+
+  const [riders, total] = await Promise.all([
+    prisma.rider.findMany({
+      where: { status: 'APPROVED' },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            deliveries: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.rider.count({ where: { status: 'APPROVED' } }),
+  ]);
+
+  return { riders, total, page, limit };
+};
+
+const getRiderRealtimeLocation = async () => {
+  const riders = await prisma.rider.findMany({
+    where: {
+      status: 'APPROVED',
+      isAvailable: true,
+      currentLat: { not: null },
+      currentLng: { not: null },
+    },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+    take: 50,
+  });
+
+  return riders;
+};
+
+// ============================================================
+// Safety & Compliance Monitoring
+// ============================================================
+
+const getSafetyIncidents = async ({ page = 1, limit = 20, status }) => {
+  const skip = (page - 1) * limit;
+  const where = {
+    ...(status && { status }),
+  };
+
+  const [incidents, total] = await Promise.all([
+    prisma.safetyIncident.findMany({
+      where,
+      include: {
+        request: {
+          include: {
+            customer: true,
+            rider: true,
+          },
+        },
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.safetyIncident.count({ where }),
+  ]);
+
+  return { incidents, total, page, limit };
+};
+
+const getComplianceReport = async () => {
+  const [
+    totalRiders,
+    compliantRiders,
+    totalMerchants,
+    compliantMerchants,
+    recentIncidents,
+  ] = await Promise.all([
+    prisma.rider.count({ where: { status: 'APPROVED' } }),
+    prisma.rider.count({ where: { status: 'APPROVED', isVerified: true } }),
+    prisma.merchant.count({ where: { status: 'ACTIVE' } }),
+    prisma.merchant.count({ where: { status: 'ACTIVE', isCompliant: true } }),
+    prisma.safetyIncident.count({
+      where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+    }),
+  ]);
+
+  return {
+    riderCompliance: totalRiders > 0 ? (compliantRiders / totalRiders) * 100 : 0,
+    merchantCompliance: totalMerchants > 0 ? (compliantMerchants / totalMerchants) * 100 : 0,
+    recentIncidents,
+  };
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
@@ -662,4 +1354,9 @@ module.exports = {
   updatePlatformSettings,
   createAuditLog,
   getAuditLogs,
+  getRevenueAnalytics,
+  getOrderAnalytics,
+  getCustomerAnalytics,
+  getGeographicAnalytics,
+  getRealtimeMetrics,
 };

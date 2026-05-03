@@ -14,6 +14,13 @@ import SettingsPage from './pages/SettingsPage'
 import AuditLogPage from './pages/AuditLogPage'
 import ProfilePage from './pages/ProfilePage'
 import NotFoundPage from './pages/NotFoundPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import FinancialPage from './pages/FinancialPage'
+import DisputesPage from './pages/DisputesPage'
+import SupportPage from './pages/SupportPage'
+import MarketingPage from './pages/MarketingPage'
+import RiderOperationsPage from './pages/RiderOperationsPage'
+import SafetyPage from './pages/SafetyPage'
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('accessToken')
@@ -49,6 +56,13 @@ function App() {
           <Route path="transactions" element={<TransactionsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="financial" element={<FinancialPage />} />
+          <Route path="disputes" element={<DisputesPage />} />
+          <Route path="support" element={<SupportPage />} />
+          <Route path="marketing" element={<MarketingPage />} />
+          <Route path="rider-operations" element={<RiderOperationsPage />} />
+          <Route path="safety" element={<SafetyPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

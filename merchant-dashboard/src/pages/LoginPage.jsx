@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../store/slices/authSlice.js'
 import { Store, Lock, Eye, EyeOff } from 'lucide-react'
 
@@ -94,21 +94,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white dark:bg-dark-surface rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gradient-to-br from-background to-surface-muted dark:from-dark-background dark:to-dark-surface-muted flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-surface dark:bg-dark-surface rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/60 dark:bg-blue-900/30 rounded-full mb-4">
-            <Store className="w-8 h-8 text-secondary dark:text-blue-400" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/60 dark:bg-primary/20 rounded-full mb-4">
+            <Store className="w-8 h-8 text-secondary dark:text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Merchant Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to manage your store</p>
+          <h1 className="text-2xl font-bold text-text dark:text-dark-text">Merchant Dashboard</h1>
+          <p className="text-muted dark:text-dark-muted mt-2">Sign in to manage your store</p>
         </div>
 
         {error && (
           <div className={`px-4 py-3 rounded-lg ${
             isLocked 
               ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400' 
-              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
+              : 'bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 text-error'
           }`}>
             <div className="flex items-start gap-2">
               {isLocked && <Lock className="w-5 h-5 mt-0.5 flex-shrink-0" />}
@@ -131,7 +131,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-text dark:text-dark-text mb-2">
               Email Address
             </label>
             <input
@@ -140,13 +140,13 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition text-text dark:text-dark-text"
               placeholder="merchant@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-text dark:text-dark-text mb-2">
               Password
             </label>
             <div className="relative">
@@ -156,13 +156,13 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition pr-12 text-gray-900 dark:text-gray-100"
+                className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition pr-12 text-text dark:text-dark-text"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -175,9 +175,9 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
+                className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted rounded focus:ring-primary dark:focus:ring-primary/50 dark:focus:ring-offset-dark-surface"
               />
-              <span className="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
+              <span className="text-sm text-muted dark:text-dark-muted">Remember me</span>
             </label>
           </div>
 
@@ -200,29 +200,36 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-6 text-center text-sm text-muted dark:text-dark-muted">
           <button
             type="button"
             onClick={() => setShowForgotPassword(true)}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+            className="text-primary hover:text-primary-700 dark:hover:text-primary-400 font-medium"
           >
             Forgot your password?
           </button>
+        </div>
+
+        <div className="mt-4 text-center text-sm text-muted dark:text-dark-muted">
+          Don't have an account?{' '}
+          <Link to="/register" className="text-primary hover:text-primary-700 dark:hover:text-primary-400 font-semibold">
+            Register as a Merchant
+          </Link>
         </div>
       </div>
 
       {/* Forgot Password Modal */}
       {showForgotPassword && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="bg-surface dark:bg-dark-surface rounded-2xl shadow-xl p-8 max-w-md w-full">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
-                <Lock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-full mb-4">
+                <Lock className="w-6 h-6 text-primary" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">
                 {forgotSent ? 'Reset Email Sent' : 'Reset Password'}
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
+              <p className="text-muted dark:text-dark-muted mt-2">
                 {forgotSent 
                   ? 'Check your email for password reset instructions'
                   : 'Enter your email address and we\'ll send you a link to reset your password'
@@ -231,7 +238,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg mb-6">
+              <div className="bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 text-error px-4 py-3 rounded-lg mb-6">
                 {error}
               </div>
             )}
@@ -239,7 +246,7 @@ export default function LoginPage() {
             {!forgotSent ? (
               <form onSubmit={handleForgotPassword} className="space-y-6">
                 <div>
-                  <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="forgot-email" className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Email Address
                   </label>
                   <input
@@ -248,7 +255,7 @@ export default function LoginPage() {
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
                     placeholder="merchant@example.com"
                   />
                 </div>
@@ -257,14 +264,14 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={resetForgotPassword}
-                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="flex-1 px-4 py-3 border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={forgotLoading}
-                    className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {forgotLoading ? (
                       <>
@@ -279,12 +286,12 @@ export default function LoginPage() {
               </form>
             ) : (
               <div className="space-y-6">
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 px-4 py-3 rounded-lg">
+                <div className="bg-success/10 dark:bg-success/20 border border-success/20 dark:border-success/30 text-success px-4 py-3 rounded-lg">
                   Password reset link has been sent to {forgotEmail}
                 </div>
                 <button
                   onClick={resetForgotPassword}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
                 >
                   Back to Login
                 </button>

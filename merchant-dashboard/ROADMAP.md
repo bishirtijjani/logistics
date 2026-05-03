@@ -236,10 +236,10 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [x] Add payout method selection
 
 ### 5.3 Financial Analytics
-- [ ] Add earnings projections/forecasts
+- ~~[ ] Add earnings projections/forecasts~~
 - [ ] Add period comparison (this month vs last month)
 - [ ] Add revenue trends
-- [ ] Add profit/loss analysis
+- ~~[ ] Add profit/loss analysis~~
 - [ ] Add tax reports
 - [ ] Add commission reports
 
@@ -275,27 +275,13 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [ ] Add average order value tracking
 - [ ] Add customer retention metrics
 
-### 6.3 Business Intelligence Dashboards
-- [ ] Add executive summary dashboard
-- [ ] Add comparative analytics (vs industry benchmarks)
-- [ ] Add predictive insights
-- [ ] Add custom KPI tracking
-- [ ] Add drill-down reports
-- [ ] Add anomaly detection
-- [ ] Add trend forecasting
-
-### 6.4 Reporting
+### 6.3 Reporting
 - [x] Add report export (PDF, CSV)
 - [ ] Add scheduled reports
-- [x] Add custom report builder
+- ~~[x] Add custom report builder~~
 - [ ] Add report templates
 - [ ] Add email report delivery
 
-### 6.5 Predictive Analytics
-- [ ] Add demand forecasting
-- [ ] Add inventory predictions
-- [ ] Add revenue projections
-- [ ] Add trend analysis
 ---
 
 ## Phase 7 — Settings Page Enhancements
@@ -322,8 +308,8 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [ ] Add wallet payment toggle
 - [ ] Add tax rate configuration
 - [ ] Add service fee configuration
-- [ ] Add multi-currency support
-- [ ] Add currency conversion rates
+- ~~[ ] Add multi-currency support~~
+- ~~[ ] Add currency conversion rates~~
 
 ### 7.4 Team Management
 - [ ] Add staff member management
@@ -334,9 +320,9 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 ### 7.5 Integration Settings
 - [ ] Add API key management
 - [ ] Add webhook configuration
-- [ ] Add webhook system for integrations
-- [ ] Add third-party integrations (POS, accounting)
-- [ ] Add ERP system integration
+- ~~[ ] Add webhook system for integrations~~
+- ~~[ ] Add third-party integrations (POS, accounting)~~
+- ~~[ ] Add ERP system integration~~
 - [ ] Add social media links
 - [ ] Add website URL
 
@@ -348,22 +334,6 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [ ] Add notification frequency controls
 - [ ] Add notification templates
 
-### 7.7 Business Configuration
-- [ ] Add full internationalization (i18n) support
-- [ ] Add language/locale settings
-- [ ] Add timezone handling
-- [ ] Add currency configuration
-- [ ] Add terms & conditions
-- [ ] Add privacy policy
-- [ ] Add refund policy
-
-### 7.8 White-label Customization
-- [ ] Add custom color scheme configuration
-- [ ] Add custom logo upload
-- [ ] Add custom domain support
-- [ ] Add custom CSS injection
-- [ ] Add branded email templates
-- [ ] Add branded mobile app options
 ---
 
 ## Phase 8 — UI/UX Polish
@@ -388,7 +358,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [ ] Add onboarding flow for new merchants
 
 ### 8.4 Merchant Onboarding Flow
-- [ ] Create guided setup wizard
+- ~~[ ] Create guided setup wizard~~
 - [ ] Add business profile setup step
 - [ ] Add menu/products setup step
 - [ ] Add payment setup step
@@ -419,38 +389,30 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [ ] Add debouncing on search inputs
 - [ ] Add request cancellation on unmount
 
-### 8.8 PWA & Offline Support
-- [ ] Add service worker
-- [ ] Add manifest.json
-- [ ] Add offline page
-- [ ] Add offline data caching
-- [ ] Add background sync
-- [ ] Add install prompt
-- [ ] Test PWA functionality
 ---
 
 ## Phase 9 — Advanced Features
 
 ### 9.1 Real-time Features
 - [ ] Add live order tracking
-- [ ] Add live sales counter
-- [ ] Add live inventory updates
-- [ ] Add live rider location tracking
-- [ ] Add live chat with customers
+- ~~[ ] Add live sales counter~~
+- ~~[ ] Add live inventory updates~~
+- ~~[ ] Add live rider location tracking~~
+- ~~[ ] Add live chat with customers~~
 
 ### 9.2 Marketing Features
 - [ ] Add promo code/discount management
-- [ ] Add loyalty program management
+- ~~[ ] Add loyalty program management~~
 - [ ] Add coupon generation
-- [ ] Add flash sale management
+- ~~[ ] Add flash sale management~~
 - [ ] Add special offers scheduling
 
 ### 9.3 Customer Engagement
 - [ ] Add customer reviews management
 - [ ] Add customer feedback collection
-- [ ] Add customer segmentation
-- [ ] Add targeted promotions
-- [ ] Add customer communication tools
+- ~~[ ] Add customer segmentation~~
+- ~~[ ] Add targeted promotions~~
+- ~~[ ] Add customer communication tools~~
 
 ## Phase 10 — Developer API & Webhooks
 

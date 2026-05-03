@@ -1237,12 +1237,12 @@ Thank you for your business!
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Earnings</h1>
-          <p className="text-gray-600 dark:text-gray-400">View your wallet balance and transactions</p>
+          <h1 className="text-2xl font-bold text-text dark:text-dark-text">Earnings</h1>
+          <p className="text-muted dark:text-dark-muted">View your wallet balance and transactions</p>
         </div>
         <button
           onClick={() => dispatch(fetchWallet({ merchantId }))}
-          className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-2 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg transition-colors"
         >
           <RefreshCw className="w-5 h-5" />
         </button>
@@ -1268,13 +1268,13 @@ Thank you for your business!
               <p className="text-4xl font-bold">₦{wallet.availableBalance?.toLocaleString() || '0'}</p>
               <p className="text-blue-100 mt-2 text-sm">Ready for withdrawal</p>
             </div>
-            <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-6 text-white">
+            <div className="bg-gradient-to-br from-surface-700 to-surface-800 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
-                <AlertCircle className="w-6 h-6" />
-                <h2 className="text-lg font-semibold">Pending Balance</h2>
+                <Clock className="w-6 h-6" />
+                <h3 className="text-lg font-semibold">Pending Balance</h3>
               </div>
               <p className="text-4xl font-bold">₦{wallet.pendingBalance?.toLocaleString() || '0'}</p>
-              <p className="text-gray-300 mt-2 text-sm">Awaiting settlement</p>
+              <p className="text-surface-300 mt-2 text-sm">Awaiting settlement</p>
             </div>
             <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
@@ -1298,21 +1298,21 @@ Thank you for your business!
           <div className="flex flex-wrap gap-3">
             <button
               onClick={() => setShowWithdrawalHistory(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
               <FileText className="w-4 h-4" />
               Withdrawal History
             </button>
             <button
               onClick={() => setShowRefundHistory(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
               <AlertCircle className="w-4 h-4" />
               Refund History
             </button>
             <button
               onClick={() => setShowDisputes(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
               <Flag className="w-4 h-4" />
               Disputes
@@ -1335,42 +1335,42 @@ Thank you for your business!
           </div>
 
           {/* Date Range Filter */}
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Date Range Filter</h3>
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Date Range Filter</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Start Date
                 </label>
                 <input
                   type="date"
                   value={dateRange.startDate}
                   onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   End Date
                 </label>
                 <input
                   type="date"
                   value={dateRange.endDate}
                   onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
                 />
               </div>
               <div className="flex items-end">
                 <button
                   onClick={() => setDateRange({ startDate: '', endDate: '' })}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="px-4 py-2 text-muted dark:text-dark-muted border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
                 >
                   Clear Filter
                 </button>
               </div>
             </div>
             {(dateRange.startDate || dateRange.endDate) && (
-              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+              <div className="mt-3 text-sm text-muted dark:text-dark-muted">
                 Filtering: {dateRange.startDate || 'Beginning'} to {dateRange.endDate || 'Present'}
               </div>
             )}
@@ -1380,21 +1380,21 @@ Thank you for your business!
           <div className="flex flex-wrap gap-3">
             <button
               onClick={exportTransactionsToCSV}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
               <Download className="w-4 h-4" />
               Export Transactions (CSV)
             </button>
             <button
               onClick={exportRefundsToCSV}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
               <Download className="w-4 h-4" />
               Export Refunds (CSV)
             </button>
             <button
               onClick={exportDisputesToCSV}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
               <Download className="w-4 h-4" />
               Export Disputes (CSV)
@@ -1445,47 +1445,47 @@ Thank you for your business!
           </div>
 
           {/* Transaction History */}
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-600">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Transaction History</h2>
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-surface-muted dark:border-dark-surface-muted">
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text">Transaction History</h2>
             </div>
             {!wallet.transactions || wallet.transactions.length === 0 ? (
-              <div className="p-6 text-center text-gray-600 dark:text-gray-400">No transactions yet</div>
+              <div className="p-6 text-center text-muted dark:text-dark-muted">No transactions yet</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
+                  <thead className="bg-surface-muted dark:bg-dark-surface-muted border-b border-surface-muted dark:border-dark-surface-muted">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Type
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Amount
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Commission
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Tax
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Net Amount
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
                     {(wallet.transactions || []).map((transaction) => (
-                      <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <tr key={transaction.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text dark:text-dark-text">
                           <div className="flex items-center gap-2">
                             {transaction.type === 'EARNING' && <TrendingUp className="w-4 h-4 text-green-600" />}
                             {transaction.type === 'WITHDRAWAL' && <ArrowUpRight className="w-4 h-4 text-red-600" />}
@@ -1496,40 +1496,40 @@ Thank you for your business!
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                           {transaction.type === 'WITHDRAWAL' ? '-' : '+'}₦{transaction.amount.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                           {transaction.commission ? `₦${transaction.commission.toLocaleString()}` : '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                           {transaction.tax ? `₦${transaction.tax.toLocaleString()}` : '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text dark:text-dark-text">
                           ₦{((transaction.amount || 0) - (transaction.commission || 0) - (transaction.tax || 0)).toLocaleString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             transaction.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                             transaction.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                            transaction.status === 'FAILED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                            'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            transaction.status === 'FAILED' ? 'bg-error/10 text-error' :
+                            'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'
                           }`}>
                             {transaction.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                           {format(new Date(transaction.createdAt), 'MMM dd, yyyy HH:mm')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleViewTransaction(transaction)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded transition-colors"
+                              className="p-1 text-primary hover:bg-primary/10 dark:text-primary dark:hover:bg-primary/10 rounded transition-colors"
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDownloadReceipt(transaction)}
-                              className="p-1 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20 rounded transition-colors"
+                              className="p-1 text-success hover:bg-success/10 dark:text-success dark:hover:bg-success/10 rounded transition-colors"
                               title="Download Receipt"
                             >
                               <Download className="w-4 h-4" />
@@ -1548,14 +1548,14 @@ Thank you for your business!
 
       {/* Enhanced Withdrawal Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-600">
+        <div className="fixed inset-0 bg-surface-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Request Withdrawal</h2>
+                <h2 className="text-xl font-bold text-text dark:text-dark-text">Request Withdrawal</h2>
                 <button
                   onClick={() => setShowWithdrawModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="p-2 text-muted hover:text-text dark:hover:text-dark-text"
                 >
                   <AlertCircle className="w-5 h-5" />
                 </button>
@@ -1563,7 +1563,7 @@ Thank you for your business!
             </div>
             <form onSubmit={handleWithdrawal} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (₦)</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Amount (₦)</label>
                 <input
                   type="number"
                   required
@@ -1571,17 +1571,17 @@ Thank you for your business!
                   max={Math.min(withdrawalLimits.maxAmount, wallet?.availableBalance || 0)}
                   value={withdrawalForm.amount}
                   onChange={(e) => setWithdrawalForm({ ...withdrawalForm, amount: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-dark-surface"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                 />
                 <div className="mt-2 space-y-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-muted dark:text-dark-muted">
                     Available: ₦{wallet?.availableBalance?.toLocaleString() || '0'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-muted dark:text-dark-muted">
                     Min: ₦{withdrawalLimits.minAmount.toLocaleString()} | Max: ₦{withdrawalLimits.maxAmount.toLocaleString()}
                   </p>
                   {withdrawalForm.amount && (
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                    <p className="text-xs text-primary dark:text-primary">
                       Fee: ₦{calculateWithdrawalFee(parseFloat(withdrawalForm.amount) || 0).toLocaleString()}
                       {instantWithdrawal && ` (${(withdrawalLimits.instantWithdrawalFee * 100).toFixed(0)}%)`}
                     </p>
@@ -1591,42 +1591,42 @@ Thank you for your business!
 
               {/* Withdrawal Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Withdrawal Type</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Withdrawal Type</label>
                 <div className="space-y-2">
-                  <label className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <label className="flex items-center p-3 border border-surface-muted dark:border-dark-surface-muted rounded-lg cursor-pointer hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                     <input
                       type="radio"
                       name="withdrawalType"
                       checked={!instantWithdrawal}
                       onChange={() => setInstantWithdrawal(false)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted focus:ring-primary"
                     />
                     <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900 dark:text-gray-100">Standard Withdrawal</span>
-                        <span className="text-sm text-green-600 dark:text-green-400">Free</span>
+                        <span className="font-medium text-text dark:text-dark-text">Standard Withdrawal</span>
+                        <span className="text-sm text-success dark:text-success">Free</span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted dark:text-dark-muted">
                         Processing time: 24-48 hours
                       </p>
                     </div>
                   </label>
-                  <label className="flex items-center p-3 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <label className="flex items-center p-3 border border-surface-muted dark:border-dark-surface-muted rounded-lg cursor-pointer hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                     <input
                       type="radio"
                       name="withdrawalType"
                       checked={instantWithdrawal}
                       onChange={() => setInstantWithdrawal(true)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted focus:ring-primary"
                     />
                     <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900 dark:text-gray-100">Instant Withdrawal</span>
+                        <span className="font-medium text-text dark:text-dark-text">Instant Withdrawal</span>
                         <span className="text-sm text-orange-600 dark:text-orange-400">
                           {(withdrawalLimits.instantWithdrawalFee * 100).toFixed(0)}% fee
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted dark:text-dark-muted">
                         Processing time: 5-10 minutes
                       </p>
                     </div>
@@ -1635,9 +1635,9 @@ Thank you for your business!
               </div>
 
               {/* Withdrawal Limits Info */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Withdrawal Limits</h4>
-                <div className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
+              <div className="bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-primary dark:text-primary mb-2">Withdrawal Limits</h4>
+                <div className="space-y-1 text-xs text-primary dark:text-primary">
                   <p>• Daily limit: ₦{withdrawalLimits.dailyLimit.toLocaleString()}</p>
                   <p>• Monthly limit: ₦{withdrawalLimits.monthlyLimit.toLocaleString()}</p>
                   <p>• Minimum amount: ₦{withdrawalLimits.minAmount.toLocaleString()}</p>
@@ -1649,7 +1649,7 @@ Thank you for your business!
               {savedBankAccounts.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Saved Bank Accounts</label>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text">Saved Bank Accounts</label>
                     <button
                       type="button"
                       onClick={() => setShowSavedAccounts(!showSavedAccounts)}
@@ -1664,13 +1664,13 @@ Thank you for your business!
                         <div
                           key={account.id}
                           onClick={() => handleUseSavedAccount(account)}
-                          className="p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+                          className="p-3 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted cursor-pointer transition-colors"
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-gray-100">{account.bankName}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{account.accountName}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-500">****{account.accountNumber.slice(-4)}</p>
+                              <p className="font-medium text-text dark:text-dark-text">{account.bankName}</p>
+                              <p className="text-sm text-muted dark:text-dark-muted">{account.accountName}</p>
+                              <p className="text-xs text-muted dark:text-dark-muted">****{account.accountNumber.slice(-4)}</p>
                             </div>
                             {account.isDefault && (
                               <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded">Default</span>
@@ -1684,34 +1684,34 @@ Thank you for your business!
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bank Name</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Bank Name</label>
                 <input
                   type="text"
                   required
                   value={withdrawalForm.bankName}
                   onChange={(e) => setWithdrawalForm({ ...withdrawalForm, bankName: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-dark-surface"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Number</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Account Number</label>
                 <input
                   type="text"
                   required
                   minLength="10"
                   value={withdrawalForm.accountNumber}
                   onChange={(e) => setWithdrawalForm({ ...withdrawalForm, accountNumber: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-dark-surface"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Name</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Account Name</label>
                 <input
                   type="text"
                   required
                   value={withdrawalForm.accountName}
                   onChange={(e) => setWithdrawalForm({ ...withdrawalForm, accountName: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-dark-surface"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                 />
               </div>
 
@@ -1725,9 +1725,9 @@ Thank you for your business!
                       handleSaveBankAccount()
                     }
                   }}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted rounded focus:ring-primary"
                 />
-                <label htmlFor="saveAccount" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                <label htmlFor="saveAccount" className="ml-2 text-sm text-text dark:text-dark-text">
                   Save this bank account for future withdrawals
                 </label>
               </div>
@@ -1739,7 +1739,7 @@ Thank you for your business!
                     setShowWithdrawModal(false)
                     setWithdrawalForm({ amount: '', bankName: '', accountNumber: '', accountName: '' })
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
                 >
                   Cancel
                 </button>
@@ -1757,17 +1757,17 @@ Thank you for your business!
 
       {/* Transaction Details Modal */}
       {showTransactionDetails && selectedTransaction && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-600">
+        <div className="fixed inset-0 bg-surface-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Transaction Details</h2>
+                <h2 className="text-xl font-bold text-text dark:text-dark-text">Transaction Details</h2>
                 <button
                   onClick={() => {
                     setShowTransactionDetails(false)
                     setSelectedTransaction(null)
                   }}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="p-2 text-muted hover:text-text dark:hover:text-dark-text"
                 >
                   <AlertCircle className="w-5 h-5" />
                 </button>
@@ -1776,7 +1776,7 @@ Thank you for your business!
             
             <div className="p-6 space-y-6">
               {/* Transaction Overview */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+              <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
@@ -1789,23 +1789,23 @@ Thank you for your business!
                       {selectedTransaction.type === 'REFUND' && <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />}
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                         {selectedTransaction.type.replace(/_/g, ' ')}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-muted dark:text-dark-muted">
                         ID: {selectedTransaction.id}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <p className="text-2xl font-bold text-text dark:text-dark-text">
                       {selectedTransaction.type === 'WITHDRAWAL' ? '-' : '+'}₦{selectedTransaction.amount.toLocaleString()}
                     </p>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       selectedTransaction.status === 'COMPLETED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                       selectedTransaction.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                      selectedTransaction.status === 'FAILED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                      'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      selectedTransaction.status === 'FAILED' ? 'bg-error/10 text-error' :
+                      'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'
                     }`}>
                       {selectedTransaction.status}
                     </span>
@@ -1815,27 +1815,27 @@ Thank you for your business!
 
               {/* Financial Breakdown */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Financial Breakdown</h4>
+                <h4 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Financial Breakdown</h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                    <span className="text-gray-600 dark:text-gray-400">Gross Amount</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">₦{selectedTransaction.amount.toLocaleString()}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-surface-muted dark:border-dark-surface-muted">
+                    <span className="text-muted dark:text-dark-muted">Gross Amount</span>
+                    <span className="font-medium text-text dark:text-dark-text">₦{selectedTransaction.amount.toLocaleString()}</span>
                   </div>
                   {selectedTransaction.commission && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                      <span className="text-gray-600 dark:text-gray-400">Platform Commission</span>
-                      <span className="font-medium text-red-600 dark:text-red-400">-₦{selectedTransaction.commission.toLocaleString()}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-surface-muted dark:border-dark-surface-muted">
+                      <span className="text-muted dark:text-dark-muted">Platform Commission</span>
+                      <span className="font-medium text-error dark:text-error">-₦{selectedTransaction.commission.toLocaleString()}</span>
                     </div>
                   )}
                   {selectedTransaction.tax && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600">
-                      <span className="text-gray-600 dark:text-gray-400">Tax</span>
-                      <span className="font-medium text-red-600 dark:text-red-400">-₦{selectedTransaction.tax.toLocaleString()}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-surface-muted dark:border-dark-surface-muted">
+                      <span className="text-muted dark:text-dark-muted">Tax</span>
+                      <span className="font-medium text-error dark:text-error">-₦{selectedTransaction.tax.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center py-2">
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">Net Amount</span>
-                    <span className="font-bold text-lg text-gray-900 dark:text-gray-100">
+                    <span className="font-semibold text-text dark:text-dark-text">Net Amount</span>
+                    <span className="font-bold text-lg text-text dark:text-dark-text">
                       ₦{((selectedTransaction.amount || 0) - (selectedTransaction.commission || 0) - (selectedTransaction.tax || 0)).toLocaleString()}
                     </span>
                   </div>
@@ -1844,34 +1844,34 @@ Thank you for your business!
 
               {/* Transaction Information */}
               <div>
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Transaction Information</h4>
+                <h4 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Transaction Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Date & Time</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                    <p className="text-sm text-muted dark:text-dark-muted">Date & Time</p>
+                    <p className="font-medium text-text dark:text-dark-text">
                       {format(new Date(selectedTransaction.createdAt), 'PPPpp')}
                     </p>
                   </div>
                   {selectedTransaction.orderId && (
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Order ID</p>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                      <p className="text-sm text-muted dark:text-dark-muted">Order ID</p>
+                      <p className="font-medium text-text dark:text-dark-text">
                         #{selectedTransaction.orderId}
                       </p>
                     </div>
                   )}
                   {selectedTransaction.customerName && (
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Customer</p>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                      <p className="text-sm text-muted dark:text-dark-muted">Customer</p>
+                      <p className="font-medium text-text dark:text-dark-text">
                         {selectedTransaction.customerName}
                       </p>
                     </div>
                   )}
                   {selectedTransaction.paymentMethod && (
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Payment Method</p>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                      <p className="text-sm text-muted dark:text-dark-muted">Payment Method</p>
+                      <p className="font-medium text-text dark:text-dark-text">
                         {selectedTransaction.paymentMethod}
                       </p>
                     </div>
@@ -1882,15 +1882,15 @@ Thank you for your business!
               {/* Notes */}
               {selectedTransaction.notes && (
                 <div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Notes</h4>
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <p className="text-gray-700 dark:text-gray-300">{selectedTransaction.notes}</p>
+                  <h4 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Notes</h4>
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
+                    <p className="text-text dark:text-dark-text">{selectedTransaction.notes}</p>
                   </div>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <div className="flex gap-3 pt-4 border-t border-surface-muted dark:border-dark-surface-muted">
                 <button
                   onClick={() => handleDownloadReceipt(selectedTransaction)}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -1903,7 +1903,7 @@ Thank you for your business!
                     setShowTransactionDetails(false)
                     setSelectedTransaction(null)
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
                 >
                   Close
                 </button>
@@ -1915,14 +1915,14 @@ Thank you for your business!
 
       {/* Withdrawal History Modal */}
       {showWithdrawalHistory && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-600">
+        <div className="fixed inset-0 bg-surface-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Withdrawal History</h2>
+                <h2 className="text-xl font-bold text-text dark:text-dark-text">Withdrawal History</h2>
                 <button
                   onClick={() => setShowWithdrawalHistory(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="p-2 text-muted hover:text-text dark:hover:text-dark-text"
                 >
                   <AlertCircle className="w-5 h-5" />
                 </button>
@@ -1932,13 +1932,13 @@ Thank you for your business!
             <div className="p-6">
               {withdrawalHistory.length === 0 ? (
                 <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-400">No withdrawal history available</p>
+                  <FileText className="w-12 h-12 text-muted mx-auto mb-4" />
+                  <p className="text-muted dark:text-dark-muted">No withdrawal history available</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {withdrawalHistory.map((withdrawal) => (
-                    <div key={withdrawal.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                    <div key={withdrawal.id} className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -1947,16 +1947,16 @@ Thank you for your business!
                             <ArrowUpRight className={`w-5 h-5 ${withdrawal.instantWithdrawal ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`} />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                            <h3 className="font-semibold text-text dark:text-dark-text">
                               {withdrawal.instantWithdrawal ? 'Instant Withdrawal' : 'Standard Withdrawal'}
                             </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                            <p className="text-sm text-muted dark:text-dark-muted">
                               {format(new Date(withdrawal.createdAt), 'PPPpp')}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          <p className="text-lg font-bold text-text dark:text-dark-text">
                             ₦{withdrawal.amount.toLocaleString()}
                           </p>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${getWithdrawalStatusColor(withdrawal.status)}`}>
@@ -1967,23 +1967,23 @@ Thank you for your business!
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
-                          <p className="text-gray-600 dark:text-gray-400">Bank Account</p>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                          <p className="text-muted dark:text-dark-muted">Bank Account</p>
+                          <p className="font-medium text-text dark:text-dark-text">
                             {withdrawal.bankName} - {withdrawal.accountName}
                           </p>
-                          <p className="text-gray-600 dark:text-gray-400">
+                          <p className="text-muted dark:text-dark-muted">
                             ****{withdrawal.accountNumber.slice(-4)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-gray-600 dark:text-gray-400">Processing Details</p>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                          <p className="text-muted dark:text-dark-muted">Processing Details</p>
+                          <p className="font-medium text-text dark:text-dark-text">
                             Fee: ₦{withdrawal.fee.toLocaleString()}
                           </p>
-                          <p className="text-gray-600 dark:text-gray-400">
+                          <p className="text-muted dark:text-dark-muted">
                             Total: ₦{withdrawal.totalAmount.toLocaleString()}
                           </p>
-                          <p className="text-gray-600 dark:text-gray-400">
+                          <p className="text-muted dark:text-dark-muted">
                             Est. time: {withdrawal.estimatedProcessingTime}
                           </p>
                         </div>
@@ -2005,24 +2005,24 @@ Thank you for your business!
               )}
               
               {/* Withdrawal Summary */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Summary</h3>
+              <div className="mt-6 pt-6 border-t border-surface-muted dark:border-dark-surface-muted">
+                <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Summary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Withdrawn</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
+                    <p className="text-sm text-muted dark:text-dark-muted">Total Withdrawn</p>
+                    <p className="text-xl font-bold text-text dark:text-dark-text">
                       ₦{withdrawalHistory.reduce((sum, w) => w.status === 'COMPLETED' ? sum + w.amount : sum, 0).toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Pending Withdrawals</p>
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
+                    <p className="text-sm text-muted dark:text-dark-muted">Pending Withdrawals</p>
                     <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
                       ₦{withdrawalHistory.reduce((sum, w) => w.status === 'PENDING' || w.status === 'PROCESSING' ? sum + w.amount : sum, 0).toLocaleString()}
                     </p>
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Fees Paid</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
+                    <p className="text-sm text-muted dark:text-dark-muted">Total Fees Paid</p>
+                    <p className="text-xl font-bold text-text dark:text-dark-text">
                       ₦{withdrawalHistory.reduce((sum, w) => sum + w.fee, 0).toLocaleString()}
                     </p>
                   </div>
@@ -2038,10 +2038,10 @@ Thank you for your business!
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Process Refund</h3>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Process Refund</h3>
               <button
                 onClick={() => setShowRefundModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-muted hover:text-text dark:hover:text-dark-text"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -2049,27 +2049,27 @@ Thank you for your business!
             
             <form onSubmit={handleCreateRefund} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Order ID
                 </label>
                 <input
                   type="text"
                   value={refundForm.orderId}
                   onChange={(e) => setRefundForm({...refundForm, orderId: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   placeholder="Enter order ID"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Refund Type
                 </label>
                 <select
                   value={refundForm.type}
                   onChange={(e) => setRefundForm({...refundForm, type: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                 >
                   <option value="full">Full Refund</option>
                   <option value="partial">Partial Refund</option>
@@ -2077,27 +2077,27 @@ Thank you for your business!
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Refund Amount (₦)
                 </label>
                 <input
                   type="number"
                   value={refundForm.amount}
                   onChange={(e) => setRefundForm({...refundForm, amount: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   placeholder="Enter amount"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Reason
                 </label>
                 <select
                   value={refundForm.reason}
                   onChange={(e) => setRefundForm({...refundForm, reason: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                 >
                   <option value="">Select reason</option>
                   <option value="food_quality">Food Quality Issue</option>
@@ -2110,13 +2110,13 @@ Thank you for your business!
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Description
                 </label>
                 <textarea
                   value={refundForm.description}
                   onChange={(e) => setRefundForm({...refundForm, description: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   rows={3}
                   placeholder="Provide additional details..."
                 />
@@ -2126,7 +2126,7 @@ Thank you for your business!
                 <button
                   type="button"
                   onClick={() => setShowRefundModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
                 >
                   Cancel
                 </button>
@@ -2147,10 +2147,10 @@ Thank you for your business!
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Refund History</h3>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Refund History</h3>
               <button
                 onClick={() => setShowRefundHistory(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-muted hover:text-text dark:hover:text-dark-text"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -2158,29 +2158,29 @@ Thank you for your business!
             
             {refunds.length === 0 ? (
               <div className="text-center py-8">
-                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">No refunds processed yet</p>
+                <AlertCircle className="w-12 h-12 text-muted mx-auto mb-4" />
+                <p className="text-muted dark:text-dark-muted">No refunds processed yet</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {refunds.map((refund) => (
-                  <div key={refund.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                  <div key={refund.id} className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
                           <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                          <h3 className="font-semibold text-text dark:text-dark-text">
                             Order #{refund.orderId}
                           </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                          <p className="text-sm text-muted dark:text-dark-muted">
                             {format(new Date(refund.createdAt), 'PPPpp')}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        <p className="text-lg font-bold text-text dark:text-dark-text">
                           ₦{refund.amount.toLocaleString()}
                         </p>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRefundStatusColor(refund.status)}`}>
@@ -2191,19 +2191,19 @@ Thank you for your business!
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <p className="text-gray-600 dark:text-gray-400">Customer</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{refund.customerName}</p>
+                        <p className="text-muted dark:text-dark-muted">Customer</p>
+                        <p className="font-medium text-text dark:text-dark-text">{refund.customerName}</p>
                       </div>
                       <div>
-                        <p className="text-gray-600 dark:text-gray-400">Reason</p>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">{refund.reason.replace(/_/g, ' ')}</p>
+                        <p className="text-muted dark:text-dark-muted">Reason</p>
+                        <p className="font-medium text-text dark:text-dark-text">{refund.reason.replace(/_/g, ' ')}</p>
                       </div>
                     </div>
                     
                     {refund.description && (
                       <div className="mt-3 text-sm">
-                        <p className="text-gray-600 dark:text-gray-400">Description</p>
-                        <p className="text-gray-900 dark:text-gray-100">{refund.description}</p>
+                        <p className="text-muted dark:text-dark-muted">Description</p>
+                        <p className="text-text dark:text-dark-text">{refund.description}</p>
                       </div>
                     )}
                     
@@ -2244,10 +2244,10 @@ Thank you for your business!
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Dispute Management</h3>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Dispute Management</h3>
               <button
                 onClick={() => setShowDisputes(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-muted hover:text-text dark:hover:text-dark-text"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -2256,7 +2256,7 @@ Thank you for your business!
             <div className="mb-4">
               <button
                 onClick={() => setShowDisputeModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
               >
                 Create New Dispute
               </button>
@@ -2264,23 +2264,23 @@ Thank you for your business!
             
             {disputes.length === 0 ? (
               <div className="text-center py-8">
-                <Flag className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">No disputes filed yet</p>
+                <Flag className="w-12 h-12 text-muted mx-auto mb-4" />
+                <p className="text-muted dark:text-dark-muted">No disputes filed yet</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {disputes.map((dispute) => (
-                  <div key={dispute.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                  <div key={dispute.id} className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                           <Flag className="w-5 h-5 text-red-600 dark:text-red-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                          <h3 className="font-semibold text-text dark:text-dark-text">
                             Transaction #{dispute.transactionId}
                           </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                          <p className="text-sm text-muted dark:text-dark-muted">
                             {format(new Date(dispute.createdAt), 'PPPpp')}
                           </p>
                         </div>
@@ -2291,21 +2291,21 @@ Thank you for your business!
                     </div>
                     
                     <div className="text-sm">
-                      <p className="text-gray-600 dark:text-gray-400">Category</p>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{dispute.category}</p>
+                      <p className="text-muted dark:text-dark-muted">Category</p>
+                      <p className="font-medium text-text dark:text-dark-text">{dispute.category}</p>
                     </div>
                     
                     <div className="mt-3 text-sm">
-                      <p className="text-gray-600 dark:text-gray-400">Reason</p>
-                      <p className="text-gray-900 dark:text-gray-100">{dispute.reason}</p>
+                      <p className="text-muted dark:text-dark-muted">Reason</p>
+                      <p className="text-text dark:text-dark-text">{dispute.reason}</p>
                     </div>
                     
                     {dispute.evidence && dispute.evidence.length > 0 && (
                       <div className="mt-3 text-sm">
-                        <p className="text-gray-600 dark:text-gray-400">Evidence Files</p>
+                        <p className="text-muted dark:text-dark-muted">Evidence Files</p>
                         <div className="flex flex-wrap gap-2 mt-1">
                           {dispute.evidence.map((file, index) => (
-                            <span key={index} className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                            <span key={index} className="px-2 py-1 bg-surface-muted dark:bg-dark-surface-muted rounded text-xs">
                               {file.name}
                             </span>
                           ))}
@@ -2334,10 +2334,10 @@ Thank you for your business!
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Create Dispute</h3>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Create Dispute</h3>
               <button
                 onClick={() => setShowDisputeModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-muted hover:text-text dark:hover:text-dark-text"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -2345,27 +2345,27 @@ Thank you for your business!
             
             <form onSubmit={handleCreateDispute} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Transaction ID
                 </label>
                 <input
                   type="text"
                   value={disputeForm.transactionId}
                   onChange={(e) => setDisputeForm({...disputeForm, transactionId: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   placeholder="Enter transaction ID"
                   required
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Category
                 </label>
                 <select
                   value={disputeForm.category}
                   onChange={(e) => setDisputeForm({...disputeForm, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                 >
                   <option value="payment">Payment Issue</option>
                   <option value="order">Order Dispute</option>
@@ -2376,13 +2376,13 @@ Thank you for your business!
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Reason
                 </label>
                 <textarea
                   value={disputeForm.reason}
                   onChange={(e) => setDisputeForm({...disputeForm, reason: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   rows={3}
                   placeholder="Describe the issue..."
                   required
@@ -2390,13 +2390,13 @@ Thank you for your business!
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Detailed Description
                 </label>
                 <textarea
                   value={disputeForm.description}
                   onChange={(e) => setDisputeForm({...disputeForm, description: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   rows={4}
                   placeholder="Provide detailed explanation..."
                   required
@@ -2404,21 +2404,21 @@ Thank you for your business!
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Evidence Files
                 </label>
                 <input
                   type="file"
                   multiple
                   onChange={handleFileUpload}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   accept="image/*,.pdf,.doc,.docx"
                 />
                 {disputeForm.evidence.length > 0 && (
                   <div className="mt-2 space-y-1">
                     {disputeForm.evidence.map((file, index) => (
                       <div key={index} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{file.name}</span>
+                        <span className="text-muted dark:text-dark-muted">{file.name}</span>
                         <button
                           type="button"
                           onClick={() => removeEvidenceFile(index)}
@@ -2436,13 +2436,13 @@ Thank you for your business!
                 <button
                   type="button"
                   onClick={() => setShowDisputeModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   Create Dispute
                 </button>
@@ -2457,10 +2457,10 @@ Thank you for your business!
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Dispute Details</h3>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Dispute Details</h3>
               <button
                 onClick={() => setShowDisputeDetails(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-muted hover:text-text dark:hover:text-dark-text"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -2468,26 +2468,26 @@ Thank you for your business!
             
             <div className="space-y-6">
               {/* Dispute Information */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Dispute Information</h4>
+              <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
+                <h4 className="font-semibold text-text dark:text-dark-text mb-3">Dispute Information</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400">Transaction ID</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">#{selectedDispute.transactionId}</p>
+                    <p className="text-muted dark:text-dark-muted">Transaction ID</p>
+                    <p className="font-medium text-text dark:text-dark-text">#{selectedDispute.transactionId}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400">Status</p>
+                    <p className="text-muted dark:text-dark-muted">Status</p>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDisputeStatusColor(selectedDispute.status)}`}>
                       {selectedDispute.status}
                     </span>
                   </div>
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400">Category</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{selectedDispute.category}</p>
+                    <p className="text-muted dark:text-dark-muted">Category</p>
+                    <p className="font-medium text-text dark:text-dark-text">{selectedDispute.category}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600 dark:text-gray-400">Created Date</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                    <p className="text-muted dark:text-dark-muted">Created Date</p>
+                    <p className="font-medium text-text dark:text-dark-text">
                       {format(new Date(selectedDispute.createdAt), 'PPPpp')}
                     </p>
                   </div>
@@ -2496,33 +2496,33 @@ Thank you for your business!
               
               {/* Dispute Reason */}
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Dispute Reason</h4>
-                <p className="text-gray-700 dark:text-gray-300">{selectedDispute.reason}</p>
+                <h4 className="font-semibold text-text dark:text-dark-text mb-2">Dispute Reason</h4>
+                <p className="text-text dark:text-dark-text">{selectedDispute.reason}</p>
               </div>
               
               {/* Detailed Description */}
               {selectedDispute.description && (
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Detailed Description</h4>
-                  <p className="text-gray-700 dark:text-gray-300">{selectedDispute.description}</p>
+                  <h4 className="font-semibold text-text dark:text-dark-text mb-2">Detailed Description</h4>
+                  <p className="text-text dark:text-dark-text">{selectedDispute.description}</p>
                 </div>
               )}
               
               {/* Evidence Files */}
               {selectedDispute.evidence && selectedDispute.evidence.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Evidence Files</h4>
+                  <h4 className="font-semibold text-text dark:text-dark-text mb-2">Evidence Files</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {selectedDispute.evidence.map((file, index) => (
-                      <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                      <div key={index} className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Upload className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{file.name}</span>
+                            <Upload className="w-4 h-4 text-muted" />
+                            <span className="text-sm text-text dark:text-dark-text">{file.name}</span>
                           </div>
                           <button
                             onClick={() => window.open(file.url, '_blank')}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
+                            className="text-primary hover:text-primary/90 text-sm"
                           >
                             View
                           </button>
@@ -2535,19 +2535,19 @@ Thank you for your business!
               
               {/* Communication Thread */}
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Communication</h4>
+                <h4 className="font-semibold text-text dark:text-dark-text mb-3">Communication</h4>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {selectedDispute.responses && selectedDispute.responses.length > 0 ? (
                     selectedDispute.responses.map((response) => (
                       <div key={response.id} className={`flex ${response.sender === 'merchant' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-xs px-4 py-2 rounded-lg ${
                           response.sender === 'merchant' 
-                            ? 'bg-blue-600 text-white' 
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                            ? 'bg-primary text-white' 
+                            : 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'
                         }`}>
                           <p className="text-sm">{response.message}</p>
                           <p className={`text-xs mt-1 ${
-                            response.sender === 'merchant' ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                            response.sender === 'merchant' ? 'text-white/80' : 'text-muted dark:text-dark-muted'
                           }`}>
                             {format(new Date(response.timestamp), 'PPp')}
                           </p>
@@ -2555,7 +2555,7 @@ Thank you for your business!
                       </div>
                     ))
                   ) : (
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">No communication yet</p>
+                    <p className="text-muted dark:text-dark-muted text-sm">No communication yet</p>
                   )}
                 </div>
                 
@@ -2564,7 +2564,7 @@ Thank you for your business!
                   <input
                     type="text"
                     placeholder="Type your response..."
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                    className="flex-1 px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         handleAddDisputeResponse(selectedDispute.id)
@@ -2573,7 +2573,7 @@ Thank you for your business!
                   />
                   <button
                     onClick={() => handleAddDisputeResponse(selectedDispute.id)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     Send
                   </button>
@@ -2582,8 +2582,8 @@ Thank you for your business!
               
               {/* Resolution Actions */}
               {selectedDispute.status !== 'RESOLVED' && selectedDispute.status !== 'CLOSED' && (
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Resolution Actions</h4>
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                  <h4 className="font-semibold text-text dark:text-dark-text mb-3">Resolution Actions</h4>
                   <div className="flex flex-wrap gap-3">
                     {selectedDispute.status === 'OPEN' && (
                       <button
@@ -2695,7 +2695,7 @@ Thank you for your business!
                           showSuccessToast('Internal note added')
                         }
                       }}
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
                     >
                       Add Internal Note
                     </button>
@@ -2705,8 +2705,8 @@ Thank you for your business!
               
               {/* Resolution Details */}
               {(selectedDispute.status === 'RESOLVED' || selectedDispute.status === 'CLOSED') && (
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Resolution Details</h4>
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                  <h4 className="font-semibold text-text dark:text-dark-text mb-3">Resolution Details</h4>
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
                     <p className="text-sm text-green-800 dark:text-green-200">
                       {selectedDispute.status === 'RESOLVED' ? 'Dispute Resolved' : 'Dispute Closed'}
@@ -2732,13 +2732,13 @@ Thank you for your business!
               
               {/* Internal Notes */}
               {selectedDispute.internalNotes && selectedDispute.internalNotes.length > 0 && (
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Internal Notes</h4>
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                  <h4 className="font-semibold text-text dark:text-dark-text mb-3">Internal Notes</h4>
                   <div className="space-y-2">
                     {selectedDispute.internalNotes.map((note, index) => (
-                      <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-                        <p className="text-sm text-gray-700 dark:text-gray-300">{note.note}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <div key={index} className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-3">
+                        <p className="text-sm text-text dark:text-dark-text">{note.note}</p>
+                        <p className="text-xs text-muted dark:text-dark-muted mt-1">
                           {format(new Date(note.timestamp), 'PPp')}
                         </p>
                       </div>
@@ -2756,10 +2756,10 @@ Thank you for your business!
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Generate Custom Report</h3>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Generate Custom Report</h3>
               <button
                 onClick={() => setShowCustomReportModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-muted hover:text-text dark:hover:text-dark-text"
               >
                 <XCircle className="w-6 h-6" />
               </button>
@@ -2767,14 +2767,14 @@ Thank you for your business!
             
             <form onSubmit={(e) => { e.preventDefault(); generateCustomReport(); }} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Report Name *
                 </label>
                 <input
                   type="text"
                   value={customReport.name}
                   onChange={(e) => setCustomReport({...customReport, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   placeholder="Enter report name"
                   required
                 />
@@ -2782,13 +2782,13 @@ Thank you for your business!
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                     Data Type
                   </label>
                   <select
                     value={customReport.type}
                     onChange={(e) => setCustomReport({...customReport, type: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   >
                     <option value="transaction">Transactions</option>
                     <option value="refund">Refunds</option>
@@ -2797,13 +2797,13 @@ Thank you for your business!
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                     Format
                   </label>
                   <select
                     value={customReport.format}
                     onChange={(e) => setCustomReport({...customReport, format: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   >
                     <option value="csv">CSV</option>
                     <option value="pdf">PDF</option>
@@ -2812,7 +2812,7 @@ Thank you for your business!
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Select Fields to Include
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -3038,12 +3038,12 @@ Thank you for your business!
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Additional Filters
                 </label>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    <label className="block text-xs font-medium text-muted dark:text-dark-muted mb-1">
                       Status
                     </label>
                     <select
@@ -3052,7 +3052,7 @@ Thank you for your business!
                         ...customReport,
                         filters: {...customReport.filters, status: e.target.value}
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
+                      className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text text-sm"
                     >
                       <option value="all">All</option>
                       <option value="PENDING">Pending</option>
@@ -3065,7 +3065,7 @@ Thank you for your business!
                   </div>
                   
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    <label className="block text-xs font-medium text-muted dark:text-dark-muted mb-1">
                       Min Amount (₦)
                     </label>
                     <input
@@ -3075,13 +3075,13 @@ Thank you for your business!
                         ...customReport,
                         filters: {...customReport.filters, minAmount: e.target.value}
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
+                      className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text text-sm"
                       placeholder="0"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    <label className="block text-xs font-medium text-muted dark:text-dark-muted mb-1">
                       Max Amount (₦)
                     </label>
                     <input
@@ -3091,7 +3091,7 @@ Thank you for your business!
                         ...customReport,
                         filters: {...customReport.filters, maxAmount: e.target.value}
                       })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
+                      className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text text-sm"
                       placeholder="No limit"
                     />
                   </div>
@@ -3102,13 +3102,13 @@ Thank you for your business!
                 <button
                   type="button"
                   onClick={() => setShowCustomReportModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   Generate Report
                 </button>

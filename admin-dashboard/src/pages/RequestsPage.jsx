@@ -7,12 +7,12 @@ import Pagination from '../components/Pagination'
 
 const STATUS_COLORS = {
   REQUESTED: 'bg-yellow-100 text-yellow-800',
-  ACCEPTED: 'bg-blue-100 text-blue-800',
+  ACCEPTED: 'bg-primary/10 text-primary',
   RIDER_ASSIGNED: 'bg-purple-100 text-purple-800',
   PICKED_UP: 'bg-indigo-100 text-indigo-800',
   IN_TRANSIT: 'bg-cyan-100 text-cyan-800',
-  DELIVERED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-red-100 text-red-800',
+  DELIVERED: 'bg-success/10 text-success',
+  CANCELLED: 'bg-error/10 text-error',
 }
 
 export default function RequestsPage() {
@@ -101,15 +101,15 @@ export default function RequestsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Requests</h1>
+      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Requests</h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
         <div className="flex gap-4 mb-4 flex-wrap justify-between items-center">
           <div className="flex gap-4 flex-wrap">
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
           >
             <option value="">All Statuses</option>
             <option value="REQUESTED">Requested</option>
@@ -124,7 +124,7 @@ export default function RequestsPage() {
           <select
             value={filters.type}
             onChange={(e) => handleFilterChange('type', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
           >
             <option value="">All Types</option>
             <option value="FOOD">Food</option>
@@ -136,13 +136,13 @@ export default function RequestsPage() {
             type="date"
             value={filters.startDate}
             onChange={(e) => handleFilterChange('startDate', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
           />
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => handleFilterChange('endDate', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
           />
           <button
             onClick={handleSearch}
@@ -155,7 +155,7 @@ export default function RequestsPage() {
           <button
             onClick={handleExportCSV}
             disabled={requests.length === 0}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Download size={18} />
             Export CSV
@@ -163,81 +163,81 @@ export default function RequestsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading requests...</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">Loading requests...</div>
         ) : requests.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">No requests found</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">No requests found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-surface-muted dark:bg-dark-surface-muted border-b border-surface-muted dark:border-dark-surface-muted">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Request ID</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Merchant</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rider</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Request ID</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Customer</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Type</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Merchant</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Rider</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Created</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
               {requests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50 dark:bg-gray-700 cursor-pointer" onClick={() => handleViewDetails(request)}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                <tr key={request.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted cursor-pointer" onClick={() => handleViewDetails(request)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-text dark:text-dark-text">
                     #{request.id.slice(-8)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     <div className="flex items-center gap-2">
                       <User size={16} />
                       {request.customer?.firstName} {request.customer?.lastName}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     {request.type}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[request.status] || 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[request.status] || 'bg-surface-muted text-muted'}`}>
                       {request.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     {request.merchant ? (
                       <div className="flex items-center gap-2">
                         <Store size={16} />
                         {request.merchant.name}
                       </div>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-muted">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     {request.rider ? (
                       <div className="flex items-center gap-2">
                         <Bike size={16} />
                         {request.rider.user?.firstName} {request.rider.user?.lastName}
                       </div>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-muted">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     <div className="flex items-center gap-2">
                       <DollarSign size={16} />
                       ₦{request.total?.toLocaleString()}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     <div className="flex items-center gap-2">
                       <Clock size={16} />
                       {new Date(request.createdAt).toLocaleDateString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-gray-400 hover:text-gray-600 dark:text-gray-300" onClick={(e) => { e.stopPropagation(); handleViewDetails(request) }}>
+                    <button className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text" onClick={(e) => { e.stopPropagation(); handleViewDetails(request) }}>
                       <MoreVertical size={20} />
                     </button>
                   </td>
@@ -263,150 +263,150 @@ export default function RequestsPage() {
       {/* Request Details Modal */}
       {showDetailsModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Request Details</h2>
-              <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">Request Details</h2>
+              <button onClick={() => setShowDetailsModal(false)} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text">
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Request ID</p>
-                  <p className="font-medium text-gray-900 dark:text-white">#{selectedRequest.id.slice(-8)}</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Request ID</p>
+                  <p className="font-medium text-text dark:text-dark-text">#{selectedRequest.id.slice(-8)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedRequest.type}</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Type</p>
+                  <p className="font-medium text-text dark:text-dark-text">{selectedRequest.type}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Status</p>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selectedRequest.status]}`}>
                     {selectedRequest.status.replace('_', ' ')}
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
-                  <p className="font-medium text-gray-900 dark:text-white">₦{selectedRequest.total?.toLocaleString()}</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Total Amount</p>
+                  <p className="font-medium text-text dark:text-dark-text">₦{selectedRequest.total?.toLocaleString()}</p>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Customer Information</h3>
+              <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                <h3 className="font-semibold text-text dark:text-dark-text mb-3">Customer Information</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <User size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-300">{selectedRequest.customer?.firstName} {selectedRequest.customer?.lastName}</span>
+                    <User size={16} className="text-muted" />
+                    <span className="text-muted dark:text-dark-muted">{selectedRequest.customer?.firstName} {selectedRequest.customer?.lastName}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-300">{selectedRequest.customer?.phone}</span>
+                    <Phone size={16} className="text-muted" />
+                    <span className="text-muted dark:text-dark-muted">{selectedRequest.customer?.phone}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Mail size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-300">{selectedRequest.customer?.email}</span>
+                    <Mail size={16} className="text-muted" />
+                    <span className="text-muted dark:text-dark-muted">{selectedRequest.customer?.email}</span>
                   </div>
                 </div>
               </div>
 
               {selectedRequest.merchant && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Merchant Information</h3>
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                  <h3 className="font-semibold text-text dark:text-dark-text mb-3">Merchant Information</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Store size={16} className="text-gray-400" />
-                      <span className="text-gray-600 dark:text-gray-300">{selectedRequest.merchant.name}</span>
+                      <Store size={16} className="text-muted" />
+                      <span className="text-muted dark:text-dark-muted">{selectedRequest.merchant.name}</span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Type: {selectedRequest.merchant.type}</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Type: {selectedRequest.merchant.type}</p>
                   </div>
                 </div>
               )}
 
               {selectedRequest.rider && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Rider Information</h3>
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                  <h3 className="font-semibold text-text dark:text-dark-text mb-3">Rider Information</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Bike size={16} className="text-gray-400" />
-                      <span className="text-gray-600 dark:text-gray-300">{selectedRequest.rider.user?.firstName} {selectedRequest.rider.user?.lastName}</span>
+                      <Bike size={16} className="text-muted" />
+                      <span className="text-muted dark:text-dark-muted">{selectedRequest.rider.user?.firstName} {selectedRequest.rider.user?.lastName}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Phone size={16} className="text-gray-400" />
-                      <span className="text-gray-600 dark:text-gray-300">{selectedRequest.rider.user?.phone}</span>
+                      <Phone size={16} className="text-muted" />
+                      <span className="text-muted dark:text-dark-muted">{selectedRequest.rider.user?.phone}</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Location Details</h3>
+              <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                <h3 className="font-semibold text-text dark:text-dark-text mb-3">Location Details</h3>
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
-                    <MapPin size={16} className="text-gray-400 mt-1" />
+                    <MapPin size={16} className="text-muted mt-1" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Pickup</p>
-                      <p className="text-gray-600 dark:text-gray-300">{selectedRequest.pickupAddress}</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">Pickup</p>
+                      <p className="text-muted dark:text-dark-muted">{selectedRequest.pickupAddress}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <MapPin size={16} className="text-gray-400 mt-1" />
+                    <MapPin size={16} className="text-muted mt-1" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Dropoff</p>
-                      <p className="text-gray-600 dark:text-gray-300">{selectedRequest.dropoffAddress}</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">Dropoff</p>
+                      <p className="text-muted dark:text-dark-muted">{selectedRequest.dropoffAddress}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {selectedRequest.items && selectedRequest.items.length > 0 && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Order Items</h3>
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                  <h3 className="font-semibold text-text dark:text-dark-text mb-3">Order Items</h3>
                   <div className="space-y-2">
                     {selectedRequest.items.map((item, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-300">{item.name} x {item.quantity}</span>
-                        <span className="text-gray-900 dark:text-white">₦{(item.unitPrice * item.quantity).toLocaleString()}</span>
+                        <span className="text-muted dark:text-dark-muted">{item.name} x {item.quantity}</span>
+                        <span className="text-text dark:text-dark-text">₦{(item.unitPrice * item.quantity).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Financial Breakdown</h3>
+              <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                <h3 className="font-semibold text-text dark:text-dark-text mb-3">Financial Breakdown</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Subtotal</span>
-                    <span className="text-gray-900 dark:text-white">₦{selectedRequest.subtotal?.toLocaleString()}</span>
+                    <span className="text-muted dark:text-dark-muted">Subtotal</span>
+                    <span className="text-text dark:text-dark-text">₦{selectedRequest.subtotal?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Delivery Fee</span>
-                    <span className="text-gray-900 dark:text-white">₦{selectedRequest.deliveryFee?.toLocaleString()}</span>
+                    <span className="text-muted dark:text-dark-muted">Delivery Fee</span>
+                    <span className="text-text dark:text-dark-text">₦{selectedRequest.deliveryFee?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Platform Fee</span>
-                    <span className="text-gray-900 dark:text-white">₦{selectedRequest.platformFee?.toLocaleString()}</span>
+                    <span className="text-muted dark:text-dark-muted">Platform Fee</span>
+                    <span className="text-text dark:text-dark-text">₦{selectedRequest.platformFee?.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between font-semibold border-t border-gray-200 dark:border-gray-700 pt-2">
-                    <span className="text-gray-900 dark:text-white">Total</span>
-                    <span className="text-gray-900 dark:text-white">₦{selectedRequest.total?.toLocaleString()}</span>
+                  <div className="flex justify-between font-semibold border-t border-surface-muted dark:border-dark-surface-muted pt-2">
+                    <span className="text-text dark:text-dark-text">Total</span>
+                    <span className="text-text dark:text-dark-text">₦{selectedRequest.total?.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3">
               {selectedRequest.status !== 'CANCELLED' && selectedRequest.status !== 'DELIVERED' && selectedRequest.status !== 'SETTLED' && (
                 <>
                   <button
                     onClick={() => { setShowReassignModal(true) }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
                   >
                     Reassign Rider
                   </button>
                   <button
                     onClick={() => { setShowCancelModal(true) }}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors"
                   >
                     Force Cancel
                   </button>
@@ -414,7 +414,7 @@ export default function RequestsPage() {
               )}
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700 transition-colors"
+                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
               >
                 Close
               </button>
@@ -426,13 +426,13 @@ export default function RequestsPage() {
       {/* Cancel Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Cancel Request</h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">Please provide a reason for cancelling this request:</p>
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-text dark:text-dark-text mb-4">Cancel Request</h2>
+            <p className="text-muted dark:text-dark-muted mb-4">Please provide a reason for cancelling this request:</p>
             <textarea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-4"
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
               rows="3"
               placeholder="Enter cancellation reason..."
             />
@@ -440,7 +440,7 @@ export default function RequestsPage() {
               <button
                 onClick={handleForceCancel}
                 disabled={!cancelReason.trim() || actionLoading === 'cancel'}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {actionLoading === 'cancel' ? (
                   <>
@@ -453,7 +453,7 @@ export default function RequestsPage() {
               </button>
               <button
                 onClick={() => { setShowCancelModal(false); setCancelReason('') }}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700 transition-colors"
+                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
               >
                 Cancel
               </button>
@@ -465,21 +465,21 @@ export default function RequestsPage() {
       {/* Reassign Rider Modal */}
       {showReassignModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Reassign Rider</h2>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">Enter the new rider ID:</p>
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-text dark:text-dark-text mb-4">Reassign Rider</h2>
+            <p className="text-muted dark:text-dark-muted mb-4">Enter the new rider ID:</p>
             <input
               type="text"
               value={newRiderId}
               onChange={(e) => setNewRiderId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-4"
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
               placeholder="Enter rider ID..."
             />
             <div className="flex gap-3">
               <button
                 onClick={handleReassignRider}
                 disabled={!newRiderId.trim() || actionLoading === 'reassign'}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {actionLoading === 'reassign' ? (
                   <>
@@ -492,7 +492,7 @@ export default function RequestsPage() {
               </button>
               <button
                 onClick={() => { setShowReassignModal(false); setNewRiderId('') }}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700 transition-colors"
+                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
               >
                 Cancel
               </button>

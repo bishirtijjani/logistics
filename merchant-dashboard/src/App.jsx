@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import RegistrationPage from './pages/RegistrationPage.jsx'
 import Layout from './components/Layout.jsx'
 import OrdersPage from './pages/OrdersPage.jsx'
 import MenuPage from './pages/MenuPage.jsx'
@@ -20,14 +21,14 @@ function ProtectedRoute({ children }) {
   return children
 }
 
-function App() {
+function AppContent() {
   const sessionManager = useSessionManager()
 
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <Routes>
+    <>
+      <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegistrationPage />} />
           <Route
             path="/dashboard/:merchantId/*"
             element={
@@ -56,6 +57,15 @@ function App() {
           onLogout={sessionManager.handleLogout}
           isRefreshing={sessionManager.isRefreshing}
         />
+      </>
+  )
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppContent />
       </BrowserRouter>
     </ErrorBoundary>
   )

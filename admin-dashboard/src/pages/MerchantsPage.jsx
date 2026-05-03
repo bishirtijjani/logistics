@@ -7,9 +7,9 @@ import Pagination from '../components/Pagination'
 
 const STATUS_COLORS = {
   PENDING: 'bg-yellow-100 text-yellow-800',
-  ACTIVE: 'bg-green-100 text-green-800',
-  SUSPENDED: 'bg-red-100 text-red-800',
-  REJECTED: 'bg-gray-100 text-gray-800',
+  ACTIVE: 'bg-success/10 text-success',
+  SUSPENDED: 'bg-error/10 text-error',
+  REJECTED: 'bg-surface-muted text-muted',
 }
 
 export default function MerchantsPage() {
@@ -172,15 +172,15 @@ export default function MerchantsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Merchants Management</h1>
+      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Merchants Management</h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
         <div className="flex gap-4 flex-wrap justify-between items-center">
           <div className="flex gap-4 flex-wrap">
           <select
             value={filters.type}
             onChange={(e) => handleFilterChange('type', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
           >
             <option value="">All Types</option>
             <option value="FOOD">Food</option>
@@ -190,7 +190,7 @@ export default function MerchantsPage() {
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
           >
             <option value="">All Statuses</option>
             <option value="PENDING">Pending</option>
@@ -202,7 +202,7 @@ export default function MerchantsPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 flex items-center gap-2"
             >
               <Store size={18} />
               Add Merchant
@@ -210,7 +210,7 @@ export default function MerchantsPage() {
             <button
               onClick={handleExportCSV}
               disabled={merchants.length === 0}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Download size={18} />
               Export CSV
@@ -219,57 +219,57 @@ export default function MerchantsPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading merchants...</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">Loading merchants...</div>
         ) : merchants.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">No merchants found</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">No merchants found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-surface-muted dark:bg-dark-surface-muted border-b border-surface-muted dark:border-dark-surface-muted">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Merchant</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Wallet</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Commission</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Merchant</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Type</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Wallet</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Commission</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
               {merchants.map((merchant) => (
-                <tr key={merchant.id} className="hover:bg-gray-50 dark:bg-gray-700">
+                <tr key={merchant.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <Store size={20} className="text-primary-600" />
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Store size={20} className="text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{merchant.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{merchant.user?.email}</p>
+                        <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.name}</p>
+                        <p className="text-xs text-muted dark:text-dark-muted">{merchant.user?.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{merchant.type}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">{merchant.type}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[merchant.status]}`}>
                       {merchant.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     <div className="flex items-center gap-2">
                       <DollarSign size={16} />
                       ₦{merchant.wallet?.availableBalance?.toLocaleString() || 0}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">{merchant.commissionRate}%</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">{merchant.commissionRate}%</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex gap-2">
-                      <button onClick={() => openDetailsModal(merchant)} className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300" title="View Details">
+                      <button onClick={() => openDetailsModal(merchant)} className="p-2 text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text" title="View Details">
                         <Eye size={18} />
                       </button>
-                      <button onClick={() => openDeleteModal(merchant)} className="p-2 text-red-400 hover:text-red-600" title="Delete Merchant">
+                      <button onClick={() => openDeleteModal(merchant)} className="p-2 text-error hover:text-error-700" title="Delete Merchant">
                         <X size={18} />
                       </button>
                       {merchant.status === 'PENDING' && (
@@ -277,23 +277,23 @@ export default function MerchantsPage() {
                           <button 
                             onClick={() => handleApprove(merchant.id)} 
                             disabled={actionLoading === merchant.id}
-                            className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+                            className="p-2 bg-success/10 text-success rounded-lg hover:bg-success/20 disabled:opacity-50 disabled:cursor-not-allowed" 
                             title="Approve"
                           >
                             {actionLoading === merchant.id ? (
-                              <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                              <div className="w-4 h-4 border-2 border-success border-t-transparent rounded-full animate-spin" />
                             ) : (
                               <Check size={18} />
                             )}
                           </button>
-                          <button onClick={() => openRejectModal(merchant)} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Reject">
+                          <button onClick={() => openRejectModal(merchant)} className="p-2 bg-error/10 text-error rounded-lg hover:bg-error/20" title="Reject">
                             <X size={18} />
                           </button>
                         </>
                       )}
                       {merchant.status === 'ACTIVE' && (
                         <>
-                          <button onClick={() => openCommissionModal(merchant)} className="p-2 text-gray-400 hover:text-gray-600 dark:text-gray-300" title="Edit Commission">
+                          <button onClick={() => openCommissionModal(merchant)} className="p-2 text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text" title="Edit Commission">
                             <Edit size={18} />
                           </button>
                           <button 
@@ -314,11 +314,11 @@ export default function MerchantsPage() {
                         <button 
                           onClick={() => handleUnsuspend(merchant.id)} 
                           disabled={actionLoading === merchant.id}
-                          className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed" 
+                          className="p-2 bg-success/10 text-success rounded-lg hover:bg-success/20 disabled:opacity-50 disabled:cursor-not-allowed" 
                           title="Unsuspend"
                         >
                           {actionLoading === merchant.id ? (
-                            <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-success border-t-transparent rounded-full animate-spin" />
                           ) : (
                             <Shield size={18} />
                           )}
@@ -337,73 +337,73 @@ export default function MerchantsPage() {
       {/* Details Modal */}
       {showDetailsModal && selectedMerchant && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Merchant Details</h2>
-              <button onClick={() => setShowDetailsModal(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
+          <div className="bg-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">Merchant Details</h2>
+              <button onClick={() => setShowDetailsModal(false)} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text">
                 <CloseIcon size={24} />
               </button>
             </div>
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Merchant Name</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedMerchant.name}</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Merchant Name</p>
+                  <p className="font-medium text-text dark:text-dark-text">{selectedMerchant.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Type</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedMerchant.type}</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Type</p>
+                  <p className="font-medium text-text dark:text-dark-text">{selectedMerchant.type}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Status</p>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[selectedMerchant.status]}`}>
                     {selectedMerchant.status}
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Commission Rate</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedMerchant.commissionRate}%</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Commission Rate</p>
+                  <p className="font-medium text-text dark:text-dark-text">{selectedMerchant.commissionRate}%</p>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Contact Information</h3>
+              <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                <h3 className="font-semibold text-text dark:text-dark-text mb-3">Contact Information</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Mail size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-300">{selectedMerchant.user?.email}</span>
+                    <Mail size={16} className="text-muted" />
+                    <span className="text-muted dark:text-dark-muted">{selectedMerchant.user?.email}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone size={16} className="text-gray-400" />
-                    <span className="text-gray-600 dark:text-gray-300">{selectedMerchant.user?.phone}</span>
+                    <Phone size={16} className="text-muted" />
+                    <span className="text-muted dark:text-dark-muted">{selectedMerchant.user?.phone}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Location</h3>
+              <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                <h3 className="font-semibold text-text dark:text-dark-text mb-3">Location</h3>
                 <div className="flex items-start gap-2">
-                  <MapPin size={16} className="text-gray-400 mt-1" />
-                  <p className="text-gray-600 dark:text-gray-300">{selectedMerchant.address}</p>
+                  <MapPin size={16} className="text-muted mt-1" />
+                  <p className="text-muted dark:text-dark-muted">{selectedMerchant.address}</p>
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Wallet Information</h3>
+              <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                <h3 className="font-semibold text-text dark:text-dark-text mb-3">Wallet Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Available Balance</p>
-                    <p className="font-medium text-gray-900 dark:text-white">₦{selectedMerchant.wallet?.availableBalance?.toLocaleString() || 0}</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Available Balance</p>
+                    <p className="font-medium text-text dark:text-dark-text">₦{selectedMerchant.wallet?.availableBalance?.toLocaleString() || 0}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Pending Balance</p>
-                    <p className="font-medium text-gray-900 dark:text-white">₦{selectedMerchant.wallet?.pendingBalance?.toLocaleString() || 0}</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Pending Balance</p>
+                    <p className="font-medium text-text dark:text-dark-text">₦{selectedMerchant.wallet?.pendingBalance?.toLocaleString() || 0}</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-              <button onClick={() => setShowDetailsModal(false)} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700">
+            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted">
+              <button onClick={() => setShowDetailsModal(false)} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Close
               </button>
             </div>
@@ -414,23 +414,23 @@ export default function MerchantsPage() {
       {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reject Merchant</h3>
+          <div className="bg-surface rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Reject Merchant</h3>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Enter rejection reason..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-4"
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4"
               rows={3}
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowRejectModal(false); setRejectionReason(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700">
+              <button onClick={() => { setShowRejectModal(false); setRejectionReason(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Cancel
               </button>
               <button 
                 onClick={handleReject} 
                 disabled={!rejectionReason.trim() || actionLoading === 'reject'}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {actionLoading === 'reject' ? (
                   <>
@@ -449,17 +449,17 @@ export default function MerchantsPage() {
       {/* Suspend Modal */}
       {showSuspendModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Suspend Merchant</h3>
+          <div className="bg-surface rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Suspend Merchant</h3>
             <textarea
               value={suspensionReason}
               onChange={(e) => setSuspensionReason(e.target.value)}
               placeholder="Enter suspension reason..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-4"
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4"
               rows={3}
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowSuspendModal(false); setSuspensionReason(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700">
+              <button onClick={() => { setShowSuspendModal(false); setSuspensionReason(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Cancel
               </button>
               <button 
@@ -484,26 +484,26 @@ export default function MerchantsPage() {
       {/* Commission Modal */}
       {showCommissionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Update Commission Rate</h3>
+          <div className="bg-surface rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Update Commission Rate</h3>
             <input
               type="number"
               value={commissionRate}
               onChange={(e) => setCommissionRate(e.target.value)}
               placeholder="Enter commission rate (0-100)"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none mb-4"
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4"
               min="0"
               max="100"
               step="0.1"
             />
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowCommissionModal(false); setCommissionRate(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700">
+              <button onClick={() => { setShowCommissionModal(false); setCommissionRate(''); setSelectedMerchant(null) }} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Cancel
               </button>
               <button 
                 onClick={handleUpdateCommission} 
                 disabled={!commissionRate || isNaN(commissionRate) || actionLoading === 'commission'}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {actionLoading === 'commission' ? (
                   <>
@@ -522,25 +522,25 @@ export default function MerchantsPage() {
       {/* Create Merchant Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create New Merchant</h3>
+          <div className="bg-surface rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Create New Merchant</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Merchant Name</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Merchant Name</label>
                 <input
                   type="text"
                   value={newMerchant.name}
                   onChange={(e) => setNewMerchant({ ...newMerchant, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                   placeholder="Enter merchant name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Type</label>
                 <select
                   value={newMerchant.type}
                   onChange={(e) => setNewMerchant({ ...newMerchant, type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                 >
                   <option value="FOOD">Food</option>
                   <option value="GROCERY">Grocery</option>
@@ -549,44 +549,44 @@ export default function MerchantsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Email</label>
                 <input
                   type="email"
                   value={newMerchant.email}
                   onChange={(e) => setNewMerchant({ ...newMerchant, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                   placeholder="Enter email"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Phone</label>
                 <input
                   type="text"
                   value={newMerchant.phone}
                   onChange={(e) => setNewMerchant({ ...newMerchant, phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                   placeholder="Enter phone number"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Address</label>
                 <textarea
                   value={newMerchant.address}
                   onChange={(e) => setNewMerchant({ ...newMerchant, address: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                   placeholder="Enter address"
                   rows={2}
                 />
               </div>
             </div>
             <div className="flex gap-3 justify-end mt-6">
-              <button onClick={() => { setShowCreateModal(false); setNewMerchant({ name: '', type: 'FOOD', email: '', phone: '', address: '', lat: 0, lng: 0 }) }} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700">
+              <button onClick={() => { setShowCreateModal(false); setNewMerchant({ name: '', type: 'FOOD', email: '', phone: '', address: '', lat: 0, lng: 0 }) }} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Cancel
               </button>
               <button 
                 onClick={handleCreateMerchant}
                 disabled={actionLoading === 'create'}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {actionLoading === 'create' ? (
                   <>
@@ -605,22 +605,22 @@ export default function MerchantsPage() {
       {/* Delete Merchant Modal */}
       {showDeleteModal && merchantToDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Delete Merchant</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-2">
+          <div className="bg-surface rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Delete Merchant</h3>
+            <p className="text-muted dark:text-dark-muted mb-2">
               Are you sure you want to delete <span className="font-semibold">{merchantToDelete.name}</span>?
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <p className="text-sm text-muted dark:text-dark-muted mb-6">
               This action cannot be undone. The merchant will be soft-deleted.
             </p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowDeleteModal(false); setMerchantToDelete(null) }} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:bg-gray-700">
+              <button onClick={() => { setShowDeleteModal(false); setMerchantToDelete(null) }} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Cancel
               </button>
               <button 
                 onClick={handleDeleteMerchant}
                 disabled={actionLoading === 'delete'}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {actionLoading === 'delete' ? (
                   <>

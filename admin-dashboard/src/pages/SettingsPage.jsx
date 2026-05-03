@@ -71,42 +71,39 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Settings</h1>
 
       <div className="flex gap-6">
-        <div className="w-64 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+        <div className="w-64 bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4">
           <nav className="space-y-1">
             <button
               onClick={() => setActiveTab('platform')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
                 activeTab === 'platform'
-                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary font-medium'
+                  : 'text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
               }`}
             >
-              <Globe size={20} />
               Platform
             </button>
             <button
-              onClick={() => setActiveTab('commissions')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === 'commissions'
-                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              onClick={() => setActiveTab('fees')}
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'fees'
+                  ? 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary font-medium'
+                  : 'text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
               }`}
             >
-              <Percent size={20} />
-              Commissions
+              Fees & Commissions
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
                 activeTab === 'notifications'
-                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary font-medium'
+                  : 'text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
               }`}
             >
-              <Bell size={20} />
               Notifications
             </button>
           </nav>
@@ -114,25 +111,25 @@ export default function SettingsPage() {
 
         <div className="flex-1">
           {activeTab === 'platform' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Platform Configuration</h2>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Platform Configuration</h2>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platform Name</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Platform Name</label>
                   <input
                     type="text"
                     value={platformForm.platformName}
                     onChange={(e) => setPlatformForm({ ...platformForm, platformName: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Currency</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Default Currency</label>
                   <select
                     value={platformForm.defaultCurrency}
                     onChange={(e) => setPlatformForm({ ...platformForm, defaultCurrency: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                   >
                     <option value="NGN">Nigerian Naira (₦)</option>
                     <option value="USD">US Dollar ($)</option>
@@ -140,37 +137,37 @@ export default function SettingsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Timezone</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Timezone</label>
                   <select
                     value={platformForm.timezone}
                     onChange={(e) => setPlatformForm({ ...platformForm, timezone: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                   >
                     <option value="Africa/Lagos">Africa/Lagos (WAT)</option>
                     <option value="UTC">UTC</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Support Email</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Support Email</label>
                   <div className="relative">
-                    <Mail size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Mail size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                       type="email"
                       value={platformForm.supportEmail}
                       onChange={(e) => setPlatformForm({ ...platformForm, supportEmail: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Support Phone</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Support Phone</label>
                   <div className="relative">
-                    <Phone size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Phone size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                       type="tel"
                       value={platformForm.supportPhone}
                       onChange={(e) => setPlatformForm({ ...platformForm, supportPhone: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                     />
                   </div>
                 </div>
@@ -190,60 +187,60 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'commissions' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Commission Defaults</h2>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Commission Defaults</h2>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Merchant Commission (%)</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Default Merchant Commission (%)</label>
                   <div className="relative">
-                    <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                       type="number"
                       value={platformForm.defaultMerchantCommission}
                       onChange={(e) => setPlatformForm({ ...platformForm, defaultMerchantCommission: parseFloat(e.target.value) })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                       min="0"
                       max="100"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default Rider Commission (%)</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Default Rider Commission (%)</label>
                   <div className="relative">
-                    <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                       type="number"
                       value={platformForm.defaultRiderCommission}
                       onChange={(e) => setPlatformForm({ ...platformForm, defaultRiderCommission: parseFloat(e.target.value) })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                       min="0"
                       max="100"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Minimum Delivery Fee</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Minimum Delivery Fee</label>
                   <div className="relative">
-                    <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                       type="number"
                       value={platformForm.minDeliveryFee}
                       onChange={(e) => setPlatformForm({ ...platformForm, minDeliveryFee: parseFloat(e.target.value) })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                       min="0"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maximum Delivery Fee</label>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Maximum Delivery Fee</label>
                   <div className="relative">
-                    <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                     <input
                       type="number"
                       value={platformForm.maxDeliveryFee}
                       onChange={(e) => setPlatformForm({ ...platformForm, maxDeliveryFee: parseFloat(e.target.value) })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                       min="0"
                     />
                   </div>
@@ -264,14 +261,14 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Notification Settings</h2>
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Notification Settings</h2>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Email Notifications</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive notifications via email</p>
+                    <p className="font-medium text-text dark:text-dark-text">Email Notifications</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Receive notifications via email</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -280,14 +277,14 @@ export default function SettingsPage() {
                       onChange={(e) => setNotificationSettings({ ...notificationSettings, emailNotifications: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Push Notifications</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive push notifications in browser</p>
+                    <p className="font-medium text-text dark:text-dark-text">Push Notifications</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Receive push notifications in browser</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -296,14 +293,14 @@ export default function SettingsPage() {
                       onChange={(e) => setNotificationSettings({ ...notificationSettings, pushNotifications: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">SMS Notifications</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive notifications via SMS</p>
+                    <p className="font-medium text-text dark:text-dark-text">SMS Notifications</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Receive notifications via SMS</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -312,14 +309,14 @@ export default function SettingsPage() {
                       onChange={(e) => setNotificationSettings({ ...notificationSettings, smsNotifications: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">New Order Alerts</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Alert when new orders are placed</p>
+                    <p className="font-medium text-text dark:text-dark-text">New Order Alerts</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Alert when new orders are placed</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -328,14 +325,14 @@ export default function SettingsPage() {
                       onChange={(e) => setNotificationSettings({ ...notificationSettings, newOrderAlerts: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Rider Status Alerts</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Alert when rider status changes</p>
+                    <p className="font-medium text-text dark:text-dark-text">Rider Status Alerts</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Alert when rider status changes</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -344,14 +341,14 @@ export default function SettingsPage() {
                       onChange={(e) => setNotificationSettings({ ...notificationSettings, riderStatusAlerts: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Payment Alerts</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Alert on payment events</p>
+                    <p className="font-medium text-text dark:text-dark-text">Payment Alerts</p>
+                    <p className="text-sm text-muted dark:text-dark-muted">Alert on payment events</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -360,7 +357,7 @@ export default function SettingsPage() {
                       onChange={(e) => setNotificationSettings({ ...notificationSettings, paymentAlerts: e.target.checked })}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
                 </div>
               </div>

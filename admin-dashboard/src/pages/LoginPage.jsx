@@ -59,7 +59,7 @@ export default function LoginPage() {
           <h2 className="text-xl font-semibold text-secondary mb-6">Sign In</h2>
           
           {error && (
-            <div className="bg-red-50 text-error p-3 rounded-lg mb-4 text-sm">
+            <div className="bg-error/10 text-error p-3 rounded-lg mb-4 text-sm">
               {error}
             </div>
           )}
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>

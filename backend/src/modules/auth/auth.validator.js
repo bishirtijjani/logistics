@@ -16,7 +16,7 @@ const registerSchema = z.object({
   firstName: z.string().min(2).max(50),
   lastName: z.string().min(2).max(50),
   password: z.string().min(8).max(72),
-  role: z.enum(["CUSTOMER", "RIDER"]).default("CUSTOMER"),
+  role: z.enum(["CUSTOMER", "RIDER", "MERCHANT"]).default("CUSTOMER"),
 });
 
 const loginSchema = z.object({
@@ -103,6 +103,23 @@ const updateNotificationPreferencesSchema = z.object({
   smsEnabled: z.boolean().optional(),
 });
 
+const merchantRegisterSchema = z.object({
+  email: z.string().email(),
+  phone: z.string().regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
+  firstName: z.string().min(2).max(50),
+  lastName: z.string().min(2).max(50),
+  password: z.string().min(8).max(72),
+  businessName: z.string().min(2).max(100),
+  businessType: z.enum(['RESTAURANT', 'GROCERY', 'PHARMACY']),
+  businessPhone: z.string().min(10),
+  businessEmail: z.string().email(),
+  businessAddress: z.string().min(5),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  openingTime: z.string().regex(/^\d{2}:\d{2}$/).default('08:00'),
+  closingTime: z.string().regex(/^\d{2}:\d{2}$/).default('22:00'),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -118,4 +135,5 @@ module.exports = {
   updateProfileSchema,
   updateProfilePictureSchema,
   updateNotificationPreferencesSchema,
+  merchantRegisterSchema,
 };

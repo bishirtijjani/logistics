@@ -65,21 +65,21 @@ export default function AuditLogPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Audit Logs</h1>
+      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Audit Logs</h1>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-6">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
         <div className="flex gap-4 mb-4 flex-wrap">
           <input
             type="text"
-            placeholder="Search by action..."
+            placeholder="Filter by action"
             value={filters.action}
             onChange={(e) => handleFilterChange('action', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
           />
           <select
             value={filters.entityType}
             onChange={(e) => handleFilterChange('entityType', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
           >
             <option value="">All Entity Types</option>
             <option value="MERCHANT">Merchant</option>
@@ -92,17 +92,17 @@ export default function AuditLogPage() {
             type="date"
             value={filters.startDate}
             onChange={(e) => handleFilterChange('startDate', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
           />
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => handleFilterChange('endDate', e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
           />
           <button
             onClick={handleSearch}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
           >
             <Filter size={18} />
             Apply Filters
@@ -110,35 +110,35 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading audit logs...</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">Loading audit logs...</div>
         ) : logs.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">No audit logs found</div>
+          <div className="p-12 text-center text-muted dark:text-dark-muted">No audit logs found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-700">
+            <thead className="bg-surface-muted dark:bg-dark-surface-muted border-b border-surface-muted dark:border-dark-surface-muted">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Timestamp</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Admin</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Entity</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Entity ID</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Details</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Timestamp</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Admin</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Action</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Entity</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Entity ID</th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
               {logs.map((log) => (
                 <>
-                  <tr key={log.id} className="hover:bg-gray-50 dark:bg-gray-700 cursor-pointer" onClick={() => toggleExpand(log.id)}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                  <tr key={log.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted cursor-pointer" onClick={() => toggleExpand(log.id)}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                       <div className="flex items-center gap-2">
                         <Calendar size={16} />
                         {new Date(log.createdAt).toLocaleString()}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                       <div className="flex items-center gap-2">
                         <UserIcon size={16} />
                         {log.adminUser?.firstName} {log.adminUser?.lastName}
@@ -149,13 +149,13 @@ export default function AuditLogPage() {
                         {formatAction(log.action)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                       {log.entityType}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-muted dark:text-dark-muted">
                       #{log.entityId.slice(-8)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                       <div className="flex items-center gap-2">
                         {expandedLog === log.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         {log.details ? 'View details' : '-'}
@@ -164,19 +164,19 @@ export default function AuditLogPage() {
                   </tr>
                   {expandedLog === log.id && log.details && (
                     <tr>
-                      <td colSpan="6" className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
+                      <td colSpan="6" className="px-6 py-4 bg-surface-muted dark:bg-dark-surface-muted">
                         <div className="text-sm">
-                          <p className="font-semibold text-gray-900 dark:text-white mb-2">Details:</p>
-                          <pre className="bg-gray-100 p-3 rounded-lg overflow-auto max-h-40 text-xs">
+                          <p className="font-semibold text-text dark:text-dark-text mb-2">Details:</p>
+                          <pre className="bg-surface-muted dark:bg-dark-surface-muted p-3 rounded-lg overflow-auto max-h-40 text-xs dark:text-dark-text">
                             {JSON.stringify(log.details, null, 2)}
                           </pre>
                           {log.ipAddress && (
-                            <p className="mt-2 text-gray-600 dark:text-gray-300">
+                            <p className="mt-2 text-muted dark:text-dark-muted">
                               <span className="font-semibold">IP:</span> {log.ipAddress}
                             </p>
                           )}
                           {log.userAgent && (
-                            <p className="text-gray-600 dark:text-gray-300">
+                            <p className="mt-1 text-muted dark:text-dark-muted">
                               <span className="font-semibold">User Agent:</span> {log.userAgent}
                             </p>
                           )}

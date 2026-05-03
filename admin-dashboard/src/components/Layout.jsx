@@ -16,7 +16,13 @@ import {
   X,
   Moon,
   Sun,
-  Clock
+  Clock,
+  BarChart3,
+  DollarSign,
+  MessageCircle,
+  Headphones,
+  Megaphone,
+  Shield
 } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Breadcrumb from './Breadcrumb'
@@ -29,6 +35,13 @@ const navItems = [
   { path: '/merchants', icon: Store, label: 'Merchants' },
   { path: '/riders', icon: Bike, label: 'Riders' },
   { path: '/pending-riders', icon: UserCheck, label: 'Pending Riders' },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/financial', icon: DollarSign, label: 'Financial' },
+  { path: '/disputes', icon: MessageCircle, label: 'Disputes' },
+  { path: '/support', icon: Headphones, label: 'Support' },
+  { path: '/marketing', icon: Megaphone, label: 'Marketing' },
+  { path: '/rider-operations', icon: Bike, label: 'Rider Ops' },
+  { path: '/safety', icon: Shield, label: 'Safety' },
   { path: '/users', icon: Users, label: 'Users' },
   { path: '/audit-logs', icon: FileText, label: 'Audit Logs' },
   { path: '/transactions', icon: Receipt, label: 'Transactions' },
@@ -44,11 +57,11 @@ export default function Layout() {
   const { showWarning, timeRemaining, formatTimeRemaining, handleLogout, extendSession } = useAuthSession()
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen bg-background dark:bg-dark-background">
       {/* Mobile menu button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-surface dark:bg-dark-surface rounded-lg shadow-lg border border-surface-muted dark:border-dark-surface-muted"
       >
         {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -61,10 +74,10 @@ export default function Layout() {
         />
       )}
 
-      <aside className="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">VTU Logistics</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Admin Dashboard</p>
+      <aside className="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface dark:bg-dark-surface border-r border-surface-muted dark:border-dark-surface-muted flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}">
+        <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
+          <h1 className="text-xl font-bold text-text dark:text-dark-text">VTU Logistics</h1>
+          <p className="text-sm text-muted dark:text-dark-muted mt-1">Admin Dashboard</p>
         </div>
         
         <nav className="flex-1 p-4 overflow-y-auto">
@@ -79,8 +92,8 @@ export default function Layout() {
                     onClick={() => setSidebarOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                       isActive
-                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        ? 'bg-primary/10 dark:bg-primary/20 text-primary font-medium'
+                        : 'text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
                     }`}
                   >
                     <Icon size={20} />
@@ -92,30 +105,30 @@ export default function Layout() {
           </ul>
         </nav>
 
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-surface-muted dark:border-dark-surface-muted">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-              <span className="text-primary-700 dark:text-primary-300 font-medium">
+            <div className="w-10 h-10 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+              <span className="text-primary font-medium">
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </span>
             </div>
             <div>
-              <Link to="/profile" className="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              <Link to="/profile" className="text-sm font-medium text-text dark:text-dark-text hover:text-primary transition-colors">
                 {user?.firstName} {user?.lastName}
               </Link>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+              <p className="text-xs text-muted dark:text-dark-muted">{user?.email}</p>
             </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={toggleTheme}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors flex-1 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="flex items-center gap-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors flex-1 px-4 py-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted"
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors flex-1 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="flex items-center gap-2 text-muted dark:text-dark-muted hover:text-error transition-colors flex-1 px-4 py-2 rounded-lg hover:bg-error/10 dark:hover:bg-error/20"
             >
               <LogOut size={18} />
               Logout
@@ -125,7 +138,7 @@ export default function Layout() {
       </aside>
 
       <main className="flex-1 overflow-auto">
-        <div className="p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="p-8 bg-background dark:bg-dark-background min-h-screen">
           <Breadcrumb />
           <Outlet />
         </div>
@@ -134,29 +147,29 @@ export default function Layout() {
       {/* Session Warning Modal */}
       {showWarning && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-xl">
+          <div className="bg-surface dark:bg-dark-surface rounded-xl p-6 w-full max-w-md shadow-xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
                 <Clock size={24} className="text-orange-600 dark:text-orange-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Session Expiring</h3>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Session Expiring</h3>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 mb-2">
+            <p className="text-muted dark:text-dark-muted mb-2">
               Your session will expire in <span className="font-semibold">{formatTimeRemaining(timeRemaining)}</span>
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <p className="text-sm text-muted dark:text-dark-muted mb-6">
               Please save your work or extend your session to continue.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={extendSession}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
               >
                 Extend Session
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
               >
                 Logout
               </button>

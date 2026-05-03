@@ -270,4 +270,5 @@ module.exports = {
   updateNotificationPreferences,
   getUploadSignature,
   deleteAccount,
+  merchantRegister,
 };
