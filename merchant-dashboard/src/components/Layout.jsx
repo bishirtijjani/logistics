@@ -1,11 +1,11 @@
-import { Outlet, Link, useNavigate, useLocation, useParams } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/slices/authSlice.js'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import OnboardingWizard from './OnboardingWizard.jsx'
 import {
   ShoppingBag,
-  Utensils,
+  Package,
   Wallet,
   BarChart3,
   MessageCircle,
@@ -24,8 +24,8 @@ export default function Layout() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const location = useLocation()
-  const { merchantId } = useParams()
   const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const { isDark, toggleTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -35,19 +35,19 @@ export default function Layout() {
   }
 
   const navigation = [
-    { name: 'Orders', href: `/dashboard/${merchantId}/orders`, icon: ShoppingBag },
-    { name: 'Menu', href: `/dashboard/${merchantId}/menu`, icon: Utensils },
-    { name: 'Earnings', href: `/dashboard/${merchantId}/earnings`, icon: Wallet },
-    { name: 'Analytics', href: `/dashboard/${merchantId}/analytics`, icon: BarChart3 },
-    { name: 'Support', href: `/dashboard/${merchantId}/support`, icon: MessageCircle },
-    { name: 'Marketing', href: `/dashboard/${merchantId}/marketing`, icon: Megaphone },
-    { name: 'Settings', href: `/dashboard/${merchantId}/settings`, icon: Settings },
+    { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+    { name: 'Products', href: '/dashboard/menu', icon: Package },
+    { name: 'Earnings', href: '/dashboard/earnings', icon: Wallet },
+    { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+    { name: 'Support', href: '/dashboard/support', icon: MessageCircle },
+    { name: 'Marketing', href: '/dashboard/marketing', icon: Megaphone },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]
 
   const isActive = (path) => location.pathname === path
 
   return (
-    <div className="min-h-screen bg-background dark:bg-dark-background">
+    <div className="min-h-screen bg-background dark:bg-dark-background flex">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
@@ -58,8 +58,8 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 w-64 h-full bg-surface dark:bg-dark-surface shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 z-50 w-64 h-screen bg-surface dark:bg-dark-surface shadow-lg transform transition-transform duration-300 ease-in-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="flex flex-col h-full">
@@ -126,7 +126,7 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
         {/* Top bar */}
         <header className="bg-surface dark:bg-dark-surface shadow-sm border-b border-surface-muted dark:border-dark-surface-muted sticky top-0 z-30">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6">
@@ -157,7 +157,7 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>

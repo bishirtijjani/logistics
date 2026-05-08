@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
 import { fetchOrders, acceptOrder, rejectOrder, updateOrderStatus } from '../store/slices/ordersSlice.js'
 import {
   Check,
@@ -27,7 +26,8 @@ import ConnectionStatus from '../components/ConnectionStatus.jsx'
 import OrderDetailsModal from '../components/OrderDetailsModal.jsx'
 
 export default function OrdersPage() {
-  const { merchantId } = useParams()
+  const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const dispatch = useDispatch()
   const { orders, loading, total, page, limit } = useSelector((state) => state.orders)
   const [filter, setFilter] = useState('')
@@ -429,6 +429,7 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text dark:text-dark-text">Orders</h1>
@@ -441,7 +442,11 @@ export default function OrdersPage() {
             onReconnect={reconnect} 
           />
         </div>
-        <div className="flex items-center gap-3">
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-wrap items-center gap-3 flex-1">
           {/* Search Input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted dark:text-dark-muted" />
@@ -489,41 +494,8 @@ export default function OrdersPage() {
             <Printer className="w-4 h-4" />
             Export
           </button>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Bulk Action Buttons */}
-          {selectedOrders.size > 0 && (
-            <div className="flex items-center gap-2 bg-primary/10 dark:bg-primary/10 px-3 py-2 rounded-lg">
-              <span className="text-sm text-primary dark:text-primary font-medium">
-                {selectedOrders.size} selected
-              </span>
-              <button
-                onClick={() => handleBulkAction('accept')}
-                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
-              >
-                Accept All
-              </button>
-              <button
-                onClick={() => handleBulkAction('reject')}
-                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
-              >
-                Reject All
-              </button>
-              <button
-                onClick={() => handleBulkAction('cancel')}
-                className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 transition-colors"
-              >
-                Cancel All
-              </button>
-              <button
-                onClick={() => setSelectedOrders(new Set())}
-                className="px-3 py-1 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text text-sm"
-              >
-                Clear
-              </button>
-            </div>
-          )}
           
+          {/* Refresh Button */}
           <button
             onClick={() => {
               const params = {
@@ -536,7 +508,6 @@ export default function OrdersPage() {
                 maxPrice: priceRange.max || undefined,
               }
               
-              // Remove undefined values
               Object.keys(params).forEach(key => params[key] === undefined && delete params[key])
               
               dispatch(fetchOrders(params))
@@ -548,17 +519,45 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Advanced Filters */}
+      {/* Bulk Action Buttons */}
+      {selectedOrders.size > 0 && (
+        <div className="flex items-center gap-2 bg-primary/10 dark:bg-primary/10 px-3 py-2 rounded-lg">
+          <span className="text-sm text-primary dark:text-primary font-medium">
+            {selectedOrders.size} selected
+          </span>
+          <button
+            onClick={() => handleBulkAction('accept')}
+            className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+          >
+            Accept All
+          </button>
+          <button
+            onClick={() => handleBulkAction('reject')}
+            className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
+          >
+            Reject All
+          </button>
+          <button
+            onClick={() => handleBulkAction('cancel')}
+            className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 transition-colors"
+          >
+            Cancel All
+          </button>
+          <button
+            onClick={() => setSelectedOrders(new Set())}
+            className="px-3 py-1 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text text-sm"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* Advanced Filters Panel */}
       {showAdvancedFilters && (
-        <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Advanced Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Date Range Filter */}
+        <div className="bg-surface dark:bg-dark-surface border border-surface-muted dark:border-dark-surface-muted rounded-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Start Date
-              </label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Start Date</label>
               <input
                 type="date"
                 value={dateRange.start}
@@ -566,12 +565,8 @@ export default function OrdersPage() {
                 className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                End Date
-              </label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">End Date</label>
               <input
                 type="date"
                 value={dateRange.end}
@@ -579,54 +574,64 @@ export default function OrdersPage() {
                 className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
-            
-            {/* Price Range Filter */}
             <div>
-              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                <DollarSign className="w-4 h-4 inline mr-1" />
-                Min Price
-              </label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Min Price</label>
               <input
                 type="number"
-                placeholder="0.00"
+                placeholder="₦0"
                 value={priceRange.min}
                 onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
                 className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                <DollarSign className="w-4 h-4 inline mr-1" />
-                Max Price
-              </label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Max Price</label>
               <input
                 type="number"
-                placeholder="999.99"
+                placeholder="₦100000"
                 value={priceRange.max}
                 onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
                 className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
           </div>
-          
-          {/* Clear Filters Button */}
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex gap-2">
             <button
               onClick={() => {
-                setSearchTerm('')
-                setFilter('')
+                const params = {
+                  merchantId,
+                  status: filter || undefined,
+                  search: searchTerm || undefined,
+                  startDate: dateRange.start || undefined,
+                  endDate: dateRange.end || undefined,
+                  minPrice: priceRange.min || undefined,
+                  maxPrice: priceRange.max || undefined,
+                }
+                
+                Object.keys(params).forEach(key => params[key] === undefined && delete params[key])
+                
+                dispatch(fetchOrders(params))
+              }}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Apply Filters
+            </button>
+            <button
+              onClick={() => {
                 setDateRange({ start: '', end: '' })
                 setPriceRange({ min: '', max: '' })
+                dispatch(fetchOrders({ merchantId, status: filter, search: searchTerm }))
               }}
-              className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text text-sm"
+              className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
-              Clear All Filters
+              Clear Filters
             </button>
           </div>
         </div>
       )}
 
+      {/* Orders Table */}
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
       {loading ? (
         <TableSkeleton rows={5} columns={6} />
       ) : !orders || orders.length === 0 ? (
@@ -1136,6 +1141,7 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

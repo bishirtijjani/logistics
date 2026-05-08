@@ -11,9 +11,22 @@ export const fetchWallet = createAsyncThunk(
 
 export const requestWithdrawal = createAsyncThunk(
   'earnings/requestWithdrawal',
-  async ({ merchantId, amount, bankAccount }) => {
-    const response = await api.post(`/merchants/merchant/${merchantId}/wallet/withdraw`, { amount, bankAccount })
+  async ({ merchantId, amount, bankCode, accountNumber, accountName }) => {
+    const response = await api.post(`/merchants/merchant/${merchantId}/wallet/withdraw`, {
+      amount,
+      bankCode,
+      accountNumber,
+      accountName,
+    })
     return response.data.data
+  }
+)
+
+export const fetchBankList = createAsyncThunk(
+  'earnings/fetchBankList',
+  async () => {
+    const response = await api.get('/wallet/banks')
+    return response.data.data || []
   }
 )
 
@@ -21,7 +34,9 @@ const earningsSlice = createSlice({
   name: 'earnings',
   initialState: {
     wallet: null,
+    banks: [],
     loading: false,
+    banksLoading: false,
     error: null,
   },
   reducers: {},
@@ -41,9 +56,19 @@ const earningsSlice = createSlice({
       })
       .addCase(requestWithdrawal.fulfilled, (state, action) => {
         if (state.wallet) {
-          state.wallet.availableBalance -= action.payload.amount
-          state.wallet.pendingBalance += action.payload.amount
+          state.wallet.availableBalance -= action.payload?.amount ?? 0
+          state.wallet.pendingBalance = (state.wallet.pendingBalance || 0) + (action.payload?.amount ?? 0)
         }
+      })
+      .addCase(fetchBankList.pending, (state) => {
+        state.banksLoading = true
+      })
+      .addCase(fetchBankList.fulfilled, (state, action) => {
+        state.banksLoading = false
+        state.banks = action.payload
+      })
+      .addCase(fetchBankList.rejected, (state) => {
+        state.banksLoading = false
       })
   },
 })

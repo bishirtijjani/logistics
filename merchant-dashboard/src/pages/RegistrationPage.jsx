@@ -9,7 +9,8 @@ export default function RegistrationPage() {
   const [loading, setLoading] = useState(false)
   const [verificationSent, setVerificationSent] = useState(false)
   const [otp, setOtp] = useState('')
-  const [error, setError] = useState('')
+  const [otpError, setOtpError] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
 
   const [personalInfo, setPersonalInfo] = useState({
     firstName: '',
@@ -20,9 +21,18 @@ export default function RegistrationPage() {
     confirmPassword: ''
   })
 
+  const [personalErrors, setPersonalErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: ''
+  })
+
   const [businessInfo, setBusinessInfo] = useState({
     businessName: '',
-    businessType: 'RESTAURANT',
+    businessType: '',
     businessPhone: '',
     businessEmail: '',
     businessAddress: '',
@@ -32,56 +42,88 @@ export default function RegistrationPage() {
     lng: 7.6017
   })
 
+  const [businessErrors, setBusinessErrors] = useState({
+    businessName: '',
+    businessPhone: '',
+    businessEmail: '',
+    businessAddress: ''
+  })
+
   const businessTypes = [
     { value: 'RESTAURANT', label: 'Restaurant', icon: '🍔', description: 'Food delivery' },
+    { value: 'RETAIL_STORE', label: 'Retail Store', icon: '🛍️', description: 'Retail products' },
     { value: 'GROCERY', label: 'Grocery Store', icon: '🛒', description: 'Grocery delivery' },
     { value: 'PHARMACY', label: 'Pharmacy', icon: '💊', description: 'Medicine delivery' }
   ]
 
   const validatePersonalInfo = () => {
-    if (!personalInfo.firstName || !personalInfo.lastName) {
-      setError('Please enter your first and last name')
-      return false
+    const errors = {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: ''
+    }
+    let isValid = true
+
+    if (!personalInfo.firstName) {
+      errors.firstName = 'Please enter your first name'
+      isValid = false
+    }
+    if (!personalInfo.lastName) {
+      errors.lastName = 'Please enter your last name'
+      isValid = false
     }
     if (!personalInfo.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.email)) {
-      setError('Please enter a valid email address')
-      return false
+      errors.email = 'Please enter a valid email address'
+      isValid = false
     }
     if (!personalInfo.phone || !/^0[789][01]\d{8}$/.test(personalInfo.phone)) {
-      setError('Please enter a valid Nigerian phone number')
-      return false
+      errors.phone = 'Please enter a valid Nigerian phone number'
+      isValid = false
     }
     if (!personalInfo.password || personalInfo.password.length < 8) {
-      setError('Password must be at least 8 characters')
-      return false
+      errors.password = 'Password must be at least 8 characters'
+      isValid = false
     }
     if (personalInfo.password !== personalInfo.confirmPassword) {
-      setError('Passwords do not match')
-      return false
+      errors.confirmPassword = 'Passwords do not match'
+      isValid = false
     }
-    setError('')
-    return true
+
+    setPersonalErrors(errors)
+    return isValid
   }
 
   const validateBusinessInfo = () => {
+    const errors = {
+      businessName: '',
+      businessPhone: '',
+      businessEmail: '',
+      businessAddress: ''
+    }
+    let isValid = true
+
     if (!businessInfo.businessName) {
-      setError('Please enter your business name')
-      return false
+      errors.businessName = 'Please enter your business name'
+      isValid = false
     }
     if (!businessInfo.businessPhone) {
-      setError('Please enter your business phone number')
-      return false
+      errors.businessPhone = 'Please enter your business phone number'
+      isValid = false
     }
     if (!businessInfo.businessEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessInfo.businessEmail)) {
-      setError('Please enter a valid business email')
-      return false
+      errors.businessEmail = 'Please enter a valid business email'
+      isValid = false
     }
     if (!businessInfo.businessAddress) {
-      setError('Please enter your business address')
-      return false
+      errors.businessAddress = 'Please enter your business address'
+      isValid = false
     }
-    setError('')
-    return true
+
+    setBusinessErrors(errors)
+    return isValid
   }
 
   const handleNext = () => {
@@ -96,7 +138,6 @@ export default function RegistrationPage() {
 
   const handleSubmit = async () => {
     setLoading(true)
-    setError('')
 
     try {
       const response = await fetch('/api/auth/merchant/register', {
@@ -125,7 +166,6 @@ export default function RegistrationPage() {
         }
       }
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.')
       showErrorToast(err.message || 'Registration failed')
     } finally {
       setLoading(false)
@@ -134,12 +174,12 @@ export default function RegistrationPage() {
 
   const handleVerifyOtp = async () => {
     if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit verification code')
+      setOtpError('Please enter a valid 6-digit verification code')
       return
     }
 
     setLoading(true)
-    setError('')
+    setOtpError('')
 
     try {
       const response = await fetch('/api/auth/otp/verify', {
@@ -164,8 +204,52 @@ export default function RegistrationPage() {
         navigate('/login')
       }
     } catch (err) {
-      setError(err.message || 'Verification failed')
+      setOtpError(err.message || 'Verification failed')
       showErrorToast(err.message || 'Verification failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return
+
+    setLoading(true)
+    setOtpError('')
+
+    try {
+      const response = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: personalInfo.email
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to resend code')
+      }
+
+      if (data.success) {
+        showSuccessToast('Verification code sent to your email')
+        setResendCooldown(60)
+        const timer = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+      }
+    } catch (err) {
+      setOtpError(err.message || 'Failed to resend code')
+      showErrorToast(err.message || 'Failed to resend code')
     } finally {
       setLoading(false)
     }
@@ -173,7 +257,7 @@ export default function RegistrationPage() {
 
   if (verificationSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-surface-muted via-surface-muted to-surface-muted dark:from-dark-surface-muted dark:via-dark-surface-muted dark:to-dark-surface-muted flex items-center justify-center p-4">
+      <div className="min-h-screen bg-surface-muted dark:bg-dark-surface-muted flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="bg-surface dark:bg-dark-surface rounded-2xl shadow-xl p-8">
             <div className="text-center mb-8">
@@ -188,10 +272,10 @@ export default function RegistrationPage() {
               </p>
             </div>
 
-            {error && (
+            {otpError && (
               <div className="mb-6 p-4 bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 rounded-xl flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 text-error flex-shrink-0" />
-                <p className="text-sm text-error">{error}</p>
+                <p className="text-sm text-error">{otpError}</p>
               </div>
             )}
 
@@ -213,10 +297,18 @@ export default function RegistrationPage() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-primary to-primary-700 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? 'Verifying...' : 'Verify Email'}
                 <ArrowRight className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={handleResendOtp}
+                disabled={resendCooldown > 0 || loading}
+                className="w-full py-3 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
               </button>
 
               <button
@@ -233,11 +325,11 @@ export default function RegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-surface-muted to-surface dark:from-dark-background dark:via-dark-surface-muted dark:to-dark-surface flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background dark:bg-dark-background flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary to-primary-700 rounded-2xl mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-2xl mb-4 shadow-lg">
             <Store className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-text dark:text-dark-text mb-2">
@@ -254,7 +346,7 @@ export default function RegistrationPage() {
             <div key={step} className="flex items-center">
               <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold ${
                 currentStep === step
-                  ? 'bg-gradient-to-r from-primary to-primary-700 text-white'
+                  ? 'bg-primary text-white'
                   : currentStep > step
                   ? 'bg-success text-white'
                   : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'
@@ -272,13 +364,6 @@ export default function RegistrationPage() {
 
         {/* Main Form Card */}
         <div className="bg-surface dark:bg-dark-surface rounded-3xl shadow-2xl p-8">
-          {error && (
-            <div className="mb-6 p-4 bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 rounded-xl flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-error flex-shrink-0" />
-              <p className="text-sm text-error">{error}</p>
-            </div>
-          )}
-
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
@@ -303,10 +388,19 @@ export default function RegistrationPage() {
                   <input
                     type="text"
                     value={personalInfo.firstName}
-                    onChange={(e) => setPersonalInfo({ ...personalInfo, firstName: e.target.value })}
+                    onChange={(e) => {
+                      setPersonalInfo({ ...personalInfo, firstName: e.target.value })
+                      setPersonalErrors({ ...personalErrors, firstName: '' })
+                    }}
                     placeholder="John"
-                    className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.firstName ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                   />
+                  {personalErrors.firstName && (
+                    <p className="mt-1 text-sm text-error flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {personalErrors.firstName}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
@@ -315,10 +409,19 @@ export default function RegistrationPage() {
                   <input
                     type="text"
                     value={personalInfo.lastName}
-                    onChange={(e) => setPersonalInfo({ ...personalInfo, lastName: e.target.value })}
+                    onChange={(e) => {
+                      setPersonalInfo({ ...personalInfo, lastName: e.target.value })
+                      setPersonalErrors({ ...personalErrors, lastName: '' })
+                    }}
                     placeholder="Doe"
-                    className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.lastName ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                   />
+                  {personalErrors.lastName && (
+                    <p className="mt-1 text-sm text-error flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {personalErrors.lastName}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -329,10 +432,19 @@ export default function RegistrationPage() {
                 <input
                   type="email"
                   value={personalInfo.email}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, email: e.target.value })}
+                  onChange={(e) => {
+                    setPersonalInfo({ ...personalInfo, email: e.target.value })
+                    setPersonalErrors({ ...personalErrors, email: '' })
+                  }}
                   placeholder="john@example.com"
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.email ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                 />
+                {personalErrors.email && (
+                  <p className="mt-1 text-sm text-error flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {personalErrors.email}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -342,10 +454,19 @@ export default function RegistrationPage() {
                 <input
                   type="tel"
                   value={personalInfo.phone}
-                  onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                  onChange={(e) => {
+                    setPersonalInfo({ ...personalInfo, phone: e.target.value })
+                    setPersonalErrors({ ...personalErrors, phone: '' })
+                  }}
                   placeholder="08012345678"
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.phone ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                 />
+                {personalErrors.phone && (
+                  <p className="mt-1 text-sm text-error flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {personalErrors.phone}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -356,10 +477,19 @@ export default function RegistrationPage() {
                   <input
                     type="password"
                     value={personalInfo.password}
-                    onChange={(e) => setPersonalInfo({ ...personalInfo, password: e.target.value })}
+                    onChange={(e) => {
+                      setPersonalInfo({ ...personalInfo, password: e.target.value })
+                      setPersonalErrors({ ...personalErrors, password: '' })
+                    }}
                     placeholder="Min. 8 characters"
-                    className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.password ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                   />
+                  {personalErrors.password && (
+                    <p className="mt-1 text-sm text-error flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {personalErrors.password}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
@@ -368,10 +498,19 @@ export default function RegistrationPage() {
                   <input
                     type="password"
                     value={personalInfo.confirmPassword}
-                    onChange={(e) => setPersonalInfo({ ...personalInfo, confirmPassword: e.target.value })}
+                    onChange={(e) => {
+                      setPersonalInfo({ ...personalInfo, confirmPassword: e.target.value })
+                      setPersonalErrors({ ...personalErrors, confirmPassword: '' })
+                    }}
                     placeholder="Re-enter password"
-                    className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.confirmPassword ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                   />
+                  {personalErrors.confirmPassword && (
+                    <p className="mt-1 text-sm text-error flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {personalErrors.confirmPassword}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -423,10 +562,19 @@ export default function RegistrationPage() {
                 <input
                   type="text"
                   value={businessInfo.businessName}
-                  onChange={(e) => setBusinessInfo({ ...businessInfo, businessName: e.target.value })}
+                  onChange={(e) => {
+                    setBusinessInfo({ ...businessInfo, businessName: e.target.value })
+                    setBusinessErrors({ ...businessErrors, businessName: '' })
+                  }}
                   placeholder="My Restaurant"
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessName ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                 />
+                {businessErrors.businessName && (
+                  <p className="mt-1 text-sm text-error flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {businessErrors.businessName}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -437,10 +585,19 @@ export default function RegistrationPage() {
                   <input
                     type="tel"
                     value={businessInfo.businessPhone}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, businessPhone: e.target.value })}
+                    onChange={(e) => {
+                      setBusinessInfo({ ...businessInfo, businessPhone: e.target.value })
+                      setBusinessErrors({ ...businessErrors, businessPhone: '' })
+                    }}
                     placeholder="08098765432"
-                    className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessPhone ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                   />
+                  {businessErrors.businessPhone && (
+                    <p className="mt-1 text-sm text-error flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {businessErrors.businessPhone}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
@@ -449,10 +606,19 @@ export default function RegistrationPage() {
                   <input
                     type="email"
                     value={businessInfo.businessEmail}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, businessEmail: e.target.value })}
+                    onChange={(e) => {
+                      setBusinessInfo({ ...businessInfo, businessEmail: e.target.value })
+                      setBusinessErrors({ ...businessErrors, businessEmail: '' })
+                    }}
                     placeholder="business@example.com"
-                    className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessEmail ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                   />
+                  {businessErrors.businessEmail && (
+                    <p className="mt-1 text-sm text-error flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {businessErrors.businessEmail}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -462,11 +628,20 @@ export default function RegistrationPage() {
                 </label>
                 <textarea
                   value={businessInfo.businessAddress}
-                  onChange={(e) => setBusinessInfo({ ...businessInfo, businessAddress: e.target.value })}
+                  onChange={(e) => {
+                    setBusinessInfo({ ...businessInfo, businessAddress: e.target.value })
+                    setBusinessErrors({ ...businessErrors, businessAddress: '' })
+                  }}
                   placeholder="123 Main Street, Katsina"
                   rows={3}
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text resize-none"
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text resize-none ${businessErrors.businessAddress ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                 />
+                {businessErrors.businessAddress && (
+                  <p className="mt-1 text-sm text-error flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {businessErrors.businessAddress}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -585,7 +760,7 @@ export default function RegistrationPage() {
               <button
                 onClick={handleNext}
                 disabled={loading}
-                className="flex-1 py-3 bg-gradient-to-r from-primary to-primary-700 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Next
                 <ArrowRight className="w-5 h-5" />
@@ -594,7 +769,7 @@ export default function RegistrationPage() {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 py-3 bg-gradient-to-r from-success to-emerald-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-success text-white rounded-xl font-semibold hover:bg-success-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? 'Creating Account...' : 'Complete Registration'}
                 <Check className="w-5 h-5" />

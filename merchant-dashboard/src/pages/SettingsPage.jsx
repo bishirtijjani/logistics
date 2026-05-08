@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
 import { fetchSettings, updateSettings } from '../store/slices/settingsSlice.js'
 import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone } from 'lucide-react'
 import { CardSkeleton } from '../components/LoadingSkeleton.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 
 export default function SettingsPage() {
-  const { merchantId } = useParams()
+  const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const dispatch = useDispatch()
   const { settings, loading } = useSelector((state) => state.settings)
   const [activeTab, setActiveTab] = useState('profile')
@@ -263,19 +263,19 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-        <p className="text-gray-600 dark:text-gray-400">Manage your merchant profile and preferences</p>
+        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Settings</h1>
+        <p className="text-muted dark:text-dark-muted">Manage your merchant profile and preferences</p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-600">
+      <div className="border-b border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted">
         <nav className="flex gap-8">
           <button
             onClick={() => setActiveTab('profile')}
             className={`pb-4 border-b-2 font-medium transition-colors ${
               activeTab === 'profile'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
             Profile
@@ -285,7 +285,7 @@ export default function SettingsPage() {
             className={`pb-4 border-b-2 font-medium transition-colors ${
               activeTab === 'notifications'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
             Notifications
@@ -295,7 +295,7 @@ export default function SettingsPage() {
             className={`pb-4 border-b-2 font-medium transition-colors ${
               activeTab === 'security'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
             Security
@@ -305,7 +305,7 @@ export default function SettingsPage() {
             className={`pb-4 border-b-2 font-medium transition-colors ${
               activeTab === 'history'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
             Login History
@@ -323,75 +323,75 @@ export default function SettingsPage() {
                 <Store className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Profile Information</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Update your merchant profile details</p>
+                <h2 className="text-lg font-semibold text-text dark:text-dark-text">Profile Information</h2>
+                <p className="text-sm text-muted dark:text-dark-muted">Update your merchant profile details</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Business Name</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Business Name</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-text mb-1">Email</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-text mb-1">Phone</label>
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <label className="block text-sm font-medium text-text mb-1">Address</label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Opening Time</label>
+                <label className="block text-sm font-medium text-text mb-1">Opening Time</label>
                 <input
                   type="time"
                   value={formData.openingTime}
                   onChange={(e) => setFormData({ ...formData, openingTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Closing Time</label>
+                <label className="block text-sm font-medium text-text mb-1">Closing Time</label>
                 <input
                   type="time"
                   value={formData.closingTime}
                   onChange={(e) => setFormData({ ...formData, closingTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className="block text-sm font-medium text-text mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
               />
             </div>
 
@@ -417,16 +417,16 @@ export default function SettingsPage() {
                 <Bell className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Notification Preferences</h2>
-                <p className="text-sm text-gray-600">Configure how you receive notifications</p>
+                <h2 className="text-lg font-semibold text-text">Notification Preferences</h2>
+                <p className="text-sm text-muted">Configure how you receive notifications</p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900">Email Notifications</p>
-                  <p className="text-sm text-gray-600">Receive notifications via email</p>
+                  <p className="font-medium text-text">Email Notifications</p>
+                  <p className="text-sm text-muted">Receive notifications via email</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -438,14 +438,14 @@ export default function SettingsPage() {
                     })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                  <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted dark:border-dark-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900">Push Notifications</p>
-                  <p className="text-sm text-gray-600">Receive push notifications in browser</p>
+                  <p className="font-medium text-text">Push Notifications</p>
+                  <p className="text-sm text-muted">Receive push notifications in browser</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -457,14 +457,14 @@ export default function SettingsPage() {
                     })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                  <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted dark:border-dark-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900">New Order Alerts</p>
-                  <p className="text-sm text-gray-600">Get notified when new orders arrive</p>
+                  <p className="font-medium text-text">New Order Alerts</p>
+                  <p className="text-sm text-muted">Get notified when new orders arrive</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -476,14 +476,14 @@ export default function SettingsPage() {
                     })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                  <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted dark:border-dark-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
                 </label>
               </div>
 
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-gray-900">Order Status Alerts</p>
-                  <p className="text-sm text-gray-600">Get notified when order status changes</p>
+                  <p className="font-medium text-text">Order Status Alerts</p>
+                  <p className="text-sm text-muted">Get notified when order status changes</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -495,7 +495,7 @@ export default function SettingsPage() {
                     })}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
+                  <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted dark:border-dark-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
                 </label>
               </div>
             </div>
@@ -521,26 +521,26 @@ export default function SettingsPage() {
               <Lock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Password Management</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Update your account password</p>
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text">Password Management</h2>
+              <p className="text-sm text-muted dark:text-dark-muted">Update your account password</p>
             </div>
           </div>
 
           <form onSubmit={handlePasswordChange} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Current Password</label>
               <div className="relative">
                 <input
                   type={showPasswords.current ? 'text' : 'password'}
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
                 >
                   {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -548,7 +548,7 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">New Password</label>
               <div className="relative">
                 <input
                   type={showPasswords.new ? 'text' : 'password'}
@@ -557,14 +557,14 @@ export default function SettingsPage() {
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
                     setPasswordStrength(checkPasswordStrength(e.target.value))
                   }}
-                  className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                   minLength="8"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
                 >
                   {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -574,39 +574,39 @@ export default function SettingsPage() {
               {passwordData.newPassword && (
                 <div className="mt-3">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                    <span className="text-xs text-muted dark:text-dark-muted">
                       Password Strength: {getPasswordStrengthText(passwordStrength)}
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className="w-full bg-surface-muted dark:bg-dark-surface-muted rounded-full h-2">
                     <div 
                       className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor(passwordStrength)}`}
                       style={{ width: `${(passwordStrength / 5) * 100}%` }}
                     />
                   </div>
-                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="mt-2 text-xs text-muted dark:text-dark-muted">
                     <p>Use a mix of uppercase, lowercase, numbers, and special characters for a strong password.</p>
                   </div>
                 </div>
               )}
               
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Password must be at least 8 characters long</p>
+              <p className="text-xs text-muted dark:text-dark-muted mt-1">Password must be at least 8 characters long</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Confirm New Password</label>
               <div className="relative">
                 <input
                   type={showPasswords.confirm ? 'text' : 'password'}
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 dark:text-gray-100"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
                 >
                   {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -636,8 +636,8 @@ export default function SettingsPage() {
                 <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Login History</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Recent login attempts and locations</p>
+                <h2 className="text-lg font-semibold text-text dark:text-dark-text">Login History</h2>
+                <p className="text-sm text-muted dark:text-dark-muted">Recent login attempts and locations</p>
               </div>
             </div>
 
@@ -646,22 +646,22 @@ export default function SettingsPage() {
             ) : loginHistory.length > 0 ? (
               <div className="space-y-3">
                 {loginHistory.map((login, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${
                         login.success ? 'bg-green-500' : 'bg-red-500'
                       }`} />
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                        <p className="font-medium text-text dark:text-dark-text">
                           {login.success ? 'Successful Login' : 'Failed Login'}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted dark:text-dark-muted">
                           {new Date(login.timestamp).toLocaleString()}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                        <p className="text-xs text-muted dark:text-muted">
                           IP: {login.ipAddress} • {login.location}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                        <p className="text-xs text-muted dark:text-muted">
                           {login.device} • {login.browser}
                         </p>
                       </div>
@@ -670,7 +670,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="text-center py-8 text-muted dark:text-dark-muted">
                 No login history available
               </div>
             )}
@@ -683,28 +683,28 @@ export default function SettingsPage() {
                 <Smartphone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Active Devices</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Manage devices with access to your account</p>
+                <h2 className="text-lg font-semibold text-text dark:text-dark-text">Active Devices</h2>
+                <p className="text-sm text-muted dark:text-dark-muted">Manage devices with access to your account</p>
               </div>
             </div>
 
             {devices.length > 0 ? (
               <div className="space-y-3">
                 {devices.map((device, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${
-                        device.current ? 'bg-green-500' : 'bg-gray-400'
+                        device.current ? 'bg-green-500' : 'bg-muted'
                       }`} />
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                        <p className="font-medium text-text dark:text-dark-text">
                           {device.deviceName}
                           {device.current && <span className="ml-2 text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-1 rounded">Current</span>}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted dark:text-dark-muted">
                           Last active: {new Date(device.lastActive).toLocaleString()}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                        <p className="text-xs text-muted dark:text-muted">
                           {device.location} • {device.ipAddress}
                         </p>
                       </div>
@@ -721,7 +721,7 @@ export default function SettingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="text-center py-8 text-muted dark:text-dark-muted">
                 No active devices found
               </div>
             )}

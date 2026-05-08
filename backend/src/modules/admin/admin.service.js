@@ -5,6 +5,7 @@
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
+const katpayService = require('../../services/katpay.service');
 
 /**
  * Create an audit log entry.
@@ -894,38 +895,44 @@ const getPendingWithdrawals = async ({ page = 1, limit = 20 }) => {
 };
 
 /**
- * Approve withdrawal request
+ * Approve withdrawal request — triggers KatPay payout.
  */
 const approveWithdrawal = async (withdrawalId) => {
   const withdrawal = await prisma.merchantWalletTransaction.findUnique({
     where: { id: withdrawalId },
     include: {
       merchantWallet: {
-        include: {
-          merchant: true,
-        },
+        include: { merchant: true },
       },
     },
   });
 
-  if (!withdrawal) {
-    throw new Error('Withdrawal not found');
-  }
+  if (!withdrawal) throw new Error('Withdrawal not found');
+  if (withdrawal.status !== 'PENDING') throw new Error('Withdrawal is not in pending status');
 
-  if (withdrawal.status !== 'PENDING') {
-    throw new Error('Withdrawal is not in pending status');
-  }
+  // Initiate KatPay payout
+  const payout = await katpayService.initiatePayout({
+    amount: Number(withdrawal.amount),
+    bank_code: withdrawal.bankCode,
+    account_number: withdrawal.accountNumber,
+    account_name: withdrawal.accountName,
+    reference: withdrawal.reference,
+    description: `Merchant payout — ${withdrawal.merchantWallet.merchantId}`,
+  });
 
-  // Update withdrawal status
+  // Mark as PROCESSING with KatPay reference; final COMPLETED arrives via webhook
   const updatedWithdrawal = await prisma.merchantWalletTransaction.update({
     where: { id: withdrawalId },
     data: {
-      status: 'COMPLETED',
+      status: 'PROCESSING',
+      katpayReference: payout?.reference || payout?.id || withdrawal.reference,
       processedAt: new Date(),
     },
   });
 
-  // Create audit log
+  // Release pending balance — deducted once KatPay confirms via webhook payout.processed
+  // (webhook handler handles the final pendingBalance decrement)
+
   await createAuditLog({
     action: 'APPROVE_WITHDRAWAL',
     entityType: 'MerchantWalletTransaction',
@@ -933,7 +940,14 @@ const approveWithdrawal = async (withdrawalId) => {
     details: {
       amount: withdrawal.amount,
       merchantId: withdrawal.merchantWallet.merchantId,
+      katpayReference: updatedWithdrawal.katpayReference,
     },
+  });
+
+  logger.info('Merchant withdrawal approved and payout initiated', {
+    withdrawalId,
+    reference: withdrawal.reference,
+    amount: withdrawal.amount,
   });
 
   return updatedWithdrawal;
@@ -958,27 +972,24 @@ const rejectWithdrawal = async (withdrawalId, reason) => {
     throw new Error('Withdrawal is not in pending status');
   }
 
-  // Update withdrawal status
-  const updatedWithdrawal = await prisma.merchantWalletTransaction.update({
-    where: { id: withdrawalId },
-    data: {
-      status: 'REJECTED',
-      processedAt: new Date(),
-      metadata: {
+  // Update withdrawal status and refund atomically
+  const [updatedWithdrawal] = await prisma.$transaction([
+    prisma.merchantWalletTransaction.update({
+      where: { id: withdrawalId },
+      data: {
+        status: 'REJECTED',
         rejectionReason: reason,
+        processedAt: new Date(),
       },
-    },
-  });
-
-  // Refund the amount back to merchant wallet
-  await prisma.merchantWallet.update({
-    where: { id: withdrawal.merchantWalletId },
-    data: {
-      availableBalance: {
-        increment: withdrawal.amount,
+    }),
+    prisma.merchantWallet.update({
+      where: { id: withdrawal.merchantWalletId },
+      data: {
+        availableBalance: { increment: withdrawal.amount },
+        pendingBalance: { decrement: withdrawal.amount },
       },
-    },
-  });
+    }),
+  ]);
 
   // Create audit log
   await createAuditLog({

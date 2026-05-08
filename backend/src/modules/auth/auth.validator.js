@@ -110,7 +110,7 @@ const merchantRegisterSchema = z.object({
   lastName: z.string().min(2).max(50),
   password: z.string().min(8).max(72),
   businessName: z.string().min(2).max(100),
-  businessType: z.enum(['RESTAURANT', 'GROCERY', 'PHARMACY']),
+  businessType: z.enum(['RESTAURANT', 'RETAIL_STORE', 'GROCERY', 'PHARMACY']),
   businessPhone: z.string().min(10),
   businessEmail: z.string().email(),
   businessAddress: z.string().min(5),

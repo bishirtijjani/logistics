@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { TableSkeleton, CardSkeleton } from '../components/LoadingSkeleton.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
@@ -34,7 +33,8 @@ import {
 } from 'lucide-react'
 
 export default function MenuPage() {
-  const { merchantId } = useParams()
+  const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const dispatch = useDispatch()
   const { products, loading } = useSelector((state) => state.products)
   const [showModal, setShowModal] = useState(false)
@@ -98,7 +98,7 @@ export default function MenuPage() {
         // Fallback to default categories if API fails
         setCategories([
           { id: 1, name: 'Appetizers', description: 'Starters and small bites' },
-          { id: 2, name: 'Main Courses', description: 'Primary dishes' },
+          { id: 2, name: 'Categories', description: 'Product categories' },
           { id: 3, name: 'Desserts', description: 'Sweet treats' },
           { id: 4, name: 'Beverages', description: 'Drinks and refreshments' },
           { id: 5, name: 'Specials', description: 'Chef\'s special items' }
@@ -109,7 +109,7 @@ export default function MenuPage() {
       // Fallback to default categories
       setCategories([
         { id: 1, name: 'Appetizers', description: 'Starters and small bites' },
-        { id: 2, name: 'Main Courses', description: 'Primary dishes' },
+        { id: 2, name: 'Categories', description: 'Product categories' },
         { id: 3, name: 'Desserts', description: 'Sweet treats' },
         { id: 4, name: 'Beverages', description: 'Drinks and refreshments' },
         { id: 5, name: 'Specials', description: 'Chef\'s special items' }
@@ -493,9 +493,9 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Menu Management</h1>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-4">Product Management</h1>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowImportModal(true)}
@@ -1158,7 +1158,7 @@ export default function MenuPage() {
                         <p className="text-sm text-muted dark:text-dark-muted">
                           {category.description}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                        <p className="text-xs text-muted dark:text-dark-muted">
                           {products.filter(p => p.category === category.name).length} products
                         </p>
                       </div>
@@ -1262,7 +1262,7 @@ export default function MenuPage() {
                             }}
                             className="w-20 px-2 py-1 text-sm border border-surface-muted dark:border-dark-surface-muted rounded focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface"
                           />
-                          <span className="text-sm text-gray-500">units</span>
+                          <span className="text-sm text-muted">units</span>
                         </div>
                       </div>
                     ))}
@@ -1286,8 +1286,8 @@ export default function MenuPage() {
                             className="w-10 h-10 object-cover rounded"
                           />
                         ) : (
-                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
-                            <span className="text-xs text-gray-500">No img</span>
+                          <div className="w-10 h-10 bg-surface-muted dark:bg-dark-surface-muted rounded flex items-center justify-center">
+                            <span className="text-xs text-muted">No img</span>
                           </div>
                         )}
                         <div>
@@ -1301,7 +1301,7 @@ export default function MenuPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <p className="text-sm font-medium text-text dark:text-dark-text">
                             {product.stock || 0} units
                           </p>
                           {(product.stock || 0) <= lowStockThreshold && (
@@ -1328,7 +1328,7 @@ export default function MenuPage() {
 
               {/* Stock Adjustment History */}
               {stockAdjustments.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div className="mt-6 pt-6 border-t border-surface-muted dark:border-dark-surface-muted">
                   <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">
                     Recent Stock Adjustments
                   </h3>
@@ -1336,18 +1336,18 @@ export default function MenuPage() {
                     {stockAdjustments.slice(0, 10).map(adjustment => {
                       const product = products.find(p => p.id === adjustment.productId)
                       return (
-                        <div key={adjustment.id} className="flex items-center justify-between p-2 text-sm bg-gray-50 dark:bg-gray-800 rounded">
+                        <div key={adjustment.id} className="flex items-center justify-between p-2 text-sm bg-surface-muted dark:bg-dark-surface-muted rounded">
                           <div>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                            <span className="font-medium text-text dark:text-dark-text">
                               {product?.name || 'Unknown Product'}
                             </span>
-                            <span className="ml-2 text-gray-600 dark:text-gray-400">
+                            <span className="ml-2 text-muted dark:text-dark-muted">
                               {adjustment.previousStock} → {adjustment.newStock}
                             </span>
                           </div>
                           <div className="text-right">
-                            <p className="text-gray-600 dark:text-gray-400">{adjustment.reason}</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-muted dark:text-dark-muted">{adjustment.reason}</p>
+                            <p className="text-xs text-muted">
                               {new Date(adjustment.timestamp).toLocaleString()}
                             </p>
                           </div>
@@ -1383,14 +1383,14 @@ export default function MenuPage() {
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                         index === 0 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                        index === 1 ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' :
+                        index === 1 ? 'bg-surface-muted text-text dark:bg-dark-surface-muted dark:text-dark-text' :
                         index === 2 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
                         'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                       }`}>
                         {index + 1}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                        <p className="font-medium text-text dark:text-dark-text">
                           {product.name}
                         </p>
                         <p className="text-sm text-muted dark:text-dark-muted">
@@ -1399,10 +1399,10 @@ export default function MenuPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
+                      <p className="font-semibold text-text dark:text-dark-text">
                         {product.orderCount || 0}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-muted dark:text-dark-muted">
                         orders
                       </p>
                     </div>
@@ -1433,7 +1433,7 @@ export default function MenuPage() {
                         <Star className="w-4 h-4 text-red-600 dark:text-red-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                        <p className="font-medium text-text dark:text-dark-text">
                           {product.name}
                         </p>
                         <p className="text-sm text-muted dark:text-dark-muted">
@@ -1442,10 +1442,10 @@ export default function MenuPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
+                      <p className="font-semibold text-text dark:text-dark-text">
                         {((product.favoriteCount || 0) / Math.max(product.viewCount || 1, 1) * 100).toFixed(1)}%
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-muted dark:text-dark-muted">
                         fav rate
                       </p>
                     </div>
@@ -1476,7 +1476,7 @@ export default function MenuPage() {
                         <Eye className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                        <p className="font-medium text-text dark:text-dark-text">
                           {product.name}
                         </p>
                         <p className="text-sm text-muted dark:text-dark-muted">
@@ -1485,10 +1485,10 @@ export default function MenuPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
+                      <p className="font-semibold text-text dark:text-dark-text">
                         {((product.orderCount || 0) / Math.max(product.viewCount || 1, 1) * 100).toFixed(1)}%
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-muted dark:text-dark-muted">
                         conversion
                       </p>
                     </div>
@@ -1510,16 +1510,16 @@ export default function MenuPage() {
             Detailed Performance Metrics
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-text dark:text-dark-text">
                   Total Products
                 </span>
-                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                <span className="text-lg font-bold text-text dark:text-dark-text">
                   {products.length}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-surface-muted dark:bg-dark-surface-muted rounded-full h-2">
                 <div 
                   className="bg-blue-600 h-2 rounded-full" 
                   style={{ width: `${Math.min((products.length / 100) * 100, 100)}%` }}
@@ -1527,16 +1527,16 @@ export default function MenuPage() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-text dark:text-dark-text">
                   Low Stock Items
                 </span>
                 <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
                   {products.filter(p => (p.stock || 0) < 10).length}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-surface-muted dark:bg-dark-surface-muted rounded-full h-2">
                 <div 
                   className="bg-orange-600 h-2 rounded-full" 
                   style={{ width: `${products.length > 0 ? (products.filter(p => (p.stock || 0) < 10).length / products.length) * 100 : 0}%` }}
@@ -1544,16 +1544,16 @@ export default function MenuPage() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-text dark:text-dark-text">
                   Out of Stock
                 </span>
                 <span className="text-lg font-bold text-red-600 dark:text-red-400">
                   {products.filter(p => (p.stock || 0) === 0).length}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="w-full bg-surface-muted dark:bg-dark-surface-muted rounded-full h-2">
                 <div 
                   className="bg-red-600 h-2 rounded-full" 
                   style={{ width: `${products.length > 0 ? (products.filter(p => (p.stock || 0) === 0).length / products.length) * 100 : 0}%` }}
@@ -1561,16 +1561,16 @@ export default function MenuPage() {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <span className="text-sm font-medium text-text dark:text-dark-text">
                   Total Revenue
                 </span>
                 <span className="text-lg font-bold text-green-600 dark:text-green-400">
                   ₦{products.reduce((sum, p) => sum + ((p.price || 0) * (p.orderCount || 0)), 0).toLocaleString()}
                 </span>
               </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-xs text-muted dark:text-dark-muted mt-1">
                 From all product sales
               </p>
             </div>
@@ -1578,8 +1578,8 @@ export default function MenuPage() {
 
           {/* Conversion Rate Analysis */}
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+            <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
+              <h4 className="font-medium text-text dark:text-dark-text mb-3">
                 Conversion Rate Analysis
               </h4>
               <div className="space-y-2">
@@ -1589,7 +1589,7 @@ export default function MenuPage() {
                   .slice(0, 3)
                   .map((product, index) => (
                     <div key={product.id} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <span className="text-text dark:text-dark-text">
                         {product.name}
                       </span>
                       <span className="font-medium text-green-600 dark:text-green-400">
@@ -1598,30 +1598,30 @@ export default function MenuPage() {
                     </div>
                   ))}
                 {products.filter(p => (p.viewCount || 0) > 0).length === 0 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">No conversion data available</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">No conversion data available</p>
                 )}
               </div>
             </div>
 
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+            <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-lg p-4">
+              <h4 className="font-medium text-text dark:text-dark-text mb-3">
                 Engagement Summary
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-700 dark:text-gray-300">Total Views</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="text-text dark:text-dark-text">Total Views</span>
+                  <span className="font-medium text-text dark:text-dark-text">
                     {products.reduce((sum, p) => sum + (p.viewCount || 0), 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-700 dark:text-gray-300">Total Favorites</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
+                  <span className="text-text dark:text-dark-text">Total Favorites</span>
+                  <span className="font-medium text-text dark:text-dark-text">
                     {products.reduce((sum, p) => sum + (p.favoriteCount || 0), 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-700 dark:text-gray-300">Avg Conversion Rate</span>
+                  <span className="text-text dark:text-dark-text">Avg Conversion Rate</span>
                   <span className="font-medium text-blue-600 dark:text-blue-400">
                     {products.length > 0 ? 
                       (products.reduce((sum, p) => sum + ((p.orderCount || 0) / Math.max(p.viewCount || 1, 1)), 0) / products.length * 100).toFixed(1) 
@@ -1649,7 +1649,7 @@ export default function MenuPage() {
                     setImportFile(null)
                     setImportPreview([])
                   }}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 text-muted hover:bg-surface-muted rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1658,29 +1658,29 @@ export default function MenuPage() {
 
             <div className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Select CSV File
                 </label>
                 <input
                   type="file"
                   accept=".csv"
                   onChange={handleFileImport}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-muted dark:text-dark-muted mt-1">
                   CSV should contain columns: name, description, price, category, stock
                 </p>
               </div>
 
               {importPreview.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <h3 className="text-sm font-medium text-text dark:text-dark-text mb-2">
                     Preview (First 5 items)
                   </h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <tr className="border-b border-surface-muted dark:border-dark-surface-muted">
                           <th className="text-left py-2">Name</th>
                           <th className="text-left py-2">Price</th>
                           <th className="text-left py-2">Category</th>
@@ -1689,7 +1689,7 @@ export default function MenuPage() {
                       </thead>
                       <tbody>
                         {importPreview.map((product, index) => (
-                          <tr key={index} className="border-b border-gray-100 dark:border-gray-800">
+                          <tr key={index} className="border-b border-surface-muted dark:border-dark-surface-muted">
                             <td className="py-2">{product.name}</td>
                             <td className="py-2">₦{product.price?.toLocaleString()}</td>
                             <td className="py-2">{product.category}</td>
@@ -1709,7 +1709,7 @@ export default function MenuPage() {
                     setImportFile(null)
                     setImportPreview([])
                   }}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                  className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
                 >
                   Cancel
                 </button>
@@ -1737,7 +1737,7 @@ export default function MenuPage() {
                 </h2>
                 <button
                   onClick={() => setShowExportModal(false)}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 text-muted hover:bg-surface-muted rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1745,21 +1745,21 @@ export default function MenuPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-muted dark:text-dark-muted">
                 Export all products data for backup or analysis.
               </p>
 
               <div className="space-y-3">
                 <button
                   onClick={() => handleBulkExport('csv')}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors flex items-center justify-center gap-2"
                 >
                   <FileDown className="w-4 h-4" />
                   Export as CSV
                 </button>
                 <button
                   onClick={() => handleBulkExport('json')}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors flex items-center justify-center gap-2"
                 >
                   <FileDown className="w-4 h-4" />
                   Export as JSON
@@ -1769,7 +1769,7 @@ export default function MenuPage() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setShowExportModal(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                  className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
                 >
                   Cancel
                 </button>

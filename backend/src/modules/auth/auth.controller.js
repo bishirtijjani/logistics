@@ -36,6 +36,31 @@ const register = async (req, res, next) => {
   }
 };
 
+const merchantRegister = async (req, res, next) => {
+  try {
+    const result = await authService.merchantRegister(req.body);
+
+    // Send OTP email
+    const emailService = require("../../services/email.service");
+    await emailService.sendOtpEmail(req.body.email, result.devOtp);
+
+    // In development, include OTP in response for testing
+    const isDev = process.env.NODE_ENV === "development";
+    const responseData = isDev ? { ...result, devOtp: result.devOtp } : result;
+
+    res
+      .status(200)
+      .json(
+        ApiResponse.success(
+          "Registration successful. Check your email for the verification code.",
+          responseData,
+        ),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
 const login = async (req, res, next) => {
   try {
     const sessionMeta = {

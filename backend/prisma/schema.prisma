@@ -144,6 +144,7 @@ enum UtilityStatus {
 enum PaymentMerchant {
   MONNIFY
   VTPASS
+  KATPAY
 }
 
 // ============================================================
@@ -507,25 +508,59 @@ model MerchantWallet {
   id               String   @id @default(uuid())
   merchantId       String   @unique
   merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  
+
   // Available for withdrawal
   availableBalance Decimal @default(0) @db.Decimal(15, 2)
-  
+
   // Held in escrow (pending settlement)
   pendingBalance   Decimal @default(0) @db.Decimal(15, 2)
-  
+
   // Total all-time earnings
   totalEarnings    Decimal @default(0) @db.Decimal(15, 2)
-  
+
   // Bank details for payout
   bankCode         String?
   accountNumber    String?
   accountName      String?
-  
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  // Relations
+  transactions     MerchantWalletTransaction[]
+
   @@map("merchant_wallets")
+}
+
+/// Merchant withdrawal ledger — tracks every payout request and its KatPay status.
+model MerchantWalletTransaction {
+  id               String        @id @default(uuid())
+  reference        String        @unique
+
+  merchantWalletId String
+  merchantWallet   MerchantWallet @relation(fields: [merchantWalletId], references: [id], onDelete: Cascade)
+
+  type             String        /// WITHDRAWAL
+  status           String        /// PENDING | PROCESSING | COMPLETED | FAILED | REJECTED
+  amount           Decimal       @db.Decimal(15, 2)
+
+  // Bank details captured at request time
+  bankCode         String?
+  accountNumber    String?
+  accountName      String?
+
+  // KatPay tracking
+  katpayReference  String?
+
+  rejectionReason  String?
+  processedAt      DateTime?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([merchantWalletId, status])
+  @@index([reference])
+  @@map("merchant_wallet_transactions")
 }
 
 /// Product — Menu items, grocery products, pharmacy items
@@ -533,28 +568,29 @@ model Product {
   id          String   @id @default(uuid())
   merchantId  String
   merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  
+
   name        String
   description String?
   category    String
-  
+
   basePrice   Decimal  @db.Decimal(15, 2)
-  
+  stock       Int      @default(0)
+
   // Variations (JSON for flexibility)
   variations  Json?
-  
+
   // Options/Addons
   options     Json?
-  
+
   imageUrl    String?
   isAvailable Boolean  @default(true)
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relations
   requestItems RequestItem[]
-  
+
   @@index([merchantId])
   @@index([category])
   @@map("products")

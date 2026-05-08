@@ -13,6 +13,7 @@ const {
 } = require("../../middlewares/rate-limit.middleware");
 const {
   registerSchema,
+  merchantRegisterSchema,
   loginSchema,
   verifyOtpSchema,
   sendOtpSchema,

@@ -391,7 +391,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                 Pickup Location
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {order.pickupLocation?.address || 'Your restaurant location'}
+                {order.pickupLocation?.address || 'Your business location'}
               </p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">

@@ -30,7 +30,7 @@ function AppContent() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegistrationPage />} />
           <Route
-            path="/dashboard/:merchantId/*"
+            path="/dashboard/*"
             element={
               <ProtectedRoute>
                 <Layout />

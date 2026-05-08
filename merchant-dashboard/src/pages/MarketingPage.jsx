@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
 import {
   Megaphone,
@@ -25,7 +24,8 @@ import {
 } from 'lucide-react'
 
 export default function MarketingPage() {
-  const { merchantId } = useParams()
+  const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const [activeTab, setActiveTab] = useState('campaigns')
   const [campaigns, setCampaigns] = useState([])
   const [discountCodes, setDiscountCodes] = useState([])
@@ -113,7 +113,7 @@ export default function MarketingPage() {
       id: 3,
       name: 'New Product Launch',
       type: 'announcement',
-      description: 'Launch our new healthy menu items',
+      description: 'Launch our new products',
       status: 'draft',
       startDate: '2024-04-15',
       endDate: '2024-05-15',
@@ -197,7 +197,7 @@ export default function MarketingPage() {
     },
     {
       id: 2,
-      subject: 'New Healthy Menu Items',
+      subject: 'New Products',
       template: 'announcement',
       recipientList: 'health_conscious',
       scheduledDate: '2024-04-15',

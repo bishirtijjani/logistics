@@ -19,9 +19,13 @@ const QUEUES = {
 // --- Job types per queue ---
 
 const PAYMENT_JOBS = {
-  /** Process Monnify webhook — credit user wallet */
+  /** Process Monnify webhook — legacy */
   PROCESS_MONNIFY_WEBHOOK: 'process-monnify-webhook',
-  /** Process withdrawal — call Monnify disbursement API */
+  /** Process KatPay virtual account payment — credit user wallet */
+  PROCESS_KATPAY_WEBHOOK: 'process-katpay-webhook',
+  /** Process KatPay transfer_payment.completed — credit user wallet */
+  PROCESS_TRANSFER_PAYMENT_WEBHOOK: 'process-transfer-payment-webhook',
+  /** Process withdrawal — call KatPay payout API */
   PROCESS_WITHDRAWAL: 'process-withdrawal',
   /** Retry a failed transaction */
   RETRY_FAILED_TRANSACTION: 'retry-failed-transaction',

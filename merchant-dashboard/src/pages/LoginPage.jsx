@@ -50,7 +50,7 @@ export default function LoginPage() {
       }
       
       if (result.user.merchantId) {
-        navigate(`/dashboard/${result.user.merchantId}`)
+        navigate('/dashboard')
       } else {
         setError('No merchant account associated with this user')
       }

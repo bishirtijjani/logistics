@@ -154,6 +154,26 @@ const createRequest = async (customerId, requestData) => {
           totalPrice: item.unitPrice * item.quantity,
         })),
       });
+
+      // Decrement stock for products
+      for (const item of items) {
+        if (item.productId) {
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+          });
+
+          if (product) {
+            const newStock = Math.max(0, product.stock - item.quantity);
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                stock: newStock,
+                isAvailable: newStock > 0,
+              },
+            });
+          }
+        }
+      }
     }
     
     // Create package details (if applicable)
@@ -493,7 +513,10 @@ const reassignRider = async (requestId, newRiderId, adminId) => {
 const forceCancelRequest = async (requestId, reason, adminId) => {
   const request = await prisma.request.findUnique({
     where: { id: requestId },
-    include: { customer: { include: { wallet: true } } },
+    include: { 
+      customer: { include: { wallet: true } },
+      items: true,
+    },
   });
 
   if (!request) throw new Error('Request not found');
@@ -536,6 +559,21 @@ const forceCancelRequest = async (requestId, reason, adminId) => {
         metadata: { requestId, adminId, reason },
       },
     });
+
+    // Restore stock for products
+    if (request.items && request.items.length > 0) {
+      for (const item of request.items) {
+        if (item.productId) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: { increment: item.quantity },
+              isAvailable: true,
+            },
+          });
+        }
+      }
+    }
 
     return updatedRequest;
   });

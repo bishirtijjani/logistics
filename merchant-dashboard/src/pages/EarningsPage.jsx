@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
-import { fetchWallet, requestWithdrawal } from '../store/slices/earningsSlice.js'
+import { fetchWallet, requestWithdrawal, fetchBankList } from '../store/slices/earningsSlice.js'
 import { 
   Wallet, 
   ArrowUpRight, 
@@ -26,13 +25,14 @@ import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 import { CardSkeleton, TableSkeleton } from '../components/LoadingSkeleton.jsx'
 
 export default function EarningsPage() {
-  const { merchantId } = useParams()
+  const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const dispatch = useDispatch()
-  const { wallet, loading } = useSelector((state) => state.earnings)
+  const { wallet, loading, banks, banksLoading } = useSelector((state) => state.earnings)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [withdrawalForm, setWithdrawalForm] = useState({
     amount: '',
-    bankName: '',
+    bankCode: '',
     accountNumber: '',
     accountName: '',
   })
@@ -111,6 +111,7 @@ export default function EarningsPage() {
 
   useEffect(() => {
     dispatch(fetchWallet({ merchantId }))
+    dispatch(fetchBankList())
   }, [dispatch, merchantId])
 
   const handleWithdrawal = async (e) => {
@@ -141,14 +142,9 @@ export default function EarningsPage() {
       const withdrawalData = {
         merchantId,
         amount,
-        bankAccount: {
-          bankName: withdrawalForm.bankName,
-          accountNumber: withdrawalForm.accountNumber,
-          accountName: withdrawalForm.accountName,
-        },
-        instantWithdrawal,
-        fee: feeAmount,
-        totalAmount,
+        bankCode: withdrawalForm.bankCode,
+        accountNumber: withdrawalForm.accountNumber,
+        accountName: withdrawalForm.accountName,
       }
       
       await dispatch(requestWithdrawal(withdrawalData)).unwrap()
@@ -159,11 +155,11 @@ export default function EarningsPage() {
         amount,
         fee: feeAmount,
         totalAmount,
-        status: instantWithdrawal ? 'PROCESSING' : 'PENDING',
-        bankName: withdrawalForm.bankName,
+        status: 'PENDING',
+        bankCode: withdrawalForm.bankCode,
+        bankName: banks.find(b => b.code === withdrawalForm.bankCode)?.name || withdrawalForm.bankCode,
         accountNumber: withdrawalForm.accountNumber,
         accountName: withdrawalForm.accountName,
-        instantWithdrawal,
         createdAt: new Date().toISOString(),
         estimatedProcessingTime: instantWithdrawal ? '5-10 minutes' : '24-48 hours'
       }
@@ -171,7 +167,7 @@ export default function EarningsPage() {
       setWithdrawalHistory([newWithdrawal, ...withdrawalHistory])
       
       setShowWithdrawModal(false)
-      setWithdrawalForm({ amount: '', bankName: '', accountNumber: '', accountName: '' })
+      setWithdrawalForm({ amount: '', bankCode: '', accountNumber: '', accountName: '' })
       setInstantWithdrawal(false)
       dispatch(fetchWallet({ merchantId }))
       
@@ -277,10 +273,11 @@ Thank you for your business!
   }
 
   const handleSaveBankAccount = () => {
-    if (withdrawalForm.bankName && withdrawalForm.accountNumber && withdrawalForm.accountName) {
+    if (withdrawalForm.bankCode && withdrawalForm.accountNumber && withdrawalForm.accountName) {
       const newAccount = {
         id: Date.now(),
-        bankName: withdrawalForm.bankName,
+        bankCode: withdrawalForm.bankCode,
+        bankName: banks.find(b => (b.code || b.bankCode) === withdrawalForm.bankCode)?.name || withdrawalForm.bankCode,
         accountNumber: withdrawalForm.accountNumber,
         accountName: withdrawalForm.accountName,
         isDefault: savedBankAccounts.length === 0
@@ -293,7 +290,7 @@ Thank you for your business!
   const handleUseSavedAccount = (account) => {
     setWithdrawalForm({
       ...withdrawalForm,
-      bankName: account.bankName,
+      bankCode: account.bankCode || account.bankName,
       accountNumber: account.accountNumber,
       accountName: account.accountName,
     })
@@ -1684,14 +1681,21 @@ Thank you for your business!
               )}
 
               <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Bank Name</label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Bank</label>
+                <select
                   required
-                  value={withdrawalForm.bankName}
-                  onChange={(e) => setWithdrawalForm({ ...withdrawalForm, bankName: e.target.value })}
+                  value={withdrawalForm.bankCode}
+                  onChange={(e) => setWithdrawalForm({ ...withdrawalForm, bankCode: e.target.value })}
                   className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
-                />
+                  disabled={banksLoading}
+                >
+                  <option value="">{banksLoading ? 'Loading banks…' : 'Select a bank'}</option>
+                  {banks.map((bank) => (
+                    <option key={bank.code || bank.bankCode} value={bank.code || bank.bankCode}>
+                      {bank.name || bank.bankName}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Account Number</label>
@@ -1737,7 +1741,7 @@ Thank you for your business!
                   type="button"
                   onClick={() => {
                     setShowWithdrawModal(false)
-                    setWithdrawalForm({ amount: '', bankName: '', accountNumber: '', accountName: '' })
+                    setWithdrawalForm({ amount: '', bankCode: '', accountNumber: '', accountName: '' })
                   }}
                   className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
                 >
@@ -2100,7 +2104,7 @@ Thank you for your business!
                   className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                 >
                   <option value="">Select reason</option>
-                  <option value="food_quality">Food Quality Issue</option>
+                  <option value="food_quality">Product Quality Issue</option>
                   <option value="wrong_order">Wrong Order Delivered</option>
                   <option value="late_delivery">Late Delivery</option>
                   <option value="damaged_packaging">Damaged Packaging</option>

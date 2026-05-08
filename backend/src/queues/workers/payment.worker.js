@@ -1,18 +1,10 @@
-/**
- * Payment queue worker — processes Monnify webhooks and withdrawals.
- *
- * CRITICAL: This worker handles real money. Every job must be:
- * - Idempotent (safe to retry)
- * - Atomic (uses Prisma transactions)
- * - Logged (for audit trail)
- */
-
 const { Worker } = require('bullmq');
 const { redis } = require('../../config/redis');
 const { QUEUES, PAYMENT_JOBS } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const walletService = require('../../modules/wallet/wallet.service');
+const katpayService = require('../../services/katpay.service');
 
 const startPaymentWorker = () => {
   const worker = new Worker(
@@ -21,6 +13,12 @@ const startPaymentWorker = () => {
       logger.info(`Processing payment job: ${job.name}`, { jobId: job.id });
 
       switch (job.name) {
+        case PAYMENT_JOBS.PROCESS_KATPAY_WEBHOOK:
+          return handleKatpayVirtualAccountPayment(job.data);
+
+        case PAYMENT_JOBS.PROCESS_TRANSFER_PAYMENT_WEBHOOK:
+          return handleKatpayTransferPayment(job.data);
+
         case PAYMENT_JOBS.PROCESS_MONNIFY_WEBHOOK:
           return handleMonnifyWebhook(job.data);
 
@@ -39,7 +37,7 @@ const startPaymentWorker = () => {
       concurrency: 5,
       limiter: {
         max: 10,
-        duration: 1000, // Max 10 jobs per second
+        duration: 1000,
       },
     }
   );
@@ -60,23 +58,158 @@ const startPaymentWorker = () => {
 };
 
 /**
- * Process Monnify webhook — credit user wallet.
+ * Credit wallet from a KatPay virtual account payment.
+ */
+const handleKatpayVirtualAccountPayment = async ({ transactionRef, accountNumber, amount, ref, eventData }) => {
+  const webhookEvent = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
+  if (!webhookEvent || webhookEvent.processed) {
+    logger.info('KatPay virtual account webhook already processed or missing', { transactionRef });
+    return;
+  }
+
+  try {
+    await walletService.fundWallet({
+      accountNumber,
+      amount,
+      reference: ref || transactionRef,
+      metadata: eventData,
+    });
+
+    await prisma.webhookEvent.update({
+      where: { transactionRef },
+      data: { processed: true, processedAt: new Date() },
+    });
+  } catch (error) {
+    await prisma.webhookEvent.update({
+      where: { transactionRef },
+      data: { error: error.message },
+    });
+    throw error;
+  }
+};
+
+/**
+ * Credit wallet from a KatPay transfer_payment.completed event.
+ * Uses metadata.userId to find the right wallet.
+ */
+const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metadata, eventData }) => {
+  const webhookEvent = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
+  if (!webhookEvent || webhookEvent.processed) {
+    logger.info('Transfer payment webhook already processed or missing', { transactionRef });
+    return;
+  }
+
+  try {
+    // For transfer payments, find wallet by userId stored in metadata
+    const userId = metadata?.userId;
+    if (!userId) {
+      logger.warn('Transfer payment webhook missing userId in metadata', { transactionRef });
+      return;
+    }
+
+    const wallet = await prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) {
+      logger.warn('Wallet not found for transfer payment', { userId, transactionRef });
+      return;
+    }
+
+    await walletService.fundWallet({
+      accountNumber: wallet.virtualAccountNumber,
+      amount,
+      reference: ref || transactionRef,
+      metadata: { ...eventData, source: 'TRANSFER_PAYMENT' },
+    });
+
+    await prisma.webhookEvent.update({
+      where: { transactionRef },
+      data: { processed: true, processedAt: new Date() },
+    });
+  } catch (error) {
+    await prisma.webhookEvent.update({
+      where: { transactionRef },
+      data: { error: error.message },
+    });
+    throw error;
+  }
+};
+
+/**
+ * Process withdrawal — call KatPay payout API.
+ */
+const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accountName, amount }) => {
+  const transaction = await prisma.transaction.findUnique({ where: { reference: transactionId } });
+
+  if (!transaction) {
+    logger.warn('Withdrawal transaction not found', { transactionId });
+    return;
+  }
+
+  if (transaction.status === 'COMPLETED') {
+    logger.info('Withdrawal already completed', { transactionId });
+    return;
+  }
+
+  try {
+    const payout = await katpayService.initiatePayout({
+      amount,
+      bank_code: bankCode,
+      account_number: accountNumber,
+      account_name: accountName,
+      reference: transactionId,
+      description: 'Wallet withdrawal',
+    });
+
+    await prisma.transaction.update({
+      where: { reference: transactionId },
+      data: {
+        status: 'COMPLETED',
+        merchantRef: payout?.reference || payout?.id || transactionId,
+      },
+    });
+
+    logger.info('Withdrawal payout completed', { transactionId, amount });
+  } catch (error) {
+    logger.error('Withdrawal payout failed', { transactionId, error: error.message });
+
+    // Refund wallet on payout failure
+    const wallet = await prisma.wallet.findUnique({ where: { id: transaction.debitWalletId } });
+    if (wallet) {
+      const currentBalance = Number(wallet.balance);
+      await prisma.$transaction([
+        prisma.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { increment: amount } },
+        }),
+        prisma.transaction.create({
+          data: {
+            reference: `REF-${transactionId}`,
+            type: 'REFUND',
+            status: 'COMPLETED',
+            amount,
+            description: 'Withdrawal refund — payout failed',
+            creditWalletId: wallet.id,
+            merchant: 'KATPAY',
+            balanceBefore: currentBalance,
+            balanceAfter: currentBalance + amount,
+          },
+        }),
+        prisma.transaction.update({
+          where: { reference: transactionId },
+          data: { status: 'FAILED' },
+        }),
+      ]);
+    }
+
+    throw error; // Re-throw so BullMQ retries
+  }
+};
+
+/**
+ * Legacy Monnify webhook handler (kept for in-flight events).
  */
 const handleMonnifyWebhook = async ({ transactionRef, eventData }) => {
-  // Mark webhook event as processed
-  const webhookEvent = await prisma.webhookEvent.findUnique({
-    where: { transactionRef },
-  });
-
-  if (!webhookEvent) {
-    logger.warn('Webhook event not found', { transactionRef });
-    return;
-  }
-
-  if (webhookEvent.processed) {
-    logger.info('Webhook already processed', { transactionRef });
-    return;
-  }
+  const webhookEvent = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
+  if (!webhookEvent || webhookEvent.processed) return;
 
   try {
     await walletService.fundWallet({
@@ -90,33 +223,37 @@ const handleMonnifyWebhook = async ({ transactionRef, eventData }) => {
       where: { transactionRef },
       data: { processed: true, processedAt: new Date() },
     });
-
-    // TODO: Send push notification to user
-    // TODO: Emit socket wallet:balance:updated
   } catch (error) {
     await prisma.webhookEvent.update({
       where: { transactionRef },
       data: { error: error.message },
     });
-    throw error; // Re-throw for BullMQ retry
+    throw error;
   }
 };
 
 /**
- * Process withdrawal — call Monnify disbursement.
- */
-const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accountName, amount }) => {
-  // TODO: Call monnify.service.initiateDisbursement
-  // TODO: Update transaction status based on result
-  logger.info('Processing withdrawal', { transactionId, amount });
-};
-
-/**
- * Retry a failed transaction.
+ * Retry a failed transaction based on its original type.
  */
 const handleRetry = async ({ transactionId }) => {
-  // TODO: Re-attempt the original operation based on transaction type
-  logger.info('Retrying transaction', { transactionId });
+  const transaction = await prisma.transaction.findUnique({ where: { reference: transactionId } });
+  if (!transaction) {
+    logger.warn('Retry: transaction not found', { transactionId });
+    return;
+  }
+
+  if (transaction.type === 'WITHDRAWAL' && transaction.status === 'FAILED') {
+    const { bankCode, accountNumber, accountName } = transaction.metadata || {};
+    await handleWithdrawal({
+      transactionId,
+      bankCode,
+      accountNumber,
+      accountName,
+      amount: Number(transaction.amount),
+    });
+  } else {
+    logger.warn('Retry: unhandled transaction type', { transactionId, type: transaction.type });
+  }
 };
 
 module.exports = { startPaymentWorker };

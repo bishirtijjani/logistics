@@ -2,6 +2,7 @@
  * Merchant service — manages merchants (restaurants, grocery stores, pharmacies)
  */
 
+const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
@@ -499,16 +500,19 @@ const updateMerchantOrderStatus = async (merchantId, userId, role, requestId, st
   return updated;
 };
 
-const requestMerchantWithdrawal = async (merchantId, userId, role, { amount, bankAccount }) => {
+const requestMerchantWithdrawal = async (merchantId, userId, role, { amount, bankCode, accountNumber, accountName }) => {
   const merchant = await prisma.merchant.findUnique({
     where: { id: merchantId },
   });
 
   if (!merchant) throw AppError.notFound('Merchant not found');
 
-  // Authorization: only merchant owner can request withdrawal
   if (role === 'MERCHANT' && merchant.userId !== userId) {
     throw AppError.forbidden('Not your merchant profile');
+  }
+
+  if (!bankCode || !accountNumber || !accountName) {
+    throw AppError.badRequest('bankCode, accountNumber, and accountName are required');
   }
 
   const wallet = await prisma.merchantWallet.findUnique({
@@ -516,13 +520,13 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount, ban
   });
 
   if (!wallet) throw AppError.notFound('Merchant wallet not found');
-  if (wallet.availableBalance < amount) {
+  if (Number(wallet.availableBalance) < amount) {
     throw AppError.badRequest('Insufficient available balance');
   }
 
-  // Create withdrawal transaction
-  const transaction = await prisma.$transaction(async (tx) => {
-    // Deduct from available balance
+  const reference = `MWD-${uuidv4()}`;
+
+  const withdrawal = await prisma.$transaction(async (tx) => {
     await tx.merchantWallet.update({
       where: { merchantId },
       data: {
@@ -531,22 +535,23 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount, ban
       },
     });
 
-    // Create transaction record
-    const withdrawal = await tx.transaction.create({
+    return tx.merchantWalletTransaction.create({
       data: {
+        reference,
+        merchantWalletId: wallet.id,
         type: 'WITHDRAWAL',
-        amount,
         status: 'PENDING',
-        metadata: { merchantId, bankAccount },
+        amount,
+        bankCode,
+        accountNumber,
+        accountName,
       },
     });
-
-    return withdrawal;
   });
 
-  logger.info('Merchant withdrawal requested', { merchantId, amount });
+  logger.info('Merchant withdrawal requested', { merchantId, amount, reference });
 
-  return transaction;
+  return withdrawal;
 };
 
 const getMerchantProducts = async (merchantId, userId, role, { page, limit }) => {

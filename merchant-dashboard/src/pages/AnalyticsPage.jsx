@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { useParams } from 'react-router-dom'
 import {
   fetchSalesSummary,
   fetchOrderHistory,
@@ -32,7 +31,8 @@ import {
 } from 'recharts'
 
 export default function AnalyticsPage() {
-  const { merchantId } = useParams()
+  const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const dispatch = useDispatch()
   const { salesSummary, orderHistory, earningsBreakdown, loading, error } = useSelector((state) => state.analytics)
   const [period, setPeriod] = useState('7d')

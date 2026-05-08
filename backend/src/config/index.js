@@ -67,6 +67,13 @@ const envSchema = z.object({
   SMTP_PASS: z.string().min(1),
   SMTP_FROM_NAME: z.string().default('VTU Logistics'),
 
+  // KatPay — required in production, optional in dev
+  KATPAY_BASE_URL: z.string().default('https://api.katpay.co'),
+  KATPAY_API_SECRET: isDev ? z.string().default('') : z.string().min(1),
+  KATPAY_PUBLIC_KEY: isDev ? z.string().default('') : z.string().min(1),
+  KATPAY_MERCHANT_ID: isDev ? z.string().default('') : z.string().min(1),
+  KATPAY_CALLBACK_URL: isDev ? z.string().default('http://localhost:3000/api/webhooks/katpay') : z.string().url(),
+
   // Delivery Pricing
   DELIVERY_BASE_FARE: z.coerce.number().default(200),
   DELIVERY_PER_KM_RATE: z.coerce.number().default(100),

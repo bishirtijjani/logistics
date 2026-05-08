@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { X, ArrowRight, ArrowLeft, Check, Store, Package, Clock, Settings, Sparkles } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
@@ -184,7 +184,7 @@ export default function OnboardingWizard() {
       id: 2,
       icon: Package,
       title: 'Add Your First Product',
-      description: 'Start by adding your first product to your menu.',
+      description: 'Start by adding your first product to your catalog.',
       component: (
         <div className="space-y-6">
           <div className="space-y-4">
@@ -352,7 +352,7 @@ export default function OnboardingWizard() {
             <ul className="space-y-2 text-sm text-muted dark:text-dark-muted">
               <li className="flex items-center gap-2">
                 <ArrowRight className="w-4 h-4 text-primary" />
-                Add more products to your menu
+                Add more products to your catalog
               </li>
               <li className="flex items-center gap-2">
                 <ArrowRight className="w-4 h-4 text-primary" />

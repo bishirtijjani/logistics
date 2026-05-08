@@ -1,19 +1,16 @@
-/**
- * Webhook routes — /api/webhooks
- *
- * These endpoints receive callbacks from external merchants.
- * They do NOT require JWT auth — they use merchant-specific verification.
- */
-
 const { Router } = require('express');
+const express = require('express');
 const webhookController = require('./webhook.controller');
 
 const router = Router();
 
-// Monnify webhook — wallet funding notifications
+// KatPay webhook — uses raw body parser for HMAC verification
+router.post('/katpay', express.raw({ type: '*/*' }), webhookController.handleKatpay);
+
+// Monnify webhook (legacy)
 router.post('/monnify', webhookController.handleMonnify);
 
-// VTPass webhook — utility payment status updates (if applicable)
+// VTPass webhook
 router.post('/vtpass', webhookController.handleVtpass);
 
 module.exports = router;

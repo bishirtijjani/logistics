@@ -169,6 +169,7 @@ const refundRequest = async (job) => {
       where: { id: requestId },
       include: {
         customer: { include: { wallet: true } },
+        items: true,
       },
     });
     
@@ -199,6 +200,21 @@ const refundRequest = async (job) => {
         metadata: { requestId: request.id },
       },
     });
+
+    // Restore stock for products
+    if (request.items && request.items.length > 0) {
+      for (const item of request.items) {
+        if (item.productId) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: { increment: item.quantity },
+              isAvailable: true,
+            },
+          });
+        }
+      }
+    }
     
     return { refundAmount };
   });

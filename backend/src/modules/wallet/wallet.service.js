@@ -13,6 +13,12 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
+const katpayService = require('../../services/katpay.service');
+const { Queue } = require('bullmq');
+const { redis } = require('../../config/redis');
+const { QUEUES, PAYMENT_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs');
+
+const paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
 
 /**
  * Get wallet balance and details for a user.
@@ -154,7 +160,7 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
  * 4. On Monnify success: transaction stays COMPLETED
  * 5. On Monnify failure: refund is queued
  */
-const withdrawToBank = async (userId, { bankCode, accountNumber, amount }) => {
+const withdrawToBank = async (userId, { bankCode, accountNumber, accountName, amount }) => {
   const reference = `WIT-${uuidv4()}`;
 
   const result = await prisma.$transaction(async (tx) => {
@@ -180,8 +186,8 @@ const withdrawToBank = async (userId, { bankCode, accountNumber, amount }) => {
         amount,
         description: `Withdrawal to ${bankCode} - ${accountNumber}`,
         debitWalletId: wallet.id,
-        merchant: 'MONNIFY',
-        metadata: { bankCode, accountNumber },
+        merchant: 'KATPAY',
+        metadata: { bankCode, accountNumber, accountName },
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -195,10 +201,12 @@ const withdrawToBank = async (userId, { bankCode, accountNumber, amount }) => {
     };
   });
 
-  // TODO: Queue Monnify disbursement job
-  // paymentQueue.add(PAYMENT_JOBS.PROCESS_WITHDRAWAL, {
-  //   transactionId: reference, bankCode, accountNumber, amount
-  // });
+  // Queue KatPay payout job
+  await paymentQueue.add(
+    PAYMENT_JOBS.PROCESS_WITHDRAWAL,
+    { transactionId: reference, bankCode, accountNumber, accountName, amount },
+    DEFAULT_JOB_OPTIONS
+  );
 
   logger.info('Withdrawal initiated', { userId, amount, reference });
 
@@ -245,7 +253,7 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
         amount,
         description: 'Wallet funding via bank transfer',
         creditWalletId: wallet.id,
-        merchant: 'MONNIFY',
+        merchant: 'KATPAY',
         merchantRef: reference,
         metadata,
         balanceBefore: currentBalance,
@@ -298,10 +306,41 @@ const getTransactionHistory = async (userId, { page, limit, type, startDate, end
   return { transactions, total, page, limit };
 };
 
+/**
+ * Initiate a one-time KatPay transfer payment for ad-hoc wallet top-ups.
+ * Returns a checkout URL and dedicated bank account for the specific amount.
+ */
+const initiateTransferPaymentFunding = async (userId, { amount }) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, firstName: true, lastName: true, phone: true },
+  });
+
+  if (!user) throw AppError.notFound('User not found');
+
+  const merchantRef = `TOPUP-${uuidv4()}`;
+
+  const result = await katpayService.initiateTransferPayment({
+    amount,
+    customer: {
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
+      phone: user.phone,
+    },
+    merchant_reference: merchantRef,
+    metadata: { userId, purpose: 'WALLET_TOPUP' },
+  });
+
+  logger.info('Transfer payment funding initiated', { userId, amount, merchantRef });
+
+  return result;
+};
+
 module.exports = {
   getWallet,
   transfer,
   withdrawToBank,
   fundWallet,
+  initiateTransferPaymentFunding,
   getTransactionHistory,
 };

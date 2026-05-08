@@ -70,12 +70,12 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.loading = false
         state.user = action.payload.user
-        state.token = action.payload.token
+        state.token = action.payload.tokens?.accessToken
         state.isAuthenticated = true
         state.loginAttempts = 0
         state.isLocked = false
         state.lockoutTime = null
-        localStorage.setItem('token', action.payload.token)
+        localStorage.setItem('token', action.payload.tokens?.accessToken)
         localStorage.setItem('merchant_user', JSON.stringify(action.payload.user))
       })
       .addCase(login.rejected, (state, action) => {
@@ -129,8 +129,8 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(refreshToken.fulfilled, (state, action) => {
-        state.token = action.payload.token
-        localStorage.setItem('token', action.payload.token)
+        state.token = action.payload.tokens?.accessToken
+        localStorage.setItem('token', action.payload.tokens?.accessToken)
         if (action.payload.user) {
           state.user = action.payload.user
           localStorage.setItem('merchant_user', JSON.stringify(action.payload.user))

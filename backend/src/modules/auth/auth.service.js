@@ -17,6 +17,7 @@ const { config } = require("../../config");
 const { AppError } = require("../../utils/api-error");
 const { logger } = require("../../utils/logger");
 const { REDIS_KEYS, REDIS_TTL, OTP } = require("../../utils/constants");
+const katpayService = require("../../services/katpay.service");
 
 const SALT_ROUNDS = 12;
 
@@ -68,7 +69,10 @@ const register = async ({
  * Login — verify credentials, return tokens.
  */
 const login = async ({ email, password }, sessionMeta = {}) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({ 
+    where: { email },
+    include: { merchant: true }
+  });
 
   if (!user) {
     throw AppError.unauthorized("Invalid email or password");
@@ -121,6 +125,7 @@ const login = async ({ email, password }, sessionMeta = {}) => {
       role: user.role,
       status: user.status,
       hasPinSet: !!user.transactionPin,
+      merchantId: user.merchant?.id || null,
     },
     tokens,
   };
@@ -184,7 +189,19 @@ const verifyOtp = async (email, code) => {
   const pendingRaw = await redis.get(pendingKey);
 
   if (!pendingRaw) {
-    // Could be a non-registration OTP (e.g. password reset) — just verify
+    // Could be a non-registration OTP (e.g. password reset or merchant verification)
+    // Check if this is a merchant with PENDING status
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user && user.role === 'MERCHANT' && user.status === 'PENDING') {
+      // Update merchant status to ACTIVE after email verification
+      await prisma.user.update({
+        where: { email },
+        data: { status: 'ACTIVE' }
+      });
+      logger.info("Merchant email verified and activated", { email, userId: user.id });
+      return { verified: true, userId: user.id };
+    }
+    // Other OTP types (password reset, etc.)
     logger.info("OTP verified (no pending registration)", { email });
     return { verified: true };
   }
@@ -222,6 +239,30 @@ const verifyOtp = async (email, code) => {
     userId: user.id,
     email,
     role: user.role,
+  });
+
+  // Create KatPay virtual account asynchronously — non-blocking, non-fatal
+  setImmediate(async () => {
+    try {
+      const va = await katpayService.createVirtualAccount({
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        phoneNumber: user.phone,
+        bankCodes: ["PALMPAY", "OPAY"],
+        merchantID: config.KATPAY_MERCHANT_ID,
+      });
+      await prisma.wallet.update({
+        where: { userId: user.id },
+        data: {
+          virtualAccountNumber: va.accountNumber,
+          virtualAccountBank: va.bankName,
+          virtualAccountName: va.accountName,
+        },
+      });
+      logger.info("KatPay virtual account assigned", { userId: user.id, accountNumber: va.accountNumber });
+    } catch (err) {
+      logger.error("KatPay virtual account creation failed", { userId: user.id, error: err.message });
+    }
   });
 
   return { verified: true, userId: user.id };
