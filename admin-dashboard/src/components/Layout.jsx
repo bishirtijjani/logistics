@@ -22,7 +22,9 @@ import {
   MessageCircle,
   Headphones,
   Megaphone,
-  Shield
+  Shield,
+  Wifi,
+  Tags
 } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Breadcrumb from './Breadcrumb'
@@ -33,6 +35,7 @@ const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/requests', icon: Package, label: 'Requests' },
   { path: '/merchants', icon: Store, label: 'Merchants' },
+  { path: '/categories', icon: Tags, label: 'Categories' },
   { path: '/riders', icon: Bike, label: 'Riders' },
   { path: '/pending-riders', icon: UserCheck, label: 'Pending Riders' },
   { path: '/analytics', icon: BarChart3, label: 'Analytics' },
@@ -42,6 +45,7 @@ const navItems = [
   { path: '/marketing', icon: Megaphone, label: 'Marketing' },
   { path: '/rider-operations', icon: Bike, label: 'Rider Ops' },
   { path: '/safety', icon: Shield, label: 'Safety' },
+  { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans' },
   { path: '/users', icon: Users, label: 'Users' },
   { path: '/audit-logs', icon: FileText, label: 'Audit Logs' },
   { path: '/transactions', icon: Receipt, label: 'Transactions' },
@@ -74,7 +78,7 @@ export default function Layout() {
         />
       )}
 
-      <aside className="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface dark:bg-dark-surface border-r border-surface-muted dark:border-dark-surface-muted flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}">
+      <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface dark:bg-dark-surface border-r border-surface-muted dark:border-dark-surface-muted flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
           <h1 className="text-xl font-bold text-text dark:text-dark-text">VTU Logistics</h1>
           <p className="text-sm text-muted dark:text-dark-muted mt-1">Admin Dashboard</p>
@@ -138,7 +142,7 @@ export default function Layout() {
       </aside>
 
       <main className="flex-1 overflow-auto">
-        <div className="p-8 bg-background dark:bg-dark-background min-h-screen">
+        <div className="px-4 pt-16 pb-6 sm:px-6 sm:pt-8 sm:pb-8 lg:p-8 bg-background dark:bg-dark-background min-h-screen">
           <Breadcrumb />
           <Outlet />
         </div>

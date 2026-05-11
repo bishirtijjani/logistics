@@ -16,8 +16,9 @@ import { fetchUtilityHistory } from "../../store/slices/utilitySlice";
 const UTILITY_TYPES = {
   AIRTIME: { icon: "call", color: colors.primary, label: "Airtime" },
   DATA: { icon: "wifi", color: colors.primary, label: "Data" },
-  ELECTRICITY: { icon: "flash", color: colors.warning, label: "Electricity" },
-  TV: { icon: "tv", color: colors.info, label: "TV" },
+  ELECTRICITY: { icon: "flash", color: "#F59E0B", label: "Electricity" },
+  CABLE: { icon: "tv", color: "#6366F1", label: "Cable TV" },
+  EDUCATION_PIN: { icon: "school", color: "#059669", label: "Education Pin" },
 };
 
 const STATUS_COLORS = {

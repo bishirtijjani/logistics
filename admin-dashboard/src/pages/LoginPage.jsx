@@ -55,7 +55,7 @@ export default function LoginPage() {
           <p className="text-muted mt-2">Admin Dashboard</p>
         </div>
 
-        <div className="bg-surface rounded-xl shadow-sm p-8">
+        <div className="bg-surface rounded-xl shadow-sm p-6 sm:p-8">
           <h2 className="text-xl font-semibold text-secondary mb-6">Sign In</h2>
           
           {error && (

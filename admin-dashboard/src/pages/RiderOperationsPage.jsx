@@ -51,24 +51,24 @@ export default function RiderOperationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Rider Operations</h1>
-        <button onClick={activeTab === 'performance' ? fetchRiderPerformance : fetchRiderLocations} className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">Rider Operations</h1>
+        <button onClick={activeTab === 'performance' ? fetchRiderPerformance : fetchRiderLocations} className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg w-full sm:w-auto flex items-center justify-center">
           <RefreshCw className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 sm:gap-4 border-b overflow-x-auto">
         <button
           onClick={() => setActiveTab('performance')}
-          className={`px-4 py-2 border-b-2 ${activeTab === 'performance' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'performance' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
         >
           <Activity className="w-4 h-4 inline mr-2" />
           Performance
         </button>
         <button
           onClick={() => setActiveTab('locations')}
-          className={`px-4 py-2 border-b-2 ${activeTab === 'locations' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'locations' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
         >
           <MapPin className="w-4 h-4 inline mr-2" />
           Real-time Locations
@@ -76,13 +76,13 @@ export default function RiderOperationsPage() {
       </div>
 
       {activeTab === 'performance' ? (
-        <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted">
+        <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-surface-muted dark:bg-dark-surface-muted">
                 <tr>
                   <th className="px-4 py-3 text-left">Rider</th>

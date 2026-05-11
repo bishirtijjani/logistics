@@ -188,15 +188,15 @@ export default function LocationPickerScreen({ navigation, route }) {
 
   // Confirm selection
   const handleConfirm = useCallback(() => {
-    dispatch(
-      setLocation({
-        latitude: region.latitude,
-        longitude: region.longitude,
-        address,
-      }),
-    );
+    const selected = { latitude: region.latitude, longitude: region.longitude, address };
+    const onSelect = route.params?.onSelect;
+    if (typeof onSelect === 'function') {
+      onSelect(selected);
+    } else {
+      dispatch(setLocation(selected));
+    }
     navigation.goBack();
-  }, [dispatch, region, address, navigation]);
+  }, [dispatch, region, address, navigation, route.params]);
 
   return (
     <View style={{ flex: 1 }}>

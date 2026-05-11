@@ -67,19 +67,19 @@ export default function AuditLogPage() {
     <div>
       <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Audit Logs</h1>
 
-      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
-        <div className="flex gap-4 mb-4 flex-wrap">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 sm:gap-3 lg:items-center">
           <input
             type="text"
             placeholder="Filter by action"
             value={filters.action}
             onChange={(e) => handleFilterChange('action', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text text-sm w-full lg:w-auto"
           />
           <select
             value={filters.entityType}
             onChange={(e) => handleFilterChange('entityType', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text text-sm w-full lg:w-auto"
           >
             <option value="">All Entity Types</option>
             <option value="MERCHANT">Merchant</option>
@@ -92,17 +92,17 @@ export default function AuditLogPage() {
             type="date"
             value={filters.startDate}
             onChange={(e) => handleFilterChange('startDate', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text text-sm w-full lg:w-auto"
           />
           <input
             type="date"
             value={filters.endDate}
             onChange={(e) => handleFilterChange('endDate', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text text-sm w-full lg:w-auto"
           />
           <button
             onClick={handleSearch}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm w-full lg:w-auto"
           >
             <Filter size={18} />
             Apply Filters
@@ -117,7 +117,7 @@ export default function AuditLogPage() {
           <div className="p-12 text-center text-muted dark:text-dark-muted">No audit logs found</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
             <thead className="bg-surface-muted dark:bg-dark-surface-muted border-b border-surface-muted dark:border-dark-surface-muted">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Timestamp</th>

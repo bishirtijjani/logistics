@@ -32,7 +32,7 @@ export default function RegistrationPage() {
 
   const [businessInfo, setBusinessInfo] = useState({
     businessName: '',
-    businessType: '',
+    categoryId: '',
     businessPhone: '',
     businessEmail: '',
     businessAddress: '',
@@ -42,6 +42,29 @@ export default function RegistrationPage() {
     lng: 7.6017
   })
 
+  const [categories, setCategories] = useState([])
+  const [categoriesLoading, setCategoriesLoading] = useState(false)
+  const [categoriesError, setCategoriesError] = useState('')
+
+  const loadCategories = async () => {
+    setCategoriesLoading(true)
+    setCategoriesError('')
+    try {
+      const res = await fetch('/api/categories')
+      if (!res.ok) throw new Error('Failed to load categories')
+      const json = await res.json()
+      setCategories(json.data || [])
+    } catch (e) {
+      setCategoriesError(e.message || 'Failed to load categories')
+    } finally {
+      setCategoriesLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
   const [businessErrors, setBusinessErrors] = useState({
     businessName: '',
     businessPhone: '',
@@ -49,12 +72,6 @@ export default function RegistrationPage() {
     businessAddress: ''
   })
 
-  const businessTypes = [
-    { value: 'RESTAURANT', label: 'Restaurant', icon: '🍔', description: 'Food delivery' },
-    { value: 'RETAIL_STORE', label: 'Retail Store', icon: '🛍️', description: 'Retail products' },
-    { value: 'GROCERY', label: 'Grocery Store', icon: '🛒', description: 'Grocery delivery' },
-    { value: 'PHARMACY', label: 'Pharmacy', icon: '💊', description: 'Medicine delivery' }
-  ]
 
   const validatePersonalInfo = () => {
     const errors = {
@@ -107,6 +124,10 @@ export default function RegistrationPage() {
 
     if (!businessInfo.businessName) {
       errors.businessName = 'Please enter your business name'
+      isValid = false
+    }
+    if (!businessInfo.categoryId) {
+      showErrorToast('Please pick a business category')
       isValid = false
     }
     if (!businessInfo.businessPhone) {
@@ -534,25 +555,53 @@ export default function RegistrationPage() {
 
               <div>
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-3">
-                  Business Type
+                  Business Category
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {businessTypes.map((type) => (
+                {categoriesLoading && categories.length === 0 ? (
+                  <div className="text-sm text-muted dark:text-dark-muted py-4">
+                    Loading categories…
+                  </div>
+                ) : categoriesError ? (
+                  <div className="flex items-center gap-3 text-sm text-error">
+                    <AlertCircle className="w-4 h-4" />
+                    {categoriesError}
                     <button
-                      key={type.value}
-                      onClick={() => setBusinessInfo({ ...businessInfo, businessType: type.value })}
-                      className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                        businessInfo.businessType === type.value
-                          ? 'border-primary bg-primary/10 dark:bg-primary/20'
-                          : 'border-surface-muted dark:border-dark-surface-muted hover:border-primary/50 dark:hover:border-primary/50'
-                      }`}
+                      type="button"
+                      onClick={loadCategories}
+                      className="text-primary hover:underline"
                     >
-                      <div className="text-3xl mb-2">{type.icon}</div>
-                      <div className="font-semibold text-text dark:text-dark-text">{type.label}</div>
-                      <div className="text-sm text-muted dark:text-dark-muted">{type.description}</div>
+                      Retry
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {categories.map((cat) => (
+                      <button
+                        type="button"
+                        key={cat.id}
+                        onClick={() => setBusinessInfo({ ...businessInfo, categoryId: cat.id })}
+                        className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                          businessInfo.categoryId === cat.id
+                            ? 'border-primary bg-primary/10 dark:bg-primary/20'
+                            : 'border-surface-muted dark:border-dark-surface-muted hover:border-primary/50 dark:hover:border-primary/50'
+                        }`}
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg mb-2"
+                          style={{ background: cat.color || '#7C3AED' }}
+                        />
+                        <div className="font-semibold text-text dark:text-dark-text">
+                          {cat.name}
+                        </div>
+                        {cat.description && (
+                          <div className="text-sm text-muted dark:text-dark-muted">
+                            {cat.description}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -735,8 +784,10 @@ export default function RegistrationPage() {
                     <span className="font-medium text-text dark:text-dark-text">{businessInfo.businessName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted dark:text-dark-muted">Type:</span>
-                    <span className="font-medium text-text dark:text-dark-text">{businessInfo.businessType}</span>
+                    <span className="text-muted dark:text-dark-muted">Category:</span>
+                    <span className="font-medium text-text dark:text-dark-text">
+                      {categories.find((c) => c.id === businessInfo.categoryId)?.name || '—'}
+                    </span>
                   </div>
                 </div>
               </div>

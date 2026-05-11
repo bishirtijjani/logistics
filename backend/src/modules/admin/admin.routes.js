@@ -23,6 +23,15 @@ const {
   suspendMerchantSchema,
   unsuspendMerchantSchema,
   updateMerchantCommissionSchema,
+  updateMerchantProfileSchema,
+  setWithdrawalHoldSchema,
+  bulkApproveWithdrawalsSchema,
+  createTagSchema,
+  createCategorySchema,
+  updateCategorySchema,
+  listCategoriesSchema,
+  updateTagSchema,
+  setMerchantTagsSchema,
   listAllRidersSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,
@@ -44,11 +53,32 @@ router.patch('/requests/:requestId/status', validate(adminUpdateRequestStatusSch
 
 // Merchant management
 router.get('/merchants', validate(listAllMerchantsSchema, 'query'), adminController.getAllMerchants);
+router.get('/merchants/:merchantId', adminController.getMerchantById);
+router.put('/merchants/:merchantId', validate(updateMerchantProfileSchema), adminController.updateMerchantProfile);
 router.patch('/merchants/:merchantId/approve', validate(approveMerchantSchema), adminController.approveMerchant);
 router.patch('/merchants/:merchantId/reject', validate(rejectMerchantSchema), adminController.rejectMerchant);
 router.patch('/merchants/:merchantId/suspend', validate(suspendMerchantSchema), adminController.suspendMerchant);
 router.patch('/merchants/:merchantId/unsuspend', validate(unsuspendMerchantSchema), adminController.unsuspendMerchant);
 router.patch('/merchants/:merchantId/commission', validate(updateMerchantCommissionSchema), adminController.updateMerchantCommission);
+router.get('/merchants/:merchantId/commission-history', adminController.getMerchantCommissionHistory);
+router.patch('/merchants/:merchantId/withdrawal-hold', validate(setWithdrawalHoldSchema), adminController.setWithdrawalHold);
+router.get('/merchants/:merchantId/analytics', adminController.getMerchantAnalytics);
+router.post('/merchants/:merchantId/tags', validate(setMerchantTagsSchema), adminController.setMerchantTags);
+
+// Withdrawal bulk operations
+router.post('/withdrawals/bulk-approve', validate(bulkApproveWithdrawalsSchema), adminController.bulkApproveWithdrawals);
+
+// Tag management
+router.get('/tags', adminController.getAllTags);
+router.post('/tags', validate(createTagSchema), adminController.createTag);
+router.put('/tags/:tagId', validate(updateTagSchema), adminController.updateTag);
+router.delete('/tags/:tagId', adminController.deleteTag);
+
+// Merchant category management
+router.get('/categories', validate(listCategoriesSchema, 'query'), adminController.getAllCategories);
+router.post('/categories', validate(createCategorySchema), adminController.createCategory);
+router.put('/categories/:categoryId', validate(updateCategorySchema), adminController.updateCategory);
+router.delete('/categories/:categoryId', adminController.deleteCategory);
 
 // Rider management
 router.get('/riders/pending', validate(listPendingRidersSchema, 'query'), adminController.getPendingRiders);
@@ -105,5 +135,12 @@ router.get('/riders/realtime', adminController.getRiderRealtimeLocation);
 // Safety & compliance
 router.get('/safety/incidents', adminController.getSafetyIncidents);
 router.get('/safety/compliance', adminController.getComplianceReport);
+
+// VTU plan management
+router.get('/vtu-plans', adminController.getVtuPlans);
+router.post('/vtu-plans', adminController.createVtuPlan);
+router.post('/vtu-plans/bulk', adminController.bulkCreateVtuPlans);
+router.put('/vtu-plans/:planId', adminController.updateVtuPlan);
+router.delete('/vtu-plans/:planId', adminController.deleteVtuPlan);
 
 module.exports = router;

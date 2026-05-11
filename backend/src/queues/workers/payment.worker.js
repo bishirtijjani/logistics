@@ -5,6 +5,7 @@ const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const walletService = require('../../modules/wallet/wallet.service');
 const katpayService = require('../../services/katpay.service');
+const notifyService = require('../../services/notify.service');
 
 const startPaymentWorker = () => {
   const worker = new Worker(
@@ -19,14 +20,17 @@ const startPaymentWorker = () => {
         case PAYMENT_JOBS.PROCESS_TRANSFER_PAYMENT_WEBHOOK:
           return handleKatpayTransferPayment(job.data);
 
-        case PAYMENT_JOBS.PROCESS_MONNIFY_WEBHOOK:
-          return handleMonnifyWebhook(job.data);
-
         case PAYMENT_JOBS.PROCESS_WITHDRAWAL:
           return handleWithdrawal(job.data);
 
+        case PAYMENT_JOBS.PROVISION_VIRTUAL_ACCOUNT:
+          return handleProvisionVirtualAccount(job.data);
+
         case PAYMENT_JOBS.RETRY_FAILED_TRANSACTION:
           return handleRetry(job.data);
+
+        case PAYMENT_JOBS.CLEANUP_EXPIRED_IDEMPOTENCY:
+          return handleCleanupExpiredIdempotency();
 
         default:
           logger.warn(`Unknown payment job type: ${job.name}`);
@@ -55,6 +59,20 @@ const startPaymentWorker = () => {
   });
 
   return worker;
+};
+
+/**
+ * Delete expired idempotency-key reservations.
+ * Runs nightly (scheduled in queues/index.js) to keep the table from growing
+ * unbounded. Each row has a 24h TTL set by the middleware; once expired, the
+ * row is dead weight.
+ */
+const handleCleanupExpiredIdempotency = async () => {
+  const result = await prisma.idempotencyKey.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+  logger.info('Idempotency cleanup completed', { deleted: result.count });
+  return result.count;
 };
 
 /**
@@ -90,7 +108,7 @@ const handleKatpayVirtualAccountPayment = async ({ transactionRef, accountNumber
 
 /**
  * Credit wallet from a KatPay transfer_payment.completed event.
- * Uses metadata.userId to find the right wallet.
+ * Uses metauserId to find the right wallet.
  */
 const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metadata, eventData }) => {
   const webhookEvent = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
@@ -136,7 +154,7 @@ const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metada
 /**
  * Process withdrawal — call KatPay payout API.
  */
-const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accountName, amount }) => {
+const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accountName, amount, userId }) => {
   const transaction = await prisma.transaction.findUnique({ where: { reference: transactionId } });
 
   if (!transaction) {
@@ -168,6 +186,12 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
     });
 
     logger.info('Withdrawal payout completed', { transactionId, amount });
+
+    // Notify user their withdrawal completed
+    if (userId) {
+      const freshWallet = await prisma.wallet.findUnique({ where: { userId: userId }, select: { balance: true } });
+      if (freshWallet) notifyService.balanceUpdated(userId, { balance: Number(freshWallet.balance) });
+    }
   } catch (error) {
     logger.error('Withdrawal payout failed', { transactionId, error: error.message });
 
@@ -198,6 +222,12 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
           data: { status: 'FAILED' },
         }),
       ]);
+
+      // Notify user their money was refunded
+      if (userId) {
+        const refundedWallet = await prisma.wallet.findUnique({ where: { userId: userId }, select: { balance: true } });
+        if (refundedWallet) notifyService.balanceUpdated(userId, { balance: Number(refundedWallet.balance) });
+      }
     }
 
     throw error; // Re-throw so BullMQ retries
@@ -205,31 +235,32 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
 };
 
 /**
- * Legacy Monnify webhook handler (kept for in-flight events).
+ * Provision KatPay virtual account for a newly verified user.
  */
-const handleMonnifyWebhook = async ({ transactionRef, eventData }) => {
-  const webhookEvent = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
-  if (!webhookEvent || webhookEvent.processed) return;
-
-  try {
-    await walletService.fundWallet({
-      accountNumber: eventData.accountNumber,
-      amount: eventData.amountPaid || eventData.amount,
-      reference: transactionRef,
-      metadata: eventData,
-    });
-
-    await prisma.webhookEvent.update({
-      where: { transactionRef },
-      data: { processed: true, processedAt: new Date() },
-    });
-  } catch (error) {
-    await prisma.webhookEvent.update({
-      where: { transactionRef },
-      data: { error: error.message },
-    });
-    throw error;
+const handleProvisionVirtualAccount = async ({ userId, email, name, phoneNumber }) => {
+  const existingWallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (existingWallet?.virtualAccountNumber) {
+    logger.info('Virtual account already provisioned', { userId });
+    return;
   }
+
+  const va = await katpayService.createVirtualAccount({
+    email,
+    name,
+    phoneNumber: phoneNumber || '',
+    bankCodes: ['PALMPAY', 'OPAY'],
+  });
+
+  await prisma.wallet.update({
+    where: { userId },
+    data: {
+      virtualAccountNumber: va.accountNumber,
+      virtualAccountBank: va.bankName,
+      virtualAccountName: va.accountName,
+    },
+  });
+
+  logger.info('KatPay virtual account provisioned', { userId, accountNumber: va.accountNumber });
 };
 
 /**

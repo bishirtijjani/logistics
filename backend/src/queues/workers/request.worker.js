@@ -9,14 +9,14 @@
  */
 
 const { Worker } = require('bullmq');
-const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../../config/database');
 const { redis } = require('../../config/redis');
 const { logger } = require('../../utils/logger');
 const { getIO } = require('../../sockets');
-const { REQUEST, getRequestRoom, getRiderPoolRoom } = require('../../sockets/events');
+const { REQUEST, getRiderPoolRoom } = require('../../sockets/events');
 const { emitCompleted } = require('../../sockets/handlers/request.handler');
 const { REQUEST_JOBS } = require('../jobs');
+const notifyService = require('../../services/notify.service');
 
 // ============================================================
 // Broadcast to Riders
@@ -47,30 +47,29 @@ const broadcastToRiders = async (job) => {
 
 const settleRequest = async (job) => {
   const { requestId } = job.data;
-  
+
   logger.info('Settling request', { requestId });
-  
+
   const result = await prisma.$transaction(async (tx) => {
     const request = await tx.request.findUnique({
       where: { id: requestId },
       include: {
         customer: { include: { wallet: true } },
-        merchant: { include: { wallet: true } },
+        merchant: { include: { merchantWallet: true } },
         rider: { include: { user: { include: { wallet: true } } } },
       },
     });
-    
+
     if (!request) throw new Error('Request not found');
     if (request.status !== 'DELIVERED') throw new Error('Request not in DELIVERED state');
-    
+
     const merchantEarning = Number(request.merchantEarning);
     const riderEarning = Number(request.riderEarning);
     const platformEarning = Number(request.platformEarning);
-    
     const reference = `SETTLE-${requestId}-${Date.now()}`;
-    
+
     // Credit merchant wallet (if applicable)
-    if (request.merchant && merchantEarning > 0) {
+    if (request.merchant && request.merchant.merchantWallet && merchantEarning > 0) {
       await tx.merchantWallet.update({
         where: { merchantId: request.merchantId },
         data: {
@@ -78,8 +77,6 @@ const settleRequest = async (job) => {
           totalEarnings: { increment: merchantEarning },
         },
       });
-      
-      // Create merchant earning transaction
       await tx.transaction.create({
         data: {
           reference: `${reference}-MERCHANT`,
@@ -88,22 +85,18 @@ const settleRequest = async (job) => {
           amount: merchantEarning,
           fee: 0,
           description: `Earning for request ${requestId}`,
-          merchantId: request.merchantId,
-          requestId: request.id,
+          metadata: { requestId, merchantId: request.merchantId },
         },
       });
     }
-    
+
     // Credit rider wallet (if applicable)
-    if (request.rider && riderEarning > 0) {
+    if (request.rider && request.rider.user?.wallet && riderEarning > 0) {
+      const riderWallet = request.rider.user.wallet;
       await tx.wallet.update({
-        where: { id: request.rider.user.wallet.id },
-        data: {
-          balance: { increment: riderEarning },
-        },
+        where: { id: riderWallet.id },
+        data: { balance: { increment: riderEarning } },
       });
-      
-      // Create rider earning transaction
       await tx.transaction.create({
         data: {
           reference: `${reference}-RIDER`,
@@ -112,14 +105,12 @@ const settleRequest = async (job) => {
           amount: riderEarning,
           fee: 0,
           description: `Earning for request ${requestId}`,
-          creditWalletId: request.rider.user.wallet.id,
-          balanceBefore: Number(request.rider.user.wallet.balance),
-          balanceAfter: Number(request.rider.user.wallet.balance) + riderEarning,
-          requestId: request.id,
+          creditWalletId: riderWallet.id,
+          balanceBefore: Number(riderWallet.balance),
+          balanceAfter: Number(riderWallet.balance) + riderEarning,
+          metadata: { requestId, riderId: request.riderId },
         },
       });
-      
-      // Update rider stats
       await tx.rider.update({
         where: { id: request.riderId },
         data: {
@@ -127,28 +118,32 @@ const settleRequest = async (job) => {
           totalEarnings: { increment: riderEarning },
         },
       });
+
+      // Notify rider of earnings via socket
+      notifyService.balanceUpdated(request.rider.user.id, {
+        balance: Number(riderWallet.balance) + riderEarning,
+        transaction: { type: 'RIDER_EARNING', amount: riderEarning, description: `Delivery earning` },
+      });
     }
-    
+
     // Update request to SETTLED
     await tx.request.update({
       where: { id: requestId },
       data: { status: 'SETTLED', settledAt: new Date() },
     });
-    
-    // Update merchant stats (if applicable)
+
     if (request.merchant) {
       await tx.merchant.update({
         where: { id: request.merchantId },
         data: { totalOrders: { increment: 1 } },
       });
     }
-    
+
     return { merchantEarning, riderEarning, platformEarning };
   });
-  
+
   logger.info('Request settled', { requestId, ...result });
 
-  // Emit completion event
   const io = getIO();
   emitCompleted(io, requestId);
 
@@ -189,7 +184,7 @@ const refundRequest = async (job) => {
     await tx.transaction.create({
       data: {
         reference,
-        type: 'REQUEST_REFUND',
+        type: 'REFUND',
         status: 'COMPLETED',
         amount: refundAmount,
         fee: 0,
@@ -220,7 +215,19 @@ const refundRequest = async (job) => {
   });
   
   logger.info('Request refunded', { requestId, ...result });
-  
+
+  // Notify customer of refund via socket
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    include: { customer: { include: { wallet: true } } },
+  });
+  if (request?.customer) {
+    notifyService.balanceUpdated(request.customer.id, {
+      balance: Number(request.customer.wallet?.balance || 0),
+      transaction: { type: 'REFUND', amount: result.refundAmount, description: 'Order refund' },
+    });
+  }
+
   return result;
 };
 

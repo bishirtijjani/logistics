@@ -82,13 +82,13 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Dashboard</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text mb-6">Dashboard</h1>
 
       {loading ? (
         <div className="text-center py-12 text-muted dark:text-dark-muted">Loading dashboard...</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
             {statCards.map((card) => {
               const Icon = card.icon
               return (
@@ -107,8 +107,8 @@ export default function DashboardPage() {
             })}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Revenue Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Request Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={requestsData}>
@@ -136,9 +136,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-8">
             {/* Pending Merchants */}
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-text dark:text-dark-text">Pending Merchants</h3>
                 <Link to="/merchants" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Failed Transactions */}
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-text dark:text-dark-text">Failed Transactions</h3>
                 <Link to="/transactions" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">
@@ -196,7 +196,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Pending Riders */}
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-text dark:text-dark-text">Pending Riders</h3>
                 <Link to="/pending-riders" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">

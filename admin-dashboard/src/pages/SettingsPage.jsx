@@ -70,15 +70,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Settings</h1>
+    <div>
+      <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text mb-6">Settings</h1>
 
-      <div className="flex gap-6">
-        <div className="w-64 bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4">
-          <nav className="space-y-1">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        <div className="w-full lg:w-64 bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 shrink-0">
+          <nav className="flex lg:flex-col gap-1 lg:gap-1 overflow-x-auto">
             <button
               onClick={() => setActiveTab('platform')}
-              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+              className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-2 rounded-lg transition-colors text-sm whitespace-nowrap ${
                 activeTab === 'platform'
                   ? 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary font-medium'
                   : 'text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
@@ -88,7 +88,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab('fees')}
-              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+              className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-2 rounded-lg transition-colors text-sm whitespace-nowrap ${
                 activeTab === 'fees'
                   ? 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary font-medium'
                   : 'text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
@@ -98,7 +98,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+              className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-2 rounded-lg transition-colors text-sm whitespace-nowrap ${
                 activeTab === 'notifications'
                   ? 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary font-medium'
                   : 'text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
@@ -111,7 +111,7 @@ export default function SettingsPage() {
 
         <div className="flex-1">
           {activeTab === 'platform' && (
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Platform Configuration</h2>
 
               <div className="space-y-4">
@@ -177,7 +177,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handlePlatformSave}
                   disabled={saving}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <Save size={18} />
                   {saving ? 'Saving...' : 'Save Changes'}
@@ -187,7 +187,7 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'commissions' && (
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Commission Defaults</h2>
 
               <div className="space-y-4">
@@ -251,7 +251,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handlePlatformSave}
                   disabled={saving}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <Save size={18} />
                   {saving ? 'Saving...' : 'Save Changes'}
@@ -261,7 +261,7 @@ export default function SettingsPage() {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Notification Settings</h2>
 
               <div className="space-y-4">
@@ -366,7 +366,7 @@ export default function SettingsPage() {
                 <button
                   onClick={handleNotificationSave}
                   disabled={saving}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <Save size={18} />
                   {saving ? 'Saving...' : 'Save Changes'}

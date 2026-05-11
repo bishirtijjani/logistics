@@ -4,6 +4,7 @@ const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
 const { pinLimiter } = require('../../middlewares/rate-limit.middleware');
+const { idempotency } = require('../../middlewares/idempotency.middleware');
 const {
   transferSchema,
   withdrawSchema,
@@ -12,19 +13,30 @@ const {
 
 const router = Router();
 
-// Public — no auth needed for bank list (used pre-login in some flows)
+// Public — bank list (no auth needed for bank picker pre-login)
 router.get('/banks', walletController.getBanks);
 
 // All routes below require authentication
 router.use(authenticate);
 
 router.get('/', walletController.getWallet);
-router.post('/transfer', authorize('CUSTOMER', 'RIDER'), pinLimiter, validate(transferSchema), walletController.transfer);
-router.post('/withdraw', authorize('CUSTOMER', 'RIDER'), pinLimiter, validate(withdrawSchema), walletController.withdraw);
+router.post('/transfer', authorize('CUSTOMER', 'RIDER'), pinLimiter, idempotency, validate(transferSchema), walletController.transfer);
+router.post('/withdraw', authorize('CUSTOMER', 'RIDER'), pinLimiter, idempotency, validate(withdrawSchema), walletController.withdraw);
 router.get('/transactions', validate(transactionHistorySchema, 'query'), walletController.getTransactionHistory);
+
+// Bank account name lookup
+router.post('/banks/lookup', walletController.lookupBankAccount);
 
 // KatPay transfer payment (ad-hoc top-up)
 router.post('/fund', walletController.initiateFunding);
 router.get('/fund/:uuid', walletController.getTransferPaymentStatus);
+
+// Saved beneficiaries
+router.get('/beneficiaries', walletController.getBeneficiaries);
+router.post('/beneficiaries', walletController.addBeneficiary);
+router.delete('/beneficiaries/:id', walletController.deleteBeneficiary);
+
+// Transaction receipt
+router.get('/transactions/:id/receipt', walletController.getReceipt);
 
 module.exports = router;

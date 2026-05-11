@@ -20,8 +20,8 @@ This proposal covers the design, development, and deployment of VTU & Logistics 
 
 | Module | What It Does | Powered By |
 |---|---|---|
-| **Digital Wallet** | Each user gets a unique Nigerian bank account number. Fund your wallet by transferring to it from any bank app. Send money to other users, withdraw to your bank, or use your balance to pay for everything else in the app. | Monnify |
-| **Utility Payments** | Buy airtime and data bundles for MTN, Airtel, Glo, and 9mobile. Pay electricity bills for any DISCO merchant across Nigeria. Everything is instant and paid from your wallet balance. | VTPass |
+| **Digital Wallet** | Each user gets a unique Nigerian bank account number. Fund your wallet by transferring to it from any bank app. Send money to other users, withdraw to your bank, or use your balance to pay for everything else in the app. | KatPay |
+| **Utility Payments** | Buy airtime and data bundles for MTN, Airtel, Glo, and 9mobile. Pay electricity bills for any DISCO merchant across Nigeria. Everything is instant and paid from your wallet balance. | AlRahuz |
 | **Delivery & Logistics** | Request pickup and dropoff of any item within Katsina State. A registered rider accepts the job, collects the item, and delivers it while you track them live on a map. Payment is automatic from your wallet on delivery. | Google Maps + In-house |
 
 The platform consists of two mobile applications — a **Customer App** for end users and a **Rider App** for delivery personnel — both connected to the same backend system.
@@ -48,8 +48,8 @@ A delivery moves through seven stages from the moment a customer places a reques
 | **Backend Server** | Node.js + Express | Handles all transactions, delivery logic, and user management. Designed to handle many users at the same time reliably. |
 | **Database** | PostgreSQL | A financial-grade database. Every wallet transaction is recorded with full accuracy — no rounding errors, no data loss. |
 | **Real-Time Tracking** | Socket.io | Streams the rider's live GPS location to the customer's map every 3 seconds during an active delivery. |
-| **Payments** | Monnify | A CBN-licensed payment merchant that handles the virtual accounts, wallet funding, and bank disbursements legally and compliantly. |
-| **Utility Bills** | VTPass | A Nigerian bill-payment aggregator supporting all major networks and electricity merchants. |
+| **Payments** | KatPay | A licensed Nigerian payments provider that issues per-user virtual accounts, processes wallet funding via bank transfer, and handles bank disbursements (withdrawals). |
+| **Utility Bills** | AlRahuz | A Nigerian VTU/bill-payment aggregator supporting airtime, data, electricity, cable TV, and education pins. |
 | **Maps & Navigation** | Google Maps Platform | Powers address search, distance calculation, fare estimation, and the live tracking map. |
 | **Notifications** | Firebase FCM | Delivers push notifications to both apps for delivery updates, payment confirmations, and money transfers. |
 
@@ -73,11 +73,11 @@ The following tables define every feature included in Version 1 of the platform.
 
 | Feature | Description |
 |---|---|
-| **Personal Virtual Account** | Every verified user receives a unique Nigerian bank account number (issued via Monnify). This account is used exclusively to fund their wallet from any bank app. |
+| **Personal Virtual Account** | Every verified user receives a unique Nigerian bank account number (issued via KatPay). This account is used exclusively to fund their wallet from any bank app. |
 | **Wallet Balance & Dashboard** | The home screen displays the user's current wallet balance with the option to hide or show it. |
-| **Wallet Top-Up** | User transfers any amount to their virtual account from their bank. The wallet balance updates automatically within seconds via a webhook notification from Monnify. |
+| **Wallet Top-Up** | User transfers any amount to their virtual account from their bank. The wallet balance updates automatically within seconds via a webhook notification from KatPay. |
 | **Send Money (P2P)** | Users can send money to any other registered user by entering their phone number. Both parties receive instant balance updates and push notifications. No bank transfer occurs — this is an internal ledger movement. |
-| **Withdraw to Bank** | Users can withdraw their wallet balance to any Nigerian bank account. The app verifies the account name before confirmation. Transfer is processed via Monnify's disbursement service. |
+| **Withdraw to Bank** | Users can withdraw their wallet balance to any Nigerian bank account. The app verifies the account name before confirmation. Transfer is processed via KatPay's disbursement service. |
 | **Transaction History** | A chronological list of all wallet activity — top-ups, transfers sent and received, utility payments, delivery charges, and withdrawals — with full details and status. |
 | **Saved Beneficiaries** | Users can save frequently used account numbers and phone numbers for quick access during transfers. |
 
@@ -86,7 +86,7 @@ The following tables define every feature included in Version 1 of the platform.
 | Feature | Description |
 |---|---|
 | **Airtime Top-Up** | Purchase airtime for any of the four major Nigerian networks (MTN, Airtel, Glo, 9mobile) for yourself or any phone number. |
-| **Data Bundle Purchase** | Browse and purchase data bundles for all four networks. Packages are fetched live from VTPass to ensure they are always up to date. |
+| **Data Bundle Purchase** | Browse and purchase data bundles for all four networks. Packages are fetched live from AlRahuz to ensure they are always up to date. |
 | **Electricity Token** | Pay electricity bills for any DISCO merchant across Nigeria by entering the meter number. The payment token is delivered in the app and via SMS to the registered number. |
 | **Bill Purchase History** | A separate log of all utility purchases with merchant, beneficiary, amount, reference number, and status. |
 
@@ -114,7 +114,7 @@ The following tables define every feature included in Version 1 of the platform.
 | **In-App Navigation** | After accepting, the rider gets Google Maps turn-by-turn navigation to the pickup address, then to the dropoff address. |
 | **Delivery Actions** | The rider taps to mark the item as Picked Up at the sender's location and Delivered at the recipient's location. |
 | **Earnings Dashboard** | Riders can see their earnings for the current day, the current week, and their total accumulated balance. |
-| **Rider Wallet & Withdrawal** | Delivery earnings are credited to the rider's in-app wallet. Riders can withdraw to their linked bank account at any time via Monnify. |
+| **Rider Wallet & Withdrawal** | Delivery earnings are credited to the rider's in-app wallet. Riders can withdraw to their linked bank account at any time via KatPay. |
 | **Delivery History** | A log of all completed deliveries with payout per job and cumulative totals. |
 
 ### 3.6 What Is Not Included in Version 1
@@ -141,8 +141,8 @@ The project is structured across seven milestones over an estimated **19 weeks (
 | Milestone | What Is Delivered | Duration | Weeks |
 |---|---|---|---|
 | **1 — Foundation & Authentication** | Project setup, database, user registration, OTP verification, BVN KYC, transaction PIN, and secure session management. | 2 weeks | 1–2 |
-| **2 — Wallet & Transfers** | Monnify virtual account setup per user, wallet top-up via bank transfer, peer-to-peer transfers, bank withdrawals, and full transaction history. | 3 weeks | 3–5 |
-| **3 — Utility Payments** | VTPass integration for airtime, data bundles, and electricity tokens. Bill history and saved beneficiaries. | 2 weeks | 6–7 |
+| **2 — Wallet & Transfers** | KatPay virtual account setup per user, wallet top-up via bank transfer, peer-to-peer transfers, bank withdrawals, and full transaction history. | 3 weeks | 3–5 |
+| **3 — Utility Payments** | AlRahuz integration for airtime, data bundles, and electricity tokens. Bill history and saved beneficiaries. | 2 weeks | 6–7 |
 | **4 — Delivery Module (Customer)** | Full delivery request flow, Google Maps integration, fare calculation, rider matching engine, push notifications, delivery history, and ratings. | 4 weeks | 8–11 |
 | **5 — Live Tracking** | Real-time GPS tracking via WebSocket. Rider location streams to customer map. Full delivery status event pipeline. | 2 weeks | 12–13 |
 | **6 — Rider Application** | Complete Rider App: onboarding, availability, job notifications, navigation, delivery actions, earnings dashboard, and rider withdrawals. | 3 weeks | 14–16 |
@@ -150,7 +150,7 @@ The project is structured across seven milestones over an estimated **19 weeks (
 
 > **Total Duration: 19 weeks — approximately 5 months from project kickoff to live app on both stores.**
 >
-> Timeline assumes the client provides required API credentials (Monnify, VTPass, Google Maps) within the first week. Each milestone must be signed off before the following milestone begins. Delays in sign-off extend the timeline proportionally.
+> Timeline assumes the client provides required API credentials (KatPay, AlRahuz, Google Maps) within the first week. Each milestone must be signed off before the following milestone begins. Delays in sign-off extend the timeline proportionally.
 
 ---
 
@@ -183,7 +183,7 @@ This is a fixed price engagement. The total does not change regardless of how lo
 
 - Both mobile applications — Customer App and Rider App — for Android and iOS.
 - The complete backend API, database, and real-time tracking infrastructure.
-- All third-party API integrations: Monnify, VTPass, Google Maps, Firebase, and Termii.
+- All third-party API integrations: KatPay, AlRahuz, Google Maps, Firebase, and Termii.
 - A basic admin dashboard for rider approvals and transaction oversight.
 - Google Play Store and Apple App Store submission of both apps.
 - Full source code transferred to the client on final payment.
@@ -192,7 +192,7 @@ This is a fixed price engagement. The total does not change regardless of how lo
 
 ### 5.2 What Is Not Included
 
-- Third-party account fees: Monnify business registration, Google Maps billing, VTPass merchant account, Apple Developer Account (₦150,000/year equivalent), Google Play Developer Account (one-time ~₦25,000 equivalent).
+- Third-party account fees: KatPay merchant onboarding, Google Maps billing, AlRahuz merchant account, Apple Developer Account (₦150,000/year equivalent), Google Play Developer Account (one-time ~₦25,000 equivalent).
 - Monthly infrastructure hosting costs after deployment (estimated ₦20,000–₦40,000/month depending on scale).
 - Rider recruitment — the client is responsible for recruiting and onboarding initial riders before launch.
 - Any feature not listed in Section 3 of this document.
@@ -222,7 +222,7 @@ The following items will be formally handed over to the client upon receipt of t
 |---|---|
 | **Intellectual Property** | All intellectual property and source code transfers fully to the client upon receipt of the final milestone payment. The developer retains no rights to the codebase after handover. |
 | **Scope Changes** | Any feature additions or modifications to the agreed scope during development will be separately scoped, quoted, and approved in writing before any additional work begins. Verbal agreements do not constitute scope changes. |
-| **Client Responsibilities** | The client agrees to: provide all required API credentials (Monnify, VTPass, Google Maps) within the first week; review and sign off on each milestone within 5 business days of delivery; provide feedback on designs within 48 hours. |
+| **Client Responsibilities** | The client agrees to: provide all required API credentials (KatPay, AlRahuz, Google Maps) within the first week; review and sign off on each milestone within 5 business days of delivery; provide feedback on designs within 48 hours. |
 | **Warranty** | The developer provides a 30-day post-launch warranty covering bug fixes for code defects in the delivered work. This does not cover third-party API changes, server outages, or new feature requests. |
 | **Cancellation** | Payments for completed and signed-off milestones are non-refundable. If the client cancels mid-milestone, work completed up to the point of cancellation will be invoiced at the prorated milestone value. |
 | **Confidentiality** | Both parties agree to treat all business logic, pricing, user data, and technical specifications shared under this engagement as confidential. |
@@ -236,7 +236,7 @@ To proceed with this engagement, complete the following steps in order:
 
 1. Client reviews this document and raises any questions or requested changes.
 2. Both parties agree on terms and sign a brief service agreement.
-3. Client initiates account registrations for Monnify, VTPass, and Google Maps Platform (these can take a few days to process — they should not wait until development begins).
+3. Client initiates account registrations for KatPay, AlRahuz, and Google Maps Platform (these can take a few days to process — they should not wait until development begins).
 4. First milestone payment of **₦300,000** is received by the developer.
 5. Development begins on Milestone 1 immediately.
 

@@ -29,10 +29,11 @@ const createMerchant = async (req, res, next) => {
 
 const getMerchants = async (req, res, next) => {
   try {
-    const { type, status, lat, lng, radius, openNow, page, limit } = req.query;
-    
+    const { categoryId, categorySlug, status, lat, lng, radius, openNow, page, limit } = req.query;
+
     const result = await merchantService.getMerchants({
-      type,
+      categoryId,
+      categorySlug,
       status,
       lat: lat ? parseFloat(lat) : undefined,
       lng: lng ? parseFloat(lng) : undefined,

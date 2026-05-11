@@ -1,37 +1,28 @@
 /**
  * Request validator schemas
- * Unified request validation for all request types (FOOD, GROCERY, PHARMACY, PACKAGE)
+ * Unified request validation. type=MERCHANT_ORDER covers any merchant-fulfilled order
+ * (food, grocery, pharmacy, retail, etc.); type=PACKAGE is pure courier with no merchant.
  */
 
 const { z } = require('zod');
+const { ALL_STATUSES } = require('../../utils/status');
 
 // ============================================================
 // Request Type Enum
 // ============================================================
 
-const REQUEST_TYPES = ['FOOD', 'GROCERY', 'PHARMACY', 'PACKAGE'];
-const REQUEST_STATUSES = [
-  'REQUESTED',
-  'ACCEPTED',
-  'PROCESSING',
-  'READY_FOR_PICKUP',
-  'RIDER_ASSIGNED',
-  'RIDER_EN_ROUTE',
-  'PICKED_UP',
-  'IN_TRANSIT',
-  'DELIVERED',
-  'SETTLED',
-  'CANCELLED',
-];
+const REQUEST_TYPES = ['MERCHANT_ORDER', 'PACKAGE'];
+const REQUEST_STATUSES = ALL_STATUSES;
 
 // ============================================================
 // Create Request Schema
 // ============================================================
 
 const createRequestSchema = z.object({
-  type: z.enum(REQUEST_TYPES),
-  
-  // Merchant (required for FOOD/GROCERY/PHARMACY, optional for PACKAGE)
+  // Optional — server can infer from payload (merchantId present => MERCHANT_ORDER, else PACKAGE).
+  type: z.enum(REQUEST_TYPES).optional(),
+
+  // Merchant (required for MERCHANT_ORDER, forbidden for PACKAGE)
   merchantId: z.string().uuid().optional(),
   
   // Locations (required for all types)
@@ -57,41 +48,43 @@ const createRequestSchema = z.object({
   
   // Package details (for PACKAGE type only)
   package: z.object({
-    description: z.string().min(1, 'Package description is required'),
-    size: z.enum(['SMALL', 'MEDIUM', 'LARGE']),
+    description: z.string().optional(),
+    size: z.enum(['SMALL', 'MEDIUM', 'LARGE']).default('SMALL'),
     weight: z.number().optional(),
-    senderName: z.string().min(1, 'Sender name is required'),
-    senderPhone: z.string().min(10, 'Valid sender phone is required'),
-    recipientName: z.string().min(1, 'Recipient name is required'),
-    recipientPhone: z.string().min(10, 'Valid recipient phone is required'),
+    fragile: z.boolean().optional(),
+    senderName: z.string().optional(),
+    senderPhone: z.string().optional(),
+    recipientName: z.string().optional(),
+    recipientPhone: z.string().optional(),
     instructions: z.string().optional(),
   }).optional(),
-  
+
   // Special instructions
   specialInstructions: z.string().optional(),
-  
+
+  // Transaction PIN (required for wallet deduction)
+  pin: z.string().length(6).optional(),
+
   // Payment method
   paymentMethod: z.enum(['WALLET', 'CASH', 'CARD']).default('WALLET'),
 }).refine((data) => {
-  // Validation: If type is PACKAGE, merchantId should be null
-  if (data.type === 'PACKAGE' && data.merchantId) {
-    return false;
+  // Server infers type from payload shape when client doesn't send it.
+  const inferredType = data.type || (data.merchantId ? 'MERCHANT_ORDER' : 'PACKAGE');
+
+  if (inferredType === 'PACKAGE') {
+    // PACKAGE: no merchant, no items, package details required.
+    if (data.merchantId) return false;
+    if (data.items && data.items.length > 0) return false;
+    if (!data.package) return false;
+    return true;
   }
-  // Validation: If type is FOOD/GROCERY/PHARMACY, merchantId is required
-  if (['FOOD', 'GROCERY', 'PHARMACY'].includes(data.type) && !data.merchantId) {
-    return false;
-  }
-  // Validation: If type is PACKAGE, package details are required
-  if (data.type === 'PACKAGE' && !data.package) {
-    return false;
-  }
-  // Validation: If type is FOOD/GROCERY/PHARMACY, items are required
-  if (['FOOD', 'GROCERY', 'PHARMACY'].includes(data.type) && !data.items || data.items.length === 0) {
-    return false;
-  }
+
+  // MERCHANT_ORDER: merchantId + non-empty items required.
+  if (!data.merchantId) return false;
+  if (!data.items || data.items.length === 0) return false;
   return true;
 }, {
-  message: 'Invalid request configuration for the specified type',
+  message: 'Invalid request payload: PACKAGE needs package details only; MERCHANT_ORDER needs merchantId and items.',
 });
 
 // ============================================================
@@ -109,7 +102,7 @@ const updateStatusSchema = z.object({
 
 const listRequestsSchema = z.object({
   type: z.enum(REQUEST_TYPES).optional(),
-  status: z.enum(REQUEST_STATUSES).optional(),
+  status: z.string().optional(), // comma-separated statuses allowed
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

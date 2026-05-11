@@ -17,6 +17,7 @@ The server verifies the token and attaches user data to the socket instance. Inv
 On successful connection:
 - **All users** join their personal room: `user:{userId}`
 - **Riders** also join: `riders:available`
+- **Merchants** also join: `merchant:{merchantId}` (handled server-side on connect)
 
 ---
 
@@ -34,30 +35,49 @@ On successful connection:
 
 | Event | Direction | Payload | Description |
 |---|---|---|---|
-| `rider:location:update` | Rider → Server | `{ lat: number, lng: number, orderId?: string }` | Rider sends GPS position (~every 3s) |
-| `rider:location:broadcast` | Server → Delivery Room | `{ riderId: string, lat: number, lng: number, timestamp: number }` | Rider position forwarded to customer |
+| `rider:location:update` | Rider → Server | `{ lat: number, lng: number, requestId?: string }` | Rider sends GPS position (~every 3s) |
+| `rider:location:broadcast` | Server → Request Room | `{ riderId: string, lat: number, lng: number, timestamp: number }` | Rider position forwarded to customer |
 | `rider:availability:changed` | Rider → Server | `{ availability: 'ONLINE' \| 'OFFLINE' }` | Rider goes online/offline |
 
 ### Rider Job Events
 
 | Event | Direction | Payload | Description |
 |---|---|---|---|
-| `rider:job:new` | Server → Rider Pool | `{ orderId, pickupAddress, dropoffAddress, distanceKm, fare, pickupLat, pickupLng, timeout: 60 }` | New delivery job broadcast |
-| `rider:job:accept` | Rider → Server | `{ orderId: string }` | Rider accepts the job |
-| `rider:job:reject` | Rider → Server | `{ orderId: string }` | Rider declines the job |
-| `rider:job:confirmed` | Server → Rider | `{ orderId, pickupAddress, pickupLat, pickupLng, customerPhone }` | Job acceptance confirmed |
-| `rider:job:taken` | Server → Other Riders | `{ orderId: string }` | Job was taken by another rider |
+| `rider:job:new` | Server → Rider Pool | `{ requestId, pickupAddress, dropoffAddress, distanceKm, fare, pickupLat, pickupLng, timeout: 60 }` | New request job broadcast |
+| `rider:job:accept` | Rider → Server | `{ requestId: string }` | Rider accepts the job |
+| `rider:job:reject` | Rider → Server | `{ requestId: string }` | Rider declines the job |
+| `rider:job:confirmed` | Server → Rider | `{ requestId, pickupAddress, pickupLat, pickupLng, customerPhone }` | Job acceptance confirmed |
+| `rider:job:taken` | Server → Other Riders | `{ requestId: string }` | Job was taken by another rider |
 
-### Delivery Lifecycle Events
+### Request Lifecycle Events (Primary)
+
+These are the canonical events for all request types (food, grocery, pharmacy, package).
 
 | Event | Direction | Payload | Description |
 |---|---|---|---|
-| `delivery:room:join` | Client → Server | `{ orderId: string }` | Join delivery tracking room |
-| `delivery:room:leave` | Client → Server | `{ orderId: string }` | Leave delivery tracking room |
-| `delivery:status:changed` | Server → Delivery Room | `{ orderId, status, timestamp, metadata? }` | Delivery status changed |
-| `delivery:rider:assigned` | Server → Customer | `{ orderId, rider: { id, firstName, phone, vehicleType, plateNumber, rating } }` | Rider assigned to order |
+| `request:created` | Server → Merchant | `{ requestId, type, status, items }` | New order received by merchant |
+| `request:status:changed` | Server → All parties | `{ requestId, status, timestamp, metadata? }` | Unified status update |
+| `request:merchant:accepted` | Server → Customer | `{ merchantId, merchantName, estimatedReadyTime }` | Merchant accepted the order |
+| `request:merchant:ready` | Server → System | `{ requestId }` | Item ready for rider pickup |
+| `request:rider:assigned` | Server → All | `{ riderId, name, phone, vehicle, plateNumber, rating, eta }` | Rider matched |
+| `request:rider:location` | Server → Request Room | `{ riderId, lat, lng, timestamp }` | Live rider tracking |
+| `request:completed` | Server → All parties | `{ requestId, fare, settlement, timestamp }` | Request completed and settled |
+| `request:cancelled` | Server → All parties | `{ requestId, reason, cancelledBy, timestamp }` | Request cancelled |
+| `request:room:join` | Client → Server | `{ requestId: string }` | Join request tracking room |
+| `request:room:leave` | Client → Server | `{ requestId: string }` | Leave request tracking room |
+
+### Delivery Events (Legacy — Package Delivery Only)
+
+Kept for backward compatibility during migration. New code should use `request:*` events.
+
+| Event | Direction | Payload | Description |
+|---|---|---|---|
+| `delivery:status:changed` | Server → Delivery Room | `{ orderId, status, timestamp }` | Status changed |
+| `delivery:rider:assigned` | Server → Customer | `{ orderId, rider info }` | Rider assigned |
 | `delivery:completed` | Server → Delivery Room | `{ orderId, fare, timestamp }` | Delivery completed |
 | `delivery:cancelled` | Server → Delivery Room | `{ orderId, reason, cancelledBy, timestamp }` | Delivery cancelled |
+| `delivery:room:join` | Client → Server | `{ orderId: string }` | Join legacy delivery room |
+| `delivery:room:leave` | Client → Server | `{ orderId: string }` | Leave legacy delivery room |
 
 ### Wallet Events
 
@@ -79,15 +99,17 @@ On successful connection:
 | Room Name | Who Joins | Purpose |
 |---|---|---|
 | `user:{userId}` | Individual user (auto on connect) | Wallet updates, notifications, personal events |
-| `riders:available` | All online riders (auto on connect if role=RIDER) | Broadcasting new delivery jobs |
-| `delivery:{orderId}` | Customer + assigned rider (manual join) | Delivery tracking, status updates, rider location |
+| `riders:available` | All online riders (auto on connect if role=RIDER) | Broadcasting new job requests |
+| `merchant:{merchantId}` | Merchant dashboard (auto on connect if role=MERCHANT) | New orders, merchant-specific events |
+| `request:{requestId}` | Customer + assigned rider + merchant (manual join) | Request tracking, status updates, rider location |
+| `delivery:{orderId}` | Customer + assigned rider — legacy (manual join) | Legacy package delivery tracking |
 
 ### Room Lifecycle
 
-1. **Connection** → user auto-joins `user:{userId}` and optionally `riders:available`
-2. **Order matched** → both customer and rider emit `delivery:room:join`
-3. **During delivery** → rider's location broadcasts to `delivery:{orderId}` room
-4. **Delivery complete/cancel** → both emit `delivery:room:leave`
+1. **Connection** → user auto-joins `user:{userId}`, riders join `riders:available`, merchants join `merchant:{merchantId}`
+2. **Order matched** → customer, rider, and merchant emit `request:room:join`
+3. **During request** → rider's location broadcasts to `request:{requestId}` room
+4. **Request complete/cancel** → all parties emit `request:room:leave`
 5. **Disconnect** → auto-removed from all rooms
 
 ---
@@ -106,17 +128,17 @@ const socket = io(SERVER_URL, {
 });
 
 socket.on('connect', () => {
-  // Re-join any active delivery rooms
-  if (activeDeliveryId) {
-    socket.emit('delivery:room:join', { orderId: activeDeliveryId });
+  // Re-join any active request rooms
+  if (activeRequestId) {
+    socket.emit('request:room:join', { requestId: activeRequestId });
   }
 });
 ```
 
 ### On Reconnect
 - Personal room (`user:{userId}`) is auto-rejoined via auth
-- Delivery rooms must be explicitly re-joined by the client
-- Rider availability should be re-synced with the server exit
+- Request rooms must be explicitly re-joined by the client
+- Rider availability should be re-synced with the server on connect
 
 ---
 
@@ -126,15 +148,15 @@ socket.on('connect', () => {
 Rider App (every 3s)
     │
     ▼
-rider:location:update { lat, lng, orderId }
+rider:location:update { lat, lng, requestId }
     │
     ▼
 Socket Server
     ├── Write to Redis: rider:location:{riderId} (TTL: 30s)
-    └── Broadcast to delivery:{orderId} room
+    └── Broadcast to request:{requestId} room
               │
               ▼
-        rider:location:broadcast { riderId, lat, lng, timestamp }
+        request:rider:location { riderId, lat, lng, timestamp }
               │
               ▼
         Customer App (updates map marker)

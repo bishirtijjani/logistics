@@ -32,6 +32,12 @@ export default {
         // Component-compat aliases
         brand: '#EA580C',
         dark: '#09090b',
+        // Dark mode surface tokens
+        'dark-background': '#0F0F0F',
+        'dark-surface': '#1A1A1A',
+        'dark-surface-muted': '#2A2A2A',
+        'dark-text': '#F9FAFB',
+        'dark-muted': '#9CA3AF',
       },
     },
   },

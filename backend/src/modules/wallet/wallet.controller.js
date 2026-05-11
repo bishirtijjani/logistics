@@ -6,7 +6,6 @@ const { ApiResponse } = require('../../utils/api-response');
 const getWallet = async (req, res, next) => {
   try {
     const wallet = await walletService.getWallet(req.user.id);
-    // Map virtual account fields to the names the mobile app expects
     res.json(ApiResponse.success('Wallet retrieved', {
       ...wallet,
       accountNumber: wallet.virtualAccountNumber,
@@ -47,6 +46,16 @@ const getBanks = async (req, res, next) => {
   }
 };
 
+const lookupBankAccount = async (req, res, next) => {
+  try {
+    const { bankCode, accountNumber } = req.body;
+    const result = await walletService.lookupBankAccount({ bankCode, accountNumber });
+    res.json(ApiResponse.success('Account resolved', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const initiateFunding = async (req, res, next) => {
   try {
     const { amount } = req.body;
@@ -68,9 +77,51 @@ const getTransferPaymentStatus = async (req, res, next) => {
 
 const getTransactionHistory = async (req, res, next) => {
   try {
-    const { transactions, total, page, limit } =
-      await walletService.getTransactionHistory(req.user.id, req.query);
-    res.json(ApiResponse.paginated('Transaction history', transactions, page, limit, total));
+    const { page = 1, limit = 20, type, startDate, endDate } = req.query;
+    const result = await walletService.getTransactionHistory(req.user.id, {
+      page: Number(page),
+      limit: Number(limit),
+      type,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    });
+    res.json(ApiResponse.paginated('Transaction history', result.transactions, result.page, result.limit, result.total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getBeneficiaries = async (req, res, next) => {
+  try {
+    const beneficiaries = await walletService.getBeneficiaries(req.user.id);
+    res.json(ApiResponse.success('Beneficiaries', beneficiaries));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const addBeneficiary = async (req, res, next) => {
+  try {
+    const beneficiary = await walletService.addBeneficiary(req.user.id, req.body);
+    res.status(201).json(ApiResponse.success('Beneficiary saved', beneficiary));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteBeneficiary = async (req, res, next) => {
+  try {
+    await walletService.deleteBeneficiary(req.user.id, req.params.id);
+    res.json(ApiResponse.success('Beneficiary removed'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getReceipt = async (req, res, next) => {
+  try {
+    const transaction = await walletService.getTransactionReceipt(req.user.id, req.params.id);
+    res.json(ApiResponse.success('Receipt', transaction));
   } catch (error) {
     next(error);
   }
@@ -81,7 +132,12 @@ module.exports = {
   transfer,
   withdraw,
   getBanks,
+  lookupBankAccount,
   initiateFunding,
   getTransferPaymentStatus,
   getTransactionHistory,
+  getBeneficiaries,
+  addBeneficiary,
+  deleteBeneficiary,
+  getReceipt,
 };

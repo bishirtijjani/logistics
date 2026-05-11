@@ -697,7 +697,7 @@ GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 - Wallet infrastructure (extended for merchants)
 - Rider management and location tracking
 - Queue/worker infrastructure
-- External service integrations (Maps, Monnify, etc.)
+- External service integrations (Maps, KatPay, etc.)
 
 ---
 

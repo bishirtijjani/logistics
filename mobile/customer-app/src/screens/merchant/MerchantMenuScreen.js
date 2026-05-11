@@ -17,12 +17,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import theme from '../../theme';
+import theme, { colors } from '../../theme';
 
 const MerchantMenuScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { merchantId, type } = route.params;
+  const { merchantId, categorySlug } = route.params;
 
   const [merchant, setMerchant] = useState(null);
   const [products, setProducts] = useState([]);
@@ -31,14 +31,15 @@ const MerchantMenuScreen = () => {
 
   const fetchMerchantDetails = async () => {
     try {
-      const response = await api.get(`/api/merchants/${merchantId}`);
-      setMerchant(response.data.data);
-      setProducts(response.data.data.products || []);
+      const response = await api.get(`/merchants/${merchantId}`);
+      const data = response?.data || {};
+      setMerchant(data);
+      setProducts(data.products || []);
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: error.response?.data?.message || 'Failed to load menu',
+        text2: error.message || 'Failed to load menu',
       });
     } finally {
       setLoading(false);
@@ -103,14 +104,14 @@ const MerchantMenuScreen = () => {
               style={styles.quantityButton}
               onPress={() => updateQuantity(item.id, -1)}
             >
-              <Ionicons name="remove" size={18} color={theme.colors.text.primary} />
+              <Ionicons name="remove" size={18} color={colors.text} />
             </TouchableOpacity>
             <Text style={styles.quantityText}>{cartItem.quantity}</Text>
             <TouchableOpacity
               style={styles.quantityButton}
               onPress={() => updateQuantity(item.id, 1)}
             >
-              <Ionicons name="add" size={18} color={theme.colors.text.primary} />
+              <Ionicons name="add" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
         ) : (
@@ -118,7 +119,7 @@ const MerchantMenuScreen = () => {
             style={styles.addButton}
             onPress={() => addToCart(item)}
           >
-            <Ionicons name="add" size={18} color={theme.colors.primary} />
+            <Ionicons name="add" size={18} color={colors.primary} />
             <Text style={styles.addButtonText}>Add</Text>
           </TouchableOpacity>
         )}
@@ -132,7 +133,7 @@ const MerchantMenuScreen = () => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="restaurant-outline" size={64} color={theme.colors.text.secondary} />
+      <Ionicons name="restaurant-outline" size={64} color={colors.textMuted} />
       <Text style={styles.emptyTitle}>Menu not available</Text>
       <Text style={styles.emptySubtitle}>This merchant hasn't added any items yet</Text>
     </View>
@@ -141,7 +142,7 @@ const MerchantMenuScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -156,7 +157,7 @@ const MerchantMenuScreen = () => {
         />
         <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.merchantHeader}>
             <Image
@@ -200,7 +201,14 @@ const MerchantMenuScreen = () => {
           </View>
           <TouchableOpacity
             style={styles.checkoutButton}
-            onPress={() => navigation.navigate('Checkout', { cart, merchantId, type })}
+            onPress={() => navigation.navigate('Checkout', {
+              cart,
+              merchantId,
+              categorySlug,
+              pickupLat: merchant?.lat || 0,
+              pickupLng: merchant?.lng || 0,
+              pickupAddress: merchant?.address || 'Merchant Location',
+            })}
           >
             <Text style={styles.checkoutButtonText}>Checkout</Text>
           </TouchableOpacity>
@@ -213,7 +221,7 @@ const MerchantMenuScreen = () => {
 const styles = {
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
@@ -229,11 +237,11 @@ const styles = {
     resizeMode: 'cover',
   },
   headerContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   backButton: {
     padding: 8,
@@ -255,7 +263,7 @@ const styles = {
   merchantName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginBottom: 4,
   },
   metaRow: {
@@ -265,17 +273,17 @@ const styles = {
   rating: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginLeft: 4,
   },
   separator: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     marginHorizontal: 8,
   },
   address: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     flex: 1,
   },
   menuContainer: {
@@ -284,19 +292,19 @@ const styles = {
   menuTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginBottom: 16,
   },
   categoryHeader: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginTop: 24,
     marginBottom: 12,
   },
   productCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -314,23 +322,23 @@ const styles = {
   productName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginBottom: 4,
   },
   productDescription: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     marginBottom: 8,
   },
   productPrice: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: colors.primary + '20',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -338,13 +346,13 @@ const styles = {
   addButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: colors.primary,
     marginLeft: 4,
   },
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: colors.primary + '20',
     borderRadius: 8,
   },
   quantityButton: {
@@ -353,7 +361,7 @@ const styles = {
   quantityText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginHorizontal: 8,
   },
   emptyContainer: {
@@ -363,21 +371,21 @@ const styles = {
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     marginTop: 8,
     textAlign: 'center',
   },
   cartFooter: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -387,22 +395,22 @@ const styles = {
   },
   cartCount: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     marginBottom: 4,
   },
   cartTotal: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text.primary,
+    color: colors.text,
   },
   checkoutButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   checkoutButtonDisabled: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: colors.border,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -415,7 +423,7 @@ const styles = {
   checkoutButtonTextDisabled: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
   },
 };
 

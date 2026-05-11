@@ -19,16 +19,18 @@ const QUEUES = {
 // --- Job types per queue ---
 
 const PAYMENT_JOBS = {
-  /** Process Monnify webhook — legacy */
-  PROCESS_MONNIFY_WEBHOOK: 'process-monnify-webhook',
   /** Process KatPay virtual account payment — credit user wallet */
   PROCESS_KATPAY_WEBHOOK: 'process-katpay-webhook',
   /** Process KatPay transfer_payment.completed — credit user wallet */
   PROCESS_TRANSFER_PAYMENT_WEBHOOK: 'process-transfer-payment-webhook',
   /** Process withdrawal — call KatPay payout API */
   PROCESS_WITHDRAWAL: 'process-withdrawal',
+  /** Provision KatPay virtual account for new user */
+  PROVISION_VIRTUAL_ACCOUNT: 'provision-virtual-account',
   /** Retry a failed transaction */
   RETRY_FAILED_TRANSACTION: 'retry-failed-transaction',
+  /** Nightly: delete expired idempotency-key reservations */
+  CLEANUP_EXPIRED_IDEMPOTENCY: 'cleanup-expired-idempotency',
 };
 
 const NOTIFICATION_JOBS = {
@@ -50,13 +52,10 @@ const DELIVERY_JOBS = {
 };
 
 const UTILITY_JOBS = {
-  /** Process VTPass airtime purchase */
   PROCESS_AIRTIME: 'process-airtime',
-  /** Process VTPass data purchase */
   PROCESS_DATA: 'process-data',
-  /** Process VTPass electricity payment */
+  PROCESS_CABLE: 'process-cable',
   PROCESS_ELECTRICITY: 'process-electricity',
-  /** Refund failed utility payment */
   REFUND_FAILED: 'refund-failed',
 };
 

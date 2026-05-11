@@ -31,18 +31,8 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
 
-  // Monnify — required in production, optional in dev
-  MONNIFY_BASE_URL: isDev ? z.string().default('https://sandbox.monnify.com') : z.string().url(),
-  MONNIFY_API_KEY: isDev ? z.string().default('') : z.string().min(1),
-  MONNIFY_SECRET_KEY: isDev ? z.string().default('') : z.string().min(1),
-  MONNIFY_CONTRACT_CODE: isDev ? z.string().default('') : z.string().min(1),
-  MONNIFY_WALLET_ACCOUNT_NUMBER: isDev ? z.string().default('') : z.string().min(1),
-  MONNIFY_WEBHOOK_SECRET: isDev ? z.string().default('') : z.string().min(1),
-
-  // VTPass — required in production, optional in dev
-  VTPASS_BASE_URL: isDev ? z.string().default('https://sandbox.vtpass.com/api') : z.string().url(),
-  VTPASS_USERNAME: isDev ? z.string().default('') : z.string().min(1),
-  VTPASS_PASSWORD: isDev ? z.string().default('') : z.string().min(1),
+  // AlRahuz Data — Nigerian VTU provider
+  ALRAHUZ_TOKEN: isDev ? z.string().default('') : z.string().min(1),
 
   // Google Maps — required in production, optional in dev
   GOOGLE_MAPS_API_KEY: isDev ? z.string().default('') : z.string().min(1),
@@ -60,6 +50,7 @@ const envSchema = z.object({
   // Termii — required in production, optional in dev
   TERMII_BASE_URL: isDev ? z.string().default('https://api.ng.termii.com') : z.string().url(),
   TERMII_API_KEY: isDev ? z.string().default('') : z.string().min(1),
+  TERMII_SECRET_KEY: isDev ? z.string().default('') : z.string().min(1),
   TERMII_SENDER_ID: isDev ? z.string().default('') : z.string().min(1),
 
   // Email (SMTP)

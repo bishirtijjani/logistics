@@ -1,10 +1,11 @@
 /**
  * Request slice — unified request state management
- * Handles FOOD, GROCERY, PHARMACY, PACKAGE requests
+ * Handles MERCHANT_ORDER (any merchant fulfillment) and PACKAGE (courier) requests.
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { newIdempotencyKey } from '../../services/idempotency';
 
 // ============================================================
 // Async Thunks
@@ -21,8 +22,8 @@ export const fetchRequests = createAsyncThunk(
       params.append('page', page);
       params.append('limit', limit);
 
-      const response = await api.get(`/api/requests?${params.toString()}`);
-      return response.data.data;
+      const response = await api.get(`/requests?${params.toString()}`);
+      return { requests: response.data.data, ...response.data.meta };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch requests');
     }
@@ -34,7 +35,7 @@ export const fetchRequestById = createAsyncThunk(
   'request/fetchRequestById',
   async (requestId, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/api/requests/${requestId}`);
+      const response = await api.get(`/requests/${requestId}`);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch request');
@@ -47,7 +48,9 @@ export const createRequest = createAsyncThunk(
   'request/createRequest',
   async (requestData, { rejectWithValue }) => {
     try {
-      const response = await api.post('/api/requests', requestData);
+      const response = await api.post('/requests', requestData, {
+        headers: { 'Idempotency-Key': newIdempotencyKey() },
+      });
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to create request');
@@ -60,7 +63,7 @@ export const updateRequestStatus = createAsyncThunk(
   'request/updateRequestStatus',
   async ({ requestId, status, reason }, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/api/requests/${requestId}/status`, { status, reason });
+      const response = await api.patch(`/requests/${requestId}/status`, { status, reason });
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to update request status');
@@ -73,7 +76,7 @@ export const cancelRequest = createAsyncThunk(
   'request/cancelRequest',
   async ({ requestId, reason }, { rejectWithValue }) => {
     try {
-      const response = await api.delete(`/api/requests/${requestId}`, { data: { reason } });
+      const response = await api.delete(`/requests/${requestId}`, { data: { reason } });
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to cancel request');
@@ -86,7 +89,7 @@ export const rateRequest = createAsyncThunk(
   'request/rateRequest',
   async ({ requestId, ratingData }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/requests/${requestId}/rate`, ratingData);
+      const response = await api.post(`/requests/${requestId}/rate`, ratingData);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to rate request');

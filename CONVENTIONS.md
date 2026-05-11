@@ -11,7 +11,7 @@
 | Folder | Purpose | Rules |
 |---|---|---|
 | `modules/` | Feature modules (auth, wallet, delivery, utility, rider, admin, webhook) | One folder per domain. Each module has: `*.routes.js`, `*.controller.js`, `*.service.js`, `*.validator.js` |
-| `services/` | External API integrations (Monnify, VTPass, Maps, FCM, Termii) | One file per merchant. No business logic — only API communication |
+| `services/` | External API integrations (KatPay, AlRahuz, Maps, FCM, Termii, Cloudinary) | One file per provider. No business logic — only API communication |
 | `middlewares/` | Express middleware (auth, validation, roles, errors) | Shared across all modules. Never module-specific |
 | `sockets/` | Socket.io events and handlers | Events in `events.js`. One handler file per domain |
 | `queues/` | BullMQ jobs and workers | Job types in `jobs.js`. One worker file per queue |
@@ -174,7 +174,7 @@ const walletSlice = createSlice({
 ## 7. Queue Rules
 
 1. **All job types are defined in `queues/jobs.js`** — no hardcoded strings
-2. **All external API calls go through queues** — never call Monnify/VTPass/FCM synchronously
+2. **All external API calls go through queues** — never call KatPay/AlRahuz/FCM synchronously
 3. **Every job MUST be idempotent** — safe to retry without side effects
 4. **Default retry**: 3 attempts with exponential backoff (2s, 4s, 8s)
 5. **Payment workers are rate-limited** — max 10 jobs/second
@@ -201,7 +201,7 @@ const walletSlice = createSlice({
 2. **Transaction PIN required** for all financial operations (transfers, payments, withdrawals)
 3. **PINs and passwords are bcrypt-hashed** (12 rounds) — never stored in plaintext
 4. **BVN is hashed** — never stored in readable form
-5. **Webhook verification** — Monnify webhooks verified via HMAC-SHA512 signature
+5. **Webhook verification** — KatPay webhooks verified via HMAC signature on the raw body
 6. **Role-based access**: `CUSTOMER`, `RIDER`, `ADMIN` — enforced at route level
 7. **Rate limiting** on auth endpoints (login, OTP, PIN verification)
 8. **Helmet middleware** for HTTP header security

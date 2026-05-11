@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Clipboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -32,6 +33,10 @@ const schema = z.object({
 export default function BvnVerificationScreen({ navigation }) {
   const dispatch = useDispatch();
   const { profile, isUpdating } = useSelector((state) => state.profile);
+  // Server response after a successful KYC: { kycStatus, wallet, virtualAccountReady }.
+  // Stashed locally so we can render the NUBAN immediately without waiting for
+  // a profile refetch round-trip.
+  const [verificationResult, setVerificationResult] = useState(null);
 
   const {
     control,
@@ -52,22 +57,38 @@ export default function BvnVerificationScreen({ navigation }) {
       Toast.show({
         type: "success",
         text1: "BVN Verified",
-        text2: "Your identity has been confirmed.",
+        text2: "Your wallet account is being set up.",
       });
-      navigation.goBack();
+      setVerificationResult(result.payload);
     }
   };
 
-  if (profile?.kycStatus === "VERIFIED") {
+  const copyAccountNumber = async (acct) => {
+    try {
+      Clipboard.setString(acct);
+      Toast.show({ type: "success", text1: "Account number copied" });
+    } catch {
+      // Clipboard is best-effort — not worth interrupting the flow.
+    }
+  };
+
+  // Render the success view either: (a) right after a successful verification
+  // in this session (verificationResult set), or (b) on revisit of an
+  // already-verified account.
+  const isVerified = verificationResult || profile?.kycStatus === "VERIFIED";
+  if (isVerified) {
+    const wallet =
+      verificationResult?.wallet || profile?.wallet || null;
+    const nuban = wallet?.virtualAccountNumber || null;
+    const provisioningPending =
+      verificationResult && !verificationResult.virtualAccountReady && !nuban;
+
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.background }}
         edges={["top"]}
       >
-        <StatusBar
-          barStyle="dark-content"
-          backgroundColor={colors.background}
-        />
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <View style={{ height: 4, backgroundColor: colors.primary }} />
         <View
           style={{
@@ -102,13 +123,10 @@ export default function BvnVerificationScreen({ navigation }) {
             Identity Verification
           </Text>
         </View>
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 40,
-          }}
+
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 48, alignItems: "center" }}
+          showsVerticalScrollIndicator={false}
         >
           <View
             style={{
@@ -132,7 +150,7 @@ export default function BvnVerificationScreen({ navigation }) {
               textAlign: "center",
             }}
           >
-            Already Verified
+            {verificationResult ? "BVN Verified" : "Already Verified"}
           </Text>
           <Text
             style={{
@@ -140,11 +158,101 @@ export default function BvnVerificationScreen({ navigation }) {
               color: colors.textMuted,
               textAlign: "center",
               lineHeight: 20,
+              marginBottom: 28,
             }}
           >
-            Your BVN has been verified. You have full access to all features.
+            {verificationResult
+              ? "Your identity is confirmed. Below is your wallet funding account."
+              : "Your BVN has been verified. You have full access to all features."}
           </Text>
-        </View>
+
+          {nuban ? (
+            <View
+              style={{
+                width: "100%",
+                backgroundColor: colors.surface,
+                borderRadius: 18,
+                padding: 20,
+                borderWidth: 1.5,
+                borderColor: colors.border,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontWeight: "700",
+                  color: colors.textMuted,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  marginBottom: 8,
+                }}
+              >
+                Your wallet account
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+                <Text style={{ flex: 1, fontSize: 24, fontWeight: "900", color: colors.text, letterSpacing: 1 }}>
+                  {nuban}
+                </Text>
+                <TouchableOpacity onPress={() => copyAccountNumber(nuban)} style={{ padding: 8 }}>
+                  <Ionicons name="copy-outline" size={20} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+              <Text style={{ fontSize: 14, color: colors.text, fontWeight: "600", marginBottom: 4 }}>
+                {wallet.virtualAccountBank || "—"}
+              </Text>
+              <Text style={{ fontSize: 13, color: colors.textMuted }}>
+                {wallet.virtualAccountName || "—"}
+              </Text>
+              <Text
+                style={{
+                  marginTop: 16,
+                  fontSize: 12,
+                  color: colors.textMuted,
+                  lineHeight: 18,
+                }}
+              >
+                Transfer to this account from any bank to fund your wallet. Funds reflect within seconds.
+              </Text>
+            </View>
+          ) : provisioningPending ? (
+            <View
+              style={{
+                width: "100%",
+                backgroundColor: "#FEF3C7",
+                borderRadius: 18,
+                padding: 20,
+                borderWidth: 1,
+                borderColor: "#FDE68A",
+                alignItems: "center",
+              }}
+            >
+              <ActivityIndicator color="#B45309" />
+              <Text style={{ marginTop: 12, fontSize: 13, color: "#92400E", fontWeight: "600", textAlign: "center" }}>
+                Setting up your wallet account…
+              </Text>
+              <Text style={{ marginTop: 6, fontSize: 12, color: "#92400E", textAlign: "center", lineHeight: 18 }}>
+                We'll notify you the moment it's ready (usually a few seconds).
+              </Text>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{
+              marginTop: 28,
+              backgroundColor: colors.primary,
+              paddingVertical: 14,
+              paddingHorizontal: 32,
+              borderRadius: 14,
+              alignSelf: "stretch",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+              Done
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </SafeAreaView>
     );
   }

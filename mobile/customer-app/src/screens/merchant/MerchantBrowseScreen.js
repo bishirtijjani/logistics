@@ -17,12 +17,12 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import theme from '../../theme';
+import theme, { colors } from '../../theme';
 
 const MerchantBrowseScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { type, lat, lng } = route.params;
+  const { categorySlug, categoryName, lat, lng } = route.params;
 
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ const MerchantBrowseScreen = () => {
   const fetchMerchants = async () => {
     try {
       const params = new URLSearchParams();
-      params.append('type', type);
+      if (categorySlug) params.append('categorySlug', categorySlug);
       if (lat && lng) {
         params.append('lat', lat);
         params.append('lng', lng);
@@ -39,13 +39,14 @@ const MerchantBrowseScreen = () => {
       }
       params.append('openNow', 'true');
 
-      const response = await api.get(`/api/merchants?${params.toString()}`);
-      setMerchants(response.data.data);
+      const response = await api.get(`/merchants?${params.toString()}`);
+      // api unwraps to envelope JSON; merchants are at .data
+      setMerchants(response?.data || []);
     } catch (error) {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: error.response?.data?.message || 'Failed to load merchants',
+        text2: error.message || 'Failed to load merchants',
       });
     } finally {
       setLoading(false);
@@ -55,26 +56,19 @@ const MerchantBrowseScreen = () => {
 
   useEffect(() => {
     fetchMerchants();
-  }, [type, lat, lng]);
+  }, [categorySlug, lat, lng]);
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchMerchants();
   };
 
-  const getTypeLabel = (type) => {
-    const labels = {
-      FOOD: 'Restaurants',
-      GROCERY: 'Grocery Stores',
-      PHARMACY: 'Pharmacies',
-    };
-    return labels[type] || type;
-  };
+  const headerLabel = categoryName || 'Merchants';
 
   const renderMerchant = ({ item }) => (
     <TouchableOpacity
       style={styles.merchantCard}
-      onPress={() => navigation.navigate('MerchantMenu', { merchantId: item.id, type })}
+      onPress={() => navigation.navigate('MerchantMenu', { merchantId: item.id, categorySlug })}
       activeOpacity={0.7}
     >
       <Image
@@ -109,8 +103,8 @@ const MerchantBrowseScreen = () => {
           {item.address}
         </Text>
         <View style={styles.footerRow}>
-          <Text style={styles.type}>{item.type}</Text>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.text.secondary} />
+          <Text style={styles.type}>{item.category?.name || ''}</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </View>
       </View>
     </TouchableOpacity>
@@ -118,8 +112,8 @@ const MerchantBrowseScreen = () => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="storefront-outline" size={64} color={theme.colors.text.secondary} />
-      <Text style={styles.emptyTitle}>No {getTypeLabel(type).toLowerCase()} found</Text>
+      <Ionicons name="storefront-outline" size={64} color={colors.textMuted} />
+      <Text style={styles.emptyTitle}>No {headerLabel.toLowerCase()} found</Text>
       <Text style={styles.emptySubtitle}>
         Try changing your location or check back later
       </Text>
@@ -129,7 +123,7 @@ const MerchantBrowseScreen = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -138,9 +132,9 @@ const MerchantBrowseScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{getTypeLabel(type)}</Text>
+        <Text style={styles.headerTitle}>{headerLabel}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -151,7 +145,7 @@ const MerchantBrowseScreen = () => {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmpty}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       />
     </View>
@@ -161,16 +155,16 @@ const MerchantBrowseScreen = () => {
 const styles = {
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: colors.border,
   },
   backButton: {
     padding: 8,
@@ -179,7 +173,7 @@ const styles = {
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -194,7 +188,7 @@ const styles = {
     padding: 16,
   },
   merchantCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
@@ -229,7 +223,7 @@ const styles = {
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginBottom: 4,
   },
   ratingRow: {
@@ -239,12 +233,12 @@ const styles = {
   rating: {
     fontSize: 12,
     fontWeight: '500',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginLeft: 4,
   },
   orderCount: {
     fontSize: 12,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     marginLeft: 4,
   },
   openBadge: {
@@ -271,7 +265,7 @@ const styles = {
   },
   address: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     marginBottom: 8,
   },
   footerRow: {
@@ -281,7 +275,7 @@ const styles = {
   },
   type: {
     fontSize: 11,
-    color: theme.colors.primary,
+    color: colors.primary,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -294,12 +288,12 @@ const styles = {
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: colors.text,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.text.secondary,
+    color: colors.textMuted,
     marginTop: 8,
     textAlign: 'center',
   },

@@ -3,12 +3,14 @@ import api from '../../lib/api'
 
 export const fetchAllRequests = createAsyncThunk(
   'requests/fetchAll',
-  async ({ page, limit, status, type, startDate, endDate }) => {
+  async ({ page, limit, status, type, categoryId, categorySlug, startDate, endDate }) => {
     const params = new URLSearchParams({
       page: page || 1,
       limit: limit || 20,
       ...(status && { status }),
       ...(type && { type }),
+      ...(categoryId && { categoryId }),
+      ...(categorySlug && { categorySlug }),
       ...(startDate && { startDate }),
       ...(endDate && { endDate }),
     })

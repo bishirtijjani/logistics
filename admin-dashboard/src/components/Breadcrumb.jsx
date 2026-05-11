@@ -37,17 +37,17 @@ export default function Breadcrumb() {
   }
 
   return (
-    <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
-      <Link to="/dashboard" className="hover:text-primary-600 transition-colors">
+    <nav className="flex items-center space-x-2 text-sm text-muted dark:text-dark-muted mb-6">
+      <Link to="/dashboard" className="hover:text-primary transition-colors">
         Home
       </Link>
       {breadcrumbs.map((crumb, index) => (
         <div key={crumb.path} className="flex items-center space-x-2">
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted dark:text-dark-muted" />
           {index === breadcrumbs.length - 1 ? (
-            <span className="font-medium text-gray-900">{crumb.label}</span>
+            <span className="font-medium text-text dark:text-dark-text">{crumb.label}</span>
           ) : (
-            <Link to={crumb.path} className="hover:text-primary-600 transition-colors">
+            <Link to={crumb.path} className="hover:text-primary transition-colors">
               {crumb.label}
             </Link>
           )}

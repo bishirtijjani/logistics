@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
 import api from "../../services/api";
+import { registerPushToken } from "../../services/notifications";
 
 // Async Thunks
 
@@ -34,6 +35,8 @@ export const login = createAsyncThunk(
       const { user, tokens } = response.data;
       await SecureStore.setItemAsync("accessToken", tokens.accessToken);
       await SecureStore.setItemAsync("refreshToken", tokens.refreshToken);
+      // Register push token non-blocking
+      registerPushToken().catch(() => {});
       return { user, tokens };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -137,6 +140,9 @@ const authSlice = createSlice({
       if (action.payload) {
         state.isAuthenticated = true;
         state.user = action.payload.user;
+        // Refresh the FCM/Expo push token on warm start — Expo can rotate
+        // tokens between sessions, and missing a refresh silently breaks pushes.
+        registerPushToken().catch(() => {});
       }
     });
     builder.addCase(hydrateAuth.rejected, (state) => {

@@ -27,6 +27,8 @@ const {
   updateProfileSchema,
   updateProfilePictureSchema,
   updateNotificationPreferencesSchema,
+  requestPhoneChangeSchema,
+  confirmPhoneChangeSchema,
 } = require("./auth.validator");
 
 const router = Router();
@@ -139,6 +141,25 @@ router.delete(
   "/account",
   authenticate,
   authController.deleteAccount,
+);
+
+// Sessions
+router.get("/sessions", authenticate, authController.listSessions);
+router.delete("/sessions/others", authenticate, authController.revokeOtherSessions);
+router.delete("/sessions/:sessionId", authenticate, authController.revokeSession);
+
+// Phone number change
+router.post(
+  "/phone/request-change",
+  authenticate,
+  validate(requestPhoneChangeSchema),
+  authController.requestPhoneChange,
+);
+router.post(
+  "/phone/confirm-change",
+  authenticate,
+  validate(confirmPhoneChangeSchema),
+  authController.confirmPhoneChange,
 );
 
 module.exports = router;

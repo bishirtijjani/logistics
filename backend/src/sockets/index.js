@@ -17,6 +17,7 @@ const { CONNECTION, getUserRoom, getRiderPoolRoom } = require('./events');
 const { registerTrackingHandlers } = require('./handlers/tracking.handler');
 const { registerDeliveryHandlers } = require('./handlers/delivery.handler');
 const { registerRequestHandlers } = require('./handlers/request.handler');
+const notifyService = require('../services/notify.service');
 
 let io = null;
 
@@ -88,6 +89,7 @@ const initializeSocket = (httpServer) => {
     });
   });
 
+  notifyService.setIO(io);
   logger.info('Socket.io server initialized');
 
   return io;

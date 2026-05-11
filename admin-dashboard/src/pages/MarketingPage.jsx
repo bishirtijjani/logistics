@@ -81,24 +81,24 @@ export default function MarketingPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Marketing Oversight</h1>
-        <button onClick={activeTab === 'campaigns' ? fetchCampaigns : fetchDiscounts} className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">Marketing Oversight</h1>
+        <button onClick={activeTab === 'campaigns' ? fetchCampaigns : fetchDiscounts} className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg w-full sm:w-auto flex items-center justify-center">
           <RefreshCw className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 sm:gap-4 border-b overflow-x-auto">
         <button
           onClick={() => setActiveTab('campaigns')}
-          className={`px-4 py-2 border-b-2 ${activeTab === 'campaigns' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'campaigns' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
         >
           <Megaphone className="w-4 h-4 inline mr-2" />
           Campaigns
         </button>
         <button
           onClick={() => setActiveTab('discounts')}
-          className={`px-4 py-2 border-b-2 ${activeTab === 'discounts' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'discounts' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
         >
           <Tag className="w-4 h-4 inline mr-2" />
           Discount Codes
@@ -106,13 +106,13 @@ export default function MarketingPage() {
       </div>
 
       {activeTab === 'campaigns' ? (
-        <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted">
+        <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-surface-muted dark:bg-dark-surface-muted">
                 <tr>
                   <th className="px-4 py-3 text-left">Name</th>
@@ -141,24 +141,24 @@ export default function MarketingPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto">
             {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map(status => (
               <button
                 key={status}
                 onClick={() => setDiscountFilter(status)}
-                className={`px-3 py-1 rounded text-sm ${discountFilter === status ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'}`}
+                className={`px-3 py-1 rounded text-sm whitespace-nowrap ${discountFilter === status ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'}`}
               >
                 {status}
               </button>
             ))}
           </div>
-          <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted">
+          <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-surface-muted dark:bg-dark-surface-muted">
                   <tr>
                     <th className="px-4 py-3 text-left">Code</th>

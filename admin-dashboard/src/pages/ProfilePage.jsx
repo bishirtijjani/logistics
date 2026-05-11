@@ -53,7 +53,7 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Profile Settings</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text mb-6">Profile Settings</h1>
 
       {message.text && (
         <div className={`mb-6 p-4 rounded-lg ${
@@ -63,9 +63,9 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
         {/* Profile Information */}
-        <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+        <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6 flex items-center gap-2">
             <User size={20} />
             Profile Information
@@ -115,7 +115,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Change Password */}
-        <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+        <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6 flex items-center gap-2">
             <Lock size={20} />
             Change Password

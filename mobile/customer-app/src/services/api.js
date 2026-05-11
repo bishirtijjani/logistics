@@ -1,5 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 
 // Load base URL from environment variables, fallback for local dev
@@ -19,38 +21,63 @@ const api = axios.create({
   },
 });
 
-// Request interceptor: add auth token
+// Cache device-identification headers — these never change at runtime, so
+// computing them once and reusing avoids touching the native bridge per request.
+const DEVICE_HEADERS = {
+  'x-device-name': Device.deviceName || `${Platform.OS}-device`,
+  'x-device-model': Device.modelName || Device.modelId || 'unknown',
+  'x-device-platform': Platform.OS,
+  'x-device-os-version': String(Platform.Version || ''),
+};
+
+// Request interceptor: add auth token + device fingerprint headers.
+// The backend reads x-device-name / x-device-model on login & refresh to
+// populate the Sessions screen with a meaningful row per device.
 api.interceptors.request.use(
   async (config) => {
     const token = await SecureStore.getItemAsync('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    Object.assign(config.headers, DEVICE_HEADERS);
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor: basic error unwrapping
+// Response interceptor: unwrap success, normalize errors.
+// Errors thrown carry `.status` and `.data` so callers (e.g. PinBottomSheet)
+// can detect 423/429 lockouts and read provider-supplied retry hints.
+// Server convention for PIN lockout: 423 with body { message, lockedUntil? }
+// or `Retry-After` header in seconds.
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    let message = 'Network Error. Please check your connection.';
-    if (error.response?.data?.message) {
-      message = error.response.data.message;
-    } else if (error.message) {
-      message = error.message;
+    const status = error.response?.status ?? null;
+    const data = error.response?.data ?? null;
+    const message =
+      data?.message || error.message || 'Network Error. Please check your connection.';
+
+    // Suppress the global toast for 423/429 — callers render contextual UI.
+    if (status !== 423 && status !== 429) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: message,
+        position: 'top',
+      });
     }
 
-    // Globally trigger the toast!
-    Toast.show({
-      type: 'error',
-      text1: 'Error',
-      text2: message,
-      position: 'top',
-    });
-
-    return Promise.reject(new Error(message));
+    const err = new Error(message);
+    err.status = status;
+    err.data = data;
+    // Best-effort retry-after extraction (seconds).
+    const retryAfter = error.response?.headers?.['retry-after'];
+    if (retryAfter) {
+      const secs = parseInt(retryAfter, 10);
+      if (!Number.isNaN(secs)) err.retryAfterSeconds = secs;
+    }
+    return Promise.reject(err);
   }
 );
 

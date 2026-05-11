@@ -3,9 +3,11 @@
  */
 
 const { prisma } = require('../../config/database');
+const { Prisma } = require('@prisma/client');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
+const emailService = require('../../services/email.service');
 
 /**
  * Create an audit log entry.
@@ -170,7 +172,7 @@ const getDashboardStats = async () => {
   ] = await Promise.all([
     prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
     prisma.rider.count({ where: { status: 'APPROVED' } }),
-    prisma.merchant.count({ where: { status: 'ACTIVE' } }),
+    prisma.merchant.count({ where: { status: 'APPROVED' } }),
     prisma.request.count(),
     prisma.request.count({
       where: { status: { in: ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'RIDER_ASSIGNED', 'RIDER_EN_ROUTE', 'PICKED_UP', 'IN_TRANSIT'] } },
@@ -198,10 +200,12 @@ const getDashboardStats = async () => {
 /**
  * List all requests with advanced filtering.
  */
-const getAllRequests = async ({ page = 1, limit = 20, type, status, startDate, endDate }) => {
+const getAllRequests = async ({ page = 1, limit = 20, type, status, categoryId, categorySlug, startDate, endDate }) => {
   const where = {
     ...(type && { type }),
     ...(status && { status }),
+    ...(categoryId && { merchant: { is: { categoryId } } }),
+    ...(categorySlug && { merchant: { is: { category: { is: { slug: categorySlug } } } } }),
     ...(startDate && { createdAt: { gte: new Date(startDate) } }),
     ...(endDate && { createdAt: { lte: new Date(endDate) } }),
   };
@@ -214,7 +218,7 @@ const getAllRequests = async ({ page = 1, limit = 20, type, status, startDate, e
       take: limit,
       include: {
         customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        merchant: { select: { id: true, name: true, type: true } },
+        merchant: { select: { id: true, name: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } } },
         rider: { select: { id: true, user: { select: { firstName: true, lastName: true, phone: true } } } },
         items: true,
       },
@@ -316,9 +320,10 @@ const adminUpdateRequestStatus = async (requestId, status, reason) => {
 /**
  * List all merchants with filtering.
  */
-const getAllMerchants = async ({ page = 1, limit = 20, type, status }) => {
+const getAllMerchants = async ({ page = 1, limit = 20, categoryId, categorySlug, status }) => {
   const where = {
-    ...(type && { type }),
+    ...(categoryId && { categoryId }),
+    ...(categorySlug && { category: { is: { slug: categorySlug } } }),
     ...(status && { status }),
   };
 
@@ -329,10 +334,18 @@ const getAllMerchants = async ({ page = 1, limit = 20, type, status }) => {
       skip: (page - 1) * limit,
       take: limit,
       include: {
+        category: { select: { id: true, name: true, slug: true, color: true, icon: true } },
         wallet: {
           select: {
             availableBalance: true,
             pendingBalance: true,
+            totalEarnings: true,
+            isLocked: true,
+            withdrawalHeld: true,
+            withdrawalHoldReason: true,
+            accountNumber: true,
+            bankCode: true,
+            accountName: true,
           },
         },
         user: {
@@ -352,21 +365,51 @@ const getAllMerchants = async ({ page = 1, limit = 20, type, status }) => {
 };
 
 /**
+ * Get single merchant by ID with full detail.
+ */
+const getMerchantById = async (merchantId) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: {
+      user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+      wallet: true,
+      tags: { include: { tag: true } },
+      commissionHistory: {
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      },
+    },
+  });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  return merchant;
+};
+
+/**
  * Approve a pending merchant.
  */
-const approveMerchant = async (merchantId) => {
-  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+const approveMerchant = async (merchantId, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: { user: { select: { email: true, firstName: true } } },
+  });
   if (!merchant) throw AppError.notFound('Merchant not found');
-  if (merchant.status !== 'PENDING') throw AppError.badRequest('Merchant is not pending');
+  if (merchant.status !== 'PENDING_APPROVAL') throw AppError.badRequest('Merchant is not pending approval');
 
   const updated = await prisma.merchant.update({
     where: { id: merchantId },
-    data: { status: 'ACTIVE' },
+    data: { status: 'APPROVED' },
   });
+
+  await createAuditLog(adminUserId, 'APPROVE_MERCHANT', 'MERCHANT', merchantId, { merchantName: merchant.name }, ipAddress, userAgent);
 
   logger.info('Merchant approved', { merchantId });
 
-  // TODO: Send notification to merchant
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail) {
+    emailService.sendMerchantApprovedEmail(recipientEmail, merchant.name).catch((err) =>
+      logger.error('Failed to send merchant approved email', { merchantId, err: err.message })
+    );
+  }
 
   return updated;
 };
@@ -374,19 +417,29 @@ const approveMerchant = async (merchantId) => {
 /**
  * Reject a pending merchant.
  */
-const rejectMerchant = async (merchantId, reason) => {
-  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+const rejectMerchant = async (merchantId, reason, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: { user: { select: { email: true } } },
+  });
   if (!merchant) throw AppError.notFound('Merchant not found');
-  if (merchant.status !== 'PENDING') throw AppError.badRequest('Merchant is not pending');
+  if (merchant.status !== 'PENDING_APPROVAL') throw AppError.badRequest('Merchant is not pending approval');
 
   const updated = await prisma.merchant.update({
     where: { id: merchantId },
-    data: { status: 'REJECTED' },
+    data: { status: 'REJECTED', rejectionReason: reason },
   });
+
+  await createAuditLog(adminUserId, 'REJECT_MERCHANT', 'MERCHANT', merchantId, { merchantName: merchant.name, reason }, ipAddress, userAgent);
 
   logger.info('Merchant rejected', { merchantId, reason });
 
-  // TODO: Send notification to merchant
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail) {
+    emailService.sendMerchantRejectedEmail(recipientEmail, merchant.name, reason).catch((err) =>
+      logger.error('Failed to send merchant rejected email', { merchantId, err: err.message })
+    );
+  }
 
   return updated;
 };
@@ -394,25 +447,35 @@ const rejectMerchant = async (merchantId, reason) => {
 /**
  * Suspend a merchant.
  */
-const suspendMerchant = async (merchantId, reason) => {
-  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+const suspendMerchant = async (merchantId, reason, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: { user: { select: { email: true } } },
+  });
   if (!merchant) throw AppError.notFound('Merchant not found');
   if (merchant.status === 'SUSPENDED') throw AppError.badRequest('Merchant is already suspended');
 
-  const updated = await prisma.merchant.update({
-    where: { id: merchantId },
-    data: { status: 'SUSPENDED' },
-  });
+  const [updated] = await prisma.$transaction([
+    prisma.merchant.update({
+      where: { id: merchantId },
+      data: { status: 'SUSPENDED', suspensionReason: reason },
+    }),
+    prisma.merchantWallet.updateMany({
+      where: { merchantId },
+      data: { isLocked: true },
+    }),
+  ]);
 
-  // Lock merchant wallet
-  await prisma.merchantWallet.update({
-    where: { merchantId },
-    data: { isLocked: true },
-  });
+  await createAuditLog(adminUserId, 'SUSPEND_MERCHANT', 'MERCHANT', merchantId, { merchantName: merchant.name, reason }, ipAddress, userAgent);
 
   logger.info('Merchant suspended', { merchantId, reason });
 
-  // TODO: Send notification to merchant
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail) {
+    emailService.sendMerchantSuspendedEmail(recipientEmail, merchant.name, reason).catch((err) =>
+      logger.error('Failed to send merchant suspended email', { merchantId, err: err.message })
+    );
+  }
 
   return updated;
 };
@@ -420,44 +483,584 @@ const suspendMerchant = async (merchantId, reason) => {
 /**
  * Unsuspend a merchant.
  */
-const unsuspendMerchant = async (merchantId) => {
-  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+const unsuspendMerchant = async (merchantId, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: { user: { select: { email: true } } },
+  });
   if (!merchant) throw AppError.notFound('Merchant not found');
   if (merchant.status !== 'SUSPENDED') throw AppError.badRequest('Merchant is not suspended');
 
-  const updated = await prisma.merchant.update({
-    where: { id: merchantId },
-    data: { status: 'ACTIVE' },
-  });
+  const [updated] = await prisma.$transaction([
+    prisma.merchant.update({
+      where: { id: merchantId },
+      data: { status: 'APPROVED', suspensionReason: null },
+    }),
+    prisma.merchantWallet.updateMany({
+      where: { merchantId },
+      data: { isLocked: false },
+    }),
+  ]);
 
-  // Unlock merchant wallet
-  await prisma.merchantWallet.update({
-    where: { merchantId },
-    data: { isLocked: false },
-  });
+  await createAuditLog(adminUserId, 'UNSUSPEND_MERCHANT', 'MERCHANT', merchantId, { merchantName: merchant.name }, ipAddress, userAgent);
 
   logger.info('Merchant unsuspended', { merchantId });
 
-  // TODO: Send notification to merchant
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail) {
+    emailService.sendMerchantUnsuspendedEmail(recipientEmail, merchant.name).catch((err) =>
+      logger.error('Failed to send merchant unsuspended email', { merchantId, err: err.message })
+    );
+  }
 
   return updated;
 };
 
 /**
- * Update merchant commission rate.
+ * Update merchant commission rate with audit trail + email notification.
  */
-const updateMerchantCommission = async (merchantId, commissionRate) => {
+const updateMerchantCommission = async (merchantId, commissionRate, reason, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: { user: { select: { email: true } } },
+  });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+
+  const previousRate = merchant.commissionRate;
+
+  const [updated] = await prisma.$transaction([
+    prisma.merchant.update({
+      where: { id: merchantId },
+      data: { commissionRate },
+    }),
+    prisma.commissionHistory.create({
+      data: {
+        merchantId,
+        previousRate,
+        newRate: commissionRate,
+        changedBy: adminUserId || 'SYSTEM',
+        reason: reason || null,
+      },
+    }),
+  ]);
+
+  await createAuditLog(adminUserId, 'UPDATE_COMMISSION', 'MERCHANT', merchantId, { merchantName: merchant.name, previousRate, newRate: commissionRate, reason }, ipAddress, userAgent);
+
+  logger.info('Merchant commission updated', { merchantId, previousRate, commissionRate });
+
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail && previousRate !== commissionRate) {
+    emailService.sendCommissionChangedEmail(recipientEmail, merchant.name, previousRate, commissionRate).catch((err) =>
+      logger.error('Failed to send commission changed email', { merchantId, err: err.message })
+    );
+  }
+
+  return updated;
+};
+
+/**
+ * Update merchant core profile (admin override).
+ */
+const updateMerchantProfile = async (merchantId, data, adminUserId, ipAddress, userAgent) => {
   const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
   if (!merchant) throw AppError.notFound('Merchant not found');
 
+  const allowedFields = [
+    'name', 'description', 'phone', 'email', 'address', 'lat', 'lng',
+    'openingTime', 'closingTime', 'logoUrl', 'coverImageUrl', 'adminActiveOverride',
+  ];
+  const updateData = {};
+  for (const key of allowedFields) {
+    if (data[key] !== undefined) updateData[key] = data[key];
+  }
+
   const updated = await prisma.merchant.update({
     where: { id: merchantId },
-    data: { commissionRate },
+    data: updateData,
+    include: {
+      wallet: true,
+      user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+      tags: { include: { tag: true } },
+    },
   });
 
-  logger.info('Merchant commission updated', { merchantId, commissionRate });
+  await createAuditLog(adminUserId, 'UPDATE_MERCHANT_PROFILE', 'MERCHANT', merchantId, { fields: Object.keys(updateData) }, ipAddress, userAgent);
+
+  logger.info('Merchant profile updated by admin', { merchantId, fields: Object.keys(updateData) });
 
   return updated;
+};
+
+/**
+ * Get commission history for a merchant.
+ */
+const getMerchantCommissionHistory = async (merchantId, { page = 1, limit = 20 }) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+
+  const [history, total] = await Promise.all([
+    prisma.commissionHistory.findMany({
+      where: { merchantId },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.commissionHistory.count({ where: { merchantId } }),
+  ]);
+
+  return { history, total, page, limit };
+};
+
+/**
+ * Set or release withdrawal hold on a merchant (freeze payouts without suspension).
+ */
+const setWithdrawalHold = async (merchantId, held, holdReason, adminUserId, ipAddress, userAgent) => {
+  const wallet = await prisma.merchantWallet.findUnique({ where: { merchantId } });
+  if (!wallet) throw AppError.notFound('Merchant wallet not found');
+
+  const updated = await prisma.merchantWallet.update({
+    where: { merchantId },
+    data: {
+      withdrawalHeld: held,
+      withdrawalHoldReason: held ? (holdReason || null) : null,
+    },
+  });
+
+  const action = held ? 'HOLD_MERCHANT_WITHDRAWALS' : 'RELEASE_MERCHANT_WITHDRAWALS';
+  await createAuditLog(adminUserId, action, 'MERCHANT', merchantId, { held, holdReason }, ipAddress, userAgent);
+
+  logger.info(`Merchant withdrawal hold ${held ? 'set' : 'released'}`, { merchantId });
+
+  return updated;
+};
+
+/**
+ * Bulk approve multiple pending withdrawals.
+ */
+const bulkApproveWithdrawals = async (withdrawalIds, adminUserId, ipAddress, userAgent) => {
+  const results = { approved: [], failed: [] };
+
+  for (const withdrawalId of withdrawalIds) {
+    try {
+      const result = await approveWithdrawal(withdrawalId, adminUserId, ipAddress, userAgent);
+      results.approved.push(withdrawalId);
+    } catch (err) {
+      results.failed.push({ id: withdrawalId, error: err.message });
+      logger.error('Bulk approval failed for withdrawal', { withdrawalId, error: err.message });
+    }
+  }
+
+  return results;
+};
+
+/**
+ * Get per-merchant analytics.
+ */
+const getMerchantAnalytics = async (merchantId, { startDate, endDate, period = 'daily' }) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    include: { category: { select: { id: true, name: true, slug: true, color: true, icon: true } } },
+  });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+
+  const dateFilter = {
+    ...(startDate && { gte: new Date(startDate) }),
+    ...(endDate && { lte: new Date(endDate) }),
+  };
+  const requestWhere = {
+    merchantId,
+    ...(Object.keys(dateFilter).length && { createdAt: dateFilter }),
+  };
+
+  const [
+    totalOrders,
+    completedOrders,
+    cancelledOrders,
+    revenueStats,
+    ratingStats,
+    commissionEarned,
+    recentOrders,
+  ] = await Promise.all([
+    prisma.request.count({ where: requestWhere }),
+    prisma.request.count({ where: { ...requestWhere, status: 'DELIVERED' } }),
+    prisma.request.count({ where: { ...requestWhere, status: 'CANCELLED' } }),
+    prisma.request.aggregate({
+      where: { ...requestWhere, status: { in: ['DELIVERED', 'SETTLED'] } },
+      _sum: { subtotal: true, merchantEarning: true, platformEarning: true },
+      _avg: { subtotal: true },
+      _count: true,
+    }),
+    prisma.rating.aggregate({
+      where: {
+        request: { merchantId },
+        merchantScore: { not: null },
+      },
+      _avg: { merchantScore: true },
+      _count: { merchantScore: true },
+    }),
+    prisma.request.aggregate({
+      where: { ...requestWhere, status: { in: ['DELIVERED', 'SETTLED'] } },
+      _sum: { platformEarning: true },
+    }),
+    prisma.request.findMany({
+      where: requestWhere,
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true, status: true, subtotal: true, total: true, createdAt: true,
+        customer: { select: { firstName: true, lastName: true } },
+      },
+    }),
+  ]);
+
+  // Revenue trend (daily or weekly grouped)
+  const startFilter = startDate ? Prisma.sql`AND "createdAt" >= ${new Date(startDate)}` : Prisma.empty;
+  const endFilter = endDate ? Prisma.sql`AND "createdAt" <= ${new Date(endDate)}` : Prisma.empty;
+
+  const trends = period === 'weekly'
+    ? await prisma.$queryRaw`
+        SELECT
+          DATE_TRUNC('week', "createdAt") as period,
+          COUNT(*) as orders,
+          COALESCE(SUM("subtotal"), 0) as revenue,
+          COALESCE(SUM("platformEarning"), 0) as commission
+        FROM requests
+        WHERE "merchantId" = ${merchantId}
+          AND status IN ('DELIVERED', 'SETTLED')
+          ${startFilter}
+          ${endFilter}
+        GROUP BY DATE_TRUNC('week', "createdAt")
+        ORDER BY period DESC
+        LIMIT 12`
+    : await prisma.$queryRaw`
+        SELECT
+          DATE("createdAt") as period,
+          COUNT(*) as orders,
+          COALESCE(SUM("subtotal"), 0) as revenue,
+          COALESCE(SUM("platformEarning"), 0) as commission
+        FROM requests
+        WHERE "merchantId" = ${merchantId}
+          AND status IN ('DELIVERED', 'SETTLED')
+          ${startFilter}
+          ${endFilter}
+        GROUP BY DATE("createdAt")
+        ORDER BY period DESC
+        LIMIT 30`;
+
+  const acceptanceRate = totalOrders > 0 ? ((completedOrders / totalOrders) * 100).toFixed(1) : 0;
+  const cancellationRate = totalOrders > 0 ? ((cancelledOrders / totalOrders) * 100).toFixed(1) : 0;
+
+  return {
+    merchant: { id: merchant.id, name: merchant.name, category: merchant.category, status: merchant.status, commissionRate: merchant.commissionRate, averageRating: merchant.averageRating },
+    summary: {
+      totalOrders,
+      completedOrders,
+      cancelledOrders,
+      acceptanceRate: parseFloat(acceptanceRate),
+      cancellationRate: parseFloat(cancellationRate),
+      totalRevenue: revenueStats._sum.subtotal || 0,
+      merchantEarnings: revenueStats._sum.merchantEarning || 0,
+      platformCommission: commissionEarned._sum.platformEarning || 0,
+      averageOrderValue: revenueStats._avg.subtotal || 0,
+      averageRating: ratingStats._avg.merchantScore || merchant.averageRating,
+      totalRatings: ratingStats._count.merchantScore || 0,
+    },
+    trends,
+    recentOrders,
+  };
+};
+
+// ============================================================
+// Tag Management
+// ============================================================
+
+/**
+ * List all tags.
+ */
+const getAllTags = async ({ page = 1, limit = 50, category, isActive }) => {
+  const where = {
+    ...(category && { category }),
+    ...(isActive !== undefined && { isActive: isActive === 'true' || isActive === true }),
+  };
+
+  const [tags, total] = await Promise.all([
+    prisma.tag.findMany({
+      where,
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        _count: { select: { merchants: true } },
+      },
+    }),
+    prisma.tag.count({ where }),
+  ]);
+
+  return { tags, total, page, limit };
+};
+
+/**
+ * Create a new global tag.
+ */
+const createTag = async ({ name, category, color, icon }, adminUserId, ipAddress, userAgent) => {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  const existing = await prisma.tag.findUnique({ where: { slug } });
+  if (existing) throw AppError.conflict(`Tag with slug "${slug}" already exists`);
+
+  const tag = await prisma.tag.create({
+    data: { name, slug, category: category || null, color: color || null, icon: icon || null },
+  });
+
+  await createAuditLog(adminUserId, 'CREATE_TAG', 'TAG', tag.id, { name, category }, ipAddress, userAgent);
+
+  return tag;
+};
+
+/**
+ * Update a tag.
+ */
+const updateTag = async (tagId, data, adminUserId, ipAddress, userAgent) => {
+  const tag = await prisma.tag.findUnique({ where: { id: tagId } });
+  if (!tag) throw AppError.notFound('Tag not found');
+
+  const updated = await prisma.tag.update({
+    where: { id: tagId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.category !== undefined && { category: data.category }),
+      ...(data.color !== undefined && { color: data.color }),
+      ...(data.icon !== undefined && { icon: data.icon }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+    },
+  });
+
+  await createAuditLog(adminUserId, 'UPDATE_TAG', 'TAG', tagId, data, ipAddress, userAgent);
+
+  return updated;
+};
+
+/**
+ * Delete a tag.
+ */
+const deleteTag = async (tagId, adminUserId, ipAddress, userAgent) => {
+  const tag = await prisma.tag.findUnique({ where: { id: tagId } });
+  if (!tag) throw AppError.notFound('Tag not found');
+
+  await prisma.tag.delete({ where: { id: tagId } });
+
+  await createAuditLog(adminUserId, 'DELETE_TAG', 'TAG', tagId, { name: tag.name }, ipAddress, userAgent);
+};
+
+/**
+ * Assign/replace tags on a merchant.
+ */
+const setMerchantTags = async (merchantId, tagIds, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+
+  // Validate all tagIds exist
+  const tags = await prisma.tag.findMany({ where: { id: { in: tagIds } } });
+  if (tags.length !== tagIds.length) throw AppError.badRequest('One or more tag IDs are invalid');
+
+  await prisma.$transaction([
+    prisma.merchantTag.deleteMany({ where: { merchantId } }),
+    ...tagIds.map((tagId) =>
+      prisma.merchantTag.create({ data: { merchantId, tagId } })
+    ),
+  ]);
+
+  await createAuditLog(adminUserId, 'SET_MERCHANT_TAGS', 'MERCHANT', merchantId, { tagIds }, ipAddress, userAgent);
+
+  return prisma.merchantTag.findMany({
+    where: { merchantId },
+    include: { tag: true },
+  });
+};
+
+// ============================================================
+// Merchant Category Management
+// ============================================================
+
+const categoryService = require('../category/category.service');
+
+const slugify = (s) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/**
+ * List all categories (admin view — includes inactive + merchant counts).
+ */
+const getAllCategories = async ({ page = 1, limit = 50, isActive } = {}) => {
+  const where = {
+    ...(isActive !== undefined && { isActive: isActive === 'true' || isActive === true }),
+  };
+
+  const [categories, total] = await Promise.all([
+    prisma.merchantCategory.findMany({
+      where,
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        _count: { select: { merchants: true } },
+      },
+    }),
+    prisma.merchantCategory.count({ where }),
+  ]);
+
+  return { categories, total, page, limit };
+};
+
+/**
+ * Create a merchant category.
+ */
+const createCategory = async (
+  { name, slug, description, icon, color, sortOrder, hasPreparation },
+  adminUserId,
+  ipAddress,
+  userAgent,
+) => {
+  const finalSlug = (slug && slugify(slug)) || slugify(name);
+  if (!finalSlug) throw AppError.badRequest('Category name produces an empty slug');
+
+  const existing = await prisma.merchantCategory.findFirst({
+    where: { OR: [{ slug: finalSlug }, { name }] },
+  });
+  if (existing) {
+    throw AppError.conflict(
+      existing.slug === finalSlug
+        ? `Category with slug "${finalSlug}" already exists`
+        : `Category with name "${name}" already exists`,
+    );
+  }
+
+  const category = await prisma.merchantCategory.create({
+    data: {
+      name,
+      slug: finalSlug,
+      description: description || null,
+      icon: icon || null,
+      color: color || null,
+      sortOrder: sortOrder ?? 0,
+      hasPreparation: hasPreparation ?? true,
+    },
+  });
+
+  await createAuditLog(
+    adminUserId,
+    'CREATE_CATEGORY',
+    'MERCHANT_CATEGORY',
+    category.id,
+    { name, slug: finalSlug },
+    ipAddress,
+    userAgent,
+  );
+
+  categoryService.invalidateCache();
+  return category;
+};
+
+/**
+ * Update a merchant category.
+ */
+const updateCategory = async (categoryId, data, adminUserId, ipAddress, userAgent) => {
+  const category = await prisma.merchantCategory.findUnique({ where: { id: categoryId } });
+  if (!category) throw AppError.notFound('Category not found');
+
+  // Slug uniqueness check if it's changing
+  if (data.slug && data.slug !== category.slug) {
+    const slug = slugify(data.slug);
+    const clash = await prisma.merchantCategory.findFirst({
+      where: { slug, NOT: { id: categoryId } },
+    });
+    if (clash) throw AppError.conflict(`Category with slug "${slug}" already exists`);
+    data.slug = slug;
+  }
+
+  // Name uniqueness check if it's changing
+  if (data.name && data.name !== category.name) {
+    const clash = await prisma.merchantCategory.findFirst({
+      where: { name: data.name, NOT: { id: categoryId } },
+    });
+    if (clash) throw AppError.conflict(`Category with name "${data.name}" already exists`);
+  }
+
+  const updated = await prisma.merchantCategory.update({
+    where: { id: categoryId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.slug !== undefined && { slug: data.slug }),
+      ...(data.description !== undefined && { description: data.description }),
+      ...(data.icon !== undefined && { icon: data.icon }),
+      ...(data.color !== undefined && { color: data.color }),
+      ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+      ...(data.hasPreparation !== undefined && { hasPreparation: data.hasPreparation }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+    },
+  });
+
+  await createAuditLog(
+    adminUserId,
+    'UPDATE_CATEGORY',
+    'MERCHANT_CATEGORY',
+    categoryId,
+    data,
+    ipAddress,
+    userAgent,
+  );
+
+  categoryService.invalidateCache();
+  return updated;
+};
+
+/**
+ * Delete a merchant category.
+ *
+ * - Soft-delete (isActive=false) when merchants are still attached.
+ * - Hard-delete only when zero merchants reference it.
+ * - Never breaks the FK; this protects historical request data that joins through merchant.category.
+ */
+const deleteCategory = async (categoryId, adminUserId, ipAddress, userAgent) => {
+  const category = await prisma.merchantCategory.findUnique({
+    where: { id: categoryId },
+    include: { _count: { select: { merchants: true } } },
+  });
+  if (!category) throw AppError.notFound('Category not found');
+
+  if (category._count.merchants > 0) {
+    const updated = await prisma.merchantCategory.update({
+      where: { id: categoryId },
+      data: { isActive: false },
+    });
+
+    await createAuditLog(
+      adminUserId,
+      'DEACTIVATE_CATEGORY',
+      'MERCHANT_CATEGORY',
+      categoryId,
+      { name: category.name, merchantCount: category._count.merchants },
+      ipAddress,
+      userAgent,
+    );
+
+    categoryService.invalidateCache();
+    return { soft: true, category: updated };
+  }
+
+  await prisma.merchantCategory.delete({ where: { id: categoryId } });
+
+  await createAuditLog(
+    adminUserId,
+    'DELETE_CATEGORY',
+    'MERCHANT_CATEGORY',
+    categoryId,
+    { name: category.name },
+    ipAddress,
+    userAgent,
+  );
+
+  categoryService.invalidateCache();
+  return { soft: false };
 };
 
 // ============================================================
@@ -667,19 +1270,23 @@ const getRevenueAnalytics = async ({ startDate, endDate, groupBy = 'day' }) => {
       orderBy: { _sum: { amount: 'desc' } },
       take: 10,
     }),
-    prisma.$queryRaw`
-      SELECT 
-        DATE(createdAt) as date,
-        SUM(amount) as revenue,
-        COUNT(*) as transactions
-      FROM "Transaction"
-      WHERE status = 'COMPLETED'
-        ${startDate ? prisma.$queryRaw`AND createdAt >= ${new Date(startDate)}` : prisma.$queryRaw``}
-        ${endDate ? prisma.$queryRaw`AND createdAt <= ${new Date(endDate)}` : prisma.$queryRaw``}
-      GROUP BY DATE(createdAt)
-      ORDER BY date DESC
-      LIMIT 30
-    `,
+    (() => {
+      const sFilter = startDate ? Prisma.sql`AND "createdAt" >= ${new Date(startDate)}` : Prisma.empty;
+      const eFilter = endDate ? Prisma.sql`AND "createdAt" <= ${new Date(endDate)}` : Prisma.empty;
+      return prisma.$queryRaw`
+        SELECT
+          DATE("createdAt") as date,
+          SUM(amount) as revenue,
+          COUNT(*) as transactions
+        FROM "Transaction"
+        WHERE status = 'COMPLETED'
+          ${sFilter}
+          ${eFilter}
+        GROUP BY DATE("createdAt")
+        ORDER BY date DESC
+        LIMIT 30
+      `;
+    })(),
   ]);
 
   return {
@@ -786,34 +1393,42 @@ const getGeographicAnalytics = async ({ startDate, endDate }) => {
   };
 
   const [ordersByLocation, merchantDistribution] = await Promise.all([
-    prisma.$queryRaw`
-      SELECT 
-        ROUND(dropoff_lat::numeric, 2) as lat,
-        ROUND(dropoff_lng::numeric, 2) as lng,
-        COUNT(*) as orderCount
-      FROM "Request"
-      WHERE dropoff_lat IS NOT NULL AND dropoff_lng IS NOT NULL
-        ${startDate ? prisma.$queryRaw`AND created_at >= ${new Date(startDate)}` : prisma.$queryRaw``}
-        ${endDate ? prisma.$queryRaw`AND created_at <= ${new Date(endDate)}` : prisma.$queryRaw``}
-      GROUP BY ROUND(dropoff_lat::numeric, 2), ROUND(dropoff_lng::numeric, 2)
-      ORDER BY orderCount DESC
-      LIMIT 20
-    `,
-    prisma.$queryRaw`
-      SELECT 
-        m.type,
-        m.name,
-        COUNT(r.id) as orderCount,
-        SUM(t.amount) as totalRevenue
-      FROM "Merchant" m
-      LEFT JOIN "Request" r ON m.id = r.merchantId
-      LEFT JOIN "Transaction" t ON r.id = t.requestId
-      WHERE m.status = 'ACTIVE'
-        ${startDate ? prisma.$queryRaw`AND r.created_at >= ${new Date(startDate)}` : prisma.$queryRaw``}
-        ${endDate ? prisma.$queryRaw`AND r.created_at <= ${new Date(endDate)}` : prisma.$queryRaw``}
-      GROUP BY m.id, m.type, m.name
-      ORDER BY totalRevenue DESC
-    `,
+    (() => {
+      const sFilter = startDate ? Prisma.sql`AND "createdAt" >= ${new Date(startDate)}` : Prisma.empty;
+      const eFilter = endDate ? Prisma.sql`AND "createdAt" <= ${new Date(endDate)}` : Prisma.empty;
+      return prisma.$queryRaw`
+        SELECT
+          ROUND("dropoffLat"::numeric, 2) as lat,
+          ROUND("dropoffLng"::numeric, 2) as lng,
+          COUNT(*) as "orderCount"
+        FROM "requests"
+        WHERE "dropoffLat" IS NOT NULL AND "dropoffLng" IS NOT NULL
+          ${sFilter}
+          ${eFilter}
+        GROUP BY ROUND("dropoffLat"::numeric, 2), ROUND("dropoffLng"::numeric, 2)
+        ORDER BY "orderCount" DESC
+        LIMIT 20
+      `;
+    })(),
+    (() => {
+      const sFilter = startDate ? Prisma.sql`AND r."createdAt" >= ${new Date(startDate)}` : Prisma.empty;
+      const eFilter = endDate ? Prisma.sql`AND r."createdAt" <= ${new Date(endDate)}` : Prisma.empty;
+      return prisma.$queryRaw`
+        SELECT
+          m.type,
+          m.name,
+          COUNT(r.id) as "orderCount",
+          SUM(t.amount) as "totalRevenue"
+        FROM "merchants" m
+        LEFT JOIN "requests" r ON m.id = r."merchantId"
+        LEFT JOIN "transactions" t ON r.id = t."requestId"
+        WHERE m.status = 'APPROVED'
+          ${sFilter}
+          ${eFilter}
+        GROUP BY m.id, m.type, m.name
+        ORDER BY "totalRevenue" DESC
+      `;
+    })(),
   ]);
 
   return {
@@ -838,7 +1453,7 @@ const getRealtimeMetrics = async () => {
     }),
     {
       activeRiders: await prisma.rider.count({ where: { status: 'APPROVED', isAvailable: true } }),
-      activeMerchants: await prisma.merchant.count({ where: { status: 'ACTIVE', isOpen: true } }),
+      activeMerchants: await prisma.merchant.count({ where: { status: 'APPROVED', isOpen: true } }),
     },
   ]);
 
@@ -897,18 +1512,27 @@ const getPendingWithdrawals = async ({ page = 1, limit = 20 }) => {
 /**
  * Approve withdrawal request — triggers KatPay payout.
  */
-const approveWithdrawal = async (withdrawalId) => {
+const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent) => {
   const withdrawal = await prisma.merchantWalletTransaction.findUnique({
     where: { id: withdrawalId },
     include: {
       merchantWallet: {
-        include: { merchant: true },
+        include: {
+          merchant: {
+            include: { user: { select: { email: true } } },
+          },
+        },
       },
     },
   });
 
-  if (!withdrawal) throw new Error('Withdrawal not found');
-  if (withdrawal.status !== 'PENDING') throw new Error('Withdrawal is not in pending status');
+  if (!withdrawal) throw AppError.notFound('Withdrawal not found');
+  if (withdrawal.status !== 'PENDING') throw AppError.badRequest('Withdrawal is not in pending status');
+
+  // Check if merchant wallet is under withdrawal hold
+  if (withdrawal.merchantWallet.withdrawalHeld) {
+    throw AppError.badRequest('This merchant\'s withdrawals are currently on hold');
+  }
 
   // Initiate KatPay payout
   const payout = await katpayService.initiatePayout({
@@ -930,19 +1554,11 @@ const approveWithdrawal = async (withdrawalId) => {
     },
   });
 
-  // Release pending balance — deducted once KatPay confirms via webhook payout.processed
-  // (webhook handler handles the final pendingBalance decrement)
-
-  await createAuditLog({
-    action: 'APPROVE_WITHDRAWAL',
-    entityType: 'MerchantWalletTransaction',
-    entityId: withdrawalId,
-    details: {
-      amount: withdrawal.amount,
-      merchantId: withdrawal.merchantWallet.merchantId,
-      katpayReference: updatedWithdrawal.katpayReference,
-    },
-  });
+  await createAuditLog(
+    adminUserId, 'APPROVE_WITHDRAWAL', 'MerchantWalletTransaction', withdrawalId,
+    { amount: withdrawal.amount, merchantId: withdrawal.merchantWallet.merchantId, katpayReference: updatedWithdrawal.katpayReference },
+    ipAddress, userAgent
+  );
 
   logger.info('Merchant withdrawal approved and payout initiated', {
     withdrawalId,
@@ -950,37 +1566,44 @@ const approveWithdrawal = async (withdrawalId) => {
     amount: withdrawal.amount,
   });
 
+  const merchant = withdrawal.merchantWallet.merchant;
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail) {
+    emailService.sendWithdrawalApprovedEmail(
+      recipientEmail,
+      merchant.name,
+      withdrawal.amount,
+      updatedWithdrawal.katpayReference || withdrawal.reference
+    ).catch((err) => logger.error('Failed to send withdrawal approved email', { withdrawalId, err: err.message }));
+  }
+
   return updatedWithdrawal;
 };
 
 /**
- * Reject withdrawal request
+ * Reject withdrawal request — refunds to merchant wallet.
  */
-const rejectWithdrawal = async (withdrawalId, reason) => {
+const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, userAgent) => {
   const withdrawal = await prisma.merchantWalletTransaction.findUnique({
     where: { id: withdrawalId },
     include: {
-      merchantWallet: true,
+      merchantWallet: {
+        include: {
+          merchant: {
+            include: { user: { select: { email: true } } },
+          },
+        },
+      },
     },
   });
 
-  if (!withdrawal) {
-    throw new Error('Withdrawal not found');
-  }
+  if (!withdrawal) throw AppError.notFound('Withdrawal not found');
+  if (withdrawal.status !== 'PENDING') throw AppError.badRequest('Withdrawal is not in pending status');
 
-  if (withdrawal.status !== 'PENDING') {
-    throw new Error('Withdrawal is not in pending status');
-  }
-
-  // Update withdrawal status and refund atomically
   const [updatedWithdrawal] = await prisma.$transaction([
     prisma.merchantWalletTransaction.update({
       where: { id: withdrawalId },
-      data: {
-        status: 'REJECTED',
-        rejectionReason: reason,
-        processedAt: new Date(),
-      },
+      data: { status: 'REJECTED', rejectionReason: reason, processedAt: new Date() },
     }),
     prisma.merchantWallet.update({
       where: { id: withdrawal.merchantWalletId },
@@ -991,17 +1614,19 @@ const rejectWithdrawal = async (withdrawalId, reason) => {
     }),
   ]);
 
-  // Create audit log
-  await createAuditLog({
-    action: 'REJECT_WITHDRAWAL',
-    entityType: 'MerchantWalletTransaction',
-    entityId: withdrawalId,
-    details: {
-      amount: withdrawal.amount,
-      reason,
-      merchantId: withdrawal.merchantWallet.merchantId,
-    },
-  });
+  await createAuditLog(
+    adminUserId, 'REJECT_WITHDRAWAL', 'MerchantWalletTransaction', withdrawalId,
+    { amount: withdrawal.amount, reason, merchantId: withdrawal.merchantWallet.merchantId },
+    ipAddress, userAgent
+  );
+
+  const merchant = withdrawal.merchantWallet.merchant;
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail) {
+    emailService.sendWithdrawalRejectedEmail(
+      recipientEmail, merchant.name, withdrawal.amount, reason
+    ).catch((err) => logger.error('Failed to send withdrawal rejected email', { withdrawalId, err: err.message }));
+  }
 
   return updatedWithdrawal;
 };
@@ -1327,8 +1952,8 @@ const getComplianceReport = async () => {
   ] = await Promise.all([
     prisma.rider.count({ where: { status: 'APPROVED' } }),
     prisma.rider.count({ where: { status: 'APPROVED', isVerified: true } }),
-    prisma.merchant.count({ where: { status: 'ACTIVE' } }),
-    prisma.merchant.count({ where: { status: 'ACTIVE', isCompliant: true } }),
+    prisma.merchant.count({ where: { status: 'APPROVED' } }),
+    prisma.merchant.count({ where: { status: 'APPROVED', isCompliant: true } }),
     prisma.safetyIncident.count({
       where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
     }),
@@ -1353,11 +1978,26 @@ module.exports = {
   forceCancelRequest,
   adminUpdateRequestStatus,
   getAllMerchants,
+  getMerchantById,
   approveMerchant,
   rejectMerchant,
   suspendMerchant,
   unsuspendMerchant,
   updateMerchantCommission,
+  updateMerchantProfile,
+  getMerchantCommissionHistory,
+  setWithdrawalHold,
+  bulkApproveWithdrawals,
+  getMerchantAnalytics,
+  getAllTags,
+  createTag,
+  updateTag,
+  deleteTag,
+  setMerchantTags,
+  getAllCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
   getAllRiders,
   getRiderEarnings,
   getRiderDeliveryHistory,
@@ -1370,4 +2010,55 @@ module.exports = {
   getCustomerAnalytics,
   getGeographicAnalytics,
   getRealtimeMetrics,
+  getPendingWithdrawals,
+  approveWithdrawal,
+  rejectWithdrawal,
+  getWithdrawalHistory,
+  listVtuPlans,
+  createVtuPlan,
+  updateVtuPlan,
+  deleteVtuPlan,
+  bulkCreateVtuPlans,
 };
+
+// ─── VTU Plan Management ──────────────────────────────────────────────────────
+
+async function listVtuPlans({ type, networkId, isActive, page = 1, limit = 100 }) {
+  const p = Number(page);
+  const l = Number(limit);
+  const where = {
+    ...(type && { type }),
+    ...(networkId !== undefined && { providerNetworkId: Number(networkId) }),
+    ...(isActive !== undefined && { isActive: isActive === 'true' || isActive === true }),
+  };
+  const [plans, total] = await Promise.all([
+    prisma.vtuPlan.findMany({
+      where,
+      orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { sellingPrice: 'asc' }],
+      skip: (p - 1) * l,
+      take: l,
+    }),
+    prisma.vtuPlan.count({ where }),
+  ]);
+  return { plans, total, page: p, limit: l };
+}
+
+async function createVtuPlan(data) {
+  return prisma.vtuPlan.create({ data });
+}
+
+async function updateVtuPlan(id, data) {
+  const plan = await prisma.vtuPlan.findUnique({ where: { id } });
+  if (!plan) throw AppError.notFound('VTU plan not found');
+  return prisma.vtuPlan.update({ where: { id }, data });
+}
+
+async function deleteVtuPlan(id) {
+  const plan = await prisma.vtuPlan.findUnique({ where: { id } });
+  if (!plan) throw AppError.notFound('VTU plan not found');
+  await prisma.vtuPlan.delete({ where: { id } });
+}
+
+async function bulkCreateVtuPlans(plans) {
+  return prisma.vtuPlan.createMany({ data: plans, skipDuplicates: true });
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,13 +15,76 @@ import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { logout } from "../../store/slices/authSlice";
 import { deleteAccount } from "../../store/slices/profileSlice";
+import {
+  isBiometricAvailable,
+  isBiometricEnabled,
+  setBiometricEnabled as persistBiometricEnabled,
+  authenticateWithBiometric,
+} from "../../services/biometric";
 import { colors } from "../../theme";
 
 export default function SecuritySettingsScreen({ navigation }) {
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state) => state.profile);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Hydrate the toggle from device hardware + persisted preference.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [available, enabled] = await Promise.all([
+        isBiometricAvailable(),
+        isBiometricEnabled(),
+      ]);
+      if (cancelled) return;
+      setBiometricAvailable(available);
+      // If the user disabled biometrics on the OS after enabling in-app, fall
+      // back to disabled so the toggle reflects reality.
+      setBiometricEnabled(available && enabled);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleBiometricToggle = async (next) => {
+    if (biometricBusy) return;
+    if (next && !biometricAvailable) {
+      Toast.show({
+        type: "error",
+        text1: "Biometrics unavailable",
+        text2: "Enroll a fingerprint or Face ID in your device settings first.",
+      });
+      return;
+    }
+    setBiometricBusy(true);
+    try {
+      // Require a successful biometric prompt before flipping the bit in
+      // either direction — proves the person at the device is authorized.
+      const ok = await authenticateWithBiometric(
+        next ? "Enable biometric login" : "Disable biometric login",
+      );
+      if (!ok) return;
+
+      await persistBiometricEnabled(next);
+      setBiometricEnabled(next);
+      Toast.show({
+        type: "success",
+        text1: next ? "Biometric login enabled" : "Biometric login disabled",
+      });
+    } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: "Could not update biometrics",
+        text2: err?.message || "Please try again.",
+      });
+    } finally {
+      setBiometricBusy(false);
+    }
+  };
 
   const handleChangePassword = () => {
     navigation.navigate("ForgotPassword");
@@ -94,14 +157,20 @@ export default function SecuritySettingsScreen({ navigation }) {
       sub: "Update your 6-digit PIN",
       onPress: handleChangePin,
     },
+    {
+      icon: "call-outline",
+      label: "Change Phone Number",
+      sub: "Update your registered phone number",
+      onPress: () => navigation.navigate("PhoneChange"),
+    },
   ];
 
   const sessionItems = [
     {
       icon: "phone-portrait-outline",
       label: "Active Sessions",
-      sub: "View devices logged into your account",
-      onPress: () => {},
+      sub: "View and manage logged-in devices",
+      onPress: () => navigation.navigate("Sessions"),
     },
     {
       icon: "exit-outline",
@@ -296,15 +365,22 @@ export default function SecuritySettingsScreen({ navigation }) {
                 Biometric Login
               </Text>
               <Text style={{ fontSize: 12, color: colors.textMuted }}>
-                Use fingerprint or Face ID to sign in
+                {biometricAvailable
+                  ? "Use fingerprint or Face ID to sign in"
+                  : "No biometrics enrolled on this device"}
               </Text>
             </View>
-            <Switch
-              value={biometricEnabled}
-              onValueChange={setBiometricEnabled}
-              trackColor={{ false: colors.border, true: "#FDBA74" }}
-              thumbColor={biometricEnabled ? colors.primary : "#f4f3f4"}
-            />
+            {biometricBusy ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleBiometricToggle}
+                disabled={!biometricAvailable}
+                trackColor={{ false: colors.border, true: "#FDBA74" }}
+                thumbColor={biometricEnabled ? colors.primary : "#f4f3f4"}
+              />
+            )}
           </View>
         </View>
 

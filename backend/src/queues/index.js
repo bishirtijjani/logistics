@@ -7,7 +7,7 @@
 
 const { Queue } = require('bullmq');
 const { redis } = require('../config/redis');
-const { QUEUES } = require('./jobs');
+const { QUEUES, DEFAULT_JOB_OPTIONS, PAYMENT_JOBS } = require('./jobs');
 const { logger } = require('../utils/logger');
 const { startPaymentWorker } = require('./workers/payment.worker');
 const { startNotificationWorker } = require('./workers/notification.worker');
@@ -32,10 +32,36 @@ const initializeQueues = () => {
   startUtilityWorker();
   startRequestWorker();  // NEW
 
+  scheduleRecurringJobs();
+
   logger.info('All queue workers started', {
     queues: Object.values(QUEUES),
   });
 };
+
+/**
+ * Register cron-style recurring jobs. BullMQ deduplicates by `jobId`, so this
+ * is safe to call on every server boot.
+ */
+const scheduleRecurringJobs = async () => {
+  try {
+    await paymentQueue.add(
+      PAYMENT_JOBS.CLEANUP_EXPIRED_IDEMPOTENCY,
+      {},
+      {
+        jobId: 'cron:cleanup-expired-idempotency',
+        repeat: { pattern: '0 3 * * *' }, // 03:00 daily
+        removeOnComplete: { count: 7 },
+        removeOnFail: { count: 30 },
+      },
+    );
+    logger.info('Recurring jobs scheduled');
+  } catch (err) {
+    logger.error('Failed to schedule recurring jobs', { error: err.message });
+  }
+};
+
+const addUtilityJob = (jobName, data) => utilityQueue.add(jobName, data, DEFAULT_JOB_OPTIONS);
 
 module.exports = {
   initializeQueues,
@@ -43,5 +69,6 @@ module.exports = {
   notificationQueue,
   deliveryQueue,
   utilityQueue,
-  requestQueue,  // NEW
+  requestQueue,
+  addUtilityJob,
 };

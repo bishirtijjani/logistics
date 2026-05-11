@@ -8,6 +8,7 @@ const requestController = require('./request.controller');
 const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
+const { idempotency } = require('../../middlewares/idempotency.middleware');
 const {
   createRequestSchema,
   updateStatusSchema,
@@ -25,6 +26,9 @@ router.use(authenticate);
 // Public endpoints (any authenticated user)
 // ============================================================
 
+// Get pricing quote before creating a request
+router.get('/quote', requestController.getQuote);
+
 // List requests (customers see theirs, riders see theirs, merchants see theirs)
 router.get('/', validate(listRequestsSchema, 'query'), requestController.getRequests);
 
@@ -36,7 +40,7 @@ router.get('/:requestId', requestController.getRequestById);
 // ============================================================
 
 // Create a new request (any type)
-router.post('/', authorize('CUSTOMER'), validate(createRequestSchema), requestController.createRequest);
+router.post('/', authorize('CUSTOMER'), idempotency, validate(createRequestSchema), requestController.createRequest);
 
 // Cancel request (customer only, before pickup)
 router.delete('/:requestId', authorize('CUSTOMER'), validate(cancelRequestSchema), requestController.cancelRequest);

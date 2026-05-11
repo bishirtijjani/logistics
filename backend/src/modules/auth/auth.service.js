@@ -17,7 +17,14 @@ const { config } = require("../../config");
 const { AppError } = require("../../utils/api-error");
 const { logger } = require("../../utils/logger");
 const { REDIS_KEYS, REDIS_TTL, OTP } = require("../../utils/constants");
-const katpayService = require("../../services/katpay.service");
+const { Queue } = require('bullmq');
+const { QUEUES, PAYMENT_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs');
+
+let _paymentQueue;
+const getPaymentQueue = () => {
+  if (!_paymentQueue) _paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
+  return _paymentQueue;
+};
 
 const SALT_ROUNDS = 12;
 
@@ -103,7 +110,7 @@ const login = async ({ email, password }, sessionMeta = {}) => {
 
   const tokens = generateTokens(user);
 
-  // Store refresh token session
+  // Store refresh token session with full device fingerprint.
   await prisma.session.create({
     data: {
       userId: user.id,
@@ -111,6 +118,10 @@ const login = async ({ email, password }, sessionMeta = {}) => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       ipAddress: sessionMeta.ipAddress || null,
       deviceInfo: sessionMeta.deviceInfo || null,
+      deviceName: sessionMeta.deviceName || null,
+      deviceModel: sessionMeta.deviceModel || null,
+      userAgent: sessionMeta.userAgent || null,
+      lastUsedAt: new Date(),
     },
   });
 
@@ -241,37 +252,20 @@ const verifyOtp = async (email, code) => {
     role: user.role,
   });
 
-  // Create KatPay virtual account asynchronously — non-blocking, non-fatal
-  setImmediate(async () => {
-    try {
-      const va = await katpayService.createVirtualAccount({
-        email: user.email,
-        name: `${user.firstName} ${user.lastName}`,
-        phoneNumber: user.phone,
-        bankCodes: ["PALMPAY", "OPAY"],
-        merchantID: config.KATPAY_MERCHANT_ID,
-      });
-      await prisma.wallet.update({
-        where: { userId: user.id },
-        data: {
-          virtualAccountNumber: va.accountNumber,
-          virtualAccountBank: va.bankName,
-          virtualAccountName: va.accountName,
-        },
-      });
-      logger.info("KatPay virtual account assigned", { userId: user.id, accountNumber: va.accountNumber });
-    } catch (err) {
-      logger.error("KatPay virtual account creation failed", { userId: user.id, error: err.message });
-    }
-  });
+  // NOTE: Virtual-account provisioning is intentionally NOT triggered here.
+  // Per compliance (BVN required before any NUBAN is minted), provisioning
+  // happens in `verifyBvn()` once KYC succeeds.
 
   return { verified: true, userId: user.id };
 };
 
 /**
  * Refresh access token using a valid refresh token.
+ * Carries the original session's device fingerprint forward to the new
+ * session row, so devices remain identifiable across rotations. Updates
+ * `lastUsedAt` so the Sessions screen reflects recent activity.
  */
-const refreshAccessToken = async (refreshToken) => {
+const refreshAccessToken = async (refreshToken, sessionMeta = {}) => {
   const session = await prisma.session.findUnique({
     where: { refreshToken },
     include: { user: true },
@@ -283,17 +277,24 @@ const refreshAccessToken = async (refreshToken) => {
 
   const tokens = generateTokens(session.user);
 
-  // Rotate refresh token
   await prisma.$transaction([
     prisma.session.update({
       where: { id: session.id },
-      data: { isRevoked: true },
+      data: { isRevoked: true, lastUsedAt: new Date() },
     }),
     prisma.session.create({
       data: {
         userId: session.userId,
         refreshToken: tokens.refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        // Prefer freshly-supplied meta (request that hit /refresh) but fall
+        // back to the prior session's fingerprint so we never lose attribution.
+        ipAddress: sessionMeta.ipAddress || session.ipAddress || null,
+        deviceInfo: sessionMeta.deviceInfo || session.deviceInfo || null,
+        deviceName: sessionMeta.deviceName || session.deviceName || null,
+        deviceModel: sessionMeta.deviceModel || session.deviceModel || null,
+        userAgent: sessionMeta.userAgent || session.userAgent || null,
+        lastUsedAt: new Date(),
       },
     }),
   ]);
@@ -339,8 +340,27 @@ const changeTransactionPin = async (userId, currentPin, newPin) => {
 
 /**
  * Verify transaction PIN — used before any financial operation.
+ * Tracks failed attempts in Redis and locks the user after too many failures.
  */
 const verifyTransactionPin = async (userId, pin) => {
+  const lockKey = `pin:lock:${userId}`;
+  const failKey = `pin:fails:${userId}`;
+
+  const PIN_MAX_ATTEMPTS = 6;
+  const PIN_LOCKOUT_SECONDS = 30 * 60; // 30 minutes
+
+  // Check if locked
+  const lockTtl = await redis.ttl(lockKey);
+  if (lockTtl > 0) {
+    const minutes = Math.ceil(lockTtl / 60);
+    throw new AppError(
+      `PIN locked. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+      423,
+      true,
+      { lockedUntil: Date.now() + lockTtl * 1000, lockTtlSeconds: lockTtl },
+    );
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { transactionPin: true },
@@ -351,9 +371,33 @@ const verifyTransactionPin = async (userId, pin) => {
   }
 
   const isValid = await bcrypt.compare(pin, user.transactionPin);
+
   if (!isValid) {
-    throw AppError.invalidPin();
+    const fails = await redis.incr(failKey);
+    await redis.expire(failKey, PIN_LOCKOUT_SECONDS);
+
+    if (fails >= PIN_MAX_ATTEMPTS) {
+      await redis.set(lockKey, '1', 'EX', PIN_LOCKOUT_SECONDS);
+      await redis.del(failKey);
+      throw new AppError(
+        'Too many wrong attempts. PIN locked for 30 minutes.',
+        423,
+        true,
+        { lockedUntil: Date.now() + PIN_LOCKOUT_SECONDS * 1000, lockTtlSeconds: PIN_LOCKOUT_SECONDS },
+      );
+    }
+
+    const remaining = PIN_MAX_ATTEMPTS - fails;
+    throw new AppError(
+      `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
+      401,
+      true,
+      { attemptsRemaining: remaining },
+    );
   }
+
+  // Clear fails on success
+  await redis.del(failKey);
 
   return true;
 };
@@ -413,6 +457,62 @@ const resetPassword = async (email, code, newPassword) => {
   ]);
 
   logger.info("Password reset successful", { email });
+};
+
+/**
+ * List active sessions for a user.
+ */
+const listSessions = async (userId, currentRefreshToken) => {
+  const sessions = await prisma.session.findMany({
+    where: { userId, isRevoked: false, expiresAt: { gt: new Date() } },
+    orderBy: { lastUsedAt: 'desc' },
+    select: {
+      id: true,
+      deviceInfo: true,
+      deviceName: true,
+      deviceModel: true,
+      userAgent: true,
+      ipAddress: true,
+      lastUsedAt: true,
+      createdAt: true,
+      expiresAt: true,
+      refreshToken: true,
+    },
+  });
+
+  return sessions.map((s) => ({
+    id: s.id,
+    deviceInfo: s.deviceInfo,
+    deviceName: s.deviceName,
+    deviceModel: s.deviceModel,
+    userAgent: s.userAgent,
+    ipAddress: s.ipAddress,
+    lastUsedAt: s.lastUsedAt,
+    createdAt: s.createdAt,
+    expiresAt: s.expiresAt,
+    isCurrent: s.refreshToken === currentRefreshToken,
+  }));
+};
+
+/**
+ * Revoke a specific session by ID.
+ */
+const revokeSession = async (userId, sessionId) => {
+  const session = await prisma.session.findUnique({ where: { id: sessionId } });
+  if (!session || session.userId !== userId) {
+    throw AppError.notFound('Session not found');
+  }
+  await prisma.session.update({ where: { id: sessionId }, data: { isRevoked: true } });
+};
+
+/**
+ * Revoke all sessions except the current one.
+ */
+const revokeOtherSessions = async (userId, currentRefreshToken) => {
+  await prisma.session.updateMany({
+    where: { userId, isRevoked: false, refreshToken: { not: currentRefreshToken } },
+    data: { isRevoked: true },
+  });
 };
 
 /**
@@ -516,34 +616,152 @@ const updateProfilePicture = async (userId, url) => {
 };
 
 /**
- * Verify BVN — stores hashed BVN and updates KYC status.
- * In production, integrate with a BVN verification merchant (e.g. Smile ID, Flutterwave).
- * The merchant call should happen here before setting VERIFIED.
+ * Verify BVN — stores hashed BVN, marks KYC verified, and provisions a KatPay
+ * virtual account. The DB writes (bvnHash + kycStatus) are atomic; the external
+ * KatPay call runs after the transaction commits and is retried via the
+ * payment queue if it fails (so the user always converges on a wallet NUBAN).
+ *
+ * Returns the wallet payload (with NUBAN if provisioned synchronously) so the
+ * client can show "your account is ready" immediately.
  */
 const verifyBvn = async (userId, { bvn, firstName, lastName }) => {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { wallet: true },
+  });
   if (!user) throw AppError.notFound("User not found");
 
-  if (user.kycStatus === "VERIFIED") {
-    throw AppError.conflict("BVN already verified");
+  // Idempotency / recovery: if the user is already VERIFIED but has no NUBAN
+  // (KatPay was down during the original KYC), let the call succeed and
+  // re-attempt provisioning. Otherwise the user is stuck — they can't
+  // re-verify (conflict) and the queue retry has already exhausted.
+  const alreadyVerified = user.kycStatus === 'VERIFIED';
+  if (alreadyVerified && user.wallet?.virtualAccountNumber) {
+    throw AppError.conflict('BVN already verified');
   }
 
-  // TODO: Replace with actual BVN merchant API call
-  // e.g. const result = await bvnMerchant.verify({ bvn, firstName, lastName });
-  // if (!result.matched) throw AppError.badRequest("BVN verification failed");
+  if (!alreadyVerified) {
+    // TODO: Replace with actual BVN merchant API call (Smile ID / Flutterwave).
+    // if (!result.matched) throw AppError.badRequest("BVN verification failed");
+    const bvnHash = await bcrypt.hash(bvn, SALT_ROUNDS);
 
-  const bvnHash = await bcrypt.hash(bvn, SALT_ROUNDS);
+    // Atomically: persist bvnHash + flip kycStatus. If a wallet doesn't exist
+    // yet (shouldn't happen for verified users, but defensive), create one.
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { bvnHash, kycStatus: 'VERIFIED' },
+      });
+      if (!user.wallet) {
+        await tx.wallet.create({ data: { userId, balance: 0 } });
+      }
+    });
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      bvnHash,
-      kycStatus: "VERIFIED",
+    logger.info('BVN verified', { userId });
+  } else {
+    // Recovery path: user is already VERIFIED but provisioning never finished.
+    // Require them to re-submit the SAME BVN — otherwise anyone with a session
+    // could trigger arbitrary KatPay calls on this account.
+    if (!user.bvnHash) {
+      throw AppError.badRequest('BVN re-verification not possible: stored hash missing');
+    }
+    const matches = await bcrypt.compare(bvn, user.bvnHash);
+    if (!matches) {
+      throw AppError.badRequest('BVN does not match the previously verified value');
+    }
+    // Defensive: ensure a wallet row exists for the provisioning step below.
+    if (!user.wallet) {
+      await prisma.wallet.create({ data: { userId, balance: 0 } });
+    }
+    logger.info('BVN re-verify: provisioning recovery for verified user without NUBAN', { userId });
+  }
+
+  // Try to provision the virtual account synchronously so the response payload
+  // can carry the NUBAN. If it fails, enqueue a retry job and return the
+  // wallet without a NUBAN — the client will pick it up via socket / refetch.
+  const katpayService = require('../../services/katpay.service');
+  const termiiService = require('../../services/termii.service');
+  const notificationService = require('../../services/notification.service');
+
+  let virtualAccount = null;
+  try {
+    virtualAccount = await katpayService.createVirtualAccount({
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
+      phoneNumber: user.phone || '',
+      bankCodes: ['PALMPAY', 'OPAY'],
+    });
+
+    await prisma.wallet.update({
+      where: { userId },
+      data: {
+        virtualAccountNumber: virtualAccount.accountNumber,
+        virtualAccountBank: virtualAccount.bankName,
+        virtualAccountName: virtualAccount.accountName,
+      },
+    });
+    logger.info('Virtual account provisioned synchronously on KYC', { userId });
+  } catch (err) {
+    logger.warn('Synchronous virtual account provisioning failed; queuing retry', { userId, error: err.message });
+    try {
+      await getPaymentQueue().add(
+        PAYMENT_JOBS.PROVISION_VIRTUAL_ACCOUNT,
+        { userId: user.id, email: user.email, name: `${user.firstName} ${user.lastName}`, phoneNumber: user.phone },
+        { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
+      );
+    } catch (queueErr) {
+      logger.error('Failed to enqueue virtual account provisioning retry', { userId, error: String(queueErr) });
+    }
+  }
+
+  // Welcome SMS + push — both best-effort. Failure here must not break KYC,
+  // because the user is verified and provisioning has its own retry path.
+  // We only send these on first verification, not on the recovery path.
+  if (!alreadyVerified) {
+    if (user.phone) {
+      termiiService
+        .sendSms(
+          user.phone,
+          `Welcome to ${config.APP_NAME || 'VTU Logistics'}! Your wallet is now active${virtualAccount ? ` — fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
+        )
+        .catch((err) => logger.warn('KYC welcome SMS failed', { userId, error: err.message }));
+    }
+    if (user.fcmToken) {
+      notificationService
+        .sendToDevice(user.fcmToken, {
+          title: 'Welcome aboard 🎉',
+          body: virtualAccount
+            ? `Your wallet is ready. Fund it via ${virtualAccount.accountNumber} (${virtualAccount.bankName}).`
+            : 'Your identity is verified. Your wallet account is being set up.',
+          data: {
+            type: 'KYC_VERIFIED',
+            virtualAccountNumber: virtualAccount?.accountNumber || '',
+          },
+        })
+        .catch((err) => logger.warn('KYC welcome push failed', { userId, error: err.message }));
+    }
+  }
+
+  // Re-read the wallet so the response reflects committed state.
+  const wallet = await prisma.wallet.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      balance: true,
+      virtualAccountNumber: true,
+      virtualAccountBank: true,
+      virtualAccountName: true,
     },
   });
 
-  logger.info("BVN verified", { userId });
-  return { kycStatus: "VERIFIED" };
+  return {
+    kycStatus: 'VERIFIED',
+    wallet: wallet
+      ? { ...wallet, balance: Number(wallet.balance) }
+      : null,
+    virtualAccountReady: Boolean(wallet?.virtualAccountNumber),
+    recovery: alreadyVerified, // true means this call recovered a stuck verification
+  };
 };
 
 /**
@@ -655,55 +873,65 @@ const deleteAccount = async (userId) => {
     where: { id: userId },
     include: {
       wallet: true,
-      orders: { take: 1 },
-      requests: { take: 1, where: { status: { in: ["PENDING", "ACCEPTED", "IN_PROGRESS"] } } },
+      requests: {
+        take: 1,
+        where: {
+          status: {
+            in: [
+              'REQUESTED',
+              'ACCEPTED',
+              'PROCESSING',
+              'READY_FOR_PICKUP',
+              'RIDER_ASSIGNED',
+              'RIDER_EN_ROUTE',
+              'PICKED_UP',
+              'IN_TRANSIT',
+            ],
+          },
+        },
+      },
     },
   });
 
-  if (!user) {
-    throw AppError.notFound("User not found");
-  }
+  if (!user) throw AppError.notFound('User not found');
 
-  // Check for active deliveries/requests
   if (user.requests.length > 0) {
     throw AppError.conflict(
-      "Cannot delete account with active deliveries. Please complete or cancel all deliveries first."
+      'Cannot delete account with active deliveries. Please complete or cancel all deliveries first.',
     );
   }
 
-  // Check for wallet balance
-  if (user.wallet && parseFloat(user.wallet.balance.toString()) > 0) {
+  if (user.wallet && Number(user.wallet.balance) > 0) {
     throw AppError.conflict(
-      "Please withdraw your wallet balance before deleting your account."
+      'Please withdraw your wallet balance before deleting your account.',
     );
   }
 
-  // Revoke all sessions
-  await prisma.session.updateMany({
-    where: { userId, isRevoked: false },
-    data: { isRevoked: true },
-  });
+  await prisma.$transaction([
+    prisma.session.updateMany({
+      where: { userId, isRevoked: false },
+      data: { isRevoked: true },
+    }),
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: `deleted_${userId}@deleted.local`,
+        phone: `deleted_${userId}`,
+        firstName: 'Deleted',
+        lastName: 'User',
+        address: null,
+        profilePicture: null,
+        fcmToken: null,
+        kycStatus: 'NONE',
+        transactionPin: null,
+        status: 'DEACTIVATED',
+        deletedAt: new Date(),
+      },
+    }),
+  ]);
 
-  // Anonymize user data (soft delete)
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      email: `deleted_${userId}@deleted.local`,
-      phone: `deleted_${userId}`,
-      firstName: "Deleted",
-      lastName: "User",
-      address: null,
-      profilePicture: null,
-      isActive: false,
-      fcmToken: null,
-      kycStatus: "PENDING",
-      kycData: null,
-      transactionPin: null,
-    },
-  });
-
-  logger.info("User account deleted", { userId });
-  return { message: "Account deleted successfully" };
+  logger.info('User account deleted', { userId });
+  return { message: 'Account deleted successfully' };
 };
 
 // --- Internal helpers ---
@@ -731,7 +959,7 @@ const merchantRegister = async ({
   lastName,
   password,
   businessName,
-  businessType,
+  categoryId,
   businessPhone,
   businessEmail,
   businessAddress,
@@ -740,6 +968,11 @@ const merchantRegister = async ({
   openingTime,
   closingTime,
 }) => {
+  // Validate category exists and is active before any user/merchant rows are created
+  const category = await prisma.merchantCategory.findUnique({ where: { id: categoryId } });
+  if (!category) throw AppError.badRequest('Category not found');
+  if (!category.isActive) throw AppError.badRequest('Category is no longer accepting merchants');
+
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -773,9 +1006,9 @@ const merchantRegister = async ({
       },
       merchant: {
         create: {
-          type: businessType,
+          categoryId,
           name: businessName,
-          description: `${businessType} business`,
+          description: `${category.name} business`,
           phone: businessPhone,
           email: businessEmail,
           address: businessAddress,
@@ -791,7 +1024,7 @@ const merchantRegister = async ({
       },
     },
     include: {
-      merchant: true,
+      merchant: { include: { category: true } },
     },
   });
 
@@ -824,6 +1057,90 @@ const merchantRegister = async ({
   };
 };
 
+/**
+ * Request a phone number change — verifies password, sends OTP (via SMS in
+ * prod, dev-logged otherwise) to the new number. Stores the pending change
+ * in Redis so the confirm step can look it up.
+ *
+ * NOTE: also stashes the OLD phone number so the confirm step can notify it
+ * after the change (security signal for account-takeover detection).
+ */
+const requestPhoneChange = async (userId, { newPhone, password }) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true, phone: true },
+  });
+  if (!user) throw AppError.notFound('User not found');
+  if (!user.passwordHash) throw AppError.badRequest('Password not set on this account');
+
+  const passwordOk = await bcrypt.compare(password, user.passwordHash);
+  if (!passwordOk) throw AppError.unauthorized('Incorrect password');
+
+  const existing = await prisma.user.findUnique({ where: { phone: newPhone } });
+  if (existing) throw AppError.conflict('Phone number already in use');
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const key = `phone:change:${userId}`;
+
+  // Send OTP to the NEW phone first; only stash the pending change in Redis
+  // if delivery succeeded. If we stashed first and SMS failed, the user would
+  // see a generic "OTP expired" later — opaque and frustrating.
+  // Lazy-require to avoid circular import at boot.
+  const termiiService = require('../../services/termii.service');
+  try {
+    await termiiService.sendSms(
+      newPhone,
+      `Your phone-change verification code is ${code}. It expires in 10 minutes.`,
+    );
+  } catch (err) {
+    logger.warn('Phone-change OTP SMS failed', { userId, error: err.message });
+    throw AppError.serviceUnavailable('Could not send verification SMS. Please try again shortly.');
+  }
+
+  await redis.set(
+    key,
+    JSON.stringify({ newPhone, oldPhone: user.phone || null, code }),
+    'EX',
+    10 * 60,
+  );
+
+  logger.info('Phone change OTP generated', { userId, newPhone });
+  return { code, devOnly: true };
+};
+
+/**
+ * Confirm a phone number change — verifies OTP and applies the new phone.
+ * After applying, sends a security notice via SMS to the OLD phone (so a
+ * fraudster who silently rotates the number out of an account can't do so
+ * without leaving a trail with the legitimate owner).
+ */
+const confirmPhoneChange = async (userId, { newPhone, otp }) => {
+  const key = `phone:change:${userId}`;
+  const raw = await redis.get(key);
+  if (!raw) throw AppError.badRequest('OTP expired or not requested. Please start again.');
+
+  const { newPhone: storedPhone, oldPhone, code } = JSON.parse(raw);
+  if (storedPhone !== newPhone) throw AppError.badRequest('Phone number mismatch');
+  if (code !== otp) throw AppError.badRequest('Invalid OTP');
+
+  await prisma.user.update({ where: { id: userId }, data: { phone: newPhone } });
+  await redis.del(key);
+
+  // Notify the old number — fire-and-forget. Mask the new number for safety.
+  if (oldPhone) {
+    const maskedNew = newPhone.length > 4 ? `****${newPhone.slice(-4)}` : newPhone;
+    const termiiService = require('../../services/termii.service');
+    termiiService
+      .sendSms(
+        oldPhone,
+        `Security notice: the phone number on your ${config.APP_NAME || 'VTU Logistics'} account was changed to ${maskedNew}. If this wasn't you, contact support immediately.`,
+      )
+      .catch((err) => logger.warn('Old-phone change-notice SMS failed', { userId, error: err.message }));
+  }
+
+  logger.info('Phone number changed', { userId, newPhone });
+};
+
 module.exports = {
   register,
   merchantRegister,
@@ -842,8 +1159,13 @@ module.exports = {
   updateProfilePicture,
   verifyBvn,
   logout,
+  listSessions,
+  revokeSession,
+  revokeOtherSessions,
   getNotificationPreferences,
   updateNotificationPreferences,
   getCloudinaryUploadSignature,
   deleteAccount,
+  requestPhoneChange,
+  confirmPhoneChange,
 };

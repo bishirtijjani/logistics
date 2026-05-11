@@ -67,6 +67,14 @@ class AppError extends Error {
   static duplicateTransaction(message = 'Duplicate transaction detected') {
     return new AppError(message, 409);
   }
+
+  static serviceUnavailable(message = 'Service unavailable') {
+    return new AppError(message, 503);
+  }
+
+  static create(statusCode, message) {
+    return new AppError(message, statusCode);
+  }
 }
 
 module.exports = { AppError };

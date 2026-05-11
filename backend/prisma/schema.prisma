@@ -42,11 +42,8 @@ enum KycStatus {
 // ============================================================
 
 enum RequestType {
-  FOOD
-  GROCERY
-  PHARMACY
-  PACKAGE
-  // Future: APPAREL, ELECTRONICS, etc.
+  MERCHANT_ORDER  // Any order fulfilled by a merchant (food, grocery, pharmacy, retail, etc.)
+  PACKAGE         // Pure courier — no merchant, customer is the origin
 }
 
 enum RequestStatus {
@@ -61,13 +58,6 @@ enum RequestStatus {
   DELIVERED         // Rider delivered
   SETTLED           // Financial settlement complete
   CANCELLED         // Cancelled by any party
-}
-
-enum MerchantType {
-  RESTAURANT
-  GROCERY
-  PHARMACY
-  // Future: RETAIL, BOUTIQUE, etc.
 }
 
 enum MerchantStatus {
@@ -86,6 +76,12 @@ enum TransactionType {
   DELIVERY_EARNING
   UTILITY_PAYMENT
   REFUND
+  ESCROW_HOLD
+  ESCROW_RELEASE
+  ESCROW_REFUND
+  PLATFORM_EARNING
+  RIDER_EARNING
+  MERCHANT_EARNING
 }
 
 enum TransactionStatus {
@@ -131,6 +127,15 @@ enum UtilityType {
   AIRTIME
   DATA
   ELECTRICITY
+  CABLE
+  EDUCATION_PIN
+}
+
+enum VtuPlanType {
+  AIRTIME
+  DATA
+  CABLE
+  ELECTRICITY
 }
 
 enum UtilityStatus {
@@ -142,8 +147,7 @@ enum UtilityStatus {
 }
 
 enum PaymentMerchant {
-  MONNIFY
-  VTPASS
+  ALRAHUZ
   KATPAY
 }
 
@@ -198,7 +202,7 @@ model Wallet {
   id                  String    @id @default(uuid())
   userId              String    @unique
   balance             Decimal   @default(0) @db.Decimal(15, 2)
-  virtualAccountNumber String?  @unique  /// Monnify virtual account
+  virtualAccountNumber String?  @unique  /// KatPay virtual account number
   virtualAccountBank   String?            /// Bank name for virtual account
   virtualAccountName   String?            /// Account name for virtual account
   isLocked            Boolean   @default(false) /// Freeze wallet for fraud prevention
@@ -226,7 +230,7 @@ model Transaction {
   amount          Decimal           @db.Decimal(15, 2)
   fee             Decimal           @default(0) @db.Decimal(15, 2)
   description     String?
-  metadata        Json?             /// Merchant-specific data (Monnify ref, VTPass token, etc.)
+  metadata        Json?             /// Merchant-specific data (KatPay ref, AlRahuz token, etc.)
 
   // Wallet relations — a transaction debits one wallet and/or credits another
   debitWalletId   String?
@@ -372,9 +376,9 @@ model UtilityPayment {
   meterNumber     String?         /// For electricity
   plan            String?         /// Data plan code or description
 
-  // VTPass tracking
-  vtpassRequestId String?         @unique
-  vtpassRef       String?
+  // Provider tracking (AlRahuz)
+  providerRequestId String?       @unique
+  providerRef     String?
 
   // Result
   token           String?         /// Electricity token returned
@@ -387,6 +391,29 @@ model UtilityPayment {
   @@index([type, status])
   @@index([createdAt])
   @@map("utility_payments")
+}
+
+/// Admin-managed VTU plan catalogue. Admin sets AlRahuz IDs + selling prices.
+model VtuPlan {
+  id                String      @id @default(uuid())
+  type              VtuPlanType
+  providerNetworkId Int?        /// AlRahuz network/cable provider ID
+  networkName       String?     /// "MTN", "GOTV" etc.
+  providerPlanId    Int?        /// AlRahuz plan ID (data/cable plans)
+  name              String      /// Display name e.g. "1GB - 30 Days"
+  dataSize          String?     /// "1GB" for data plans
+  validity          String?     /// "30 Days"
+  planType          String?     /// "SME", "GIFTING" etc. for data plans
+  costPrice         Decimal     @db.Decimal(15, 2)
+  sellingPrice      Decimal     @db.Decimal(15, 2)
+  isActive          Boolean     @default(true)
+  sortOrder         Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([type, isActive])
+  @@index([providerNetworkId, type])
+  @@map("vtu_plans")
 }
 
 /// Post-delivery rating from customer to rider (and optionally merchant).
@@ -452,55 +479,146 @@ model SavedBeneficiary {
 /// Merchant — Restaurants, Supermarkets, Pharmacies
 model Merchant {
   id              String          @id @default(uuid())
-  
+
   // User account (optional — standalone merchants possible)
   userId          String?         @unique
   user            User?           @relation(fields: [userId], references: [id])
-  
-  type            MerchantType
+
+  categoryId      String
+  category        MerchantCategory @relation(fields: [categoryId], references: [id])
   status          MerchantStatus  @default(PENDING_APPROVAL)
-  
+
   // Business info
   name            String
   description     String?
   phone           String
   email           String?
-  
+
   // Location
   address         String
   lat             Float
   lng             Float
-  
+
   // Operating hours
   openingTime     String          @default("08:00")
   closingTime     String          @default("22:00")
-  
+
   // Media
   logoUrl         String?
   coverImageUrl   String?
-  
+
   // Settings
   isActive        Boolean         @default(true)
   isOpen          Boolean         @default(false)
   commissionRate  Float           @default(15)  // Platform commission %
-  
+
+  // Admin-controlled visibility override (independent of merchant's isOpen flag)
+  adminActiveOverride Boolean     @default(true)
+
+  // Status tracking
+  suspensionReason   String?
+  rejectionReason    String?
+
+  // Phone OTP verification
+  phoneVerified      Boolean      @default(false)
+
   // Performance
   averageRating   Float           @default(0)
   totalOrders     Int             @default(0)
-  
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  
+
   // Relations
-  requests        Request[]
-  products        Product[]
-  wallet          MerchantWallet?
-  
-  @@index([type])
+  requests           Request[]
+  products           Product[]
+  wallet             MerchantWallet?
+  commissionHistory  CommissionHistory[]
+  tags               MerchantTag[]
+
+  @@index([categoryId])
   @@index([status])
   @@index([isActive, isOpen])
   @@index([lat, lng])
   @@map("merchants")
+}
+
+/// Tracks every commission rate change for a merchant — full audit trail.
+model CommissionHistory {
+  id            String   @id @default(uuid())
+  merchantId    String
+  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  previousRate  Float
+  newRate       Float
+  changedBy     String   /// Admin user ID who made the change
+  reason        String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([merchantId])
+  @@index([createdAt])
+  @@map("commission_history")
+}
+
+/// Merchant primary category — admin-managed taxonomy. Replaces the hardcoded MerchantType enum.
+/// One category per merchant (Merchant.categoryId). For multi-tagging, see Tag.
+model MerchantCategory {
+  id             String     @id @default(uuid())
+  name           String     @unique
+  slug           String     @unique
+  description    String?
+  icon           String?
+  color          String?
+  sortOrder      Int        @default(0)
+  hasPreparation Boolean    @default(true)
+  isActive       Boolean    @default(true)
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  merchants      Merchant[]
+
+  @@index([isActive, sortOrder])
+  @@map("merchant_categories")
+}
+
+/// Global tag taxonomy — admin-managed, assigned to merchants for search/filtering in customer app.
+model Tag {
+  id          String        @id @default(uuid())
+  name        String        @unique
+  slug        String        @unique  /// URL-safe version of name
+  category    String?       /// Grouping: e.g., "cuisine", "fashion", "health"
+  color       String?       /// Hex color for UI display
+  icon        String?       /// Icon name or URL
+  isActive    Boolean       @default(true)
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  merchants   MerchantTag[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("tags")
+}
+
+/// Join table: merchant ↔ tag (many-to-many)
+model MerchantTag {
+  id         String   @id @default(uuid())
+  merchantId String
+  tagId      String
+
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@unique([merchantId, tagId])
+  @@index([merchantId])
+  @@index([tagId])
+  @@map("merchant_tags")
 }
 
 /// Merchant Wallet — Separate from user wallet, tracks earnings
@@ -522,6 +640,13 @@ model MerchantWallet {
   bankCode         String?
   accountNumber    String?
   accountName      String?
+
+  // Wallet lock (set on suspension)
+  isLocked         Boolean  @default(false)
+
+  // Withdrawal hold: freeze payouts without suspending operations
+  withdrawalHeld   Boolean  @default(false)
+  withdrawalHoldReason String?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -600,7 +725,7 @@ model Product {
 /// Food, Grocery, Pharmacy, Package — all unified here
 model Request {
   id              String          @id @default(uuid())
-  type            RequestType     // FOOD, GROCERY, PHARMACY, PACKAGE
+  type            RequestType     // MERCHANT_ORDER (any merchant fulfillment) or PACKAGE (courier)
   status          RequestStatus   @default(REQUESTED)
   
   // Customer
@@ -644,8 +769,15 @@ model Request {
   estimatedMinutes Int?
   
   // Financial record
-  transactionId   String?
-  
+  transactionId        String?
+  escrowTransactionId  String?   // Hold transaction reference
+  refundTransactionId  String?   // Refund transaction reference
+
+  // Matching
+  searchAttempts       Int       @default(0)
+  lastBroadcastAt      DateTime?
+  cancellationFee      Decimal?  @db.Decimal(15, 2)
+
   // Cancellation
   cancelledAt     DateTime?
   cancelledBy     String?         // customer, merchant, rider, system
@@ -741,8 +873,12 @@ model Session {
   id            String    @id @default(uuid())
   userId        String
   refreshToken  String    @unique
-  deviceInfo    String?   /// Device model, OS version
+  deviceInfo    String?   /// Free-form device descriptor (legacy; superseded by deviceName/Model)
+  deviceName    String?   /// User-set device name, e.g., "Bishir's iPhone"
+  deviceModel   String?   /// Hardware model, e.g., "iPhone15,2", "Pixel 7 Pro"
+  userAgent     String?   /// Raw User-Agent header captured at session creation
   ipAddress     String?
+  lastUsedAt    DateTime  @default(now()) /// Updated on every token refresh
   expiresAt     DateTime
   isRevoked     Boolean   @default(false)
 
@@ -779,10 +915,10 @@ model NotificationPreferences {
   @@map("notification_preferences")
 }
 
-/// Monnify webhook event log — for idempotency and audit.
+/// External payment-provider webhook event log — for idempotency and audit.
 model WebhookEvent {
   id              String    @id @default(uuid())
-  merchant        String    /// "monnify" or "vtpass"
+  merchant        String    /// "katpay" (or other future providers)
   eventType       String    /// e.g., "SUCCESSFUL_TRANSACTION"
   transactionRef  String    @unique  /// External reference for deduplication
   payload         Json      /// Raw webhook payload
@@ -796,6 +932,43 @@ model WebhookEvent {
   @@index([transactionRef])
   @@index([processed])
   @@map("webhook_events")
+}
+
+/// Platform-wide settings — admin-managed key/value store.
+/// All fee constants, thresholds, and feature flags live here.
+model PlatformSetting {
+  key         String   @id
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?  /// Admin user ID
+
+  @@map("platform_settings")
+}
+
+/// Idempotency keys — prevent duplicate mutations on mobile retry.
+model IdempotencyKey {
+  key              String   @id
+  userId           String
+  route            String
+  requestHash      String
+  responseSnapshot Json?
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+/// System-owned wallet for escrow and platform earnings.
+model SystemWallet {
+  id          String   @id
+  name        String
+  balance     Decimal  @default(0) @db.Decimal(15, 2)
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_wallets")
 }
 
 /// Audit log — tracks all admin actions for compliance and debugging.

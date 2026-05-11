@@ -116,9 +116,20 @@ const getAllMerchants = async (req, res, next) => {
   }
 };
 
+const getMerchantById = async (req, res, next) => {
+  try {
+    const merchant = await adminService.getMerchantById(req.params.merchantId);
+    res.json(ApiResponse.success('Merchant detail', merchant));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const approveMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.approveMerchant(req.params.merchantId);
+    const result = await adminService.approveMerchant(
+      req.params.merchantId, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Merchant approved', result));
   } catch (error) {
     next(error);
@@ -127,7 +138,9 @@ const approveMerchant = async (req, res, next) => {
 
 const rejectMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.rejectMerchant(req.params.merchantId, req.body.reason);
+    const result = await adminService.rejectMerchant(
+      req.params.merchantId, req.body.reason, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Merchant rejected', result));
   } catch (error) {
     next(error);
@@ -136,7 +149,9 @@ const rejectMerchant = async (req, res, next) => {
 
 const suspendMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.suspendMerchant(req.params.merchantId, req.body.reason);
+    const result = await adminService.suspendMerchant(
+      req.params.merchantId, req.body.reason, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Merchant suspended', result));
   } catch (error) {
     next(error);
@@ -145,7 +160,9 @@ const suspendMerchant = async (req, res, next) => {
 
 const unsuspendMerchant = async (req, res, next) => {
   try {
-    const result = await adminService.unsuspendMerchant(req.params.merchantId);
+    const result = await adminService.unsuspendMerchant(
+      req.params.merchantId, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Merchant unsuspended', result));
   } catch (error) {
     next(error);
@@ -156,9 +173,187 @@ const updateMerchantCommission = async (req, res, next) => {
   try {
     const result = await adminService.updateMerchantCommission(
       req.params.merchantId,
-      req.body.commissionRate
+      req.body.commissionRate,
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent']
     );
     res.json(ApiResponse.success('Merchant commission updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateMerchantProfile = async (req, res, next) => {
+  try {
+    const result = await adminService.updateMerchantProfile(
+      req.params.merchantId, req.body, req.user.id, req.ip, req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Merchant profile updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMerchantCommissionHistory = async (req, res, next) => {
+  try {
+    const { history, total, page, limit } = await adminService.getMerchantCommissionHistory(
+      req.params.merchantId, req.query
+    );
+    res.json(ApiResponse.paginated('Commission history', history, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const setWithdrawalHold = async (req, res, next) => {
+  try {
+    const result = await adminService.setWithdrawalHold(
+      req.params.merchantId,
+      req.body.held,
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Withdrawal hold updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const bulkApproveWithdrawals = async (req, res, next) => {
+  try {
+    const result = await adminService.bulkApproveWithdrawals(
+      req.body.withdrawalIds, req.user.id, req.ip, req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Bulk approval processed', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMerchantAnalytics = async (req, res, next) => {
+  try {
+    const result = await adminService.getMerchantAnalytics(req.params.merchantId, req.query);
+    res.json(ApiResponse.success('Merchant analytics', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Tag Management Controllers
+// ============================================================
+
+const getAllTags = async (req, res, next) => {
+  try {
+    const { tags, total, page, limit } = await adminService.getAllTags(req.query);
+    res.json(ApiResponse.paginated('Tags', tags, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createTag = async (req, res, next) => {
+  try {
+    const tag = await adminService.createTag(req.body, req.user.id, req.ip, req.headers['user-agent']);
+    res.status(201).json(ApiResponse.success('Tag created', tag));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateTag = async (req, res, next) => {
+  try {
+    const tag = await adminService.updateTag(req.params.tagId, req.body, req.user.id, req.ip, req.headers['user-agent']);
+    res.json(ApiResponse.success('Tag updated', tag));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteTag = async (req, res, next) => {
+  try {
+    await adminService.deleteTag(req.params.tagId, req.user.id, req.ip, req.headers['user-agent']);
+    res.json(ApiResponse.success('Tag deleted'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Merchant Category Management
+// ============================================================
+
+const getAllCategories = async (req, res, next) => {
+  try {
+    const { categories, total, page, limit } = await adminService.getAllCategories({
+      page: Number(req.query.page) || 1,
+      limit: Number(req.query.limit) || 50,
+      isActive: req.query.isActive,
+    });
+    res.json(ApiResponse.paginated('Categories', categories, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createCategory = async (req, res, next) => {
+  try {
+    const category = await adminService.createCategory(
+      req.body,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.status(201).json(ApiResponse.success('Category created', category));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateCategory = async (req, res, next) => {
+  try {
+    const category = await adminService.updateCategory(
+      req.params.categoryId,
+      req.body,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Category updated', category));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteCategory = async (req, res, next) => {
+  try {
+    const result = await adminService.deleteCategory(
+      req.params.categoryId,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(
+      ApiResponse.success(
+        result.soft ? 'Category deactivated (still used by merchants)' : 'Category deleted',
+        result,
+      ),
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const setMerchantTags = async (req, res, next) => {
+  try {
+    const tags = await adminService.setMerchantTags(
+      req.params.merchantId, req.body.tagIds, req.user.id, req.ip, req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Merchant tags updated', tags));
   } catch (error) {
     next(error);
   }
@@ -297,7 +492,9 @@ const getPendingWithdrawals = async (req, res, next) => {
 
 const approveWithdrawal = async (req, res, next) => {
   try {
-    const result = await adminService.approveWithdrawal(req.params.withdrawalId);
+    const result = await adminService.approveWithdrawal(
+      req.params.withdrawalId, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Withdrawal approved', result));
   } catch (error) {
     next(error);
@@ -306,7 +503,9 @@ const approveWithdrawal = async (req, res, next) => {
 
 const rejectWithdrawal = async (req, res, next) => {
   try {
-    const result = await adminService.rejectWithdrawal(req.params.withdrawalId, req.body.reason);
+    const result = await adminService.rejectWithdrawal(
+      req.params.withdrawalId, req.body.reason, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Withdrawal rejected', result));
   } catch (error) {
     next(error);
@@ -442,11 +641,26 @@ module.exports = {
   forceCancelRequest,
   adminUpdateRequestStatus,
   getAllMerchants,
+  getMerchantById,
   approveMerchant,
   rejectMerchant,
   suspendMerchant,
   unsuspendMerchant,
   updateMerchantCommission,
+  updateMerchantProfile,
+  getMerchantCommissionHistory,
+  setWithdrawalHold,
+  bulkApproveWithdrawals,
+  getMerchantAnalytics,
+  getAllTags,
+  createTag,
+  updateTag,
+  deleteTag,
+  getAllCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  setMerchantTags,
   getAllRiders,
   getRiderEarnings,
   getRiderDeliveryHistory,
@@ -474,4 +688,46 @@ module.exports = {
   getRiderRealtimeLocation,
   getSafetyIncidents,
   getComplianceReport,
+  getVtuPlans,
+  createVtuPlan,
+  updateVtuPlan,
+  deleteVtuPlan,
+  bulkCreateVtuPlans,
 };
+
+// ─── VTU Plan Controllers ─────────────────────────────────────────────────────
+
+async function getVtuPlans(req, res, next) {
+  try {
+    const result = await adminService.listVtuPlans(req.query);
+    res.json(ApiResponse.paginated('VTU plans', result.plans, result.page, result.limit, result.total));
+  } catch (error) { next(error); }
+}
+
+async function createVtuPlan(req, res, next) {
+  try {
+    const plan = await adminService.createVtuPlan(req.body);
+    res.status(201).json(ApiResponse.success('VTU plan created', plan));
+  } catch (error) { next(error); }
+}
+
+async function updateVtuPlan(req, res, next) {
+  try {
+    const plan = await adminService.updateVtuPlan(req.params.planId, req.body);
+    res.json(ApiResponse.success('VTU plan updated', plan));
+  } catch (error) { next(error); }
+}
+
+async function deleteVtuPlan(req, res, next) {
+  try {
+    await adminService.deleteVtuPlan(req.params.planId);
+    res.json(ApiResponse.success('VTU plan deleted'));
+  } catch (error) { next(error); }
+}
+
+async function bulkCreateVtuPlans(req, res, next) {
+  try {
+    const result = await adminService.bulkCreateVtuPlans(req.body.plans);
+    res.status(201).json(ApiResponse.success('VTU plans imported', result));
+  } catch (error) { next(error); }
+}

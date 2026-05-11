@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchAllRequests, reassignRider, forceCancelRequest, adminUpdateStatus } from '../store/slices/requestsSlice'
+import { fetchCategories } from '../store/slices/categoriesSlice'
 import { exportToCSV } from '../lib/exportToCSV'
 import { Search, Filter, MoreVertical, User, Store, Bike, Clock, DollarSign, CheckCircle, XCircle, X, MapPin, Phone, Mail, Download } from 'lucide-react'
 import Pagination from '../components/Pagination'
 
 const STATUS_COLORS = {
-  REQUESTED: 'bg-yellow-100 text-yellow-800',
+  REQUESTED: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
   ACCEPTED: 'bg-primary/10 text-primary',
-  RIDER_ASSIGNED: 'bg-purple-100 text-purple-800',
-  PICKED_UP: 'bg-indigo-100 text-indigo-800',
-  IN_TRANSIT: 'bg-cyan-100 text-cyan-800',
+  RIDER_ASSIGNED: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  PICKED_UP: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+  IN_TRANSIT: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300',
   DELIVERED: 'bg-success/10 text-success',
   CANCELLED: 'bg-error/10 text-error',
 }
@@ -18,9 +19,11 @@ const STATUS_COLORS = {
 export default function RequestsPage() {
   const dispatch = useDispatch()
   const { requests, total, page, loading } = useSelector((state) => state.requests)
+  const { list: categories } = useSelector((s) => s.categories)
   const [filters, setFilters] = useState({
     status: '',
     type: '',
+    categorySlug: '',
     startDate: '',
     endDate: '',
   })
@@ -35,7 +38,8 @@ export default function RequestsPage() {
 
   useEffect(() => {
     dispatch(fetchAllRequests({ page: 1, limit: 20 }))
-  }, [dispatch])
+    if (categories.length === 0) dispatch(fetchCategories({ limit: 200 }))
+  }, [dispatch, categories.length])
 
   const handleFilterChange = (key, value) => {
     setFilters({ ...filters, [key]: value })
@@ -103,61 +107,70 @@ export default function RequestsPage() {
     <div>
       <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Requests</h1>
 
-      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
-        <div className="flex gap-4 mb-4 flex-wrap justify-between items-center">
-          <div className="flex gap-4 flex-wrap">
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-          >
-            <option value="">All Statuses</option>
-            <option value="REQUESTED">Requested</option>
-            <option value="ACCEPTED">Accepted</option>
-            <option value="PROCESSING">Processing</option>
-            <option value="READY_FOR_PICKUP">Ready for Pickup</option>
-            <option value="RIDER_ASSIGNED">Rider Assigned</option>
-            <option value="IN_TRANSIT">In Transit</option>
-            <option value="DELIVERED">Delivered</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-          <select
-            value={filters.type}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-          >
-            <option value="">All Types</option>
-            <option value="FOOD">Food</option>
-            <option value="GROCERY">Grocery</option>
-            <option value="PHARMACY">Pharmacy</option>
-            <option value="PACKAGE">Package</option>
-          </select>
-          <input
-            type="date"
-            value={filters.startDate}
-            onChange={(e) => handleFilterChange('startDate', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-          />
-          <input
-            type="date"
-            value={filters.endDate}
-            onChange={(e) => handleFilterChange('endDate', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-          />
-          <button
-            onClick={handleSearch}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-          >
-            <Filter size={18} />
-            Apply Filters
-          </button>
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center lg:justify-between gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap gap-2 sm:gap-3 flex-1">
+            <select
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+              className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm w-full lg:w-auto"
+            >
+              <option value="">All Statuses</option>
+              <option value="REQUESTED">Requested</option>
+              <option value="ACCEPTED">Accepted</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="READY_FOR_PICKUP">Ready for Pickup</option>
+              <option value="RIDER_ASSIGNED">Rider Assigned</option>
+              <option value="IN_TRANSIT">In Transit</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+            <select
+              value={filters.type}
+              onChange={(e) => handleFilterChange('type', e.target.value)}
+              className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm w-full lg:w-auto"
+            >
+              <option value="">All Types</option>
+              <option value="MERCHANT_ORDER">Merchant Order</option>
+              <option value="PACKAGE">Package</option>
+            </select>
+            <select
+              value={filters.categorySlug}
+              onChange={(e) => handleFilterChange('categorySlug', e.target.value)}
+              disabled={filters.type === 'PACKAGE'}
+              className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none disabled:opacity-50 text-sm w-full lg:w-auto"
+            >
+              <option value="">All Categories</option>
+              {categories.filter((c) => c.isActive).map((c) => (
+                <option key={c.slug} value={c.slug}>{c.name}</option>
+              ))}
+            </select>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => handleFilterChange('startDate', e.target.value)}
+              className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm w-full lg:w-auto"
+            />
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => handleFilterChange('endDate', e.target.value)}
+              className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm w-full lg:w-auto"
+            />
+            <button
+              onClick={handleSearch}
+              className="col-span-2 sm:col-span-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm w-full lg:w-auto"
+            >
+              <Filter size={16} />
+              Apply
+            </button>
           </div>
           <button
             onClick={handleExportCSV}
             disabled={requests.length === 0}
-            className="px-6 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm w-full lg:w-auto"
           >
-            <Download size={18} />
+            <Download size={16} />
             Export CSV
           </button>
         </div>
@@ -262,16 +275,16 @@ export default function RequestsPage() {
 
       {/* Request Details Modal */}
       {showDetailsModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
-              <h2 className="text-xl font-bold text-text dark:text-dark-text">Request Details</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center sticky top-0 bg-surface dark:bg-dark-surface z-10">
+              <h2 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text">Request Details</h2>
               <button onClick={() => setShowDetailsModal(false)} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text">
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 sm:p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-sm text-muted dark:text-dark-muted">Request ID</p>
                   <p className="font-medium text-text dark:text-dark-text">#{selectedRequest.id.slice(-8)}</p>
@@ -395,18 +408,18 @@ export default function RequestsPage() {
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-surface-muted dark:border-dark-surface-muted flex flex-col sm:flex-row gap-2 sm:gap-3">
               {selectedRequest.status !== 'CANCELLED' && selectedRequest.status !== 'DELIVERED' && selectedRequest.status !== 'SETTLED' && (
                 <>
                   <button
                     onClick={() => { setShowReassignModal(true) }}
-                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto"
                   >
                     Reassign Rider
                   </button>
                   <button
                     onClick={() => { setShowCancelModal(true) }}
-                    className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors"
+                    className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors w-full sm:w-auto"
                   >
                     Force Cancel
                   </button>
@@ -414,7 +427,7 @@ export default function RequestsPage() {
               )}
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
+                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors w-full sm:w-auto sm:ml-auto"
               >
                 Close
               </button>
@@ -425,9 +438,9 @@ export default function RequestsPage() {
 
       {/* Cancel Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-text dark:text-dark-text mb-4">Cancel Request</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-md p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text mb-4">Cancel Request</h2>
             <p className="text-muted dark:text-dark-muted mb-4">Please provide a reason for cancelling this request:</p>
             <textarea
               value={cancelReason}
@@ -436,11 +449,11 @@ export default function RequestsPage() {
               rows="3"
               placeholder="Enter cancellation reason..."
             />
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={handleForceCancel}
                 disabled={!cancelReason.trim() || actionLoading === 'cancel'}
-                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full sm:w-auto px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actionLoading === 'cancel' ? (
                   <>
@@ -453,7 +466,7 @@ export default function RequestsPage() {
               </button>
               <button
                 onClick={() => { setShowCancelModal(false); setCancelReason('') }}
-                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
+                className="w-full sm:w-auto px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
               >
                 Cancel
               </button>
@@ -464,9 +477,9 @@ export default function RequestsPage() {
 
       {/* Reassign Rider Modal */}
       {showReassignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-text dark:text-dark-text mb-4">Reassign Rider</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-md p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text mb-4">Reassign Rider</h2>
             <p className="text-muted dark:text-dark-muted mb-4">Enter the new rider ID:</p>
             <input
               type="text"
@@ -475,11 +488,11 @@ export default function RequestsPage() {
               className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
               placeholder="Enter rider ID..."
             />
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={handleReassignRider}
                 disabled={!newRiderId.trim() || actionLoading === 'reassign'}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actionLoading === 'reassign' ? (
                   <>
@@ -492,7 +505,7 @@ export default function RequestsPage() {
               </button>
               <button
                 onClick={() => { setShowReassignModal(false); setNewRiderId('') }}
-                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
+                className="w-full sm:w-auto px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
               >
                 Cancel
               </button>

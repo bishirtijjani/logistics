@@ -5,7 +5,7 @@ import { Bike, User, Phone, Mail, DollarSign, Star, Clock, MoreVertical, Check, 
 import Pagination from '../components/Pagination'
 
 const STATUS_COLORS = {
-  PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800',
+  PENDING_APPROVAL: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
   APPROVED: 'bg-success/10 text-success',
   SUSPENDED: 'bg-error/10 text-error',
   REJECTED: 'bg-surface-muted text-muted',
@@ -68,12 +68,12 @@ export default function RidersPage() {
     <div>
       <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Riders Management</h1>
 
-      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
-        <div className="flex gap-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+            className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
           >
             <option value="">All Statuses</option>
             <option value="PENDING_APPROVAL">Pending Approval</option>
@@ -84,7 +84,7 @@ export default function RidersPage() {
           <select
             value={filters.availability}
             onChange={(e) => handleFilterChange('availability', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+            className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
           >
             <option value="">All Availability</option>
             <option value="ONLINE">Online</option>
@@ -93,7 +93,7 @@ export default function RidersPage() {
           </select>
           <button
             onClick={handleApplyFilters}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
           >
             Apply Filters
           </button>
@@ -204,31 +204,31 @@ export default function RidersPage() {
       )}
 
       {showDetailsModal && selectedRider && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bike size={24} className="text-primary" />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 sm:p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Bike size={22} className="text-primary" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-text dark:text-dark-text">
+                <div className="min-w-0">
+                  <h2 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text truncate">
                     {selectedRider.user?.firstName} {selectedRider.user?.lastName}
                   </h2>
-                  <p className="text-sm text-muted dark:text-dark-muted">Rider ID: {selectedRider.id.slice(-8)}</p>
+                  <p className="text-xs sm:text-sm text-muted dark:text-dark-muted">ID: {selectedRider.id.slice(-8)}</p>
                 </div>
               </div>
-              <button onClick={handleCloseModal} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text">
+              <button onClick={handleCloseModal} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text shrink-0 ml-2">
                 <CloseIcon size={24} />
               </button>
             </div>
 
-            <div className="border-b border-surface-muted dark:border-dark-surface-muted">
-              <div className="flex gap-4 px-6">
+            <div className="border-b border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
+              <div className="flex gap-2 sm:gap-4 px-4 sm:px-6">
                 <button
                   onClick={() => setActiveTab('details')}
-                  className={`px-4 py-3 font-medium border-b-2 transition-colors ${
-                    activeTab === 'details'
+                  className={`px-3 sm:px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab ==='details'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'
                   }`}
@@ -237,8 +237,8 @@ export default function RidersPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('earnings')}
-                  className={`px-4 py-3 font-medium border-b-2 transition-colors ${
-                    activeTab === 'earnings'
+                  className={`px-3 sm:px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab ==='earnings'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'
                   }`}
@@ -247,8 +247,8 @@ export default function RidersPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('deliveries')}
-                  className={`px-4 py-3 font-medium border-b-2 transition-colors ${
-                    activeTab === 'deliveries'
+                  className={`px-3 sm:px-4 py-3 font-medium text-sm border-b-2 transition-colors whitespace-nowrap ${
+                    activeTab ==='deliveries'
                       ? 'border-primary text-primary'
                       : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'
                   }`}
@@ -258,10 +258,10 @@ export default function RidersPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {activeTab === 'details' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
                       <p className="text-sm text-muted dark:text-dark-muted mb-1">Phone</p>
                       <p className="font-medium flex items-center gap-2">

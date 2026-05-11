@@ -328,6 +328,25 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {settings?.category && (
+              <div className="mb-6 flex items-center gap-3 rounded-lg border border-surface-muted dark:border-dark-surface-muted p-4">
+                <div
+                  className="w-10 h-10 rounded-lg flex-shrink-0"
+                  style={{ background: settings.category.color || '#7C3AED' }}
+                />
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-muted dark:text-dark-muted">
+                    Business Category
+                  </p>
+                  <p className="text-sm font-semibold text-text dark:text-dark-text">
+                    {settings.category.name}
+                  </p>
+                  <p className="text-xs text-muted dark:text-dark-muted">
+                    Contact admin to change your category.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Business Name</label>

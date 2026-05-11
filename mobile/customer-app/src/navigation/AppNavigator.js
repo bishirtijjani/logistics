@@ -1,9 +1,18 @@
-import React, { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSelector, useDispatch } from "react-redux";
-import { hydrateAuth } from "../store/slices/authSlice";
+import { Ionicons } from "@expo/vector-icons";
+import { hydrateAuth, logout } from "../store/slices/authSlice";
+import socketService from "../services/socket";
+import { subscribeToWalletSocket } from "../store/slices/walletSlice";
+import { fetchPublicSettings } from "../store/slices/settingsSlice";
+import {
+  isBiometricAvailable,
+  isBiometricEnabled,
+  authenticateWithBiometric,
+} from "../services/biometric";
 
 // Auth Screens
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -47,10 +56,20 @@ import RequestTrackingScreen from "../screens/request/RequestTrackingScreen";
 // Wallet Screens
 import FundWalletScreen from "../screens/wallet/FundWalletScreen";
 import TransactionHistoryScreen from "../screens/wallet/TransactionHistoryScreen";
+import SendMoneyScreen from "../screens/wallet/SendMoneyScreen";
+import WithdrawScreen from "../screens/wallet/WithdrawScreen";
+import SavedBeneficiariesScreen from "../screens/wallet/SavedBeneficiariesScreen";
+import ReceiptScreen from "../screens/wallet/ReceiptScreen";
+
+// Security / Sessions
+import SessionsScreen from "../screens/profile/SessionsScreen";
+import PhoneChangeScreen from "../screens/profile/PhoneChangeScreen";
 
 // Utility Screens
 import AirtimeScreen from "../screens/utility/AirtimeScreen";
 import DataScreen from "../screens/utility/DataScreen";
+import CableScreen from "../screens/utility/CableScreen";
+import ElectricityScreen from "../screens/utility/ElectricityScreen";
 import UtilityHistoryScreen from "../screens/utility/UtilityHistoryScreen";
 
 const Stack = createNativeStackNavigator();
@@ -59,9 +78,66 @@ export default function AppNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, isHydrating } = useSelector((state) => state.auth);
 
+  // Biometric gate states:
+  //   'pending'  — checking whether to prompt
+  //   'required' — user enabled biometrics; show locked screen + retry
+  //   'passed'   — authenticated this session; main UI may render
+  const [bioGate, setBioGate] = useState("pending");
+
   useEffect(() => {
     dispatch(hydrateAuth());
+    dispatch(fetchPublicSettings());
   }, [dispatch]);
+
+  // After hydration, decide whether the user must pass a biometric prompt
+  // before seeing the main UI. Skipped entirely for unauthenticated users
+  // (the auth flow is the gate in that case) and for devices without
+  // enrolled biometrics.
+  useEffect(() => {
+    if (isHydrating) return;
+    if (!isAuthenticated) {
+      setBioGate("passed");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [enabled, available] = await Promise.all([
+        isBiometricEnabled(),
+        isBiometricAvailable(),
+      ]);
+      if (cancelled) return;
+      if (!enabled || !available) {
+        setBioGate("passed");
+        return;
+      }
+      setBioGate("required");
+      const ok = await authenticateWithBiometric("Unlock VTU Logistics");
+      if (cancelled) return;
+      setBioGate(ok ? "passed" : "required");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isHydrating, isAuthenticated]);
+
+  const retryBiometric = async () => {
+    const ok = await authenticateWithBiometric("Unlock VTU Logistics");
+    if (ok) setBioGate("passed");
+  };
+
+  // Connect socket when authenticated AND past the biometric gate; otherwise
+  // disconnect so we don't keep a privileged socket open behind a lock.
+  useEffect(() => {
+    if (isAuthenticated && bioGate === "passed") {
+      socketService.connect();
+      const unsub = dispatch(subscribeToWalletSocket());
+      return () => {
+        if (typeof unsub === 'function') unsub();
+      };
+    } else {
+      socketService.disconnect();
+    }
+  }, [isAuthenticated, bioGate, dispatch]);
 
   if (isHydrating) {
     return (
@@ -74,6 +150,58 @@ export default function AppNavigator() {
         }}
       >
         <ActivityIndicator size="large" color="#EA580C" />
+      </View>
+    );
+  }
+
+  if (isAuthenticated && bioGate !== "passed") {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#f4f4f7",
+          paddingHorizontal: 32,
+        }}
+      >
+        <Ionicons name="finger-print" size={72} color="#EA580C" />
+        <Text style={{ marginTop: 24, fontSize: 22, fontWeight: "800", color: "#111827" }}>
+          Locked
+        </Text>
+        <Text
+          style={{
+            marginTop: 8,
+            fontSize: 14,
+            color: "#6B7280",
+            textAlign: "center",
+            lineHeight: 20,
+          }}
+        >
+          Authenticate with biometrics to continue.
+        </Text>
+        <TouchableOpacity
+          onPress={retryBiometric}
+          style={{
+            marginTop: 28,
+            backgroundColor: "#EA580C",
+            paddingVertical: 14,
+            paddingHorizontal: 32,
+            borderRadius: 14,
+          }}
+        >
+          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+            Use biometrics
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => dispatch(logout())}
+          style={{ marginTop: 16, paddingVertical: 10 }}
+        >
+          <Text style={{ color: "#6B7280", fontWeight: "600", fontSize: 14 }}>
+            Sign out instead
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -133,10 +261,20 @@ export default function AppNavigator() {
             {/* Wallet Screens */}
             <Stack.Screen name="FundWallet" component={FundWalletScreen} />
             <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
+            <Stack.Screen name="SendMoney" component={SendMoneyScreen} />
+            <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+            <Stack.Screen name="SavedBeneficiaries" component={SavedBeneficiariesScreen} />
+            <Stack.Screen name="Receipt" component={ReceiptScreen} />
+
+            {/* Security */}
+            <Stack.Screen name="Sessions" component={SessionsScreen} />
+            <Stack.Screen name="PhoneChange" component={PhoneChangeScreen} />
 
             {/* Utility Screens */}
             <Stack.Screen name="Airtime" component={AirtimeScreen} />
             <Stack.Screen name="Data" component={DataScreen} />
+            <Stack.Screen name="Cable" component={CableScreen} />
+            <Stack.Screen name="Electricity" component={ElectricityScreen} />
             <Stack.Screen name="UtilityHistory" component={UtilityHistoryScreen} />
           </>
         ) : (

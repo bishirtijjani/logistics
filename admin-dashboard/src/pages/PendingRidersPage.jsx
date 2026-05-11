@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchPendingRiders, reviewRider } from '../store/slices/pendingRidersSlice'
-import { Bike, UserCheck, Check, X, Search, Eye, Phone, Mail, Calendar, Shield, ShieldAlert } from 'lucide-react'
+import { Bike, UserCheck, Check, X, Search, Eye, Phone, Mail, Calendar, Shield, ShieldAlert, User, Clock, FileText } from 'lucide-react'
 import Pagination from '../components/Pagination'
 
 export default function PendingRidersPage() {
@@ -144,16 +144,16 @@ export default function PendingRidersPage() {
 
       {/* Rider Details Modal */}
       {showDetailsModal && selectedRider && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
-              <h2 className="text-xl font-bold text-text dark:text-dark-text">Rider Details</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center sticky top-0 bg-surface dark:bg-dark-surface z-10">
+              <h2 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text">Rider Details</h2>
               <button onClick={() => setShowDetailsModal(false)} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text">
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 sm:p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <p className="text-sm text-muted dark:text-dark-muted">Rider ID</p>
                   <p className="font-medium text-text dark:text-dark-text">#{selectedRider.id.slice(-8)}</p>
@@ -196,11 +196,11 @@ export default function PendingRidersPage() {
                 </div>
               )}
             </div>
-            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-surface-muted dark:border-dark-surface-muted flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={() => handleApprove(selectedRider.id)}
                 disabled={actionLoading === selectedRider.id}
-                className="flex-1 px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:flex-1 px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {actionLoading === selectedRider.id ? (
                   <>
@@ -217,7 +217,7 @@ export default function PendingRidersPage() {
               <button
                 onClick={() => handleReject(selectedRider.id)}
                 disabled={actionLoading === selectedRider.id}
-                className="flex-1 px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:flex-1 px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {actionLoading === selectedRider.id ? (
                   <>
@@ -233,7 +233,7 @@ export default function PendingRidersPage() {
               </button>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
+                className="w-full sm:w-auto px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
               >
                 Close
               </button>

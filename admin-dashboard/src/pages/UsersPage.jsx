@@ -10,7 +10,7 @@ import Pagination from '../components/Pagination'
 const ROLE_COLORS = {
   CUSTOMER: 'bg-primary/10 text-primary',
   MERCHANT: 'bg-success/10 text-success',
-  RIDER: 'bg-purple-100 text-purple-800',
+  RIDER: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
   ADMIN: 'bg-error/10 text-error',
 }
 
@@ -135,58 +135,63 @@ export default function UsersPage() {
     <div>
       <h1 className="text-2xl font-bold text-text dark:text-dark-text mb-6">Users Management</h1>
 
-      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6 mb-6">
-        <div className="flex gap-4 justify-between items-center">
-          <div className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              type="text"
-              placeholder="Search by name, email, or phone..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-            />
-          </div>
-          <select
-            value={filters.role}
-            onChange={(e) => handleFilterChange('role', e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-          >
-            <option value="">All Roles</option>
-            <option value="CUSTOMER">Customer</option>
-            <option value="MERCHANT">Merchant</option>
-            <option value="RIDER">Rider</option>
-            <option value="ADMIN">Admin</option>
-          </select>
-          </div>
-          {selectedUsers.length > 0 && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowBulkSuspendModal(true)}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2"
-              >
-                <ShieldAlert size={18} />
-                Bulk Suspend ({selectedUsers.length})
-              </button>
-              <button
-                onClick={handleBulkUnsuspend}
-                disabled={actionLoading === 'bulkUnsuspend'}
-                className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 flex items-center gap-2"
-              >
-                <Shield size={18} />
-                Bulk Unsuspend
-              </button>
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-3 lg:flex lg:gap-3 lg:flex-1">
+            <div className="relative lg:flex-1 lg:max-w-md">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <input
+                type="text"
+                placeholder="Search by name, email, or phone..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
             </div>
-          )}
-          <button
-            onClick={handleExportCSV}
-            disabled={users.length === 0}
-            className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            <Download size={18} />
-            Export CSV
-          </button>
+            <select
+              value={filters.role}
+              onChange={(e) => handleFilterChange('role', e.target.value)}
+              className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm w-full lg:w-auto"
+            >
+              <option value="">All Roles</option>
+              <option value="CUSTOMER">Customer</option>
+              <option value="MERCHANT">Merchant</option>
+              <option value="RIDER">Rider</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+          <div className="flex flex-wrap gap-2 lg:ml-auto">
+            {selectedUsers.length > 0 && (
+              <>
+                <button
+                  onClick={() => setShowBulkSuspendModal(true)}
+                  className="flex-1 sm:flex-none px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center justify-center gap-2 text-sm"
+                >
+                  <ShieldAlert size={16} />
+                  <span className="hidden sm:inline">Bulk Suspend</span>
+                  <span className="sm:hidden">Suspend</span>
+                  ({selectedUsers.length})
+                </button>
+                <button
+                  onClick={handleBulkUnsuspend}
+                  disabled={actionLoading === 'bulkUnsuspend'}
+                  className="flex-1 sm:flex-none px-3 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+                >
+                  <Shield size={16} />
+                  <span className="hidden sm:inline">Bulk Unsuspend</span>
+                  <span className="sm:hidden">Unsuspend</span>
+                </button>
+              </>
+            )}
+            <button
+              onClick={handleExportCSV}
+              disabled={users.length === 0}
+              className="flex-1 sm:flex-none px-3 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+            >
+              <Download size={16} />
+              <span>Export CSV</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -303,28 +308,28 @@ export default function UsersPage() {
 
       {/* Details Modal */}
       {showDetailsModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center">
-              <h2 className="text-xl font-bold text-text dark:text-dark-text">User Details</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-surface-muted dark:border-dark-surface-muted flex justify-between items-center sticky top-0 bg-surface dark:bg-dark-surface z-10">
+              <h2 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text">User Details</h2>
               <button onClick={() => setShowDetailsModal(false)} className="text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text">
                 <CloseIcon size={24} />
               </button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User size={32} className="text-primary" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <User size={28} className="text-primary" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-text dark:text-dark-text">
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-semibold text-text dark:text-dark-text truncate">
                     {selectedUser.firstName} {selectedUser.lastName}
                   </h3>
-                  <p className="text-muted dark:text-dark-muted">{selectedUser.email}</p>
+                  <p className="text-sm text-muted dark:text-dark-muted truncate">{selectedUser.email}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
                   <p className="text-sm text-muted dark:text-dark-muted mb-1">Phone</p>
                   <p className="font-medium flex items-center gap-2">
@@ -353,8 +358,8 @@ export default function UsersPage() {
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted">
-              <button onClick={() => setShowDetailsModal(false)} className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
+            <div className="p-4 sm:p-6 border-t border-surface-muted dark:border-dark-surface-muted">
+              <button onClick={() => setShowDetailsModal(false)} className="w-full sm:w-auto px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
                 Close
               </button>
             </div>
@@ -364,8 +369,8 @@ export default function UsersPage() {
 
       {/* Bulk Suspend Modal */}
       {showBulkSuspendModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md">
             <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Bulk Suspend Users</h3>
             <p className="text-sm text-muted dark:text-dark-muted mb-4">You are about to suspend {selectedUsers.length} user(s). Please provide a reason.</p>
             <textarea
@@ -375,14 +380,14 @@ export default function UsersPage() {
               className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
               rows={3}
             />
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowBulkSuspendModal(false); setSuspendReason(''); setSelectedUsers([]) }} className="px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+              <button onClick={() => { setShowBulkSuspendModal(false); setSuspendReason(''); setSelectedUsers([]) }} className="w-full sm:w-auto px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleBulkSuspend}
                 disabled={actionLoading === 'bulkSuspend'}
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {actionLoading === 'bulkSuspend' ? 'Suspending...' : 'Suspend All'}
               </button>
@@ -393,8 +398,8 @@ export default function UsersPage() {
 
       {/* Suspend Modal */}
       {showSuspendModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md">
             <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Suspend User</h3>
             <textarea
               value={suspendReason}
@@ -403,14 +408,14 @@ export default function UsersPage() {
               className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
               rows={3}
             />
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => { setShowSuspendModal(false); setSuspendReason(''); setSelectedUser(null) }} className="px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+              <button onClick={() => { setShowSuspendModal(false); setSuspendReason(''); setSelectedUser(null) }} className="w-full sm:w-auto px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
                 Cancel
               </button>
-              <button 
-                onClick={handleSuspend} 
-                disabled={!suspendReason.trim() || actionLoading === 'suspend'} 
-                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              <button
+                onClick={handleSuspend}
+                disabled={!suspendReason.trim() || actionLoading === 'suspend'}
+                className="w-full sm:w-auto px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actionLoading === 'suspend' ? (
                   <>

@@ -48,24 +48,24 @@ export default function SafetyPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Safety & Compliance</h1>
-        <button onClick={activeTab === 'compliance' ? fetchCompliance : fetchIncidents} className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">Safety & Compliance</h1>
+        <button onClick={activeTab === 'compliance' ? fetchCompliance : fetchIncidents} className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg w-full sm:w-auto flex items-center justify-center">
           <RefreshCw className="w-5 h-5" />
         </button>
       </div>
 
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 sm:gap-4 border-b overflow-x-auto">
         <button
           onClick={() => setActiveTab('compliance')}
-          className={`px-4 py-2 border-b-2 ${activeTab === 'compliance' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'compliance' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
         >
           <Shield className="w-4 h-4 inline mr-2" />
           Compliance Report
         </button>
         <button
           onClick={() => setActiveTab('incidents')}
-          className={`px-4 py-2 border-b-2 ${activeTab === 'incidents' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'incidents' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
         >
           <AlertTriangle className="w-4 h-4 inline mr-2" />
           Safety Incidents
@@ -73,7 +73,7 @@ export default function SafetyPage() {
       </div>
 
       {activeTab === 'compliance' && compliance ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-primary/10 rounded-lg">
@@ -113,24 +113,24 @@ export default function SafetyPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto">
             {['ALL', 'OPEN', 'INVESTIGATING', 'RESOLVED'].map(status => (
               <button
                 key={status}
                 onClick={() => setIncidentFilter(status)}
-                className={`px-3 py-1 rounded text-sm ${incidentFilter === status ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'}`}
+                className={`px-3 py-1 rounded text-sm whitespace-nowrap ${incidentFilter === status ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'}`}
               >
                 {status}
               </button>
             ))}
           </div>
-          <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted">
+          <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-surface-muted dark:bg-dark-surface-muted">
                   <tr>
                     <th className="px-4 py-3 text-left">ID</th>

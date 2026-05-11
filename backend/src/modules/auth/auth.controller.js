@@ -14,23 +14,30 @@ const register = async (req, res, next) => {
   try {
     const result = await authService.register(req.body);
 
-    // Auto-generate and send OTP upon successful registration
     const code = await authService.generateOtp(req.body.email);
+
     const emailService = require("../../services/email.service");
+    const termiiService = require("../../services/termii.service");
+
+    // Send via email always
     await emailService.sendOtpEmail(req.body.email, code);
 
-    // In development, include OTP in response for testing
+    // Send via SMS if phone provided
+    if (req.body.phone) {
+      termiiService.sendOtp(req.body.phone, code).catch((err) => {
+        require("../../utils/logger").logger.warn("SMS OTP failed (non-fatal)", { error: err.message });
+      });
+    }
+
     const isDev = process.env.NODE_ENV === "development";
     const responseData = isDev ? { ...result, devOtp: code } : result;
 
-    res
-      .status(200)
-      .json(
-        ApiResponse.success(
-          "Registration successful. Check your email for the verification code.",
-          responseData,
-        ),
-      );
+    res.status(200).json(
+      ApiResponse.success(
+        "Registration successful. Check your email for the verification code.",
+        responseData,
+      ),
+    );
   } catch (error) {
     next(error);
   }
@@ -63,10 +70,7 @@ const merchantRegister = async (req, res, next) => {
 
 const login = async (req, res, next) => {
   try {
-    const sessionMeta = {
-      ipAddress: req.ip,
-      deviceInfo: req.headers["user-agent"] || null,
-    };
+    const sessionMeta = extractSessionMeta(req);
     const result = await authService.login(req.body, sessionMeta);
     res.status(200).json(ApiResponse.success("Login successful", result));
   } catch (error) {
@@ -74,22 +78,41 @@ const login = async (req, res, next) => {
   }
 };
 
+/**
+ * Pull device-identifying fields from the request. Mobile clients should send
+ * `x-device-name`, `x-device-model`, and a meaningful User-Agent. Falls back
+ * gracefully when headers are absent (web logins, cURL).
+ */
+const extractSessionMeta = (req) => ({
+  ipAddress: req.ip,
+  userAgent: req.headers["user-agent"] || null,
+  deviceName: req.headers["x-device-name"] || null,
+  deviceModel: req.headers["x-device-model"] || null,
+  deviceInfo: req.headers["x-device-name"] || req.headers["user-agent"] || null,
+});
+
 const sendOtp = async (req, res, next) => {
   try {
-    // Enforce 60s cooldown for resend requests
     const code = await authService.generateOtp(req.body.email, {
       checkCooldown: true,
     });
 
     const emailService = require("../../services/email.service");
+    const termiiService = require("../../services/termii.service");
+
     await emailService.sendOtpEmail(req.body.email, code);
+
+    // Also SMS if phone supplied in body
+    if (req.body.phone) {
+      termiiService.sendOtp(req.body.phone, code).catch((err) => {
+        require("../../utils/logger").logger.warn("Resend SMS OTP failed", { error: err.message });
+      });
+    }
 
     const isDev = process.env.NODE_ENV === "development";
     const responseData = isDev ? { devOtp: code } : undefined;
 
-    res.json(
-      ApiResponse.success("OTP sent to your email address", responseData),
-    );
+    res.json(ApiResponse.success("OTP sent to your email address", responseData));
   } catch (error) {
     next(error);
   }
@@ -130,7 +153,7 @@ const verifyOtp = async (req, res, next) => {
 
 const refreshToken = async (req, res, next) => {
   try {
-    const tokens = await authService.refreshAccessToken(req.body.refreshToken);
+    const tokens = await authService.refreshAccessToken(req.body.refreshToken, extractSessionMeta(req));
     res.status(200).json(ApiResponse.success("Token refreshed", tokens));
   } catch (error) {
     next(error);
@@ -275,6 +298,53 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
+const listSessions = async (req, res, next) => {
+  try {
+    const currentToken = req.body.refreshToken || req.headers['x-refresh-token'] || '';
+    const sessions = await authService.listSessions(req.user.id, currentToken);
+    res.json(ApiResponse.success("Active sessions", sessions));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const revokeSession = async (req, res, next) => {
+  try {
+    await authService.revokeSession(req.user.id, req.params.sessionId);
+    res.json(ApiResponse.success("Session revoked"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const revokeOtherSessions = async (req, res, next) => {
+  try {
+    const currentToken = req.body.refreshToken || req.headers['x-refresh-token'] || '';
+    await authService.revokeOtherSessions(req.user.id, currentToken);
+    res.json(ApiResponse.success("All other sessions revoked"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const requestPhoneChange = async (req, res, next) => {
+  try {
+    const result = await authService.requestPhoneChange(req.user.id, req.body);
+    res.json(ApiResponse.success('OTP sent to new phone number', process.env.NODE_ENV !== 'production' ? { devOtp: result.code } : undefined));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const confirmPhoneChange = async (req, res, next) => {
+  try {
+    await authService.confirmPhoneChange(req.user.id, req.body);
+    res.json(ApiResponse.success('Phone number updated successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -291,9 +361,14 @@ module.exports = {
   updateProfilePicture,
   verifyBvn,
   logout,
+  listSessions,
+  revokeSession,
+  revokeOtherSessions,
   getNotificationPreferences,
   updateNotificationPreferences,
   getUploadSignature,
   deleteAccount,
   merchantRegister,
+  requestPhoneChange,
+  confirmPhoneChange,
 };

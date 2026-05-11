@@ -1,5 +1,9 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import { Toaster } from 'sonner'
+import api from './lib/api'
+import { setUser } from './store/slices/authSlice'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoginPage from './pages/LoginPage'
@@ -21,6 +25,9 @@ import SupportPage from './pages/SupportPage'
 import MarketingPage from './pages/MarketingPage'
 import RiderOperationsPage from './pages/RiderOperationsPage'
 import SafetyPage from './pages/SafetyPage'
+import MerchantAnalyticsPage from './pages/MerchantAnalyticsPage'
+import VtuPlansPage from './pages/VtuPlansPage'
+import CategoriesPage from './pages/CategoriesPage'
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('accessToken')
@@ -32,7 +39,27 @@ function ProtectedRoute({ children }) {
   return <>{children}</>
 }
 
+function useUserBootstrap() {
+  const dispatch = useDispatch()
+  const token = useSelector((s) => s.auth.token)
+  const user = useSelector((s) => s.auth.user)
+
+  useEffect(() => {
+    if (!token) return
+    // Revalidate profile on mount: fast path uses persisted user; this keeps it fresh + verifies the token.
+    api.get('/auth/profile')
+      .then((res) => {
+        const profile = res.data?.data || res.data
+        if (profile) dispatch(setUser(profile))
+      })
+      .catch(() => { /* 401 interceptor handles auth failures */ })
+  }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { user, token }
+}
+
 function App() {
+  useUserBootstrap()
   return (
     <ErrorBoundary>
       <Routes>
@@ -49,6 +76,8 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="requests" element={<RequestsPage />} />
           <Route path="merchants" element={<MerchantsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="merchants/:merchantId/analytics" element={<MerchantAnalyticsPage />} />
           <Route path="riders" element={<RidersPage />} />
           <Route path="pending-riders" element={<PendingRidersPage />} />
           <Route path="audit-logs" element={<AuditLogPage />} />
@@ -63,6 +92,7 @@ function App() {
           <Route path="marketing" element={<MarketingPage />} />
           <Route path="rider-operations" element={<RiderOperationsPage />} />
           <Route path="safety" element={<SafetyPage />} />
+          <Route path="vtu-plans" element={<VtuPlansPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

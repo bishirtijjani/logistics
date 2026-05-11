@@ -103,6 +103,16 @@ const updateNotificationPreferencesSchema = z.object({
   smsEnabled: z.boolean().optional(),
 });
 
+const requestPhoneChangeSchema = z.object({
+  newPhone: z.string().regex(/^0[789][01]\d{8}$/, 'Invalid Nigerian phone number'),
+  password: z.string().min(1),
+});
+
+const confirmPhoneChangeSchema = z.object({
+  newPhone: z.string().regex(/^0[789][01]\d{8}$/, 'Invalid Nigerian phone number'),
+  otp: z.string().length(6).regex(/^\d{6}$/, 'OTP must be 6 digits'),
+});
+
 const merchantRegisterSchema = z.object({
   email: z.string().email(),
   phone: z.string().regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
@@ -110,7 +120,7 @@ const merchantRegisterSchema = z.object({
   lastName: z.string().min(2).max(50),
   password: z.string().min(8).max(72),
   businessName: z.string().min(2).max(100),
-  businessType: z.enum(['RESTAURANT', 'RETAIL_STORE', 'GROCERY', 'PHARMACY']),
+  categoryId: z.string().uuid('categoryId must be a valid UUID'),
   businessPhone: z.string().min(10),
   businessEmail: z.string().email(),
   businessAddress: z.string().min(5),
@@ -136,4 +146,6 @@ module.exports = {
   updateProfilePictureSchema,
   updateNotificationPreferencesSchema,
   merchantRegisterSchema,
+  requestPhoneChangeSchema,
+  confirmPhoneChangeSchema,
 };

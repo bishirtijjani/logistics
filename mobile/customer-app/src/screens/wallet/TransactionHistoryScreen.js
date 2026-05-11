@@ -80,6 +80,7 @@ export default function TransactionHistoryScreen({ navigation }) {
 
     return (
       <TouchableOpacity
+        onPress={() => navigation.navigate("Receipt", { transaction: item })}
         style={{
           flexDirection: "row",
           alignItems: "center",

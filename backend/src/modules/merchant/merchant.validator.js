@@ -4,7 +4,6 @@
 
 const { z } = require('zod');
 
-const MERCHANT_TYPES = ['RESTAURANT', 'GROCERY', 'PHARMACY'];
 const MERCHANT_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTED'];
 
 // ============================================================
@@ -12,7 +11,7 @@ const MERCHANT_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTE
 // ============================================================
 
 const createMerchantSchema = z.object({
-  type: z.enum(MERCHANT_TYPES),
+  categoryId: z.string().uuid('categoryId must be a valid UUID'),
   name: z.string().min(2, 'Merchant name is required'),
   description: z.string().optional(),
   phone: z.string().min(10, 'Valid phone number is required'),
@@ -51,7 +50,8 @@ const updateMerchantSchema = z.object({
 // ============================================================
 
 const listMerchantsSchema = z.object({
-  type: z.enum(MERCHANT_TYPES).optional(),
+  categoryId: z.string().uuid().optional(),
+  categorySlug: z.string().min(1).optional(),
   status: z.enum(MERCHANT_STATUSES).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
@@ -166,7 +166,6 @@ module.exports = {
   listMerchantsSchema,
   toggleMerchantStatusSchema,
   updateCommissionSchema,
-  MERCHANT_TYPES,
   MERCHANT_STATUSES,
   // Merchant dashboard schemas
   updateMerchantProfileSchema,

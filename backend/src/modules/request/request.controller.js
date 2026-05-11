@@ -32,22 +32,19 @@ const getRequests = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const role = req.user.role;
-    const { type, status, page, limit } = req.query;
-    
+    const { type, status, categoryId, categorySlug, page, limit } = req.query;
+
     const result = await requestService.getRequests(userId, role, {
       type,
       status,
+      categoryId,
+      categorySlug,
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
     });
     
     res.json(
-      ApiResponse.success('Requests retrieved', result.data, {
-        page: result.page,
-        limit: result.limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / result.limit),
-      })
+      ApiResponse.paginated('Requests retrieved', result.requests, result.page, result.limit, result.total)
     );
   } catch (error) {
     next(error);
@@ -154,11 +151,13 @@ const rateRequest = async (req, res, next) => {
 
 const getAllRequestsAdmin = async (req, res, next) => {
   try {
-    const { type, status, page, limit, startDate, endDate, customerId, merchantId, riderId } = req.query;
-    
+    const { type, status, categoryId, categorySlug, page, limit, startDate, endDate, customerId, merchantId, riderId } = req.query;
+
     const result = await requestService.getAllRequestsAdmin({
       type,
       status,
+      categoryId,
+      categorySlug,
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
       startDate,
@@ -229,8 +228,35 @@ const adminUpdateStatus = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// Quote (Estimate)
+// ============================================================
+
+const getQuote = async (req, res, next) => {
+  try {
+    const { type, pickupLat, pickupLng, dropoffLat, dropoffLng } = req.query;
+
+    if (!pickupLat || !pickupLng || !dropoffLat || !dropoffLng) {
+      return res.status(400).json(ApiResponse.error('Pickup and dropoff coordinates required'));
+    }
+
+    const pricing = await requestService.calculatePricing({
+      type: type || 'PACKAGE',
+      pickupLat: parseFloat(pickupLat),
+      pickupLng: parseFloat(pickupLng),
+      dropoffLat: parseFloat(dropoffLat),
+      dropoffLng: parseFloat(dropoffLng),
+    });
+
+    res.json(ApiResponse.success('Quote calculated', pricing));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createRequest,
+  getQuote,
   getRequests,
   getRequestById,
   updateStatus,

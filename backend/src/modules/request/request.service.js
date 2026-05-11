@@ -10,6 +10,8 @@ const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const { config } = require('../../config');
+const { getSetting } = require('../../services/settings.service');
+const { TRANSITIONS: UNIFIED_TRANSITIONS, canTransition: canTransitionStatus, STATUS } = require('../../utils/status');
 const mapsService = require('../../services/maps.service');
 const { requestQueue } = require('../../queues');
 const { REQUEST_JOBS } = require('../../queues/jobs');
@@ -25,24 +27,13 @@ const {
   emitCancelled,
 } = require('../../sockets/handlers/request.handler');
 const notificationService = require('../../services/notification.service');
+const { verifyTransactionPin } = require('../auth/auth.service');
 
 // ============================================================
-// Status Transition Map
+// Status Transition Map (sourced from utils/status — single source of truth)
 // ============================================================
 
-const REQUEST_TRANSITIONS = {
-  REQUESTED: ['ACCEPTED', 'CANCELLED'],
-  ACCEPTED: ['PROCESSING', 'CANCELLED'],
-  PROCESSING: ['READY_FOR_PICKUP', 'CANCELLED'],
-  READY_FOR_PICKUP: ['RIDER_ASSIGNED', 'CANCELLED'],
-  RIDER_ASSIGNED: ['RIDER_EN_ROUTE', 'CANCELLED'],
-  RIDER_EN_ROUTE: ['PICKED_UP', 'CANCELLED'],
-  PICKED_UP: ['IN_TRANSIT'],
-  IN_TRANSIT: ['DELIVERED'],
-  DELIVERED: ['SETTLED'],
-  SETTLED: [],
-  CANCELLED: [],
-};
+const REQUEST_TRANSITIONS = UNIFIED_TRANSITIONS;
 
 // ============================================================
 // Calculate Pricing
@@ -50,7 +41,7 @@ const REQUEST_TRANSITIONS = {
 
 const calculatePricing = async (requestData) => {
   const { type, items, package: packageDetails, pickupLat, pickupLng, dropoffLat, dropoffLng } = requestData;
-  
+
   // Get distance from Google Maps
   const distanceResult = await mapsService.getDistance(
     pickupLat,
@@ -58,17 +49,16 @@ const calculatePricing = async (requestData) => {
     dropoffLat,
     dropoffLng
   );
-  
+
   const distanceKm = distanceResult.distanceKm;
   const estimatedMinutes = Math.ceil(distanceResult.durationSeconds / 60);
-  
-  // Calculate delivery fee
-  const baseFare = config.DELIVERY_BASE_FARE || 500;
-  const perKmRate = config.DELIVERY_PER_KM_RATE || 100;
+
+  // Fees from platform settings (fall back to config/hardcoded defaults)
+  const baseFare = Number(await getSetting('delivery.baseFare', config.DELIVERY_BASE_FARE || 500));
+  const perKmRate = Number(await getSetting('delivery.perKmRate', config.DELIVERY_PER_KM_RATE || 100));
   const deliveryFee = Math.ceil((baseFare + distanceKm * perKmRate) / 10) * 10;
-  
-  // Calculate platform fee on delivery
-  const platformDeliveryFeePercent = config.DELIVERY_PLATFORM_FEE_PERCENT || 30;
+
+  const platformDeliveryFeePercent = Number(await getSetting('delivery.platformFeePercent', config.DELIVERY_PLATFORM_FEE_PERCENT || 30));
   const platformDeliveryFee = Math.ceil((deliveryFee * platformDeliveryFeePercent) / 100);
   
   // Calculate subtotal (for food/grocery/pharmacy)
@@ -81,7 +71,7 @@ const calculatePricing = async (requestData) => {
   }
   
   // Calculate platform fee on subtotal (if applicable)
-  const platformItemFeePercent = config.ITEM_PLATFORM_FEE_PERCENT || 15;
+  const platformItemFeePercent = Number(await getSetting('merchant.platformFeePercent', 15));
   const platformItemFee = subtotal > 0 ? Math.ceil((subtotal * platformItemFeePercent) / 100) : 0;
   
   const platformFee = platformItemFee + platformDeliveryFee;
@@ -110,8 +100,16 @@ const calculatePricing = async (requestData) => {
 // ============================================================
 
 const createRequest = async (customerId, requestData) => {
-  const { type, merchantId, items, package: packageDetails, ...locationData } = requestData;
-  
+  const { type: providedType, merchantId, items, package: packageDetails, pin, ...locationData } = requestData;
+
+  // Server infers type from payload shape if not explicitly provided.
+  const type = providedType || (merchantId ? 'MERCHANT_ORDER' : 'PACKAGE');
+
+  // Verify transaction PIN (required for wallet deduction)
+  if (pin) {
+    await verifyTransactionPin(customerId, pin);
+  }
+
   // Check customer has sufficient balance
   const wallet = await prisma.wallet.findUnique({ where: { userId: customerId } });
   if (!wallet) throw AppError.notFound('Wallet not found');
@@ -186,33 +184,40 @@ const createRequest = async (customerId, requestData) => {
       });
     }
     
-    // Debit customer wallet
+    // Debit customer wallet into escrow hold
+    const reference = `REQ-${newRequest.id}-${uuidv4().slice(0, 8)}`;
+    const escrowRef = `${reference}-ESCROW`;
+
     await tx.wallet.update({
       where: { id: wallet.id },
       data: { balance: { decrement: pricing.total } },
     });
-    
-    // Create transaction record
-    const reference = `REQ-${newRequest.id}-${uuidv4().slice(0, 8)}`;
+
+    // Credit escrow system wallet
+    await tx.systemWallet.update({
+      where: { id: 'PLATFORM_ESCROW' },
+      data: { balance: { increment: pricing.total } },
+    });
+
     await tx.transaction.create({
       data: {
-        reference,
-        type: 'REQUEST_PAYMENT',
+        reference: escrowRef,
+        type: 'ESCROW_HOLD',
         status: 'COMPLETED',
         amount: pricing.total,
         fee: 0,
-        description: `Payment for request ${newRequest.id}`,
+        description: `Escrow hold for request ${newRequest.id}`,
         debitWalletId: wallet.id,
         balanceBefore: Number(wallet.balance),
         balanceAfter: Number(wallet.balance) - pricing.total,
         metadata: { requestId: newRequest.id },
       },
     });
-    
-    // Update request with transaction ID
+
+    // Update request with escrow transaction ID
     await tx.request.update({
       where: { id: newRequest.id },
-      data: { transactionId: reference },
+      data: { transactionId: escrowRef, escrowTransactionId: escrowRef },
     });
     
     return newRequest;
@@ -265,8 +270,7 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
   if (!request) throw AppError.notFound('Request not found');
   
   // Enforce valid transitions
-  const allowedTransitions = REQUEST_TRANSITIONS[request.status];
-  if (!allowedTransitions || !allowedTransitions.includes(newStatus)) {
+  if (!canTransitionStatus(request.status, newStatus)) {
     throw AppError.badRequest(
       `Invalid status transition: ${request.status} → ${newStatus}`
     );
@@ -402,13 +406,16 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
 // Get Requests
 // ============================================================
 
-const getRequests = async (userId, role, { page, limit, type, status }) => {
+const getRequests = async (userId, role, { page, limit, type, status, categoryId, categorySlug }) => {
+  const statuses = status ? status.split(',').map((s) => s.trim()).filter(Boolean) : null;
   const where = {
     ...(role === 'CUSTOMER' ? { customerId: userId } : {}),
     ...(role === 'RIDER' ? { riderId: userId } : {}),
     ...(role === 'MERCHANT' ? { merchantId: userId } : {}),
     ...(type && { type }),
-    ...(status && { status }),
+    ...(categoryId && { merchant: { is: { categoryId } } }),
+    ...(categorySlug && { merchant: { is: { category: { is: { slug: categorySlug } } } } }),
+    ...(statuses && statuses.length > 0 && { status: { in: statuses } }),
   };
   
   const [requests, total] = await Promise.all([
@@ -418,7 +425,7 @@ const getRequests = async (userId, role, { page, limit, type, status }) => {
       skip: (page - 1) * limit,
       take: limit,
       include: {
-        merchant: { select: { id: true, name: true, type: true } },
+        merchant: { select: { id: true, name: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } } },
         rider: { select: { id: true, vehicleType: true, plateNumber: true, averageRating: true } },
         rating: true,
       },
@@ -433,13 +440,15 @@ const getRequests = async (userId, role, { page, limit, type, status }) => {
 // Admin Functions
 // ============================================================
 
-const getAllRequestsAdmin = async ({ page, limit, type, status, startDate, endDate, customerId, merchantId, riderId }) => {
+const getAllRequestsAdmin = async ({ page, limit, type, status, categoryId, categorySlug, startDate, endDate, customerId, merchantId, riderId }) => {
   const where = {
     ...(type && { type }),
     ...(status && { status }),
     ...(customerId && { customerId }),
     ...(merchantId && { merchantId }),
     ...(riderId && { riderId }),
+    ...(categoryId && { merchant: { is: { categoryId } } }),
+    ...(categorySlug && { merchant: { is: { category: { is: { slug: categorySlug } } } } }),
     ...(startDate && { createdAt: { gte: new Date(startDate) } }),
     ...(endDate && { createdAt: { lte: new Date(endDate) } }),
   };
@@ -452,7 +461,7 @@ const getAllRequestsAdmin = async ({ page, limit, type, status, startDate, endDa
       take: limit,
       include: {
         customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        merchant: { select: { id: true, name: true, phone: true, type: true } },
+        merchant: { select: { id: true, name: true, phone: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } } },
         rider: {
           select: {
             id: true,
@@ -596,19 +605,7 @@ const adminUpdateStatus = async (requestId, newStatus, adminId) => {
 
   if (!request) throw new Error('Request not found');
 
-  const validTransitions = {
-    REQUESTED: ['ACCEPTED', 'CANCELLED'],
-    ACCEPTED: ['PROCESSING', 'CANCELLED'],
-    PROCESSING: ['READY_FOR_PICKUP', 'CANCELLED'],
-    READY_FOR_PICKUP: ['RIDER_ASSIGNED', 'CANCELLED'],
-    RIDER_ASSIGNED: ['RIDER_EN_ROUTE', 'CANCELLED'],
-    RIDER_EN_ROUTE: ['PICKED_UP', 'CANCELLED'],
-    PICKED_UP: ['IN_TRANSIT'],
-    IN_TRANSIT: ['DELIVERED'],
-    DELIVERED: ['SETTLED'],
-  };
-
-  if (!validTransitions[request.status]?.includes(newStatus)) {
+  if (!canTransitionStatus(request.status, newStatus)) {
     throw new Error(`Invalid status transition from ${request.status} to ${newStatus}`);
   }
 
@@ -642,7 +639,7 @@ const getRequestById = async (requestId, userId, role) => {
     where: { id: requestId },
     include: {
       customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-      merchant: { select: { id: true, name: true, phone: true, address: true, type: true } },
+      merchant: { select: { id: true, name: true, phone: true, address: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } } },
       rider: {
         select: {
           id: true,

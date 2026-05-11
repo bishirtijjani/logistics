@@ -1,16 +1,29 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
+// ============================================================
+// Merchants CRUD
+// ============================================================
+
 export const fetchAllMerchants = createAsyncThunk(
   'merchants/fetchAll',
-  async ({ page, limit, type, status }) => {
+  async ({ page, limit, categoryId, categorySlug, status } = {}) => {
     const params = new URLSearchParams({
       page: page || 1,
       limit: limit || 20,
-      ...(type && { type }),
+      ...(categoryId && { categoryId }),
+      ...(categorySlug && { categorySlug }),
       ...(status && { status }),
     })
     const response = await api.get(`/admin/merchants?${params}`)
+    return response.data
+  }
+)
+
+export const fetchMerchantById = createAsyncThunk(
+  'merchants/fetchById',
+  async (merchantId) => {
+    const response = await api.get(`/admin/merchants/${merchantId}`)
     return response.data.data
   }
 )
@@ -49,8 +62,16 @@ export const unsuspendMerchant = createAsyncThunk(
 
 export const updateMerchantCommission = createAsyncThunk(
   'merchants/updateCommission',
-  async ({ merchantId, commissionRate }) => {
-    const response = await api.patch(`/admin/merchants/${merchantId}/commission`, { commissionRate })
+  async ({ merchantId, commissionRate, reason }) => {
+    const response = await api.patch(`/admin/merchants/${merchantId}/commission`, { commissionRate, reason })
+    return response.data.data
+  }
+)
+
+export const updateMerchantProfile = createAsyncThunk(
+  'merchants/updateProfile',
+  async ({ merchantId, ...data }) => {
+    const response = await api.put(`/admin/merchants/${merchantId}`, data)
     return response.data.data
   }
 )
@@ -58,7 +79,9 @@ export const updateMerchantCommission = createAsyncThunk(
 export const createMerchant = createAsyncThunk(
   'merchants/create',
   async (merchantData) => {
-    const response = await api.post('/admin/merchants', merchantData)
+    // POST /merchants is the admin-only create route (authorize('ADMIN') in merchant.routes.js).
+    // /admin/merchants is for listing/managing existing merchants only.
+    const response = await api.post('/merchants', merchantData)
     return response.data.data
   }
 )
@@ -66,23 +89,203 @@ export const createMerchant = createAsyncThunk(
 export const deleteMerchant = createAsyncThunk(
   'merchants/delete',
   async (merchantId) => {
-    const response = await api.delete(`/admin/merchants/${merchantId}`)
+    await api.delete(`/admin/merchants/${merchantId}`)
     return merchantId
   }
 )
 
+// ============================================================
+// Commission History
+// ============================================================
+
+export const fetchCommissionHistory = createAsyncThunk(
+  'merchants/fetchCommissionHistory',
+  async ({ merchantId, page = 1, limit = 20 }) => {
+    const params = new URLSearchParams({ page, limit })
+    const response = await api.get(`/admin/merchants/${merchantId}/commission-history?${params}`)
+    return response.data
+  }
+)
+
+// ============================================================
+// Withdrawal Hold
+// ============================================================
+
+export const setWithdrawalHold = createAsyncThunk(
+  'merchants/setWithdrawalHold',
+  async ({ merchantId, held, reason }) => {
+    const response = await api.patch(`/admin/merchants/${merchantId}/withdrawal-hold`, { held, reason })
+    return { merchantId, wallet: response.data.data }
+  }
+)
+
+// ============================================================
+// Per-Merchant Analytics
+// ============================================================
+
+export const fetchMerchantAnalytics = createAsyncThunk(
+  'merchants/fetchAnalytics',
+  async ({ merchantId, startDate, endDate, period } = {}) => {
+    const params = new URLSearchParams({
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+      ...(period && { period }),
+    })
+    const response = await api.get(`/admin/merchants/${merchantId}/analytics?${params}`)
+    return response.data.data
+  }
+)
+
+// ============================================================
+// Tags
+// ============================================================
+
+export const fetchAllTags = createAsyncThunk(
+  'merchants/fetchTags',
+  async ({ page = 1, limit = 100, category, isActive } = {}) => {
+    const params = new URLSearchParams({
+      page, limit,
+      ...(category && { category }),
+      ...(isActive !== undefined && { isActive }),
+    })
+    const response = await api.get(`/admin/tags?${params}`)
+    return response.data
+  }
+)
+
+export const createTag = createAsyncThunk(
+  'merchants/createTag',
+  async (tagData) => {
+    const response = await api.post('/admin/tags', tagData)
+    return response.data.data
+  }
+)
+
+export const updateTag = createAsyncThunk(
+  'merchants/updateTag',
+  async ({ tagId, ...data }) => {
+    const response = await api.put(`/admin/tags/${tagId}`, data)
+    return response.data.data
+  }
+)
+
+export const deleteTag = createAsyncThunk(
+  'merchants/deleteTag',
+  async (tagId) => {
+    await api.delete(`/admin/tags/${tagId}`)
+    return tagId
+  }
+)
+
+export const setMerchantTags = createAsyncThunk(
+  'merchants/setMerchantTags',
+  async ({ merchantId, tagIds }) => {
+    const response = await api.post(`/admin/merchants/${merchantId}/tags`, { tagIds })
+    return { merchantId, tags: response.data.data }
+  }
+)
+
+// ============================================================
+// Withdrawals
+// ============================================================
+
+export const fetchPendingWithdrawals = createAsyncThunk(
+  'merchants/fetchPendingWithdrawals',
+  async ({ page = 1, limit = 20 } = {}) => {
+    const params = new URLSearchParams({ page, limit })
+    const response = await api.get(`/admin/withdrawals/pending?${params}`)
+    return response.data
+  }
+)
+
+export const fetchWithdrawalHistory = createAsyncThunk(
+  'merchants/fetchWithdrawalHistory',
+  async ({ page = 1, limit = 20, status, startDate, endDate } = {}) => {
+    const params = new URLSearchParams({
+      page, limit,
+      ...(status && { status }),
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+    })
+    const response = await api.get(`/admin/withdrawals/history?${params}`)
+    return response.data
+  }
+)
+
+export const approveWithdrawal = createAsyncThunk(
+  'merchants/approveWithdrawal',
+  async (withdrawalId) => {
+    const response = await api.patch(`/admin/withdrawals/${withdrawalId}/approve`)
+    return response.data.data
+  }
+)
+
+export const rejectWithdrawal = createAsyncThunk(
+  'merchants/rejectWithdrawal',
+  async ({ withdrawalId, reason }) => {
+    const response = await api.patch(`/admin/withdrawals/${withdrawalId}/reject`, { reason })
+    return response.data.data
+  }
+)
+
+export const bulkApproveWithdrawals = createAsyncThunk(
+  'merchants/bulkApproveWithdrawals',
+  async (withdrawalIds) => {
+    const response = await api.post('/admin/withdrawals/bulk-approve', { withdrawalIds })
+    return response.data.data
+  }
+)
+
+// ============================================================
+// Slice
+// ============================================================
+
 const merchantsSlice = createSlice({
   name: 'merchants',
   initialState: {
+    // Merchant list
     merchants: [],
     total: 0,
     page: 1,
     limit: 20,
     loading: false,
     error: null,
+
+    // Selected merchant detail
+    selectedMerchant: null,
+    selectedMerchantLoading: false,
+
+    // Commission history
+    commissionHistory: [],
+    commissionHistoryTotal: 0,
+    commissionHistoryLoading: false,
+
+    // Analytics
+    merchantAnalytics: null,
+    analyticsLoading: false,
+
+    // Tags
+    tags: [],
+    tagsTotal: 0,
+    tagsLoading: false,
+
+    // Withdrawals
+    pendingWithdrawals: [],
+    pendingWithdrawalsTotal: 0,
+    withdrawalHistory: [],
+    withdrawalHistoryTotal: 0,
+    withdrawalsLoading: false,
   },
-  reducers: {},
+  reducers: {
+    clearSelectedMerchant(state) {
+      state.selectedMerchant = null
+    },
+    clearMerchantAnalytics(state) {
+      state.merchantAnalytics = null
+    },
+  },
   extraReducers: (builder) => {
+    // ── Merchant list ──
     builder
       .addCase(fetchAllMerchants.pending, (state) => {
         state.loading = true
@@ -90,54 +293,152 @@ const merchantsSlice = createSlice({
       })
       .addCase(fetchAllMerchants.fulfilled, (state, action) => {
         state.loading = false
-        state.merchants = action.payload
-        state.total = action.meta?.total || 0
-        state.page = action.meta?.page || 1
-        state.limit = action.meta?.limit || 20
+        const payload = action.payload
+        // Handle both {data: [...]} and paginated {data: {items, total, page, limit}}
+        if (Array.isArray(payload.data)) {
+          state.merchants = payload.data
+          state.total = payload.meta?.total || payload.data.length
+          state.page = payload.meta?.page || 1
+          state.limit = payload.meta?.limit || 20
+        } else {
+          state.merchants = payload.data?.items || payload.data || []
+          state.total = payload.meta?.total || 0
+          state.page = payload.meta?.page || 1
+          state.limit = payload.meta?.limit || 20
+        }
       })
       .addCase(fetchAllMerchants.rejected, (state, action) => {
         state.loading = false
         state.error = action.error.message
       })
-      .addCase(approveMerchant.fulfilled, (state, action) => {
-        const index = state.merchants.findIndex((p) => p.id === action.payload.id)
-        if (index !== -1) {
-          state.merchants[index] = action.payload
-        }
+
+    // ── Single merchant ──
+    builder
+      .addCase(fetchMerchantById.pending, (state) => { state.selectedMerchantLoading = true })
+      .addCase(fetchMerchantById.fulfilled, (state, action) => {
+        state.selectedMerchantLoading = false
+        state.selectedMerchant = action.payload
       })
-      .addCase(rejectMerchant.fulfilled, (state, action) => {
-        const index = state.merchants.findIndex((p) => p.id === action.payload.id)
-        if (index !== -1) {
-          state.merchants[index] = action.payload
-        }
-      })
-      .addCase(suspendMerchant.fulfilled, (state, action) => {
-        const index = state.merchants.findIndex((p) => p.id === action.payload.id)
-        if (index !== -1) {
-          state.merchants[index] = action.payload
-        }
-      })
-      .addCase(unsuspendMerchant.fulfilled, (state, action) => {
-        const index = state.merchants.findIndex((p) => p.id === action.payload.id)
-        if (index !== -1) {
-          state.merchants[index] = action.payload
-        }
-      })
-      .addCase(updateMerchantCommission.fulfilled, (state, action) => {
-        const index = state.merchants.findIndex((p) => p.id === action.payload.id)
-        if (index !== -1) {
-          state.merchants[index] = action.payload
-        }
-      })
+      .addCase(fetchMerchantById.rejected, (state) => { state.selectedMerchantLoading = false })
+
+    // ── In-place merchant updates ──
+    const patchMerchant = (state, action) => {
+      if (!action.payload) return
+      const idx = state.merchants.findIndex((m) => m.id === action.payload.id)
+      if (idx !== -1) state.merchants[idx] = { ...state.merchants[idx], ...action.payload }
+      if (state.selectedMerchant?.id === action.payload.id) {
+        state.selectedMerchant = { ...state.selectedMerchant, ...action.payload }
+      }
+    }
+
+    builder
+      .addCase(approveMerchant.fulfilled, patchMerchant)
+      .addCase(rejectMerchant.fulfilled, patchMerchant)
+      .addCase(suspendMerchant.fulfilled, patchMerchant)
+      .addCase(unsuspendMerchant.fulfilled, patchMerchant)
+      .addCase(updateMerchantCommission.fulfilled, patchMerchant)
+      .addCase(updateMerchantProfile.fulfilled, patchMerchant)
+
+    builder
       .addCase(createMerchant.fulfilled, (state, action) => {
-        state.merchants.unshift(action.payload)
-        state.total += 1
+        if (action.payload) {
+          state.merchants.unshift(action.payload)
+          state.total += 1
+        }
       })
       .addCase(deleteMerchant.fulfilled, (state, action) => {
         state.merchants = state.merchants.filter((m) => m.id !== action.payload)
-        state.total -= 1
+        state.total = Math.max(0, state.total - 1)
+      })
+
+    // ── Commission history ──
+    builder
+      .addCase(fetchCommissionHistory.pending, (state) => { state.commissionHistoryLoading = true })
+      .addCase(fetchCommissionHistory.fulfilled, (state, action) => {
+        state.commissionHistoryLoading = false
+        state.commissionHistory = action.payload.data || []
+        state.commissionHistoryTotal = action.payload.meta?.total || 0
+      })
+      .addCase(fetchCommissionHistory.rejected, (state) => { state.commissionHistoryLoading = false })
+
+    // ── Analytics ──
+    builder
+      .addCase(fetchMerchantAnalytics.pending, (state) => { state.analyticsLoading = true })
+      .addCase(fetchMerchantAnalytics.fulfilled, (state, action) => {
+        state.analyticsLoading = false
+        state.merchantAnalytics = action.payload
+      })
+      .addCase(fetchMerchantAnalytics.rejected, (state) => { state.analyticsLoading = false })
+
+    // ── Tags ──
+    builder
+      .addCase(fetchAllTags.pending, (state) => { state.tagsLoading = true })
+      .addCase(fetchAllTags.fulfilled, (state, action) => {
+        state.tagsLoading = false
+        state.tags = action.payload.data || []
+        state.tagsTotal = action.payload.meta?.total || 0
+      })
+      .addCase(fetchAllTags.rejected, (state) => { state.tagsLoading = false })
+      .addCase(createTag.fulfilled, (state, action) => {
+        if (action.payload) state.tags.unshift(action.payload)
+      })
+      .addCase(updateTag.fulfilled, (state, action) => {
+        if (!action.payload) return
+        const idx = state.tags.findIndex((t) => t.id === action.payload.id)
+        if (idx !== -1) state.tags[idx] = action.payload
+      })
+      .addCase(deleteTag.fulfilled, (state, action) => {
+        state.tags = state.tags.filter((t) => t.id !== action.payload)
+      })
+      .addCase(setMerchantTags.fulfilled, (state, action) => {
+        const { merchantId, tags } = action.payload
+        const idx = state.merchants.findIndex((m) => m.id === merchantId)
+        if (idx !== -1) state.merchants[idx].tags = tags
+        if (state.selectedMerchant?.id === merchantId) state.selectedMerchant.tags = tags
+      })
+
+    // ── Withdrawals ──
+    builder
+      .addCase(fetchPendingWithdrawals.pending, (state) => { state.withdrawalsLoading = true })
+      .addCase(fetchPendingWithdrawals.fulfilled, (state, action) => {
+        state.withdrawalsLoading = false
+        state.pendingWithdrawals = action.payload.data || []
+        state.pendingWithdrawalsTotal = action.payload.meta?.total || 0
+      })
+      .addCase(fetchPendingWithdrawals.rejected, (state) => { state.withdrawalsLoading = false })
+
+      .addCase(fetchWithdrawalHistory.fulfilled, (state, action) => {
+        state.withdrawalHistory = action.payload.data || []
+        state.withdrawalHistoryTotal = action.payload.meta?.total || 0
+      })
+
+      .addCase(approveWithdrawal.fulfilled, (state, action) => {
+        if (!action.payload) return
+        state.pendingWithdrawals = state.pendingWithdrawals.filter((w) => w.id !== action.payload.id)
+        state.pendingWithdrawalsTotal = Math.max(0, state.pendingWithdrawalsTotal - 1)
+      })
+      .addCase(rejectWithdrawal.fulfilled, (state, action) => {
+        if (!action.payload) return
+        state.pendingWithdrawals = state.pendingWithdrawals.filter((w) => w.id !== action.payload.id)
+        state.pendingWithdrawalsTotal = Math.max(0, state.pendingWithdrawalsTotal - 1)
+      })
+      .addCase(bulkApproveWithdrawals.fulfilled, (state, action) => {
+        if (!action.payload) return
+        const approved = new Set(action.payload.approved || [])
+        state.pendingWithdrawals = state.pendingWithdrawals.filter((w) => !approved.has(w.id))
+        state.pendingWithdrawalsTotal = Math.max(0, state.pendingWithdrawalsTotal - approved.size)
+      })
+
+      .addCase(setWithdrawalHold.fulfilled, (state, action) => {
+        const { merchantId, wallet } = action.payload
+        const idx = state.merchants.findIndex((m) => m.id === merchantId)
+        if (idx !== -1) state.merchants[idx].wallet = { ...state.merchants[idx].wallet, ...wallet }
+        if (state.selectedMerchant?.id === merchantId) {
+          state.selectedMerchant.wallet = { ...state.selectedMerchant.wallet, ...wallet }
+        }
       })
   },
 })
 
+export const { clearSelectedMerchant, clearMerchantAnalytics } = merchantsSlice.actions
 export default merchantsSlice.reducer

@@ -37,7 +37,9 @@ const transactionOverviewSchema = z.object({
 const listAllRequestsSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
-  type: z.enum(['FOOD', 'GROCERY', 'PHARMACY', 'PACKAGE']).optional(),
+  type: z.enum(['MERCHANT_ORDER', 'PACKAGE']).optional(),
+  categoryId: z.string().uuid().optional(),
+  categorySlug: z.string().min(1).optional(),
   status: z.enum([
     'REQUESTED',
     'ACCEPTED',
@@ -84,8 +86,9 @@ const adminUpdateRequestStatusSchema = z.object({
 const listAllMerchantsSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
-  type: z.enum(['FOOD', 'GROCERY', 'PHARMACY']).optional(),
-  status: z.enum(['PENDING', 'ACTIVE', 'SUSPENDED', 'REJECTED']).optional(),
+  categoryId: z.string().uuid().optional(),
+  categorySlug: z.string().min(1).optional(),
+  status: z.enum(['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTED']).optional(),
 });
 
 const approveMerchantSchema = z.object({});
@@ -102,6 +105,78 @@ const unsuspendMerchantSchema = z.object({});
 
 const updateMerchantCommissionSchema = z.object({
   commissionRate: z.number().min(0).max(100),
+  reason: z.string().max(500).optional(),
+});
+
+const updateMerchantProfileSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  description: z.string().max(1000).optional(),
+  phone: z.string().min(7).max(20).optional(),
+  email: z.string().email().optional(),
+  address: z.string().min(5).max(300).optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+  openingTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  closingTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  logoUrl: z.string().url().optional().or(z.literal('')),
+  coverImageUrl: z.string().url().optional().or(z.literal('')),
+  adminActiveOverride: z.boolean().optional(),
+});
+
+const setWithdrawalHoldSchema = z.object({
+  held: z.boolean(),
+  reason: z.string().max(500).optional(),
+});
+
+const bulkApproveWithdrawalsSchema = z.object({
+  withdrawalIds: z.array(z.string().uuid()).min(1).max(50),
+});
+
+const createTagSchema = z.object({
+  name: z.string().min(1).max(50),
+  category: z.string().max(50).optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  icon: z.string().max(100).optional(),
+});
+
+const updateTagSchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  category: z.string().max(50).optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  icon: z.string().max(100).optional(),
+  isActive: z.boolean().optional(),
+});
+
+const setMerchantTagsSchema = z.object({
+  tagIds: z.array(z.string().uuid()),
+});
+
+// Merchant category schemas
+const createCategorySchema = z.object({
+  name: z.string().min(1).max(50),
+  slug: z.string().min(1).max(50).optional(),
+  description: z.string().max(500).optional(),
+  icon: z.string().max(100).optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  sortOrder: z.number().int().min(0).max(10000).optional(),
+  hasPreparation: z.boolean().optional(),
+});
+
+const updateCategorySchema = z.object({
+  name: z.string().min(1).max(50).optional(),
+  slug: z.string().min(1).max(50).optional(),
+  description: z.string().max(500).optional(),
+  icon: z.string().max(100).optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  sortOrder: z.number().int().min(0).max(10000).optional(),
+  hasPreparation: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+
+const listCategoriesSchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(200).optional(),
+  isActive: z.enum(['true', 'false']).optional(),
 });
 
 // Admin rider management schemas
@@ -140,6 +215,15 @@ module.exports = {
   suspendMerchantSchema,
   unsuspendMerchantSchema,
   updateMerchantCommissionSchema,
+  updateMerchantProfileSchema,
+  setWithdrawalHoldSchema,
+  bulkApproveWithdrawalsSchema,
+  createTagSchema,
+  updateTagSchema,
+  setMerchantTagsSchema,
+  createCategorySchema,
+  updateCategorySchema,
+  listCategoriesSchema,
   listAllRidersSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,

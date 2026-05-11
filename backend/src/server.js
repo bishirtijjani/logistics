@@ -17,9 +17,13 @@ const { logger } = require('./utils/logger');
 const { initializeSocket } = require('./sockets');
 const { initializeQueues } = require('./queues');
 const { prisma } = require('./config/database');
+const termiiService = require('./services/termii.service');
 
 const start = async () => {
   try {
+    // Fail fast in production if SMS provider isn't configured.
+    termiiService.assertConfiguredForProd();
+
     // Verify database connection
     await prisma.$connect();
     logger.info('✅ Database connected');

@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchWallet } from "../../store/slices/walletSlice";
 import { hydrateLocation } from "../../store/slices/locationSlice";
+import { fetchCategories, hydrateCategoriesFromCache } from "../../store/slices/categoriesSlice";
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -19,57 +20,28 @@ import {
 import Toast from "react-native-toast-message";
 
 // UNIFIED REQUEST ARCHITECTURE
-// Everything is a Request. Food is just the first type of request.
-// Request Lifecycle: REQUESTED → ACCEPTED → PROCESSING → READY → RIDER_ASSIGNED → PICKED_UP → IN_TRANSIT → DELIVERED → SETTLED
+// Everything is a Request. The category list is data-driven from /api/categories;
+// PACKAGE is the only static tile (no merchant — pure courier).
 
-const requestTypes = [
-  {
-    id: "FOOD",
-    name: "Food",
-    icon: "hamburger",
-    color: "#EA580C",
-    bg: "#FFF0E8",
-    iconType: "FontAwesome5",
-    description: "Order from restaurants",
-    hasMerchant: true,
-    hasPreparation: true,
-  },
-  {
-    id: "PACKAGE",
-    name: "Package",
-    icon: "moped",
-    color: "#2563EB",
-    bg: "#EFF6FF",
-    iconType: "MaterialCommunityIcons",
-    description: "Send or receive packages",
-    hasMerchant: false,
-    hasPreparation: false,
-  },
-  {
-    id: "PHARMACY",
-    name: "Pharmacy",
-    icon: "pill",
-    color: "#059669",
-    bg: "#ECFDF5",
-    iconType: "MaterialCommunityIcons",
-    description: "Order medicines",
-    hasMerchant: true,
-    hasPreparation: true,
-    comingSoon: true,
-  },
-  {
-    id: "GROCERY",
-    name: "Groceries",
-    icon: "basket",
-    color: "#7C3AED",
-    bg: "#F5F3FF",
-    iconType: "MaterialCommunityIcons",
-    description: "Shop supermarkets",
-    hasMerchant: true,
-    hasPreparation: true,
-    comingSoon: true,
-  },
-];
+// Static tile for the courier flow. Always rendered last on the home screen.
+const PACKAGE_TILE = {
+  id: "PACKAGE",
+  isPackage: true,
+  name: "Package",
+  icon: "moped",
+  color: "#2563EB",
+  bg: "#EFF6FF",
+  iconType: "MaterialCommunityIcons",
+  description: "Send or receive packages",
+};
+
+// Derive a soft background tint from a hex color for the tile chip.
+const tintBackground = (hex) => {
+  if (!hex || typeof hex !== "string") return "#F3F4F6";
+  // Append alpha 0x14 (~8%) to a 6-char hex; if not hex, fall back.
+  if (/^#[0-9a-fA-F]{6}$/.test(hex)) return `${hex}14`;
+  return "#F3F4F6";
+};
 
 const vtuServices = [
   {
@@ -124,6 +96,9 @@ export default function HomeScreen({ navigation }) {
   const { city, latitude, longitude, isLoaded: locationLoaded } = useSelector(
     (state) => state.location,
   );
+  const { list: categories, loading: categoriesLoading, error: categoriesError } = useSelector(
+    (state) => state.categories,
+  );
   const dispatch = useDispatch();
   const [showBalance, setShowBalance] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -131,7 +106,26 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     dispatch(fetchWallet());
     dispatch(hydrateLocation());
+    dispatch(hydrateCategoriesFromCache());
+    dispatch(fetchCategories());
   }, [dispatch]);
+
+  // Build the tile list: dynamic categories first (sorted by sortOrder), PACKAGE last.
+  const categoryTiles = (categories || [])
+    .filter((c) => c.isActive)
+    .map((c) => ({
+      id: c.id,
+      slug: c.slug,
+      name: c.name,
+      icon: c.icon || "store",
+      color: c.color || "#7C3AED",
+      bg: tintBackground(c.color),
+      iconType: "MaterialCommunityIcons",
+      description: c.description || "",
+      hasPreparation: c.hasPreparation,
+    }));
+  const tiles = [...categoryTiles, PACKAGE_TILE];
+  const tilesEmpty = !categoriesLoading && categoryTiles.length === 0 && !categoriesError;
 
   const locationLabel = city ? `${city}, Nigeria` : "Katsina, Nigeria";
 
@@ -366,45 +360,54 @@ export default function HomeScreen({ navigation }) {
               }}
             />
           </View>
+          {categoriesLoading && categoryTiles.length === 0 ? (
+            <View style={{ paddingVertical: 24, alignItems: "center" }}>
+              <Text style={{ color: "#6B7280", fontSize: 13 }}>Loading services…</Text>
+            </View>
+          ) : categoriesError && categoryTiles.length === 0 ? (
+            <View style={{ paddingVertical: 16, alignItems: "center" }}>
+              <Text style={{ color: "#DC2626", fontSize: 13, marginBottom: 8 }}>
+                Couldn't load services
+              </Text>
+              <TouchableOpacity onPress={() => dispatch(fetchCategories())}>
+                <Text style={{ color: "#EA580C", fontSize: 13, fontWeight: "600" }}>
+                  Tap to retry
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              justifyContent: "flex-start",
+              gap: 12,
+            }}
           >
-            {requestTypes.map((item) => {
+            {tiles.map((item) => {
               const Icon = resolveIcon(item);
               const handlePress = () => {
-                // UNIFIED REQUEST FLOW
-                // All request types follow the same flow internally
-                // Only the UI and merchant selection differs
-                
-                if (item.comingSoon) {
-                  Toast.show({
-                    type: "info",
-                    text1: "Coming Soon",
-                    text2: `${item.name} ordering will be available soon!`,
+                if (item.isPackage) {
+                  // Package: direct courier flow, no merchant.
+                  navigation.navigate("CreateDelivery", {
+                    requestType: "PACKAGE",
+                    hasMerchant: false,
                   });
                   return;
                 }
-                
-                if (item.id === "FOOD") {
-                  // Food: Browse merchants (restaurants) → Select items → Checkout → Track
-                  navigation.navigate("MerchantBrowse", {
-                    type: item.id,
-                    lat: latitude,
-                    lng: longitude,
-                  });
-                } else if (item.id === "PACKAGE") {
-                  // Package: Direct request creation (no merchant browsing)
-                  navigation.navigate("CreateDelivery", {
-                    requestType: item.id,
-                    hasMerchant: false
-                  });
-                }
+                // Any merchant category: browse merchants filtered by category.
+                navigation.navigate("MerchantBrowse", {
+                  categorySlug: item.slug,
+                  categoryName: item.name,
+                  lat: latitude,
+                  lng: longitude,
+                });
               };
               return (
                 <TouchableOpacity
                   key={item.id}
                   onPress={handlePress}
-                  style={{ width: "23%", alignItems: "center" }}
+                  style={{ width: "22%", alignItems: "center" }}
                 >
                   <View
                     style={{
@@ -417,27 +420,9 @@ export default function HomeScreen({ navigation }) {
                       marginBottom: 8,
                       borderWidth: 1.5,
                       borderColor: item.color + "25",
-                      opacity: item.comingSoon ? 0.6 : 1,
                     }}
                   >
                     <Icon name={item.icon} size={26} color={item.color} />
-                    {item.comingSoon && (
-                      <View
-                        style={{
-                          position: "absolute",
-                          top: -4,
-                          right: -4,
-                          backgroundColor: "#6B7280",
-                          borderRadius: 8,
-                          paddingHorizontal: 4,
-                          paddingVertical: 2,
-                        }}
-                      >
-                        <Text style={{ fontSize: 8, color: "#fff", fontWeight: "700" }}>
-                          SOON
-                        </Text>
-                      </View>
-                    )}
                   </View>
                   <Text
                     style={{

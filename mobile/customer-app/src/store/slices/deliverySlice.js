@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
+import { newIdempotencyKey } from "../../services/idempotency";
 
 // Async thunks
 export const fetchDeliveries = createAsyncThunk(
@@ -33,10 +34,11 @@ export const createDelivery = createAsyncThunk(
   "delivery/createDelivery",
   async ({ orderData, pin }, { rejectWithValue }) => {
     try {
-      const response = await api.post("/delivery", {
-        ...orderData,
-        pin,
-      });
+      const response = await api.post(
+        "/delivery",
+        { ...orderData, pin },
+        { headers: { "Idempotency-Key": newIdempotencyKey() } },
+      );
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Failed to create delivery");

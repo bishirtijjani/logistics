@@ -48,7 +48,7 @@
 
 | # | Component | Issue | Impact |
 |---|-----------|-------|--------|
-| 7 | **Monnify Integration** | No service for virtual accounts | Cannot fund wallet |
+| 7 | **KatPay Integration** | No service for virtual accounts | Cannot fund wallet |
 | 8 | **Termii Integration** | OTP stored in Redis but not sent | Users never receive SMS |
 | 9 | **Fund Wallet Screen** | Not built | No way to add money |
 | 10 | **Transaction PIN UI** | No bottom sheet component | Cannot confirm transactions |
@@ -57,7 +57,7 @@
 
 | # | Component | Issue | Impact |
 |---|-----------|-------|--------|
-| 11 | **VTPass Integration** | No service file | Cannot process utility payments |
+| 11 | **AlRahuz Integration** | No service file | Cannot process utility payments |
 | 12 | **Airtime/Data Screens** | Not built | Utility features inaccessible |
 
 ---
@@ -301,22 +301,21 @@ Create `mobile/customer-app/src/components/PinBottomSheet.js`:
 
 **Scope:** Minimal viable wallet — fund only. Defer P2P and withdrawals.
 
-#### 3.1 Backend: Monnify Integration
+#### 3.1 Backend: KatPay Integration
 
-Create `backend/src/services/monnify.service.js`:
+Create `backend/src/services/katpay.service.js`:
 
 ```javascript
 // Required methods:
-- authenticate() → Get access token from Monnify
+- authenticate() → Get access token from KatPay
 - createVirtualAccount(userId, email, name) → Reserve dedicated account
-- initiateDisbursement(...) → For future withdrawals
-- verifyWebhookSignature(payload, signature) → HMAC-SHA512 validation
+- initiatePayout(...) → For withdrawals
+- verifyWebhookSignature(payload, signature) → HMAC validation on raw body
 - parseWebhookEvent(payload) → Extract transaction data
 ```
 
 Update `backend/src/queues/workers/payment.worker.js`:
-- Complete `handleMonnifyWebhook` (already partially implemented)
-- Credit user wallet on successful transfer
+- `handleKatpayVirtualAccountPayment` credits user wallet on successful transfer
 - Emit `wallet:balance:updated` via socket
 
 #### 3.2 Backend: Termii SMS Integration
@@ -378,9 +377,9 @@ Update `mobile/customer-app/src/screens/main/WalletScreen.js`:
 
 **Scope:** Airtime and Data only. Defer electricity and TV.
 
-#### 4.1 Backend: VTPass Service
+#### 4.1 Backend: AlRahuz Service
 
-Create `backend/src/services/vtpass.service.js`:
+Create `backend/src/services/alrahuz.service.js`:
 
 ```javascript
 // Required methods:
@@ -392,7 +391,7 @@ Create `backend/src/services/vtpass.service.js`:
 ```
 
 Update `backend/src/queues/workers/utility.worker.js`:
-- Already has skeleton — implement VTPass calls
+- Already has skeleton — implement AlRahuz calls
 - Handle success/failure status updates
 - Trigger refund on persistent failure
 
@@ -478,7 +477,7 @@ Configure for:
 - Production PostgreSQL database
 - Redis production instance
 - Deploy to Render/Railway/AWS
-- Environment variables for production APIs (Monnify, VTPass, Termii live keys)
+- Environment variables for production APIs (KatPay, AlRahuz, Termii live keys)
 - SSL certificates
 
 **Mobile:**
@@ -493,8 +492,8 @@ Configure for:
 
 ### Backend New Files
 - [ ] `backend/src/services/maps.service.js`
-- [ ] `backend/src/services/monnify.service.js`
-- [ ] `backend/src/services/vtpass.service.js`
+- [ ] `backend/src/services/katpay.service.js`
+- [ ] `backend/src/services/alrahuz.service.js`
 - [ ] `backend/src/services/termii.service.js`
 - [ ] `backend/src/services/firebase.service.js`
 
@@ -529,7 +528,7 @@ Configure for:
 | Rider location update latency | < 5 seconds | Socket event timestamps |
 | Delivery completion rate | > 85% | Order status analytics |
 | Customer app crash rate | < 1% | Crashlytics |
-| Wallet funding success rate | > 95% | Monnify webhooks |
+| Wallet funding success rate | > 95% | KatPay webhooks |
 | App store rating | > 4.0 stars | Play Store / App Store |
 
 ---

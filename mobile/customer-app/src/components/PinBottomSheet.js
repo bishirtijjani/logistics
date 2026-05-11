@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,40 @@ import {
   Dimensions,
   Vibration,
 } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme";
 
 const { height } = Dimensions.get("window");
 const PIN_LENGTH = 6;
-const MAX_ATTEMPTS = 3;
+// SecureStore key persists the lockout deadline so 6 wrong PINs followed by an
+// app restart still leave the user locked out (server is still the source of
+// truth — this just hides the keypad until the deadline passes locally too).
+const LOCKED_UNTIL_KEY = "pin:lockedUntilEpochMs";
+
+/**
+ * Read structured lockout / attempt info that the server attached to the error
+ * via AppError.errors. Matches the contract documented in `services/api.js`
+ * and `auth.service.verifyTransactionPin`.
+ */
+const extractServerInfo = (err) => {
+  const data = err?.data?.errors || {};
+  return {
+    status: err?.status ?? null,
+    lockedUntil: typeof data.lockedUntil === "number" ? data.lockedUntil : null,
+    attemptsRemaining:
+      typeof data.attemptsRemaining === "number" ? data.attemptsRemaining : null,
+  };
+};
+
+const formatCountdown = (msRemaining) => {
+  if (msRemaining <= 0) return "0s";
+  const totalSeconds = Math.ceil(msRemaining / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m ${String(s).padStart(2, "0")}s`;
+};
 
 export default function PinBottomSheet({
   isVisible,
@@ -24,12 +52,36 @@ export default function PinBottomSheet({
   onForgotPin,
 }) {
   const [pin, setPin] = useState("");
-  const [attempts, setAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState(null); // epoch ms
+  const [now, setNow] = useState(Date.now());
   const shakeAnimation = useRef(new Animated.Value(0)).current;
   const slideAnimation = useRef(new Animated.Value(height)).current;
 
+  const isLocked = lockedUntil !== null && now < lockedUntil;
+
+  // Hydrate persisted lock on mount and whenever the sheet opens.
+  useEffect(() => {
+    if (!isVisible) return;
+    let cancelled = false;
+    (async () => {
+      const raw = await SecureStore.getItemAsync(LOCKED_UNTIL_KEY);
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      if (cancelled) return;
+      if (!Number.isNaN(parsed) && parsed > Date.now()) {
+        setLockedUntil(parsed);
+      } else if (!Number.isNaN(parsed)) {
+        // Stale lock — clean up.
+        await SecureStore.deleteItemAsync(LOCKED_UNTIL_KEY);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isVisible]);
+
+  // Slide animation + reset transient state on open/close.
   useEffect(() => {
     if (isVisible) {
       setPin("");
@@ -48,7 +100,22 @@ export default function PinBottomSheet({
     }
   }, [isVisible]);
 
-  const shake = () => {
+  // Tick the countdown once a second only while a lock is active and visible.
+  useEffect(() => {
+    if (!isVisible || !isLocked) return;
+    const id = setInterval(() => {
+      const t = Date.now();
+      setNow(t);
+      if (lockedUntil !== null && t >= lockedUntil) {
+        setLockedUntil(null);
+        SecureStore.deleteItemAsync(LOCKED_UNTIL_KEY).catch(() => {});
+        setError("");
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isVisible, isLocked, lockedUntil]);
+
+  const shake = useCallback(() => {
     Vibration.vibrate(100);
     Animated.sequence([
       Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
@@ -56,10 +123,50 @@ export default function PinBottomSheet({
       Animated.timing(shakeAnimation, { toValue: 10, duration: 50, useNativeDriver: true }),
       Animated.timing(shakeAnimation, { toValue: 0, duration: 50, useNativeDriver: true }),
     ]).start();
+  }, [shakeAnimation]);
+
+  const applyLock = useCallback(async (until) => {
+    setLockedUntil(until);
+    setNow(Date.now());
+    try {
+      await SecureStore.setItemAsync(LOCKED_UNTIL_KEY, String(until));
+    } catch {
+      // SecureStore failure is non-fatal — the in-memory lock still stands.
+    }
+  }, []);
+
+  const handleConfirm = async (pinValue) => {
+    if (submitting || isLocked) return;
+    setSubmitting(true);
+    try {
+      await onConfirm(pinValue);
+      // Success: clear any persisted lock + reset.
+      setPin("");
+      setError("");
+      if (lockedUntil !== null) {
+        setLockedUntil(null);
+        SecureStore.deleteItemAsync(LOCKED_UNTIL_KEY).catch(() => {});
+      }
+    } catch (err) {
+      const info = extractServerInfo(err);
+      setPin("");
+      shake();
+
+      if (info.status === 423 && info.lockedUntil) {
+        await applyLock(info.lockedUntil);
+        setError(err.message || "PIN locked.");
+      } else if (info.status === 401 && info.attemptsRemaining !== null) {
+        setError(err.message || `Incorrect PIN. ${info.attemptsRemaining} left.`);
+      } else {
+        setError(err?.message || "Something went wrong. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleKeyPress = (key) => {
-    if (isLocked) return;
+    if (isLocked || submitting) return;
 
     if (key === "backspace") {
       setPin((prev) => prev.slice(0, -1));
@@ -72,33 +179,8 @@ export default function PinBottomSheet({
       setError("");
 
       if (newPin.length === PIN_LENGTH) {
-        // Auto-submit when PIN is complete
+        // Auto-submit a tick later so the dot updates render first.
         setTimeout(() => handleConfirm(newPin), 100);
-      }
-    }
-  };
-
-  const handleConfirm = async (pinValue) => {
-    if (attempts >= MAX_ATTEMPTS) {
-      setIsLocked(true);
-      setError("Too many attempts. Please try again in 30 minutes.");
-      shake();
-      return;
-    }
-
-    try {
-      await onConfirm(pinValue);
-      setPin("");
-      setAttempts(0);
-    } catch (err) {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      setPin("");
-      setError(`Invalid PIN. ${MAX_ATTEMPTS - newAttempts} attempts remaining.`);
-      shake();
-
-      if (newAttempts >= MAX_ATTEMPTS) {
-        setIsLocked(true);
       }
     }
   };
@@ -128,24 +210,40 @@ export default function PinBottomSheet({
       <View style={{ marginBottom: 12 }}>
         {keys.map((row, rowIndex) => (
           <View key={rowIndex} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-            {row.map((key) => (
-              <TouchableOpacity
-                key={key}
-                style={{ width: 80, height: 56, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}
-                onPress={() => handleKeyPress(key)}
-                disabled={isLocked && key !== "backspace"}
-              >
-                {key === "backspace" ? (
-                  <Ionicons name="backspace-outline" size={24} color={colors.text} />
-                ) : key === "forgot" ? (
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>Forgot?</Text>
-                ) : (
-                  <Text style={{ fontSize: 24, fontWeight: '600', color: colors.text }}>{key}</Text>
-                )}
-              </TouchableOpacity>
-            ))}
+            {row.map((key) => {
+              const disabled = (isLocked && key !== "forgot") || submitting;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={{ width: 80, height: 56, borderRadius: 12, backgroundColor: disabled ? '#F3F4F6' : '#fff', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.6 : 1 }}
+                  onPress={() => handleKeyPress(key)}
+                  disabled={disabled}
+                >
+                  {key === "backspace" ? (
+                    <Ionicons name="backspace-outline" size={24} color={colors.text} />
+                  ) : key === "forgot" ? (
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>Forgot?</Text>
+                  ) : (
+                    <Text style={{ fontSize: 24, fontWeight: '600', color: colors.text }}>{key}</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         ))}
+      </View>
+    );
+  };
+
+  const renderLockBanner = () => {
+    if (!isLocked) return null;
+    const remaining = lockedUntil - now;
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: colors.error + "15" }}>
+        <Ionicons name="lock-closed" size={16} color={colors.error} />
+        <Text style={{ marginLeft: 8, fontSize: 13, fontWeight: '600', flex: 1, color: colors.error }}>
+          PIN locked. Try again in {formatCountdown(remaining)}.
+        </Text>
       </View>
     );
   };
@@ -170,8 +268,10 @@ export default function PinBottomSheet({
             </TouchableOpacity>
           </View>
 
-          {/* Error */}
-          {error ? (
+          {renderLockBanner()}
+
+          {/* Error (only when not displaying the lock banner) */}
+          {!isLocked && error ? (
             <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: colors.error + "15" }}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />

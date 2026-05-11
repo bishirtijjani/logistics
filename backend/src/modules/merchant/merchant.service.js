@@ -12,30 +12,38 @@ const { logger } = require('../../utils/logger');
 // ============================================================
 
 const createMerchant = async (merchantData) => {
-  const { userId, ...data } = merchantData;
-  
+  const { userId, categoryId, ...data } = merchantData;
+
+  if (!categoryId) throw AppError.badRequest('categoryId is required');
+
+  const category = await prisma.merchantCategory.findUnique({ where: { id: categoryId } });
+  if (!category) throw AppError.badRequest('Category not found');
+  if (!category.isActive) throw AppError.badRequest('Category is no longer accepting merchants');
+
   // Check if user exists if userId provided
   if (userId) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw AppError.notFound('User not found');
   }
-  
+
   const merchant = await prisma.merchant.create({
     data: {
       ...data,
+      categoryId,
       userId: userId || null,
     },
+    include: { category: true },
   });
-  
+
   // Create merchant wallet
   await prisma.merchantWallet.create({
     data: {
       merchantId: merchant.id,
     },
   });
-  
-  logger.info('Merchant created', { merchantId: merchant.id, type: merchant.type });
-  
+
+  logger.info('Merchant created', { merchantId: merchant.id, categorySlug: category.slug });
+
   return merchant;
 };
 
@@ -44,15 +52,16 @@ const createMerchant = async (merchantData) => {
 // ============================================================
 
 const getMerchants = async (filters) => {
-  const { type, status, lat, lng, radius, openNow, page, limit } = filters;
-  
+  const { categoryId, categorySlug, status, lat, lng, radius, openNow, page, limit } = filters;
+
   const where = {
-    ...(type && { type }),
+    ...(categoryId && { categoryId }),
+    ...(categorySlug && { category: { is: { slug: categorySlug } } }),
     ...(status && { status }),
     ...(openNow && { isOpen: true }),
     isActive: true,
   };
-  
+
   // If location provided, filter by radius
   if (lat && lng && radius) {
     // Using raw SQL for distance calculation (Haversine formula)
@@ -66,7 +75,7 @@ const getMerchants = async (filters) => {
       },
     ];
   }
-  
+
   const [merchants, total] = await Promise.all([
     prisma.merchant.findMany({
       where,
@@ -74,6 +83,7 @@ const getMerchants = async (filters) => {
       skip: (page - 1) * limit,
       take: limit,
       include: {
+        category: true,
         wallet: {
           select: {
             availableBalance: true,
@@ -84,7 +94,7 @@ const getMerchants = async (filters) => {
     }),
     prisma.merchant.count({ where }),
   ]);
-  
+
   return { merchants, total, page, limit };
 };
 
@@ -96,6 +106,7 @@ const getMerchantById = async (merchantId) => {
   const merchant = await prisma.merchant.findUnique({
     where: { id: merchantId },
     include: {
+      category: true,
       wallet: true,
       products: {
         where: { isAvailable: true },

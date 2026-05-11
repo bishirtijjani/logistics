@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { DollarSign, ShoppingCart, Users, MapPin, TrendingUp, Clock, Activity, RefreshCw } from 'lucide-react'
+import { DollarSign, ShoppingCart, Users, MapPin, TrendingUp, Clock, Activity, RefreshCw, Store } from 'lucide-react'
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
@@ -78,18 +78,18 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-text dark:text-dark-text">Platform Analytics</h1>
-          <p className="text-muted dark:text-dark-muted mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">Platform Analytics</h1>
+          <p className="text-muted dark:text-dark-muted mt-1 text-sm">
             Comprehensive platform insights and performance metrics
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-surface dark:bg-dark-surface text-text dark:text-dark-text"
+            className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-surface dark:bg-dark-surface text-text dark:text-dark-text text-sm w-full sm:w-auto"
           >
             <option value="7d">Last 7 days</option>
             <option value="30d">Last 30 days</option>
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm w-full sm:w-auto"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
@@ -107,12 +107,12 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-surface-muted dark:border-dark-surface-muted">
+      <div className="flex gap-2 sm:gap-4 border-b border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 border-b-2 transition-colors ${
+            className={`px-3 sm:px-4 py-3 border-b-2 transition-colors text-sm whitespace-nowrap flex items-center gap-2 ${
               activeTab === tab.id
                 ? 'border-primary text-primary dark:text-primary'
                 : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'
@@ -126,45 +126,45 @@ export default function AnalyticsPage() {
 
       {/* Real-time Metrics */}
       {realtimeData && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-primary to-primary-700 rounded-xl p-6 text-white">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-gradient-to-br from-primary to-primary-700 rounded-xl p-4 sm:p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-primary-100 text-sm">Active Requests</p>
-                <p className="text-3xl font-bold mt-1">{realtimeData.systemHealth?.activeRiders || 0}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1">{realtimeData.systemHealth?.activeRiders || 0}</p>
                 <p className="text-primary-100 text-xs mt-1">Riders online</p>
               </div>
-              <Activity className="w-10 h-10 text-primary-200" />
+              <Activity className="w-8 h-8 sm:w-10 sm:h-10 text-primary-200 shrink-0" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-success to-success-700 rounded-xl p-6 text-white">
+          <div className="bg-gradient-to-br from-success to-success-700 rounded-xl p-4 sm:p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-success-100 text-sm">Active Merchants</p>
-                <p className="text-3xl font-bold mt-1">{realtimeData.systemHealth?.activeMerchants || 0}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1">{realtimeData.systemHealth?.activeMerchants || 0}</p>
                 <p className="text-success-100 text-xs mt-1">Currently open</p>
               </div>
-              <Store className="w-10 h-10 text-success-200" />
+              <Store className="w-8 h-8 sm:w-10 sm:h-10 text-success-200 shrink-0" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 sm:p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm">In Progress</p>
-                <p className="text-3xl font-bold mt-1">{realtimeData.activeRequests || 0}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1">{realtimeData.activeRequests || 0}</p>
                 <p className="text-purple-100 text-xs mt-1">Active orders</p>
               </div>
-              <Clock className="w-10 h-10 text-purple-200" />
+              <Clock className="w-8 h-8 sm:w-10 sm:h-10 text-purple-200 shrink-0" />
             </div>
           </div>
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white">
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 sm:p-6 text-white">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-100 text-sm">Recent Orders</p>
-                <p className="text-3xl font-bold mt-1">{realtimeData.recentOrders?.length || 0}</p>
+                <p className="text-2xl sm:text-3xl font-bold mt-1">{realtimeData.recentOrders?.length || 0}</p>
                 <p className="text-orange-100 text-xs mt-1">Last hour</p>
               </div>
-              <TrendingUp className="w-10 h-10 text-orange-200" />
+              <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-orange-200 shrink-0" />
             </div>
           </div>
         </div>

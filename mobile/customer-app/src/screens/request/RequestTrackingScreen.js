@@ -22,7 +22,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import socketService from '../../services/socket';
-import theme from '../../theme';
+import theme, { colors } from '../../theme';
 import { fetchRequestById, cancelRequest, rateRequest, updateRequestFromSocket, updateRiderLocationFromSocket } from '../../store/slices/requestSlice';
 
 const STATUS_STEPS = [
@@ -67,6 +67,7 @@ const RequestTrackingScreen = () => {
   const [isRating, setIsRating] = useState(false);
 
   useEffect(() => {
+    dispatch(fetchRequestById(requestId));
     socketService.joinRequestRoom(requestId);
 
     // Listen for socket events
@@ -191,7 +192,7 @@ const RequestTrackingScreen = () => {
             <Ionicons
               name={star <= rating ? 'star' : 'star-outline'}
               size={28}
-              color={star <= rating ? '#FFA500' : theme.colors.border}
+              color={star <= rating ? '#FFA500' : colors.border}
             />
           </TouchableOpacity>
         ))}
@@ -201,9 +202,9 @@ const RequestTrackingScreen = () => {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 16, fontSize: 16, color: theme.colors.text.secondary }}>Loading order details...</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 16, fontSize: 16, color: colors.textMuted }}>Loading order details...</Text>
       </View>
     );
   }
@@ -211,10 +212,10 @@ const RequestTrackingScreen = () => {
   if (!currentRequest) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-        <Ionicons name="alert-circle-outline" size={64} color={theme.colors.text.secondary} />
-        <Text style={{ fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8, color: theme.colors.text.primary }}>Order Not Found</Text>
-        <Text style={{ fontSize: 14, marginBottom: 24, color: theme.colors.text.secondary }}>Unable to load order details</Text>
-        <TouchableOpacity style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, backgroundColor: theme.colors.primary }} onPress={() => navigation.goBack()}>
+        <Ionicons name="alert-circle-outline" size={64} color={colors.textMuted} />
+        <Text style={{ fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8, color: colors.text }}>Order Not Found</Text>
+        <Text style={{ fontSize: 14, marginBottom: 24, color: colors.textMuted }}>Unable to load order details</Text>
+        <TouchableOpacity style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, backgroundColor: colors.primary }} onPress={() => navigation.goBack()}>
           <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -226,23 +227,23 @@ const RequestTrackingScreen = () => {
   const canRate = ['DELIVERED', 'SETTLED'].includes(currentRequest.status);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['top']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: theme.colors.surface, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 18, fontWeight: '600', color: theme.colors.text.primary }}>Order Tracking</Text>
+        <Text style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>Order Tracking</Text>
         <TouchableOpacity style={{ padding: 8 }}>
-          <Ionicons name="call-outline" size={24} color={theme.colors.primary} />
+          <Ionicons name="call-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Status Timeline */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Order Status</Text>
-          <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center', color: theme.colors.primary }}>{STATUS_MESSAGES[currentRequest.status] || 'Processing'}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Order Status</Text>
+          <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center', color: colors.primary }}>{STATUS_MESSAGES[currentRequest.status] || 'Processing'}</Text>
             <View style={{ paddingLeft: 8 }}>
               {STATUS_STEPS.map((step, index) => {
                 const isCompleted = index <= currentStepIndex;
@@ -257,27 +258,27 @@ const RequestTrackingScreen = () => {
                           borderRadius: 16,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: isCompleted ? theme.colors.primary : theme.colors.border,
+                          backgroundColor: isCompleted ? colors.primary : colors.border,
                           borderWidth: isCurrent ? 2 : 0,
-                          borderColor: isCurrent ? theme.colors.primary + '40' : undefined,
+                          borderColor: isCurrent ? colors.primary + '40' : undefined,
                         }}
                       >
                         <Ionicons
                           name={step.icon}
                           size={16}
-                          color={isCompleted ? '#fff' : theme.colors.text.secondary}
+                          color={isCompleted ? '#fff' : colors.textMuted}
                         />
                       </View>
                       {index < STATUS_STEPS.length - 1 && (
                         <View
-                          style={{ width: 2, height: 24, marginTop: 4, backgroundColor: index < currentStepIndex ? theme.colors.primary : theme.colors.border }}
+                          style={{ width: 2, height: 24, marginTop: 4, backgroundColor: index < currentStepIndex ? colors.primary : colors.border }}
                         />
                       )}
                     </View>
                     <Text
                       style={{
                         fontSize: 14,
-                        color: isCompleted ? theme.colors.text.primary : theme.colors.text.secondary,
+                        color: isCompleted ? colors.text : colors.textMuted,
                         fontWeight: isCompleted ? '500' : 'normal',
                       }}
                     >
@@ -293,15 +294,15 @@ const RequestTrackingScreen = () => {
         {/* Merchant Info */}
         {currentRequest.merchant && (
           <View style={{ marginBottom: 24 }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Merchant</Text>
-            <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Merchant</Text>
+            <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Ionicons name="storefront-outline" size={20} color={theme.colors.primary} />
-                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: theme.colors.text.primary }}>{currentRequest.merchant.name}</Text>
+                <Ionicons name="storefront-outline" size={20} color={colors.primary} />
+                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: colors.text }}>{currentRequest.merchant.name}</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Ionicons name="location-outline" size={20} color={theme.colors.text.secondary} />
-                <Text style={{ fontSize: 14, marginLeft: 12, color: theme.colors.text.secondary }}>{currentRequest.pickupAddress}</Text>
+                <Ionicons name="location-outline" size={20} color={colors.textMuted} />
+                <Text style={{ fontSize: 14, marginLeft: 12, color: colors.textMuted }}>{currentRequest.pickupAddress}</Text>
               </View>
             </View>
           </View>
@@ -310,20 +311,20 @@ const RequestTrackingScreen = () => {
         {/* Rider Info */}
         {currentRequest.rider && (
           <View style={{ marginBottom: 24 }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Rider</Text>
-            <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Rider</Text>
+            <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Ionicons name="person-outline" size={20} color={theme.colors.primary} />
-                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: theme.colors.text.primary }}>{currentRequest.rider.user.firstName} {currentRequest.rider.user.lastName}</Text>
+                <Ionicons name="person-outline" size={20} color={colors.primary} />
+                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: colors.text }}>{currentRequest.rider.user.firstName} {currentRequest.rider.user.lastName}</Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <Ionicons name="call-outline" size={20} color={theme.colors.text.secondary} />
-                <Text style={{ fontSize: 14, marginLeft: 12, color: theme.colors.text.secondary }}>{currentRequest.rider.user.phone}</Text>
+                <Ionicons name="call-outline" size={20} color={colors.textMuted} />
+                <Text style={{ fontSize: 14, marginLeft: 12, color: colors.textMuted }}>{currentRequest.rider.user.phone}</Text>
                 <TouchableOpacity
                   style={{ marginLeft: 'auto', padding: 8, borderRadius: 20, backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
                   onPress={() => handleCall(currentRequest.rider.user.phone)}
                 >
-                  <Ionicons name="call" size={20} color={theme.colors.primary} />
+                  <Ionicons name="call" size={20} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -333,8 +334,8 @@ const RequestTrackingScreen = () => {
         {/* Map with Rider Location */}
         {currentRequest.rider && currentRequest.riderLocation && (
           <View style={{ marginBottom: 24 }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Live Tracking</Text>
-            <View style={{ height: 200, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.background }}>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Live Tracking</Text>
+            <View style={{ height: 200, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.background }}>
               <MapView
                 style={{ width: '100%', height: '100%' }}
                 initialRegion={{
@@ -352,8 +353,8 @@ const RequestTrackingScreen = () => {
                   title="Rider"
                   description={`${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`}
                 >
-                  <View style={{ borderRadius: 12, padding: 8, backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
-                    <Ionicons name="bicycle" size={24} color={theme.colors.primary} />
+                  <View style={{ borderRadius: 12, padding: 8, backgroundColor: colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
+                    <Ionicons name="bicycle" size={24} color={colors.primary} />
                   </View>
                 </Marker>
                 {currentRequest.dropoffLat && currentRequest.dropoffLng && (
@@ -365,8 +366,8 @@ const RequestTrackingScreen = () => {
                     title="Destination"
                     description={currentRequest.dropoffAddress}
                   >
-                    <View style={{ borderRadius: 12, padding: 8, backgroundColor: theme.colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
-                      <Ionicons name="home" size={24} color={theme.colors.error} />
+                    <View style={{ borderRadius: 12, padding: 8, backgroundColor: colors.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
+                      <Ionicons name="home" size={24} color={colors.error} />
                     </View>
                   </Marker>
                 )}
@@ -377,24 +378,24 @@ const RequestTrackingScreen = () => {
 
         {/* Order Details */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: theme.colors.text.primary }}>Order Details</Text>
-          <View style={{ borderRadius: 12, padding: 16, backgroundColor: theme.colors.surface }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-              <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Order ID</Text>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>#{currentRequest.id.slice(0, 8)}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Order Details</Text>
+          <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 14, color: colors.textMuted }}>Order ID</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>#{currentRequest.id.slice(0, 8)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-              <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Total</Text>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>₦{Number(currentRequest.total).toLocaleString()}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 14, color: colors.textMuted }}>Total</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>₦{Number(currentRequest.total).toLocaleString()}</Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-              <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Delivery Address</Text>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>{currentRequest.dropoffAddress}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 14, color: colors.textMuted }}>Delivery Address</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>{currentRequest.dropoffAddress}</Text>
             </View>
             {currentRequest.specialInstructions && (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.colors.border }}>
-                <Text style={{ fontSize: 14, color: theme.colors.text.secondary }}>Instructions</Text>
-                <Text style={{ fontSize: 14, fontWeight: '500', color: theme.colors.text.primary }}>{currentRequest.specialInstructions}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <Text style={{ fontSize: 14, color: colors.textMuted }}>Instructions</Text>
+                <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>{currentRequest.specialInstructions}</Text>
               </View>
             )}
           </View>
@@ -417,7 +418,7 @@ const RequestTrackingScreen = () => {
           )}
           {canRate && (
             <TouchableOpacity
-              style={{ paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: theme.colors.primary }}
+              style={{ paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: colors.primary }}
               onPress={() => setShowRatingModal(true)}
             >
               <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>Rate Order</Text>
@@ -429,13 +430,13 @@ const RequestTrackingScreen = () => {
       {/* Rating Modal */}
       {showRatingModal && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ borderRadius: 16, padding: 24, width: '90%', maxWidth: 400, backgroundColor: theme.colors.surface }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center', color: theme.colors.text.primary }}>Rate Your Experience</Text>
+          <View style={{ borderRadius: 16, padding: 24, width: '90%', maxWidth: 400, backgroundColor: colors.surface }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center', color: colors.text }}>Rate Your Experience</Text>
             
-            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16, color: theme.colors.text.primary }}>Merchant Rating</Text>
+            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16, color: colors.text }}>Merchant Rating</Text>
             {renderStarRating(merchantRating, setMerchantRating)}
             <TextInput
-              style={{ borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 16, backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
+              style={{ borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 16, backgroundColor: colors.background, color: colors.text, borderWidth: 1, borderColor: colors.border }}
               placeholder="Comment about merchant (optional)"
               value={merchantComment}
               onChangeText={setMerchantComment}
@@ -443,10 +444,10 @@ const RequestTrackingScreen = () => {
 
             {currentRequest.rider && (
               <>
-                <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16, color: theme.colors.text.primary }}>Rider Rating</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 16, color: colors.text }}>Rider Rating</Text>
                 {renderStarRating(riderRating, setRiderRating)}
                 <TextInput
-                  style={{ borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 16, backgroundColor: theme.colors.background, color: theme.colors.text.primary, borderWidth: 1, borderColor: theme.colors.border }}
+                  style={{ borderRadius: 8, padding: 12, fontSize: 14, marginBottom: 16, backgroundColor: colors.background, color: colors.text, borderWidth: 1, borderColor: colors.border }}
                   placeholder="Comment about rider (optional)"
                   value={riderComment}
                   onChangeText={setRiderComment}
@@ -456,13 +457,13 @@ const RequestTrackingScreen = () => {
 
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: theme.colors.border }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: colors.border }}
                 onPress={() => setShowRatingModal(false)}
               >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.text.primary }}>Cancel</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: theme.colors.primary }}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: colors.primary }}
                 onPress={handleRate}
                 disabled={isRating}
               >

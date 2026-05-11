@@ -1,64 +1,116 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
+import { newIdempotencyKey } from "../../services/idempotency";
 
-// Async thunks
+const idemHeaders = () => ({ headers: { "Idempotency-Key": newIdempotencyKey() } });
+
+// Preserve { status, data } from the api client error so callers using
+// `.unwrap()` (e.g. PinBottomSheet) can detect 423/429 lockouts.
+const toRejectionPayload = (error, fallbackMessage) => ({
+  message: error?.message || fallbackMessage,
+  status: error?.status ?? null,
+  data: error?.data ?? null,
+});
+
+export const fetchPlans = createAsyncThunk(
+  "utility/fetchPlans",
+  async ({ type, networkId } = {}, { rejectWithValue }) => {
+    try {
+      const params = { type, ...(networkId && { networkId }) };
+      const response = await api.get("/utilities/plans", { params });
+      return { type, networkId, plans: response.data.data };
+    } catch (error) {
+      return rejectWithValue(toRejectionPayload(error, "Failed to fetch plans"));
+    }
+  }
+);
+
 export const buyAirtime = createAsyncThunk(
   "utility/buyAirtime",
-  async ({ merchant, phone, amount, pin }, { rejectWithValue }) => {
+  async ({ networkId, phone, amount, pin }, { rejectWithValue }) => {
     try {
-      const response = await api.post("/utilities/airtime", {
-        serviceID: merchant,
-        phone,
-        amount,
-        pin,
-      });
+      const response = await api.post("/utilities/airtime", { networkId, phone, amount, pin }, idemHeaders());
       return response.data.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to purchase airtime");
+      return rejectWithValue(toRejectionPayload(error, "Failed to purchase airtime"));
     }
   }
 );
 
 export const buyData = createAsyncThunk(
   "utility/buyData",
-  async ({ merchant, phone, planCode, amount, pin }, { rejectWithValue }) => {
+  async ({ planId, phone, pin }, { rejectWithValue }) => {
     try {
-      const response = await api.post("/utilities/data", {
-        serviceID: merchant,
-        phone,
-        variationCode: planCode,
-        amount,
-        pin,
-      });
+      const response = await api.post("/utilities/data", { planId, phone, pin }, idemHeaders());
       return response.data.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to purchase data");
+      return rejectWithValue(toRejectionPayload(error, "Failed to purchase data"));
     }
   }
 );
 
-export const fetchDataPlans = createAsyncThunk(
-  "utility/fetchDataPlans",
-  async (merchant, { rejectWithValue }) => {
+export const buyCable = createAsyncThunk(
+  "utility/buyCable",
+  async ({ planId, smartCardNumber, pin }, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/utilities/data-plans?merchant=${merchant}`);
+      const response = await api.post("/utilities/cable", { planId, smartCardNumber, pin }, idemHeaders());
       return response.data.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch data plans");
+      return rejectWithValue(toRejectionPayload(error, "Failed to subscribe to cable"));
+    }
+  }
+);
+
+export const payElectricity = createAsyncThunk(
+  "utility/payElectricity",
+  async ({ discoId, meterNumber, meterType, amount, phone, pin }, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/utilities/electricity", {
+        discoId, meterNumber, meterType, amount, phone, pin,
+      }, idemHeaders());
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(toRejectionPayload(error, "Failed to pay electricity"));
+    }
+  }
+);
+
+export const validateIuc = createAsyncThunk(
+  "utility/validateIuc",
+  async ({ smartCardNumber, cableNameId }, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/utilities/validate-iuc", {
+        params: { smartCardNumber, cableNameId },
+      });
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(toRejectionPayload(error, "Failed to validate IUC"));
+    }
+  }
+);
+
+export const validateMeter = createAsyncThunk(
+  "utility/validateMeter",
+  async ({ meterNumber, discoId, meterType }, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/utilities/validate-meter", {
+        params: { meterNumber, discoId, meterType },
+      });
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(toRejectionPayload(error, "Failed to validate meter"));
     }
   }
 );
 
 export const fetchUtilityHistory = createAsyncThunk(
   "utility/fetchUtilityHistory",
-  async ({ page = 1, limit = 20 }, { rejectWithValue }) => {
+  async ({ page = 1, limit = 20, type } = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get("/utilities/history", {
-        params: { page, limit },
-      });
-      return response.data.data;
+      const response = await api.get("/utilities/history", { params: { page, limit, type } });
+      return { payments: response.data.data, total: response.data.meta?.total || 0, page };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch history");
+      return rejectWithValue(toRejectionPayload(error, "Failed to fetch history"));
     }
   }
 );
@@ -66,84 +118,89 @@ export const fetchUtilityHistory = createAsyncThunk(
 const utilitySlice = createSlice({
   name: "utility",
   initialState: {
-    dataPlans: [],
+    plans: {},      // { "DATA-1": [...], "AIRTIME": [...], "CABLE-1": [...], "ELECTRICITY": [...] }
     history: [],
     isLoading: false,
+    isValidating: false,
+    validationResult: null,
     error: null,
     total: 0,
   },
   reducers: {
-    clearUtilityError: (state) => {
-      state.error = null;
-    },
+    clearUtilityError: (state) => { state.error = null; },
+    clearValidation: (state) => { state.validationResult = null; },
   },
   extraReducers: (builder) => {
-    // Buy Airtime
+    const loading = (state) => { state.isLoading = true; state.error = null; };
+    const failed = (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload?.message ?? action.payload ?? null;
+    };
+
     builder
-      .addCase(buyAirtime.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
+      .addCase(fetchPlans.pending, loading)
+      .addCase(fetchPlans.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const key = action.payload.networkId
+          ? `${action.payload.type}-${action.payload.networkId}`
+          : action.payload.type;
+        state.plans[key] = action.payload.plans;
       })
+      .addCase(fetchPlans.rejected, failed);
+
+    builder
+      .addCase(buyAirtime.pending, loading)
       .addCase(buyAirtime.fulfilled, (state, action) => {
         state.isLoading = false;
         state.history.unshift(action.payload);
       })
-      .addCase(buyAirtime.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      });
+      .addCase(buyAirtime.rejected, failed);
 
-    // Buy Data
     builder
-      .addCase(buyData.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
+      .addCase(buyData.pending, loading)
       .addCase(buyData.fulfilled, (state, action) => {
         state.isLoading = false;
         state.history.unshift(action.payload);
       })
-      .addCase(buyData.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      });
+      .addCase(buyData.rejected, failed);
 
-    // Fetch Data Plans
     builder
-      .addCase(fetchDataPlans.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(fetchDataPlans.fulfilled, (state, action) => {
+      .addCase(buyCable.pending, loading)
+      .addCase(buyCable.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.dataPlans = action.payload.plans || [];
+        state.history.unshift(action.payload);
       })
-      .addCase(fetchDataPlans.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      });
+      .addCase(buyCable.rejected, failed);
 
-    // Fetch History
     builder
-      .addCase(fetchUtilityHistory.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
+      .addCase(payElectricity.pending, loading)
+      .addCase(payElectricity.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.history.unshift(action.payload);
       })
+      .addCase(payElectricity.rejected, failed);
+
+    builder
+      .addCase(validateIuc.pending, (state) => { state.isValidating = true; state.validationResult = null; })
+      .addCase(validateIuc.fulfilled, (state, action) => { state.isValidating = false; state.validationResult = action.payload; })
+      .addCase(validateIuc.rejected, (state, action) => { state.isValidating = false; state.error = action.payload?.message ?? action.payload ?? null; });
+
+    builder
+      .addCase(validateMeter.pending, (state) => { state.isValidating = true; state.validationResult = null; })
+      .addCase(validateMeter.fulfilled, (state, action) => { state.isValidating = false; state.validationResult = action.payload; })
+      .addCase(validateMeter.rejected, (state, action) => { state.isValidating = false; state.error = action.payload?.message ?? action.payload ?? null; });
+
+    builder
+      .addCase(fetchUtilityHistory.pending, loading)
       .addCase(fetchUtilityHistory.fulfilled, (state, action) => {
         state.isLoading = false;
-        if (action.meta.arg.page === 1) {
-          state.history = action.payload.payments || [];
-        } else {
-          state.history = [...state.history, ...(action.payload.payments || [])];
-        }
-        state.total = action.payload.total || 0;
+        const { payments = [], total = 0, page } = action.payload;
+        state.history = page === 1 ? payments : [...state.history, ...payments];
+        state.total = total;
       })
-      .addCase(fetchUtilityHistory.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload;
-      });
+      .addCase(fetchUtilityHistory.rejected, failed);
   },
 });
 
-export const { clearUtilityError } = utilitySlice.actions;
+export const { clearUtilityError, clearValidation } = utilitySlice.actions;
 export default utilitySlice.reducer;
