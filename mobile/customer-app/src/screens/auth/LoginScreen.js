@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -17,18 +17,27 @@ import FormInput from "../../components/FormInput";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
-});
+import { useTranslation } from "react-i18next";
+import { colors } from "../../theme";
 
 const LAST_EMAIL_KEY = "vtu_last_email";
 
 export default function LoginScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { isLoading } = useSelector((state) => state.auth);
   const passwordRef = useRef(null);
+
+  // Schema is memoized on `t` so the validation messages re-evaluate when
+  // the locale changes mid-session (rare, but the right shape).
+  const loginSchema = useMemo(
+    () =>
+      z.object({
+        email: z.string().email(t("auth.form.emailInvalid")),
+        password: z.string().min(1, t("auth.form.passwordRequired")),
+      }),
+    [t],
+  );
 
   const {
     control,
@@ -62,16 +71,16 @@ export default function LoginScreen({ navigation }) {
     if (login.fulfilled.match(resultAction)) {
       // Remember email on success
       await AsyncStorage.setItem(LAST_EMAIL_KEY, data.email);
-      Toast.show({ type: "success", text1: "Welcome back!" });
+      Toast.show({ type: "success", text1: t("auth.toast.welcomeBack") });
     }
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: "#FAFAFA" }}
+      style={{ flex: 1, backgroundColor: colors.background }}
     >
-      <View style={{ height: 4, backgroundColor: "#EA580C" }} />
+      <View style={{ height: 4, backgroundColor: colors.primary }} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View
           style={{
@@ -83,19 +92,20 @@ export default function LoginScreen({ navigation }) {
         >
           <View style={{ marginBottom: 36 }}>
             <Text
+              accessibilityRole="header"
               style={{
                 fontSize: 38,
                 fontWeight: "900",
-                color: "#09090b",
+                color: colors.text,
                 letterSpacing: -1.5,
                 marginBottom: 8,
                 lineHeight: 44,
               }}
             >
-              Welcome{"\n"}back.
+              {t("auth.loginTitle")}
             </Text>
-            <Text style={{ fontSize: 15, color: "#6B7280" }}>
-              Log in to manage your deliveries.
+            <Text style={{ fontSize: 15, color: colors.textMuted }}>
+              {t("auth.loginSubtitle")}
             </Text>
           </View>
 
@@ -104,7 +114,7 @@ export default function LoginScreen({ navigation }) {
             name="email"
             render={({ field: { onChange, onBlur, value } }) => (
               <FormInput
-                label="Email address"
+                label={t("auth.email")}
                 icon="mail-outline"
                 placeholder="john@example.com"
                 error={errors.email?.message}
@@ -126,9 +136,9 @@ export default function LoginScreen({ navigation }) {
             render={({ field: { onChange, onBlur, value } }) => (
               <FormInput
                 ref={passwordRef}
-                label="Password"
+                label={t("auth.password")}
                 icon="lock-closed-outline"
-                placeholder="Enter your password"
+                placeholder={t("auth.password")}
                 error={errors.password?.message}
                 onBlur={onBlur}
                 onChangeText={onChange}
@@ -144,9 +154,11 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity
             style={{ alignSelf: "flex-end", marginBottom: 20, marginTop: -8 }}
             onPress={() => navigation.navigate("ForgotPassword")}
+            accessibilityRole="link"
+            accessibilityLabel={t("auth.forgotPassword")}
           >
-            <Text style={{ color: "#EA580C", fontSize: 14, fontWeight: "600" }}>
-              Forgot password?
+            <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "600" }}>
+              {t("auth.forgotPassword")}
             </Text>
           </TouchableOpacity>
 
@@ -156,17 +168,20 @@ export default function LoginScreen({ navigation }) {
               padding: 16,
               borderRadius: 16,
               alignItems: "center",
-              backgroundColor: isLoading ? "#EA580CB3" : "#EA580C",
+              backgroundColor: isLoading ? "#EA580CB3" : colors.primary,
             }}
             onPress={handleSubmit(onSubmit)}
             disabled={isLoading}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("auth.signIn")}
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
-                Sign in
+                {t("auth.signIn")}
               </Text>
             )}
           </TouchableOpacity>
@@ -178,14 +193,18 @@ export default function LoginScreen({ navigation }) {
               marginTop: 20,
             }}
           >
-            <Text style={{ color: "#6B7280", fontSize: 14 }}>
-              Don't have an account?{" "}
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+              {t("auth.noAccount")}{" "}
             </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Register")}
+              accessibilityRole="link"
+              accessibilityLabel={t("auth.signUp")}
+            >
               <Text
-                style={{ color: "#EA580C", fontSize: 14, fontWeight: "700" }}
+                style={{ color: colors.primary, fontSize: 14, fontWeight: "700" }}
               >
-                Sign up
+                {t("auth.signUp")}
               </Text>
             </TouchableOpacity>
           </View>

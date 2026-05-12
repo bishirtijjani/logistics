@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import * as ExpoLocation from "expo-location";
 import api from "../../services/api";
 import {
@@ -27,6 +28,7 @@ const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function LocationPickerScreen({ navigation, route }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const savedLocation = useSelector((state) => state.location);
 
   const mapRef = useRef(null);
@@ -156,12 +158,11 @@ export default function LocationPickerScreen({ navigation, route }) {
     }
   }, []);
 
-  // Cleanup geocode timeout on unmount
+  // Cleanup pending timeouts on unmount so they don't fire on a stale component
   useEffect(() => {
     return () => {
-      if (geocodeTimeout.current) {
-        clearTimeout(geocodeTimeout.current);
-      }
+      if (geocodeTimeout.current) clearTimeout(geocodeTimeout.current);
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
     };
   }, []);
 
@@ -253,7 +254,8 @@ export default function LocationPickerScreen({ navigation, route }) {
             <Ionicons name="search-outline" size={18} color="#6B7280" />
             <TextInput
               style={{ flex: 1, fontSize: 16, marginLeft: 8, fontWeight: '500', color: "#09090b" }}
-              placeholder="Search for a place..."
+              placeholder={t("locationPicker.searchPh")}
+              accessibilityLabel={t("locationPicker.searchPh")}
               placeholderTextColor="#9CA3AF"
               value={query}
               onChangeText={handleSearch}
@@ -338,7 +340,7 @@ export default function LocationPickerScreen({ navigation, route }) {
           disabled={!address || isGeocoding}
           activeOpacity={0.8}
         >
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>Confirm Location</Text>
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: '800' }}>{t("common.confirm")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </View>

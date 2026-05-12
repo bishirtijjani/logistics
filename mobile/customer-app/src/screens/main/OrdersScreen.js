@@ -1,61 +1,51 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
   StatusBar,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import { fetchRequests } from "../../store/slices/requestSlice";
+import { ACTIVE_STATUSES as ACTIVE_LIST, COMPLETED_STATUSES as COMPLETED_LIST, statusDisplay } from "../../lib/requestStatus";
+import SkeletonLoader from "../../components/SkeletonLoader";
+import EmptyState from "../../components/EmptyState";
 
-const TABS = ["Active", "Completed", "Cancelled"];
+const TAB_KEYS = ["tabActive", "tabCompleted", "tabCancelled"];
 
-const ACTIVE_STATUSES = "REQUESTED,ACCEPTED,PROCESSING,READY_FOR_PICKUP,RIDER_ASSIGNED,RIDER_EN_ROUTE,PICKED_UP,IN_TRANSIT";
-const COMPLETED_STATUSES = "DELIVERED,SETTLED";
+const ACTIVE_STATUSES = ACTIVE_LIST.join(",");
+const COMPLETED_STATUSES = COMPLETED_LIST.join(",");
 const CANCELLED_STATUSES = "CANCELLED";
 
-const STATUS_META = {
-  REQUESTED:       { label: "Pending",      bg: "#FEF3C7", text: "#D97706" },
-  ACCEPTED:        { label: "Accepted",     bg: "#DBEAFE", text: "#2563EB" },
-  PROCESSING:      { label: "Preparing",    bg: "#DBEAFE", text: "#2563EB" },
-  READY_FOR_PICKUP:{ label: "Ready",        bg: "#E0E7FF", text: "#4F46E5" },
-  RIDER_ASSIGNED:  { label: "Rider Assigned",bg:"#FEF9C3", text: "#CA8A04" },
-  RIDER_EN_ROUTE:  { label: "On the Way",   bg: "#E0E7FF", text: "#4F46E5" },
-  PICKED_UP:       { label: "Picked Up",    bg: "#E0E7FF", text: "#4F46E5" },
-  IN_TRANSIT:      { label: "In Transit",   bg: "#E0E7FF", text: "#4F46E5" },
-  DELIVERED:       { label: "Delivered",    bg: "#D1FAE5", text: "#059669" },
-  SETTLED:         { label: "Completed",    bg: "#D1FAE5", text: "#059669" },
-  CANCELLED:       { label: "Cancelled",    bg: "#FEE2E2", text: "#EF4444" },
-};
-
-// Static badge for the package (courier) flow.
+// Static badge for the package (courier) flow. `labelKey` resolves via t() at
+// render time so a locale change retags every row without a re-fetch.
 const PACKAGE_META = {
   icon: "cube-outline",
-  bg: colors.delivery?.bg || "#EFF6FF",
-  color: colors.delivery?.icon || "#2563EB",
-  label: "Package",
+  bg: colors.package?.bg || "#EFF6FF",
+  color: colors.package?.icon || "#2563EB",
+  labelKey: "home.package",
 };
 
 // Soft 8% tint for category badge background.
 const tintBg = (hex) => (/^#[0-9a-fA-F]{6}$/.test(hex || "") ? `${hex}14` : "#F3F4F6");
 
 // Resolve type metadata for a request:
-// - PACKAGE → static blue cube
+// - PACKAGE → static blue cube (label resolved via t)
 // - MERCHANT_ORDER → derived from request.merchant.category (color/name)
-const resolveTypeMeta = (request) => {
-  if (request.type === "PACKAGE") return PACKAGE_META;
+const resolveTypeMeta = (request, t) => {
+  if (request.type === "PACKAGE") return { ...PACKAGE_META, label: t(PACKAGE_META.labelKey) };
   const cat = request.merchant?.category;
   return {
     icon: "storefront-outline",
     bg: tintBg(cat?.color),
     color: cat?.color || "#7C3AED",
-    label: cat?.name || "Order",
+    label: cat?.name || t("home.active.orderFallback"),
   };
 };
 
@@ -63,16 +53,22 @@ function formatNaira(amount) {
   return "₦" + Number(amount || 0).toLocaleString("en-NG");
 }
 
-function formatDate(d) {
-  return new Date(d).toLocaleDateString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-}
-
 export default function OrdersScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t, i18n } = useTranslation();
   const { requests, isLoading, pagination } = useSelector((s) => s.request);
   const [activeTab, setActiveTab] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
+
+  // Locale-aware date formatter — memoized on language so the Intl runtime
+  // is touched once per locale change, not once per row.
+  const formatDate = useMemo(() => {
+    const tag = i18n.language === "ha" ? "ha-NG" : "en-NG";
+    return (d) => new Date(d).toLocaleDateString(tag, {
+      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    });
+  }, [i18n.language]);
 
   const statusFilter = [ACTIVE_STATUSES, COMPLETED_STATUSES, CANCELLED_STATUSES][activeTab];
 
@@ -105,16 +101,42 @@ export default function OrdersScreen({ navigation }) {
     if (activeTab === 0) setActiveCount(requests.length);
   }, [activeTab, requests.length]);
 
+  // Phase 4 — surface the three states that matter most at-a-glance.
+  // These supplement (not replace) the existing status pill.
+  const resolveLifecycleBadge = (req) => {
+    if (req.status === "REQUESTED" || req.status === "READY_FOR_PICKUP") {
+      return { label: t("orders.lifecycle.searching"), bg: "#FFEDD5", color: "#9A3412", icon: "search" };
+    }
+    if (
+      req.status === "PICKED_UP" ||
+      req.status === "IN_TRANSIT" ||
+      req.status === "RIDER_EN_ROUTE"
+    ) {
+      return { label: t("orders.lifecycle.inTransit"), bg: "#DCFCE7", color: "#15803D", icon: "bicycle" };
+    }
+    if ((req.status === "DELIVERED" || req.status === "SETTLED") && !req.rating) {
+      return { label: t("orders.lifecycle.awaitingRating"), bg: "#FEF9C3", color: "#854D0E", icon: "star-outline" };
+    }
+    return null;
+  };
+
   const renderItem = ({ item }) => {
-    const status = STATUS_META[item.status] || { label: item.status, bg: colors.surfaceMuted, text: colors.textMuted };
-    const type = resolveTypeMeta(item);
+    // Phase 8 — pass category slug so pharmacy/grocery rows render
+    // type-specific status copy ("Pharmacist preparing…", "Picking your groceries").
+    const pill = statusDisplay(item.status, item.type, item.merchant?.category?.slug);
+    const status = { label: pill.label, bg: pill.bg, text: pill.color };
+    const type = resolveTypeMeta(item, t);
     const isActive = activeTab === 0;
     const canRate = (item.status === "DELIVERED" || item.status === "SETTLED") && !item.rating;
+    const lifecycle = resolveLifecycleBadge(item);
+    const title = item.merchant?.name || type.label;
 
     return (
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}. ${status.label}. ${formatNaira(item.total || item.customerPaid)}`}
         style={{
           backgroundColor: colors.surface,
           borderRadius: 18,
@@ -146,15 +168,23 @@ export default function OrdersScreen({ navigation }) {
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Text style={{ fontSize: 14, fontWeight: "800", color: colors.text }}>
-                {item.merchant?.name || type.label + " Delivery"}
+                {title}
               </Text>
               <View style={{ backgroundColor: status.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
                 <Text style={{ fontSize: 11, fontWeight: "700", color: status.text }}>{status.label}</Text>
               </View>
             </View>
             <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
-              #{item.id.slice(-8).toUpperCase()} · {formatDate(item.createdAt)}
+              {t("orders.orderId")}{item.id.slice(-8).toUpperCase()} · {formatDate(item.createdAt)}
             </Text>
+            {lifecycle && (
+              <View style={{ flexDirection: "row", alignSelf: "flex-start", alignItems: "center", marginTop: 8, backgroundColor: lifecycle.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+                <Ionicons name={lifecycle.icon} size={11} color={lifecycle.color} />
+                <Text style={{ marginLeft: 4, fontSize: 11, fontWeight: "700", color: lifecycle.color }}>
+                  {lifecycle.label}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -189,23 +219,29 @@ export default function OrdersScreen({ navigation }) {
           {isActive ? (
             <TouchableOpacity
               onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
+              accessibilityRole="button"
+              accessibilityLabel={t("orders.track")}
               style={{ backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
             >
-              <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>Track</Text>
+              <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>{t("orders.track")}</Text>
             </TouchableOpacity>
           ) : canRate ? (
             <TouchableOpacity
               onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
+              accessibilityRole="button"
+              accessibilityLabel={t("orders.rate")}
               style={{ backgroundColor: "#FFA500", paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
             >
-              <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>Rate ★</Text>
+              <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>{t("orders.rate")}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
+              accessibilityRole="button"
+              accessibilityLabel={t("orders.details")}
               style={{ backgroundColor: colors.surfaceMuted, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
             >
-              <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700" }}>Details</Text>
+              <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700" }}>{t("orders.details")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -213,47 +249,26 @@ export default function OrdersScreen({ navigation }) {
     );
   };
 
-  const renderEmpty = () => (
-    <View
-      style={{
-        marginTop: 40,
-        backgroundColor: colors.surface,
-        borderRadius: 22,
-        padding: 40,
-        alignItems: "center",
-        borderWidth: 1.5,
-        borderColor: colors.border,
-      }}
-    >
-      <View
-        style={{
-          width: 64,
-          height: 64,
-          backgroundColor: colors.surfaceMuted,
-          borderRadius: 32,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 16,
-        }}
-      >
-        <Ionicons name="receipt-outline" size={28} color={colors.textMuted} />
-      </View>
-      <Text style={{ fontSize: 17, fontWeight: "800", color: colors.text, marginBottom: 6 }}>
-        No {TABS[activeTab].toLowerCase()} orders
-      </Text>
-      <Text style={{ fontSize: 13, color: colors.textMuted, textAlign: "center", lineHeight: 20 }}>
-        {activeTab === 0
-          ? "Place an order and track it here in real time."
-          : "Your order history will appear here."}
-      </Text>
-      {activeTab === 0 && (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("MerchantBrowse")}
-          style={{ marginTop: 20, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 13, borderRadius: 14 }}
-        >
-          <Text style={{ color: colors.white, fontWeight: "800", fontSize: 14 }}>Start an Order</Text>
-        </TouchableOpacity>
-      )}
+  const renderEmpty = () => {
+    const titleKey = ["orders.noActive", "orders.noCompleted", "orders.noCancelled"][activeTab];
+    const hintKey = ["orders.noActiveHint", "orders.noCompletedHint", "orders.noCancelledHint"][activeTab];
+    return (
+      <EmptyState
+        icon="receipt-outline"
+        title={t(titleKey)}
+        subtitle={t(hintKey)}
+        ctaLabel={activeTab === 0 ? t("orders.startOrder") : undefined}
+        onCta={activeTab === 0 ? () => navigation.navigate("MerchantBrowse") : undefined}
+        fill={false}
+      />
+    );
+  };
+
+  const renderLoadingSkeleton = () => (
+    <View style={{ paddingTop: 8 }}>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <SkeletonLoader.OrderRow key={i} />
+      ))}
     </View>
   );
 
@@ -273,12 +288,12 @@ export default function OrdersScreen({ navigation }) {
           alignItems: "center",
         }}
       >
-        <Text style={{ fontSize: 28, fontWeight: "900", color: colors.text, letterSpacing: -1 }}>
-          My Orders
+        <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "900", color: colors.text, letterSpacing: -1 }}>
+          {t("orders.title")}
         </Text>
         <View style={{ backgroundColor: colors.dark, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
           <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700", letterSpacing: 0.5 }}>
-            {activeCount} ACTIVE
+            {t("orders.activeCount", { count: activeCount })}
           </Text>
         </View>
       </View>
@@ -293,24 +308,32 @@ export default function OrdersScreen({ navigation }) {
           borderRadius: 14,
           padding: 4,
         }}
+        accessibilityRole="tablist"
       >
-        {TABS.map((tab, i) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(i)}
-            style={{
-              flex: 1,
-              paddingVertical: 10,
-              borderRadius: 11,
-              alignItems: "center",
-              backgroundColor: i === activeTab ? colors.dark : "transparent",
-            }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: "700", color: i === activeTab ? colors.white : colors.textMuted }}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {TAB_KEYS.map((tabKey, i) => {
+          const label = t(`orders.${tabKey}`);
+          const selected = i === activeTab;
+          return (
+            <TouchableOpacity
+              key={tabKey}
+              onPress={() => setActiveTab(i)}
+              accessibilityRole="tab"
+              accessibilityLabel={label}
+              accessibilityState={{ selected }}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 11,
+                alignItems: "center",
+                backgroundColor: selected ? colors.dark : "transparent",
+              }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.textMuted }}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <FlatList
@@ -324,13 +347,13 @@ export default function OrdersScreen({ navigation }) {
         ListEmptyComponent={!isLoading ? renderEmpty : null}
         ListFooterComponent={
           isLoading && requests.length > 0 ? (
-            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
+            // Shows a single skeleton row as the "load more" indicator,
+            // matching the shape of an actual row so the list doesn't jump.
+            <SkeletonLoader.OrderRow />
           ) : null
         }
         ListHeaderComponent={
-          isLoading && requests.length === 0 ? (
-            <ActivityIndicator color={colors.primary} style={{ marginTop: 48 }} />
-          ) : null
+          isLoading && requests.length === 0 ? renderLoadingSkeleton() : null
         }
       />
     </SafeAreaView>

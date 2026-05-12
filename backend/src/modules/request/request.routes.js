@@ -15,6 +15,9 @@ const {
   listRequestsSchema,
   rateRequestSchema,
   cancelRequestSchema,
+  quoteRequestSchema,
+  postMessageSchema,
+  listMessagesSchema,
 } = require('./request.validator');
 
 const router = Router();
@@ -26,14 +29,28 @@ router.use(authenticate);
 // Public endpoints (any authenticated user)
 // ============================================================
 
-// Get pricing quote before creating a request
-router.get('/quote', requestController.getQuote);
+// Server-truth quote — POST same shape as createRequest, returns pricing + validUntil
+router.post('/quote', validate(quoteRequestSchema), requestController.getQuote);
 
 // List requests (customers see theirs, riders see theirs, merchants see theirs)
 router.get('/', validate(listRequestsSchema, 'query'), requestController.getRequests);
 
+// Active request for the home banner. Single query against the
+// (customerId, status) composite index. Returns the current active request
+// or null. Must be registered BEFORE /:requestId so /active doesn't get
+// captured as `requestId='active'`.
+router.get('/active', requestController.getActiveRequest);
+
 // Get single request details
 router.get('/:requestId', requestController.getRequestById);
+
+// Tracking — route polyline + live ETA from rider's last known position.
+// Cached in Redis for 30s to keep Maps quota in check.
+router.get('/:requestId/route', requestController.getRoute);
+
+// In-app messaging — list + post (rider/customer/merchant, all in the request)
+router.get('/:requestId/messages', validate(listMessagesSchema, 'query'), requestController.listMessages);
+router.post('/:requestId/messages', validate(postMessageSchema), requestController.postMessage);
 
 // ============================================================
 // Customer endpoints
@@ -42,7 +59,10 @@ router.get('/:requestId', requestController.getRequestById);
 // Create a new request (any type)
 router.post('/', authorize('CUSTOMER'), idempotency, validate(createRequestSchema), requestController.createRequest);
 
-// Cancel request (customer only, before pickup)
+// Cancellation quote — preview the fee/refund before the customer confirms.
+router.get('/:requestId/cancel-quote', authorize('CUSTOMER'), requestController.getCancellationQuote);
+
+// Cancel request (customer only, before pickup) — fee policy applied server-side.
 router.delete('/:requestId', authorize('CUSTOMER'), validate(cancelRequestSchema), requestController.cancelRequest);
 
 // Rate completed request (customer only)

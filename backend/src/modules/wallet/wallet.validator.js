@@ -15,7 +15,9 @@ const transferSchema = z.object({
 
 const withdrawSchema = z.object({
   bankCode: z.string().min(3).max(10),
+  bankName: z.string().min(1).max(80).optional(),
   accountNumber: z.string().length(10),
+  accountName: z.string().min(1).max(120).optional(),
   amount: z.coerce.number().positive('Amount must be greater than 0'),
   pin: z.string().length(6),
 });
@@ -33,13 +35,18 @@ const transactionHistorySchema = z.object({
     'P2P_TRANSFER_SENT',
     'P2P_TRANSFER_RECEIVED',
     'WITHDRAWAL',
-    'DELIVERY_PAYMENT',
-    'DELIVERY_EARNING',
     'UTILITY_PAYMENT',
     'REFUND',
+    'ESCROW_HOLD',
+    'ESCROW_RELEASE',
+    'ESCROW_REFUND',
+    'PLATFORM_EARNING',
+    'RIDER_EARNING',
+    'MERCHANT_EARNING',
   ]).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),
+  q: z.string().trim().min(1).max(80).optional(),
 });
 
 module.exports = {

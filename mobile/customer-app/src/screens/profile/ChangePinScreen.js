@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { changeTransactionPin } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
@@ -18,8 +19,9 @@ const PIN_LENGTH = 6;
 
 export default function ChangePinScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { isUpdating } = useSelector((state) => state.profile);
-  const [step, setStep] = useState("current"); // "current" | "new" | "confirm"
+  const [step, setStep] = useState("current");
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -27,24 +29,21 @@ export default function ChangePinScreen({ navigation }) {
 
   const stepConfig = {
     current: {
-      value: currentPin,
-      setter: setCurrentPin,
-      title: "Enter current PIN",
-      sub: "Enter your existing 6-digit PIN",
+      value: currentPin, setter: setCurrentPin,
+      title: t("changePin.currentPinLabel"),
+      sub: t("changePin.currentRequired"),
       next: "new",
     },
     new: {
-      value: newPin,
-      setter: setNewPin,
-      title: "Enter new PIN",
-      sub: "Choose a new 6-digit PIN",
+      value: newPin, setter: setNewPin,
+      title: t("changePin.newPinLabel"),
+      sub: t("changePin.newRequired"),
       next: "confirm",
     },
     confirm: {
-      value: confirmPin,
-      setter: setConfirmPin,
-      title: "Confirm new PIN",
-      sub: "Re-enter your new PIN to confirm",
+      value: confirmPin, setter: setConfirmPin,
+      title: t("changePin.confirmPinLabel"),
+      sub: t("auth.pinConfirmSub"),
       next: null,
     },
   };
@@ -70,8 +69,8 @@ export default function ChangePinScreen({ navigation }) {
           } else {
             Toast.show({
               type: "error",
-              text1: "PINs don't match",
-              text2: "Please try again.",
+              text1: t("changePin.mismatch"),
+              text2: t("auth.pinMismatchToastSub"),
             });
             setStep("new");
             setNewPin("");
@@ -89,8 +88,8 @@ export default function ChangePinScreen({ navigation }) {
     if (changeTransactionPin.fulfilled.match(result)) {
       Toast.show({
         type: "success",
-        text1: "PIN Changed",
-        text2: "Your transaction PIN has been updated.",
+        text1: t("changePin.success"),
+        text2: t("auth.pinSetToastSub"),
       });
       navigation.goBack();
     } else {
@@ -123,6 +122,8 @@ export default function ChangePinScreen({ navigation }) {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -136,6 +137,7 @@ export default function ChangePinScreen({ navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -143,7 +145,7 @@ export default function ChangePinScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          Change PIN
+          {t("changePin.title")}
         </Text>
       </View>
 

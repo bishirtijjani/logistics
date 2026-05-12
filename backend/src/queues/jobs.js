@@ -11,9 +11,8 @@
 const QUEUES = {
   PAYMENT: 'payment-queue',
   NOTIFICATION: 'notification-queue',
-  DELIVERY: 'delivery-queue',
   UTILITY: 'utility-queue',
-  REQUEST: 'request-queue',  // NEW: Unified request queue
+  REQUEST: 'request-queue',
 };
 
 // --- Job types per queue ---
@@ -31,6 +30,8 @@ const PAYMENT_JOBS = {
   RETRY_FAILED_TRANSACTION: 'retry-failed-transaction',
   /** Nightly: delete expired idempotency-key reservations */
   CLEANUP_EXPIRED_IDEMPOTENCY: 'cleanup-expired-idempotency',
+  /** Nightly: ledger reconciliation across user/merchant/system wallets */
+  RUN_RECONCILIATION: 'run-reconciliation',
 };
 
 const NOTIFICATION_JOBS = {
@@ -42,26 +43,31 @@ const NOTIFICATION_JOBS = {
   SEND_OTP: 'send-otp',
 };
 
-const DELIVERY_JOBS = {
-  /** Broadcast new order to nearby riders */
-  BROADCAST_TO_RIDERS: 'broadcast-to-riders',
-  /** Settle delivery payment after completion */
-  SETTLE_DELIVERY: 'settle-delivery',
-  /** Auto-cancel unmatched orders after timeout */
-  AUTO_CANCEL_UNMATCHED: 'auto-cancel-unmatched',
-};
-
 const UTILITY_JOBS = {
   PROCESS_AIRTIME: 'process-airtime',
   PROCESS_DATA: 'process-data',
   PROCESS_CABLE: 'process-cable',
   PROCESS_ELECTRICITY: 'process-electricity',
   REFUND_FAILED: 'refund-failed',
+  /** Re-query AlRahuz for a payment whose initial response was `pending`.
+   *  Scheduled with delay 30 s; auto-refunds after max attempts (5 min window). */
+  POLL_PENDING: 'poll-pending',
+};
+
+// Phase 7 — pending poll cadence (AlRahuz reconciliation)
+const POLL_CONFIG = {
+  INTERVAL_MS: 30_000, // 30 s between polls
+  MAX_ATTEMPTS: 10,    // ~5 minute window (10 × 30 s)
 };
 
 const REQUEST_JOBS = {
-  /** Broadcast new request to nearby riders */
+  /** Kick off rider matching for a request — emits ring 0 and schedules the
+   *  next ring check via CHECK_RING_PROGRESS. Returns immediately, freeing
+   *  the worker slot (no sleep). */
   BROADCAST_TO_RIDERS: 'broadcast-to-riders',
+  /** Mid-ring check — if request was claimed → exit; else emit next ring or
+   *  trigger auto-cancel. Re-queued by BROADCAST_TO_RIDERS with a delay. */
+  CHECK_RING_PROGRESS: 'check-ring-progress',
   /** Settle request payment after completion */
   SETTLE_REQUEST: 'settle-request',
   /** Refund cancelled request */
@@ -90,8 +96,8 @@ module.exports = {
   QUEUES,
   PAYMENT_JOBS,
   NOTIFICATION_JOBS,
-  DELIVERY_JOBS,
   UTILITY_JOBS,
-  REQUEST_JOBS,  // NEW
+  REQUEST_JOBS,
   DEFAULT_JOB_OPTIONS,
+  POLL_CONFIG,
 };

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -16,23 +16,32 @@ import { register, clearError } from "../../store/slices/authSlice";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 import FormInput from "../../components/FormInput";
-
-const registerSchema = z.object({
-  firstName: z.string().min(2, "First name is required"),
-  lastName: z.string().min(2, "Last name is required"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+import { colors } from "../../theme";
 
 export default function RegisterScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { isLoading } = useSelector((state) => state.auth);
 
   // Focus Refs for Keyboard Navigation
   const lastNameRef = useRef(null);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
+
+  // Schema lives inside the component so validation messages localize.
+  // Memoized on `t` so it only rebuilds when the locale changes.
+  const registerSchema = useMemo(
+    () =>
+      z.object({
+        firstName: z.string().min(2, t("auth.form.firstNameRequired")),
+        lastName: z.string().min(2, t("auth.form.lastNameRequired")),
+        email: z.string().email(t("auth.form.emailInvalid")),
+        password: z.string().min(8, t("auth.form.passwordTooShort")),
+      }),
+    [t],
+  );
 
   const {
     control,
@@ -55,8 +64,8 @@ export default function RegisterScreen({ navigation }) {
     if (register.fulfilled.match(resultAction)) {
       Toast.show({
         type: "success",
-        text1: "Success",
-        text2: "Check your email for the OTP!",
+        text1: t("auth.toast.accountCreated"),
+        text2: t("auth.toast.otpSent"),
       });
       navigation.navigate("OtpVerification", { email: data.email });
     }
@@ -67,29 +76,30 @@ export default function RegisterScreen({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
-      <View style={{ height: 4, backgroundColor: "#EA580C" }} />
+      <View style={{ height: 4, backgroundColor: colors.primary }} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
-          style={{ flex: 1, backgroundColor: "#FAFAFA" }}
+          style={{ flex: 1, backgroundColor: colors.background }}
           contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 52 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={{ marginBottom: 32 }}>
             <Text
+              accessibilityRole="header"
               style={{
                 fontSize: 38,
                 fontWeight: "900",
-                color: "#09090b",
+                color: colors.text,
                 letterSpacing: -1.5,
                 marginBottom: 8,
                 lineHeight: 44,
               }}
             >
-              Create{"\n"}account.
+              {t("auth.registerTitle")}
             </Text>
-            <Text style={{ fontSize: 15, color: "#6B7280" }}>
-              Join thousands of users moving fast.
+            <Text style={{ fontSize: 15, color: colors.textMuted }}>
+              {t("auth.registerSubtitle")}
             </Text>
           </View>
 
@@ -100,7 +110,7 @@ export default function RegisterScreen({ navigation }) {
                 name="firstName"
                 render={({ field: { onChange, onBlur, value } }) => (
                   <FormInput
-                    label="First name"
+                    label={t("auth.firstName")}
                     icon="person-outline"
                     placeholder="John"
                     onBlur={onBlur}
@@ -121,7 +131,7 @@ export default function RegisterScreen({ navigation }) {
                 render={({ field: { onChange, onBlur, value } }) => (
                   <FormInput
                     ref={lastNameRef}
-                    label="Last name"
+                    label={t("auth.lastName")}
                     icon="person-outline"
                     placeholder="Doe"
                     onBlur={onBlur}
@@ -143,7 +153,7 @@ export default function RegisterScreen({ navigation }) {
             render={({ field: { onChange, onBlur, value } }) => (
               <FormInput
                 ref={emailRef}
-                label="Email address"
+                label={t("auth.email")}
                 icon="mail-outline"
                 placeholder="john@example.com"
                 onBlur={onBlur}
@@ -165,9 +175,9 @@ export default function RegisterScreen({ navigation }) {
             render={({ field: { onChange, onBlur, value } }) => (
               <FormInput
                 ref={passwordRef}
-                label="Password"
+                label={t("auth.password")}
                 icon="lock-closed-outline"
-                placeholder="Create a strong password"
+                placeholder={t("auth.password")}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -187,17 +197,20 @@ export default function RegisterScreen({ navigation }) {
               borderRadius: 16,
               alignItems: "center",
               marginTop: 4,
-              backgroundColor: isLoading ? "#EA580CB3" : "#EA580C",
+              backgroundColor: isLoading ? "#EA580CB3" : colors.primary,
             }}
             onPress={handleSubmit(onSubmit)}
             disabled={isLoading}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("auth.signUp")}
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
-                Create account
+                {t("auth.signUp")}
               </Text>
             )}
           </TouchableOpacity>
@@ -210,14 +223,18 @@ export default function RegisterScreen({ navigation }) {
               marginBottom: 16,
             }}
           >
-            <Text style={{ color: "#6B7280", fontSize: 14 }}>
-              Already have an account?{" "}
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+              {t("auth.hasAccount")}{" "}
             </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Login")}
+              accessibilityRole="link"
+              accessibilityLabel={t("auth.signIn")}
+            >
               <Text
-                style={{ color: "#EA580C", fontSize: 14, fontWeight: "700" }}
+                style={{ color: colors.primary, fontSize: 14, fontWeight: "700" }}
               >
-                Sign in
+                {t("auth.signIn")}
               </Text>
             </TouchableOpacity>
           </View>

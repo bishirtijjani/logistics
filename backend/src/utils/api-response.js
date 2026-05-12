@@ -32,16 +32,20 @@ class ApiResponse {
   }
 
   /**
-   * Standard error response.
+   * Standard error response. `code` is a stable i18n key the mobile client
+   * uses to look up the localized copy; `message` is the English fallback
+   * served when no translation exists.
    * @param {string} message
    * @param {any} [errors] - Validation errors or additional context
+   * @param {string} [code] - Stable error code (e.g. 'INSUFFICIENT_BALANCE')
    * @returns {object}
    */
-  static error(message, errors = null) {
+  static error(message, errors = null, code = null) {
     return {
       success: false,
       message,
       data: null,
+      ...(code && { code }),
       ...(errors && { errors }),
     };
   }

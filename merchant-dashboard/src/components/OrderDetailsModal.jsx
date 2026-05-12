@@ -405,6 +405,28 @@ export default function OrderDetailsModal({ order, onClose }) {
             </div>
           </div>
 
+          {/* Phase 8 — prescription attachment card. Only renders for pharmacy
+              orders where the customer uploaded a prescription at checkout. */}
+          {order.prescriptionUrl ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4 flex items-start gap-3">
+              <div className="text-amber-700 dark:text-amber-400 text-2xl leading-none">℞</div>
+              <div className="flex-1">
+                <p className="font-semibold text-amber-900 dark:text-amber-200">Prescription attached</p>
+                <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">
+                  Verify against the items below before accepting.
+                </p>
+                <a
+                  href={order.prescriptionUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-2 text-sm font-semibold text-amber-900 dark:text-amber-200 underline"
+                >
+                  Open prescription image
+                </a>
+              </div>
+            </div>
+          ) : null}
+
           {/* Order Items */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
@@ -426,26 +448,66 @@ export default function OrderDetailsModal({ order, onClose }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items?.map((item, index) => (
-                    <tr key={index} className="border-b border-gray-200 dark:border-gray-700">
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {item.name}
-                        </p>
-                        {item.modifiers && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {item.modifiers.join(', ')}
+                  {order.items?.map((item, index) => {
+                    // Phase 2 line shape: unitPrice, lineTotal, selectedOptions, specialInstructions.
+                    // Phase 8 adds: substitution, plus product.requiresPrescription / dosage.
+                    const lineUnit = item.unitPrice != null ? Number(item.unitPrice) : Number(item.price || 0)
+                    const lineTotal = item.lineTotal != null
+                      ? Number(item.lineTotal)
+                      : lineUnit * Number(item.quantity || 0)
+                    const groups = Array.isArray(item.selectedOptions) ? item.selectedOptions : []
+                    const sub = item.substitution
+                    const subText = sub === 'MERCHANT_PICK'
+                      ? 'Substitutes OK'
+                      : sub === 'CONTACT_ME'
+                        ? 'Call before swapping'
+                        : sub === 'NONE'
+                          ? 'No substitutes'
+                          : null
+                    return (
+                      <tr key={item.id || index} className="border-b border-gray-200 dark:border-gray-700 align-top">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {item.name}
                           </p>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {item.quantity}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        ₦{(item.price * item.quantity).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
+                          {groups.length > 0 && (
+                            <ul className="mt-1 text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                              {groups.map((g) => (
+                                <li key={g.groupId}>
+                                  <span className="font-semibold">{g.groupName}:</span>{' '}
+                                  {(g.items || []).map((i) => i.itemName).join(', ')}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {item.specialInstructions ? (
+                            <p className="mt-1 text-xs italic text-gray-500 dark:text-gray-400">
+                              “{item.specialInstructions}”
+                            </p>
+                          ) : null}
+                          {/* Phase 8 — grocery substitution chip on the kitchen ticket. */}
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {subText && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                ⇄ {subText}
+                              </span>
+                            )}
+                            {item.product?.requiresPrescription || item.requiresPrescription ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                ℞ Rx required
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {item.quantity}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          ₦{lineTotal.toLocaleString()}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-gray-200 dark:border-gray-700">

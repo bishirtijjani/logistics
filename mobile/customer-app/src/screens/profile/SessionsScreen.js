@@ -9,33 +9,32 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import api from "../../services/api";
 import { colors } from "../../theme";
 import Toast from "react-native-toast-message";
 
-function formatDate(d) {
-  if (!d) return "Never";
-  return new Date(d).toLocaleString("en-NG", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export default function SessionsScreen({ navigation }) {
+  const { t, i18n } = useTranslation();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState(null);
+
+  const formatDate = (d) => {
+    if (!d) return "—";
+    const tag = i18n.language === "ha" ? "ha-NG" : "en-NG";
+    return new Date(d).toLocaleString(tag, {
+      day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  };
 
   const load = async () => {
     try {
       setLoading(true);
       const res = await api.get("/auth/sessions");
-      setSessions(res.data?.data ?? res.data ?? []);
+      setSessions(res?.data ?? []);
     } catch (_) {
-      Toast.show({ type: "error", text1: "Failed to load sessions" });
+      Toast.show({ type: "error", text1: t("errors.UNKNOWN_ERROR") });
     } finally {
       setLoading(false);
     }
@@ -43,20 +42,20 @@ export default function SessionsScreen({ navigation }) {
 
   useEffect(() => {
     load();
-  }, []);
+  }, []); // eslint-disable-line
 
   const revokeOne = (sessionId) => {
-    Alert.alert("Revoke Session", "Sign out this device?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("sessions.confirmSignOutTitle"), t("sessions.confirmSignOutBody"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Revoke",
+        text: t("sessions.signOut"),
         style: "destructive",
         onPress: async () => {
           try {
             setRevoking(sessionId);
             await api.delete(`/auth/sessions/${sessionId}`);
             setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-            Toast.show({ type: "success", text1: "Session revoked" });
+            Toast.show({ type: "success", text1: t("sessions.signedOut") });
           } catch (_) {
             Toast.show({ type: "error", text1: "Failed to revoke session" });
           } finally {
@@ -91,11 +90,15 @@ export default function SessionsScreen({ navigation }) {
       <View style={{ height: 4, backgroundColor: colors.primary }} />
 
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
-          Active Sessions
+        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
+          {t("sessions.title")}
         </Text>
       </View>
 

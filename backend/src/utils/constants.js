@@ -8,47 +8,71 @@
 const REDIS_KEYS = {
   RIDER_LOCATION: "rider:location:", // rider:location:{riderId}
   RIDER_AVAILABILITY: "rider:availability:", // rider:availability:{riderId}
-  ACTIVE_DELIVERY: "delivery:active:", // delivery:active:{deliveryId}
+  ACTIVE_REQUEST: "request:active:", // request:active:{requestId}
   OTP: "otp:", // otp:{phone}
   PENDING_REG: "pending_reg:", // pending_reg:{email}
   OTP_COOLDOWN: "otp_cooldown:", // otp_cooldown:{email} — 60s between resends
   SESSION: "session:", // session:{userId}
   RATE_LIMIT: "ratelimit:", // ratelimit:{ip}:{endpoint}
+  // Phase 4 — logistics
+  RIDER_GEO_INDEX: "riders:geo", // GEOADD/GEOSEARCH key for available riders
+  REQUEST_ROUTE: "request:route:", // request:route:{requestId} — 30s cache for /route
+  REQUEST_ETA_LAST: "request:eta:last:", // last pushed ETA + position {requestId}
+  RIDER_OFFER_LOCK: "rider:offer:", // rider:offer:{requestId} — set during a ring round
+  // Phase 7 — utility/VTU
+  VTU_DATA_PLANS: "vtu:data-plans:", // vtu:data-plans:{networkId|all} — 1h cache
+  VTU_DISCOS: "vtu:discos", // 1h cache of DISCO list
 };
 
 // Redis TTLs (in seconds)
 const REDIS_TTL = {
   RIDER_LOCATION: 30, // Stale after 30s (updates every ~3s)
   RIDER_AVAILABILITY: 3600, // 1 hour
-  ACTIVE_DELIVERY: 86400, // 24 hours
+  ACTIVE_REQUEST: 86400, // 24 hours
   OTP: 600, // 10 minutes
   PENDING_REG: 600, // 10 minutes (same as OTP)
   OTP_COOLDOWN: 60, // 60 seconds between resend requests
   SESSION: 604800, // 7 days
+  // Phase 4 — logistics
+  REQUEST_ROUTE: 30, // 30s — short enough to track real movement, cheap on Maps quota
+  REQUEST_ETA_LAST: 120, // 2 min — cleared when delivery completes
+  // Phase 7 — utility/VTU
+  VTU_DATA_PLANS: 3600, // 1 hour — data plans rarely change
+  VTU_DISCOS: 3600, // 1 hour
 };
 
-// Delivery lifecycle — ordered states
-const DELIVERY_STATES = [
-  "REQUESTED",
-  "MATCHED",
-  "RIDER_EN_ROUTE",
-  "PICKED_UP",
-  "IN_TRANSIT",
-  "DELIVERED",
-  "SETTLED",
-  "CANCELLED",
+// Phase 7 — Nigerian network prefixes for client/server auto-detect.
+// Source: NCC numbering plan (operators occasionally add codes; review yearly).
+const NETWORK_PREFIXES = {
+  MTN:       ['0703','0706','0803','0806','0810','0813','0814','0816','0903','0906','0913','0916','0704','0707'],
+  GLO:       ['0705','0805','0807','0811','0815','0905','0915'],
+  AIRTEL:    ['0701','0708','0802','0808','0812','0902','0907','0901','0904','0912'],
+  '9MOBILE': ['0809','0817','0818','0908','0909'],
+};
+
+// AlRahuz provider IDs — single source of truth. Mobile/static endpoints read these.
+const NETWORK_IDS = { MTN: 1, GLO: 2, '9MOBILE': 3, AIRTEL: 4, SMILE: 5 };
+
+const NETWORKS = [
+  { id: NETWORK_IDS.MTN,       name: 'MTN' },
+  { id: NETWORK_IDS.GLO,       name: 'GLO' },
+  { id: NETWORK_IDS['9MOBILE'], name: '9MOBILE' },
+  { id: NETWORK_IDS.AIRTEL,    name: 'AIRTEL' },
 ];
 
-// Valid state transitions for delivery
-const DELIVERY_TRANSITIONS = {
-  REQUESTED: ["MATCHED", "CANCELLED"],
-  MATCHED: ["RIDER_EN_ROUTE", "CANCELLED"],
-  RIDER_EN_ROUTE: ["PICKED_UP", "CANCELLED"],
-  PICKED_UP: ["IN_TRANSIT"],
-  IN_TRANSIT: ["DELIVERED"],
-  DELIVERED: ["SETTLED"],
-  SETTLED: [],
-  CANCELLED: [],
+const detectNetworkFromPhone = (raw) => {
+  if (!raw) return null;
+  const cleaned = String(raw).replace(/\D/g, '');
+  // Normalise 234XXXXXXXXXX → 0XXXXXXXXXX
+  const phone = cleaned.startsWith('234') ? '0' + cleaned.slice(3) : cleaned;
+  if (phone.length < 4) return null;
+  const prefix = phone.slice(0, 4);
+  for (const [name, prefixes] of Object.entries(NETWORK_PREFIXES)) {
+    if (prefixes.includes(prefix)) {
+      return { name, id: NETWORK_IDS[name], prefix };
+    }
+  }
+  return null;
 };
 
 // OTP settings
@@ -72,20 +96,26 @@ const PAGINATION = {
   MAX_LIMIT: 100,
 };
 
-// Rider matching
+// Rider matching — defaults if PlatformSetting overrides are unavailable.
+// Production reads `delivery.broadcastRadiusRings`,
+// `delivery.broadcastRingTimeoutSec`, and `delivery.autoCancelUnmatchedMs`
+// from PlatformSetting; these are the conservative fallbacks.
 const RIDER_MATCHING = {
-  SEARCH_RADIUS_KM: 10,
-  ACCEPT_TIMEOUT_SECONDS: 60,
-  MAX_BROADCAST_ROUNDS: 3,
+  RADIUS_RINGS_KM: [5, 10, 15],
+  RING_TIMEOUT_SECONDS: 60,
+  MAX_RIDERS_PER_RING: 10,
+  AUTO_CANCEL_BUFFER_MS: 2000, // small grace after final ring expires
 };
 
 module.exports = {
   REDIS_KEYS,
   REDIS_TTL,
-  DELIVERY_STATES,
-  DELIVERY_TRANSITIONS,
   OTP,
   PIN,
   PAGINATION,
   RIDER_MATCHING,
+  NETWORK_PREFIXES,
+  NETWORK_IDS,
+  NETWORKS,
+  detectNetworkFromPhone,
 };

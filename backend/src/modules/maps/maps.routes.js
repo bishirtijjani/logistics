@@ -6,6 +6,7 @@ const { Router } = require("express");
 const mapsController = require("./maps.controller");
 const { validate } = require("../../middlewares/validate.middleware");
 const { authenticate } = require("../../middlewares/auth.middleware");
+const { mapsLimiter } = require("../../middlewares/rate-limit.middleware");
 const {
   autocompleteSchema,
   placeDetailsSchema,
@@ -13,6 +14,11 @@ const {
 } = require("./maps.validator");
 
 const router = Router();
+
+// All maps routes require an authenticated user AND share a per-user
+// rate-limit budget (60 req/min). The Google Maps Places API costs real
+// money, so anonymous open access was a quota-bleed risk.
+router.use(authenticate, mapsLimiter);
 
 router.get(
   "/autocomplete",

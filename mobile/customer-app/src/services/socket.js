@@ -1,8 +1,8 @@
 /**
- * Socket.io client service — real-time delivery tracking.
+ * Socket.io client — real-time request lifecycle, rider location, and wallet events.
  *
- * This service manages the socket connection, authentication,
- * and event handling for the customer app.
+ * Phase 2 swap: all `delivery:*` events were retired with the legacy module.
+ * The unified Request flow uses `request:*` events; rooms are keyed by requestId.
  */
 
 import { io } from "socket.io-client";
@@ -16,11 +16,16 @@ class SocketService {
     this.eventHandlers = new Map();
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
+    // AppNavigator updates this with the current route name so we can
+    // suppress redundant toasts (e.g. a notification:new toast while the
+    // user is already on the NotificationCenter screen).
+    this._currentRouteName = null;
   }
 
-  /**
-   * Initialize and connect to the socket server.
-   */
+  setCurrentRouteName(name) {
+    this._currentRouteName = name || null;
+  }
+
   async connect() {
     if (this.socket?.connected) return;
 
@@ -48,16 +53,13 @@ class SocketService {
     }
   }
 
-  /**
-   * Setup socket event listeners.
-   */
   setupEventListeners() {
     if (!this.socket) return;
 
     this.socket.on("connect", () => {
       console.log("[Socket] Connected:", this.socket.id);
       this.reconnectAttempts = 0;
-
+      this.emit("connectionStateChange", true);
       Toast.show({
         type: "success",
         text1: "Connected",
@@ -68,200 +70,191 @@ class SocketService {
 
     this.socket.on("disconnect", (reason) => {
       console.log("[Socket] Disconnected:", reason);
+      this.emit("connectionStateChange", false);
     });
 
     this.socket.on("connect_error", (error) => {
       console.error("[Socket] Connection error:", error.message);
       this.reconnectAttempts++;
-
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.log("[Socket] Max reconnection attempts reached");
         this.disconnect();
       }
     });
 
-    // Listen for wallet updates
-    this.socket.on("wallet:balance:updated", (data) => {
-      console.log("[Socket] Wallet balance updated:", data);
-      this.emit("walletBalanceUpdated", data);
-    });
-
+    // --- Wallet ---
+    this.socket.on("wallet:balance:updated", (data) => this.emit("walletBalanceUpdated", data));
     this.socket.on("wallet:transfer:received", (data) => {
-      console.log("[Socket] Transfer received:", data);
       Toast.show({
         type: "success",
-        text1: "Money Received! 💸",
-        text2: `You received ₦${data.amount?.toLocaleString()}`,
+        text1: "Money received",
+        text2: `You received ₦${data.amount?.toLocaleString?.() ?? data.amount}`,
       });
-      this.emit("transferReceived", data);
+      this.emit("walletTransferReceived", data);
+    });
+    this.socket.on("wallet:funding:received", (data) => {
+      Toast.show({
+        type: "success",
+        text1: "Wallet funded",
+        text2: `₦${data.amount?.toLocaleString?.() ?? data.amount} credited to your wallet`,
+      });
+      this.emit("walletFundingReceived", data);
     });
 
-    // Listen for delivery events
-    this.socket.on("delivery:status:changed", (data) => {
-      console.log("[Socket] Delivery status changed:", data);
-      this.emit("deliveryStatusChanged", data);
+    // --- Unified Request lifecycle ---
+    this.socket.on("request:created", (data) => this.emit("requestCreated", data));
+
+    this.socket.on("request:status:changed", (data) => {
+      console.log("[Socket] Request status:", data?.requestId, data?.status);
+      this.emit("requestStatusChanged", data);
     });
 
-    this.socket.on("delivery:rider:assigned", (data) => {
-      console.log("[Socket] Rider assigned:", data);
+    this.socket.on("request:merchant:accepted", (data) => {
+      Toast.show({ type: "success", text1: "Merchant accepted your order" });
+      this.emit("requestMerchantAccepted", data);
+    });
+
+    this.socket.on("request:merchant:ready", (data) => {
+      this.emit("requestMerchantReady", data);
+    });
+
+    this.socket.on("request:rider:assigned", (data) => {
       Toast.show({
         type: "info",
-        text1: "Rider Found! 🏍️",
-        text2: "A rider has accepted your delivery",
+        text1: "Rider found",
+        text2: "A rider is on the way",
       });
-      this.emit("riderAssigned", data);
+      this.emit("requestRiderAssigned", data);
     });
 
-    this.socket.on("delivery:completed", (data) => {
-      console.log("[Socket] Delivery completed:", data);
-      Toast.show({
-        type: "success",
-        text1: "Delivery Complete! ✅",
-        text2: "Your package has been delivered",
-      });
-      this.emit("deliveryCompleted", data);
+    this.socket.on("request:rider:location", (data) => this.emit("requestRiderLocation", data));
+    this.socket.on("rider:location:broadcast", (data) => this.emit("requestRiderLocation", data));
+
+    this.socket.on("request:completed", (data) => {
+      Toast.show({ type: "success", text1: "Order complete", text2: "Tap to rate" });
+      this.emit("requestCompleted", data);
     });
 
-    this.socket.on("delivery:cancelled", (data) => {
-      console.log("[Socket] Delivery cancelled:", data);
+    this.socket.on("request:cancelled", (data) => {
       Toast.show({
         type: "error",
-        text1: "Delivery Cancelled",
-        text2: data.reason || "Your delivery has been cancelled",
+        text1: "Order cancelled",
+        text2: data.reason || "Your order has been cancelled",
       });
-      this.emit("deliveryCancelled", data);
+      this.emit("requestCancelled", data);
     });
 
-    // Listen for rider location updates
-    this.socket.on("rider:location:broadcast", (data) => {
-      this.emit("riderLocationUpdate", data);
+    // --- Phase 4 — matching ring status, live ETA, in-app chat ---
+    this.socket.on("request:matching:status", (data) => {
+      this.emit("requestMatchingStatus", data);
     });
 
-    // Generic notifications
+    this.socket.on("request:rider:eta", (data) => {
+      this.emit("requestRiderEta", data);
+    });
+
+    this.socket.on("request:message:new", (data) => {
+      this.emit("requestMessageNew", data);
+    });
+
+    // --- Merchant catalogue (86 propagation) ---
+    this.socket.on("merchant:menu:updated", (data) => this.emit("merchantMenuUpdated", data));
+
+    // --- Generic notifications ---
     this.socket.on("notification:new", (data) => {
-      console.log("[Socket] New notification:", data);
-      Toast.show({
-        type: "info",
-        text1: data.title || "Notification",
-        text2: data.body || "",
-      });
+      // Suppress the toast if the user is already on the Notification Center
+      // (they'll see the row prepend instead) — avoids a redundant toast +
+      // list-row pair on the same event.
+      if (this._currentRouteName !== "NotificationCenter") {
+        Toast.show({
+          type: "info",
+          text1: data.title || "Notification",
+          text2: data.body || "",
+        });
+      }
+      this.emit("notificationNew", data);
     });
   }
 
-  /**
-   * Join a delivery room for real-time tracking.
-   */
-  joinDeliveryRoom(orderId) {
-    if (!this.socket?.connected) {
-      console.log("[Socket] Cannot join room — not connected");
-      return;
-    }
-    this.socket.emit("delivery:room:join", { orderId });
-    console.log("[Socket] Joined delivery room:", orderId);
+  // --- Room management ---
+
+  joinRequestRoom(requestId) {
+    if (!this.socket?.connected || !requestId) return;
+    this.socket.emit("request:room:join", { requestId });
   }
 
-  /**
-   * Leave a delivery room.
-   */
-  leaveDeliveryRoom(orderId) {
-    if (!this.socket?.connected) return;
-    this.socket.emit("delivery:room:leave", { orderId });
-    console.log("[Socket] Left delivery room:", orderId);
+  leaveRequestRoom(requestId) {
+    if (!this.socket?.connected || !requestId) return;
+    this.socket.emit("request:room:leave", { requestId });
   }
 
-  /**
-   * Event listener helpers.
-   */
-  onDeliveryStatusChanged(callback) {
-    return this.on("deliveryStatusChanged", callback);
+  joinMerchantRoom(merchantId) {
+    if (!this.socket?.connected || !merchantId) return;
+    this.socket.emit("merchant:room:join", { merchantId });
   }
 
-  onRiderLocationUpdate(callback) {
-    return this.on("riderLocationUpdate", callback);
+  leaveMerchantRoom(merchantId) {
+    if (!this.socket?.connected || !merchantId) return;
+    this.socket.emit("merchant:room:leave", { merchantId });
   }
 
-  onRiderAssigned(callback) {
-    return this.on("riderAssigned", callback);
+  // --- Subscription helpers ---
+
+  onRequestStatusChanged(cb)      { return this.on("requestStatusChanged", cb); }
+  onRequestRiderAssigned(cb)      { return this.on("requestRiderAssigned", cb); }
+  onRequestRiderLocation(cb)      { return this.on("requestRiderLocation", cb); }
+  onRequestMerchantAccepted(cb)   { return this.on("requestMerchantAccepted", cb); }
+  onRequestMerchantReady(cb)      { return this.on("requestMerchantReady", cb); }
+  onRequestCompleted(cb)          { return this.on("requestCompleted", cb); }
+  onRequestCancelled(cb)          { return this.on("requestCancelled", cb); }
+  onRequestMatchingStatus(cb)     { return this.on("requestMatchingStatus", cb); }
+  onRequestRiderEta(cb)           { return this.on("requestRiderEta", cb); }
+  onRequestMessageNew(cb)         { return this.on("requestMessageNew", cb); }
+  onNotificationNew(cb)           { return this.on("notificationNew", cb); }
+  onWalletBalanceUpdated(cb)      { return this.on("walletBalanceUpdated", cb); }
+  onWalletTransferReceived(cb)    { return this.on("walletTransferReceived", cb); }
+  onWalletFundingReceived(cb)     { return this.on("walletFundingReceived", cb); }
+  onMerchantMenuUpdated(cb)       { return this.on("merchantMenuUpdated", cb); }
+
+  // Phase 5 — expose the socket's connect/disconnect state for the
+  // connection-quality banner. Listeners receive `true` on connect and
+  // `false` on disconnect.
+  onConnectionStateChange(cb) {
+    return this.on("connectionStateChange", cb);
   }
 
-  onDeliveryCompleted(callback) {
-    return this.on("deliveryCompleted", callback);
+  // Expose room re-join helpers used by AppState foreground resync.
+  rejoinRequestRoomIfActive(activeRequestId) {
+    if (!this.socket?.connected || !activeRequestId) return;
+    this.socket.emit("request:room:join", { requestId: activeRequestId });
   }
 
-  onWalletBalanceUpdated(callback) {
-    return this.on("walletBalanceUpdated", callback);
-  }
-
-  // Request event listeners (NEW - Unified Request Architecture)
-  onRequestStatusChanged(callback) {
-    return this.on("requestStatusChanged", callback);
-  }
-
-  onRequestRiderAssigned(callback) {
-    return this.on("requestRiderAssigned", callback);
-  }
-
-  onRequestRiderLocation(callback) {
-    return this.on("requestRiderLocation", callback);
-  }
-
-  onRequestCompleted(callback) {
-    return this.on("requestCompleted", callback);
-  }
-
-  onRequestCancelled(callback) {
-    return this.on("requestCancelled", callback);
-  }
-
-  /**
-   * Subscribe to an event.
-   */
   on(event, callback) {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set());
     }
     this.eventHandlers.get(event).add(callback);
-
-    // Return unsubscribe function
-    return () => {
-      this.eventHandlers.get(event)?.delete(callback);
-    };
+    return () => this.eventHandlers.get(event)?.delete(callback);
   }
 
-  /**
-   * Emit an event to all subscribers.
-   */
   emit(event, data) {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      handlers.forEach((callback) => {
-        try {
-          callback(data);
-        } catch (error) {
-          console.error(`[Socket] Error in event handler for ${event}:`, error);
-        }
+      handlers.forEach((cb) => {
+        try { cb(data); } catch (err) { console.error("[Socket]", event, err); }
       });
     }
   }
 
-  /**
-   * Disconnect from the socket server.
-   */
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
-      console.log("[Socket] Disconnected");
     }
   }
 
-  /**
-   * Check if socket is connected.
-   */
   isConnected() {
     return this.socket?.connected || false;
   }
 }
 
-// Export singleton instance
 export default new SocketService();

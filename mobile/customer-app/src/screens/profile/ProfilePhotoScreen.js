@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { updateProfilePicture, getUploadSignature } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
@@ -20,6 +21,7 @@ import api from "../../services/api";
 
 export default function ProfilePhotoScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { profile } = useSelector((state) => state.profile);
   const [localUri, setLocalUri] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -35,8 +37,8 @@ export default function ProfilePhotoScreen({ navigation }) {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
         Alert.alert(
-          "Permission needed",
-          "Camera access is required to take a photo.",
+          t("photo.permissionTitle"),
+          t("photo.permissionCamera"),
         );
         return;
       }
@@ -50,7 +52,7 @@ export default function ProfilePhotoScreen({ navigation }) {
       const permission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Permission needed", "Photo library access is required.");
+        Alert.alert(t("photo.permissionTitle"), t("photo.permissionLibrary"));
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -67,10 +69,10 @@ export default function ProfilePhotoScreen({ navigation }) {
   };
 
   const showPickerOptions = () => {
-    Alert.alert("Profile Photo", "Choose a source", [
-      { text: "Camera", onPress: () => pickImage("camera") },
-      { text: "Photo Library", onPress: () => pickImage("gallery") },
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("photo.title"), t("photo.chooseSource"), [
+      { text: t("photo.camera"), onPress: () => pickImage("camera") },
+      { text: t("photo.library"), onPress: () => pickImage("gallery") },
+      { text: t("photo.cancel"), style: "cancel" },
     ]);
   };
 
@@ -142,8 +144,8 @@ export default function ProfilePhotoScreen({ navigation }) {
       if (updateProfilePicture.fulfilled.match(result)) {
         Toast.show({
           type: "success",
-          text1: "Photo updated",
-          text2: "Your profile photo has been saved.",
+          text1: t("photo.saved"),
+          text2: t("photo.savedSub"),
         });
         navigation.goBack();
       } else {
@@ -152,8 +154,8 @@ export default function ProfilePhotoScreen({ navigation }) {
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Upload failed",
-        text2: error.message || "Could not upload photo. Please try again.",
+        text1: t("photo.uploadFailed"),
+        text2: error.message || t("common.retry"),
       });
     } finally {
       setUploading(false);
@@ -179,6 +181,8 @@ export default function ProfilePhotoScreen({ navigation }) {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -192,6 +196,7 @@ export default function ProfilePhotoScreen({ navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -199,7 +204,7 @@ export default function ProfilePhotoScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          Profile Photo
+          {t("photo.title")}
         </Text>
       </View>
 
@@ -296,7 +301,7 @@ export default function ProfilePhotoScreen({ navigation }) {
             textAlign: "center",
           }}
         >
-          Tap the photo to change it
+          {t("photo.tapToChange")}
         </Text>
 
         {/* Action Buttons */}
@@ -313,12 +318,15 @@ export default function ProfilePhotoScreen({ navigation }) {
             onPress={handleSave}
             disabled={!localUri || uploading}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("photo.savePhoto")}
+            accessibilityState={{ disabled: !localUri || uploading, busy: uploading }}
           >
             {uploading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
-                Save Photo
+                {t("photo.savePhoto")}
               </Text>
             )}
           </TouchableOpacity>
@@ -345,7 +353,7 @@ export default function ProfilePhotoScreen({ navigation }) {
                   fontWeight: "700",
                 }}
               >
-                Choose Different Photo
+                {t("photo.chooseDifferent")}
               </Text>
             </TouchableOpacity>
           )}

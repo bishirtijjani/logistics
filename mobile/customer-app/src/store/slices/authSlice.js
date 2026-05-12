@@ -132,6 +132,14 @@ const authSlice = createSlice({
     setPendingEmail: (state, action) => {
       state.pendingEmail = action.payload;
     },
+    // Phase 5 — fired by the api.js interceptor when the silent token
+    // refresh fails (refresh-token expired or revoked). Clears the user
+    // out of state so the navigator falls back to the Login stack.
+    forceLogout: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.isHydrating = false;
+    },
   },
   extraReducers: (builder) => {
     // Hydrate auth from stored tokens
@@ -227,5 +235,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setPendingEmail } = authSlice.actions;
+export const { clearError, setPendingEmail, forceLogout } = authSlice.actions;
 export default authSlice.reducer;

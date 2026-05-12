@@ -329,6 +329,21 @@ const updateCategory = async (req, res, next) => {
   }
 };
 
+const updateCategoryAttributeSchema = async (req, res, next) => {
+  try {
+    const category = await adminService.updateCategoryAttributeSchema(
+      req.params.categoryId,
+      req.body.attributeSchema,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Category attribute schema updated', category));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const deleteCategory = async (req, res, next) => {
   try {
     const result = await adminService.deleteCategory(
@@ -659,6 +674,7 @@ module.exports = {
   getAllCategories,
   createCategory,
   updateCategory,
+  updateCategoryAttributeSchema,
   deleteCategory,
   setMerchantTags,
   getAllRiders,

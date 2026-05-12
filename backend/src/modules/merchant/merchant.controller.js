@@ -556,6 +556,90 @@ const getMerchantEarningsBreakdown = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// Variant + Option-group Controllers
+// ============================================================
+
+const wrap = (fn) => async (req, res, next) => {
+  try {
+    await fn(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getMerchantProductById = wrap(async (req, res) => {
+  const { merchantId, productId } = req.params;
+  const product = await merchantService.getMerchantProductById(merchantId, req.user.id, req.user.role, productId);
+  res.json(ApiResponse.success('Product retrieved', product));
+});
+
+const createProductVariant = wrap(async (req, res) => {
+  const { merchantId, productId } = req.params;
+  const variant = await merchantService.createProductVariant(merchantId, req.user.id, req.user.role, productId, req.body);
+  res.status(201).json(ApiResponse.success('Variant created', variant));
+});
+
+const updateProductVariant = wrap(async (req, res) => {
+  const { merchantId, productId, variantId } = req.params;
+  const variant = await merchantService.updateProductVariant(merchantId, req.user.id, req.user.role, productId, variantId, req.body);
+  res.json(ApiResponse.success('Variant updated', variant));
+});
+
+const deleteProductVariant = wrap(async (req, res) => {
+  const { merchantId, productId, variantId } = req.params;
+  await merchantService.deleteProductVariant(merchantId, req.user.id, req.user.role, productId, variantId);
+  res.json(ApiResponse.success('Variant deleted', { success: true }));
+});
+
+const createOptionGroup = wrap(async (req, res) => {
+  const { merchantId, productId } = req.params;
+  const group = await merchantService.createOptionGroup(merchantId, req.user.id, req.user.role, productId, req.body);
+  res.status(201).json(ApiResponse.success('Option group created', group));
+});
+
+const updateOptionGroup = wrap(async (req, res) => {
+  const { merchantId, productId, groupId } = req.params;
+  const group = await merchantService.updateOptionGroup(merchantId, req.user.id, req.user.role, productId, groupId, req.body);
+  res.json(ApiResponse.success('Option group updated', group));
+});
+
+const deleteOptionGroup = wrap(async (req, res) => {
+  const { merchantId, productId, groupId } = req.params;
+  await merchantService.deleteOptionGroup(merchantId, req.user.id, req.user.role, productId, groupId);
+  res.json(ApiResponse.success('Option group deleted', { success: true }));
+});
+
+const createOptionItem = wrap(async (req, res) => {
+  const { merchantId, productId, groupId } = req.params;
+  const item = await merchantService.createOptionItem(merchantId, req.user.id, req.user.role, productId, groupId, req.body);
+  res.status(201).json(ApiResponse.success('Option item created', item));
+});
+
+const updateOptionItem = wrap(async (req, res) => {
+  const { merchantId, productId, groupId, itemId } = req.params;
+  const item = await merchantService.updateOptionItem(merchantId, req.user.id, req.user.role, productId, groupId, itemId, req.body);
+  res.json(ApiResponse.success('Option item updated', item));
+});
+
+const deleteOptionItem = wrap(async (req, res) => {
+  const { merchantId, productId, groupId, itemId } = req.params;
+  await merchantService.deleteOptionItem(merchantId, req.user.id, req.user.role, productId, groupId, itemId);
+  res.json(ApiResponse.success('Option item deleted', { success: true }));
+});
+
+const bulkUpsertOptionGroups = wrap(async (req, res) => {
+  const { merchantId, productId } = req.params;
+  const groups = await merchantService.bulkUpsertOptionGroups(
+    merchantId,
+    req.user.id,
+    req.user.role,
+    productId,
+    req.body.groups || [],
+  );
+  res.json(ApiResponse.success('Option groups synced', groups));
+});
+
 module.exports = {
   createMerchant,
   getMerchants,
@@ -586,4 +670,16 @@ module.exports = {
   getMerchantSalesSummary,
   getMerchantOrderHistory,
   getMerchantEarningsBreakdown,
+  // variants + option groups
+  getMerchantProductById,
+  createProductVariant,
+  updateProductVariant,
+  deleteProductVariant,
+  createOptionGroup,
+  updateOptionGroup,
+  deleteOptionGroup,
+  createOptionItem,
+  updateOptionItem,
+  deleteOptionItem,
+  bulkUpsertOptionGroups,
 };

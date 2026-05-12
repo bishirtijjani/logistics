@@ -1,147 +1,120 @@
 /**
- * MerchantMenuScreen — View merchant menu/products and place orders
- * Part of the unified request architecture
+ * MerchantMenuScreen — browse a merchant's catalogue and build a cart of
+ * fully-configured line items.
+ *
+ * Every product opens ProductDetailScreen for variant + option-group selection
+ * (even single-SKU products with no options pass through it for consistency).
+ * Lines come back via `route.params.cartReturn` and are merged into local state.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
+  View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, StyleSheet,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import theme, { colors } from '../../theme';
+import socketService from '../../services/socket';
+import { colors } from '../../theme';
+import { substitutionLabel } from '../../lib/requestStatus';
 
-const MerchantMenuScreen = () => {
+const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
+
+export default function MerchantMenuScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { merchantId, categorySlug } = route.params;
+  const { t } = useTranslation();
+  const { merchantId, categorySlug, cartReturn } = route.params || {};
 
   const [merchant, setMerchant] = useState(null);
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchMerchantDetails = async () => {
+  // Merge cart returned from ProductDetailScreen.
+  useEffect(() => {
+    if (cartReturn) {
+      setCart(cartReturn);
+      navigation.setParams({ cartReturn: undefined });
+    }
+  }, [cartReturn, navigation]);
+
+  const fetchMenu = useCallback(async () => {
     try {
       const response = await api.get(`/merchants/${merchantId}`);
       const data = response?.data || {};
       setMerchant(data);
       setProducts(data.products || []);
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: error.message || 'Failed to load menu',
-      });
+      Toast.show({ type: 'error', text1: t('errors.title'), text2: error.message });
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchMerchantDetails();
   }, [merchantId]);
 
-  const addToCart = (product) => {
-    const existing = cart.find((item) => item.id === product.id);
-    if (existing) {
-      setCart(
-        cart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        )
-      );
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-    }
+  useEffect(() => {
+    let alive = true;
+    fetchMenu();
+    // 86 propagation: backend emits `merchant:menu:updated` to the merchant room
+    // whenever a product / variant / option group / option item is mutated.
+    // We re-fetch the catalogue on receipt so the customer sees the change in
+    // socket-roundtrip time without polling.
+    socketService.joinMerchantRoom(merchantId);
+    const unsub = socketService.onMerchantMenuUpdated((data) => {
+      if (alive && data?.merchantId === merchantId) fetchMenu();
+    });
+    return () => {
+      alive = false;
+      unsub?.();
+      socketService.leaveMerchantRoom(merchantId);
+    };
+  }, [merchantId, fetchMenu]);
+
+  const lowestPrice = (p) => {
+    const prices = (p.variants || []).filter((v) => v.isAvailable).map((v) => Number(v.price));
+    return prices.length ? Math.min(...prices) : Number(p.basePrice || 0);
   };
 
-  const removeFromCart = (productId) => {
-    setCart(cart.filter((item) => item.id !== productId));
+  // Source of truth for type-specific UX is the merchant's category slug
+  // (admin-managed taxonomy). Falls back to the route-supplied slug so a deep
+  // link without a fetched merchant still passes something through.
+  const merchantCategorySlug = merchant?.category?.slug || categorySlug || null;
+  const isGrocery = typeof merchantCategorySlug === 'string' && merchantCategorySlug.startsWith('grocery');
+
+  const openProduct = (product) => {
+    navigation.navigate('ProductDetail', { product, merchantId, merchantCategorySlug, cart });
   };
 
-  const updateQuantity = (productId, delta) => {
-    setCart(
-      cart.map((item) => {
-        if (item.id === productId) {
-          const newQuantity = Math.max(1, item.quantity + delta);
-          return { ...item, quantity: newQuantity };
-        }
-        return item;
-      })
-    );
+  const editLine = (lineId) => {
+    const line = cart.find((l) => l.lineId === lineId);
+    if (!line) return;
+    const product = products.find((p) => p.id === line.productId);
+    if (!product) return;
+    navigation.navigate('ProductDetail', { product, merchantId, merchantCategorySlug, cart, editingLineId: lineId });
   };
 
-  const getCartTotal = () => {
-    return cart.reduce((sum, item) => sum + Number(item.basePrice) * item.quantity, 0);
+  const removeLine = (lineId) => setCart(cart.filter((l) => l.lineId !== lineId));
+
+  const cartTotal = useMemo(() => cart.reduce((s, l) => s + Number(l.lineTotal || 0), 0), [cart]);
+
+  const goCheckout = () => {
+    if (cart.length === 0) return;
+    navigation.navigate('Checkout', {
+      cart,
+      merchantId,
+      categorySlug,
+      pickupLat: merchant?.lat || 0,
+      pickupLng: merchant?.lng || 0,
+      pickupAddress: merchant?.address || 'Merchant Location',
+      pickupName: merchant?.name,
+    });
   };
-
-  const renderProduct = ({ item }) => {
-    const cartItem = cart.find((c) => c.id === item.id);
-    return (
-      <View style={styles.productCard}>
-        <Image
-          source={{ uri: item.imageUrl || 'https://via.placeholder.com/100' }}
-          style={styles.productImage}
-        />
-        <View style={styles.productInfo}>
-          <Text style={styles.productName}>{item.name}</Text>
-          <Text style={styles.productDescription} numberOfLines={2}>
-            {item.description}
-          </Text>
-          <Text style={styles.productPrice}>₦{Number(item.basePrice).toLocaleString()}</Text>
-        </View>
-        {cartItem ? (
-          <View style={styles.quantityControl}>
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => updateQuantity(item.id, -1)}
-            >
-              <Ionicons name="remove" size={18} color={colors.text} />
-            </TouchableOpacity>
-            <Text style={styles.quantityText}>{cartItem.quantity}</Text>
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => updateQuantity(item.id, 1)}
-            >
-              <Ionicons name="add" size={18} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => addToCart(item)}
-          >
-            <Ionicons name="add" size={18} color={colors.primary} />
-            <Text style={styles.addButtonText}>Add</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
-
-  const renderCategoryHeader = ({ title }) => (
-    <Text style={styles.categoryHeader}>{title}</Text>
-  );
-
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="restaurant-outline" size={64} color={colors.textMuted} />
-      <Text style={styles.emptyTitle}>Menu not available</Text>
-      <Text style={styles.emptySubtitle}>This merchant hasn't added any items yet</Text>
-    </View>
-  );
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.center}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -149,282 +122,177 @@ const MerchantMenuScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content}>
-        {/* Merchant Header */}
-        <Image
-          source={{ uri: merchant?.coverImageUrl || 'https://via.placeholder.com/400x200' }}
-          style={styles.coverImage}
-        />
-        <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <ScrollView>
+        {merchant?.coverImageUrl && <Image source={{ uri: merchant.coverImageUrl }} style={styles.cover} />}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color={colors.text} />
           </TouchableOpacity>
-          <View style={styles.merchantHeader}>
-            <Image
-              source={{ uri: merchant?.logoUrl || 'https://via.placeholder.com/50' }}
-              style={styles.logo}
-            />
-            <View style={styles.merchantInfo}>
-              <Text style={styles.merchantName}>{merchant?.name}</Text>
-              <View style={styles.metaRow}>
-                <Ionicons name="star" size={14} color="#FFA500" />
-                <Text style={styles.rating}>{merchant?.averageRating?.toFixed(1)}</Text>
-                <Text style={styles.separator}>•</Text>
-                <Text style={styles.address}>{merchant?.address}</Text>
-              </View>
-            </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.merchantName}>{merchant?.name}</Text>
+            <Text style={styles.meta}>
+              <Ionicons name="star" size={12} color="#FFA500" /> {merchant?.averageRating?.toFixed?.(1) || '—'} · {merchant?.address}
+            </Text>
           </View>
         </View>
 
-        {/* Products */}
+        {/* Cart preview */}
+        {cart.length > 0 && (
+          <View style={styles.cartPanel}>
+            <Text accessibilityRole="header" style={styles.cartHeader}>{t('merchant.yourOrder')}</Text>
+            {cart.map((line) => (
+              <View key={line.lineId} style={styles.cartLine}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cartItemName}>
+                    {line.quantity}× {line.name}
+                    {line.variantSummary ? ` · ${line.variantSummary}` : ''}
+                  </Text>
+                  {(line.selectedOptions || []).map((g) => (
+                    <Text key={g.groupId} style={styles.cartOpt}>
+                      {g.groupName}: {g.items.map((i) => i.itemName).join(', ')}
+                    </Text>
+                  ))}
+                  {line.specialInstructions ? (
+                    <Text style={styles.cartInstructions}>“{line.specialInstructions}”</Text>
+                  ) : null}
+                  {/* Phase 8 — per-line markers. Substitution chip is grocery-only;
+                      Rx pill flags pharmacy items that need a prescription upload. */}
+                  <View style={styles.chipsRow}>
+                    {isGrocery && line.substitution ? (
+                      <View style={styles.subChip}>
+                        <Ionicons name="swap-horizontal" size={11} color="#7C3AED" />
+                        <Text style={styles.subChipText}>{substitutionLabel(line.substitution, t)}</Text>
+                      </View>
+                    ) : null}
+                    {line.requiresPrescription ? (
+                      <View style={styles.rxChip}>
+                        <Ionicons name="medkit-outline" size={11} color="#B45309" />
+                        <Text style={styles.rxChipText}>{t('merchant.rx')}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.linePrice}>{money(line.lineTotal)}</Text>
+                  <View style={{ flexDirection: 'row', marginTop: 4 }}>
+                    <TouchableOpacity
+                      onPress={() => editLine(line.lineId)}
+                      style={styles.lineBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('a11y.editItem')}
+                    >
+                      <Ionicons name="pencil" size={14} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => removeLine(line.lineId)}
+                      style={styles.lineBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('a11y.removeItem')}
+                    >
+                      <Ionicons name="trash" size={14} color="#DC2626" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         <View style={styles.menuContainer}>
-          <Text style={styles.menuTitle}>Menu</Text>
+          <Text accessibilityRole="header" style={styles.menuTitle}>{t('merchant.menuTitle')}</Text>
           {products.length === 0 ? (
-            renderEmpty()
+            <View style={styles.empty}>
+              <Ionicons name="restaurant-outline" size={48} color={colors.textMuted} />
+              <Text style={styles.emptyTitle}>{t('merchant.menuUnavailable')}</Text>
+            </View>
           ) : (
-            <FlatList
-              data={products}
-              renderItem={renderProduct}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
+            products.filter((p) => p.isAvailable).map((p) => (
+              <TouchableOpacity
+                key={p.id}
+                onPress={() => openProduct(p)}
+                style={styles.productCard}
+                accessibilityRole="button"
+                accessibilityLabel={p.name}
+                accessibilityHint={p.description || ''}
+              >
+                <Image source={{ uri: p.imageUrl || 'https://via.placeholder.com/100' }} style={styles.productImage} />
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>{p.name}</Text>
+                  {p.description ? (
+                    <Text style={styles.productDesc} numberOfLines={2}>{p.description}</Text>
+                  ) : null}
+                  <Text style={styles.productPrice}>
+                    {(p.variants || []).length > 1 ? `${t('merchant.fromPrice').toLowerCase()} ` : ''}{money(lowestPrice(p))}
+                  </Text>
+                  {(p.optionGroups || []).length > 0 && (
+                    <Text style={styles.tag}>{t('merchant.customizable')}</Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))
           )}
         </View>
       </ScrollView>
 
-      {/* Cart Footer */}
       {cart.length > 0 && (
-        <View style={styles.cartFooter}>
-          <View style={styles.cartInfo}>
-            <Text style={styles.cartCount}>{cart.length} item{cart.length > 1 ? 's' : ''}</Text>
-            <Text style={styles.cartTotal}>₦{getCartTotal().toLocaleString()}</Text>
+        <View style={styles.footer}>
+          <View>
+            <Text style={styles.fCount}>{t('merchant.itemCount', { count: cart.length })}</Text>
+            <Text style={styles.fTotal}>{money(cartTotal)}</Text>
           </View>
           <TouchableOpacity
-            style={styles.checkoutButton}
-            onPress={() => navigation.navigate('Checkout', {
-              cart,
-              merchantId,
-              categorySlug,
-              pickupLat: merchant?.lat || 0,
-              pickupLng: merchant?.lng || 0,
-              pickupAddress: merchant?.address || 'Merchant Location',
-            })}
+            style={styles.checkoutBtn}
+            onPress={goCheckout}
+            accessibilityRole="button"
+            accessibilityLabel={t('merchant.reviewCheckout')}
           >
-            <Text style={styles.checkoutButtonText}>Checkout</Text>
+            <Text style={styles.checkoutText}>{t('merchant.reviewCheckout')}</Text>
           </TouchableOpacity>
         </View>
       )}
     </View>
   );
-};
+}
 
-const styles = {
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  coverImage: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'cover',
-  },
-  headerContainer: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    padding: 8,
-    marginBottom: 8,
-  },
-  merchantHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  merchantInfo: {
-    flex: 1,
-  },
-  merchantName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.text,
-    marginLeft: 4,
-  },
-  separator: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginHorizontal: 8,
-  },
-  address: {
-    fontSize: 13,
-    color: colors.textMuted,
-    flex: 1,
-  },
-  menuContainer: {
-    padding: 16,
-  },
-  menuTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  categoryHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  productCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  productImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  productInfo: {
-    flex: 1,
-  },
-  productName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  productDescription: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginBottom: 8,
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 4,
-  },
-  quantityControl: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '20',
-    borderRadius: 8,
-  },
-  quantityButton: {
-    padding: 8,
-  },
-  quantityText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginHorizontal: 8,
-  },
-  emptyContainer: {
-    paddingVertical: 64,
-    alignItems: 'center',
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.textMuted,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  cartFooter: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cartInfo: {
-    flex: 1,
-  },
-  cartCount: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginBottom: 4,
-  },
-  cartTotal: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  checkoutButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  checkoutButtonDisabled: {
-    backgroundColor: colors.border,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  checkoutButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  checkoutButtonTextDisabled: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-};
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  cover: { width: '100%', height: 140 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  merchantName: { fontSize: 18, fontWeight: '600', color: colors.text },
+  meta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
 
-export default MerchantMenuScreen;
+  cartPanel: { backgroundColor: colors.surface, padding: 12, marginTop: 8 },
+  cartHeader: { fontWeight: '600', fontSize: 14, color: colors.text, marginBottom: 8 },
+  cartLine: { flexDirection: 'row', paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
+  cartItemName: { fontSize: 14, color: colors.text, fontWeight: '500' },
+  cartOpt: { fontSize: 12, color: colors.textMuted },
+  cartInstructions: { fontSize: 12, fontStyle: 'italic', color: colors.textMuted },
+  linePrice: { fontSize: 14, color: colors.text, fontWeight: '600' },
+  lineBtn: { padding: 6 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
+  subChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginRight: 6, marginTop: 2 },
+  subChipText: { color: '#7C3AED', fontSize: 11, fontWeight: '700', marginLeft: 4 },
+  rxChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginRight: 6, marginTop: 2 },
+  rxChipText: { color: '#B45309', fontSize: 11, fontWeight: '700', marginLeft: 4 },
+
+  menuContainer: { padding: 16 },
+  menuTitle: { fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 12 },
+  productCard: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: colors.surface, borderRadius: 12, marginBottom: 10 },
+  productImage: { width: 64, height: 64, borderRadius: 8, marginRight: 12 },
+  productInfo: { flex: 1 },
+  productName: { fontSize: 15, fontWeight: '600', color: colors.text },
+  productDesc: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  productPrice: { fontSize: 14, fontWeight: '600', color: colors.primary, marginTop: 4 },
+  tag: { marginTop: 4, fontSize: 11, color: colors.primary },
+
+  empty: { alignItems: 'center', paddingVertical: 36 },
+  emptyTitle: { marginTop: 8, fontSize: 14, color: colors.textMuted },
+
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, padding: 14, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  fCount: { fontSize: 12, color: colors.textMuted },
+  fTotal: { fontSize: 18, fontWeight: '700', color: colors.text },
+  checkoutBtn: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
+  checkoutText: { color: '#fff', fontWeight: '600' },
+});

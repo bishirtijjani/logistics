@@ -14,12 +14,13 @@ export const fetchPublicSettings = createAsyncThunk(
   "settings/fetchPublic",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get("/settings/public");
-      const data = response.data?.data ?? response.data ?? {};
+      // api.js interceptor unwraps to the envelope body — payload is `envelope.data`.
+      const envelope = await api.get("/settings/public");
+      const data = envelope?.data || {};
       setCachedSettings(data);
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message);
+      return rejectWithValue(error?.message || "Failed to load settings");
     }
   },
 );

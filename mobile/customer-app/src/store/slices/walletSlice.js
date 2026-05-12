@@ -19,10 +19,16 @@ export const fetchWallet = createAsyncThunk(
 
 export const fetchTransactions = createAsyncThunk(
   "wallet/fetchTransactions",
-  async ({ page = 1, limit = 20, type = null } = {}, { rejectWithValue }) => {
+  async (
+    { page = 1, limit = 20, type = null, startDate = null, endDate = null, q = null } = {},
+    { rejectWithValue },
+  ) => {
     try {
       const params = { page, limit };
       if (type) params.type = type;
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+      if (q) params.q = q;
       const response = await api.get("/wallet/transactions", { params });
       return { ...response.data, page };
     } catch (error) {
@@ -81,11 +87,11 @@ export const sendMoney = createAsyncThunk(
 
 export const withdrawToBank = createAsyncThunk(
   "wallet/withdrawToBank",
-  async ({ bankCode, accountNumber, accountName, amount, pin }, { rejectWithValue }) => {
+  async ({ bankCode, bankName, accountNumber, accountName, amount, pin }, { rejectWithValue }) => {
     try {
       const response = await api.post(
         "/wallet/withdraw",
-        { bankCode, accountNumber, accountName, amount, pin },
+        { bankCode, bankName, accountNumber, accountName, amount, pin },
         { headers: { "Idempotency-Key": newIdempotencyKey() } },
       );
       return response.data;
@@ -150,6 +156,9 @@ const walletSlice = createSlice({
     isSending: false,
     isWithdrawing: false,
     error: null,
+    // Latest in-flight transaction-fetch request id. Used to discard responses
+    // from a superseded fetch (filter change while previous fetch was in flight).
+    latestTxFetchId: null,
   },
   reducers: {
     // Called by socket listener when balance changes in real time
@@ -160,6 +169,47 @@ const walletSlice = createSlice({
       if (action.payload.transaction) {
         state.transactions = [action.payload.transaction, ...state.transactions];
       }
+    },
+    // Inbound P2P transfer — backend has already credited the wallet and the
+    // matching wallet:balance:updated event will set the balance. We only
+    // prepend a placeholder transaction so it appears immediately in history;
+    // it'll be reconciled with the server row on next fetch.
+    socketTransferReceived: (state, action) => {
+      const { amount, senderName, reference } = action.payload || {};
+      if (amount === undefined) return;
+      const exists = reference && state.transactions.some((t) => t.reference === reference);
+      if (exists) return;
+      state.transactions = [
+        {
+          reference: reference || `RX-${Date.now()}`,
+          type: "P2P_TRANSFER_RECEIVED",
+          status: "COMPLETED",
+          amount: Number(amount),
+          description: senderName ? `From ${senderName}` : "Money received",
+          createdAt: new Date().toISOString(),
+          _optimistic: true,
+        },
+        ...state.transactions,
+      ];
+    },
+    // Bank-transfer funding into the NUBAN. Same pattern as transfer-received.
+    socketFundingReceived: (state, action) => {
+      const { amount, reference } = action.payload || {};
+      if (amount === undefined) return;
+      const exists = reference && state.transactions.some((t) => t.reference === reference);
+      if (exists) return;
+      state.transactions = [
+        {
+          reference: reference || `FUND-${Date.now()}`,
+          type: "WALLET_FUNDING",
+          status: "COMPLETED",
+          amount: Number(amount),
+          description: "Wallet funding",
+          createdAt: new Date().toISOString(),
+          _optimistic: true,
+        },
+        ...state.transactions,
+      ];
     },
   },
   extraReducers: (builder) => {
@@ -180,8 +230,15 @@ const walletSlice = createSlice({
 
     // Fetch transactions
     builder
-      .addCase(fetchTransactions.pending, (state) => { state.isLoading = true; })
+      .addCase(fetchTransactions.pending, (state, action) => {
+        state.isLoading = true;
+        state.latestTxFetchId = action.meta.requestId;
+      })
       .addCase(fetchTransactions.fulfilled, (state, action) => {
+        // Stale-response guard. If the user changed filters while this fetch
+        // was in flight, a newer fetch has taken the latest slot — drop this
+        // one to avoid clobbering the new filter's results.
+        if (action.meta.requestId !== state.latestTxFetchId) return;
         state.isLoading = false;
         const { data, pagination, page } = action.payload;
         const txs = data?.transactions ?? data ?? [];
@@ -192,7 +249,11 @@ const walletSlice = createSlice({
         }
         state.total = pagination?.total ?? action.payload.total ?? 0;
       })
-      .addCase(fetchTransactions.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; });
+      .addCase(fetchTransactions.rejected, (state, action) => {
+        if (action.meta.requestId !== state.latestTxFetchId) return;
+        state.isLoading = false;
+        state.error = action.payload;
+      });
 
     // Banks
     builder
@@ -237,7 +298,11 @@ const walletSlice = createSlice({
   },
 });
 
-export const { socketBalanceUpdated } = walletSlice.actions;
+export const {
+  socketBalanceUpdated,
+  socketTransferReceived,
+  socketFundingReceived,
+} = walletSlice.actions;
 
 /**
  * Register socket event listeners for real-time wallet updates.
@@ -247,7 +312,13 @@ export const subscribeToWalletSocket = () => (dispatch) => {
   const unsub1 = socketService.onWalletBalanceUpdated((data) => {
     dispatch(socketBalanceUpdated(data));
   });
-  return () => { unsub1(); };
+  const unsub2 = socketService.onWalletTransferReceived((data) => {
+    dispatch(socketTransferReceived(data));
+  });
+  const unsub3 = socketService.onWalletFundingReceived((data) => {
+    dispatch(socketFundingReceived(data));
+  });
+  return () => { unsub1(); unsub2(); unsub3(); };
 };
 
 export default walletSlice.reducer;

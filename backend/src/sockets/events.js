@@ -43,28 +43,7 @@ const RIDER = {
   JOB_TAKEN: 'rider:job:taken',
 };
 
-// --- Delivery lifecycle events (LEGACY - kept for backward compatibility) ---
-const DELIVERY = {
-  // Server → Customer/Rider: status changed
-  STATUS_CHANGED: 'delivery:status:changed',
-
-  // Server → Customer: rider assigned to your order
-  RIDER_ASSIGNED: 'delivery:rider:assigned',
-
-  // Server → Customer: delivery completed
-  COMPLETED: 'delivery:completed',
-
-  // Server → Customer/Rider: delivery cancelled
-  CANCELLED: 'delivery:cancelled',
-
-  // Customer/Rider → Server: join delivery tracking room
-  JOIN_ROOM: 'delivery:room:join',
-
-  // Customer/Rider → Server: leave delivery tracking room
-  LEAVE_ROOM: 'delivery:room:leave',
-};
-
-// --- Unified Request lifecycle events (NEW) ---
+// --- Unified Request lifecycle events ---
 const REQUEST = {
   // Server → Customer/Merchant/Rider: request created
   CREATED: 'request:created',
@@ -95,6 +74,26 @@ const REQUEST = {
 
   // Customer/Merchant/Rider → Server: leave request tracking room
   LEAVE_ROOM: 'request:room:leave',
+
+  // Customer/Merchant → Server: join a merchant-scoped room (menu updates, new orders)
+  JOIN_MERCHANT_ROOM: 'merchant:room:join',
+  LEAVE_MERCHANT_ROOM: 'merchant:room:leave',
+
+  // Server → Customer: matching status (which ring, how many attempts)
+  MATCHING_STATUS: 'request:matching:status',
+
+  // Server → Customer: latest ETA from the rider's current position
+  RIDER_ETA: 'request:rider:eta',
+
+  // Server → Request room: new in-app message
+  MESSAGE_NEW: 'request:message:new',
+};
+
+// --- Merchant catalogue events (Phase 2: 86-propagation) ---
+const MERCHANT = {
+  // Server → anyone watching the merchant: a product/variant/option was changed.
+  // Customers viewing this merchant's menu refetch on receipt.
+  MENU_UPDATED: 'merchant:menu:updated',
 };
 
 // --- Wallet events ---
@@ -115,13 +114,7 @@ const NOTIFICATION = {
 // --- Room naming helpers ---
 
 /**
- * Get the room name for a specific delivery order (LEGACY).
- * Both the customer and rider join this room during active delivery.
- */
-const getDeliveryRoom = (orderId) => `delivery:${orderId}`;
-
-/**
- * Get the room name for a specific request (NEW - unified).
+ * Get the room name for a specific request.
  * Customer, merchant, and rider join this room during active request.
  */
 const getRequestRoom = (requestId) => `request:${requestId}`;
@@ -147,13 +140,12 @@ const getRiderPoolRoom = () => 'riders:available';
 module.exports = {
   CONNECTION,
   RIDER,
-  DELIVERY,
-  REQUEST,  // NEW
+  REQUEST,
+  MERCHANT,
   WALLET,
   NOTIFICATION,
-  getDeliveryRoom,
-  getRequestRoom,  // NEW
-  getMerchantRoom,  // NEW
+  getRequestRoom,
+  getMerchantRoom,
   getUserRoom,
   getRiderPoolRoom,
 };

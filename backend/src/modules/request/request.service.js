@@ -26,8 +26,16 @@ const {
   emitCompleted,
   emitCancelled,
 } = require('../../sockets/handlers/request.handler');
-const notificationService = require('../../services/notification.service');
+const notifyService = require('../../services/notify.service');
 const { verifyTransactionPin } = require('../auth/auth.service');
+const {
+  verifyQuoteToken,
+  issueCancellationFeeToken,
+  verifyCancellationFeeToken,
+  CANCEL_FEE_TTL_MS,
+} = require('../../utils/quote-token');
+const { redis } = require('../../config/redis');
+const { REDIS_KEYS, REDIS_TTL } = require('../../utils/constants');
 
 // ============================================================
 // Status Transition Map (sourced from utils/status — single source of truth)
@@ -36,74 +44,247 @@ const { verifyTransactionPin } = require('../auth/auth.service');
 const REQUEST_TRANSITIONS = UNIFIED_TRANSITIONS;
 
 // ============================================================
-// Calculate Pricing
+// Resolve & price line items — server-truth, never trusts client.
+//
+// For each client-supplied item the server:
+//   1. Loads the Product (must belong to the merchant if MERCHANT_ORDER)
+//   2. Resolves variantId (single-variant products auto-resolve; multi-variant
+//      products require an explicit variantId)
+//   3. Validates every selected option group exists on the product, the
+//      selection respects minSelect/maxSelect, and every required group is satisfied
+//   4. Computes unitPrice = variant.price + Σ option priceDeltas
+//   5. Snapshots option choices into the shape persisted on RequestItem.selectedOptions
 // ============================================================
 
-const calculatePricing = async (requestData) => {
-  const { type, items, package: packageDetails, pickupLat, pickupLng, dropoffLat, dropoffLng } = requestData;
+const resolveLineItems = async (merchantId, rawItems) => {
+  if (!rawItems || rawItems.length === 0) return [];
 
-  // Get distance from Google Maps
-  const distanceResult = await mapsService.getDistance(
-    pickupLat,
-    pickupLng,
-    dropoffLat,
-    dropoffLng
-  );
+  const productIds = [...new Set(rawItems.map(i => i.productId))];
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: {
+      variants: true,
+      optionGroups: { include: { items: true } },
+    },
+  });
+  const productMap = new Map(products.map(p => [p.id, p]));
 
-  const distanceKm = distanceResult.distanceKm;
-  const estimatedMinutes = Math.ceil(distanceResult.durationSeconds / 60);
+  const resolved = [];
+  for (const raw of rawItems) {
+    const product = productMap.get(raw.productId);
+    if (!product) {
+      throw AppError.badRequest(`Product ${raw.productId} not found`);
+    }
+    if (merchantId && product.merchantId !== merchantId) {
+      throw AppError.badRequest(`Product ${raw.productId} does not belong to merchant ${merchantId}`);
+    }
+    if (!product.isAvailable) {
+      throw AppError.badRequest(`Product "${product.name}" is unavailable`);
+    }
 
-  // Fees from platform settings (fall back to config/hardcoded defaults)
+    // Variant resolution
+    let variant;
+    if (raw.variantId) {
+      variant = product.variants.find(v => v.id === raw.variantId);
+      if (!variant) throw AppError.badRequest(`Variant ${raw.variantId} not found on product ${product.name}`);
+    } else if (product.variants.length === 1) {
+      variant = product.variants[0];
+    } else if (product.variants.length === 0) {
+      throw AppError.badRequest(`Product "${product.name}" has no variants configured`);
+    } else {
+      throw AppError.badRequest(`Product "${product.name}" has multiple variants — variantId is required`);
+    }
+    if (!variant.isAvailable) {
+      throw AppError.badRequest(`Variant of "${product.name}" is unavailable`);
+    }
+    if (variant.stock < raw.quantity) {
+      throw AppError.badRequest(`Insufficient stock for "${product.name}" (have ${variant.stock}, want ${raw.quantity})`);
+    }
+
+    // Option-group validation + price delta accumulation
+    const optionsSnapshot = [];
+    let optionDelta = 0;
+    const providedByGroup = new Map(
+      (raw.selectedOptions || []).map(s => [s.groupId, new Set(s.itemIds)])
+    );
+
+    for (const group of product.optionGroups) {
+      const picked = providedByGroup.get(group.id) || new Set();
+      const isRequired = group.selectionRule === 'REQUIRED_ONE' || group.selectionRule === 'REQUIRED_MULTIPLE';
+
+      if (picked.size < group.minSelect) {
+        throw AppError.badRequest(`Option group "${group.name}" requires at least ${group.minSelect} selection(s)`);
+      }
+      if (picked.size > group.maxSelect) {
+        throw AppError.badRequest(`Option group "${group.name}" allows at most ${group.maxSelect} selection(s)`);
+      }
+      if (isRequired && picked.size === 0) {
+        throw AppError.badRequest(`Option group "${group.name}" is required`);
+      }
+      if (group.selectionRule === 'REQUIRED_ONE' || group.selectionRule === 'OPTIONAL_ONE') {
+        if (picked.size > 1) {
+          throw AppError.badRequest(`Option group "${group.name}" allows only one selection`);
+        }
+      }
+
+      const pickedItems = [];
+      for (const itemId of picked) {
+        const item = group.items.find(i => i.id === itemId);
+        if (!item) {
+          throw AppError.badRequest(`Option item ${itemId} not found in group "${group.name}"`);
+        }
+        if (!item.isAvailable) {
+          throw AppError.badRequest(`Option "${item.name}" in "${group.name}" is unavailable`);
+        }
+        optionDelta += Number(item.priceDelta);
+        pickedItems.push({ itemId: item.id, itemName: item.name, priceDelta: Number(item.priceDelta) });
+      }
+
+      if (pickedItems.length > 0) {
+        optionsSnapshot.push({ groupId: group.id, groupName: group.name, items: pickedItems });
+      }
+    }
+
+    // Reject any extraneous groupIds the client sent that don't exist on the product
+    for (const groupId of providedByGroup.keys()) {
+      if (!product.optionGroups.find(g => g.id === groupId)) {
+        throw AppError.badRequest(`Option group ${groupId} does not exist on this product`);
+      }
+    }
+
+    const unitPrice = Number(variant.price) + optionDelta;
+    const lineTotal = unitPrice * raw.quantity;
+
+    // Phase 8 — normalize substitution preference. Default NONE so the
+    // merchant ticket never has to infer intent from null/undefined.
+    const substitution = raw.substitution || 'NONE';
+
+    resolved.push({
+      productId: product.id,
+      product,
+      variantId: variant.id,
+      variant,
+      quantity: raw.quantity,
+      unitPrice,
+      lineTotal,
+      selectedOptions: optionsSnapshot,
+      specialInstructions: raw.specialInstructions || null,
+      substitution,
+      requiresPrescription: Boolean(product.requiresPrescription),
+      name: product.name,
+      description: product.description || null,
+    });
+  }
+
+  return resolved;
+};
+
+// ============================================================
+// Estimate / Calculate Pricing — server-truth pricing.
+// Exported so the `/quote` endpoint can return the same numbers
+// that createRequest will persist.
+// ============================================================
+
+const estimateRequest = async ({
+  type,
+  merchantId,
+  items,
+  package: packageDetails,
+  pickupLat,
+  pickupLng,
+  dropoffLat,
+  dropoffLng,
+  resolvedItems, // optional — pass when caller already resolved (avoid double lookup)
+  // Phase 4 — when the quote token already locked the distance, reuse it
+  // instead of calling Maps again. Google Distance Matrix is non-deterministic
+  // for identical coords (traffic/routing variation); a second call within
+  // the 5-min TTL would otherwise produce spurious "Quote no longer matches"
+  // failures even when the caller did nothing wrong.
+  lockedDistanceKm,
+  lockedEstimatedMinutes,
+}) => {
+  let distanceKm;
+  let estimatedMinutes;
+  if (typeof lockedDistanceKm === 'number' && typeof lockedEstimatedMinutes === 'number') {
+    distanceKm = lockedDistanceKm;
+    estimatedMinutes = lockedEstimatedMinutes;
+  } else {
+    const distanceResult = await mapsService.getDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+    distanceKm = distanceResult.distanceKm;
+    estimatedMinutes = Math.ceil(distanceResult.durationSeconds / 60);
+  }
+
+  // Fees from platform settings (fall back to config defaults)
   const baseFare = Number(await getSetting('delivery.baseFare', config.DELIVERY_BASE_FARE || 500));
   const perKmRate = Number(await getSetting('delivery.perKmRate', config.DELIVERY_PER_KM_RATE || 100));
   const deliveryFee = Math.ceil((baseFare + distanceKm * perKmRate) / 10) * 10;
 
   const platformDeliveryFeePercent = Number(await getSetting('delivery.platformFeePercent', config.DELIVERY_PLATFORM_FEE_PERCENT || 30));
   const platformDeliveryFee = Math.ceil((deliveryFee * platformDeliveryFeePercent) / 100);
-  
-  // Calculate subtotal (for food/grocery/pharmacy)
-  let subtotal = 0;
-  if (items && items.length > 0) {
-    subtotal = items.reduce((sum, item) => {
-      const itemTotal = item.unitPrice * item.quantity;
-      return sum + itemTotal;
-    }, 0);
-  }
-  
-  // Calculate platform fee on subtotal (if applicable)
+
+  // Resolve items for subtotal (uses server prices, never client-supplied)
+  const resolved = resolvedItems ?? await resolveLineItems(merchantId, items);
+  const subtotal = resolved.reduce((sum, it) => sum + it.lineTotal, 0);
+
   const platformItemFeePercent = Number(await getSetting('merchant.platformFeePercent', 15));
   const platformItemFee = subtotal > 0 ? Math.ceil((subtotal * platformItemFeePercent) / 100) : 0;
-  
+
   const platformFee = platformItemFee + platformDeliveryFee;
   const total = subtotal + deliveryFee;
-  
-  // Calculate splits
+
   const merchantEarning = subtotal > 0 ? subtotal - platformItemFee : 0;
   const riderEarning = deliveryFee - platformDeliveryFee;
   const platformEarning = platformFee;
-  
+
   return {
     distanceKm: Math.round(distanceKm * 10) / 10,
     estimatedMinutes,
     subtotal,
     deliveryFee,
     platformFee,
+    tax: 0,
     total,
     merchantEarning,
     riderEarning,
     platformEarning,
+    resolvedItems: resolved,
   };
 };
+
+// Backwards-compat alias for older callers.
+const calculatePricing = estimateRequest;
 
 // ============================================================
 // Create Request
 // ============================================================
 
 const createRequest = async (customerId, requestData) => {
-  const { type: providedType, merchantId, items, package: packageDetails, pin, ...locationData } = requestData;
+  const {
+    type: providedType,
+    merchantId,
+    items,
+    package: packageDetails,
+    pin,
+    quoteToken,
+    prescriptionUrl,
+    ...locationData
+  } = requestData;
 
   // Server infers type from payload shape if not explicitly provided.
   const type = providedType || (merchantId ? 'MERCHANT_ORDER' : 'PACKAGE');
+
+  // Verify signed quote token. Spec: stale quotes must be rejected; the
+  // fingerprint (type, merchantId, geo) and locked pricing must match the
+  // server-recomputed numbers exactly.
+  let quotePayload;
+  try {
+    quotePayload = verifyQuoteToken(quoteToken);
+  } catch (err) {
+    if (err.code === 'EXPIRED') {
+      throw AppError.badRequest('Quote has expired — please request a fresh quote.', { code: 'QUOTE_EXPIRED' });
+    }
+    throw AppError.badRequest('Invalid quote token.', { code: 'QUOTE_INVALID' });
+  }
 
   // Verify transaction PIN (required for wallet deduction)
   if (pin) {
@@ -113,19 +294,83 @@ const createRequest = async (customerId, requestData) => {
   // Check customer has sufficient balance
   const wallet = await prisma.wallet.findUnique({ where: { userId: customerId } });
   if (!wallet) throw AppError.notFound('Wallet not found');
-  
-  // Calculate pricing
-  const pricing = await calculatePricing(requestData);
-  
+
+  // Resolve + price items server-side (validates variants + option groups).
+  const resolvedItems = await resolveLineItems(merchantId, items);
+
+  // Phase 8 — pharmacy gating. If any resolved line points at a product flagged
+  // `requiresPrescription`, the request must carry a prescription URL captured
+  // via the signed-upload endpoint. Block here rather than at the validator so
+  // the rule lives next to the product lookup that determines it (validator
+  // doesn't know which products require Rx).
+  const rxRequired = resolvedItems.some((it) => it.requiresPrescription);
+  if (rxRequired && !prescriptionUrl) {
+    throw AppError.badRequest(
+      'Prescription required: one or more items need a valid prescription. Upload it at checkout and retry.',
+      { code: 'PRESCRIPTION_REQUIRED' },
+    );
+  }
+
+  // Phase 8 — defensive URL check. The signed-upload endpoint always returns
+  // a `res.cloudinary.com/<cloud_name>/...` URL; a customer client supplying
+  // anything else (third-party link, internal IP, etc.) would be unsafe to
+  // surface to the pharmacist. Skip in dev when Cloudinary is not configured.
+  if (prescriptionUrl) {
+    const cloudName = (config.CLOUDINARY_CLOUD_NAME || '').trim();
+    if (cloudName) {
+      const expectedPrefix = `https://res.cloudinary.com/${cloudName}/`;
+      if (!prescriptionUrl.startsWith(expectedPrefix)) {
+        throw AppError.badRequest('Invalid prescription URL — upload via the in-app flow.', { code: 'INVALID_PRESCRIPTION_URL' });
+      }
+    }
+  }
+
+  // Compute total pricing using the distance LOCKED in the quote token, so
+  // Google Maps non-determinism within the 5-min TTL can't fail an otherwise
+  // valid create. The quote signature already binds these numbers — we trust
+  // them. (Geo coords + token signature + TTL all verified above.)
+  const pricing = await estimateRequest({
+    ...requestData,
+    type,
+    resolvedItems,
+    lockedDistanceKm: quotePayload.distanceKm,
+    lockedEstimatedMinutes: quotePayload.estimatedMinutes,
+  });
+  const { resolvedItems: _omit, ...persistablePricing } = pricing;
+
+  // Re-validate that the quote payload still matches what we just recomputed.
+  // A mismatch means either pricing settings changed mid-quote OR the client
+  // tampered with the body — either way we refuse and force a re-quote.
+  const round2 = (n) => Math.round(Number(n) * 100) / 100;
+  const round4 = (n) => Math.round(Number(n) * 10000) / 10000;
+  const fingerprintMismatch =
+    quotePayload.type !== type ||
+    (quotePayload.merchantId || null) !== (merchantId || null) ||
+    round4(quotePayload.pickupLat) !== round4(locationData.pickupLat) ||
+    round4(quotePayload.pickupLng) !== round4(locationData.pickupLng) ||
+    round4(quotePayload.dropoffLat) !== round4(locationData.dropoffLat) ||
+    round4(quotePayload.dropoffLng) !== round4(locationData.dropoffLng);
+  const priceMismatch =
+    round2(quotePayload.subtotal) !== round2(pricing.subtotal) ||
+    round2(quotePayload.deliveryFee) !== round2(pricing.deliveryFee) ||
+    round2(quotePayload.platformFee) !== round2(pricing.platformFee) ||
+    round2(quotePayload.total) !== round2(pricing.total);
+
+  if (fingerprintMismatch || priceMismatch) {
+    throw AppError.badRequest(
+      'Quote no longer matches the current request — please request a fresh quote.',
+      { code: 'QUOTE_MISMATCH' },
+    );
+  }
+
   if (Number(wallet.balance) < pricing.total) {
     throw AppError.insufficientBalance(
       `Insufficient balance. Request costs ₦${pricing.total}. Balance: ₦${wallet.balance}`
     );
   }
-  
+
   // Create request in transaction
   const request = await prisma.$transaction(async (tx) => {
-    // Create main request
     const newRequest = await tx.request.create({
       data: {
         type,
@@ -133,47 +378,45 @@ const createRequest = async (customerId, requestData) => {
         customerId,
         merchantId: merchantId || null,
         ...locationData,
-        ...pricing,
+        ...persistablePricing,
         customerPaid: pricing.total,
+        // Phase 8 — pharmacy prescription URL. Persisted only when supplied;
+        // service already rejected above if Rx was required and missing.
+        prescriptionUrl: prescriptionUrl || null,
       },
     });
-    
-    // Create items (if applicable)
-    if (items && items.length > 0) {
+
+    if (resolvedItems.length > 0) {
       await tx.requestItem.createMany({
-        data: items.map(item => ({
+        data: resolvedItems.map(it => ({
           requestId: newRequest.id,
-          productId: item.productId || null,
-          name: item.name,
-          description: item.description,
-          unitPrice: item.unitPrice,
-          quantity: item.quantity,
-          variations: item.variations,
-          totalPrice: item.unitPrice * item.quantity,
+          productId: it.productId,
+          variantId: it.variantId,
+          name: it.name,
+          description: it.description,
+          unitPrice: it.unitPrice,
+          quantity: it.quantity,
+          lineTotal: it.lineTotal,
+          selectedOptions: it.selectedOptions,
+          specialInstructions: it.specialInstructions,
+          // Phase 8 — persist grocery substitution preference per line.
+          substitution: it.substitution || null,
         })),
       });
 
-      // Decrement stock for products
-      for (const item of items) {
-        if (item.productId) {
-          const product = await tx.product.findUnique({
-            where: { id: item.productId },
-          });
-
-          if (product) {
-            const newStock = Math.max(0, product.stock - item.quantity);
-            await tx.product.update({
-              where: { id: item.productId },
-              data: {
-                stock: newStock,
-                isAvailable: newStock > 0,
-              },
-            });
-          }
-        }
+      // Decrement stock on the resolved variant (single SKU or many — same path).
+      for (const it of resolvedItems) {
+        await tx.productVariant.update({
+          where: { id: it.variantId },
+          data: {
+            stock: { decrement: it.quantity },
+            // If we just drove stock to zero, flag the SKU unavailable.
+            ...((it.variant.stock - it.quantity) <= 0 ? { isAvailable: false } : {}),
+          },
+        });
       }
     }
-    
+
     // Create package details (if applicable)
     if (packageDetails) {
       await tx.packageDetail.create({
@@ -225,8 +468,11 @@ const createRequest = async (customerId, requestData) => {
   
   logger.info('Request created', { requestId: request.id, type, customerId });
   
-  // Queue rider matching job (if no merchant, go directly to rider matching)
-  // If has merchant, wait for merchant to accept first
+  // Queue rider matching job (if no merchant, go directly to rider matching).
+  // The expanding-radius matcher in request.worker enqueues
+  // AUTO_CANCEL_UNMATCHED itself once it exhausts all rings — we no longer
+  // schedule a duplicate fixed-delay cancel here.
+  // For MERCHANT_ORDER, matching is deferred to READY_FOR_PICKUP.
   if (!merchantId) {
     await requestQueue.add(REQUEST_JOBS.BROADCAST_TO_RIDERS, {
       requestId: request.id,
@@ -242,14 +488,7 @@ const createRequest = async (customerId, requestData) => {
     const io = getIO();
     emitRequestCreated(io, request);
   }
-  
-  // Schedule auto-cancel if no rider accepts within 5 minutes
-  await requestQueue.add(REQUEST_JOBS.AUTO_CANCEL_UNMATCHED, {
-    requestId: request.id,
-  }, {
-    delay: 5 * 60 * 1000,
-  });
-  
+
   return request;
 };
 
@@ -280,11 +519,23 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
   if (role === 'CUSTOMER' && newStatus !== 'CANCELLED') {
     throw AppError.forbidden('Customers can only cancel requests');
   }
-  if (role === 'MERCHANT' && !['ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'CANCELLED'].includes(newStatus)) {
-    throw AppError.forbidden('Merchants can only accept, process, mark ready, or cancel');
+  if (role === 'MERCHANT') {
+    if (!['ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'CANCELLED'].includes(newStatus)) {
+      throw AppError.forbidden('Merchants can only accept, process, mark ready, or cancel');
+    }
+    // Per-request ownership check — without it any authenticated merchant
+    // could PATCH any other merchant's order through the direct status route.
+    if (!request.merchant || request.merchant.userId !== userId) {
+      throw AppError.forbidden('Not your order');
+    }
   }
-  if (role === 'RIDER' && !['RIDER_EN_ROUTE', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'].includes(newStatus)) {
-    throw AppError.forbidden('Riders can only update rider-specific statuses');
+  if (role === 'RIDER') {
+    if (!['RIDER_EN_ROUTE', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'].includes(newStatus)) {
+      throw AppError.forbidden('Riders can only update rider-specific statuses');
+    }
+    if (!request.rider || request.rider.userId !== userId) {
+      throw AppError.forbidden('Not your assigned order');
+    }
   }
   
   const updateData = { status: newStatus };
@@ -325,21 +576,43 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
   const updated = await prisma.request.update({
     where: { id: requestId },
     data: updateData,
+    include: {
+      rider: {
+        select: {
+          id: true,
+          vehicleType: true,
+          plateNumber: true,
+          user: { select: { firstName: true, lastName: true, phone: true } },
+        },
+      },
+      // Phase 8 — merchant category drives push-notification copy
+      // ("Pharmacist preparing…", "Picking your groceries").
+      // Mirrors the slug visible in the in-app status banner.
+      merchant: {
+        select: {
+          id: true,
+          category: { select: { id: true, slug: true } },
+        },
+      },
+    },
   });
-  
+
   logger.info('Request status updated', { requestId, from: request.status, to: newStatus });
 
   // Emit socket event for status change
   const io = getIO();
   emitStatusChanged(io, requestId, newStatus);
 
-  // Emit specific events based on status
-  if (newStatus === 'RIDER_ASSIGNED' && updated.riderId) {
+  // Emit specific events based on status. `updated.rider` is null when the
+  // request has no rider yet — guard before touching nested user fields.
+  if (newStatus === 'RIDER_ASSIGNED' && updated.riderId && updated.rider?.user) {
+    const r = updated.rider;
     emitRiderAssigned(io, requestId, request.customerId, {
-      id: updated.riderId,
-      name: updated.rider.user.firstName + ' ' + updated.rider.user.lastName,
-      phone: updated.rider.user.phone,
-      vehicle: updated.rider.vehicleType,
+      id: r.id,
+      name: `${r.user.firstName || ''} ${r.user.lastName || ''}`.trim(),
+      phone: r.user.phone,
+      vehicle: r.vehicleType,
+      plateNumber: r.plateNumber,
     });
   }
 
@@ -374,30 +647,12 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
     });
   }
 
-  // Emit socket event for status change
-  io.to(getRequestRoom(requestId)).emit(REQUEST.STATUS_CHANGED, {
-    requestId,
-    status: newStatus,
-    timestamp: new Date(),
-  });
-
-  // Send push notifications
-  if (request.customer?.fcmToken) {
-    switch (newStatus) {
-      case 'ACCEPTED':
-        await notificationService.notifyMerchantAccepted(request.customer.fcmToken, requestId);
-        break;
-      case 'RIDER_ASSIGNED':
-        await notificationService.notifyRiderAssigned(request.customer.fcmToken, requestId);
-        break;
-      case 'PICKED_UP':
-        await notificationService.notifyOrderPickedUp(request.customer.fcmToken, requestId);
-        break;
-      case 'DELIVERED':
-        await notificationService.notifyDeliveryComplete(request.customer.fcmToken, requestId, Number(request.total));
-        break;
-    }
-  }
+  // Unified notification pipeline (Notification Center row + socket + push).
+  // Per-status copy + deep-link route lives in notifyService.onRequestStatusChanged.
+  await notifyService.onRequestStatusChanged(
+    { ...updated, customerId: request.customerId },
+    request.status,
+  );
 
   return updated;
 };
@@ -569,12 +824,12 @@ const forceCancelRequest = async (requestId, reason, adminId) => {
       },
     });
 
-    // Restore stock for products
+    // Restore stock on the resolved variant for each line item.
     if (request.items && request.items.length > 0) {
       for (const item of request.items) {
-        if (item.productId) {
-          await tx.product.update({
-            where: { id: item.productId },
+        if (item.variantId) {
+          await tx.productVariant.update({
+            where: { id: item.variantId },
             data: {
               stock: { increment: item.quantity },
               isAvailable: true,
@@ -737,13 +992,369 @@ const rateRequest = async (requestId, customerId, ratingData) => {
   return rating;
 };
 
+// ============================================================
+// Customer cancellation — status-gated fee policy
+//
+// Spec (delivery.cancellationFee from settings):
+//   - REQUESTED                                        → free
+//   - ACCEPTED | PROCESSING | RIDER_ASSIGNED | RIDER_EN_ROUTE → cancellationFee
+//   - PICKED_UP+                                       → 403 (admin only)
+// ============================================================
+
+const FREE_CANCEL_STATUSES = new Set(['REQUESTED']);
+const FEE_CANCEL_STATUSES = new Set([
+  'ACCEPTED',
+  'PROCESSING',
+  'READY_FOR_PICKUP',
+  'RIDER_ASSIGNED',
+  'RIDER_EN_ROUTE',
+]);
+
+const computeCancellationPolicy = async (status) => {
+  if (FREE_CANCEL_STATUSES.has(status)) {
+    return { allowed: true, fee: 0 };
+  }
+  if (FEE_CANCEL_STATUSES.has(status)) {
+    const feeRaw = await getSetting('delivery.cancellationFee', 0);
+    return { allowed: true, fee: Number(feeRaw) || 0 };
+  }
+  return { allowed: false, fee: 0 };
+};
+
+const getCancellationQuote = async (requestId, customerId) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: { id: true, status: true, customerId: true, customerPaid: true },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+  if (request.customerId !== customerId) throw AppError.forbidden('Not your request');
+
+  const policy = await computeCancellationPolicy(request.status);
+  const refund = Math.max(0, Number(request.customerPaid) - policy.fee);
+
+  // Sign the previewed fee for the same 5-min window the customer sees the
+  // modal for. The mobile passes this token back on DELETE; we refuse if the
+  // current fee differs from the signed one. Closes the
+  // settings-mid-cancel race documented in the audit.
+  const cancelToken = policy.allowed
+    ? issueCancellationFeeToken({
+        requestId,
+        customerId,
+        fee: policy.fee,
+        status: request.status,
+      })
+    : null;
+
+  return {
+    status: request.status,
+    allowed: policy.allowed,
+    fee: policy.fee,
+    refundAmount: policy.allowed ? refund : 0,
+    cancelToken,
+    validForMs: policy.allowed ? CANCEL_FEE_TTL_MS : 0,
+  };
+};
+
+/**
+ * Customer-initiated cancel. Persists Request.cancellationFee so the refund
+ * worker can deduct it from the escrow refund and credit it as platform
+ * earnings in a single transaction.
+ *
+ * If the client supplies `cancelToken` from a recent /cancel-quote, we honour
+ * the signed fee inside it rather than recomputing — bullet-proofs the flow
+ * against admin changing `delivery.cancellationFee` between preview and
+ * confirm. Without a token we fall back to the current setting (back-compat
+ * + admin cancel paths).
+ */
+const customerCancelRequest = async (requestId, customerId, reason, cancelToken) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: {
+      id: true, customerId: true, status: true, customerPaid: true, escrowTransactionId: true,
+    },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+  if (request.customerId !== customerId) throw AppError.forbidden('Not your request');
+
+  const policy = await computeCancellationPolicy(request.status);
+  if (!policy.allowed) {
+    throw AppError.forbidden('This order can no longer be cancelled — please contact support.');
+  }
+
+  // If a signed cancellation-fee token is provided, prefer its locked fee.
+  // This is the contract shown to the customer in the modal; honouring it
+  // closes the settings-race even across multiple Node processes (the token
+  // is signed, not memcached).
+  if (cancelToken) {
+    let cancelPayload;
+    try {
+      cancelPayload = verifyCancellationFeeToken(cancelToken);
+    } catch (err) {
+      if (err.code === 'EXPIRED') {
+        throw AppError.badRequest('Cancellation preview expired — please re-open the cancellation prompt.');
+      }
+      throw AppError.badRequest('Invalid cancellation token.');
+    }
+    if (cancelPayload.requestId !== requestId || cancelPayload.customerId !== customerId) {
+      throw AppError.badRequest('Cancellation token does not match this request.');
+    }
+    policy.fee = Number(cancelPayload.fee) || 0;
+  }
+
+  // Update Request: status + cancellationFee + cancellation metadata.
+  await prisma.request.update({
+    where: { id: requestId },
+    data: {
+      status: 'CANCELLED',
+      cancelledAt: new Date(),
+      cancelledBy: 'customer',
+      cancellationReason: reason || 'Customer cancelled',
+      cancellationFee: policy.fee,
+    },
+  });
+
+  // Emit cancelled socket event — refund worker fires immediately after.
+  // Include the fee so the mobile can render the right cancellation summary
+  // without a refetch.
+  const io = getIO();
+  emitCancelled(io, requestId, customerId, reason || 'Customer cancelled', {
+    cancellationFee: policy.fee,
+  });
+
+  await requestQueue.add(REQUEST_JOBS.REFUND_REQUEST, { requestId }, { delay: 500 });
+
+  return {
+    requestId,
+    status: 'CANCELLED',
+    cancellationFee: policy.fee,
+  };
+};
+
+// ============================================================
+// Active request — single-query home banner. Backed by the
+// (customerId, status) composite index added in Phase 4.
+// ============================================================
+
+const ACTIVE_STATUSES_FOR_BANNER = [
+  'REQUESTED',
+  'ACCEPTED',
+  'PROCESSING',
+  'READY_FOR_PICKUP',
+  'RIDER_ASSIGNED',
+  'RIDER_EN_ROUTE',
+  'PICKED_UP',
+  'IN_TRANSIT',
+];
+
+const getActiveRequest = async (customerId) => {
+  const active = await prisma.request.findFirst({
+    where: {
+      customerId,
+      status: { in: ACTIVE_STATUSES_FOR_BANNER },
+    },
+    orderBy: { createdAt: 'desc' },
+    include: {
+      merchant: {
+        select: { id: true, name: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } },
+      },
+      rider: {
+        select: { id: true, vehicleType: true, plateNumber: true, averageRating: true },
+      },
+    },
+  });
+  return active || null;
+};
+
+// ============================================================
+// Tracking — live polyline + ETA from rider's last position.
+// Cached in Redis for 30s to bound Maps quota during active deliveries.
+// ============================================================
+
+const ACTIVE_TRACK_STATUSES = new Set([
+  'RIDER_ASSIGNED',
+  'RIDER_EN_ROUTE',
+  'PICKED_UP',
+  'IN_TRANSIT',
+]);
+
+const isParticipant = (request, userId, role) => {
+  if (role === 'ADMIN') return true;
+  if (request.customerId === userId) return true;
+  if (request.riderId && request.rider?.user?.id === userId) return true;
+  if (request.merchantId && request.merchant?.userId === userId) return true;
+  // Cheaper alt-path: riderId column = rider.id, but the user comparison
+  // catches when callers pass userId not riderId. Both covered above.
+  return false;
+};
+
+const getActiveRoute = async (requestId, userId, role) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    include: {
+      rider: { select: { id: true, user: { select: { id: true } } } },
+      merchant: { select: { id: true, userId: true } },
+    },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+  if (!isParticipant(request, userId, role)) {
+    throw AppError.forbidden('Not authorized to view this route');
+  }
+  if (!ACTIVE_TRACK_STATUSES.has(request.status)) {
+    return {
+      requestId,
+      status: request.status,
+      polyline: null,
+      etaSeconds: null,
+      distanceMeters: null,
+      nextCheckpoint: null,
+      reason: 'No active rider — route unavailable',
+    };
+  }
+
+  // Rider position from Redis JSON (set by tracking handler each ping).
+  let riderPos = null;
+  try {
+    const raw = await redis.get(`${REDIS_KEYS.RIDER_LOCATION}${request.rider?.user?.id || request.riderId}`);
+    if (raw) riderPos = JSON.parse(raw);
+  } catch (_) {}
+  if (!riderPos || typeof riderPos.lat !== 'number' || typeof riderPos.lng !== 'number') {
+    return {
+      requestId,
+      status: request.status,
+      polyline: null,
+      etaSeconds: null,
+      distanceMeters: null,
+      nextCheckpoint: null,
+      reason: 'Rider position not yet available',
+    };
+  }
+
+  // Pickup or dropoff?
+  const preferPickup = !['PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'SETTLED'].includes(request.status);
+  const destLat = preferPickup ? request.pickupLat : request.dropoffLat;
+  const destLng = preferPickup ? request.pickupLng : request.dropoffLng;
+
+  // 30s cache keyed by request + ~10m position bucket. Bucket on position so
+  // a moving rider invalidates the cache naturally without us tracking it.
+  const bucketLat = Math.round(riderPos.lat * 10000) / 10000;
+  const bucketLng = Math.round(riderPos.lng * 10000) / 10000;
+  const cacheKey = `${REDIS_KEYS.REQUEST_ROUTE}${requestId}:${preferPickup ? 'P' : 'D'}:${bucketLat}:${bucketLng}`;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return { ...JSON.parse(cached), cached: true };
+    }
+  } catch (_) {}
+
+  let directions;
+  try {
+    directions = await mapsService.getDirections(riderPos.lat, riderPos.lng, destLat, destLng);
+  } catch (err) {
+    logger.warn('Route fetch failed', { requestId, error: err.message });
+    return {
+      requestId,
+      status: request.status,
+      polyline: null,
+      etaSeconds: null,
+      distanceMeters: null,
+      nextCheckpoint: preferPickup ? 'PICKUP' : 'DROPOFF',
+      reason: 'Unable to compute route at this time',
+    };
+  }
+
+  const payload = {
+    requestId,
+    status: request.status,
+    polyline: directions.polyline,
+    etaSeconds: directions.durationSeconds,
+    distanceMeters: directions.distanceMeters,
+    nextCheckpoint: preferPickup ? 'PICKUP' : 'DROPOFF',
+    riderLat: riderPos.lat,
+    riderLng: riderPos.lng,
+    destLat,
+    destLng,
+    computedAt: Date.now(),
+  };
+
+  try {
+    await redis.set(cacheKey, JSON.stringify(payload), 'EX', REDIS_TTL.REQUEST_ROUTE);
+  } catch (_) {}
+  return payload;
+};
+
+// ============================================================
+// In-app messaging
+// ============================================================
+
+const assertMessageParticipant = async (requestId, userId, role) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: { id: true, customerId: true, riderId: true, merchantId: true, rider: { select: { user: { select: { id: true } } } }, merchant: { select: { userId: true } } },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+  if (role === 'ADMIN') return request;
+  const allowedUserIds = new Set();
+  if (request.customerId) allowedUserIds.add(request.customerId);
+  if (request.rider?.user?.id) allowedUserIds.add(request.rider.user.id);
+  if (request.merchant?.userId) allowedUserIds.add(request.merchant.userId);
+  if (!allowedUserIds.has(userId)) {
+    throw AppError.forbidden('Not authorized to message on this request');
+  }
+  return request;
+};
+
+const listMessages = async (requestId, userId, role, { before, limit }) => {
+  await assertMessageParticipant(requestId, userId, role);
+
+  const where = { requestId };
+  if (before) where.createdAt = { lt: new Date(before) };
+
+  const messages = await prisma.requestMessage.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    take: Math.min(Math.max(limit || 30, 1), 100),
+    include: {
+      fromUser: { select: { id: true, firstName: true, lastName: true, role: true } },
+    },
+  });
+  return messages.reverse(); // chronological ASC for client rendering
+};
+
+const postMessage = async (requestId, userId, role, body) => {
+  await assertMessageParticipant(requestId, userId, role);
+
+  const message = await prisma.requestMessage.create({
+    data: { requestId, fromUserId: userId, body: body.trim() },
+    include: {
+      fromUser: { select: { id: true, firstName: true, lastName: true, role: true } },
+    },
+  });
+
+  const io = getIO();
+  io.to(getRequestRoom(requestId)).emit(REQUEST.MESSAGE_NEW, {
+    requestId,
+    message,
+  });
+
+  return message;
+};
+
 module.exports = {
   calculatePricing,
+  estimateRequest,
+  resolveLineItems,
   createRequest,
   updateStatus,
   getRequests,
   getRequestById,
   rateRequest,
+  computeCancellationPolicy,
+  getCancellationQuote,
+  customerCancelRequest,
+  getActiveRoute,
+  getActiveRequest,
+  listMessages,
+  postMessage,
   // Admin functions
   getAllRequestsAdmin,
   reassignRider,

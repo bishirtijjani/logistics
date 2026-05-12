@@ -243,7 +243,10 @@ const updateProfilePicture = async (req, res, next) => {
 
 const verifyBvn = async (req, res, next) => {
   try {
-    const result = await authService.verifyBvn(req.user.id, req.body);
+    const result = await authService.verifyBvn(req.user.id, req.body, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
     res.json(ApiResponse.success("BVN verified successfully", result));
   } catch (error) {
     next(error);
@@ -282,7 +285,10 @@ const updateNotificationPreferences = async (req, res, next) => {
 
 const getUploadSignature = async (req, res, next) => {
   try {
-    const signature = authService.getCloudinaryUploadSignature(req.user.id);
+    // `kind` defaults to "profile" so existing callers (web/mobile profile
+    // upload) keep working unchanged. Phase 8 adds "prescription".
+    const kind = (req.body?.kind || req.query?.kind || "profile").toLowerCase();
+    const signature = authService.getCloudinaryUploadSignature(req.user.id, kind);
     res.status(200).json(ApiResponse.success("Upload signature", signature));
   } catch (error) {
     next(error);

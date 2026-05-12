@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,17 +10,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
-import { buyAirtime, fetchPlans } from "../../store/slices/utilitySlice";
+import { buyAirtime, fetchPlans, fetchRecentRecipients } from "../../store/slices/utilitySlice";
 import { usePlatformSetting } from "../../services/settings";
+import { detectNetworkFromPhone } from "../../services/networkDetect";
+
+const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
 const NETWORK_COLORS = { MTN: "#FFCC00", GLO: "#00AA00", "9MOBILE": "#0066CC", AIRTEL: "#FF0000", SMILE: "#1E90FF" };
 
 export default function AirtimeScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { balance } = useSelector((state) => state.wallet);
-  const { plans, isLoading } = useSelector((state) => state.utility);
+  const { plans, isLoading, recentRecipients } = useSelector((state) => state.utility);
 
   const minAmount = Number(usePlatformSetting("utility.minAirtimeAmount", 50));
   const quickAmountsSetting = usePlatformSetting("utility.airtimeQuickAmounts", null);
@@ -29,33 +34,66 @@ export default function AirtimeScreen({ navigation }) {
     : [100, 200, 500, 1000, 2000, 5000];
 
   const networks = plans["AIRTIME"] || [];
+  const recents = recentRecipients["AIRTIME"] || [];
 
   const [selectedNetwork, setSelectedNetwork] = useState(null);
+  const [networkAutoSelected, setNetworkAutoSelected] = useState(false);
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [showPinSheet, setShowPinSheet] = useState(false);
   const [error, setError] = useState("");
 
+  const detectTimer = useRef(null);
+
   useEffect(() => {
     dispatch(fetchPlans({ type: "AIRTIME" }));
+    dispatch(fetchRecentRecipients({ type: "AIRTIME", limit: 5 }));
   }, [dispatch]);
 
   useEffect(() => {
     if (networks.length && !selectedNetwork) setSelectedNetwork(networks[0]);
   }, [networks]);
 
+  // Auto-detect network from phone prefix (debounced 500ms). Per Phase 7 spec
+  // the table-based client-side approach is acceptable and avoids a round
+  // trip per keystroke. User can still manually override.
+  useEffect(() => {
+    if (detectTimer.current) clearTimeout(detectTimer.current);
+    if (!phone || phone.length < 4 || networkAutoSelected) return;
+    detectTimer.current = setTimeout(() => {
+      const detected = detectNetworkFromPhone(phone);
+      if (!detected) return;
+      const match = networks.find((n) => n.networkName === detected.name);
+      if (match && match.id !== selectedNetwork?.id) {
+        setSelectedNetwork(match);
+        setNetworkAutoSelected(true);
+      }
+    }, 500);
+    return () => detectTimer.current && clearTimeout(detectTimer.current);
+  }, [phone, networks]);
+
+  const handlePhoneChange = (text) => {
+    const cleaned = text.replace(/[^0-9]/g, "");
+    setPhone(cleaned);
+    setError("");
+    if (cleaned.length < 4) setNetworkAutoSelected(false);
+  };
+
+  const handlePickRecent = (item) => {
+    setPhone(item.recipient);
+    setNetworkAutoSelected(false); // re-trigger detection
+  };
+
   const handlePurchase = () => {
-    if (!selectedNetwork) { setError("Please select a network"); return; }
-    if (!phone.trim() || phone.length < 10) { setError("Enter a valid phone number"); return; }
-    if (!amount || Number(amount) < minAmount) { setError(`Minimum airtime is ₦${minAmount.toLocaleString()}`); return; }
-    if (Number(amount) > Number(balance)) { setError("Insufficient wallet balance"); return; }
+    if (!selectedNetwork) { setError(t("utility.airtimeScreen.errSelectNetwork")); return; }
+    if (!phone.trim() || phone.length < 10) { setError(t("utility.airtimeScreen.errInvalidPhone")); return; }
+    if (!amount || Number(amount) < minAmount) { setError(t("utility.airtimeScreen.errMinAmount", { amount: naira(minAmount) })); return; }
+    if (Number(amount) > Number(balance)) { setError(t("utility.airtimeScreen.errInsufficientBalance")); return; }
     setError("");
     setShowPinSheet(true);
   };
 
   const handlePinConfirm = async (pin) => {
-    // Don't close the sheet here — let PinBottomSheet handle 423/401 errors
-    // (lockout countdown, attempts-remaining message). Close on success only.
     await dispatch(buyAirtime({
       networkId: selectedNetwork.providerNetworkId,
       phone: phone.trim(),
@@ -70,10 +108,17 @@ export default function AirtimeScreen({ navigation }) {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ marginRight: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
+          >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>Buy Airtime</Text>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+            {t("utility.airtimeScreen.title")}
+          </Text>
         </View>
       </View>
 
@@ -85,7 +130,10 @@ export default function AirtimeScreen({ navigation }) {
           </View>
         ) : null}
 
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>Select Network</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>
+          {t("utility.airtimeScreen.selectNetwork")}{" "}
+          {networkAutoSelected ? <Text style={{ color: colors.primary }}>{t("utility.airtimeScreen.autoDetected")}</Text> : null}
+        </Text>
         {isLoading && !networks.length ? (
           <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} />
         ) : (
@@ -93,7 +141,10 @@ export default function AirtimeScreen({ navigation }) {
             {networks.map((n) => (
               <TouchableOpacity
                 key={n.id}
-                onPress={() => setSelectedNetwork(n)}
+                onPress={() => { setSelectedNetwork(n); setNetworkAutoSelected(false); }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: selectedNetwork?.id === n.id }}
+                accessibilityLabel={n.networkName}
                 style={{
                   flexDirection: "row", alignItems: "center",
                   backgroundColor: selectedNetwork?.id === n.id ? colors.primary : colors.surface,
@@ -111,13 +162,40 @@ export default function AirtimeScreen({ navigation }) {
           </View>
         )}
 
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>Phone Number</Text>
+        {recents.length > 0 ? (
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.recent")}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {recents.map((r) => (
+                <TouchableOpacity
+                  key={r.recipient}
+                  onPress={() => handlePickRecent(r)}
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10,
+                    marginRight: 8, borderWidth: 1, borderColor: colors.border,
+                    flexDirection: "row", alignItems: "center",
+                  }}
+                >
+                  <Ionicons name="time-outline" size={14} color={colors.textMuted} style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.text }}>{r.recipient}</Text>
+                  {r.merchant ? (
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textMuted, marginLeft: 6 }}>• {r.merchant}</Text>
+                  ) : null}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.phoneLabel")}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 20 }}>
           <Ionicons name="call-outline" size={20} color={colors.textMuted} />
           <TextInput
             value={phone}
-            onChangeText={(text) => { setPhone(text.replace(/[^0-9]/g, "")); setError(""); }}
+            onChangeText={handlePhoneChange}
             placeholder="080XXXXXXXX"
+            accessibilityLabel={t("utility.airtimeScreen.phoneLabel")}
             placeholderTextColor={colors.textLight}
             keyboardType="phone-pad"
             maxLength={11}
@@ -125,42 +203,49 @@ export default function AirtimeScreen({ navigation }) {
           />
         </View>
 
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>Amount (₦)</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.amountLabel")}</Text>
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 12 }}>
           <TextInput
             value={amount}
             onChangeText={(text) => { setAmount(text.replace(/[^0-9]/g, "")); setError(""); }}
-            placeholder="Enter amount"
+            placeholder={t("utility.airtimeScreen.amountPh")}
+            accessibilityLabel={t("utility.airtimeScreen.amountLabel")}
             placeholderTextColor={colors.textLight}
             keyboardType="number-pad"
             style={{ fontSize: 24, fontWeight: "700", color: colors.text, paddingVertical: 16 }}
           />
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
-          {QUICK_AMOUNTS.map((value) => (
-            <TouchableOpacity
-              key={value}
-              onPress={() => setAmount(value.toString())}
-              style={{ backgroundColor: Number(amount) === value ? colors.primary : colors.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: Number(amount) === value ? colors.primary : colors.border }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "700", color: Number(amount) === value ? colors.white : colors.text }}>₦{value}</Text>
-            </TouchableOpacity>
-          ))}
+          {QUICK_AMOUNTS.map((value) => {
+            const selected = Number(amount) === value;
+            return (
+              <TouchableOpacity
+                key={value}
+                onPress={() => setAmount(value.toString())}
+                accessibilityRole="button"
+                accessibilityLabel={naira(value)}
+                accessibilityState={{ selected }}
+                style={{ backgroundColor: selected ? colors.primary : colors.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: selected ? colors.primary : colors.border }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? colors.white : colors.text }}>₦{value}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {amount ? (
           <View style={{ backgroundColor: colors.primary + "10", borderRadius: 16, padding: 20, borderWidth: 2, borderColor: colors.primary + "30" }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-              <Text style={{ fontSize: 14, color: colors.textMuted }}>Network</Text>
+              <Text style={{ fontSize: 14, color: colors.textMuted }}>{t("utility.airtimeScreen.summaryNetwork")}</Text>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>{selectedNetwork?.networkName || "—"}</Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-              <Text style={{ fontSize: 14, color: colors.textMuted }}>Phone</Text>
+              <Text style={{ fontSize: 14, color: colors.textMuted }}>{t("utility.airtimeScreen.summaryPhone")}</Text>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>{phone || "—"}</Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Total</Text>
-              <Text style={{ fontSize: 20, fontWeight: "900", color: colors.primary }}>₦{Number(amount).toLocaleString()}</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>{t("utility.airtimeScreen.summaryTotal")}</Text>
+              <Text style={{ fontSize: 20, fontWeight: "900", color: colors.primary }}>{naira(amount)}</Text>
             </View>
           </View>
         ) : null}
@@ -170,13 +255,16 @@ export default function AirtimeScreen({ navigation }) {
         <TouchableOpacity
           onPress={handlePurchase}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={amount ? t("utility.airtimeScreen.payCta", { amount: naira(amount) }) : t("utility.airtimeScreen.enterAmountCta")}
+          accessibilityState={{ disabled: isLoading, busy: isLoading }}
           style={{ backgroundColor: amount ? colors.primary : colors.textLight, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={colors.white} />
+            <ActivityIndicator size="small" color={colors.white} accessibilityLabel={t("common.loading")} />
           ) : (
             <Text style={{ color: colors.white, fontSize: 16, fontWeight: "800" }}>
-              {amount ? `Pay ₦${Number(amount).toLocaleString()}` : "Enter Amount"}
+              {amount ? t("utility.airtimeScreen.payCta", { amount: naira(amount) }) : t("utility.airtimeScreen.enterAmountCta")}
             </Text>
           )}
         </TouchableOpacity>
@@ -187,8 +275,8 @@ export default function AirtimeScreen({ navigation }) {
         onClose={() => setShowPinSheet(false)}
         onConfirm={handlePinConfirm}
         onForgotPin={() => { setShowPinSheet(false); navigation.navigate("ChangePin"); }}
-        title="Confirm Purchase"
-        subtitle={`₦${Number(amount).toLocaleString()} airtime for ${selectedNetwork?.networkName}`}
+        title={t("utility.airtimeScreen.pinTitle")}
+        subtitle={t("utility.airtimeScreen.pinSubtitle", { amount: naira(amount), network: selectedNetwork?.networkName || "" })}
       />
     </SafeAreaView>
   );

@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { colors } from "../../theme";
 import {
@@ -31,6 +32,7 @@ const INITIAL_SETTINGS = {
 
 export default function NotificationSettingsScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { notificationPreferences, isLoading, isUpdating, error } = useSelector(
     (state) => state.profile
   );
@@ -219,6 +221,8 @@ export default function NotificationSettingsScreen({ navigation }) {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
             style={{
               width: 40,
               height: 40,
@@ -232,6 +236,7 @@ export default function NotificationSettingsScreen({ navigation }) {
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
           <Text
+            accessibilityRole="header"
             style={{
               fontSize: 20,
               fontWeight: "900",
@@ -239,7 +244,7 @@ export default function NotificationSettingsScreen({ navigation }) {
               letterSpacing: -0.5,
             }}
           >
-            Notifications
+            {t("notifications2.title")}
           </Text>
         </View>
         {isUpdating ? (

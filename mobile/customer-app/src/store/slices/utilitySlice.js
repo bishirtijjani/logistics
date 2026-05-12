@@ -18,7 +18,7 @@ export const fetchPlans = createAsyncThunk(
     try {
       const params = { type, ...(networkId && { networkId }) };
       const response = await api.get("/utilities/plans", { params });
-      return { type, networkId, plans: response.data.data };
+      return { type, networkId, plans: response?.data || [] };
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to fetch plans"));
     }
@@ -30,7 +30,7 @@ export const buyAirtime = createAsyncThunk(
   async ({ networkId, phone, amount, pin }, { rejectWithValue }) => {
     try {
       const response = await api.post("/utilities/airtime", { networkId, phone, amount, pin }, idemHeaders());
-      return response.data.data;
+      return response?.data;
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to purchase airtime"));
     }
@@ -42,7 +42,7 @@ export const buyData = createAsyncThunk(
   async ({ planId, phone, pin }, { rejectWithValue }) => {
     try {
       const response = await api.post("/utilities/data", { planId, phone, pin }, idemHeaders());
-      return response.data.data;
+      return response?.data;
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to purchase data"));
     }
@@ -54,7 +54,7 @@ export const buyCable = createAsyncThunk(
   async ({ planId, smartCardNumber, pin }, { rejectWithValue }) => {
     try {
       const response = await api.post("/utilities/cable", { planId, smartCardNumber, pin }, idemHeaders());
-      return response.data.data;
+      return response?.data;
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to subscribe to cable"));
     }
@@ -68,7 +68,7 @@ export const payElectricity = createAsyncThunk(
       const response = await api.post("/utilities/electricity", {
         discoId, meterNumber, meterType, amount, phone, pin,
       }, idemHeaders());
-      return response.data.data;
+      return response?.data;
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to pay electricity"));
     }
@@ -82,7 +82,7 @@ export const validateIuc = createAsyncThunk(
       const response = await api.get("/utilities/validate-iuc", {
         params: { smartCardNumber, cableNameId },
       });
-      return response.data.data;
+      return response?.data;
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to validate IUC"));
     }
@@ -96,7 +96,7 @@ export const validateMeter = createAsyncThunk(
       const response = await api.get("/utilities/validate-meter", {
         params: { meterNumber, discoId, meterType },
       });
-      return response.data.data;
+      return response?.data;
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to validate meter"));
     }
@@ -105,12 +105,48 @@ export const validateMeter = createAsyncThunk(
 
 export const fetchUtilityHistory = createAsyncThunk(
   "utility/fetchUtilityHistory",
-  async ({ page = 1, limit = 20, type } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 20, type, status } = {}, { rejectWithValue }) => {
     try {
-      const response = await api.get("/utilities/history", { params: { page, limit, type } });
-      return { payments: response.data.data, total: response.data.meta?.total || 0, page };
+      const response = await api.get("/utilities/history", { params: { page, limit, type, status } });
+      return { payments: response?.data || [], total: response?.meta?.total || 0, page };
     } catch (error) {
       return rejectWithValue(toRejectionPayload(error, "Failed to fetch history"));
+    }
+  }
+);
+
+export const fetchUtilityPayment = createAsyncThunk(
+  "utility/fetchPayment",
+  async (paymentId, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/utilities/payments/${paymentId}`);
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(toRejectionPayload(error, "Failed to fetch payment"));
+    }
+  }
+);
+
+export const fetchRecentRecipients = createAsyncThunk(
+  "utility/fetchRecentRecipients",
+  async ({ type, limit = 5 } = {}, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/utilities/recent-recipients", { params: { type, limit } });
+      return { type, list: response?.data || [] };
+    } catch (error) {
+      return rejectWithValue(toRejectionPayload(error, "Failed to fetch recipients"));
+    }
+  }
+);
+
+export const detectNetworkRemote = createAsyncThunk(
+  "utility/detectNetwork",
+  async ({ phone }, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/utilities/detect-network", { phone });
+      return response?.data;
+    } catch (error) {
+      return rejectWithValue(toRejectionPayload(error, "Could not detect network"));
     }
   }
 );
@@ -125,6 +161,9 @@ const utilitySlice = createSlice({
     validationResult: null,
     error: null,
     total: 0,
+    // Phase 7
+    recentRecipients: {}, // { AIRTIME: [...], DATA: [...], CABLE: [...], ELECTRICITY: [...] }
+    paymentsById: {},      // { [paymentId]: payment } — kept fresh for pending polling
   },
   reducers: {
     clearUtilityError: (state) => { state.error = null; },
@@ -197,8 +236,25 @@ const utilitySlice = createSlice({
         const { payments = [], total = 0, page } = action.payload;
         state.history = page === 1 ? payments : [...state.history, ...payments];
         state.total = total;
+        for (const p of payments) state.paymentsById[p.id] = p;
       })
       .addCase(fetchUtilityHistory.rejected, failed);
+
+    builder
+      .addCase(fetchUtilityPayment.fulfilled, (state, action) => {
+        const p = action.payload;
+        if (!p?.id) return;
+        state.paymentsById[p.id] = p;
+        // Replace the row in `history` if present so the list reflects status.
+        const idx = state.history.findIndex((r) => r.id === p.id);
+        if (idx !== -1) state.history[idx] = p;
+      });
+
+    builder
+      .addCase(fetchRecentRecipients.fulfilled, (state, action) => {
+        const { type, list } = action.payload;
+        state.recentRecipients[type] = list;
+      });
   },
 });
 

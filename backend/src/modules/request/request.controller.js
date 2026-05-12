@@ -99,27 +99,94 @@ const updateStatus = async (req, res, next) => {
 };
 
 // ============================================================
-// Cancel Request
+// Cancel Request — customer path. Applies server-driven fee policy.
 // ============================================================
 
 const cancelRequest = async (req, res, next) => {
   try {
     const { requestId } = req.params;
-    const { reason } = req.body;
-    const userId = req.user.id;
-    const role = req.user.role;
-    
-    const request = await requestService.updateStatus(
-      requestId,
-      'CANCELLED',
-      userId,
-      role,
-      reason
-    );
-    
+    const { reason, cancelToken } = req.body;
+    const customerId = req.user.id;
+
+    const result = await requestService.customerCancelRequest(requestId, customerId, reason, cancelToken);
+
     res.json(
-      ApiResponse.success('Request cancelled', request)
+      ApiResponse.success(
+        result.cancellationFee > 0
+          ? `Request cancelled (₦${result.cancellationFee} cancellation fee applied)`
+          : 'Request cancelled',
+        result,
+      ),
     );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Cancellation preview — what would happen if I cancelled right now.
+// Customer's tracking screen calls this to show "Cancel with ₦X fee?" copy.
+const getCancellationQuote = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const customerId = req.user.id;
+    const quote = await requestService.getCancellationQuote(requestId, customerId);
+    res.json(ApiResponse.success('Cancellation quote', quote));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Active request — single-shot fetch for the home banner.
+// ============================================================
+
+const getActiveRequest = async (req, res, next) => {
+  try {
+    const active = await requestService.getActiveRequest(req.user.id);
+    res.json(ApiResponse.success('Active request', active));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ============================================================
+// Tracking — route polyline + live ETA
+// ============================================================
+
+const getRoute = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const route = await requestService.getActiveRoute(requestId, req.user.id, req.user.role);
+    res.json(ApiResponse.success('Route retrieved', route));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Messaging
+// ============================================================
+
+const listMessages = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const { before, limit } = req.query;
+    const messages = await requestService.listMessages(requestId, req.user.id, req.user.role, {
+      before,
+      limit: limit ? parseInt(limit, 10) : 30,
+    });
+    res.json(ApiResponse.success('Messages retrieved', messages));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const postMessage = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const { body } = req.body;
+    const message = await requestService.postMessage(requestId, req.user.id, req.user.role, body);
+    res.status(201).json(ApiResponse.success('Message posted', message));
   } catch (error) {
     next(error);
   }
@@ -229,26 +296,48 @@ const adminUpdateStatus = async (req, res, next) => {
 };
 
 // ============================================================
-// Quote (Estimate)
+// Quote (Estimate) — POST with full body shape: same numbers the eventual
+// createRequest will persist. Mobile app submits the request payload here,
+// shows the breakdown to the user, then submits to POST / with the matching
+// shape AND the returned quoteToken. Server re-verifies the token signature
+// and TTL before accepting the create.
 // ============================================================
+
+const { issueQuoteToken } = require('../../utils/quote-token');
 
 const getQuote = async (req, res, next) => {
   try {
-    const { type, pickupLat, pickupLng, dropoffLat, dropoffLng } = req.query;
+    const pricing = await requestService.estimateRequest(req.body);
+    const { resolvedItems, ...quote } = pricing;
 
-    if (!pickupLat || !pickupLng || !dropoffLat || !dropoffLng) {
-      return res.status(400).json(ApiResponse.error('Pickup and dropoff coordinates required'));
-    }
+    // Server infers the type the same way createRequest does so the token's
+    // fingerprint matches the payload that will arrive on POST /.
+    const inferredType =
+      req.body.type || (req.body.merchantId ? 'MERCHANT_ORDER' : 'PACKAGE');
 
-    const pricing = await requestService.calculatePricing({
-      type: type || 'PACKAGE',
-      pickupLat: parseFloat(pickupLat),
-      pickupLng: parseFloat(pickupLng),
-      dropoffLat: parseFloat(dropoffLat),
-      dropoffLng: parseFloat(dropoffLng),
+    const { token, expiresAt } = issueQuoteToken({
+      type: inferredType,
+      merchantId: req.body.merchantId || null,
+      pickupLat: req.body.pickupLat,
+      pickupLng: req.body.pickupLng,
+      dropoffLat: req.body.dropoffLat,
+      dropoffLng: req.body.dropoffLng,
+      subtotal: quote.subtotal,
+      deliveryFee: quote.deliveryFee,
+      platformFee: quote.platformFee,
+      tax: quote.tax,
+      total: quote.total,
+      distanceKm: quote.distanceKm,
+      estimatedMinutes: quote.estimatedMinutes,
     });
 
-    res.json(ApiResponse.success('Quote calculated', pricing));
+    res.json(
+      ApiResponse.success('Quote calculated', {
+        ...quote,
+        quoteToken: token,
+        validUntil: new Date(expiresAt).toISOString(),
+      }),
+    );
   } catch (error) {
     next(error);
   }
@@ -261,6 +350,11 @@ module.exports = {
   getRequestById,
   updateStatus,
   cancelRequest,
+  getCancellationQuote,
+  getRoute,
+  getActiveRequest,
+  listMessages,
+  postMessage,
   rateRequest,
   // Admin controllers
   getAllRequestsAdmin,

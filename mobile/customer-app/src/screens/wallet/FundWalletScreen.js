@@ -6,16 +6,17 @@ import {
   ScrollView,
   ActivityIndicator,
   Clipboard,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import { fetchWallet } from "../../store/slices/walletSlice";
 
 export default function FundWalletScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { wallet, isLoading } = useSelector((state) => state.wallet);
   const [copied, setCopied] = useState(false);
 
@@ -29,15 +30,31 @@ export default function FundWalletScreen({ navigation }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Steps live inside the component so the translations re-evaluate on locale
+  // change without a stale closure.
+  const steps = [
+    { icon: "copy-outline", title: t("wallet.fund.stepCopyTitle"), desc: t("wallet.fund.stepCopyDesc") },
+    { icon: "phone-portrait-outline", title: t("wallet.fund.stepBankTitle"), desc: t("wallet.fund.stepBankDesc") },
+    { icon: "send-outline", title: t("wallet.fund.stepTransferTitle"), desc: t("wallet.fund.stepTransferDesc") },
+    { icon: "checkmark-done-outline", title: t("wallet.fund.stepDoneTitle"), desc: t("wallet.fund.stepDoneDesc") },
+  ];
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ marginRight: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
+          >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>Fund Wallet</Text>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+            {t("wallet.fundTitle")}
+          </Text>
         </View>
       </View>
 
@@ -70,10 +87,10 @@ export default function FundWalletScreen({ navigation }) {
             </View>
             <View>
               <Text style={{ fontSize: 16, fontWeight: "700", color: colors.white }}>
-                Your Virtual Account
+                {t("wallet.fund.vAccountTitle")}
               </Text>
               <Text style={{ fontSize: 13, color: colors.textMuted }}>
-                Bank Transfer • Instant
+                {t("wallet.fund.vAccountSubtitle")}
               </Text>
             </View>
           </View>
@@ -88,7 +105,7 @@ export default function FundWalletScreen({ navigation }) {
             }}
           >
             <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>
-              Account Number
+              {t("wallet.fund.accountNumber")}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text
@@ -99,6 +116,7 @@ export default function FundWalletScreen({ navigation }) {
                   color: colors.white,
                   letterSpacing: 2,
                 }}
+                accessibilityLabel={`${t("wallet.fund.accountNumber")} ${wallet?.accountNumber || ""}`}
               >
                 {isLoading ? (
                   <ActivityIndicator color={colors.white} />
@@ -110,6 +128,9 @@ export default function FundWalletScreen({ navigation }) {
               </Text>
               <TouchableOpacity
                 onPress={() => wallet?.accountNumber && copyToClipboard(wallet.accountNumber)}
+                accessibilityRole="button"
+                accessibilityLabel={copied ? t("wallet.fund.copied") : t("wallet.fund.copy")}
+                accessibilityState={{ disabled: !wallet?.accountNumber }}
                 style={{
                   backgroundColor: colors.primary,
                   paddingHorizontal: 16,
@@ -118,7 +139,7 @@ export default function FundWalletScreen({ navigation }) {
                 }}
               >
                 <Text style={{ color: colors.white, fontSize: 13, fontWeight: "700" }}>
-                  {copied ? "Copied!" : "Copy"}
+                  {copied ? t("wallet.fund.copied") : t("wallet.fund.copy")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -136,22 +157,20 @@ export default function FundWalletScreen({ navigation }) {
           >
             <Ionicons name="business" size={20} color={colors.primary} />
             <Text style={{ marginLeft: 12, fontSize: 15, fontWeight: "600", color: colors.white }}>
-              {wallet?.bankName || "Wema Bank"}
+              {wallet?.bankName || t("wallet.fund.fallbackBank")}
             </Text>
           </View>
         </View>
 
         {/* Instructions */}
-        <Text style={{ fontSize: 16, fontWeight: "800", color: colors.text, marginTop: 24, marginBottom: 16 }}>
-          How to Fund
+        <Text
+          accessibilityRole="header"
+          style={{ fontSize: 16, fontWeight: "800", color: colors.text, marginTop: 24, marginBottom: 16 }}
+        >
+          {t("wallet.fund.howTo")}
         </Text>
 
-        {[
-          { icon: "copy-outline", title: "Copy Account Number", desc: "Tap the Copy button above" },
-          { icon: "phone-portrait-outline", title: "Open Your Bank App", desc: "Use any banking app or USSD" },
-          { icon: "send-outline", title: "Transfer Money", desc: "Send any amount to the account number" },
-          { icon: "checkmark-done-outline", title: "Wallet Updated", desc: "Funds appear instantly" },
-        ].map((step, index) => (
+        {steps.map((step, index) => (
           <View key={index} style={{ flexDirection: "row", marginBottom: 16 }}>
             <View
               style={{
@@ -190,11 +209,10 @@ export default function FundWalletScreen({ navigation }) {
             <Ionicons name="information-circle" size={20} color={colors.primary} style={{ marginRight: 8 }} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text, marginBottom: 4 }}>
-                Important
+                {t("wallet.fund.importantTitle")}
               </Text>
               <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 18 }}>
-                This is your personal virtual account. Only transfer from your own bank account.
-                Third-party transfers may be flagged for review.
+                {t("wallet.fund.importantBody")}
               </Text>
             </View>
           </View>

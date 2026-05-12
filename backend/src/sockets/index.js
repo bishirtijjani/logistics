@@ -5,19 +5,60 @@
  * - Auth: JWT token verified on connection handshake
  * - Rooms: Each user joins their personal room (user:{userId})
  * - Rooms: Riders join rider pool room when online
- * - Rooms: Both parties join delivery room during active delivery
- * - Handlers: Separate files for tracking and delivery events
+ * - Rooms: All parties join request room during active request
+ * - Handlers: Separate files for tracking and request events
  */
 
 const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const { config } = require('../config');
 const { logger } = require('../utils/logger');
+const { prisma } = require('../config/database');
 const { CONNECTION, getUserRoom, getRiderPoolRoom } = require('./events');
 const { registerTrackingHandlers } = require('./handlers/tracking.handler');
-const { registerDeliveryHandlers } = require('./handlers/delivery.handler');
 const { registerRequestHandlers } = require('./handlers/request.handler');
 const notifyService = require('../services/notify.service');
+
+// ============================================================
+// Socket-auth user-status cache
+//
+// Phase 5 added a DB lookup per socket handshake so SUSPENDED/DEACTIVATED
+// users can't keep using a still-valid access token. At scale, with frequent
+// background/foreground cycles, that's one Postgres SELECT per reconnect per
+// user — hot path. Cache the result for 60s per userId; on suspend/deactivate
+// admin paths can `invalidateUserAuthCache(userId)` to force the next
+// handshake to re-read.
+// ============================================================
+
+const AUTH_CACHE_TTL_MS = 60 * 1000;
+const authCache = new Map(); // userId -> { value, expiresAt }
+
+const cacheGet = (userId) => {
+  const hit = authCache.get(userId);
+  if (!hit) return null;
+  if (hit.expiresAt < Date.now()) {
+    authCache.delete(userId);
+    return null;
+  }
+  return hit.value;
+};
+
+const cacheSet = (userId, value) => {
+  authCache.set(userId, { value, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
+  // Keep the cache bounded — at 10k entries, drop the oldest 1k.
+  if (authCache.size > 10_000) {
+    const drop = 1000;
+    let i = 0;
+    for (const k of authCache.keys()) {
+      authCache.delete(k);
+      if (++i >= drop) break;
+    }
+  }
+};
+
+const invalidateUserAuthCache = (userId) => {
+  authCache.delete(userId);
+};
 
 let io = null;
 
@@ -35,7 +76,11 @@ const initializeSocket = (httpServer) => {
   });
 
   // --- Authentication middleware ---
-  io.use((socket, next) => {
+  // Verifies the JWT signature/expiry AND re-checks the user's current status
+  // (status + soft-delete) against a 60s in-memory cache. Suspend/deactivate
+  // admin paths must call `invalidateUserAuthCache(userId)` to force the next
+  // handshake to bypass the cache.
+  io.use(async (socket, next) => {
     try {
       const token =
         socket.handshake.auth?.token ||
@@ -46,10 +91,39 @@ const initializeSocket = (httpServer) => {
       }
 
       const decoded = jwt.verify(token, config.JWT_ACCESS_SECRET);
+
+      let user = cacheGet(decoded.id);
+      if (!user) {
+        try {
+          const row = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: { id: true, role: true, phone: true, status: true, deletedAt: true },
+          });
+          if (!row) {
+            return next(new Error('Account not found'));
+          }
+          user = row;
+          cacheSet(decoded.id, user);
+        } catch (dbErr) {
+          // Fail closed on DB errors so a transient outage doesn't let a
+          // suspended token slip through.
+          logger.error('Socket auth DB lookup failed', { userId: decoded.id, error: dbErr.message });
+          return next(new Error('Authentication unavailable'));
+        }
+      }
+
+      if (user.deletedAt) {
+        return next(new Error('Account not found'));
+      }
+      if (user.status === 'SUSPENDED' || user.status === 'DEACTIVATED') {
+        logger.warn('Socket auth refused: user not active', { userId: user.id, status: user.status });
+        return next(new Error('Account is not active'));
+      }
+
       socket.user = {
-        id: decoded.id,
-        role: decoded.role,
-        phone: decoded.phone,
+        id: user.id,
+        role: user.role,
+        phone: user.phone,
       };
 
       next();
@@ -75,7 +149,6 @@ const initializeSocket = (httpServer) => {
 
     // Register event handlers
     registerTrackingHandlers(io, socket);
-    registerDeliveryHandlers(io, socket);
     registerRequestHandlers(io, socket);
 
     // --- Disconnect ---
@@ -106,4 +179,4 @@ const getIO = () => {
   return io;
 };
 
-module.exports = { initializeSocket, getIO };
+module.exports = { initializeSocket, getIO, invalidateUserAuthCache };

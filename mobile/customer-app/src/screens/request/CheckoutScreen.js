@@ -1,293 +1,566 @@
 /**
- * CheckoutScreen — Unified request checkout flow
- * Handles cart review, address selection, payment, and order confirmation
+ * CheckoutScreen — review cart, pick address, fetch server-truth quote, submit.
+ *
+ * Phase 4 contract:
+ *   - POST /requests/quote → returns { ...pricing, quoteToken, validUntil }
+ *   - Quote is valid 5 min. UI shows a live countdown and auto-disables
+ *     submission once expired.
+ *   - POST /requests submits with the matching quoteToken; server re-verifies
+ *     signature + TTL + locked numbers before persisting.
+ *   - PIN bottom sheet before submit.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  ActivityIndicator,
-  Alert,
+  View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
+import * as ImagePicker from 'expo-image-picker';
 import api from '../../services/api';
-import theme, { colors } from '../../theme';
+import { colors } from '../../theme';
 import { createRequest } from '../../store/slices/requestSlice';
 import { fetchWallet } from '../../store/slices/walletSlice';
+import PinBottomSheet from '../../components/PinBottomSheet';
+import { substitutionLabel } from '../../lib/requestStatus';
 
-const DELIVERY_FEE = 500;
-const PLATFORM_FEE = 100;
+const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
+
+const QUOTE_TTL_MS = 5 * 60 * 1000;
+const QUOTE_WARN_MS = 30 * 1000;
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useDispatch();
-  const { cart, merchantId, pickupLat = 0, pickupLng = 0, pickupAddress = 'Merchant Location' } = route.params;
-  const type = 'MERCHANT_ORDER';
-  const { balance } = useSelector((state) => state.wallet);
-  const { user } = useSelector((state) => state.auth);
-  const { isCreating } = useSelector((state) => state.request);
+  const { t } = useTranslation();
+  const {
+    cart, merchantId, pickupLat = 0, pickupLng = 0,
+    pickupAddress = 'Merchant Location', pickupName,
+  } = route.params || {};
+  const { balance } = useSelector((s) => s.wallet);
+  const { isCreating } = useSelector((s) => s.request);
 
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [specialInstructions, setSpecialInstructions] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('wallet');
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [quote, setQuote] = useState(null);
+  const [quoteFetchedAt, setQuoteFetchedAt] = useState(null);
+  const [quoting, setQuoting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [pinVisible, setPinVisible] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
-  const subtotal = cart.reduce((sum, item) => sum + Number(item.basePrice) * item.quantity, 0);
-  const total = subtotal + DELIVERY_FEE + PLATFORM_FEE;
+  // Phase 8 — prescription upload state. `rxRequired` is derived from the
+  // cart; `rxUrl` is set once the Cloudinary upload succeeds; `rxUploading`
+  // gates the upload button while the signed POST is in flight.
+  const rxRequired = useMemo(() => cart.some((l) => l.requiresPrescription), [cart]);
+  const [rxUrl, setRxUrl] = useState(null);
+  const [rxUploading, setRxUploading] = useState(false);
+
+  // Drop a stale prescription if the customer went back to MerchantMenu and
+  // removed every Rx line — otherwise we'd ship an Rx URL for a non-Rx order
+  // and confuse the merchant + persist a dangling audit reference.
+  useEffect(() => {
+    if (!rxRequired && rxUrl) setRxUrl(null);
+  }, [rxRequired, rxUrl]);
+
+  useEffect(() => { dispatch(fetchWallet()); }, [dispatch]);
+
+  const itemsForServer = useMemo(
+    () => cart.map((line) => ({
+      productId: line.productId,
+      variantId: line.variantId,
+      quantity: line.quantity,
+      selectedOptions: (line.selectedOptions || []).map((g) => ({
+        groupId: g.groupId,
+        itemIds: g.itemIds,
+      })),
+      specialInstructions: line.specialInstructions || undefined,
+      // Phase 8 — per-line grocery substitution preference. Sent only when
+      // the customer actually picked one; server treats absence as NONE.
+      substitution: line.substitution || undefined,
+    })),
+    [cart],
+  );
+
+  const quotePayload = useMemo(() => {
+    if (!selectedAddress) return null;
+    return {
+      type: 'MERCHANT_ORDER',
+      merchantId,
+      pickupLat, pickupLng,
+      dropoffLat: selectedAddress.lat || selectedAddress.latitude || 0,
+      dropoffLng: selectedAddress.lng || selectedAddress.longitude || 0,
+      items: itemsForServer,
+    };
+  }, [selectedAddress?.id, merchantId, pickupLat, pickupLng, itemsForServer]); // eslint-disable-line
+
+  // Refetch quote whenever the dropoff changes.
+  const fetchQuote = async () => {
+    if (!quotePayload) return;
+    setQuoting(true);
+    try {
+      const r = await api.post('/requests/quote', quotePayload);
+      setQuote(r?.data);
+      setQuoteFetchedAt(Date.now());
+    } catch (err) {
+      Toast.show({
+        type: 'error',
+        text1: t('request.toast.quoteFailed'),
+        text2: err?.message,
+      });
+    } finally {
+      setQuoting(false);
+    }
+  };
 
   useEffect(() => {
-    dispatch(fetchWallet());
-  }, [dispatch]);
+    if (!quotePayload) {
+      setQuote(null);
+      setQuoteFetchedAt(null);
+      return undefined;
+    }
+    let alive = true;
+    (async () => {
+      setQuoting(true);
+      try {
+        const r = await api.post('/requests/quote', quotePayload);
+        if (!alive) return;
+        setQuote(r?.data);
+        setQuoteFetchedAt(Date.now());
+      } catch (err) {
+        if (!alive) return;
+        Toast.show({ type: 'error', text1: t('request.toast.quoteFailed'), text2: err?.message });
+      } finally {
+        if (alive) setQuoting(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [quotePayload]); // eslint-disable-line
 
-  const handleAddressSelect = () => {
+  // Auto-refresh on focus if the quote is older than ~1 minute or expired.
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!quotePayload || !quoteFetchedAt) return;
+      const age = Date.now() - quoteFetchedAt;
+      if (age >= 60_000) fetchQuote();
+    }, [quotePayload, quoteFetchedAt]) // eslint-disable-line
+  );
+
+  // Tick the countdown only while a quote is loaded.
+  useEffect(() => {
+    if (!quote) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [quote]);
+
+  const expiresAt = quoteFetchedAt ? quoteFetchedAt + QUOTE_TTL_MS : null;
+  const msUntilExpiry = expiresAt ? Math.max(0, expiresAt - now) : 0;
+  const quoteExpired = quote && msUntilExpiry === 0;
+
+  const pickAddress = () => {
     navigation.navigate('SavedAddresses', {
-      onSelect: (address) => {
-        setSelectedAddress(address);
-      },
+      onSelect: (address) => setSelectedAddress(address),
     });
   };
 
-  const handlePlaceOrder = async () => {
-    if (!selectedAddress) {
-      Toast.show({
-        type: 'error',
-        text1: 'Address Required',
-        text2: 'Please select a delivery address',
-      });
-      return;
-    }
-
-    if (paymentMethod === 'wallet' && Number(balance) < total) {
-      Toast.show({
-        type: 'error',
-        text1: 'Insufficient Balance',
-        text2: `You need ₦${total.toLocaleString()} but have ₦${Number(balance).toLocaleString()}`,
-      });
-      return;
-    }
-
-    setShowConfirmModal(true);
-  };
-
-  const confirmOrder = async () => {
-    setShowConfirmModal(false);
-
+  // Phase 8 — prescription upload. Two-step flow mirrors ProfilePhotoScreen:
+  //   1. POST /auth/upload-signature with kind=prescription → signed params.
+  //   2. POST multipart form to Cloudinary; persist the returned secure URL.
+  const uploadPrescriptionFromSource = async (source) => {
     try {
-      const requestData = {
-        type,
-        merchantId,
-        items: cart.map((item) => ({
-          productId: item.id,
-          name: item.name,
-          description: item.description,
-          unitPrice: Number(item.basePrice),
-          quantity: item.quantity,
-          totalPrice: Number(item.basePrice) * item.quantity,
-        })),
-        pickupAddress,
-        pickupLat,
-        pickupLng,
-        dropoffAddress: selectedAddress.address,
-        dropoffLat: selectedAddress.lat || selectedAddress.latitude || 0,
-        dropoffLng: selectedAddress.lng || selectedAddress.longitude || 0,
-        dropoffName: selectedAddress.label || 'Home',
-        subtotal,
-        deliveryFee: DELIVERY_FEE,
-        platformFee: PLATFORM_FEE,
-        total,
-        specialInstructions,
-      };
-
-      const result = await dispatch(createRequest(requestData)).unwrap();
-
-      Toast.show({
-        type: 'success',
-        text1: 'Order Placed!',
-        text2: 'Your order has been placed successfully',
+      const permission = source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          t('errors.FORBIDDEN'),
+          source === 'camera'
+            ? t('request.checkout.rxPermissionCamera')
+            : t('request.checkout.rxPermissionLibrary'),
+        );
+        return;
+      }
+      const launcher = source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+      const result = await launcher({
+        mediaTypes: ['images'],
+        // Pharmacist needs the whole scrip — don't crop. Reasonable quality
+        // keeps the upload small without sacrificing legibility of handwriting.
+        allowsEditing: false,
+        quality: 0.7,
       });
+      if (result.canceled || !result.assets?.[0]) return;
 
-      navigation.navigate('RequestTracking', { requestId: result.id });
-    } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Order Failed',
-        text2: error.message || 'Failed to place order. Please try again.',
+      setRxUploading(true);
+      const uri = result.assets[0].uri;
+
+      const sigResp = await api.post('/auth/upload-signature', { kind: 'prescription' });
+      const sig = sigResp?.data;
+      if (!sig?.signature) throw new Error('No upload signature returned');
+
+      const filename = uri.split('/').pop() || 'rx.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const mime = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
+
+      const form = new FormData();
+      form.append('file', {
+        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        name: filename,
+        type: mime,
       });
-    }
-  };
+      form.append('api_key', sig.apiKey);
+      form.append('timestamp', String(sig.timestamp));
+      form.append('signature', sig.signature);
+      form.append('folder', sig.folder);
+      form.append('public_id', sig.publicId);
 
-  const renderCartItem = (item) => (
-    <View key={item.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: '500', marginBottom: 4, color: colors.text }}>{item.name}</Text>
-        <Text style={{ fontSize: 12, color: colors.textMuted }}>Qty: {item.quantity}</Text>
-      </View>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>₦{(Number(item.basePrice) * item.quantity).toLocaleString()}</Text>
-    </View>
-  );
-
-  const renderAddressCard = () => {
-    if (selectedAddress) {
-      return (
-        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.border }} onPress={handleAddressSelect}>
-          <Ionicons name="location" size={20} color={colors.primary} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 4, color: colors.text }}>{selectedAddress.label || 'Selected Address'}</Text>
-            <Text style={{ fontSize: 14, color: colors.textMuted }} numberOfLines={1}>
-              {selectedAddress.address}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </TouchableOpacity>
+      const upload = await fetch(
+        `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+        { method: 'POST', body: form, headers: { Accept: 'application/json' } },
       );
+      if (!upload.ok) {
+        const text = await upload.text();
+        throw new Error(`Upload failed: ${text}`);
+      }
+      const data = await upload.json();
+      setRxUrl(data.secure_url);
+      Toast.show({ type: 'success', text1: t('request.checkout.rxAttached') });
+    } catch (err) {
+      Toast.show({ type: 'error', text1: t('request.checkout.rxUploadFailed'), text2: err?.message || t('common.retry') });
+    } finally {
+      setRxUploading(false);
     }
-
-    return (
-      <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border }} onPress={handleAddressSelect}>
-        <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
-        <Text style={{ fontSize: 14, fontWeight: '500', marginLeft: 8, color: colors.primary }}>Add Delivery Address</Text>
-      </TouchableOpacity>
-    );
   };
 
-  const renderPaymentMethod = (method) => {
-    const isSelected = paymentMethod === method.id;
-    return (
-      <TouchableOpacity
-        key={method.id}
-        style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 8, borderWidth: 1, borderColor: isSelected ? '#EA580C' : '#E5E7EB', backgroundColor: isSelected ? colors.primary + '10' : '#fff' }}
-        onPress={() => setPaymentMethod(method.id)}
-      >
-        <Ionicons
-          name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-          size={20}
-          color={isSelected ? colors.primary : colors.textMuted}
-        />
-        <Text style={{ flex: 1, marginLeft: 12, fontSize: 14, fontWeight: isSelected ? '600' : '400', color: colors.text }}>
-          {method.label}
-        </Text>
-        {method.id === 'wallet' && (
-          <Text style={{ fontSize: 14, fontWeight: '600', color: colors.primary }}>₦{Number(balance).toLocaleString()}</Text>
-        )}
-      </TouchableOpacity>
-    );
+  const openPrescriptionPicker = () => {
+    Alert.alert(t('request.checkout.rxSectionTitle'), t('request.checkout.rxChoose'), [
+      { text: t('request.checkout.rxFromCamera'), onPress: () => uploadPrescriptionFromSource('camera') },
+      { text: t('request.checkout.rxFromGallery'), onPress: () => uploadPrescriptionFromSource('gallery') },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
   };
 
-  if (isCreating) {
+  const openPin = () => {
+    if (!selectedAddress) return Toast.show({ type: 'error', text1: t('request.checkout.addressRequired') });
+    if (!quote) return Toast.show({ type: 'error', text1: t('request.checkout.waitingQuote') });
+    if (quoteExpired) return Toast.show({ type: 'error', text1: t('request.toast.quoteExpired'), text2: t('request.toast.quoteExpiredSub') });
+    if (rxRequired && !rxUrl) {
+      return Toast.show({
+        type: 'error',
+        text1: t('errors.PRESCRIPTION_REQUIRED'),
+        text2: t('request.checkout.rxBlockingCta'),
+      });
+    }
+    if (Number(balance) < Number(quote.total)) {
+      return Toast.show({
+        type: 'error',
+        text1: t('errors.INSUFFICIENT_BALANCE'),
+        text2: t('request.toast.insufficientBalanceSub', { need: money(quote.total), have: money(balance) }),
+      });
+    }
+    setPinVisible(true);
+  };
+
+  const submitWithPin = async (pin) => {
+    setConfirming(true);
+    try {
+      const result = await dispatch(
+        createRequest({
+          ...quotePayload,
+          pickupAddress, pickupName,
+          dropoffAddress: selectedAddress.address,
+          dropoffName: selectedAddress.label || 'Home',
+          paymentMethod: 'WALLET',
+          quoteToken: quote.quoteToken,
+          pin,
+          // Phase 8 — only ship the URL when the order actually needs one,
+          // so a stale upload (Rx item removed mid-checkout) never lands on
+          // a non-Rx order. Server enforces presence when required.
+          ...(rxRequired && rxUrl ? { prescriptionUrl: rxUrl } : {}),
+        })
+      ).unwrap();
+      setPinVisible(false);
+      Toast.show({ type: 'success', text1: t('request.toast.requestPlaced') });
+      navigation.replace('RequestTracking', { requestId: result.id });
+    } catch (err) {
+      // Forward the full structured error so PinBottomSheet sees the right
+      // status (423 lockout, 401 wrong-PIN) and errors payload.
+      const wrapped = new Error(err?.message || (typeof err === 'string' ? err : 'Try again'));
+      wrapped.status = err?.status ?? null;
+      wrapped.data = err?.data ?? null;
+      throw wrapped;
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  if (isCreating || confirming) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ marginTop: 16, fontSize: 16, color: colors.textMuted }}>Placing your order...</Text>
+        <ActivityIndicator size="large" color={colors.primary} accessibilityLabel={t('common.loading')} />
+        <Text style={{ marginTop: 12, color: colors.textMuted }}>{t('request.checkout.placingOrder')}</Text>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.back')}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={{ flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center', color: colors.text }}>Checkout</Text>
-        <View style={{ width: 40 }} />
+        <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: colors.text }}>
+          {t('request.checkout.title')}
+        </Text>
+        <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
-        {/* Cart Items */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Order Summary</Text>
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 12 }}>
-            {cart.map(renderCartItem)}
-          </View>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        {/* Cart */}
+        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+          {t('request.checkout.summary')}
+        </Text>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+          {cart.map((line) => (
+            <View key={line.lineId} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ flex: 1, fontWeight: '500', color: colors.text }}>
+                  {line.quantity}× {line.name}
+                  {line.variantSummary ? ` · ${line.variantSummary}` : ''}
+                </Text>
+                <Text style={{ color: colors.text, fontWeight: '600' }}>{money(line.lineTotal)}</Text>
+              </View>
+              {(line.selectedOptions || []).map((g) => (
+                <Text key={g.groupId} style={{ fontSize: 12, color: colors.textMuted }}>
+                  {g.groupName}: {g.items.map((i) => i.itemName).join(', ')}
+                </Text>
+              ))}
+              {line.specialInstructions ? (
+                <Text style={{ fontSize: 12, fontStyle: 'italic', color: colors.textMuted }}>
+                  “{line.specialInstructions}”
+                </Text>
+              ) : null}
+              {/* Phase 8 — per-line markers in checkout review. */}
+              {(line.substitution || line.requiresPrescription) && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
+                  {line.substitution ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginRight: 6 }}>
+                      <Ionicons name="swap-horizontal" size={11} color="#7C3AED" />
+                      <Text style={{ color: '#7C3AED', fontSize: 11, fontWeight: '700', marginLeft: 4 }}>
+                        {substitutionLabel(line.substitution, t)}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {line.requiresPrescription ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+                      <Ionicons name="medkit-outline" size={11} color="#B45309" />
+                      <Text style={{ color: '#B45309', fontSize: 11, fontWeight: '700', marginLeft: 4 }}>{t('merchant.rx')}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </View>
+          ))}
         </View>
 
-        {/* Delivery Address */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Delivery Address</Text>
-          {renderAddressCard()}
-        </View>
+        {/* Phase 8 — prescription upload. Shown only when at least one cart
+            line is flagged requiresPrescription. Server re-validates the URL
+            at order-create time, so this is UX gating, not authoritative. */}
+        {rxRequired && (
+          <>
+            <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+              {t('request.checkout.rxSectionTitle')}
+            </Text>
+            <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+              {rxUrl ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Image
+                    source={{ uri: rxUrl }}
+                    style={{ width: 56, height: 56, borderRadius: 8, marginRight: 12, backgroundColor: '#F3F4F6' }}
+                    accessibilityLabel={t('request.checkout.rxAttached')}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: '700', color: colors.text }}>{t('request.checkout.rxAttached')}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                      {t('request.checkout.rxSectionHint')}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={openPrescriptionPicker}
+                    disabled={rxUploading}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('request.checkout.rxReplace')}
+                    accessibilityState={{ disabled: rxUploading, busy: rxUploading }}
+                  >
+                    <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                      {rxUploading ? t('request.checkout.rxUploading') : t('request.checkout.rxReplace')}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={openPrescriptionPicker}
+                  disabled={rxUploading}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('request.checkout.rxUpload')}
+                  accessibilityState={{ disabled: rxUploading, busy: rxUploading }}
+                  style={{ alignItems: 'center', paddingVertical: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: '#B45309', borderRadius: 10, backgroundColor: '#FFFBEB' }}
+                >
+                  {rxUploading ? (
+                    <ActivityIndicator color="#B45309" />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload-outline" size={24} color="#B45309" />
+                      <Text style={{ marginTop: 6, fontWeight: '700', color: '#92400E' }}>{t('request.checkout.rxUpload')}</Text>
+                      <Text style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>
+                        {t('request.checkout.rxSectionHint')}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        )}
 
-        {/* Payment Method */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Payment Method</Text>
-          {renderPaymentMethod({ id: 'wallet', label: 'Wallet Balance' })}
-          {renderPaymentMethod({ id: 'card', label: 'Card (Coming Soon)' })}
-          {renderPaymentMethod({ id: 'cash', label: 'Cash on Delivery' })}
-        </View>
+        {/* Address */}
+        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+          {t('request.checkout.deliverTo')}
+        </Text>
+        <TouchableOpacity
+          onPress={pickAddress}
+          style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}
+          accessibilityRole="button"
+          accessibilityLabel={t('request.checkout.deliverTo')}
+          accessibilityHint={selectedAddress?.address || t('request.pickAddress')}
+        >
+          <Ionicons name={selectedAddress ? 'location' : 'add-circle-outline'} size={22} color={colors.primary} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            {selectedAddress ? (
+              <>
+                <Text style={{ fontWeight: '600', color: colors.text }}>{selectedAddress.label || t('request.addAddress')}</Text>
+                <Text style={{ color: colors.textMuted, fontSize: 12 }} numberOfLines={1}>{selectedAddress.address}</Text>
+              </>
+            ) : (
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('request.pickAddress')}</Text>
+            )}
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
 
-        {/* Special Instructions */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Special Instructions</Text>
-          <TextInput
-            style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, fontSize: 14, borderWidth: 1, color: colors.text, borderColor: colors.border }}
-            placeholder="Add any special requests (optional)"
-            value={specialInstructions}
-            onChangeText={setSpecialInstructions}
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        {/* Cost Breakdown */}
-        <View style={{ marginBottom: 24 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>Cost Breakdown</Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-            <Text style={{ fontSize: 14, color: colors.textMuted }}>Subtotal</Text>
-            <Text style={{ fontSize: 14, color: colors.text }}>₦{subtotal.toLocaleString()}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-            <Text style={{ fontSize: 14, color: colors.textMuted }}>Delivery Fee</Text>
-            <Text style={{ fontSize: 14, color: colors.text }}>₦{DELIVERY_FEE.toLocaleString()}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-            <Text style={{ fontSize: 14, color: colors.textMuted }}>Platform Fee</Text>
-            <Text style={{ fontSize: 14, color: colors.text }}>₦{PLATFORM_FEE.toLocaleString()}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: 1, marginTop: 4, borderTopColor: colors.border }}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.text }}>Total</Text>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.primary }}>₦{total.toLocaleString()}</Text>
-          </View>
+        {/* Quote breakdown */}
+        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+          {t('request.checkout.costBreakdown')}
+        </Text>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14 }}>
+          {!selectedAddress ? (
+            <Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 10 }}>
+              {t('request.checkout.needAddress')}
+            </Text>
+          ) : quoting || !quote ? (
+            <ActivityIndicator color={colors.primary} accessibilityLabel={t('common.loading')} />
+          ) : (
+            <>
+              <Row label={t('request.checkout.subtotal')} value={money(quote.subtotal)} />
+              <Row label={t('request.checkout.deliveryFee')} value={money(quote.deliveryFee)} />
+              <Row label={t('request.checkout.platformFee')} value={money(quote.platformFee)} />
+              {Number(quote.tax) > 0 && <Row label={t('request.checkout.tax')} value={money(quote.tax)} />}
+              <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontWeight: '700', color: colors.text }}>{t('request.checkout.total')}</Text>
+                <Text style={{ fontWeight: '700', color: colors.primary }}>{money(quote.total)}</Text>
+              </View>
+              <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 6 }}>
+                {t('request.checkout.etaLine', { minutes: quote.estimatedMinutes, km: quote.distanceKm })}
+              </Text>
+              <QuoteCountdown
+                msUntilExpiry={msUntilExpiry}
+                expired={quoteExpired}
+                refreshing={quoting}
+                onRefresh={fetchQuote}
+              />
+            </>
+          )}
         </View>
       </ScrollView>
 
-      {/* Footer */}
-      <View style={{ backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 16, borderTopWidth: 1, borderTopColor: colors.border }}>
-        <TouchableOpacity style={{ backgroundColor: '#EA580C', paddingVertical: 16, borderRadius: 12, alignItems: 'center' }} onPress={handlePlaceOrder}>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>Place Order - ₦{total.toLocaleString()}</Text>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border }}>
+        <TouchableOpacity
+          onPress={openPin}
+          disabled={!quote || !selectedAddress || quoting || quoteExpired || (rxRequired && !rxUrl)}
+          accessibilityRole="button"
+          accessibilityLabel={t('request.checkout.place')}
+          accessibilityState={{ disabled: !quote || !selectedAddress || quoting || quoteExpired || (rxRequired && !rxUrl) }}
+          style={{
+            backgroundColor: !quote || !selectedAddress || quoting || quoteExpired || (rxRequired && !rxUrl) ? colors.border : colors.primary,
+            paddingVertical: 14, borderRadius: 12, alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+            {quoteExpired
+              ? t('request.checkout.quoteExpired')
+              : rxRequired && !rxUrl
+                ? t('request.checkout.rxBlockingCta')
+                : quote
+                  ? t('request.checkout.placeWithTotal', { amount: money(quote.total) })
+                  : t('request.checkout.place')}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '80%', maxWidth: 320 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12, textAlign: 'center', color: colors.text }}>Confirm Order</Text>
-            <Text style={{ fontSize: 14, marginBottom: 24, textAlign: 'center', color: colors.textMuted }}>
-              Are you sure you want to place this order for ₦{total.toLocaleString()}?
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: '#E5E7EB' }}
-                onPress={() => setShowConfirmModal(false)}
-              >
-                <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={{ flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', backgroundColor: '#EA580C' }} onPress={confirmOrder}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+      <PinBottomSheet
+        isVisible={pinVisible}
+        onClose={() => setPinVisible(false)}
+        onConfirm={submitWithPin}
+        title={t('request.checkout.confirmPaymentTitle')}
+        subtitle={quote
+          ? t('request.checkout.confirmPaymentSub', { amount: money(quote.total) })
+          : t('request.pin.confirmFallback')}
+      />
     </SafeAreaView>
   );
 }
+
+const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
+  const { t } = useTranslation();
+  const seconds = Math.ceil(msUntilExpiry / 1000);
+  const warn = msUntilExpiry > 0 && msUntilExpiry <= QUOTE_WARN_MS;
+  const color = expired ? colors.error : warn ? '#EA580C' : colors.textMuted;
+  const label = expired
+    ? t('request.checkout.quoteExpired')
+    : msUntilExpiry > 60_000
+      ? t('request.checkout.quoteValidMin', { m: Math.floor(seconds / 60), s: seconds % 60 })
+      : t('request.checkout.quoteValidSec', { s: seconds });
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+      <Ionicons name={expired ? 'time' : 'timer-outline'} size={14} color={color} />
+      <Text style={{ marginLeft: 6, fontSize: 12, fontWeight: '600', color, flex: 1 }}>{label}</Text>
+      <TouchableOpacity
+        onPress={onRefresh}
+        disabled={refreshing}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={t('request.checkout.refresh')}
+        accessibilityState={{ disabled: refreshing, busy: refreshing }}
+      >
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const Row = ({ label, value }) => (
+  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+    <Text style={{ color: colors.textMuted }}>{label}</Text>
+    <Text style={{ color: colors.text }}>{value}</Text>
+  </View>
+);

@@ -3,9 +3,11 @@ import { View, Text, StatusBar } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 
 export default function AboutScreen({ navigation }) {
+  const { t } = useTranslation();
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -24,6 +26,8 @@ export default function AboutScreen({ navigation }) {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -37,6 +41,7 @@ export default function AboutScreen({ navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -44,7 +49,7 @@ export default function AboutScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          About
+          {t("about.title")}
         </Text>
       </View>
 
@@ -78,7 +83,7 @@ export default function AboutScreen({ navigation }) {
             marginBottom: 4,
           }}
         >
-          QuickDrop
+          {t("about.appName")}
         </Text>
         <Text
           style={{
@@ -87,7 +92,7 @@ export default function AboutScreen({ navigation }) {
             marginBottom: 24,
           }}
         >
-          Version 1.0.0 (Build 1)
+          {t("about.version", { version: "1.0.0" })} ({t("about.build", { build: "1" })})
         </Text>
 
         <Text
@@ -99,8 +104,7 @@ export default function AboutScreen({ navigation }) {
             marginBottom: 32,
           }}
         >
-          VTU & Logistics platform for seamless deliveries, airtime, data, and
-          utility payments across Nigeria.
+          {t("about.tagline")}
         </Text>
 
         <View

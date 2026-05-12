@@ -6,8 +6,8 @@
  *
  * USAGE:
  *   const { validate } = require('../middlewares/validate.middleware');
- *   const { createOrderSchema } = require('../modules/delivery/delivery.validator');
- *   router.post('/orders', authenticate, validate(createOrderSchema), controller.create);
+ *   const { createRequestSchema } = require('../modules/request/request.validator');
+ *   router.post('/requests', authenticate, validate(createRequestSchema), controller.create);
  *
  *   // Validate query params:
  *   router.get('/orders', authenticate, validate(listSchema, 'query'), controller.list);
@@ -31,7 +31,9 @@ const validate = (schema, source = 'body') => {
         message: err.message,
       }));
 
-      return next(AppError.badRequest('Validation failed', errors));
+      // Tag as VALIDATION_FAILED so mobile shows form-level copy ("Please
+      // check the highlighted fields") instead of the generic BAD_REQUEST.
+      return next(AppError.badRequest('Validation failed', { code: 'VALIDATION_FAILED', errors }));
     }
 
     // Replace source with parsed (and transformed) data

@@ -1,43 +1,76 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import { fetchTransactions } from "../../store/slices/walletSlice";
+import EmptyState from "../../components/EmptyState";
+import SkeletonLoader from "../../components/SkeletonLoader";
 
+// Tx type metadata. `labelKey` resolves to a localized string at render.
 const TRANSACTION_TYPES = {
-  FUNDING: { icon: "add-circle", color: colors.success, label: "Funding" },
-  P2P_TRANSFER: { icon: "swap-horizontal", color: colors.primary, label: "Transfer" },
-  WITHDRAWAL: { icon: "arrow-down-circle", color: colors.error, label: "Withdrawal" },
-  DELIVERY_PAYMENT: { icon: "bicycle", color: colors.error, label: "Delivery" },
-  UTILITY_PAYMENT: { icon: "flash", color: colors.error, label: "Utility" },
-  REFUND: { icon: "return-up-back", color: colors.success, label: "Refund" },
+  FUNDING:           { icon: "add-circle",       color: colors.success, labelKey: "wallet.tx.labelFunding"    },
+  P2P_TRANSFER:      { icon: "swap-horizontal",  color: colors.primary, labelKey: "wallet.tx.labelTransfer"   },
+  WITHDRAWAL:        { icon: "arrow-down-circle",color: colors.error,   labelKey: "wallet.tx.labelWithdrawal" },
+  DELIVERY_PAYMENT:  { icon: "bicycle",          color: colors.error,   labelKey: "wallet.tx.labelDelivery"   },
+  UTILITY_PAYMENT:   { icon: "flash",            color: colors.error,   labelKey: "wallet.tx.labelUtility"    },
+  REFUND:            { icon: "return-up-back",   color: colors.success, labelKey: "wallet.tx.labelRefund"     },
 };
 
-const TABS = ["All", "Funding", "Payments", "Transfers"];
+const RANGES = [
+  { key: "all", labelKey: "wallet.tx.rangeAll", days: null },
+  { key: "7d",  labelKey: "wallet.tx.range7d",  days: 7   },
+  { key: "30d", labelKey: "wallet.tx.range30d", days: 30  },
+  { key: "90d", labelKey: "wallet.tx.range90d", days: 90  },
+];
+
+const TAB_KEYS = ["tabAll", "tabFunding", "tabPayments", "tabTransfers"];
+
+function computeRange(rangeKey) {
+  const range = RANGES.find((r) => r.key === rangeKey);
+  if (!range || !range.days) return { startDate: null, endDate: null };
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - range.days);
+  return { startDate: start.toISOString(), endDate: end.toISOString() };
+}
 
 export default function TransactionHistoryScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t, i18n } = useTranslation();
   const { transactions, isLoading, total } = useSelector((state) => state.wallet);
   const [activeTab, setActiveTab] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
+  const [rangeKey, setRangeKey] = useState("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQ, setSearchQ] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const typeMap = [null, "FUNDING", "DELIVERY_PAYMENT,UTILITY_PAYMENT", "P2P_TRANSFER,WITHDRAWAL"];
 
+  useEffect(() => {
+    const id = setTimeout(() => setSearchQ(searchInput.trim()), 350);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
   const loadTransactions = useCallback(async (pageNum = 1, refresh = false) => {
     const type = typeMap[activeTab];
-    await dispatch(fetchTransactions({ page: pageNum, limit: 20, type })).unwrap();
+    const { startDate, endDate } = computeRange(rangeKey);
+    await dispatch(fetchTransactions({
+      page: pageNum, limit: 20, type, startDate, endDate, q: searchQ || null,
+    })).unwrap();
     if (refresh) setRefreshing(false);
-  }, [dispatch, activeTab]);
+  }, [dispatch, activeTab, rangeKey, searchQ]); // eslint-disable-line
 
   useEffect(() => {
     loadTransactions(1);
@@ -60,13 +93,12 @@ export default function TransactionHistoryScreen({ navigation }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (days === 0) return "Today";
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days} days ago`;
-    return date.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+    const days = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    if (days === 0) return t("wallet.tx.dateToday");
+    if (days === 1) return t("wallet.tx.dateYesterday");
+    if (days < 7) return t("wallet.tx.dateDaysAgo", { count: days });
+    const tag = i18n.language === "ha" ? "ha-NG" : "en-NG";
+    return date.toLocaleDateString(tag, { day: "numeric", month: "short", year: "numeric" });
   };
 
   const formatAmount = (amount, type) => {
@@ -74,13 +106,26 @@ export default function TransactionHistoryScreen({ navigation }) {
     return `${isCredit ? "+" : "-"}₦${Number(amount).toLocaleString()}`;
   };
 
+  const filterChipCount = useMemo(() => {
+    let n = 0;
+    if (rangeKey !== "all") n += 1;
+    if (searchQ) n += 1;
+    return n;
+  }, [rangeKey, searchQ]);
+
   const renderTransactionItem = ({ item }) => {
-    const txType = TRANSACTION_TYPES[item.type] || { icon: "help-circle", color: colors.textMuted, label: item.type };
+    const meta = TRANSACTION_TYPES[item.type] || { icon: "help-circle", color: colors.textMuted, labelKey: null };
+    const fallbackLabel = item.type;
+    const txLabel = meta.labelKey ? t(meta.labelKey) : fallbackLabel;
     const isCredit = ["FUNDING", "P2P_TRANSFER", "REFUND", "DELIVERY_EARNING"].includes(item.type);
+    const title = item.description || txLabel;
+    const amountText = formatAmount(item.amount, item.type);
 
     return (
       <TouchableOpacity
         onPress={() => navigation.navigate("Receipt", { transaction: item })}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}. ${amountText}. ${formatDate(item.createdAt)}`}
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -92,63 +137,39 @@ export default function TransactionHistoryScreen({ navigation }) {
       >
         <View
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: txType.color + "15",
-            alignItems: "center",
-            justifyContent: "center",
+            width: 48, height: 48, borderRadius: 24,
+            backgroundColor: meta.color + "15",
+            alignItems: "center", justifyContent: "center",
             marginRight: 16,
           }}
         >
-          <Ionicons name={txType.icon} size={24} color={txType.color} />
+          <Ionicons name={meta.icon} size={24} color={meta.color} />
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>
-            {item.description || txType.label}
-          </Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
-            {formatDate(item.createdAt)}
-          </Text>
+          <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>{title}</Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{formatDate(item.createdAt)}</Text>
         </View>
 
         <View style={{ alignItems: "flex-end" }}>
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: "800",
-              color: isCredit ? colors.success : colors.text,
-            }}
-          >
-            {formatAmount(item.amount, item.type)}
+          <Text style={{ fontSize: 16, fontWeight: "800", color: isCredit ? colors.success : colors.text }}>
+            {amountText}
           </Text>
           <View
             style={{
               backgroundColor:
-                item.status === "COMPLETED"
-                  ? colors.success + "20"
-                  : item.status === "PENDING"
-                  ? "#FEF3C7"
-                  : colors.error + "20",
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 6,
-              marginTop: 4,
+                item.status === "COMPLETED" ? colors.success + "20"
+                : item.status === "PENDING" ? "#FEF3C7"
+                : colors.error + "20",
+              paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginTop: 4,
             }}
           >
-            <Text
-              style={{
-                fontSize: 10,
-                fontWeight: "700",
-                color:
-                  item.status === "COMPLETED"
-                    ? colors.success
-                    : item.status === "PENDING"
-                    ? "#D97706"
-                    : colors.error,
-              }}
-            >
+            <Text style={{
+              fontSize: 10, fontWeight: "700",
+              color: item.status === "COMPLETED" ? colors.success
+                   : item.status === "PENDING" ? "#D97706"
+                   : colors.error,
+            }}>
               {item.status}
             </Text>
           </View>
@@ -158,74 +179,145 @@ export default function TransactionHistoryScreen({ navigation }) {
   };
 
   const renderEmptyState = () => (
-    <View style={{ alignItems: "center", marginTop: 60 }}>
-      <View
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 40,
-          backgroundColor: colors.surface,
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 16,
-        }}
-      >
-        <Ionicons name="receipt-outline" size={36} color={colors.textLight} />
-      </View>
-      <Text style={{ fontSize: 17, fontWeight: "800", color: colors.text, marginBottom: 6 }}>
-        No transactions
-      </Text>
-      <Text style={{ fontSize: 13, color: colors.textMuted }}>
-        Your transaction history will appear here
-      </Text>
-    </View>
+    <EmptyState
+      icon="receipt-outline"
+      title={searchQ || rangeKey !== "all" ? t("wallet.tx.noMatches") : t("wallet.tx.noTransactions")}
+      subtitle={
+        searchQ
+          ? t("wallet.tx.noMatchesHint", { q: searchQ })
+          : rangeKey !== "all"
+            ? t("wallet.tx.tryWiderRange")
+            : t("wallet.tx.willAppearHere")
+      }
+      fill={false}
+    />
   );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ marginRight: 16 }}
+              accessibilityRole="button"
+              accessibilityLabel={t("a11y.back")}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+              {t("wallet.history")}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setFiltersOpen((v) => !v)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 12,
+              backgroundColor: filtersOpen || filterChipCount > 0 ? colors.primary + "20" : colors.surface,
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t("wallet.tx.filtersToggle")}
+            accessibilityState={{ expanded: filtersOpen }}
+          >
+            <Ionicons
+              name="options-outline"
+              size={18}
+              color={filtersOpen || filterChipCount > 0 ? colors.primary : colors.text}
+            />
+            {filterChipCount > 0 ? (
+              <View style={{ marginLeft: 6, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 11, fontWeight: "800", color: colors.white }}>{filterChipCount}</Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
-            Transaction History
-          </Text>
         </View>
       </View>
 
+      {/* Filters drawer */}
+      {filtersOpen ? (
+        <View style={{ paddingHorizontal: 20, marginBottom: 8 }}>
+          {/* Reference search */}
+          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 12, paddingHorizontal: 12, marginBottom: 10 }}>
+            <Ionicons name="search" size={18} color={colors.textMuted} />
+            <TextInput
+              value={searchInput}
+              onChangeText={setSearchInput}
+              placeholder={t("wallet.tx.searchPh")}
+              accessibilityLabel={t("wallet.tx.searchPh")}
+              placeholderTextColor={colors.textLight}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, color: colors.text }}
+            />
+            {searchInput ? (
+              <TouchableOpacity
+                onPress={() => setSearchInput("")}
+                accessibilityRole="button"
+                accessibilityLabel={t("wallet.tx.clearSearch")}
+              >
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* Date range presets */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+            {RANGES.map((r) => {
+              const selected = rangeKey === r.key;
+              const label = t(r.labelKey);
+              return (
+                <TouchableOpacity
+                  key={r.key}
+                  onPress={() => setRangeKey(r.key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityState={{ selected }}
+                  style={{
+                    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16,
+                    backgroundColor: selected ? colors.primary : colors.surface,
+                    marginRight: 8, marginBottom: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: selected ? colors.white : colors.textMuted }}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {/* Tabs */}
-      <View
-        style={{
-          flexDirection: "row",
-          paddingHorizontal: 20,
-          marginBottom: 16,
-        }}
-      >
-        {TABS.map((tab, i) => (
-          <TouchableOpacity
-            key={tab}
-            onPress={() => setActiveTab(i)}
-            style={{
-              paddingHorizontal: 16,
-              paddingVertical: 8,
-              borderRadius: 20,
-              backgroundColor: i === activeTab ? colors.primary : colors.surface,
-              marginRight: 8,
-            }}
-          >
-            <Text
+      <View style={{ flexDirection: "row", paddingHorizontal: 20, marginBottom: 16 }} accessibilityRole="tablist">
+        {TAB_KEYS.map((tabKey, i) => {
+          const label = t(`wallet.tx.${tabKey}`);
+          const selected = i === activeTab;
+          return (
+            <TouchableOpacity
+              key={tabKey}
+              onPress={() => setActiveTab(i)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              accessibilityLabel={label}
               style={{
-                fontSize: 13,
-                fontWeight: "700",
-                color: i === activeTab ? colors.white : colors.textMuted,
+                paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+                backgroundColor: selected ? colors.primary : colors.surface,
+                marginRight: 8,
               }}
             >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.textMuted }}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Transaction List */}
@@ -237,11 +329,22 @@ export default function TransactionHistoryScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={!isLoading ? renderEmptyState : null}
+        ListHeaderComponent={
+          isLoading && transactions.length === 0
+            ? (
+              <View>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <SkeletonLoader.TransactionRow key={i} />
+                ))}
+              </View>
+            )
+            : null
+        }
         ListFooterComponent={
-          isLoading && transactions.length > 0 ? (
-            <ActivityIndicator style={{ marginVertical: 16 }} color={colors.primary} />
-          ) : null
+          isLoading && transactions.length > 0
+            ? <SkeletonLoader.TransactionRow />
+            : null
         }
       />
     </SafeAreaView>

@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,6 +33,7 @@ const schema = z.object({
 
 export default function BvnVerificationScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { profile, isUpdating } = useSelector((state) => state.profile);
   // Server response after a successful KYC: { kycStatus, wallet, virtualAccountReady }.
   // Stashed locally so we can render the NUBAN immediately without waiting for
@@ -276,6 +278,8 @@ export default function BvnVerificationScreen({ navigation }) {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -289,6 +293,7 @@ export default function BvnVerificationScreen({ navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -296,7 +301,7 @@ export default function BvnVerificationScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          Identity Verification
+          {t("bvn.title")}
         </Text>
       </View>
 

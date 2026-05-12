@@ -9,29 +9,21 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 
 export default function LegalScreen({ navigation }) {
+  const { t } = useTranslation();
   const items = [
     {
       icon: "document-text-outline",
-      label: "Terms of Service",
+      label: t("legal.terms"),
       url: "https://yourapp.com/terms",
     },
     {
       icon: "shield-outline",
-      label: "Privacy Policy",
+      label: t("legal.privacy"),
       url: "https://yourapp.com/privacy",
-    },
-    {
-      icon: "receipt-outline",
-      label: "Refund Policy",
-      url: "https://yourapp.com/refunds",
-    },
-    {
-      icon: "people-outline",
-      label: "Community Guidelines",
-      url: "https://yourapp.com/guidelines",
     },
   ];
 
@@ -53,6 +45,8 @@ export default function LegalScreen({ navigation }) {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -66,6 +60,7 @@ export default function LegalScreen({ navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -73,7 +68,7 @@ export default function LegalScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          Legal
+          {t("legal.title")}
         </Text>
       </View>
 
@@ -96,6 +91,9 @@ export default function LegalScreen({ navigation }) {
               key={item.label}
               onPress={() => Linking.openURL(item.url)}
               activeOpacity={0.6}
+              accessibilityRole="link"
+              accessibilityLabel={item.label}
+              accessibilityHint={t("legal.openInBrowser")}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -147,8 +145,7 @@ export default function LegalScreen({ navigation }) {
             lineHeight: 18,
           }}
         >
-          By using this app, you agree to our Terms of Service and Privacy
-          Policy. Last updated: April 2026.
+          {t("legal.termsBody")}
         </Text>
       </ScrollView>
     </SafeAreaView>

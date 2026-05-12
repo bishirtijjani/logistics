@@ -77,13 +77,14 @@ const getTransferPaymentStatus = async (req, res, next) => {
 
 const getTransactionHistory = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, type, startDate, endDate } = req.query;
+    const { page = 1, limit = 20, type, startDate, endDate, q } = req.query;
     const result = await walletService.getTransactionHistory(req.user.id, {
       page: Number(page),
       limit: Number(limit),
       type,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
+      q: q || undefined,
     });
     res.json(ApiResponse.paginated('Transaction history', result.transactions, result.page, result.limit, result.total));
   } catch (error) {

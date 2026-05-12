@@ -19,7 +19,6 @@ const { logger } = require("./utils/logger");
 // Route imports
 const authRoutes = require("./modules/auth/auth.routes");
 const walletRoutes = require("./modules/wallet/wallet.routes");
-const deliveryRoutes = require("./modules/delivery/delivery.routes");
 const utilityRoutes = require("./modules/utility/utility.routes");
 const riderRoutes = require("./modules/rider/rider.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
@@ -29,6 +28,10 @@ const requestRoutes = require("./modules/request/request.routes");
 const merchantRoutes = require("./modules/merchant/merchant.routes");
 const settingsRoutes = require("./modules/settings/settings.routes");
 const categoryRoutes = require("./modules/category/category.routes");
+const searchRoutes = require("./modules/search/search.routes");
+const notificationRoutes = require("./modules/notification/notification.routes");
+const addressRoutes = require("./modules/address/address.routes");
+const bannerRoutes = require("./modules/banner/banner.routes");
 
 const createApp = () => {
   const app = express();
@@ -66,7 +69,6 @@ const createApp = () => {
 
   app.use(`${API_PREFIX}/auth`, authRoutes);
   app.use(`${API_PREFIX}/wallet`, walletRoutes);
-  app.use(`${API_PREFIX}/delivery`, deliveryRoutes);
   app.use(`${API_PREFIX}/utilities`, utilityRoutes);
   app.use(`${API_PREFIX}/rider`, riderRoutes);
   app.use(`${API_PREFIX}/admin`, adminRoutes);
@@ -76,6 +78,10 @@ const createApp = () => {
   app.use(`${API_PREFIX}/merchants`, merchantRoutes);
   app.use(`${API_PREFIX}/settings`, settingsRoutes);
   app.use(`${API_PREFIX}/categories`, categoryRoutes);
+  app.use(`${API_PREFIX}/notifications`, notificationRoutes);
+  app.use(`${API_PREFIX}/addresses`, addressRoutes);
+  app.use(`${API_PREFIX}/banners`, bannerRoutes);
+  app.use(`${API_PREFIX}`, searchRoutes);
 
   // --------------- 404 Handler ---------------
   app.use((_req, res) => {

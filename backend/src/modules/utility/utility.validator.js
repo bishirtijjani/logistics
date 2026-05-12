@@ -52,6 +52,16 @@ const billHistorySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   type: z.enum(['AIRTIME', 'DATA', 'ELECTRICITY', 'CABLE', 'EDUCATION_PIN']).optional(),
+  status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED']).optional(),
+});
+
+const detectNetworkSchema = z.object({
+  phone: z.string().min(4).max(15),
+});
+
+const recentRecipientsSchema = z.object({
+  type: z.enum(['AIRTIME', 'DATA', 'CABLE', 'ELECTRICITY']),
+  limit: z.coerce.number().int().positive().max(20).default(5),
 });
 
 module.exports = {
@@ -63,4 +73,6 @@ module.exports = {
   validateIucSchema,
   validateMeterSchema,
   billHistorySchema,
+  detectNetworkSchema,
+  recentRecipientsSchema,
 };

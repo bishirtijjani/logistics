@@ -7,6 +7,8 @@ const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const { REDIS_KEYS, REDIS_TTL } = require('../../utils/constants');
+const { getIO } = require('../../sockets');
+const { emitRiderAssigned, emitStatusChanged } = require('../../sockets/handlers/request.handler');
 
 /**
  * Register as a rider — creates Rider profile linked to existing User.
@@ -126,31 +128,43 @@ const updateLocation = async (userId, { lat, lng }) => {
 };
 
 /**
- * Accept a delivery job.
+ * Accept a request job — rider claims a request that's READY_FOR_PICKUP (or REQUESTED for PACKAGE).
  */
-const acceptJob = async (userId, orderId) => {
+const acceptJob = async (userId, requestId) => {
   const rider = await prisma.rider.findUnique({ where: { userId } });
   if (!rider) throw AppError.notFound('Rider not found');
   if (rider.status !== 'APPROVED') throw AppError.forbidden('Rider not approved');
   if (rider.availability !== 'ONLINE') throw AppError.badRequest('Rider is not online');
 
   const result = await prisma.$transaction(async (tx) => {
-    const order = await tx.deliveryOrder.findUnique({ where: { id: orderId } });
+    const request = await tx.request.findUnique({ where: { id: requestId } });
 
-    if (!order) throw AppError.notFound('Order not found');
-    if (order.status !== 'REQUESTED') throw AppError.conflict('Order already taken');
+    if (!request) throw AppError.notFound('Request not found');
 
-    // Assign rider and update status
-    const updated = await tx.deliveryOrder.update({
-      where: { id: orderId },
+    // A request is claimable when no rider is yet assigned and it's in a matchable state.
+    const claimable = !request.riderId && ['REQUESTED', 'READY_FOR_PICKUP'].includes(request.status);
+    if (!claimable) throw AppError.conflict('Request already taken or not yet ready for pickup');
+
+    const updated = await tx.request.update({
+      where: { id: requestId },
       data: {
         riderId: rider.id,
-        status: 'MATCHED',
-        matchedAt: new Date(),
+        status: 'RIDER_ASSIGNED',
+        riderAssignedAt: new Date(),
+      },
+      include: {
+        rider: {
+          select: {
+            id: true,
+            vehicleType: true,
+            plateNumber: true,
+            user: { select: { firstName: true, lastName: true, phone: true } },
+          },
+        },
       },
     });
 
-    // Set rider to ON_DELIVERY
+    // Set rider to ON_DELIVERY (enum kept for backwards compatibility — covers any active request)
     await tx.rider.update({
       where: { id: rider.id },
       data: { availability: 'ON_DELIVERY' },
@@ -159,10 +173,25 @@ const acceptJob = async (userId, orderId) => {
     return updated;
   });
 
-  logger.info('Rider accepted job', { riderId: rider.id, orderId });
+  logger.info('Rider accepted request', { riderId: rider.id, requestId });
 
-  // TODO: Emit socket event to customer
-  // TODO: Send push notification to customer
+  // Phase 4 — emit status + rider-assigned sockets so the customer's
+  // tracking screen flips from "Searching…" to "Rider assigned" immediately.
+  // Previously acceptJob bypassed updateStatus and these emits were silently
+  // missing, leaving the searching banner stuck until a manual refetch.
+  try {
+    const io = getIO();
+    emitStatusChanged(io, requestId, 'RIDER_ASSIGNED');
+    emitRiderAssigned(io, requestId, result.customerId, {
+      id: result.rider?.id,
+      name: `${result.rider?.user?.firstName || ''} ${result.rider?.user?.lastName || ''}`.trim(),
+      phone: result.rider?.user?.phone,
+      vehicle: result.rider?.vehicleType,
+      plateNumber: result.rider?.plateNumber,
+    });
+  } catch (err) {
+    logger.warn('Rider-assigned socket emit failed (non-fatal)', { error: err.message });
+  }
 
   return result;
 };
@@ -184,7 +213,7 @@ const getEarnings = async (userId) => {
     prisma.transaction.aggregate({
       where: {
         creditWalletId: (await prisma.wallet.findUnique({ where: { userId } }))?.id,
-        type: 'DELIVERY_EARNING',
+        type: 'RIDER_EARNING',
         status: 'COMPLETED',
         createdAt: { gte: today },
       },
@@ -194,7 +223,7 @@ const getEarnings = async (userId) => {
     prisma.transaction.aggregate({
       where: {
         creditWalletId: (await prisma.wallet.findUnique({ where: { userId } }))?.id,
-        type: 'DELIVERY_EARNING',
+        type: 'RIDER_EARNING',
         status: 'COMPLETED',
         createdAt: { gte: weekStart },
       },
@@ -321,7 +350,7 @@ const getRiderEarningsAdmin = async (riderId) => {
     prisma.transaction.aggregate({
       where: {
         creditWalletId: rider.wallet.id,
-        type: 'DELIVERY_EARNING',
+        type: 'RIDER_EARNING',
         status: 'COMPLETED',
         createdAt: { gte: today },
       },
@@ -331,7 +360,7 @@ const getRiderEarningsAdmin = async (riderId) => {
     prisma.transaction.aggregate({
       where: {
         creditWalletId: rider.wallet.id,
-        type: 'DELIVERY_EARNING',
+        type: 'RIDER_EARNING',
         status: 'COMPLETED',
         createdAt: { gte: weekStart },
       },
@@ -341,7 +370,7 @@ const getRiderEarningsAdmin = async (riderId) => {
     prisma.transaction.aggregate({
       where: {
         creditWalletId: rider.wallet.id,
-        type: 'DELIVERY_EARNING',
+        type: 'RIDER_EARNING',
         status: 'COMPLETED',
         createdAt: { gte: monthStart },
       },

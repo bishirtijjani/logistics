@@ -62,22 +62,29 @@ const errorHandler = (err, req, res, _next) => {
     error = AppError.unauthorized('Token expired');
   }
 
-  // Handle Zod validation errors (if thrown directly)
+  // Handle Zod validation errors (if thrown directly). Tagged with the
+  // dedicated VALIDATION_FAILED code so mobile can show form-level copy
+  // ("Please check the highlighted fields") instead of the generic
+  // BAD_REQUEST text.
   if (error.name === 'ZodError') {
     const errors = error.errors.map((e) => ({
       field: e.path.join('.'),
       message: e.message,
     }));
-    error = AppError.badRequest('Validation failed', errors);
+    error = AppError.badRequest('Validation failed', { code: 'VALIDATION_FAILED', errors });
   }
 
   // Default to 500 for unexpected errors
   const statusCode = error.statusCode || 500;
   const isOperational = error.isOperational || false;
+  // Stable error code for client-side i18n lookup. Falls back to a
+  // status-derived code (e.g. UNAUTHORIZED for 401) when none was set.
+  const code = error.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'UNKNOWN_ERROR');
 
   // Log all errors; full stack for unexpected ones
   if (!isOperational) {
     logger.error('UNEXPECTED ERROR', {
+      code,
       message: error.message,
       stack: error.stack,
       url: req.originalUrl,
@@ -86,17 +93,20 @@ const errorHandler = (err, req, res, _next) => {
     });
   } else {
     logger.warn('Operational error', {
+      code,
       message: error.message,
       statusCode,
       url: req.originalUrl,
     });
   }
 
-  // Send response
+  // Send response. Mobile client looks up `code` in i18n; if missing,
+  // it renders `message` verbatim (always present, always English).
   res.status(statusCode).json(
     ApiResponse.error(
       isOperational ? error.message : 'Something went wrong',
-      error.errors || null
+      error.errors || null,
+      code,
     )
   );
 };

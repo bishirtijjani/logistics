@@ -5,20 +5,29 @@
  * 1. Wallet already deducted by utility.service
  * 2. Check payment status for idempotency (skip if already settled)
  * 3. Call AlRahuz API
- * 4a. Definitive failure (AlRahuz returned failure status): mark FAILED + refund inline, do NOT throw
- * 4b. Network/transient error: let error propagate so BullMQ retries
- * 5. On success: mark COMPLETED
+ * 4a. SUCCESS → mark COMPLETED, emit token (electricity) via push + SMS, fan-out events
+ * 4b. PENDING → mark PENDING, schedule POLL_PENDING (30s, ≤10 attempts ≈ 5 min)
+ * 4c. DEFINITIVE FAILURE → mark FAILED + refund inline, do NOT throw
+ * 4d. INFRA error (network/5xx) → propagate so BullMQ retries
  *
- * This ensures AlRahuz is never called twice for the same settled payment,
- * and refunds happen immediately on definitive failures without exhausting retries.
+ * Reconciliation: POLL_PENDING re-queries AlRahuz by providerRequestId, then
+ * applies the same SUCCESS/PENDING/FAILURE branches. After MAX_ATTEMPTS we
+ * treat the payment as failed and refund the customer.
  */
 
 const { Worker } = require('bullmq');
 const { redis } = require('../../config/redis');
-const { QUEUES, UTILITY_JOBS } = require('../jobs');
+const { QUEUES, UTILITY_JOBS, POLL_CONFIG } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const alrahuzService = require('../../services/alrahuz.service');
+const termiiService = require('../../services/termii.service');
+const notifyService = require('../../services/notify.service');
+// NB: lazy-require `../index` inside the call site below to break the circular
+// import (`queues/index.js` requires this worker to start it; if we required
+// `../index` at the top of this file it would resolve to a half-initialised
+// module and `schedulePollPending` would be `undefined`).
+const _schedulePollPending = (...args) => require('../index').schedulePollPending(...args);
 
 const SETTLED_STATUSES = ['COMPLETED', 'FAILED', 'REFUNDED'];
 
@@ -31,6 +40,7 @@ const startUtilityWorker = () => {
         case UTILITY_JOBS.PROCESS_DATA:        return processData(job.data);
         case UTILITY_JOBS.PROCESS_CABLE:       return processCable(job.data);
         case UTILITY_JOBS.PROCESS_ELECTRICITY: return processElectricity(job.data);
+        case UTILITY_JOBS.POLL_PENDING:        return processPoll(job.data);
         case UTILITY_JOBS.REFUND_FAILED:       return processRefund(job.data);
         default: logger.warn(`Unknown utility job: ${job.name}`);
       }
@@ -57,12 +67,29 @@ const getPayment = (paymentId) =>
 const markPayment = (paymentId, reference, status, extra = {}) =>
   prisma.$transaction([
     prisma.utilityPayment.update({ where: { id: paymentId }, data: { status, ...extra } }),
-    prisma.transaction.updateMany({ where: { reference }, data: { status } }),
+    prisma.transaction.updateMany({ where: { reference }, data: { status: _txStatus(status) } }),
   ]);
+
+// Wallet transaction status mirrors the payment lifecycle but uses the
+// transaction-table enum values.
+const _txStatus = (paymentStatus) => {
+  switch (paymentStatus) {
+    case 'COMPLETED': return 'COMPLETED';
+    case 'FAILED':    return 'FAILED';
+    case 'REFUNDED':  return 'REFUNDED';
+    case 'PENDING':   return 'PROCESSING';
+    default:          return paymentStatus;
+  }
+};
 
 const refundPayment = async ({ paymentId, userId, amount, reference }) => {
   try {
     await prisma.$transaction(async (tx) => {
+      const existing = await tx.utilityPayment.findUnique({ where: { id: paymentId } });
+      // Idempotency: if already refunded (e.g. concurrent poll + initial call),
+      // don't credit twice.
+      if (!existing || existing.status === 'REFUNDED') return;
+
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       if (!wallet) throw new Error('Wallet not found for refund');
       const balance = Number(wallet.balance);
@@ -85,33 +112,167 @@ const refundPayment = async ({ paymentId, userId, amount, reference }) => {
       await tx.utilityPayment.update({ where: { id: paymentId }, data: { status: 'REFUNDED' } });
     });
     logger.info('Utility refund processed', { paymentId, userId, amount });
+
+    // Notify the user the refund landed.
+    try {
+      await notifyService.onWalletEvent(userId, {
+        kind: 'REFUND',
+        amount,
+        transactionId: reference,
+        route: '/wallet',
+        description: `₦${Number(amount).toLocaleString('en-NG')} refunded for failed utility payment.`,
+      });
+    } catch (err) {
+      logger.warn('Refund notify failed (non-fatal)', { paymentId, error: err.message });
+    }
   } catch (err) {
     logger.error('Utility refund failed', { paymentId, error: err.message });
     // Don't throw — log and continue; a human should resolve manually
   }
 };
 
-const handleResult = async (result, { paymentId, userId, amount, reference }, extraOnSuccess = {}) => {
-  const success = alrahuzService.isSuccess(result);
+// Fan-out: user-facing notification on terminal status.
+const _notifyOutcome = async ({ payment, status, token }) => {
+  const typeLabel = (payment.type || 'utility').toLowerCase();
+  const amount = `₦${Number(payment.amount || 0).toLocaleString('en-NG')}`;
 
-  if (success) {
+  let title, body;
+  if (status === 'COMPLETED') {
+    if (payment.type === 'ELECTRICITY' && token) {
+      title = 'Electricity token ready';
+      body = `Your ${amount} electricity payment is complete. Token: ${token}`;
+    } else if (payment.type === 'AIRTIME') {
+      title = 'Airtime delivered';
+      body = `${amount} airtime credited to ${payment.phoneNumber}.`;
+    } else if (payment.type === 'DATA') {
+      title = 'Data delivered';
+      body = `${payment.plan || 'Data plan'} activated on ${payment.phoneNumber}.`;
+    } else if (payment.type === 'CABLE') {
+      title = 'Cable subscription active';
+      body = `${payment.plan || 'Subscription'} active on smart card ${payment.meterNumber}.`;
+    } else {
+      title = 'Utility payment complete';
+      body = `Your ${typeLabel} payment of ${amount} was successful.`;
+    }
+  } else if (status === 'FAILED') {
+    title = 'Utility payment failed';
+    body = `Your ${typeLabel} payment of ${amount} failed. A refund is in progress.`;
+  }
+  if (!title) return;
+
+  try {
+    await notifyService.pushAndSocket(payment.userId, {
+      type: status === 'COMPLETED' ? 'WALLET' : 'REFUND',
+      title,
+      body,
+      data: { route: '/utility-history', utilityPaymentId: payment.id, status, token: token || null },
+      transactionId: payment.transactionId || null,
+    });
+  } catch (err) {
+    logger.warn('Utility notify failed (non-fatal)', { paymentId: payment.id, error: err.message });
+  }
+};
+
+// On delivered electricity → SMS the token to the customer's phone for offline
+// access (per Phase 7 AC). Best-effort; failures are logged and swallowed.
+const _smsElectricityToken = async ({ payment, token }) => {
+  if (!token || !payment?.phoneNumber) return;
+  const amount = `₦${Number(payment.amount || 0).toLocaleString('en-NG')}`;
+  const msg = `Your ${payment.merchant} token for meter ${payment.meterNumber} (${amount}): ${token}. — Katsina Logistics`;
+  try {
+    await termiiService.sendSms(payment.phoneNumber, msg);
+  } catch (err) {
+    logger.warn('Electricity token SMS failed (non-fatal)', {
+      paymentId: payment.id, error: err.message,
+    });
+  }
+};
+
+// Extract a token + optional beneficiary name from an AlRahuz electricity response.
+const _extractElectricityMeta = (result) => {
+  const token = result?.token || result?.purchased_token || result?.Token || null;
+  const beneficiaryName = result?.Customer_Name || result?.customer_name || result?.name || null;
+  return { token, beneficiaryName };
+};
+
+const handleResult = async (result, ctx, { isPoll = false } = {}) => {
+  const { paymentId, userId, amount, reference, type } = ctx;
+
+  // ── Replay guard ──────────────────────────────────────────────────────────
+  // If the payment is already in a terminal state (COMPLETED/FAILED/REFUNDED),
+  // a duplicate handleResult invocation must NOT re-emit notifications or
+  // re-credit the wallet. The worker entry-points enforce this too, but we
+  // also guard here so the function is idempotent on its own.
+  const _current = await getPayment(paymentId);
+  if (_current && SETTLED_STATUSES.includes(_current.status)) {
+    logger.info('handleResult skipped (already settled)', { paymentId, status: _current.status, isPoll });
+    return;
+  }
+
+  // ── Definitive success ────────────────────────────────────────────────────
+  if (alrahuzService.isSuccess(result)) {
+    const { token, beneficiaryName } = type === 'ELECTRICITY'
+      ? _extractElectricityMeta(result)
+      : { token: null, beneficiaryName: null };
+
     await markPayment(paymentId, reference, 'COMPLETED', {
       providerRef: String(result?.id || result?.ident || ''),
-      ...(result?.token || result?.purchased_token
-        ? { token: result.token || result.purchased_token }
-        : {}),
-      ...extraOnSuccess,
+      ...(token ? { token } : {}),
+      ...(beneficiaryName ? { beneficiaryName } : {}),
     });
-    logger.info('Utility payment completed', { paymentId, reference });
-  } else {
-    // Definitive failure from AlRahuz — mark failed and refund immediately
-    await markPayment(paymentId, reference, 'FAILED', {
-      providerRef: String(result?.id || ''),
-    });
-    logger.warn('AlRahuz returned failure, refunding', { paymentId, result });
-    await refundPayment({ paymentId, userId, amount, reference });
-    // Do NOT throw — BullMQ should not retry a definitive failure
+    logger.info('Utility payment completed', { paymentId, reference, isPoll });
+
+    const fresh = await getPayment(paymentId);
+    await _notifyOutcome({ payment: fresh, status: 'COMPLETED', token });
+    if (type === 'ELECTRICITY' && token) {
+      await _smsElectricityToken({ payment: fresh, token });
+    }
+    return;
   }
+
+  // ── Provider says still pending → schedule a poll ─────────────────────────
+  if (alrahuzService.isPending(result)) {
+    const payment = await getPayment(paymentId);
+    const attempts = (payment?.pollAttempts || 0) + 1;
+
+    if (attempts > POLL_CONFIG.MAX_ATTEMPTS) {
+      // Exhausted the 5-minute window. Treat as failure + refund.
+      logger.warn('AlRahuz pending window exhausted, refunding', { paymentId, attempts });
+      await markPayment(paymentId, reference, 'FAILED', {
+        providerRef: String(result?.id || ''),
+      });
+      const fresh = await getPayment(paymentId);
+      await _notifyOutcome({ payment: fresh, status: 'FAILED' });
+      await refundPayment({ paymentId, userId, amount, reference });
+      return;
+    }
+
+    await prisma.utilityPayment.update({
+      where: { id: paymentId },
+      data: {
+        status: 'PENDING',
+        pollAttempts: attempts,
+        lastPolledAt: new Date(),
+        ...(result?.id ? { providerRef: String(result.id) } : {}),
+      },
+    });
+
+    await _schedulePollPending(
+      { paymentId, userId, amount, reference, type, providerRequestId: reference },
+      POLL_CONFIG.INTERVAL_MS,
+    );
+    logger.info('Utility payment pending, scheduled poll', { paymentId, attempts });
+    return;
+  }
+
+  // ── Definitive failure → refund ──────────────────────────────────────────
+  await markPayment(paymentId, reference, 'FAILED', {
+    providerRef: String(result?.id || ''),
+  });
+  logger.warn('AlRahuz returned failure, refunding', { paymentId, result });
+  const fresh = await getPayment(paymentId);
+  await _notifyOutcome({ payment: fresh, status: 'FAILED' });
+  await refundPayment({ paymentId, userId, amount, reference });
 };
 
 // ─── Job processors ───────────────────────────────────────────────────────────
@@ -121,7 +282,7 @@ const processAirtime = async ({ paymentId, userId, reference, networkId, phone, 
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
   const result = await alrahuzService.buyAirtime({ networkId, phone, amount });
-  await handleResult(result, { paymentId, userId, amount, reference });
+  await handleResult(result, { paymentId, userId, amount, reference, type: 'AIRTIME' });
 };
 
 const processData = async ({ paymentId, userId, reference, networkId, providerPlanId, phone, amount }) => {
@@ -129,7 +290,7 @@ const processData = async ({ paymentId, userId, reference, networkId, providerPl
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
   const result = await alrahuzService.buyData({ networkId, phone, planId: providerPlanId });
-  await handleResult(result, { paymentId, userId, amount, reference });
+  await handleResult(result, { paymentId, userId, amount, reference, type: 'DATA' });
 };
 
 const processCable = async ({ paymentId, userId, reference, cableNameId, cablePlanId, smartCardNumber, amount }) => {
@@ -137,7 +298,7 @@ const processCable = async ({ paymentId, userId, reference, cableNameId, cablePl
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
   const result = await alrahuzService.buyCable({ cableNameId, cablePlanId, smartCardNumber });
-  await handleResult(result, { paymentId, userId, amount, reference });
+  await handleResult(result, { paymentId, userId, amount, reference, type: 'CABLE' });
 };
 
 const processElectricity = async ({ paymentId, userId, reference, discoId, meterNumber, meterType, amount }) => {
@@ -145,9 +306,53 @@ const processElectricity = async ({ paymentId, userId, reference, discoId, meter
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
   const result = await alrahuzService.payElectricity({ discoId, meterNumber, meterType, amount });
-  await handleResult(result, { paymentId, userId, amount, reference });
+  await handleResult(result, { paymentId, userId, amount, reference, type: 'ELECTRICITY' });
+};
+
+/**
+ * POLL_PENDING — re-query AlRahuz by providerRequestId and route to the same
+ * SUCCESS / PENDING / FAILURE branches. Recomputes ctx.type from the row so
+ * the polling path is symmetric with the initial path (token + SMS still fire).
+ */
+const processPoll = async ({ paymentId, userId, reference, providerRequestId }) => {
+  const payment = await getPayment(paymentId);
+  if (!payment || SETTLED_STATUSES.includes(payment.status)) {
+    logger.info('Poll skipped (already settled)', { paymentId, status: payment?.status });
+    return;
+  }
+
+  let result;
+  try {
+    result = await alrahuzService.queryTransaction(providerRequestId);
+  } catch (err) {
+    // Infra-level failure on the query. Treat as still-pending so handleResult
+    // increments the attempt counter and schedules the next poll — otherwise
+    // a single bad provider response would strand the payment in PENDING
+    // forever with no future poll.
+    logger.warn('Poll query failed, will be treated as still-pending', { paymentId, error: err.message });
+    result = { status: 'pending' };
+  }
+
+  // No result yet (provider hasn't materialised the transaction) — treat as
+  // pending so the attempt counter advances and we eventually refund.
+  const synthetic = result ?? { status: 'pending' };
+  await handleResult(synthetic, {
+    paymentId,
+    userId,
+    amount: Number(payment.amount),
+    reference,
+    type: payment.type,
+  }, { isPoll: true });
 };
 
 const processRefund = async (data) => refundPayment(data);
 
-module.exports = { startUtilityWorker };
+module.exports = {
+  startUtilityWorker,
+  // Exported for tests
+  _internal: {
+    handleResult,
+    refundPayment,
+    processPoll,
+  },
+};

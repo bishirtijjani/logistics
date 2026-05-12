@@ -20,7 +20,7 @@ enum UserRole {
   CUSTOMER
   RIDER
   ADMIN
-  MERCHANT  // NEW: Merchant/merchant role
+  MERCHANT // NEW: Merchant/merchant role
 }
 
 enum UserStatus {
@@ -37,27 +37,33 @@ enum KycStatus {
   FAILED
 }
 
+enum BvnVerificationOutcome {
+  SUCCESS
+  FAILED
+  RECOVERY // Re-verify of an already-VERIFIED user (provisioning recovery path)
+}
+
 // ============================================================
 // UNIFIED REQUEST ARCHITECTURE — NEW ENUMS
 // ============================================================
 
 enum RequestType {
-  MERCHANT_ORDER  // Any order fulfilled by a merchant (food, grocery, pharmacy, retail, etc.)
-  PACKAGE         // Pure courier — no merchant, customer is the origin
+  MERCHANT_ORDER // Any order fulfilled by a merchant (food, grocery, pharmacy, retail, etc.)
+  PACKAGE // Pure courier — no merchant, customer is the origin
 }
 
 enum RequestStatus {
-  REQUESTED         // Customer placed order
-  ACCEPTED          // Merchant accepted (if applicable)
-  PROCESSING        // Merchant preparing (if applicable)
-  READY_FOR_PICKUP  // Ready for rider
-  RIDER_ASSIGNED    // Rider matched
-  RIDER_EN_ROUTE    // Rider going to pickup
-  PICKED_UP         // Rider has item
-  IN_TRANSIT        // Rider delivering to customer
-  DELIVERED         // Rider delivered
-  SETTLED           // Financial settlement complete
-  CANCELLED         // Cancelled by any party
+  REQUESTED // Customer placed order
+  ACCEPTED // Merchant accepted (if applicable)
+  PROCESSING // Merchant preparing (if applicable)
+  READY_FOR_PICKUP // Ready for rider
+  RIDER_ASSIGNED // Rider matched
+  RIDER_EN_ROUTE // Rider going to pickup
+  PICKED_UP // Rider has item
+  IN_TRANSIT // Rider delivering to customer
+  DELIVERED // Rider delivered
+  SETTLED // Financial settlement complete
+  CANCELLED // Cancelled by any party
 }
 
 enum MerchantStatus {
@@ -72,8 +78,8 @@ enum TransactionType {
   P2P_TRANSFER_SENT
   P2P_TRANSFER_RECEIVED
   WITHDRAWAL
-  DELIVERY_PAYMENT
-  DELIVERY_EARNING
+  DELIVERY_PAYMENT // legacy; unused after Phase 2
+  DELIVERY_EARNING // legacy; unused after Phase 2
   UTILITY_PAYMENT
   REFUND
   ESCROW_HOLD
@@ -90,17 +96,6 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   REVERSED
-}
-
-enum DeliveryStatus {
-  REQUESTED
-  MATCHED
-  RIDER_EN_ROUTE
-  PICKED_UP
-  IN_TRANSIT
-  DELIVERED
-  SETTLED
-  CANCELLED
 }
 
 enum RiderStatus {
@@ -152,42 +147,81 @@ enum PaymentMerchant {
 }
 
 // ============================================================
+// PRODUCT VARIANT & OPTION-GROUP ENUMS
+// ============================================================
+
+enum PackUnit {
+  ML
+  L
+  G
+  KG
+  TABLET
+  CAPSULE
+  PIECE
+  PAIR
+  PACK
+  BOTTLE
+  SACHET
+  CARTON
+}
+
+enum SelectionRule {
+  REQUIRED_ONE
+  OPTIONAL_ONE
+  REQUIRED_MULTIPLE
+  OPTIONAL_MULTIPLE
+}
+
+/// Grocery substitution preference per line item.
+/// NONE          → customer wants the exact item or nothing at all.
+/// MERCHANT_PICK → merchant may swap with a comparable item without asking.
+/// CONTACT_ME    → merchant must reach out before swapping.
+enum SubstitutionPreference {
+  NONE
+  MERCHANT_PICK
+  CONTACT_ME
+}
+
+// ============================================================
 // MODELS
 // ============================================================
 
 /// Core user identity — shared by customers, riders, and admins.
 /// Role determines which parts of the system the user can access.
 model User {
-  id             String      @id @default(uuid())
-  email          String      @unique
-  phone          String?     @unique
+  id             String     @id @default(uuid())
+  email          String     @unique
+  phone          String?    @unique
   firstName      String
   lastName       String
-  passwordHash   String?     /// Hashed password for email/password login
-  transactionPin String?     /// Hashed 6-digit PIN for financial operations
-  bvnHash        String?     /// Hashed BVN — never store plaintext
-  profilePicture String?     /// URL to profile picture (cloud storage)
-  dateOfBirth    DateTime?   /// For KYC identity confirmation
-  address        String?     /// Primary address text
-  kycStatus      KycStatus   @default(NONE)
-  role           UserRole    @default(CUSTOMER)
-  status         UserStatus  @default(PENDING)
-  fcmToken       String?     /// Firebase Cloud Messaging token for push notifications
-  deletedAt      DateTime?   /// Soft delete
+  passwordHash   String? /// Hashed password for email/password login
+  transactionPin String? /// Hashed 6-digit PIN for financial operations
+  bvnHash        String? /// Hashed BVN — never store plaintext
+  profilePicture String? /// URL to profile picture (cloud storage)
+  dateOfBirth    DateTime? /// For KYC identity confirmation
+  address        String? /// Primary address text
+  kycStatus      KycStatus  @default(NONE)
+  role           UserRole   @default(CUSTOMER)
+  status         UserStatus @default(PENDING)
+  fcmToken       String? /// Firebase Cloud Messaging token for push notifications
+  deletedAt      DateTime? /// Soft delete
 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  wallet        Wallet?
-  rider         Rider?
-  merchant      Merchant?         // NEW: If user is a merchant
-  requests      Request[]         @relation("CustomerRequests")  // NEW: Unified requests
-  customerOrders  DeliveryOrder[] @relation("CustomerOrders")   // LEGACY: To be migrated
-  ratingsGiven    Rating[]        @relation("RatingsGiven")
-  beneficiaries   SavedBeneficiary[]
-  sessions        Session[]
+  wallet                  Wallet?
+  rider                   Rider?
+  merchant                Merchant? // NEW: If user is a merchant
+  requests                Request[]                @relation("CustomerRequests")
+  ratingsGiven            Rating[]                 @relation("RatingsGiven")
+  beneficiaries           SavedBeneficiary[]
+  sessions                Session[]
   notificationPreferences NotificationPreferences?
+  bvnVerificationLogs     BvnVerificationLog[]
+  requestMessages         RequestMessage[]
+  notifications           Notification[]
+  savedAddresses          SavedAddress[]
 
   @@index([phone])
   @@index([email])
@@ -199,21 +233,21 @@ model User {
 /// Balance must NEVER be updated directly — only through Prisma transactions
 /// that simultaneously create a Transaction record.
 model Wallet {
-  id                  String    @id @default(uuid())
-  userId              String    @unique
-  balance             Decimal   @default(0) @db.Decimal(15, 2)
-  virtualAccountNumber String?  @unique  /// KatPay virtual account number
-  virtualAccountBank   String?            /// Bank name for virtual account
-  virtualAccountName   String?            /// Account name for virtual account
-  isLocked            Boolean   @default(false) /// Freeze wallet for fraud prevention
+  id                   String  @id @default(uuid())
+  userId               String  @unique
+  balance              Decimal @default(0) @db.Decimal(15, 2)
+  virtualAccountNumber String? @unique /// KatPay virtual account number
+  virtualAccountBank   String? /// Bank name for virtual account
+  virtualAccountName   String? /// Account name for virtual account
+  isLocked             Boolean @default(false) /// Freeze wallet for fraud prevention
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  debitTransactions    Transaction[] @relation("DebitWallet")
-  creditTransactions   Transaction[] @relation("CreditWallet")
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debitTransactions  Transaction[] @relation("DebitWallet")
+  creditTransactions Transaction[] @relation("CreditWallet")
 
   @@index([userId])
   @@index([virtualAccountNumber])
@@ -223,33 +257,33 @@ model Wallet {
 /// Immutable financial ledger. Every money movement creates a Transaction.
 /// CRITICAL: Transactions are append-only. Never update or delete.
 model Transaction {
-  id              String            @id @default(uuid())
-  reference       String            @unique  /// Unique reference for idempotency
-  type            TransactionType
-  status          TransactionStatus @default(PENDING)
-  amount          Decimal           @db.Decimal(15, 2)
-  fee             Decimal           @default(0) @db.Decimal(15, 2)
-  description     String?
-  metadata        Json?             /// Merchant-specific data (KatPay ref, AlRahuz token, etc.)
+  id          String            @id @default(uuid())
+  reference   String            @unique /// Unique reference for idempotency
+  type        TransactionType
+  status      TransactionStatus @default(PENDING)
+  amount      Decimal           @db.Decimal(15, 2)
+  fee         Decimal           @default(0) @db.Decimal(15, 2)
+  description String?
+  metadata    Json? /// Merchant-specific data (KatPay ref, AlRahuz token, etc.)
 
   // Wallet relations — a transaction debits one wallet and/or credits another
-  debitWalletId   String?
-  creditWalletId  String?
+  debitWalletId  String?
+  creditWalletId String?
 
   // Merchant tracking
-  merchant        PaymentMerchant?
-  merchantRef     String?           /// External merchant reference
+  merchant    PaymentMerchant?
+  merchantRef String? /// External merchant reference
 
   // Balances at time of transaction (for audit trail)
-  balanceBefore   Decimal?          @db.Decimal(15, 2)
-  balanceAfter    Decimal?          @db.Decimal(15, 2)
+  balanceBefore Decimal? @db.Decimal(15, 2)
+  balanceAfter  Decimal? @db.Decimal(15, 2)
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  debitWallet     Wallet?           @relation("DebitWallet", fields: [debitWalletId], references: [id])
-  creditWallet    Wallet?           @relation("CreditWallet", fields: [creditWalletId], references: [id])
+  debitWallet  Wallet? @relation("DebitWallet", fields: [debitWalletId], references: [id])
+  creditWallet Wallet? @relation("CreditWallet", fields: [creditWalletId], references: [id])
 
   @@index([debitWalletId])
   @@index([creditWalletId])
@@ -259,102 +293,45 @@ model Transaction {
   @@map("transactions")
 }
 
-/// Delivery order — tracks the full lifecycle from request to settlement.
-model DeliveryOrder {
-  id              String          @id @default(uuid())
-  status          DeliveryStatus  @default(REQUESTED)
-
-  // Customer
-  customerId      String
-
-  // Rider (assigned after matching)
-  riderId         String?
-
-  // Pickup details
-  pickupAddress   String
-  pickupLat       Float
-  pickupLng       Float
-
-  // Dropoff details
-  dropoffAddress  String
-  dropoffLat      Float
-  dropoffLng      Float
-
-  // Item info
-  itemDescription String?
-  packageSize     String?         /// e.g., "small", "medium", "large"
-
-  // Pricing
-  distanceKm      Float?
-  fare            Decimal?        @db.Decimal(15, 2)
-  platformFee     Decimal         @default(0) @db.Decimal(15, 2)
-
-  // Tracking
-  transactionId   String?         /// Reference to the payment transaction
-
-  // Timestamps for each lifecycle stage
-  matchedAt       DateTime?
-  pickedUpAt      DateTime?
-  deliveredAt     DateTime?
-  settledAt       DateTime?
-  cancelledAt     DateTime?
-  cancellationReason String?
-
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  // Relations
-  customer        User            @relation("CustomerOrders", fields: [customerId], references: [id])
-  rider           Rider?          @relation(fields: [riderId], references: [id])
-  ratings         Rating[]        // LEGACY: Support old ratings during migration
-
-  @@index([customerId])
-  @@index([riderId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("delivery_orders")
-}
-
 /// Rider profile — linked to a User with role=RIDER.
 /// Contains vehicle info, verification docs, and performance metrics.
 model Rider {
-  id              String            @id @default(uuid())
-  userId          String            @unique
+  id     String @id @default(uuid())
+  userId String @unique
 
   // Vehicle info
-  vehicleType     VehicleType
-  plateNumber     String
-  vehicleColor    String?
+  vehicleType  VehicleType
+  plateNumber  String
+  vehicleColor String?
 
   // Verification documents
-  ninNumber       String?           /// National Identification Number (hashed)
-  idDocumentUrl   String?           /// Uploaded government ID
-  vehiclePhotoUrl String?           /// Uploaded vehicle photo
+  ninNumber       String? /// National Identification Number (hashed)
+  idDocumentUrl   String? /// Uploaded government ID
+  vehiclePhotoUrl String? /// Uploaded vehicle photo
 
   // Status
-  status          RiderStatus       @default(PENDING_APPROVAL)
-  availability    RiderAvailability @default(OFFLINE)
+  status       RiderStatus       @default(PENDING_APPROVAL)
+  availability RiderAvailability @default(OFFLINE)
 
   // Performance
-  averageRating   Float             @default(0)
-  totalDeliveries Int               @default(0)
-  totalEarnings   Decimal           @default(0) @db.Decimal(15, 2)
+  averageRating   Float   @default(0)
+  totalDeliveries Int     @default(0)
+  totalEarnings   Decimal @default(0) @db.Decimal(15, 2)
 
   // Location (last known)
-  lastLat         Float?
-  lastLng         Float?
-  lastLocationAt  DateTime?
+  lastLat        Float?
+  lastLng        Float?
+  lastLocationAt DateTime?
 
-  deletedAt       DateTime?         /// Soft delete
+  deletedAt DateTime? /// Soft delete
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  requests        Request[]         // NEW: Unified requests
-  deliveryOrders  DeliveryOrder[]   // LEGACY: To be migrated
-  ratingsReceived Rating[]          @relation("RiderRatings")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requests        Request[]
+  ratingsReceived Rating[]  @relation("RiderRatings")
 
   @@index([userId])
   @@index([status, availability])
@@ -364,28 +341,33 @@ model Rider {
 
 /// Utility bill payment — airtime, data, electricity.
 model UtilityPayment {
-  id              String          @id @default(uuid())
-  userId          String
-  type            UtilityType
-  status          UtilityStatus   @default(PENDING)
+  id     String        @id @default(uuid())
+  userId String
+  type   UtilityType
+  status UtilityStatus @default(PENDING)
 
   // Payment details
-  merchant        String          /// e.g., "MTN", "AEDC", "IKEDC"
-  amount          Decimal         @db.Decimal(15, 2)
-  phoneNumber     String?         /// For airtime/data
-  meterNumber     String?         /// For electricity
-  plan            String?         /// Data plan code or description
+  merchant    String /// e.g., "MTN", "AEDC", "IKEDC"
+  amount      Decimal @db.Decimal(15, 2)
+  phoneNumber String? /// For airtime/data
+  meterNumber String? /// For electricity
+  plan        String? /// Data plan code or description
 
   // Provider tracking (AlRahuz)
-  providerRequestId String?       @unique
-  providerRef     String?
+  providerRequestId String? @unique
+  providerRef       String?
 
   // Result
-  token           String?         /// Electricity token returned
-  transactionId   String?         /// Reference to wallet Transaction
+  token            String? /// Electricity token returned (delivered + STKN)
+  beneficiaryName  String? /// Verified meter / IUC owner name
+  transactionId    String? /// Reference to wallet Transaction
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  // Reconciliation (AlRahuz pending → poll)
+  pollAttempts Int       @default(0)
+  lastPolledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([type, status])
@@ -397,13 +379,13 @@ model UtilityPayment {
 model VtuPlan {
   id                String      @id @default(uuid())
   type              VtuPlanType
-  providerNetworkId Int?        /// AlRahuz network/cable provider ID
-  networkName       String?     /// "MTN", "GOTV" etc.
-  providerPlanId    Int?        /// AlRahuz plan ID (data/cable plans)
-  name              String      /// Display name e.g. "1GB - 30 Days"
-  dataSize          String?     /// "1GB" for data plans
-  validity          String?     /// "30 Days"
-  planType          String?     /// "SME", "GIFTING" etc. for data plans
+  providerNetworkId Int? /// AlRahuz network/cable provider ID
+  networkName       String? /// "MTN", "GOTV" etc.
+  providerPlanId    Int? /// AlRahuz plan ID (data/cable plans)
+  name              String /// Display name e.g. "1GB - 30 Days"
+  dataSize          String? /// "1GB" for data plans
+  validity          String? /// "30 Days"
+  planType          String? /// "SME", "GIFTING" etc. for data plans
   costPrice         Decimal     @db.Decimal(15, 2)
   sellingPrice      Decimal     @db.Decimal(15, 2)
   isActive          Boolean     @default(true)
@@ -418,31 +400,26 @@ model VtuPlan {
 
 /// Post-delivery rating from customer to rider (and optionally merchant).
 model Rating {
-  id              String        @id @default(uuid())
-  
-  // LEGACY: Link to old DeliveryOrder (will be removed after migration)
-  deliveryOrderId String?       @unique
-  deliveryOrder   DeliveryOrder? @relation(fields: [deliveryOrderId], references: [id])
-  
-  // NEW: Link to unified Request
-  requestId       String?       @unique
-  request         Request?      @relation(fields: [requestId], references: [id])
-  
-  riderId         String
-  customerId      String
-  
+  id String @id @default(uuid())
+
+  requestId String  @unique
+  request   Request @relation(fields: [requestId], references: [id])
+
+  riderId    String
+  customerId String
+
   // Can rate both merchant and rider (if applicable)
-  merchantScore   Int?          // 1-5 stars for merchant (if food/grocery/pharmacy)
-  riderScore      Int?          // 1-5 stars for rider
-  
+  merchantScore Int? // 1-5 stars for merchant (if food/grocery/pharmacy)
+  riderScore    Int? // 1-5 stars for rider
+
   merchantComment String?
   riderComment    String?
 
-  createdAt       DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  rider           Rider         @relation("RiderRatings", fields: [riderId], references: [id])
-  customer        User          @relation("RatingsGiven", fields: [customerId], references: [id])
+  rider    Rider @relation("RiderRatings", fields: [riderId], references: [id])
+  customer User  @relation("RatingsGiven", fields: [customerId], references: [id])
 
   @@index([riderId])
   @@index([customerId])
@@ -452,19 +429,19 @@ model Rating {
 
 /// Saved beneficiaries for quick repeat transfers and payments.
 model SavedBeneficiary {
-  id              String      @id @default(uuid())
-  userId          String
-  name            String      /// Display name
-  phone           String?     /// For P2P transfers
-  bankCode        String?     /// For bank withdrawals
-  accountNumber   String?     /// For bank withdrawals
-  accountName     String?     /// Verified account name
+  id            String  @id @default(uuid())
+  userId        String
+  name          String /// Display name
+  phone         String? /// For P2P transfers
+  bankCode      String? /// For bank withdrawals
+  accountNumber String? /// For bank withdrawals
+  accountName   String? /// Verified account name
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, phone])
   @@unique([userId, accountNumber, bankCode])
@@ -478,63 +455,63 @@ model SavedBeneficiary {
 
 /// Merchant — Restaurants, Supermarkets, Pharmacies
 model Merchant {
-  id              String          @id @default(uuid())
+  id String @id @default(uuid())
 
   // User account (optional — standalone merchants possible)
-  userId          String?         @unique
-  user            User?           @relation(fields: [userId], references: [id])
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
 
-  categoryId      String
-  category        MerchantCategory @relation(fields: [categoryId], references: [id])
-  status          MerchantStatus  @default(PENDING_APPROVAL)
+  categoryId String
+  category   MerchantCategory @relation(fields: [categoryId], references: [id])
+  status     MerchantStatus   @default(PENDING_APPROVAL)
 
   // Business info
-  name            String
-  description     String?
-  phone           String
-  email           String?
+  name        String
+  description String?
+  phone       String
+  email       String?
 
   // Location
-  address         String
-  lat             Float
-  lng             Float
+  address String
+  lat     Float
+  lng     Float
 
   // Operating hours
-  openingTime     String          @default("08:00")
-  closingTime     String          @default("22:00")
+  openingTime String @default("08:00")
+  closingTime String @default("22:00")
 
   // Media
-  logoUrl         String?
-  coverImageUrl   String?
+  logoUrl       String?
+  coverImageUrl String?
 
   // Settings
-  isActive        Boolean         @default(true)
-  isOpen          Boolean         @default(false)
-  commissionRate  Float           @default(15)  // Platform commission %
+  isActive       Boolean @default(true)
+  isOpen         Boolean @default(false)
+  commissionRate Float   @default(15) // Platform commission %
 
   // Admin-controlled visibility override (independent of merchant's isOpen flag)
-  adminActiveOverride Boolean     @default(true)
+  adminActiveOverride Boolean @default(true)
 
   // Status tracking
-  suspensionReason   String?
-  rejectionReason    String?
+  suspensionReason String?
+  rejectionReason  String?
 
   // Phone OTP verification
-  phoneVerified      Boolean      @default(false)
+  phoneVerified Boolean @default(false)
 
   // Performance
-  averageRating   Float           @default(0)
-  totalOrders     Int             @default(0)
+  averageRating Float @default(0)
+  totalOrders   Int   @default(0)
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  requests           Request[]
-  products           Product[]
-  wallet             MerchantWallet?
-  commissionHistory  CommissionHistory[]
-  tags               MerchantTag[]
+  requests          Request[]
+  products          Product[]
+  wallet            MerchantWallet?
+  commissionHistory CommissionHistory[]
+  tags              MerchantTag[]
 
   @@index([categoryId])
   @@index([status])
@@ -545,16 +522,16 @@ model Merchant {
 
 /// Tracks every commission rate change for a merchant — full audit trail.
 model CommissionHistory {
-  id            String   @id @default(uuid())
-  merchantId    String
-  merchant      Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
-  previousRate  Float
-  newRate       Float
-  changedBy     String   /// Admin user ID who made the change
-  reason        String?
+  previousRate Float
+  newRate      Float
+  changedBy    String /// Admin user ID who made the change
+  reason       String?
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([merchantId])
   @@index([createdAt])
@@ -564,20 +541,25 @@ model CommissionHistory {
 /// Merchant primary category — admin-managed taxonomy. Replaces the hardcoded MerchantType enum.
 /// One category per merchant (Merchant.categoryId). For multi-tagging, see Tag.
 model MerchantCategory {
-  id             String     @id @default(uuid())
-  name           String     @unique
-  slug           String     @unique
+  id             String  @id @default(uuid())
+  name           String  @unique
+  slug           String  @unique
   description    String?
   icon           String?
   color          String?
-  sortOrder      Int        @default(0)
-  hasPreparation Boolean    @default(true)
-  isActive       Boolean    @default(true)
+  sortOrder      Int     @default(0)
+  hasPreparation Boolean @default(true)
+  isActive       Boolean @default(true)
 
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  /// Admin-managed schema hint for which axes and pack units a category uses.
+  /// Shape: { axes: string[], pack: boolean, packUnits?: PackUnit[], sizeSystem?: string, ... }
+  /// Pure UX hint; DB does not enforce. Consumed by merchant + customer apps.
+  attributeSchema Json?
 
-  merchants      Merchant[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  merchants Merchant[]
 
   @@index([isActive, sortOrder])
   @@map("merchant_categories")
@@ -585,19 +567,19 @@ model MerchantCategory {
 
 /// Global tag taxonomy — admin-managed, assigned to merchants for search/filtering in customer app.
 model Tag {
-  id          String        @id @default(uuid())
-  name        String        @unique
-  slug        String        @unique  /// URL-safe version of name
-  category    String?       /// Grouping: e.g., "cuisine", "fashion", "health"
-  color       String?       /// Hex color for UI display
-  icon        String?       /// Icon name or URL
-  isActive    Boolean       @default(true)
+  id       String  @id @default(uuid())
+  name     String  @unique
+  slug     String  @unique /// URL-safe version of name
+  category String? /// Grouping: e.g., "cuisine", "fashion", "health"
+  color    String? /// Hex color for UI display
+  icon     String? /// Icon name or URL
+  isActive Boolean @default(true)
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  merchants   MerchantTag[]
+  merchants MerchantTag[]
 
   @@index([category])
   @@index([isActive])
@@ -606,14 +588,14 @@ model Tag {
 
 /// Join table: merchant ↔ tag (many-to-many)
 model MerchantTag {
-  id         String   @id @default(uuid())
+  id         String @id @default(uuid())
   merchantId String
   tagId      String
 
-  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
-  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([merchantId, tagId])
   @@index([merchantId])
@@ -623,97 +605,99 @@ model MerchantTag {
 
 /// Merchant Wallet — Separate from user wallet, tracks earnings
 model MerchantWallet {
-  id               String   @id @default(uuid())
-  merchantId       String   @unique
-  merchant         Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  merchantId String   @unique
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   // Available for withdrawal
   availableBalance Decimal @default(0) @db.Decimal(15, 2)
 
   // Held in escrow (pending settlement)
-  pendingBalance   Decimal @default(0) @db.Decimal(15, 2)
+  pendingBalance Decimal @default(0) @db.Decimal(15, 2)
 
   // Total all-time earnings
-  totalEarnings    Decimal @default(0) @db.Decimal(15, 2)
+  totalEarnings Decimal @default(0) @db.Decimal(15, 2)
 
   // Bank details for payout
-  bankCode         String?
-  accountNumber    String?
-  accountName      String?
+  bankCode      String?
+  accountNumber String?
+  accountName   String?
 
   // Wallet lock (set on suspension)
-  isLocked         Boolean  @default(false)
+  isLocked Boolean @default(false)
 
   // Withdrawal hold: freeze payouts without suspending operations
-  withdrawalHeld   Boolean  @default(false)
+  withdrawalHeld       Boolean @default(false)
   withdrawalHoldReason String?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  transactions     MerchantWalletTransaction[]
+  transactions MerchantWalletTransaction[]
 
   @@map("merchant_wallets")
 }
 
 /// Merchant withdrawal ledger — tracks every payout request and its KatPay status.
 model MerchantWalletTransaction {
-  id               String        @id @default(uuid())
-  reference        String        @unique
+  id        String @id @default(uuid())
+  reference String @unique
 
   merchantWalletId String
   merchantWallet   MerchantWallet @relation(fields: [merchantWalletId], references: [id], onDelete: Cascade)
 
-  type             String        /// WITHDRAWAL
-  status           String        /// PENDING | PROCESSING | COMPLETED | FAILED | REJECTED
-  amount           Decimal       @db.Decimal(15, 2)
+  type   String /// WITHDRAWAL
+  status String /// PENDING | PROCESSING | COMPLETED | FAILED | REJECTED
+  amount Decimal @db.Decimal(15, 2)
 
   // Bank details captured at request time
-  bankCode         String?
-  accountNumber    String?
-  accountName      String?
+  bankCode      String?
+  accountNumber String?
+  accountName   String?
 
   // KatPay tracking
-  katpayReference  String?
+  katpayReference String?
 
-  rejectionReason  String?
-  processedAt      DateTime?
+  rejectionReason String?
+  processedAt     DateTime?
 
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([merchantWalletId, status])
   @@index([reference])
   @@map("merchant_wallet_transactions")
 }
 
-/// Product — Menu items, grocery products, pharmacy items
+/// Product — Menu items, grocery products, pharmacy items.
+/// `basePrice` and `stock` are kept for fallback display when a product has a
+/// single default variant. Multi-SKU products carry pricing/stock on `ProductVariant`.
 model Product {
-  id          String   @id @default(uuid())
-  merchantId  String
-  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  merchantId String
+  merchant   Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   name        String
   description String?
   category    String
 
-  basePrice   Decimal  @db.Decimal(15, 2)
-  stock       Int      @default(0)
+  basePrice Decimal @db.Decimal(15, 2)
+  stock     Int     @default(0)
 
-  // Variations (JSON for flexibility)
-  variations  Json?
-
-  // Options/Addons
-  options     Json?
+  // Pharmacy-specific (Phase 8 reads these; Phase 2 lands the columns)
+  requiresPrescription Boolean @default(false)
+  dosage               String?
 
   imageUrl    String?
-  isAvailable Boolean  @default(true)
+  isAvailable Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
+  variants     ProductVariant[]
+  optionGroups ProductOptionGroup[]
   requestItems RequestItem[]
 
   @@index([merchantId])
@@ -721,68 +705,151 @@ model Product {
   @@map("products")
 }
 
+/// ProductVariant — SKU-level variation of a product.
+/// Every Product has at least one variant (default created for single-SKU products).
+/// `attributes` is the discrete-axis JSON; `packSize/packUnit/packLabel` is the unit/pack.
+model ProductVariant {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  sku        String?
+  /// Discrete selection axes, schema-less so each category names its own.
+  /// e.g. {size:"M", color:"Black"} or {strength:"500mg", form:"TABLET"}
+  attributes Json    @default("{}")
+
+  /// Pack/unit fields — null for variants where category isn't pack-based.
+  packSize  Decimal?  @db.Decimal(15, 4)
+  packUnit  PackUnit?
+  /// Denormalized human-readable pack label, e.g. "500 ml", "30 tablets".
+  packLabel String?
+
+  price       Decimal @db.Decimal(15, 2)
+  stock       Int     @default(0)
+  imageUrl    String?
+  isAvailable Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requestItems RequestItem[]
+
+  @@unique([productId, sku])
+  @@index([productId])
+  @@index([productId, isAvailable])
+  @@map("product_variants")
+}
+
+/// ProductOptionGroup — customer-facing customization group on a product
+/// (sides, spice level, addons, etc.). Combinable with variants for combos.
+model ProductOptionGroup {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name          String /// "Sides", "Spice level", "Pick a drink"
+  selectionRule SelectionRule
+  minSelect     Int           @default(0)
+  maxSelect     Int           @default(1)
+  sortOrder     Int           @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items ProductOptionItem[]
+
+  @@index([productId, sortOrder])
+  @@map("product_option_groups")
+}
+
+/// ProductOptionItem — a single selectable item inside an option group.
+model ProductOptionItem {
+  id      String             @id @default(uuid())
+  groupId String
+  group   ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  name        String /// "Plantain", "Extra cheese", "Mild"
+  /// Price delta applied on top of the variant price. Defaults to 0 for price-neutral picks.
+  priceDelta  Decimal @default(0) @db.Decimal(15, 2)
+  isDefault   Boolean @default(false)
+  isAvailable Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId, sortOrder])
+  @@map("product_option_items")
+}
+
 /// Request — THE CENTRAL ENTITY (replaces DeliveryOrder)
 /// Food, Grocery, Pharmacy, Package — all unified here
 model Request {
-  id              String          @id @default(uuid())
-  type            RequestType     // MERCHANT_ORDER (any merchant fulfillment) or PACKAGE (courier)
-  status          RequestStatus   @default(REQUESTED)
-  
+  id     String        @id @default(uuid())
+  type   RequestType // MERCHANT_ORDER (any merchant fulfillment) or PACKAGE (courier)
+  status RequestStatus @default(REQUESTED)
+
   // Customer
-  customerId      String
-  customer        User            @relation("CustomerRequests", fields: [customerId], references: [id])
-  
+  customerId String
+  customer   User   @relation("CustomerRequests", fields: [customerId], references: [id])
+
   // Merchant (optional — package deliveries have no merchant)
-  merchantId      String?
-  merchant        Merchant?         @relation(fields: [merchantId], references: [id])
-  
+  merchantId String?
+  merchant   Merchant? @relation(fields: [merchantId], references: [id])
+
   // Rider (assigned later)
-  riderId         String?
-  rider           Rider?            @relation(fields: [riderId], references: [id])
-  
+  riderId String?
+  rider   Rider?  @relation(fields: [riderId], references: [id])
+
   // Locations
-  pickupAddress   String
+  pickupAddress String
   pickupLat     Float
   pickupLng     Float
-  pickupName    String?           // "KFC Katsina", "John's House"
-  
-  dropoffAddress  String
-  dropoffLat    Float
-  dropoffLng    Float
-  dropoffName   String?           // Customer's name or custom label
-  
+  pickupName    String? // "KFC Katsina", "John's House"
+
+  dropoffAddress String
+  dropoffLat     Float
+  dropoffLng     Float
+  dropoffName    String? // Customer's name or custom label
+
   // Pricing
-  subtotal        Decimal         @db.Decimal(15, 2)  // Items cost (0 for package)
-  deliveryFee     Decimal         @db.Decimal(15, 2)  // Always calculated
-  platformFee     Decimal         @db.Decimal(15, 2)  // Platform commission
-  tax             Decimal         @default(0) @db.Decimal(15, 2)
-  total           Decimal         @db.Decimal(15, 2)  // What customer pays
-  
+  subtotal    Decimal @db.Decimal(15, 2) // Items cost (0 for package)
+  deliveryFee Decimal @db.Decimal(15, 2) // Always calculated
+  platformFee Decimal @db.Decimal(15, 2) // Platform commission
+  tax         Decimal @default(0) @db.Decimal(15, 2)
+  total       Decimal @db.Decimal(15, 2) // What customer pays
+
   // Financial splits (CRITICAL — must exist from day one)
-  customerPaid    Decimal         @db.Decimal(15, 2)
-  merchantEarning Decimal         @default(0) @db.Decimal(15, 2)
-  riderEarning    Decimal         @default(0) @db.Decimal(15, 2)
-  platformEarning Decimal         @default(0) @db.Decimal(15, 2)
-  
+  customerPaid    Decimal @db.Decimal(15, 2)
+  merchantEarning Decimal @default(0) @db.Decimal(15, 2)
+  riderEarning    Decimal @default(0) @db.Decimal(15, 2)
+  platformEarning Decimal @default(0) @db.Decimal(15, 2)
+
   // Distance/Time
-  distanceKm      Float?
+  distanceKm       Float?
   estimatedMinutes Int?
-  
+
   // Financial record
-  transactionId        String?
-  escrowTransactionId  String?   // Hold transaction reference
-  refundTransactionId  String?   // Refund transaction reference
+  transactionId       String?
+  escrowTransactionId String? // Hold transaction reference
+  refundTransactionId String? // Refund transaction reference
 
   // Matching
-  searchAttempts       Int       @default(0)
-  lastBroadcastAt      DateTime?
-  cancellationFee      Decimal?  @db.Decimal(15, 2)
+  searchAttempts  Int       @default(0)
+  lastBroadcastAt DateTime?
+  cancellationFee Decimal?  @db.Decimal(15, 2)
+
+  /// Pharmacy: signed Cloudinary URL of the prescription doc the customer
+  /// attached at checkout. Required server-side when any RequestItem points at
+  /// a Product with `requiresPrescription = true`. Persisted as an audit trail
+  /// of which physical prescription the order was fulfilled against.
+  prescriptionUrl String?
 
   // Cancellation
-  cancelledAt     DateTime?
-  cancelledBy     String?         // customer, merchant, rider, system
+  cancelledAt        DateTime?
+  cancelledBy        String? // customer, merchant, rider, system
   cancellationReason String?
-  
+
   // Timestamps for lifecycle
   acceptedAt      DateTime?
   processingAt    DateTime?
@@ -793,99 +860,134 @@ model Request {
   inTransitAt     DateTime?
   deliveredAt     DateTime?
   settledAt       DateTime?
-  
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  items           RequestItem[]     // For food/grocery/pharmacy
-  packageDetails  PackageDetail?    // For package delivery
-  rating          Rating?
-  
+  items          RequestItem[] // For food/grocery/pharmacy
+  packageDetails PackageDetail? // For package delivery
+  rating         Rating?
+
+  messages RequestMessage[]
+
   @@index([customerId])
   @@index([merchantId])
   @@index([riderId])
   @@index([status])
   @@index([type])
   @@index([createdAt])
+  @@index([customerId, status, createdAt(sort: Desc)]) /// Covers the active-request banner: status IN (active set) ORDER BY createdAt DESC LIMIT 1
   @@map("requests")
 }
 
-/// RequestItem — Items within a request (food, groceries, pharmacy)
+/// RequestMessage — in-app chat between customer/merchant/rider scoped to a request.
+model RequestMessage {
+  id        String  @id @default(uuid())
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  fromUserId String
+  fromUser   User   @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+
+  body String @db.VarChar(1000)
+
+  createdAt DateTime @default(now())
+
+  @@index([requestId, createdAt])
+  @@index([fromUserId])
+  @@map("request_messages")
+}
+
+/// RequestItem — Items within a request (food, grocery, pharmacy, retail).
+/// `variantId` resolves to the exact SKU bought; `productId` is kept for fallback
+/// display when a variant is later deleted. `selectedOptions` is a frozen snapshot
+/// of the customer's option-group picks at order time so menu edits don't rewrite history.
 model RequestItem {
-  id          String   @id @default(uuid())
-  requestId   String
-  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  
-  // Can link to product or be free-form
-  productId   String?
-  product     Product? @relation(fields: [productId], references: [id])
-  
-  // Or free-form entry
+  id        String  @id @default(uuid())
+  requestId String
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  // Free-form display fields (snapshot of product at order time)
   name        String
   description String?
-  
-  // Pricing at time of order
-  unitPrice   Decimal  @db.Decimal(15, 2)
-  quantity    Int      @default(1)
-  
-  // Variations/Options (JSON)
-  variations  Json?
-  
-  totalPrice  Decimal  @db.Decimal(15, 2)  // unitPrice * quantity + variation costs
-  
-  createdAt   DateTime @default(now())
-  
+
+  // Pricing at time of order — computed server-side, never trusted from client.
+  // unitPrice = variant.price + Σ selected option priceDeltas
+  unitPrice Decimal @db.Decimal(15, 2)
+  quantity  Int     @default(1)
+  lineTotal Decimal @db.Decimal(15, 2) /// unitPrice * quantity
+
+  /// Snapshot of option-group selections at order time.
+  /// Shape: [{groupId, groupName, items:[{itemId, itemName, priceDelta}]}]
+  selectedOptions Json?
+
+  /// Free-text kitchen instructions ("no onions"). Max 200 chars enforced by validator.
+  specialInstructions String?
+
+  /// Grocery-only: per-line substitution preference. Null on lines where the
+  /// customer didn't pick one (or for non-grocery merchants where the customer
+  /// app doesn't expose the control).
+  substitution SubstitutionPreference?
+
+  createdAt DateTime @default(now())
+
   @@index([requestId])
   @@index([productId])
+  @@index([variantId])
   @@map("request_items")
 }
 
 /// PackageDetail — For package delivery (no merchant)
 model PackageDetail {
-  id          String   @id @default(uuid())
-  requestId   String   @unique
-  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  
+  id        String  @id @default(uuid())
+  requestId String  @unique
+  request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
   description String
-  size        String   // SMALL, MEDIUM, LARGE
+  size        String // SMALL, MEDIUM, LARGE
   weight      Float?
-  
+
   // Contact info at pickup
-  senderName    String
-  senderPhone   String
-  
+  senderName  String
+  senderPhone String
+
   // Recipient info
-  recipientName   String
-  recipientPhone  String
-  
+  recipientName  String
+  recipientPhone String
+
   // Special instructions
-  instructions  String?
-  
-  createdAt   DateTime @default(now())
-  
+  instructions String?
+
+  createdAt DateTime @default(now())
+
   @@map("package_details")
 }
 
-
 /// User sessions for JWT refresh token tracking.
 model Session {
-  id            String    @id @default(uuid())
-  userId        String
-  refreshToken  String    @unique
-  deviceInfo    String?   /// Free-form device descriptor (legacy; superseded by deviceName/Model)
-  deviceName    String?   /// User-set device name, e.g., "Bishir's iPhone"
-  deviceModel   String?   /// Hardware model, e.g., "iPhone15,2", "Pixel 7 Pro"
-  userAgent     String?   /// Raw User-Agent header captured at session creation
-  ipAddress     String?
-  lastUsedAt    DateTime  @default(now()) /// Updated on every token refresh
-  expiresAt     DateTime
-  isRevoked     Boolean   @default(false)
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  deviceInfo   String? /// Free-form device descriptor (legacy; superseded by deviceName/Model)
+  deviceName   String? /// User-set device name, e.g., "Bishir's iPhone"
+  deviceModel  String? /// Hardware model, e.g., "iPhone15,2", "Pixel 7 Pro"
+  userAgent    String? /// Raw User-Agent header captured at session creation
+  ipAddress    String?
+  lastUsedAt   DateTime @default(now()) /// Updated on every token refresh
+  expiresAt    DateTime
+  isRevoked    Boolean  @default(false)
 
-  createdAt     DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   // Relations
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([refreshToken])
@@ -895,38 +997,119 @@ model Session {
 
 /// User notification preferences — stored per user, synced across devices.
 model NotificationPreferences {
-  id                  String    @id @default(uuid())
-  userId              String    @unique
-  pushEnabled         Boolean   @default(true)
-  orderUpdates        Boolean   @default(true)
-  promotions          Boolean   @default(true)
-  walletAlerts        Boolean   @default(true)
-  emailEnabled        Boolean   @default(true)
-  emailPromotions     Boolean   @default(false)
-  smsEnabled          Boolean   @default(false)
+  id              String  @id @default(uuid())
+  userId          String  @unique
+  pushEnabled     Boolean @default(true)
+  orderUpdates    Boolean @default(true)
+  promotions      Boolean @default(true)
+  walletAlerts    Boolean @default(true)
+  emailEnabled    Boolean @default(true)
+  emailPromotions Boolean @default(false)
+  smsEnabled      Boolean @default(false)
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("notification_preferences")
 }
 
+/// Notification — in-app notification feed (Notification Center).
+/// Created by `notify.service.pushAndSocket` whenever a user-facing event
+/// happens: request lifecycle, wallet activity, refunds, etc.
+/// `data.route` (free-form path like `/request/abc-123`) is used by the
+/// mobile client to deep-link the user to the relevant screen when the row
+/// is tapped.
+model Notification {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String /// REQUEST_STATUS | WALLET | REFUND | SYSTEM ...
+  title     String
+  body      String  @db.VarChar(500)
+  data      Json? /// { route?, requestId?, transactionId?, ... }
+
+  requestId     String?
+  transactionId String?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+/// SavedAddress — user's reusable delivery / pickup addresses (Phase 6).
+/// `placeId` (Google place id) lets us re-look-up the address text without
+/// keeping it stale. Only one address per user can be `isDefault=true`; that
+/// constraint is enforced in the service layer rather than via a partial unique
+/// index so updates don't fight the constraint mid-transaction.
+model SavedAddress {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  label     String /// "Home", "Work", or free-form
+  address   String /// Human-readable formatted address
+  lat       Float
+  lng       Float
+  placeId   String? /// Google place_id for re-geocoding if needed
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, label])
+  @@map("saved_addresses")
+}
+
+/// Banner — admin-managed promotional banner for the home screen (Phase 6).
+/// `audience` is a free-form JSON predicate evaluated server-side
+/// (e.g. `{ "kyc": "VERIFIED" }` or `{ "categorySlug": "food" }`); empty
+/// audience = visible to all authenticated users. Banners with `startsAt` in
+/// the future or `endsAt` in the past are filtered out of the public feed.
+model Banner {
+  id        String  @id @default(uuid())
+  title     String
+  subtitle  String?
+  imageUrl  String
+  deepLink  String? /// e.g. `/wallet`, `/utility/airtime`, or `customerapp://...`
+  bgColor   String? /// optional accent colour hint for fallback rendering
+
+  startsAt  DateTime?
+  endsAt    DateTime?
+  audience  Json? /// free-form audience predicate
+  priority  Int     @default(0) /// higher = surfaces first
+
+  isActive  Boolean @default(true)
+  createdBy String? /// admin user id
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, startsAt, endsAt])
+  @@index([priority])
+  @@map("banners")
+}
+
 /// External payment-provider webhook event log — for idempotency and audit.
 model WebhookEvent {
-  id              String    @id @default(uuid())
-  merchant        String    /// "katpay" (or other future providers)
-  eventType       String    /// e.g., "SUCCESSFUL_TRANSACTION"
-  transactionRef  String    @unique  /// External reference for deduplication
-  payload         Json      /// Raw webhook payload
-  processed       Boolean   @default(false)
-  processedAt     DateTime?
-  error           String?   /// Error message if processing failed
+  id             String    @id @default(uuid())
+  merchant       String /// "katpay" (or other future providers)
+  eventType      String /// e.g., "SUCCESSFUL_TRANSACTION"
+  transactionRef String    @unique /// External reference for deduplication
+  payload        Json /// Raw webhook payload
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  error          String? /// Error message if processing failed
 
-  createdAt       DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([merchant, eventType])
   @@index([transactionRef])
@@ -941,7 +1124,7 @@ model PlatformSetting {
   value       Json
   description String?
   updatedAt   DateTime @updatedAt
-  updatedBy   String?  /// Admin user ID
+  updatedBy   String? /// Admin user ID
 
   @@map("platform_settings")
 }
@@ -963,30 +1146,55 @@ model IdempotencyKey {
 
 /// System-owned wallet for escrow and platform earnings.
 model SystemWallet {
-  id          String   @id
-  name        String
-  balance     Decimal  @default(0) @db.Decimal(15, 2)
-  updatedAt   DateTime @updatedAt
+  id        String   @id
+  name      String
+  balance   Decimal  @default(0) @db.Decimal(15, 2)
+  updatedAt DateTime @updatedAt
 
   @@map("system_wallets")
 }
 
 /// Audit log — tracks all admin actions for compliance and debugging.
 model AuditLog {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   adminUserId String
-  action      String   /// "APPROVE_MERCHANT", "SUSPEND_USER", etc.
-  entityType  String   /// "MERCHANT", "USER", "RIDER", "REQUEST", etc.
-  entityId    String   /// ID of the affected entity
-  details     Json?    /// Additional context (e.g., reason, old value, new value)
+  action      String /// "APPROVE_MERCHANT", "SUSPEND_USER", etc.
+  entityType  String /// "MERCHANT", "USER", "RIDER", "REQUEST", etc.
+  entityId    String /// ID of the affected entity
+  details     Json? /// Additional context (e.g., reason, old value, new value)
   ipAddress   String?
   userAgent   String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([adminUserId])
   @@index([action])
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// Append-only compliance log of every BVN verification attempt.
+/// Required for AML / KYC audits — regulators ask for "every time a user
+/// attempted to bind a BVN to their account, including failures".
+/// We store the BVN hash (never plaintext) so we can correlate without leaking.
+model BvnVerificationLog {
+  id          String                 @id @default(uuid())
+  userId      String
+  bvnHash     String /// bcrypt hash of the attempted BVN
+  outcome     BvnVerificationOutcome
+  reason      String? /// Failure reason or recovery context
+  providerRef String? /// Provider's reference (Smile ID / Flutterwave) when integrated
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json? /// Additional context (matched fields, scores, etc.)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([outcome])
+  @@index([createdAt])
+  @@map("bvn_verification_logs")
 }

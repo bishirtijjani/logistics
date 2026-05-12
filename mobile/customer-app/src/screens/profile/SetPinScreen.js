@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 import { setTransactionPin } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
 
@@ -18,6 +19,7 @@ const PIN_LENGTH = 6;
 
 export default function SetPinScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { isUpdating } = useSelector((state) => state.profile);
   const [step, setStep] = useState("enter"); // "enter" | "confirm"
   const [pin, setPin] = useState("");
@@ -44,8 +46,8 @@ export default function SetPinScreen({ navigation }) {
         } else {
           Toast.show({
             type: "error",
-            text1: "PINs don't match",
-            text2: "Please try again.",
+            text1: t("auth.pinMismatchToast"),
+            text2: t("auth.pinMismatchToastSub"),
           });
           setStep("enter");
           setPin("");
@@ -60,8 +62,8 @@ export default function SetPinScreen({ navigation }) {
     if (setTransactionPin.fulfilled.match(result)) {
       Toast.show({
         type: "success",
-        text1: "PIN Set",
-        text2: "Your transaction PIN has been created.",
+        text1: t("auth.pinSetToast"),
+        text2: t("auth.pinSetToastSub"),
       });
       navigation.goBack();
     } else {
@@ -99,10 +101,13 @@ export default function SetPinScreen({ navigation }) {
             justifyContent: "center",
             marginRight: 14,
           }}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
         >
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -110,7 +115,7 @@ export default function SetPinScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          Set Transaction PIN
+          {t("auth.pinScreenTitle")}
         </Text>
       </View>
 
@@ -138,6 +143,7 @@ export default function SetPinScreen({ navigation }) {
         </View>
 
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 22,
             fontWeight: "900",
@@ -146,7 +152,7 @@ export default function SetPinScreen({ navigation }) {
             textAlign: "center",
           }}
         >
-          {step === "enter" ? "Create your PIN" : "Confirm your PIN"}
+          {step === "enter" ? t("auth.pinCreate") : t("auth.pinConfirm")}
         </Text>
         <Text
           style={{
@@ -157,9 +163,7 @@ export default function SetPinScreen({ navigation }) {
             lineHeight: 20,
           }}
         >
-          {step === "enter"
-            ? "Enter a 6-digit PIN you'll use for\npayments and transfers"
-            : "Re-enter your PIN to confirm"}
+          {step === "enter" ? t("auth.pinCreateSub") : t("auth.pinConfirmSub")}
         </Text>
 
         {/* PIN Dots */}
@@ -193,6 +197,8 @@ export default function SetPinScreen({ navigation }) {
           keyboardType="number-pad"
           maxLength={PIN_LENGTH}
           autoFocus
+          accessibilityLabel={step === "enter" ? t("auth.pinCreate") : t("auth.pinConfirm")}
+          accessibilityHint={t("auth.form.pinInvalid")}
           style={{
             position: "absolute",
             opacity: 0,
@@ -208,6 +214,8 @@ export default function SetPinScreen({ navigation }) {
             paddingVertical: 12,
             paddingHorizontal: 24,
           }}
+          accessibilityRole="button"
+          accessibilityLabel={t("auth.pinFocusHint")}
         >
           <Text
             style={{
@@ -216,7 +224,7 @@ export default function SetPinScreen({ navigation }) {
               fontWeight: "600",
             }}
           >
-            Tap here if keyboard hides
+            {t("auth.pinFocusHint")}
           </Text>
         </TouchableOpacity>
 

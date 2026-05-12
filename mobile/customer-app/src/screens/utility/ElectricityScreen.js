@@ -5,13 +5,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { payElectricity, fetchPlans, validateMeter, clearValidation } from "../../store/slices/utilitySlice";
 import { usePlatformSetting } from "../../services/settings";
 
+const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
+
 export default function ElectricityScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, isValidating, validationResult } = useSelector((state) => state.utility);
 
@@ -32,39 +36,44 @@ export default function ElectricityScreen({ navigation }) {
   const [showPinSheet, setShowPinSheet] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    dispatch(fetchPlans({ type: "ELECTRICITY" }));
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchPlans({ type: "ELECTRICITY" })); }, [dispatch]);
 
   useEffect(() => {
     if (discos.length && !selectedDisco) setSelectedDisco(discos[0]);
-  }, [discos]);
+  }, [discos]); // eslint-disable-line
 
   const handleValidateMeter = async () => {
-    if (!meterNumber.trim() || meterNumber.length < 11) { setError("Enter a valid meter number (min 11 digits)"); return; }
-    if (!selectedDisco) { setError("Select a disco first"); return; }
+    if (!meterNumber.trim() || meterNumber.length < 11) { setError(t("utility.electricityScreen.errMeter")); return; }
+    if (!selectedDisco) { setError(t("utility.electricityScreen.errSelectDisco")); return; }
     setError("");
     try {
       await dispatch(validateMeter({ meterNumber: meterNumber.trim(), discoId: selectedDisco.providerNetworkId, meterType })).unwrap();
       setMeterValidated(true);
     } catch {
-      setError("Could not validate meter. Check the number and try again.");
+      setError(t("utility.electricityScreen.verifyFailed"));
       setMeterValidated(false);
     }
   };
 
+  const handleMeterBlur = () => {
+    if (meterValidated || isValidating) return;
+    if (!meterNumber.trim() || meterNumber.length < 11) return;
+    if (!selectedDisco) return;
+    handleValidateMeter();
+  };
+
   const handlePurchase = () => {
-    if (!selectedDisco) { setError("Select a disco"); return; }
-    if (!meterValidated) { setError("Please validate your meter first"); return; }
-    if (!phone.trim() || phone.length < 10) { setError("Enter a valid phone number"); return; }
-    if (!amount || Number(amount) < minAmount) { setError(`Minimum electricity payment is ₦${minAmount.toLocaleString()}`); return; }
-    if (Number(amount) > Number(balance)) { setError("Insufficient wallet balance"); return; }
+    if (!selectedDisco) { setError(t("utility.electricityScreen.errSelectDisco")); return; }
+    if (!meterValidated) { setError(t("utility.electricityScreen.errVerifyFirst")); return; }
+    if (!phone.trim() || phone.length < 10) { setError(t("utility.airtimeScreen.errInvalidPhone")); return; }
+    if (!amount || Number(amount) < minAmount) { setError(t("utility.electricityScreen.errMinAmount", { amount: naira(minAmount) })); return; }
+    if (Number(amount) > Number(balance)) { setError(t("utility.electricityScreen.errInsufficientBalance")); return; }
     setError("");
     setShowPinSheet(true);
   };
 
   const handlePinConfirm = async (pin) => {
-    await dispatch(payElectricity({
+    const payment = await dispatch(payElectricity({
       discoId: selectedDisco.providerNetworkId,
       meterNumber: meterNumber.trim(),
       meterType,
@@ -73,79 +82,109 @@ export default function ElectricityScreen({ navigation }) {
       pin,
     })).unwrap();
     setShowPinSheet(false);
-    navigation.navigate("UtilityHistory");
+    navigation.replace("ElectricityResult", {
+      paymentId: payment?.id,
+      amount: Number(amount),
+      meterNumber: meterNumber.trim(),
+      merchant: selectedDisco?.networkName,
+      beneficiaryName: payment?.beneficiaryName || null,
+    });
   };
+
+  const customerName = validationResult?.Customer_Name || validationResult?.name || t("utility.verified");
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ marginRight: 16 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
+          >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>Pay Electricity</Text>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+            {t("utility.electricityScreen.title")}
+          </Text>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
         {error ? (
-          <View style={{ backgroundColor: colors.error + "15", borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center" }}>
+          <View accessibilityLiveRegion="polite" style={{ backgroundColor: colors.error + "15", borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="alert-circle" size={20} color={colors.error} style={{ marginRight: 8 }} />
             <Text style={{ flex: 1, fontSize: 13, color: colors.error, fontWeight: "500" }}>{error}</Text>
           </View>
         ) : null}
 
         {/* Disco Selection */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>Select Distribution Company</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.electricityScreen.selectDisco")}</Text>
         {isLoading && !discos.length ? (
-          <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} />
+          <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} accessibilityLabel={t("common.loading")} />
         ) : (
           <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 20 }}>
-            {discos.map((d) => (
-              <TouchableOpacity
-                key={d.id}
-                onPress={() => { setSelectedDisco(d); setMeterValidated(false); dispatch(clearValidation()); setError(""); }}
-                style={{
-                  backgroundColor: selectedDisco?.id === d.id ? colors.primary : colors.surface,
-                  borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
-                  marginRight: 8, marginBottom: 8, borderWidth: 2,
-                  borderColor: selectedDisco?.id === d.id ? colors.primary : colors.border,
-                }}
-              >
-                <Text style={{ fontSize: 13, fontWeight: "700", color: selectedDisco?.id === d.id ? colors.white : colors.text }}>{d.networkName}</Text>
-              </TouchableOpacity>
-            ))}
+            {discos.map((d) => {
+              const selected = selectedDisco?.id === d.id;
+              return (
+                <TouchableOpacity
+                  key={d.id}
+                  onPress={() => { setSelectedDisco(d); setMeterValidated(false); dispatch(clearValidation()); setError(""); }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={d.networkName}
+                  style={{
+                    backgroundColor: selected ? colors.primary : colors.surface,
+                    borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+                    marginRight: 8, marginBottom: 8, borderWidth: 2,
+                    borderColor: selected ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.text }}>{d.networkName}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
         {/* Meter Type */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>Meter Type</Text>
-        <View style={{ flexDirection: "row", marginBottom: 20 }}>
-          {["PREPAID", "POSTPAID"].map((type) => (
-            <TouchableOpacity
-              key={type}
-              onPress={() => { setMeterType(type); setMeterValidated(false); dispatch(clearValidation()); }}
-              style={{
-                flex: 1, marginRight: type === "PREPAID" ? 8 : 0,
-                backgroundColor: meterType === type ? colors.primary : colors.surface,
-                borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 2,
-                borderColor: meterType === type ? colors.primary : colors.border,
-              }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "700", color: meterType === type ? colors.white : colors.text }}>{type}</Text>
-            </TouchableOpacity>
-          ))}
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.electricityScreen.meterType")}</Text>
+        <View style={{ flexDirection: "row", marginBottom: 20 }} accessibilityRole="radiogroup">
+          {["PREPAID", "POSTPAID"].map((type) => {
+            const selected = meterType === type;
+            const label = type === "PREPAID" ? t("utility.electricityScreen.prepaid") : t("utility.electricityScreen.postpaid");
+            return (
+              <TouchableOpacity
+                key={type}
+                onPress={() => { setMeterType(type); setMeterValidated(false); dispatch(clearValidation()); }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={label}
+                style={{
+                  flex: 1, marginRight: type === "PREPAID" ? 8 : 0,
+                  backgroundColor: selected ? colors.primary : colors.surface,
+                  borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 2,
+                  borderColor: selected ? colors.primary : colors.border,
+                }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? colors.white : colors.text }}>{label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Meter Number */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>Meter Number</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.electricityScreen.meterLabel")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
           <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: meterValidated ? "#22C55E" : colors.border, paddingHorizontal: 16, marginRight: 8 }}>
             <Ionicons name="flash-outline" size={20} color={colors.textMuted} />
             <TextInput
               value={meterNumber}
               onChangeText={(text) => { setMeterNumber(text.replace(/[^0-9]/g, "")); setMeterValidated(false); dispatch(clearValidation()); setError(""); }}
-              placeholder="Enter meter number"
+              onBlur={handleMeterBlur}
+              placeholder={t("utility.electricityScreen.meterPh")}
+              accessibilityLabel={t("utility.electricityScreen.meterLabel")}
               placeholderTextColor={colors.textLight}
               keyboardType="number-pad"
               style={{ flex: 1, fontSize: 15, fontWeight: "600", color: colors.text, paddingVertical: 16, marginLeft: 12 }}
@@ -155,29 +194,31 @@ export default function ElectricityScreen({ navigation }) {
           <TouchableOpacity
             onPress={handleValidateMeter}
             disabled={isValidating}
+            accessibilityRole="button"
+            accessibilityLabel={t("utility.electricityScreen.verify")}
+            accessibilityState={{ disabled: isValidating, busy: isValidating }}
             style={{ backgroundColor: colors.primary, borderRadius: 16, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}
           >
-            {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Verify</Text>}
+            {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{t("utility.electricityScreen.verify")}</Text>}
           </TouchableOpacity>
         </View>
 
         {validationResult && (
           <View style={{ backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, color: "#059669", fontWeight: "600" }}>
-              {validationResult.Customer_Name || validationResult.name || "Meter verified"}
-            </Text>
+            <Text style={{ fontSize: 13, color: "#059669", fontWeight: "600" }}>{customerName}</Text>
             {validationResult.Address ? <Text style={{ fontSize: 12, color: "#059669", marginTop: 2 }}>{validationResult.Address}</Text> : null}
           </View>
         )}
 
         {/* Phone */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>Phone Number</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.phoneLabel")}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 20 }}>
           <Ionicons name="call-outline" size={20} color={colors.textMuted} />
           <TextInput
             value={phone}
             onChangeText={(text) => { setPhone(text.replace(/[^0-9]/g, "")); setError(""); }}
             placeholder="080XXXXXXXX"
+            accessibilityLabel={t("utility.airtimeScreen.phoneLabel")}
             placeholderTextColor={colors.textLight}
             keyboardType="phone-pad"
             maxLength={11}
@@ -186,27 +227,37 @@ export default function ElectricityScreen({ navigation }) {
         </View>
 
         {/* Amount */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>Amount (₦)</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.electricityScreen.amountLabel")}</Text>
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 12 }}>
           <TextInput
             value={amount}
             onChangeText={(text) => { setAmount(text.replace(/[^0-9]/g, "")); setError(""); }}
-            placeholder="Enter amount"
+            placeholder={t("utility.electricityScreen.amountPh")}
+            accessibilityLabel={t("utility.electricityScreen.amountLabel")}
             placeholderTextColor={colors.textLight}
             keyboardType="number-pad"
             style={{ fontSize: 24, fontWeight: "700", color: colors.text, paddingVertical: 16 }}
           />
         </View>
+        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8, paddingLeft: 4 }}>
+          {t("utility.electricityScreen.minHint", { amount: naira(minAmount) })}
+        </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
-          {QUICK_AMOUNTS.map((value) => (
-            <TouchableOpacity
-              key={value}
-              onPress={() => setAmount(value.toString())}
-              style={{ backgroundColor: Number(amount) === value ? colors.primary : colors.surface, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: Number(amount) === value ? colors.primary : colors.border }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: Number(amount) === value ? colors.white : colors.text }}>₦{value.toLocaleString()}</Text>
-            </TouchableOpacity>
-          ))}
+          {QUICK_AMOUNTS.map((value) => {
+            const selected = Number(amount) === value;
+            return (
+              <TouchableOpacity
+                key={value}
+                onPress={() => setAmount(value.toString())}
+                accessibilityRole="button"
+                accessibilityLabel={naira(value)}
+                accessibilityState={{ selected }}
+                style={{ backgroundColor: selected ? colors.primary : colors.surface, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: selected ? colors.primary : colors.border }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.text }}>{naira(value)}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
 
@@ -214,13 +265,16 @@ export default function ElectricityScreen({ navigation }) {
         <TouchableOpacity
           onPress={handlePurchase}
           disabled={isLoading}
+          accessibilityRole="button"
+          accessibilityLabel={amount ? t("utility.electricityScreen.payCta", { amount: naira(amount) }) : t("utility.electricityScreen.enterAmountCta")}
+          accessibilityState={{ disabled: isLoading, busy: isLoading }}
           style={{ backgroundColor: amount ? colors.primary : colors.textLight, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={colors.white} />
+            <ActivityIndicator size="small" color={colors.white} accessibilityLabel={t("common.loading")} />
           ) : (
             <Text style={{ color: colors.white, fontSize: 16, fontWeight: "800" }}>
-              {amount ? `Pay ₦${Number(amount).toLocaleString()}` : "Enter Amount"}
+              {amount ? t("utility.electricityScreen.payCta", { amount: naira(amount) }) : t("utility.electricityScreen.enterAmountCta")}
             </Text>
           )}
         </TouchableOpacity>
@@ -231,8 +285,8 @@ export default function ElectricityScreen({ navigation }) {
         onClose={() => setShowPinSheet(false)}
         onConfirm={handlePinConfirm}
         onForgotPin={() => { setShowPinSheet(false); navigation.navigate("ChangePin"); }}
-        title="Confirm Payment"
-        subtitle={`₦${Number(amount).toLocaleString()} electricity for meter ${meterNumber}`}
+        title={t("utility.electricityScreen.pinTitle")}
+        subtitle={t("utility.electricityScreen.pinSubtitle", { amount: naira(amount), disco: selectedDisco?.networkName || "" })}
       />
     </SafeAreaView>
   );

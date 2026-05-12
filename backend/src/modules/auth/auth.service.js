@@ -43,13 +43,13 @@ const register = async ({
   // Only block if an ACTIVE (verified) user already has this email
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    throw AppError.conflict("Email already registered");
+    throw AppError.conflict("Email already registered", { code: "EMAIL_TAKEN" });
   }
 
   if (phone) {
     const phoneExists = await prisma.user.findUnique({ where: { phone } });
     if (phoneExists) {
-      throw AppError.conflict("Phone number already registered");
+      throw AppError.conflict("Phone number already registered", { code: "PHONE_TAKEN" });
     }
   }
 
@@ -82,15 +82,15 @@ const login = async ({ email, password }, sessionMeta = {}) => {
   });
 
   if (!user) {
-    throw AppError.unauthorized("Invalid email or password");
+    throw AppError.unauthorized("Invalid email or password", { code: "INVALID_CREDENTIALS" });
   }
 
   if (user.status === "SUSPENDED") {
-    throw AppError.forbidden("Account suspended. Contact support.");
+    throw AppError.forbidden("Account suspended. Contact support.", { code: "ACCOUNT_SUSPENDED" });
   }
 
   if (user.status === "DEACTIVATED") {
-    throw AppError.forbidden("Account deactivated");
+    throw AppError.forbidden("Account deactivated", { code: "ACCOUNT_DEACTIVATED" });
   }
 
   if (user.status === "PENDING") {
@@ -100,12 +100,12 @@ const login = async ({ email, password }, sessionMeta = {}) => {
   }
 
   if (!user.passwordHash) {
-    throw AppError.badRequest("Password is required to login");
+    throw AppError.badRequest("Password is required to login", { code: "PASSWORD_REQUIRED" });
   }
 
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
-    throw AppError.unauthorized("Invalid email or password");
+    throw AppError.unauthorized("Invalid email or password", { code: "INVALID_CREDENTIALS" });
   }
 
   const tokens = generateTokens(user);
@@ -185,11 +185,11 @@ const verifyOtp = async (email, code) => {
   const storedCode = await redis.get(otpKey);
 
   if (!storedCode) {
-    throw AppError.badRequest("OTP expired or not found. Request a new one.");
+    throw AppError.badRequest("OTP expired or not found. Request a new one.", { code: "OTP_EXPIRED" });
   }
 
   if (storedCode !== code) {
-    throw AppError.badRequest("Invalid OTP code");
+    throw AppError.badRequest("Invalid OTP code", { code: "INVALID_OTP" });
   }
 
   // Delete OTP after successful verification
@@ -272,7 +272,7 @@ const refreshAccessToken = async (refreshToken, sessionMeta = {}) => {
   });
 
   if (!session || session.isRevoked || session.expiresAt < new Date()) {
-    throw AppError.unauthorized("Invalid or expired refresh token");
+    throw AppError.unauthorized("Invalid or expired refresh token", { code: "REFRESH_TOKEN_INVALID" });
   }
 
   const tokens = generateTokens(session.user);
@@ -309,7 +309,7 @@ const setTransactionPin = async (userId, pin) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
   if (user.transactionPin) {
-    throw AppError.conflict("Transaction PIN already set. Use change PIN.");
+    throw AppError.conflict("Transaction PIN already set. Use change PIN.", { code: "PIN_ALREADY_SET" });
   }
 
   const hashedPin = await bcrypt.hash(pin, SALT_ROUNDS);
@@ -367,7 +367,7 @@ const verifyTransactionPin = async (userId, pin) => {
   });
 
   if (!user.transactionPin) {
-    throw AppError.badRequest("Transaction PIN not set");
+    throw AppError.badRequest("Transaction PIN not set", { code: "PIN_NOT_SET" });
   }
 
   const isValid = await bcrypt.compare(pin, user.transactionPin);
@@ -429,17 +429,17 @@ const resetPassword = async (email, code, newPassword) => {
   const storedCode = await redis.get(otpKey);
 
   if (!storedCode) {
-    throw AppError.badRequest("OTP expired or not found. Request a new one.");
+    throw AppError.badRequest("OTP expired or not found. Request a new one.", { code: "OTP_EXPIRED" });
   }
   if (storedCode !== code) {
-    throw AppError.badRequest("Invalid reset code.");
+    throw AppError.badRequest("Invalid reset code.", { code: "INVALID_OTP" });
   }
 
   await redis.del(otpKey);
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || user.status !== "ACTIVE") {
-    throw AppError.badRequest("No active account found for this email.");
+    throw AppError.badRequest("No active account found for this email.", { code: "ACCOUNT_NOT_FOUND" });
   }
 
   const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
@@ -567,7 +567,7 @@ const updateProfile = async (userId, data) => {
       where: { phone: data.phone },
     });
     if (phoneOwner && phoneOwner.id !== userId) {
-      throw AppError.conflict("Phone number already in use");
+      throw AppError.conflict("Phone number already in use", { code: "PHONE_TAKEN" });
     }
   }
 
@@ -624,12 +624,33 @@ const updateProfilePicture = async (userId, url) => {
  * Returns the wallet payload (with NUBAN if provisioned synchronously) so the
  * client can show "your account is ready" immediately.
  */
-const verifyBvn = async (userId, { bvn, firstName, lastName }) => {
+const verifyBvn = async (userId, { bvn, firstName, lastName }, context = {}) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { wallet: true },
   });
   if (!user) throw AppError.notFound("User not found");
+
+  // Hash the attempted BVN up-front so we can record every outcome
+  // (success / failure / recovery) in the compliance log without storing
+  // the plaintext value.
+  const attemptedHash = await bcrypt.hash(bvn, SALT_ROUNDS);
+  const logAttempt = (outcome, reason = null, metadata = null) =>
+    prisma.bvnVerificationLog
+      .create({
+        data: {
+          userId,
+          bvnHash: attemptedHash,
+          outcome,
+          reason,
+          ipAddress: context.ipAddress || null,
+          userAgent: context.userAgent || null,
+          metadata: metadata || undefined,
+        },
+      })
+      .catch((err) =>
+        logger.error('Failed to write BvnVerificationLog', { userId, outcome, error: err.message }),
+      );
 
   // Idempotency / recovery: if the user is already VERIFIED but has no NUBAN
   // (KatPay was down during the original KYC), let the call succeed and
@@ -637,42 +658,49 @@ const verifyBvn = async (userId, { bvn, firstName, lastName }) => {
   // re-verify (conflict) and the queue retry has already exhausted.
   const alreadyVerified = user.kycStatus === 'VERIFIED';
   if (alreadyVerified && user.wallet?.virtualAccountNumber) {
+    await logAttempt('FAILED', 'Already verified with active NUBAN');
     throw AppError.conflict('BVN already verified');
   }
 
   if (!alreadyVerified) {
     // TODO: Replace with actual BVN merchant API call (Smile ID / Flutterwave).
-    // if (!result.matched) throw AppError.badRequest("BVN verification failed");
-    const bvnHash = await bcrypt.hash(bvn, SALT_ROUNDS);
+    // if (!result.matched) {
+    //   await logAttempt('FAILED', 'Provider rejected BVN', { matched: false });
+    //   throw AppError.badRequest("BVN verification failed");
+    // }
 
     // Atomically: persist bvnHash + flip kycStatus. If a wallet doesn't exist
     // yet (shouldn't happen for verified users, but defensive), create one.
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
-        data: { bvnHash, kycStatus: 'VERIFIED' },
+        data: { bvnHash: attemptedHash, kycStatus: 'VERIFIED' },
       });
       if (!user.wallet) {
         await tx.wallet.create({ data: { userId, balance: 0 } });
       }
     });
 
+    await logAttempt('SUCCESS');
     logger.info('BVN verified', { userId });
   } else {
     // Recovery path: user is already VERIFIED but provisioning never finished.
     // Require them to re-submit the SAME BVN — otherwise anyone with a session
     // could trigger arbitrary KatPay calls on this account.
     if (!user.bvnHash) {
+      await logAttempt('FAILED', 'Stored hash missing on recovery attempt');
       throw AppError.badRequest('BVN re-verification not possible: stored hash missing');
     }
     const matches = await bcrypt.compare(bvn, user.bvnHash);
     if (!matches) {
+      await logAttempt('FAILED', 'BVN does not match stored hash (recovery)');
       throw AppError.badRequest('BVN does not match the previously verified value');
     }
     // Defensive: ensure a wallet row exists for the provisioning step below.
     if (!user.wallet) {
       await prisma.wallet.create({ data: { userId, balance: 0 } });
     }
+    await logAttempt('RECOVERY', 'Re-verify to recover failed virtual-account provisioning');
     logger.info('BVN re-verify: provisioning recovery for verified user without NUBAN', { userId });
   }
 
@@ -833,9 +861,24 @@ const updateNotificationPreferences = async (userId, data) => {
 };
 
 /**
- * Generate Cloudinary upload signature for direct browser upload.
+ * Generate Cloudinary upload signature for direct upload from the client.
+ *
+ * `kind` selects the folder + publicId convention:
+ *   - "profile"      → vtu-logistics/profiles/{userId}/profile_{ts}      (default)
+ *   - "prescription" → vtu-logistics/prescriptions/{userId}/rx_{ts}_{nonce}
+ *   - "return"       → vtu-logistics/returns/{userId}/return_{ts}_{nonce} (Phase 8.5)
+ *
+ * Each issued signature is logged with the customer id + folder. The durable
+ * audit trail of *which* prescription was used for *which* order lives on
+ * `Request.prescriptionUrl`, persisted at order-create time.
  */
-const getCloudinaryUploadSignature = (userId) => {
+const UPLOAD_KINDS = {
+  profile: { root: "profiles", prefix: "profile" },
+  prescription: { root: "prescriptions", prefix: "rx" },
+  return: { root: "returns", prefix: "return" },
+};
+
+const getCloudinaryUploadSignature = (userId, kind = "profile") => {
   const cloudName = config.CLOUDINARY_CLOUD_NAME;
   const apiKey = config.CLOUDINARY_API_KEY;
   const apiSecret = config.CLOUDINARY_API_SECRET;
@@ -844,16 +887,29 @@ const getCloudinaryUploadSignature = (userId) => {
     throw AppError.serviceUnavailable("Cloudinary not configured");
   }
 
-  const timestamp = Math.round(new Date().getTime() / 1000);
-  const folder = `vtu-logistics/profiles/${userId}`;
-  const publicId = `profile_${timestamp}`;
+  const spec = UPLOAD_KINDS[kind];
+  if (!spec) {
+    throw AppError.badRequest(`Unsupported upload kind: ${kind}`);
+  }
 
-  // Generate signature
+  const crypto = require("crypto");
+  const timestamp = Math.round(new Date().getTime() / 1000);
+  const folder = `vtu-logistics/${spec.root}/${userId}`;
+  // Prescription / return docs add a short nonce so two uploads in the same
+  // second don't collide on publicId. Profiles keep the legacy shape.
+  const publicId = kind === "profile"
+    ? `${spec.prefix}_${timestamp}`
+    : `${spec.prefix}_${timestamp}_${crypto.randomBytes(4).toString("hex")}`;
+
   const signatureString = `folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
-  const signature = require("crypto")
-    .createHash("sha1")
-    .update(signatureString)
-    .digest("hex");
+  const signature = crypto.createHash("sha1").update(signatureString).digest("hex");
+
+  // Compliance audit trail: every signature issuance is captured in the
+  // application log. Pharmacy / returns moderation can reconcile from this
+  // when investigating a specific upload.
+  logger.info("cloudinary.upload_signature.issued", {
+    userId, kind, folder, publicId, timestamp,
+  });
 
   return {
     signature,
@@ -862,6 +918,7 @@ const getCloudinaryUploadSignature = (userId) => {
     cloudName,
     folder,
     publicId,
+    kind,
   };
 };
 
@@ -931,6 +988,16 @@ const deleteAccount = async (userId) => {
   ]);
 
   logger.info('User account deleted', { userId });
+
+  // Drop this user from the socket-auth cache so the next reconnect re-reads
+  // and refuses the (now DEACTIVATED) account.
+  try {
+    const { invalidateUserAuthCache } = require('../../sockets');
+    invalidateUserAuthCache(userId);
+  } catch (_) {
+    // Sockets not initialized in this process (e.g. CLI script) — ignore.
+  }
+
   return { message: 'Account deleted successfully' };
 };
 
@@ -976,7 +1043,7 @@ const merchantRegister = async ({
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
-    throw AppError.conflict("Email already registered");
+    throw AppError.conflict("Email already registered", { code: "EMAIL_TAKEN" });
   }
 
   // Check if phone already exists
@@ -1074,10 +1141,10 @@ const requestPhoneChange = async (userId, { newPhone, password }) => {
   if (!user.passwordHash) throw AppError.badRequest('Password not set on this account');
 
   const passwordOk = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordOk) throw AppError.unauthorized('Incorrect password');
+  if (!passwordOk) throw AppError.unauthorized('Incorrect password', { code: 'INCORRECT_PASSWORD' });
 
   const existing = await prisma.user.findUnique({ where: { phone: newPhone } });
-  if (existing) throw AppError.conflict('Phone number already in use');
+  if (existing) throw AppError.conflict('Phone number already in use', { code: 'PHONE_TAKEN' });
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const key = `phone:change:${userId}`;
@@ -1119,9 +1186,11 @@ const confirmPhoneChange = async (userId, { newPhone, otp }) => {
   const raw = await redis.get(key);
   if (!raw) throw AppError.badRequest('OTP expired or not requested. Please start again.');
 
-  const { newPhone: storedPhone, oldPhone, code } = JSON.parse(raw);
+  // Rename the redis-stored `code` to `expectedOtp` so it doesn't shadow the
+  // `code` property we pass on the AppError options below.
+  const { newPhone: storedPhone, oldPhone, code: expectedOtp } = JSON.parse(raw);
   if (storedPhone !== newPhone) throw AppError.badRequest('Phone number mismatch');
-  if (code !== otp) throw AppError.badRequest('Invalid OTP');
+  if (expectedOtp !== otp) throw AppError.badRequest('Invalid OTP', { code: 'INVALID_OTP' });
 
   await prisma.user.update({ where: { id: userId }, data: { phone: newPhone } });
   await redis.del(key);

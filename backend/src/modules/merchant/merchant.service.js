@@ -6,6 +6,36 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
+const { getIO } = require('../../sockets');
+const { MERCHANT, getMerchantRoom } = require('../../sockets/events');
+// Phase 8 — merchant accept/reject/status routes delegate the actual lifecycle
+// transition to request.service.updateStatus so socket emits, push
+// notifications, lifecycle timestamps, FSM checks, and rider-matching dispatch
+// all flow through a single pipeline. The merchant-side ownership guard runs
+// before the delegation for clearer error responses.
+const requestService = require('../request/request.service');
+
+/**
+ * Broadcast a `merchant:menu:updated` event to anyone watching this merchant
+ * (customers on MerchantMenuScreen, the merchant's own dashboard).
+ *
+ * Mobile customer app refetches the menu on receipt, so 86-ing an option item
+ * or marking a variant unavailable propagates within socket-roundtrip latency
+ * (target: <30s per Phase 2 AC). Wrapped in try/catch so socket failures never
+ * block the underlying CRUD.
+ */
+const broadcastMenuUpdate = (merchantId, payload = {}) => {
+  try {
+    const io = getIO();
+    io.to(getMerchantRoom(merchantId)).emit(MERCHANT.MENU_UPDATED, {
+      merchantId,
+      timestamp: Date.now(),
+      ...payload,
+    });
+  } catch (err) {
+    logger.warn('broadcastMenuUpdate failed (non-fatal)', { merchantId, error: err.message });
+  }
+};
 
 // ============================================================
 // Create Merchant
@@ -111,12 +141,22 @@ const getMerchantById = async (merchantId) => {
       products: {
         where: { isAvailable: true },
         orderBy: { name: 'asc' },
+        include: {
+          variants: {
+            where: { isAvailable: true },
+            orderBy: { price: 'asc' },
+          },
+          optionGroups: {
+            orderBy: { sortOrder: 'asc' },
+            include: { items: { orderBy: { sortOrder: 'asc' } } },
+          },
+        },
       },
     },
   });
-  
+
   if (!merchant) throw AppError.notFound('Merchant not found');
-  
+
   return merchant;
 };
 
@@ -227,12 +267,21 @@ const getMerchantOrders = async (merchantId, userId, role, { status, page, limit
       include: {
         customer: { select: { firstName: true, lastName: true, phone: true } },
         rider: { select: { vehicleType: true, plateNumber: true } },
-        items: true,
+        items: {
+          // Phase 8 — include product.requiresPrescription / dosage so the
+          // merchant kitchen ticket can render the Rx pill per line. The
+          // substitution column is on RequestItem itself and comes back by default.
+          include: {
+            product: {
+              select: { id: true, name: true, requiresPrescription: true, dosage: true },
+            },
+          },
+        },
       },
     }),
     prisma.request.count({ where }),
   ]);
-  
+
   return { requests, total, page, limit };
 };
 
@@ -407,107 +456,55 @@ const getMerchantProfile = async (merchantId, userId, role) => {
   return merchant;
 };
 
-const acceptMerchantOrder = async (merchantId, userId, role, requestId) => {
-  const merchant = await prisma.merchant.findUnique({
-    where: { id: merchantId },
-  });
-
+/**
+ * Verify the caller (acting as a merchant) actually owns the request the
+ * client is trying to mutate. Centralizes the ownership guard so accept /
+ * reject / status all fail identically when called against the wrong order.
+ */
+const assertMerchantOwnsRequest = async (merchantId, userId, role, requestId) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
   if (!merchant) throw AppError.notFound('Merchant not found');
-
-  // Authorization: only merchant owner can accept orders
   if (role === 'MERCHANT' && merchant.userId !== userId) {
     throw AppError.forbidden('Not your merchant profile');
   }
 
-  const request = await prisma.request.findUnique({
-    where: { id: requestId },
-  });
-
+  const request = await prisma.request.findUnique({ where: { id: requestId } });
   if (!request) throw AppError.notFound('Request not found');
   if (request.merchantId !== merchantId) {
     throw AppError.badRequest('This order is not for your merchant');
   }
-  if (request.status !== 'REQUESTED') {
-    throw AppError.badRequest('Order cannot be accepted in current status');
-  }
+  return { merchant, request };
+};
 
-  const updated = await prisma.request.update({
-    where: { id: requestId },
-    data: { status: 'ACCEPTED' },
-  });
-
+const acceptMerchantOrder = async (merchantId, userId, role, requestId) => {
+  await assertMerchantOwnsRequest(merchantId, userId, role, requestId);
+  // Delegate. updateStatus enforces FSM (REQUESTED→ACCEPTED), sets
+  // `acceptedAt`, emits `request:status:changed` to the customer/merchant
+  // rooms, and dispatches the push notification + Notification Center row.
+  const updated = await requestService.updateStatus(requestId, 'ACCEPTED', userId, 'MERCHANT');
   logger.info('Merchant order accepted', { merchantId, requestId });
-
   return updated;
 };
 
 const rejectMerchantOrder = async (merchantId, userId, role, requestId, reason) => {
-  const merchant = await prisma.merchant.findUnique({
-    where: { id: merchantId },
-  });
-
-  if (!merchant) throw AppError.notFound('Merchant not found');
-
-  // Authorization: only merchant owner can reject orders
-  if (role === 'MERCHANT' && merchant.userId !== userId) {
-    throw AppError.forbidden('Not your merchant profile');
-  }
-
-  const request = await prisma.request.findUnique({
-    where: { id: requestId },
-  });
-
-  if (!request) throw AppError.notFound('Request not found');
-  if (request.merchantId !== merchantId) {
-    throw AppError.badRequest('This order is not for your merchant');
-  }
-  if (request.status !== 'REQUESTED') {
-    throw AppError.badRequest('Order cannot be rejected in current status');
-  }
-
-  const updated = await prisma.request.update({
-    where: { id: requestId },
-    data: { status: 'CANCELLED', cancellationReason: reason },
-  });
-
+  await assertMerchantOwnsRequest(merchantId, userId, role, requestId);
+  // CANCELLED also triggers REFUND_REQUEST via the request worker, ensuring
+  // the customer's escrow is released without a separate code path here.
+  const updated = await requestService.updateStatus(requestId, 'CANCELLED', userId, 'MERCHANT', reason);
   logger.info('Merchant order rejected', { merchantId, requestId, reason });
-
   return updated;
 };
 
 const updateMerchantOrderStatus = async (merchantId, userId, role, requestId, status) => {
-  const merchant = await prisma.merchant.findUnique({
-    where: { id: merchantId },
-  });
-
-  if (!merchant) throw AppError.notFound('Merchant not found');
-
-  // Authorization: only merchant owner can update order status
-  if (role === 'MERCHANT' && merchant.userId !== userId) {
-    throw AppError.forbidden('Not your merchant profile');
-  }
-
-  const request = await prisma.request.findUnique({
-    where: { id: requestId },
-  });
-
-  if (!request) throw AppError.notFound('Request not found');
-  if (request.merchantId !== merchantId) {
-    throw AppError.badRequest('This order is not for your merchant');
-  }
-
   const validStatuses = ['PROCESSING', 'READY_FOR_PICKUP'];
   if (!validStatuses.includes(status)) {
     throw AppError.badRequest('Invalid status update');
   }
-
-  const updated = await prisma.request.update({
-    where: { id: requestId },
-    data: { status },
-  });
-
+  await assertMerchantOwnsRequest(merchantId, userId, role, requestId);
+  // READY_FOR_PICKUP also queues BROADCAST_TO_RIDERS inside updateStatus,
+  // so the rider-matching worker fires without a separate hook here.
+  const updated = await requestService.updateStatus(requestId, status, userId, 'MERCHANT');
   logger.info('Merchant order status updated', { merchantId, requestId, status });
-
   return updated;
 };
 
@@ -572,7 +569,6 @@ const getMerchantProducts = async (merchantId, userId, role, { page, limit }) =>
 
   if (!merchant) throw AppError.notFound('Merchant not found');
 
-  // Authorization: only merchant owner can view their products
   if (role === 'MERCHANT' && merchant.userId !== userId) {
     throw AppError.forbidden('Not your merchant profile');
   }
@@ -583,6 +579,13 @@ const getMerchantProducts = async (merchantId, userId, role, { page, limit }) =>
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        variants: { orderBy: { price: 'asc' } },
+        optionGroups: {
+          orderBy: { sortOrder: 'asc' },
+          include: { items: { orderBy: { sortOrder: 'asc' } } },
+        },
+      },
     }),
     prisma.product.count({ where: { merchantId } }),
   ]);
@@ -590,26 +593,122 @@ const getMerchantProducts = async (merchantId, userId, role, { page, limit }) =>
   return { products, total, page, limit };
 };
 
-const createMerchantProduct = async (merchantId, userId, role, productData) => {
-  const merchant = await prisma.merchant.findUnique({
-    where: { id: merchantId },
-  });
-
+const getMerchantProductById = async (merchantId, userId, role, productId) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
   if (!merchant) throw AppError.notFound('Merchant not found');
-
-  // Authorization: only merchant owner can create products
   if (role === 'MERCHANT' && merchant.userId !== userId) {
     throw AppError.forbidden('Not your merchant profile');
   }
 
-  const product = await prisma.product.create({
-    data: {
-      ...productData,
-      merchantId,
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      variants: { orderBy: { price: 'asc' } },
+      optionGroups: {
+        orderBy: { sortOrder: 'asc' },
+        include: { items: { orderBy: { sortOrder: 'asc' } } },
+      },
     },
   });
 
-  logger.info('Merchant product created', { merchantId, productId: product.id });
+  if (!product || product.merchantId !== merchantId) throw AppError.notFound('Product not found');
+  return product;
+};
+
+/**
+ * Build a human-readable packLabel from packSize + packUnit when caller didn't provide one.
+ */
+const formatPackLabel = (packSize, packUnit) => {
+  if (!packSize || !packUnit) return null;
+  const unit = String(packUnit).toLowerCase();
+  return `${packSize} ${unit}`;
+};
+
+const VARIANT_CAP_PER_PRODUCT = 100;
+
+/**
+ * Create a product. Inline `variants` and `optionGroups` are optional;
+ * when omitted we synthesize one default variant from basePrice/stock so every
+ * Product always has at least one variant (single SKU or many — same code path).
+ */
+const createMerchantProduct = async (merchantId, userId, role, productData) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (role === 'MERCHANT' && merchant.userId !== userId) {
+    throw AppError.forbidden('Not your merchant profile');
+  }
+
+  const { variants, optionGroups, ...rest } = productData;
+
+  if (variants && variants.length > VARIANT_CAP_PER_PRODUCT) {
+    throw AppError.badRequest(`Variant count exceeds the ${VARIANT_CAP_PER_PRODUCT}-per-product limit`);
+  }
+
+  const product = await prisma.$transaction(async (tx) => {
+    const created = await tx.product.create({ data: { ...rest, merchantId } });
+
+    const variantInputs = (variants && variants.length > 0)
+      ? variants
+      : [{
+          attributes: {},
+          price: Number(rest.basePrice),
+          stock: rest.stock ?? 0,
+          isAvailable: rest.isAvailable ?? true,
+        }];
+
+    await tx.productVariant.createMany({
+      data: variantInputs.map((v) => ({
+        productId: created.id,
+        sku: v.sku || null,
+        attributes: v.attributes || {},
+        packSize: v.packSize ?? null,
+        packUnit: v.packUnit || null,
+        packLabel: v.packLabel || formatPackLabel(v.packSize, v.packUnit),
+        price: v.price,
+        stock: v.stock ?? 0,
+        imageUrl: v.imageUrl || null,
+        isAvailable: v.isAvailable ?? true,
+      })),
+    });
+
+    if (optionGroups && optionGroups.length > 0) {
+      for (const group of optionGroups) {
+        await tx.productOptionGroup.create({
+          data: {
+            productId: created.id,
+            name: group.name,
+            selectionRule: group.selectionRule,
+            minSelect: group.minSelect ?? 0,
+            maxSelect: group.maxSelect ?? 1,
+            sortOrder: group.sortOrder ?? 0,
+            items: {
+              create: (group.items || []).map((it) => ({
+                name: it.name,
+                priceDelta: it.priceDelta ?? 0,
+                isDefault: it.isDefault ?? false,
+                isAvailable: it.isAvailable ?? true,
+                sortOrder: it.sortOrder ?? 0,
+              })),
+            },
+          },
+        });
+      }
+    }
+
+    return tx.product.findUnique({
+      where: { id: created.id },
+      include: {
+        variants: { orderBy: { price: 'asc' } },
+        optionGroups: {
+          orderBy: { sortOrder: 'asc' },
+          include: { items: { orderBy: { sortOrder: 'asc' } } },
+        },
+      },
+    });
+  });
+
+  logger.info('Merchant product created', { merchantId, productId: product.id, variants: product.variants.length });
+  broadcastMenuUpdate(merchantId, { kind: 'PRODUCT_CREATED', productId: product.id });
 
   return product;
 };
@@ -641,6 +740,7 @@ const updateMerchantProduct = async (merchantId, userId, role, productId, produc
   });
 
   logger.info('Merchant product updated', { merchantId, productId });
+  broadcastMenuUpdate(merchantId, { kind: 'PRODUCT_UPDATED', productId });
 
   return updated;
 };
@@ -671,6 +771,7 @@ const deleteMerchantProduct = async (merchantId, userId, role, productId) => {
   });
 
   logger.info('Merchant product deleted', { merchantId, productId });
+  broadcastMenuUpdate(merchantId, { kind: 'PRODUCT_DELETED', productId });
 
   return { success: true };
 };
@@ -702,6 +803,7 @@ const toggleMerchantProductAvailability = async (merchantId, userId, role, produ
   });
 
   logger.info('Merchant product availability toggled', { merchantId, productId, isAvailable });
+  broadcastMenuUpdate(merchantId, { kind: 'PRODUCT_AVAILABILITY', productId, isAvailable });
 
   return updated;
 };
@@ -838,6 +940,285 @@ const getMerchantEarningsBreakdown = async (merchantId, userId, role, { period =
   };
 };
 
+// ============================================================
+// Variant CRUD (nested under product)
+// ============================================================
+
+const assertOwnsProduct = async (merchantId, userId, role, productId) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (role === 'MERCHANT' && merchant.userId !== userId) {
+    throw AppError.forbidden('Not your merchant profile');
+  }
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product || product.merchantId !== merchantId) {
+    throw AppError.notFound('Product not found');
+  }
+  return { merchant, product };
+};
+
+const createProductVariant = async (merchantId, userId, role, productId, variantData) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+
+  const count = await prisma.productVariant.count({ where: { productId } });
+  if (count >= VARIANT_CAP_PER_PRODUCT) {
+    throw AppError.badRequest(`Variant count exceeds the ${VARIANT_CAP_PER_PRODUCT}-per-product limit`);
+  }
+
+  const variant = await prisma.productVariant.create({
+    data: {
+      productId,
+      sku: variantData.sku || null,
+      attributes: variantData.attributes || {},
+      packSize: variantData.packSize ?? null,
+      packUnit: variantData.packUnit || null,
+      packLabel: variantData.packLabel || formatPackLabel(variantData.packSize, variantData.packUnit),
+      price: variantData.price,
+      stock: variantData.stock ?? 0,
+      imageUrl: variantData.imageUrl || null,
+      isAvailable: variantData.isAvailable ?? true,
+    },
+  });
+
+  logger.info('ProductVariant created', { productId, variantId: variant.id });
+  broadcastMenuUpdate(merchantId, { kind: 'VARIANT_CREATED', productId, variantId: variant.id });
+  return variant;
+};
+
+const updateProductVariant = async (merchantId, userId, role, productId, variantId, patch) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const existing = await prisma.productVariant.findUnique({ where: { id: variantId } });
+  if (!existing || existing.productId !== productId) throw AppError.notFound('Variant not found');
+
+  const data = { ...patch };
+  if (patch.packSize !== undefined || patch.packUnit !== undefined) {
+    if (data.packLabel === undefined) {
+      data.packLabel = formatPackLabel(
+        patch.packSize ?? existing.packSize,
+        patch.packUnit ?? existing.packUnit,
+      );
+    }
+  }
+
+  const updated = await prisma.productVariant.update({ where: { id: variantId }, data });
+  broadcastMenuUpdate(merchantId, { kind: 'VARIANT_UPDATED', productId, variantId });
+  return updated;
+};
+
+const deleteProductVariant = async (merchantId, userId, role, productId, variantId) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const existing = await prisma.productVariant.findUnique({ where: { id: variantId } });
+  if (!existing || existing.productId !== productId) throw AppError.notFound('Variant not found');
+
+  const remaining = await prisma.productVariant.count({ where: { productId } });
+  if (remaining <= 1) {
+    throw AppError.badRequest('Cannot delete the last variant; a product must have at least one variant');
+  }
+
+  await prisma.productVariant.delete({ where: { id: variantId } });
+  broadcastMenuUpdate(merchantId, { kind: 'VARIANT_DELETED', productId, variantId });
+  return { success: true };
+};
+
+// ============================================================
+// Option-Group CRUD (nested under product) + Item CRUD
+// ============================================================
+
+const createOptionGroup = async (merchantId, userId, role, productId, groupData) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const group = await prisma.productOptionGroup.create({
+    data: {
+      productId,
+      name: groupData.name,
+      selectionRule: groupData.selectionRule,
+      minSelect: groupData.minSelect ?? 0,
+      maxSelect: groupData.maxSelect ?? 1,
+      sortOrder: groupData.sortOrder ?? 0,
+      items: {
+        create: (groupData.items || []).map((it) => ({
+          name: it.name,
+          priceDelta: it.priceDelta ?? 0,
+          isDefault: it.isDefault ?? false,
+          isAvailable: it.isAvailable ?? true,
+          sortOrder: it.sortOrder ?? 0,
+        })),
+      },
+    },
+    include: { items: { orderBy: { sortOrder: 'asc' } } },
+  });
+  broadcastMenuUpdate(merchantId, { kind: 'OPTION_GROUP_CREATED', productId, groupId: group.id });
+  return group;
+};
+
+const updateOptionGroup = async (merchantId, userId, role, productId, groupId, patch) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const existing = await prisma.productOptionGroup.findUnique({ where: { id: groupId } });
+  if (!existing || existing.productId !== productId) throw AppError.notFound('Option group not found');
+  const updated = await prisma.productOptionGroup.update({ where: { id: groupId }, data: patch });
+  broadcastMenuUpdate(merchantId, { kind: 'OPTION_GROUP_UPDATED', productId, groupId });
+  return updated;
+};
+
+const deleteOptionGroup = async (merchantId, userId, role, productId, groupId) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const existing = await prisma.productOptionGroup.findUnique({ where: { id: groupId } });
+  if (!existing || existing.productId !== productId) throw AppError.notFound('Option group not found');
+  await prisma.productOptionGroup.delete({ where: { id: groupId } });
+  broadcastMenuUpdate(merchantId, { kind: 'OPTION_GROUP_DELETED', productId, groupId });
+  return { success: true };
+};
+
+const createOptionItem = async (merchantId, userId, role, productId, groupId, itemData) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const group = await prisma.productOptionGroup.findUnique({ where: { id: groupId } });
+  if (!group || group.productId !== productId) throw AppError.notFound('Option group not found');
+  const item = await prisma.productOptionItem.create({
+    data: {
+      groupId,
+      name: itemData.name,
+      priceDelta: itemData.priceDelta ?? 0,
+      isDefault: itemData.isDefault ?? false,
+      isAvailable: itemData.isAvailable ?? true,
+      sortOrder: itemData.sortOrder ?? 0,
+    },
+  });
+  broadcastMenuUpdate(merchantId, { kind: 'OPTION_ITEM_CREATED', productId, groupId, itemId: item.id });
+  return item;
+};
+
+const updateOptionItem = async (merchantId, userId, role, productId, groupId, itemId, patch) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const item = await prisma.productOptionItem.findUnique({ where: { id: itemId } });
+  if (!item || item.groupId !== groupId) throw AppError.notFound('Option item not found');
+  const updated = await prisma.productOptionItem.update({ where: { id: itemId }, data: patch });
+  broadcastMenuUpdate(merchantId, { kind: 'OPTION_ITEM_UPDATED', productId, groupId, itemId });
+  return updated;
+};
+
+const deleteOptionItem = async (merchantId, userId, role, productId, groupId, itemId) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+  const item = await prisma.productOptionItem.findUnique({ where: { id: itemId } });
+  if (!item || item.groupId !== groupId) throw AppError.notFound('Option item not found');
+  await prisma.productOptionItem.delete({ where: { id: itemId } });
+  broadcastMenuUpdate(merchantId, { kind: 'OPTION_ITEM_DELETED', productId, groupId, itemId });
+  return { success: true };
+};
+
+/**
+ * Replace the full set of option groups + items on a product in one call.
+ * Used by menu import / template-apply on the merchant dashboard so the
+ * caller doesn't have to coordinate N CRUD requests.
+ *
+ * Semantics:
+ *   - Groups (and items) present by id are updated in place.
+ *   - Groups (and items) missing an id are created.
+ *   - Groups (and items) present on the product but absent from the payload
+ *     are deleted.
+ * The whole reconciliation runs in a single transaction so a partial
+ * failure leaves the product's menu untouched.
+ */
+const bulkUpsertOptionGroups = async (merchantId, userId, role, productId, groups) => {
+  await assertOwnsProduct(merchantId, userId, role, productId);
+
+  const incoming = Array.isArray(groups) ? groups : [];
+  const incomingGroupIds = new Set(incoming.filter((g) => g.id).map((g) => g.id));
+
+  await prisma.$transaction(async (tx) => {
+    const existingGroups = await tx.productOptionGroup.findMany({
+      where: { productId },
+      include: { items: true },
+    });
+
+    // Delete groups that are no longer present in the payload.
+    const groupsToDelete = existingGroups.filter((g) => !incomingGroupIds.has(g.id));
+    if (groupsToDelete.length > 0) {
+      await tx.productOptionGroup.deleteMany({
+        where: { id: { in: groupsToDelete.map((g) => g.id) } },
+      });
+    }
+
+    // Upsert each incoming group + reconcile its items.
+    for (let gi = 0; gi < incoming.length; gi++) {
+      const group = incoming[gi];
+      const sortOrder = group.sortOrder ?? gi;
+
+      let groupRow;
+      if (group.id && existingGroups.find((eg) => eg.id === group.id)) {
+        groupRow = await tx.productOptionGroup.update({
+          where: { id: group.id },
+          data: {
+            name: group.name,
+            selectionRule: group.selectionRule,
+            minSelect: group.minSelect ?? 0,
+            maxSelect: group.maxSelect ?? 1,
+            sortOrder,
+          },
+        });
+      } else {
+        groupRow = await tx.productOptionGroup.create({
+          data: {
+            productId,
+            name: group.name,
+            selectionRule: group.selectionRule,
+            minSelect: group.minSelect ?? 0,
+            maxSelect: group.maxSelect ?? 1,
+            sortOrder,
+          },
+        });
+      }
+
+      const existingItems = existingGroups.find((eg) => eg.id === groupRow.id)?.items || [];
+      const incomingItems = Array.isArray(group.items) ? group.items : [];
+      const incomingItemIds = new Set(incomingItems.filter((it) => it.id).map((it) => it.id));
+
+      // Delete items removed from the payload.
+      const itemsToDelete = existingItems.filter((it) => !incomingItemIds.has(it.id));
+      if (itemsToDelete.length > 0) {
+        await tx.productOptionItem.deleteMany({
+          where: { id: { in: itemsToDelete.map((it) => it.id) } },
+        });
+      }
+
+      // Upsert each item.
+      for (let ii = 0; ii < incomingItems.length; ii++) {
+        const item = incomingItems[ii];
+        const itemSortOrder = item.sortOrder ?? ii;
+        if (item.id && existingItems.find((ei) => ei.id === item.id)) {
+          await tx.productOptionItem.update({
+            where: { id: item.id },
+            data: {
+              name: item.name,
+              priceDelta: item.priceDelta ?? 0,
+              isDefault: item.isDefault ?? false,
+              isAvailable: item.isAvailable ?? true,
+              sortOrder: itemSortOrder,
+            },
+          });
+        } else {
+          await tx.productOptionItem.create({
+            data: {
+              groupId: groupRow.id,
+              name: item.name,
+              priceDelta: item.priceDelta ?? 0,
+              isDefault: item.isDefault ?? false,
+              isAvailable: item.isAvailable ?? true,
+              sortOrder: itemSortOrder,
+            },
+          });
+        }
+      }
+    }
+  });
+
+  broadcastMenuUpdate(merchantId, { kind: 'OPTION_GROUPS_BULK_UPSERTED', productId });
+
+  return prisma.productOptionGroup.findMany({
+    where: { productId },
+    orderBy: { sortOrder: 'asc' },
+    include: { items: { orderBy: { sortOrder: 'asc' } } },
+  });
+};
+
 module.exports = {
   createMerchant,
   getMerchants,
@@ -860,10 +1241,23 @@ module.exports = {
   updateMerchantOrderStatus,
   requestMerchantWithdrawal,
   getMerchantProducts,
+  getMerchantProductById,
   createMerchantProduct,
   updateMerchantProduct,
   deleteMerchantProduct,
   toggleMerchantProductAvailability,
+  // Variant CRUD
+  createProductVariant,
+  updateProductVariant,
+  deleteProductVariant,
+  // Option group + item CRUD
+  createOptionGroup,
+  updateOptionGroup,
+  deleteOptionGroup,
+  createOptionItem,
+  updateOptionItem,
+  deleteOptionItem,
+  bulkUpsertOptionGroups,
   getMerchantSalesSummary,
   getMerchantOrderHistory,
   getMerchantEarningsBreakdown,

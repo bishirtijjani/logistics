@@ -73,10 +73,25 @@ const registrationLimiter = rateLimit({
   message: ApiResponse.error('Too many registration attempts. Try again later.'),
 });
 
+/**
+ * Maps API limiter — 60 requests per minute per authenticated user. Maps
+ * calls cost real money on Google's side; this caps a malicious or buggy
+ * client from blowing the quota.
+ */
+const mapsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: ApiResponse.error('Too many map requests. Slow down.'),
+  keyGenerator: (req) => req.user?.id || req.ip,
+});
+
 module.exports = {
   authLimiter,
   otpLimiter,
   pinLimiter,
   generalLimiter,
   registrationLimiter,
+  mapsLimiter,
 };

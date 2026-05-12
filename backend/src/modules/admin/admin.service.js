@@ -133,6 +133,23 @@ const updateUserStatus = async (userId, status) => {
 
   logger.info('User status updated', { userId, status });
 
+  // Drop the socket-auth cache so the user's existing socket connections are
+  // refused on their next reconnect (within seconds via Socket.IO retry).
+  try {
+    const { invalidateUserAuthCache, getIO } = require('../../sockets');
+    invalidateUserAuthCache(userId);
+    // Also force-disconnect any currently-open socket from this user — they
+    // are in the `user:{userId}` room, so we ask every connection in that
+    // room to terminate. They'll attempt to reconnect and be rejected at
+    // handshake by the auth middleware.
+    if (status === 'SUSPENDED' || status === 'DEACTIVATED') {
+      try {
+        const io = getIO();
+        io.in(`user:${userId}`).disconnectSockets();
+      } catch (_) {}
+    }
+  } catch (_) {}
+
   return updated;
 };
 
@@ -915,7 +932,7 @@ const getAllCategories = async ({ page = 1, limit = 50, isActive } = {}) => {
  * Create a merchant category.
  */
 const createCategory = async (
-  { name, slug, description, icon, color, sortOrder, hasPreparation },
+  { name, slug, description, icon, color, sortOrder, hasPreparation, attributeSchema },
   adminUserId,
   ipAddress,
   userAgent,
@@ -943,6 +960,7 @@ const createCategory = async (
       color: color || null,
       sortOrder: sortOrder ?? 0,
       hasPreparation: hasPreparation ?? true,
+      attributeSchema: attributeSchema || null,
     },
   });
 
@@ -996,6 +1014,7 @@ const updateCategory = async (categoryId, data, adminUserId, ipAddress, userAgen
       ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
       ...(data.hasPreparation !== undefined && { hasPreparation: data.hasPreparation }),
       ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.attributeSchema !== undefined && { attributeSchema: data.attributeSchema }),
     },
   });
 
@@ -1005,6 +1024,33 @@ const updateCategory = async (categoryId, data, adminUserId, ipAddress, userAgen
     'MERCHANT_CATEGORY',
     categoryId,
     data,
+    ipAddress,
+    userAgent,
+  );
+
+  categoryService.invalidateCache();
+  return updated;
+};
+
+/**
+ * Replace a category's attributeSchema in one call.
+ * Passing `null` clears the schema; passing an object replaces it.
+ */
+const updateCategoryAttributeSchema = async (categoryId, attributeSchema, adminUserId, ipAddress, userAgent) => {
+  const category = await prisma.merchantCategory.findUnique({ where: { id: categoryId } });
+  if (!category) throw AppError.notFound('Category not found');
+
+  const updated = await prisma.merchantCategory.update({
+    where: { id: categoryId },
+    data: { attributeSchema: attributeSchema ?? null },
+  });
+
+  await createAuditLog(
+    adminUserId,
+    'UPDATE_CATEGORY_ATTRIBUTE_SCHEMA',
+    'MERCHANT_CATEGORY',
+    categoryId,
+    { attributeSchema },
     ipAddress,
     userAgent,
   );
@@ -1114,14 +1160,14 @@ const getRiderEarnings = async (riderId, { startDate, endDate }) => {
 
   const [earnings, completedDeliveries, totalEarnings] = await Promise.all([
     prisma.transaction.findMany({
-      where: { ...where, type: 'DELIVERY_EARNING' },
+      where: { ...where, type: 'RIDER_EARNING' },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.request.count({
       where: { riderId, status: 'DELIVERED' },
     }),
     prisma.transaction.aggregate({
-      where: { ...where, type: 'DELIVERY_EARNING' },
+      where: { ...where, type: 'RIDER_EARNING' },
       _sum: { amount: true },
     }),
   ]);
@@ -1997,6 +2043,7 @@ module.exports = {
   getAllCategories,
   createCategory,
   updateCategory,
+  updateCategoryAttributeSchema,
   deleteCategory,
   getAllRiders,
   getRiderEarnings,

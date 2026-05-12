@@ -33,6 +33,16 @@ export const deleteCategory = createAsyncThunk(
   }
 )
 
+export const updateCategoryAttributeSchema = createAsyncThunk(
+  'categories/updateAttributeSchema',
+  async ({ categoryId, attributeSchema }) => {
+    const response = await api.patch(`/admin/categories/${categoryId}/attribute-schema`, {
+      attributeSchema,
+    })
+    return response.data.data
+  }
+)
+
 const initialState = {
   list: [],
   total: 0,
@@ -68,6 +78,10 @@ const categoriesSlice = createSlice({
         state.list.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
       })
       .addCase(updateCategory.fulfilled, (state, action) => {
+        const idx = state.list.findIndex((c) => c.id === action.payload.id)
+        if (idx >= 0) state.list[idx] = { ...state.list[idx], ...action.payload }
+      })
+      .addCase(updateCategoryAttributeSchema.fulfilled, (state, action) => {
         const idx = state.list.findIndex((c) => c.id === action.payload.id)
         if (idx >= 0) state.list[idx] = { ...state.list[idx], ...action.payload }
       })

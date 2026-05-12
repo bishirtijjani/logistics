@@ -10,18 +10,21 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import theme, { colors } from '../../theme';
+import { colors } from '../../theme';
+import SkeletonLoader from '../../components/SkeletonLoader';
+import EmptyState from '../../components/EmptyState';
 
 const MerchantBrowseScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { t } = useTranslation();
   const { categorySlug, categoryName, lat, lng } = route.params;
 
   const [merchants, setMerchants] = useState([]);
@@ -40,13 +43,12 @@ const MerchantBrowseScreen = () => {
       params.append('openNow', 'true');
 
       const response = await api.get(`/merchants?${params.toString()}`);
-      // api unwraps to envelope JSON; merchants are at .data
       setMerchants(response?.data || []);
     } catch (error) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: error.message || 'Failed to load merchants',
+        text1: t('errors.title'),
+        text2: error.message,
       });
     } finally {
       setLoading(false);
@@ -56,20 +58,23 @@ const MerchantBrowseScreen = () => {
 
   useEffect(() => {
     fetchMerchants();
-  }, [categorySlug, lat, lng]);
+  }, [categorySlug, lat, lng]); // eslint-disable-line
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchMerchants();
   };
 
-  const headerLabel = categoryName || 'Merchants';
+  const headerLabel = categoryName || t('merchant.browseFallbackHeader');
 
   const renderMerchant = ({ item }) => (
     <TouchableOpacity
       style={styles.merchantCard}
       onPress={() => navigation.navigate('MerchantMenu', { merchantId: item.id, categorySlug })}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}. ${item.isOpen ? t('merchant.openNow') : t('merchant.closed')}`}
+      accessibilityHint={item.address}
     >
       <Image
         source={{ uri: item.coverImageUrl || 'https://via.placeholder.com/400x200' }}
@@ -86,16 +91,16 @@ const MerchantBrowseScreen = () => {
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={14} color="#FFA500" />
               <Text style={styles.rating}>{item.averageRating.toFixed(1)}</Text>
-              <Text style={styles.orderCount}>({item.totalOrders} orders)</Text>
+              <Text style={styles.orderCount}>{t('merchant.ordersCount', { count: item.totalOrders })}</Text>
             </View>
           </View>
           {item.isOpen ? (
             <View style={styles.openBadge}>
-              <Text style={styles.openText}>Open</Text>
+              <Text style={styles.openText}>{t('merchant.openNow')}</Text>
             </View>
           ) : (
             <View style={styles.closedBadge}>
-              <Text style={styles.closedText}>Closed</Text>
+              <Text style={styles.closedText}>{t('merchant.closed')}</Text>
             </View>
           )}
         </View>
@@ -110,20 +115,26 @@ const MerchantBrowseScreen = () => {
     </TouchableOpacity>
   );
 
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="storefront-outline" size={64} color={colors.textMuted} />
-      <Text style={styles.emptyTitle}>No {headerLabel.toLowerCase()} found</Text>
-      <Text style={styles.emptySubtitle}>
-        Try changing your location or check back later
-      </Text>
-    </View>
-  );
-
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.back')}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text accessibilityRole="header" style={styles.headerTitle}>{headerLabel}</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={{ padding: 16 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonLoader.MerchantCard key={i} />
+          ))}
+        </View>
       </View>
     );
   }
@@ -131,10 +142,15 @@ const MerchantBrowseScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.back')}
+        >
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{headerLabel}</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>{headerLabel}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -143,7 +159,14 @@ const MerchantBrowseScreen = () => {
         renderItem={renderMerchant}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={renderEmpty}
+        ListEmptyComponent={
+          <EmptyState
+            icon="storefront-outline"
+            title={t('merchant.noMerchantsTitle', { category: headerLabel })}
+            subtitle={t('merchant.noMerchantsHint')}
+            fill={false}
+          />
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }

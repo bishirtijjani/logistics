@@ -53,7 +53,8 @@
         {
           "locationWhenInUsePermission": "We need your location to show nearby services and delivery options."
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "extra": {
       "eas": {

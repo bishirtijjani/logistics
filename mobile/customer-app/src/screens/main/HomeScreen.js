@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -9,9 +10,22 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector, useDispatch } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { fetchWallet } from "../../store/slices/walletSlice";
 import { hydrateLocation } from "../../store/slices/locationSlice";
 import { fetchCategories, hydrateCategoriesFromCache } from "../../store/slices/categoriesSlice";
+import { fetchUnreadCount } from "../../store/slices/notificationsSlice";
+import {
+  fetchActiveRequest,
+  fetchBanners,
+  fetchRecentActivity,
+  activeRequestFromSocket,
+} from "../../store/slices/homeSlice";
+import SearchModal from "../../components/SearchModal";
+import EmptyState from "../../components/EmptyState";
+import SkeletonLoader from "../../components/SkeletonLoader";
+import socketService from "../../services/socket";
+import { statusDisplay } from "../../lib/requestStatus";
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -24,15 +38,17 @@ import Toast from "react-native-toast-message";
 // PACKAGE is the only static tile (no merchant — pure courier).
 
 // Static tile for the courier flow. Always rendered last on the home screen.
+// `nameKey` + `descriptionKey` are resolved via t() at render time so a
+// locale change re-renders the label without rebuilding this object.
 const PACKAGE_TILE = {
   id: "PACKAGE",
   isPackage: true,
-  name: "Package",
+  nameKey: "home.package",
+  descriptionKey: "home.packageDescription",
   icon: "moped",
   color: "#2563EB",
   bg: "#EFF6FF",
   iconType: "MaterialCommunityIcons",
-  description: "Send or receive packages",
 };
 
 // Derive a soft background tint from a hex color for the tile chip.
@@ -43,31 +59,38 @@ const tintBackground = (hex) => {
   return "#F3F4F6";
 };
 
+// VTU services list. `key` ties the row to the i18n catalog (utility.*) and to
+// the screen name in the navigation switch below. `name` field removed in
+// favor of t() lookup at render time.
 const vtuServices = [
   {
     id: "v1",
-    name: "Airtime",
+    key: "airtime",
+    screen: "Airtime",
     icon: "phone-portrait-outline",
     color: "#EA580C",
     type: "Ionicons",
   },
   {
-    id: "PACKAGE",
-    name: "Data",
+    id: "v2",
+    key: "data",
+    screen: "Data",
     icon: "wifi-outline",
     color: "#2563EB",
     type: "Ionicons",
   },
   {
     id: "v3",
-    name: "Electricity",
+    key: "electricity",
+    screen: "Electricity",
     icon: "flash-outline",
     color: "#D97706",
     type: "Ionicons",
   },
   {
     id: "v4",
-    name: "Transfer",
+    key: "transfer",
+    screen: null,
     icon: "swap-horizontal-outline",
     color: "#059669",
     type: "Ionicons",
@@ -91,6 +114,7 @@ function formatNaira(amount) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
   const { balance } = useSelector((state) => state.wallet);
   const { city, latitude, longitude, isLoaded: locationLoaded } = useSelector(
@@ -103,11 +127,43 @@ export default function HomeScreen({ navigation }) {
   const [showBalance, setShowBalance] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
 
+  const [searchVisible, setSearchVisible] = useState(false);
+  const { activeRequest, banners, recentActivity } = useSelector((s) => s.home);
+
+  // One-time per-mount hydrations (cheap settings / cache reads).
   useEffect(() => {
-    dispatch(fetchWallet());
     dispatch(hydrateLocation());
     dispatch(hydrateCategoriesFromCache());
     dispatch(fetchCategories());
+  }, [dispatch]);
+
+  // Refresh per-user state whenever Home regains focus — covers cold open,
+  // tab switch, deep-link back, and pull-from-deep-screen returns. Without
+  // this, a user who places a request and navigates back sees stale
+  // wallet/balance + activeRequest until they kill the app.
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchWallet());
+      dispatch(fetchUnreadCount());
+      dispatch(fetchActiveRequest());
+      dispatch(fetchBanners());
+      dispatch(fetchRecentActivity());
+    }, [dispatch]),
+  );
+
+  // Live-update the active-request banner from socket status changes — keeps
+  // the home banner in sync without a refetch on every status hop. Each
+  // emitter already includes `status` in its payload (per Phase 5 hardening
+  // §5.4), so we forward it untouched — don't synthesize a status here.
+  useEffect(() => {
+    const handle = (data) => dispatch(activeRequestFromSocket(data));
+    const unsubStatus = socketService.onRequestStatusChanged(handle);
+    const unsubRider = socketService.onRequestRiderAssigned(handle);
+    const unsubCancelled = socketService.onRequestCancelled(handle);
+    const unsubCompleted = socketService.onRequestCompleted(handle);
+    return () => {
+      unsubStatus(); unsubRider(); unsubCancelled(); unsubCompleted();
+    };
   }, [dispatch]);
 
   // Build the tile list: dynamic categories first (sorted by sortOrder), PACKAGE last.
@@ -147,6 +203,9 @@ export default function HomeScreen({ navigation }) {
         >
           <TouchableOpacity
             onPress={() => navigation.navigate("LocationPicker")}
+            accessibilityRole="button"
+            accessibilityLabel={locationLabel}
+            accessibilityHint={t("home.searchPlaceholder")}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -189,9 +248,12 @@ export default function HomeScreen({ navigation }) {
                   textTransform: "uppercase",
                 }}
               >
-                Hello, {user?.firstName || "there"}
+                {user?.firstName
+                  ? t("home.greeting", { name: user.firstName })
+                  : t("home.greetingFallback")}
               </Text>
               <Text
+                accessibilityRole="header"
                 style={{
                   fontSize: 30,
                   fontWeight: "900",
@@ -201,28 +263,37 @@ export default function HomeScreen({ navigation }) {
                   lineHeight: 36,
                 }}
               >
-                What do you{"\n"}need today?
+                {t("home.headline")}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("ProfileTab")}
-              style={{
-                width: 46,
-                height: 46,
-                backgroundColor: "#09090b",
-                borderRadius: 23,
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: 6,
-              }}
-            >
-              <Ionicons name="person" size={20} color="#fff" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6 }}>
+              <NotificationBell navigation={navigation} />
+              <TouchableOpacity
+                onPress={() => navigation.navigate("ProfileTab")}
+                accessibilityRole="button"
+                accessibilityLabel={t("a11y.profile")}
+                style={{
+                  width: 46,
+                  height: 46,
+                  backgroundColor: "#09090b",
+                  borderRadius: 23,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginLeft: 10,
+                }}
+              >
+                <Ionicons name="person" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
         {/* Search Bar */}
         <TouchableOpacity
+          onPress={() => setSearchVisible(true)}
+          accessibilityRole="search"
+          accessibilityLabel={t("common.search")}
+          accessibilityHint={t("home.searchPlaceholder")}
           style={{
             marginHorizontal: 20,
             marginTop: 16,
@@ -245,14 +316,22 @@ export default function HomeScreen({ navigation }) {
               fontWeight: "500",
             }}
           >
-            Search restaurants, food, items...
+            {t("home.searchPlaceholder")}
           </Text>
         </TouchableOpacity>
+
+        {/* Active Request Banner — appears when the customer has an in-flight order. */}
+        {activeRequest && (
+          <ActiveRequestBanner request={activeRequest} navigation={navigation} />
+        )}
 
         {/* Wallet Pill */}
         <TouchableOpacity
           onPress={() => setModalVisible(true)}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("home.wallet")} ${showBalance ? formatNaira(balance) : ""}`.trim()}
+          accessibilityHint={t("home.viewWallet")}
           style={{
             marginHorizontal: 20,
             marginTop: 18,
@@ -291,7 +370,7 @@ export default function HomeScreen({ navigation }) {
                   marginBottom: 2,
                 }}
               >
-                Available Balance
+                {t("home.wallet")}
               </Text>
               <Text
                 style={{
@@ -325,7 +404,7 @@ export default function HomeScreen({ navigation }) {
                 marginRight: 4,
               }}
             >
-              View
+              {t("home.viewWallet")}
             </Text>
             <Ionicons name="chevron-forward" size={14} color="#fff" />
           </View>
@@ -342,6 +421,7 @@ export default function HomeScreen({ navigation }) {
             }}
           >
             <Text
+              accessibilityRole="header"
               style={{
                 fontSize: 19,
                 fontWeight: "900",
@@ -349,7 +429,7 @@ export default function HomeScreen({ navigation }) {
                 letterSpacing: -0.5,
               }}
             >
-              What do you need?
+              {t("home.sectionServices")}
             </Text>
             <View
               style={{
@@ -361,17 +441,28 @@ export default function HomeScreen({ navigation }) {
             />
           </View>
           {categoriesLoading && categoryTiles.length === 0 ? (
-            <View style={{ paddingVertical: 24, alignItems: "center" }}>
-              <Text style={{ color: "#6B7280", fontSize: 13 }}>Loading services…</Text>
+            // Skeleton tiles instead of a spinner — gives the user a sense of
+            // the layout that's about to arrive (much faster perceived load).
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <View key={i} style={{ width: "22%", alignItems: "center" }}>
+                  <SkeletonLoader width={62} height={62} radius={18} style={{ marginBottom: 8 }} />
+                  <SkeletonLoader width={50} height={10} />
+                </View>
+              ))}
             </View>
           ) : categoriesError && categoryTiles.length === 0 ? (
             <View style={{ paddingVertical: 16, alignItems: "center" }}>
               <Text style={{ color: "#DC2626", fontSize: 13, marginBottom: 8 }}>
-                Couldn't load services
+                {t("home.servicesError")}
               </Text>
-              <TouchableOpacity onPress={() => dispatch(fetchCategories())}>
+              <TouchableOpacity
+                onPress={() => dispatch(fetchCategories())}
+                accessibilityRole="button"
+                accessibilityLabel={t("home.servicesRetry")}
+              >
                 <Text style={{ color: "#EA580C", fontSize: 13, fontWeight: "600" }}>
-                  Tap to retry
+                  {t("home.servicesRetry")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -386,10 +477,13 @@ export default function HomeScreen({ navigation }) {
           >
             {tiles.map((item) => {
               const Icon = resolveIcon(item);
+              // Static tiles (PACKAGE) carry a translation key; dynamic
+              // category tiles use the admin-supplied `name` directly.
+              const displayName = item.nameKey ? t(item.nameKey) : item.name;
               const handlePress = () => {
                 if (item.isPackage) {
                   // Package: direct courier flow, no merchant.
-                  navigation.navigate("CreateDelivery", {
+                  navigation.navigate("CreateRequest", {
                     requestType: "PACKAGE",
                     hasMerchant: false,
                   });
@@ -407,6 +501,9 @@ export default function HomeScreen({ navigation }) {
                 <TouchableOpacity
                   key={item.id}
                   onPress={handlePress}
+                  accessibilityRole="button"
+                  accessibilityLabel={displayName}
+                  accessibilityState={{ disabled: !!item.comingSoon }}
                   style={{ width: "22%", alignItems: "center" }}
                 >
                   <View
@@ -433,7 +530,7 @@ export default function HomeScreen({ navigation }) {
                       opacity: item.comingSoon ? 0.6 : 1,
                     }}
                   >
-                    {item.name}
+                    {displayName}
                   </Text>
                 </TouchableOpacity>
               );
@@ -452,6 +549,7 @@ export default function HomeScreen({ navigation }) {
             }}
           >
             <Text
+              accessibilityRole="header"
               style={{
                 fontSize: 19,
                 fontWeight: "900",
@@ -459,7 +557,7 @@ export default function HomeScreen({ navigation }) {
                 letterSpacing: -0.5,
               }}
             >
-              Bills & Utilities
+              {t("home.sectionBills")}
             </Text>
             <View
               style={{
@@ -475,22 +573,15 @@ export default function HomeScreen({ navigation }) {
           >
             {vtuServices.map((item) => {
               const Icon = resolveIcon(item);
+              const label = t(`utility.${item.key}`);
               const handlePress = () => {
-                if (item.name === "Airtime") {
-                  navigation.navigate("Airtime");
-                } else if (item.name === "Data") {
-                  navigation.navigate("Data");
-                } else if (item.name === "Electricity") {
+                if (item.screen) {
+                  navigation.navigate(item.screen);
+                } else if (item.key === "transfer") {
                   Toast.show({
                     type: "info",
-                    text1: "Coming Soon",
-                    text2: "Electricity payments will be available soon!",
-                  });
-                } else if (item.name === "Transfer") {
-                  Toast.show({
-                    type: "info",
-                    text1: "Coming Soon",
-                    text2: "P2P transfers will be available soon!",
+                    text1: t("common.comingSoon"),
+                    text2: t("utility.transferComingSoon"),
                   });
                 }
               };
@@ -498,6 +589,8 @@ export default function HomeScreen({ navigation }) {
                 <TouchableOpacity
                   key={item.id}
                   onPress={handlePress}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
                   style={{ width: "23%", alignItems: "center" }}
                 >
                   <View
@@ -521,7 +614,7 @@ export default function HomeScreen({ navigation }) {
                       textAlign: "center",
                     }}
                   >
-                    {item.name}
+                    {label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -529,153 +622,21 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Promo Banner */}
-        <View
-          style={{
-            marginHorizontal: 20,
-            marginTop: 32,
-            backgroundColor: "#09090b",
-            borderRadius: 22,
-            padding: 22,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            overflow: "hidden",
-          }}
-        >
-          <View
-            style={{
-              position: "absolute",
-              right: -24,
-              top: -24,
-              width: 110,
-              height: 110,
-              backgroundColor: "#EA580C18",
-              borderRadius: 55,
-            }}
-          />
-          <View
-            style={{
-              position: "absolute",
-              right: 48,
-              bottom: -32,
-              width: 80,
-              height: 80,
-              backgroundColor: "#EA580C10",
-              borderRadius: 40,
-            }}
-          />
-          <View style={{ flex: 1 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: 4,
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  backgroundColor: "#EA580C",
-                  borderRadius: 3,
-                  marginRight: 6,
-                }}
-              />
-              <Text
-                style={{
-                  color: "#EA580C",
-                  fontSize: 10,
-                  fontWeight: "800",
-                  letterSpacing: 1.5,
-                  textTransform: "uppercase",
-                }}
-              >
-                First Order
-              </Text>
-            </View>
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 22,
-                fontWeight: "900",
-                letterSpacing: -0.5,
-                lineHeight: 27,
-              }}
-            >
-              Free Delivery{"\n"}Today Only
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("CreateDelivery")}
-            style={{
-              backgroundColor: "#EA580C",
-              paddingHorizontal: 18,
-              paddingVertical: 12,
-              borderRadius: 13,
-            }}
-          >
-            <Text style={{ color: "#fff", fontWeight: "900", fontSize: 13 }}>
-              Order
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Promo Banner — admin-managed via /api/banners.
+            Hidden entirely when no banners are eligible (per spec). */}
+        {banners.length > 0 && (
+          <PromoBanner banner={banners[0]} navigation={navigation} />
+        )}
 
-        {/* Recent Activity */}
-        <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
-          <Text
-            style={{
-              fontSize: 19,
-              fontWeight: "900",
-              color: "#09090b",
-              letterSpacing: -0.5,
-              marginBottom: 14,
-            }}
-          >
-            Recent Activity
-          </Text>
-          <View
-            style={{
-              backgroundColor: "#fff",
-              borderRadius: 18,
-              padding: 18,
-              borderWidth: 1.5,
-              borderColor: "#E5E7EB",
-              alignItems: "center",
-              paddingVertical: 30,
-            }}
-          >
-            <View
-              style={{
-                width: 52,
-                height: 52,
-                backgroundColor: "#F3F4F6",
-                borderRadius: 26,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 10,
-              }}
-            >
-              <Ionicons name="time-outline" size={24} color="#6B7280" />
-            </View>
-            <Text
-              style={{
-                color: "#09090b",
-                fontWeight: "700",
-                fontSize: 15,
-                marginBottom: 4,
-              }}
-            >
-              No orders yet
-            </Text>
-            <Text
-              style={{ color: "#6B7280", fontSize: 13, textAlign: "center" }}
-            >
-              Your past orders will appear here
-            </Text>
-          </View>
-        </View>
+        {/* Recent Activity — last 5 across requests + wallet transactions. */}
+        <RecentActivity items={recentActivity} navigation={navigation} />
       </ScrollView>
+
+      <SearchModal
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        onNavigate={(name, params) => navigation.navigate(name, params)}
+      />
 
       {/* Wallet Drawer Modal */}
       <Modal
@@ -724,6 +685,7 @@ export default function HomeScreen({ navigation }) {
               }}
             />
             <Text
+              accessibilityRole="header"
               style={{
                 fontSize: 19,
                 fontWeight: "900",
@@ -732,10 +694,10 @@ export default function HomeScreen({ navigation }) {
                 marginBottom: 4,
               }}
             >
-              Your Wallet
+              {t("home.walletSheet.title")}
             </Text>
             <Text style={{ color: "#6B7280", fontSize: 13, marginBottom: 20 }}>
-              Manage balance, fund or send money
+              {t("home.walletSheet.subtitle")}
             </Text>
             <View
               style={{
@@ -773,9 +735,14 @@ export default function HomeScreen({ navigation }) {
                     textTransform: "uppercase",
                   }}
                 >
-                  Available Balance
+                  {t("home.wallet")}
                 </Text>
-                <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
+                <TouchableOpacity
+                  onPress={() => setShowBalance(!showBalance)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("a11y.toggleBalance")}
+                  accessibilityState={{ selected: !showBalance }}
+                >
                   <Ionicons
                     name={showBalance ? "eye-off-outline" : "eye-outline"}
                     size={20}
@@ -802,6 +769,8 @@ export default function HomeScreen({ navigation }) {
                   setModalVisible(false);
                   navigation.navigate("FundWallet");
                 }}
+                accessibilityRole="button"
+                accessibilityLabel={t("home.walletSheet.fund")}
                 style={{
                   flex: 1,
                   backgroundColor: "#EA580C",
@@ -813,10 +782,12 @@ export default function HomeScreen({ navigation }) {
                 <Text
                   style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}
                 >
-                  Fund Wallet
+                  {t("home.walletSheet.fund")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t("home.walletSheet.send")}
                 style={{
                   flex: 1,
                   backgroundColor: "#F3F4F6",
@@ -828,7 +799,7 @@ export default function HomeScreen({ navigation }) {
                 <Text
                   style={{ color: "#09090b", fontWeight: "800", fontSize: 15 }}
                 >
-                  Send Money
+                  {t("home.walletSheet.send")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -836,5 +807,311 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
     </SafeAreaView>
+  );
+}
+
+// Phase 5 — notification bell with unread badge. Tapping opens the
+// Notification Center. The badge is driven by the notifications slice; it
+// auto-increments when `notification:new` arrives via socket (notificationsBus).
+function NotificationBell({ navigation }) {
+  const { t } = useTranslation();
+  const unreadCount = useSelector((s) => s.notifications.unreadCount);
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("NotificationCenter")}
+      style={{
+        width: 46,
+        height: 46,
+        backgroundColor: "#fff",
+        borderRadius: 23,
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: 1.5,
+        borderColor: "#E5E7EB",
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={
+        unreadCount > 0
+          ? t("a11y.unreadCount", { count: unreadCount })
+          : t("a11y.notifications")
+      }
+    >
+      <Ionicons name="notifications-outline" size={22} color="#09090b" />
+      {unreadCount > 0 && (
+        <View
+          style={{
+            position: "absolute",
+            top: 6,
+            right: 6,
+            minWidth: 18,
+            height: 18,
+            paddingHorizontal: 4,
+            borderRadius: 9,
+            backgroundColor: "#EF4444",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 2,
+            borderColor: "#fff",
+          }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// Phase 6 — active-request banner. Self-updates from the home slice; the
+// slice is fed by socket-status-changed listeners in HomeScreen's useEffect.
+function ActiveRequestBanner({ request, navigation }) {
+  const { t } = useTranslation();
+  // Phase 8 — pass the merchant's category slug so the banner reads
+  // "Pharmacist preparing…" / "Picking your groceries" instead of the
+  // generic "Preparing your order" for pharmacy/grocery orders.
+  const pill = statusDisplay(request.status, request.type, request.merchant?.category?.slug);
+  const isPackage = request.type === "PACKAGE";
+  const merchantName =
+    request.merchant?.name ||
+    (isPackage ? t("home.active.packageFallback") : t("home.active.orderFallback"));
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("RequestTracking", { requestId: request.id })}
+      accessibilityRole="button"
+      accessibilityLabel={`${pill.label}. ${merchantName}`}
+      accessibilityHint={t("home.active.trackCta")}
+      style={{
+        marginHorizontal: 20,
+        marginTop: 16,
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 14,
+        borderWidth: 1.5,
+        borderColor: "#EA580C40",
+        flexDirection: "row",
+        alignItems: "center",
+        shadowColor: "#EA580C",
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 2,
+      }}
+    >
+      <View
+        style={{
+          width: 44, height: 44, borderRadius: 22,
+          backgroundColor: pill.bg,
+          alignItems: "center", justifyContent: "center", marginRight: 12,
+        }}
+      >
+        <Ionicons name={isPackage ? "cube" : "fast-food"} size={20} color={pill.color} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: pill.bg }}>
+            <Text style={{ fontSize: 10, fontWeight: "800", color: pill.color }}>{pill.label}</Text>
+          </View>
+        </View>
+        <Text numberOfLines={1} style={{ marginTop: 4, fontSize: 14, fontWeight: "800", color: "#09090b" }}>
+          {merchantName}
+        </Text>
+        <Text numberOfLines={1} style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>
+          {request.dropoffAddress || t("home.active.trackingFallback")}
+        </Text>
+      </View>
+      <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: "#EA580C" }}>
+        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>{t("home.active.trackCta")}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// Phase 6 — promo banner sourced from /api/banners. Tap deep-links via
+// `banner.deepLink` (matches notify.service route conventions) or via an
+// in-app screen name.
+function PromoBanner({ banner, navigation }) {
+  const { t } = useTranslation();
+  const handleTap = () => {
+    if (!banner.deepLink) return;
+    // Local schemes like `/wallet`, `/orders`, `customerapp://request/abc`.
+    if (banner.deepLink.startsWith("customerapp://") || banner.deepLink.startsWith("http")) {
+      // Defer to NavigationContainer's deep-link handler via Linking.openURL.
+      try {
+        const { Linking } = require("react-native");
+        Linking.openURL(banner.deepLink);
+      } catch (_) {}
+      return;
+    }
+    const path = banner.deepLink;
+    if (path.startsWith("/request/")) {
+      navigation.navigate("RequestTracking", { requestId: path.split("/")[2] });
+    } else if (path === "/wallet") {
+      navigation.navigate("MainTabs", { screen: "WalletTab" });
+    } else if (path === "/orders") {
+      navigation.navigate("MainTabs", { screen: "OrdersTab" });
+    } else if (path.startsWith("/utility/")) {
+      const kind = path.split("/")[2];
+      const map = { airtime: "Airtime", data: "Data", cable: "Cable", electricity: "Electricity" };
+      if (map[kind]) navigation.navigate(map[kind]);
+    }
+  };
+
+  const bg = banner.bgColor || "#09090b";
+  return (
+    <TouchableOpacity
+      onPress={handleTap}
+      activeOpacity={banner.deepLink ? 0.85 : 1}
+      style={{
+        marginHorizontal: 20,
+        marginTop: 32,
+        backgroundColor: bg,
+        borderRadius: 22,
+        padding: 22,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        overflow: "hidden",
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        {banner.subtitle ? (
+          <Text
+            style={{
+              color: "#EA580C",
+              fontSize: 10,
+              fontWeight: "800",
+              letterSpacing: 1.5,
+              textTransform: "uppercase",
+              marginBottom: 4,
+            }}
+          >
+            {banner.subtitle}
+          </Text>
+        ) : null}
+        <Text
+          style={{
+            color: "#fff",
+            fontSize: 20,
+            fontWeight: "900",
+            letterSpacing: -0.5,
+            lineHeight: 26,
+          }}
+          numberOfLines={2}
+        >
+          {banner.title}
+        </Text>
+      </View>
+      {banner.deepLink && (
+        <View style={{ backgroundColor: "#EA580C", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 }}>
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>{t("common.continue")}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// Phase 6 — Recent Activity: 5 most recent requests + transactions interleaved.
+function RecentActivity({ items, navigation }) {
+  const { t, i18n } = useTranslation();
+  const handleTap = (it) => {
+    if (it.kind === "request") {
+      navigation.navigate("RequestTracking", { requestId: it.id });
+    } else if (it.kind === "transaction") {
+      navigation.navigate("TransactionHistory", { highlightRef: it.raw?.reference });
+    }
+  };
+
+  // Locale-aware date formatting. Hausa shares Latin/Western numbers and
+  // calendar with English in this app's scope, so en-NG / ha-NG produce the
+  // same output for short dates — but we still pass the actual locale so the
+  // intl runtime gets month names right when those land in the catalog.
+  const formatDate = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const now = new Date();
+    const localeTag = i18n.language === "ha" ? "ha-NG" : "en-NG";
+    const sameDay = d.toDateString() === now.toDateString();
+    if (sameDay) return d.toLocaleTimeString(localeTag, { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleDateString(localeTag, { day: "numeric", month: "short" });
+  };
+
+  return (
+    <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 24 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 19, fontWeight: "900", color: "#09090b", letterSpacing: -0.5 }}>
+          {t("home.sectionRecent")}
+        </Text>
+        {items.length > 0 && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("MainTabs", { screen: "OrdersTab" })}
+            accessibilityRole="link"
+            accessibilityLabel={t("home.seeAll")}
+          >
+            <Text style={{ fontSize: 12, fontWeight: "700", color: "#EA580C" }}>{t("home.seeAll")}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {items.length === 0 ? (
+        <EmptyState
+          icon="time-outline"
+          title={t("states.empty.activity")}
+          subtitle={t("states.empty.activityHint")}
+          fill={false}
+        />
+      ) : (
+        <View style={{ backgroundColor: "#fff", borderRadius: 18, borderWidth: 1.5, borderColor: "#E5E7EB", overflow: "hidden" }}>
+          {items.map((it, idx) => (
+            <TouchableOpacity
+              key={`${it.kind}-${it.id}`}
+              onPress={() => handleTap(it)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                borderTopWidth: idx === 0 ? 0 : 1,
+                borderTopColor: "#F3F4F6",
+              }}
+            >
+              <View
+                style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  backgroundColor: it.kind === "request" ? `${"#EA580C"}20` : "#DCFCE7",
+                  alignItems: "center", justifyContent: "center", marginRight: 12,
+                }}
+              >
+                <Ionicons
+                  name={
+                    it.kind !== "request"
+                      ? "wallet-outline"
+                      : it.raw?.type === "PACKAGE"
+                        ? "cube-outline"
+                        : "fast-food-outline"
+                  }
+                  size={18}
+                  color={it.kind === "request" ? "#EA580C" : "#15803D"}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: "#09090b" }}>
+                  {it.title}
+                </Text>
+                <Text numberOfLines={1} style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+                  {it.subtitle} · {formatDate(it.at)}
+                </Text>
+              </View>
+              {it.amount > 0 && (
+                <Text style={{ fontSize: 13, fontWeight: "800", color: "#09090b", marginLeft: 8 }}>
+                  ₦{Number(it.amount).toLocaleString("en-NG")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }

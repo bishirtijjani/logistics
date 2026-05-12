@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { logout } from "../../store/slices/authSlice";
 import { deleteAccount } from "../../store/slices/profileSlice";
@@ -25,6 +26,7 @@ import { colors } from "../../theme";
 
 export default function SecuritySettingsScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { isLoading } = useSelector((state) => state.profile);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -55,17 +57,15 @@ export default function SecuritySettingsScreen({ navigation }) {
     if (next && !biometricAvailable) {
       Toast.show({
         type: "error",
-        text1: "Biometrics unavailable",
-        text2: "Enroll a fingerprint or Face ID in your device settings first.",
+        text1: t("security.biometricUnavailable"),
+        text2: t("security.biometricUnavailableSub"),
       });
       return;
     }
     setBiometricBusy(true);
     try {
-      // Require a successful biometric prompt before flipping the bit in
-      // either direction — proves the person at the device is authorized.
       const ok = await authenticateWithBiometric(
-        next ? "Enable biometric login" : "Disable biometric login",
+        next ? t("security.biometricEnablePrompt") : t("security.biometricDisablePrompt"),
       );
       if (!ok) return;
 
@@ -73,13 +73,13 @@ export default function SecuritySettingsScreen({ navigation }) {
       setBiometricEnabled(next);
       Toast.show({
         type: "success",
-        text1: next ? "Biometric login enabled" : "Biometric login disabled",
+        text1: next ? t("security.biometricEnabled") : t("security.biometricDisabled"),
       });
     } catch (err) {
       Toast.show({
         type: "error",
-        text1: "Could not update biometrics",
-        text2: err?.message || "Please try again.",
+        text1: t("security.biometricUpdateFailed"),
+        text2: err?.message || t("common.retry"),
       });
     } finally {
       setBiometricBusy(false);
@@ -96,12 +96,12 @@ export default function SecuritySettingsScreen({ navigation }) {
 
   const handleLogoutAllDevices = () => {
     Alert.alert(
-      "Log Out All Devices",
-      "This will sign you out of all active sessions. You will need to log in again on each device.",
+      t("security.logoutAllTitle"),
+      t("security.logoutAllBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Log Out All",
+          text: t("security.logoutAllCta"),
           style: "destructive",
           onPress: () => dispatch(logout()),
         },
@@ -111,31 +111,30 @@ export default function SecuritySettingsScreen({ navigation }) {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Delete Account",
-      "This action is permanent and cannot be undone. All your data will be deleted.\n\n• Complete all active deliveries first\n• Withdraw your wallet balance\n• This cannot be reversed",
+      t("security.deleteAccountTitle"),
+      t("security.deleteAccountBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete Forever",
+          text: t("security.deleteAccountCta"),
           style: "destructive",
           onPress: async () => {
             setDeleting(true);
             const result = await dispatch(deleteAccount());
             setDeleting(false);
-            
+
             if (deleteAccount.fulfilled.match(result)) {
               Toast.show({
                 type: "success",
-                text1: "Account Deleted",
-                text2: "Your account has been permanently deleted",
+                text1: t("security.deleteSuccess"),
+                text2: t("security.deleteSuccessSub"),
               });
-              // Logout and navigate to login
               dispatch(logout());
             } else {
               Toast.show({
                 type: "error",
-                text1: "Cannot Delete Account",
-                text2: result.payload || "Please complete deliveries and withdraw balance first",
+                text1: t("security.deleteFailed"),
+                text2: result.payload || t("security.deleteFailedSub"),
               });
             }
           },
@@ -147,20 +146,20 @@ export default function SecuritySettingsScreen({ navigation }) {
   const securityItems = [
     {
       icon: "key-outline",
-      label: "Change Password",
-      sub: "Update your login password",
+      label: t("security.password"),
+      sub: t("security.passwordSub"),
       onPress: handleChangePassword,
     },
     {
       icon: "keypad-outline",
-      label: "Change Transaction PIN",
-      sub: "Update your 6-digit PIN",
+      label: t("security.pin"),
+      sub: t("security.pinSub"),
       onPress: handleChangePin,
     },
     {
       icon: "call-outline",
-      label: "Change Phone Number",
-      sub: "Update your registered phone number",
+      label: t("security.phone"),
+      sub: t("security.phoneSub"),
       onPress: () => navigation.navigate("PhoneChange"),
     },
   ];
@@ -168,14 +167,14 @@ export default function SecuritySettingsScreen({ navigation }) {
   const sessionItems = [
     {
       icon: "phone-portrait-outline",
-      label: "Active Sessions",
-      sub: "View and manage logged-in devices",
+      label: t("security.sessions"),
+      sub: t("security.sessionsSub"),
       onPress: () => navigation.navigate("Sessions"),
     },
     {
       icon: "exit-outline",
-      label: "Log Out All Devices",
-      sub: "Sign out everywhere except here",
+      label: t("security.logoutAll"),
+      sub: t("security.logoutAllSub"),
       onPress: handleLogoutAllDevices,
       danger: true,
     },
@@ -186,6 +185,9 @@ export default function SecuritySettingsScreen({ navigation }) {
       key={item.label}
       onPress={item.onPress}
       activeOpacity={0.6}
+      accessibilityRole="button"
+      accessibilityLabel={item.label}
+      accessibilityHint={item.sub}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -279,6 +281,8 @@ export default function SecuritySettingsScreen({ navigation }) {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -292,6 +296,7 @@ export default function SecuritySettingsScreen({ navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -299,7 +304,7 @@ export default function SecuritySettingsScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          Security
+          {t("security.title")}
         </Text>
       </View>
 
@@ -307,11 +312,12 @@ export default function SecuritySettingsScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
-        {renderSection("Authentication", securityItems)}
+        {renderSection(t("security.sectionAuth"), securityItems)}
 
         {/* Biometric Toggle */}
         <View style={{ marginHorizontal: 20, marginTop: 24 }}>
           <Text
+            accessibilityRole="header"
             style={{
               fontSize: 13,
               fontWeight: "700",
@@ -322,7 +328,7 @@ export default function SecuritySettingsScreen({ navigation }) {
               marginLeft: 4,
             }}
           >
-            Biometrics
+            {t("security.sectionBiometrics")}
           </Text>
           <View
             style={{

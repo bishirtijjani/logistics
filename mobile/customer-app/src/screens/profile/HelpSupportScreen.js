@@ -9,33 +9,20 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 
-const FAQ_ITEMS = [
-  {
-    q: "How do I fund my wallet?",
-    a: "Go to Wallet \u2192 Fund Wallet. You can fund via bank transfer to your virtual account.",
-  },
-  {
-    q: "How long does delivery take?",
-    a: "Delivery times vary by distance and rider availability. Most deliveries within Lagos complete in 30\u201360 minutes.",
-  },
-  {
-    q: "How do I track my order?",
-    a: "Once a rider is assigned, you\u2019ll see real-time tracking on the order details screen.",
-  },
-  {
-    q: "Can I cancel an order?",
-    a: "You can cancel before a rider picks up your package. Cancellation after pickup may incur a fee.",
-  },
-  {
-    q: "What if my delivery is damaged?",
-    a: "Contact support within 24 hours with photos. We\u2019ll investigate and process a refund if applicable.",
-  },
-];
-
 export default function HelpSupportScreen({ navigation }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = React.useState(null);
+
+  const FAQ_ITEMS = [
+    { q: t("help.faq.q1"), a: t("help.faq.a1") },
+    { q: t("help.faq.q2"), a: t("help.faq.a2") },
+    { q: t("help.faq.q3"), a: t("help.faq.a3") },
+    { q: t("help.faq.q4"), a: t("help.faq.a4") },
+    { q: t("help.faq.q5"), a: t("help.faq.a5") },
+  ];
 
   return (
     <SafeAreaView
@@ -55,6 +42,8 @@ export default function HelpSupportScreen({ navigation }) {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -68,6 +57,7 @@ export default function HelpSupportScreen({ navigation }) {
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text
+          accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
@@ -75,7 +65,7 @@ export default function HelpSupportScreen({ navigation }) {
             letterSpacing: -0.5,
           }}
         >
-          Help & Support
+          {t("help.title")}
         </Text>
       </View>
 
@@ -86,6 +76,7 @@ export default function HelpSupportScreen({ navigation }) {
         {/* Contact */}
         <View style={{ marginHorizontal: 20 }}>
           <Text
+            accessibilityRole="header"
             style={{
               fontSize: 13,
               fontWeight: "700",
@@ -96,7 +87,7 @@ export default function HelpSupportScreen({ navigation }) {
               marginLeft: 4,
             }}
           >
-            Contact Us
+            {t("help.contactHeader")}
           </Text>
           <View
             style={{
@@ -110,19 +101,19 @@ export default function HelpSupportScreen({ navigation }) {
             {[
               {
                 icon: "chatbubble-ellipses-outline",
-                label: "Live Chat",
-                sub: "Chat with our support team",
+                label: t("help.chatLabel"),
+                sub: t("help.chatSub"),
               },
               {
                 icon: "mail-outline",
-                label: "Email Support",
-                sub: "support@yourapp.com",
-                onPress: () => Linking.openURL("mailto:support@yourapp.com"),
+                label: t("help.emailLabel"),
+                sub: t("help.emailValue"),
+                onPress: () => Linking.openURL(`mailto:${t("help.emailValue")}`),
               },
               {
                 icon: "call-outline",
-                label: "Phone Support",
-                sub: "0800-YOURAPP",
+                label: t("help.phoneLabel"),
+                sub: t("help.phoneValue"),
                 onPress: () => Linking.openURL("tel:08001234567"),
               },
             ].map((item, index) => (
@@ -130,6 +121,9 @@ export default function HelpSupportScreen({ navigation }) {
                 key={item.label}
                 onPress={item.onPress}
                 activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                accessibilityHint={item.sub}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
@@ -180,6 +174,7 @@ export default function HelpSupportScreen({ navigation }) {
         {/* FAQ */}
         <View style={{ marginHorizontal: 20, marginTop: 24 }}>
           <Text
+            accessibilityRole="header"
             style={{
               fontSize: 13,
               fontWeight: "700",
@@ -190,7 +185,7 @@ export default function HelpSupportScreen({ navigation }) {
               marginLeft: 4,
             }}
           >
-            Frequently Asked Questions
+            {t("help.faqHeader")}
           </Text>
           <View
             style={{

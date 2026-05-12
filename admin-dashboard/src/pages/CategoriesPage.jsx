@@ -6,7 +6,11 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  updateCategoryAttributeSchema,
 } from '../store/slices/categoriesSlice'
+
+const PACK_UNITS = ['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON']
+const AXIS_SUGGESTIONS = ['size','color','strength','form','capacity','flavor']
 
 // Curated allowlist of MaterialCommunityIcons names that exist in the customer app
 // (mobile/customer-app uses @expo/vector-icons MaterialCommunityIcons set).
@@ -69,6 +73,12 @@ export default function CategoriesPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [showInactive, setShowInactive] = useState(false)
+  const [attrTarget, setAttrTarget] = useState(null) // category being edited for attributeSchema
+  const [attrSchema, setAttrSchema] = useState({ axes: [], pack: false, packUnits: [] })
+  const [attrRaw, setAttrRaw] = useState('')
+  const [attrMode, setAttrMode] = useState('builder') // 'builder' | 'json'
+  const [attrError, setAttrError] = useState(null)
+  const [attrSaving, setAttrSaving] = useState(false)
 
   useEffect(() => {
     dispatch(fetchCategories({ limit: 200 }))
@@ -127,6 +137,67 @@ export default function CategoriesPage() {
       toast.error(err?.message || 'Save failed')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const openAttrEditor = (cat) => {
+    const schema = cat.attributeSchema || { axes: [], pack: false, packUnits: [] }
+    setAttrTarget(cat)
+    setAttrSchema({
+      axes: Array.isArray(schema.axes) ? [...schema.axes] : [],
+      pack: !!schema.pack,
+      packUnits: Array.isArray(schema.packUnits) ? [...schema.packUnits] : [],
+      ...(schema.sizeSystem ? { sizeSystem: schema.sizeSystem } : {}),
+    })
+    setAttrRaw(JSON.stringify(schema, null, 2))
+    setAttrMode('builder')
+    setAttrError(null)
+  }
+
+  const closeAttrEditor = () => {
+    setAttrTarget(null)
+    setAttrError(null)
+  }
+
+  const toggleAxis = (axis) => {
+    setAttrSchema((s) => ({
+      ...s,
+      axes: s.axes.includes(axis) ? s.axes.filter((a) => a !== axis) : [...s.axes, axis],
+    }))
+  }
+
+  const togglePackUnit = (unit) => {
+    setAttrSchema((s) => ({
+      ...s,
+      packUnits: s.packUnits.includes(unit)
+        ? s.packUnits.filter((u) => u !== unit)
+        : [...s.packUnits, unit],
+    }))
+  }
+
+  const saveAttrSchema = async () => {
+    let toSave = attrSchema
+    if (attrMode === 'json') {
+      try {
+        const parsed = attrRaw.trim() ? JSON.parse(attrRaw) : null
+        toSave = parsed
+      } catch (err) {
+        setAttrError('Invalid JSON: ' + err.message)
+        return
+      }
+    }
+    setAttrSaving(true)
+    setAttrError(null)
+    try {
+      await dispatch(
+        updateCategoryAttributeSchema({ categoryId: attrTarget.id, attributeSchema: toSave })
+      ).unwrap()
+      toast.success('Attribute schema saved')
+      closeAttrEditor()
+    } catch (err) {
+      setAttrError(err?.message || 'Save failed')
+    } finally {
+      setAttrSaving(false)
     }
   }
 
@@ -244,6 +315,13 @@ export default function CategoriesPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
+                      onClick={() => openAttrEditor(cat)}
+                      className="text-primary hover:underline text-sm mr-3"
+                      title="Edit attribute schema (axes & pack units)"
+                    >
+                      Attributes
+                    </button>
+                    <button
                       onClick={() => openEdit(cat)}
                       className="text-primary hover:underline text-sm mr-3"
                     >
@@ -262,6 +340,177 @@ export default function CategoriesPage() {
           </table>
         )}
       </div>
+
+      {attrTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-text dark:text-dark-text">
+                  Attribute Schema — {attrTarget.name}
+                </h2>
+                <p className="text-xs text-muted dark:text-dark-muted">
+                  Tells the merchant product form which axes & pack inputs to render. UX hint only — DB does not enforce.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAttrMode('builder')}
+                  className={`text-xs px-2 py-1 rounded ${attrMode === 'builder' ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'}`}
+                >
+                  Builder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAttrRaw(JSON.stringify(attrSchema, null, 2))
+                    setAttrMode('json')
+                  }}
+                  className={`text-xs px-2 py-1 rounded ${attrMode === 'json' ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'}`}
+                >
+                  JSON
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                {attrMode === 'builder' ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className={labelCls}>Axes</label>
+                      <div className="flex flex-wrap gap-2">
+                        {AXIS_SUGGESTIONS.map((axis) => (
+                          <button
+                            key={axis}
+                            type="button"
+                            onClick={() => toggleAxis(axis)}
+                            className={`text-xs px-3 py-1 rounded-full border ${
+                              attrSchema.axes.includes(axis)
+                                ? 'bg-primary text-white border-primary'
+                                : 'bg-surface dark:bg-dark-surface text-text dark:text-dark-text border-surface-muted dark:border-dark-surface-muted'
+                            }`}
+                          >
+                            {axis}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted dark:text-dark-muted mt-1">
+                        Click to toggle. Custom axis names: switch to JSON mode.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-sm text-text dark:text-dark-text">
+                        <input
+                          type="checkbox"
+                          checked={!!attrSchema.pack}
+                          onChange={(e) =>
+                            setAttrSchema((s) => ({ ...s, pack: e.target.checked }))
+                          }
+                        />
+                        Show pack size + pack unit inputs
+                      </label>
+                    </div>
+
+                    {attrSchema.pack && (
+                      <div>
+                        <label className={labelCls}>Pack units</label>
+                        <div className="flex flex-wrap gap-2">
+                          {PACK_UNITS.map((u) => (
+                            <button
+                              key={u}
+                              type="button"
+                              onClick={() => togglePackUnit(u)}
+                              className={`text-xs px-3 py-1 rounded-full border ${
+                                attrSchema.packUnits.includes(u)
+                                  ? 'bg-primary text-white border-primary'
+                                  : 'bg-surface dark:bg-dark-surface text-text dark:text-dark-text border-surface-muted dark:border-dark-surface-muted'
+                              }`}
+                            >
+                              {u}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <label className={labelCls}>JSON</label>
+                    <textarea
+                      value={attrRaw}
+                      onChange={(e) => setAttrRaw(e.target.value)}
+                      rows={14}
+                      className={`${inputCls} font-mono text-xs`}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={labelCls}>Merchant form preview</label>
+                <div className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-3 space-y-3 bg-surface-muted/30 dark:bg-dark-surface-muted/30 text-sm">
+                  {attrSchema.axes && attrSchema.axes.length > 0 ? (
+                    attrSchema.axes.map((axis) => (
+                      <div key={axis}>
+                        <div className="text-xs font-semibold text-muted dark:text-dark-muted">{axis}</div>
+                        <input
+                          disabled
+                          placeholder={`e.g. ${axis === 'size' ? 'S / M / L' : axis === 'color' ? 'Black, Red' : axis === 'capacity' ? '64GB, 128GB' : `${axis} values`}`}
+                          className={`${inputCls} mt-1 cursor-not-allowed`}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-muted dark:text-dark-muted">No axes — single-SKU product flow.</div>
+                  )}
+                  {attrSchema.pack && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surface-muted dark:border-dark-surface-muted">
+                      <div>
+                        <div className="text-xs font-semibold text-muted dark:text-dark-muted">Pack size</div>
+                        <input disabled placeholder="500" className={`${inputCls} mt-1 cursor-not-allowed`} />
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-muted dark:text-dark-muted">Pack unit</div>
+                        <select disabled className={`${inputCls} mt-1 cursor-not-allowed`}>
+                          {(attrSchema.packUnits && attrSchema.packUnits.length > 0
+                            ? attrSchema.packUnits
+                            : PACK_UNITS).map((u) => (
+                            <option key={u}>{u}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {attrError && <div className="text-sm text-error">{attrError}</div>}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={closeAttrEditor}
+                className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-text dark:text-dark-text"
+                disabled={attrSaving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveAttrSchema}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 disabled:opacity-60"
+                disabled={attrSaving}
+              >
+                {attrSaving ? 'Saving…' : 'Save schema'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">

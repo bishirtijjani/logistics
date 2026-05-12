@@ -2,6 +2,9 @@ import "react-native-gesture-handler";
 import React, { useEffect } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, LogBox } from "react-native";
 import "./global.css";
+// Phase 9 — initialize i18n before any screen mounts so the device locale (or
+// previously persisted user choice) is the language seen on first paint.
+import "./src/i18n";
 import { Provider } from "react-redux";
 import { store } from "./src/store";
 import AppNavigator from "./src/navigation/AppNavigator";
@@ -9,7 +12,13 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { ErrorBoundary } from "react-error-boundary";
-import socketService from "./src/services/socket";
+import { registerForceLogout } from "./src/services/api";
+import { forceLogout as forceLogoutAction } from "./src/store/slices/authSlice";
+
+// Phase 5 — register the silent-refresh fallback so the api.js interceptor
+// can flip the auth state out from anywhere in the tree when the refresh
+// token is permanently invalid.
+registerForceLogout(() => store.dispatch(forceLogoutAction()));
 
 // Ignore specific warnings
 LogBox.ignoreLogs(["ViewPropTypes will be removed"]);
@@ -51,15 +60,8 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 }
 
 export default function App() {
-  useEffect(() => {
-    // Initialize socket connection
-    socketService.connect();
-
-    return () => {
-      socketService.disconnect();
-    };
-  }, []);
-
+  // Socket lifecycle is now managed by AppNavigator (gated on auth + biometric),
+  // so the previous unconditional connect-on-mount here is no longer needed.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

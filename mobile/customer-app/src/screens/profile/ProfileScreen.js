@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,41 +11,51 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { logout } from "../../store/slices/authSlice";
 import { fetchProfile } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
+import LocaleSheet from "../../components/LocaleSheet";
 
+// KYC badge metadata. `labelKey` resolves via t() at render so labels switch
+// with locale; colors are status-coded and locale-agnostic.
 const KYC_BADGE = {
-  NONE: { label: "Not Verified", color: "#6B7280", bg: "#F3F4F6" },
-  PENDING: { label: "Pending", color: "#D97706", bg: "#FEF3C7" },
-  VERIFIED: { label: "Verified", color: "#059669", bg: "#D1FAE5" },
-  FAILED: { label: "Failed", color: "#EF4444", bg: "#FEE2E2" },
+  NONE: { labelKey: "settings.rows.kycNotVerified", color: "#6B7280", bg: "#F3F4F6" },
+  PENDING: { labelKey: "settings.rows.kycPending", color: "#D97706", bg: "#FEF3C7" },
+  VERIFIED: { labelKey: "settings.rows.kycVerified", color: "#059669", bg: "#D1FAE5" },
+  FAILED: { labelKey: "settings.rows.kycFailed", color: "#EF4444", bg: "#FEE2E2" },
 };
 
 export default function ProfileScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t, i18n } = useTranslation();
   const { user } = useSelector((state) => state.auth);
   const { profile, isLoading } = useSelector((state) => state.profile);
+  // Phase 9 — locale picker visibility. State lives on the Profile screen
+  // (rather than inside <LocaleSheet>) so we can re-render the chip on close
+  // with the updated language label.
+  const [localeSheetVisible, setLocaleSheetVisible] = useState(false);
 
   useEffect(() => {
     dispatch(fetchProfile());
   }, [dispatch]);
 
   const p = profile || user || {};
-  const kyc = KYC_BADGE[p.kycStatus] || KYC_BADGE.NONE;
+  const kycMeta = KYC_BADGE[p.kycStatus] || KYC_BADGE.NONE;
+  const kycLabel = t(kycMeta.labelKey);
   const initials = (p.firstName?.[0] || "") + (p.lastName?.[0] || "");
 
   const accountItems = [
     {
       icon: "person-outline",
-      label: "Personal Information",
-      sub: "Name, email, phone, address",
+      label: t("settings.rows.personalInfo"),
+      sub: t("settings.rows.personalInfoSub"),
       screen: "EditProfile",
     },
     {
       icon: "image-outline",
-      label: "Profile Photo",
-      sub: p.profilePicture ? "Change photo" : "Add a photo",
+      label: t("settings.rows.profilePhoto"),
+      sub: p.profilePicture ? t("settings.rows.profilePhotoChange") : t("settings.rows.profilePhotoAdd"),
       screen: "ProfilePhoto",
     },
   ];
@@ -53,17 +63,17 @@ export default function ProfileScreen({ navigation }) {
   const verificationItems = [
     {
       icon: "shield-checkmark-outline",
-      label: "Identity Verification (KYC)",
-      sub: kyc.label,
-      badgeColor: kyc.color,
-      badgeBg: kyc.bg,
+      label: t("settings.rows.kyc"),
+      sub: kycLabel,
+      badgeColor: kycMeta.color,
+      badgeBg: kycMeta.bg,
       screen: "BvnVerification",
       disabled: p.kycStatus === "VERIFIED",
     },
     {
       icon: "keypad-outline",
-      label: "Transaction PIN",
-      sub: p.hasPinSet ? "Change your PIN" : "Set up your PIN",
+      label: t("settings.rows.transactionPin"),
+      sub: p.hasPinSet ? t("settings.rows.transactionPinChange") : t("settings.rows.transactionPinSet"),
       screen: p.hasPinSet ? "ChangePin" : "SetPin",
     },
   ];
@@ -71,20 +81,20 @@ export default function ProfileScreen({ navigation }) {
   const settingsItems = [
     {
       icon: "lock-closed-outline",
-      label: "Security",
-      sub: "Password, sessions",
+      label: t("settings.rows.security"),
+      sub: t("settings.rows.securitySub"),
       screen: "SecuritySettings",
     },
     {
       icon: "notifications-outline",
-      label: "Notifications",
-      sub: "Push, email, SMS",
+      label: t("settings.rows.notifications"),
+      sub: t("settings.rows.notificationsSub"),
       screen: "NotificationSettings",
     },
     {
       icon: "location-outline",
-      label: "Saved Addresses",
-      sub: "Home, work, favourites",
+      label: t("settings.rows.addresses"),
+      sub: t("settings.rows.addressesSub"),
       screen: "SavedAddresses",
     },
   ];
@@ -92,20 +102,20 @@ export default function ProfileScreen({ navigation }) {
   const supportItems = [
     {
       icon: "help-circle-outline",
-      label: "Help & Support",
-      sub: "FAQ, contact us",
+      label: t("settings.rows.help"),
+      sub: t("settings.rows.helpSub"),
       screen: "HelpSupport",
     },
     {
       icon: "document-text-outline",
-      label: "Legal",
-      sub: "Terms, privacy policy",
+      label: t("settings.rows.legal"),
+      sub: t("settings.rows.legalSub"),
       screen: "Legal",
     },
     {
       icon: "information-circle-outline",
-      label: "About",
-      sub: "Version 1.0.0",
+      label: t("settings.rows.about"),
+      sub: t("settings.rows.aboutSub", { version: "1.0.0" }),
       screen: "About",
     },
   ];
@@ -143,6 +153,10 @@ export default function ProfileScreen({ navigation }) {
               }
             }}
             activeOpacity={item.disabled ? 1 : 0.6}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+            accessibilityHint={item.sub}
+            accessibilityState={{ disabled: !!item.disabled }}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -229,22 +243,65 @@ export default function ProfileScreen({ navigation }) {
         <View
           style={{ paddingHorizontal: 20, paddingTop: 22, paddingBottom: 4 }}
         >
-          <Text
+          {/* Phase 9 — Title + language pill on one row so a non-English
+              reader can spot the language switch immediately on the Profile
+              tab, before scrolling. */}
+          <View
             style={{
-              fontSize: 28,
-              fontWeight: "900",
-              color: colors.text,
-              letterSpacing: -1,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
               marginBottom: 20,
             }}
           >
-            Profile
-          </Text>
+            <Text
+              style={{
+                fontSize: 28,
+                fontWeight: "900",
+                color: colors.text,
+                letterSpacing: -1,
+              }}
+            >
+              {t("tabs.profile")}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setLocaleSheetVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t("locale.title")}
+              accessibilityHint={t("locale.subtitle")}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: colors.surface,
+                borderRadius: 999,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderWidth: 1.5,
+                borderColor: colors.border,
+              }}
+            >
+              <Ionicons name="language-outline" size={16} color={colors.text} />
+              <Text
+                style={{
+                  marginLeft: 6,
+                  fontSize: 13,
+                  fontWeight: "700",
+                  color: colors.text,
+                }}
+              >
+                {t(`locale.${i18n.language === "ha" ? "ha" : "en"}`)}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color={colors.textMuted} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          </View>
 
           {/* Avatar Card */}
           <TouchableOpacity
             onPress={() => navigation.navigate("EditProfile")}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("settings.rows.personalInfo")}
+            accessibilityHint={t("settings.rows.personalInfoSub")}
             style={{
               flexDirection: "row",
               alignItems: "center",
@@ -320,7 +377,7 @@ export default function ProfileScreen({ navigation }) {
             <View style={{ alignItems: "flex-end" }}>
               <View
                 style={{
-                  backgroundColor: kyc.bg,
+                  backgroundColor: kycMeta.bg,
                   paddingHorizontal: 10,
                   paddingVertical: 4,
                   borderRadius: 8,
@@ -331,10 +388,10 @@ export default function ProfileScreen({ navigation }) {
                   style={{
                     fontSize: 10,
                     fontWeight: "700",
-                    color: kyc.color,
+                    color: kycMeta.color,
                   }}
                 >
-                  {kyc.label}
+                  {kycLabel}
                 </Text>
               </View>
               <Ionicons
@@ -350,6 +407,9 @@ export default function ProfileScreen({ navigation }) {
             <TouchableOpacity
               onPress={() => navigation.navigate("BvnVerification")}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t("settings.kycBanner.title")}
+              accessibilityHint={t("settings.kycBanner.subtitle")}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -376,10 +436,10 @@ export default function ProfileScreen({ navigation }) {
                     marginBottom: 1,
                   }}
                 >
-                  Complete your verification
+                  {t("settings.kycBanner.title")}
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.textMuted }}>
-                  Verify your BVN to unlock full features
+                  {t("settings.kycBanner.subtitle")}
                 </Text>
               </View>
               <Ionicons name="arrow-forward" size={18} color={colors.primary} />
@@ -391,6 +451,9 @@ export default function ProfileScreen({ navigation }) {
             <TouchableOpacity
               onPress={() => navigation.navigate("SetPin")}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t("settings.pinBanner.title")}
+              accessibilityHint={t("settings.pinBanner.subtitle")}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -417,10 +480,10 @@ export default function ProfileScreen({ navigation }) {
                     marginBottom: 1,
                   }}
                 >
-                  Set your transaction PIN
+                  {t("settings.pinBanner.title")}
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.textMuted }}>
-                  Required for payments and transfers
+                  {t("settings.pinBanner.subtitle")}
                 </Text>
               </View>
               <Ionicons name="arrow-forward" size={18} color="#2563EB" />
@@ -428,15 +491,17 @@ export default function ProfileScreen({ navigation }) {
           )}
         </View>
 
-        {renderSection("Account", accountItems)}
-        {renderSection("Verification", verificationItems)}
-        {renderSection("Settings", settingsItems)}
-        {renderSection("Support", supportItems)}
+        {renderSection(t("settings.sections.account"), accountItems)}
+        {renderSection(t("settings.sections.verification"), verificationItems)}
+        {renderSection(t("settings.sections.settings"), settingsItems)}
+        {renderSection(t("settings.sections.support"), supportItems)}
 
         {/* Logout */}
         <View style={{ marginHorizontal: 20, marginTop: 28, marginBottom: 8 }}>
           <TouchableOpacity
             onPress={() => dispatch(logout())}
+            accessibilityRole="button"
+            accessibilityLabel={t("auth.logout")}
             style={{
               backgroundColor: "#FEE2E2",
               paddingVertical: 16,
@@ -457,7 +522,7 @@ export default function ProfileScreen({ navigation }) {
                 marginLeft: 8,
               }}
             >
-              Log Out
+              {t("auth.logout")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -471,7 +536,7 @@ export default function ProfileScreen({ navigation }) {
             marginTop: 12,
           }}
         >
-          Version 1.0.0
+          {t("settings.version", { version: "1.0.0" })}
         </Text>
       </ScrollView>
 
@@ -486,6 +551,11 @@ export default function ProfileScreen({ navigation }) {
           <ActivityIndicator size="small" color={colors.primary} />
         </View>
       )}
+
+      <LocaleSheet
+        visible={localeSheetVisible}
+        onClose={() => setLocaleSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }

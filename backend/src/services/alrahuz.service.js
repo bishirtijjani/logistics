@@ -97,12 +97,55 @@ const getAccountBalance = async () => {
   return data;
 };
 
+const _status = (responseData) =>
+  String(responseData?.Status || responseData?.status || '').toLowerCase();
+
 const isSuccess = (responseData) => {
   if (!responseData) return false;
-  const status = responseData?.Status || responseData?.status || '';
-  return String(status).toLowerCase() === 'successful' ||
-    String(status).toLowerCase() === 'success' ||
-    responseData?.api_response?.toLowerCase()?.includes('successful');
+  const status = _status(responseData);
+  return status === 'successful' ||
+    status === 'success' ||
+    status === 'delivered' ||
+    responseData?.api_response?.toLowerCase?.()?.includes('successful');
+};
+
+/**
+ * AlRahuz returned `pending` / `processing` / no terminal status — caller must
+ * poll the transaction by ID until it resolves to success or failure.
+ */
+const isPending = (responseData) => {
+  if (!responseData) return false;
+  const status = _status(responseData);
+  return status === 'pending' || status === 'processing' || status === 'queued';
+};
+
+const isFailure = (responseData) =>
+  !isSuccess(responseData) && !isPending(responseData);
+
+/**
+ * Query AlRahuz for the current status of a previously-submitted transaction
+ * by its provider request ID. Used by the worker poll loop.
+ *
+ * Returns the raw provider response (same shape as buy* responses) so the
+ * existing isSuccess / isPending / isFailure helpers work on it.
+ */
+const queryTransaction = async (providerRequestId) => {
+  if (!providerRequestId) return null;
+  try {
+    const { data } = await client.get(`/api/transactions/${encodeURIComponent(providerRequestId)}/`);
+    return data;
+  } catch (err) {
+    // 404 → unknown transaction (AlRahuz dropped it); surface as pending so we
+    // keep polling until the max-attempts window expires, then auto-refund.
+    if (err.response?.status === 404) return null;
+    logger.warn('AlRahuz queryTransaction failed', {
+      providerRequestId,
+      status: err.response?.status,
+      data: err.response?.data,
+      message: err.message,
+    });
+    throw err;
+  }
 };
 
 module.exports = {
@@ -114,5 +157,8 @@ module.exports = {
   validateIuc,
   validateMeter,
   getAccountBalance,
+  queryTransaction,
   isSuccess,
+  isPending,
+  isFailure,
 };

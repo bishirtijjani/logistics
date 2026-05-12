@@ -112,20 +112,65 @@ async function main() {
 
   console.log(`✅ Test rider created: ${riderUser.email} (approved, balance: ₦15,000)`);
 
-  // Seed default merchant categories (idempotent — admin can add more from the dashboard)
+  // Seed default merchant categories (idempotent — admin can add more from the dashboard).
+  // Each category carries an attributeSchema — a UX hint that tells the merchant
+  // product form which axes (size, color, …) and pack units to render.
   const defaultCategories = [
-    { id: '00000000-0000-4000-a000-000000000001', name: 'Restaurant', slug: 'restaurant', description: 'Order from restaurants', icon: 'restaurant', color: '#EA580C', sortOrder: 10, hasPreparation: true },
-    { id: '00000000-0000-4000-a000-000000000002', name: 'Grocery',    slug: 'grocery',    description: 'Shop supermarkets',     icon: 'basket',     color: '#7C3AED', sortOrder: 20, hasPreparation: true },
-    { id: '00000000-0000-4000-a000-000000000003', name: 'Pharmacy',   slug: 'pharmacy',   description: 'Order medicines',       icon: 'pill',       color: '#059669', sortOrder: 30, hasPreparation: false },
+    {
+      id: '00000000-0000-4000-a000-000000000001',
+      name: 'Restaurant', slug: 'restaurant', description: 'Order from restaurants',
+      icon: 'restaurant', color: '#EA580C', sortOrder: 10, hasPreparation: true,
+      attributeSchema: { axes: ['size'], pack: false },
+    },
+    {
+      id: '00000000-0000-4000-a000-000000000002',
+      name: 'Grocery (dry)', slug: 'grocery', description: 'Shop supermarkets',
+      icon: 'basket', color: '#7C3AED', sortOrder: 20, hasPreparation: true,
+      attributeSchema: { axes: [], pack: true, packUnits: ['G', 'KG', 'PACK', 'SACHET', 'CARTON'] },
+    },
+    {
+      id: '00000000-0000-4000-a000-000000000003',
+      name: 'Pharmacy', slug: 'pharmacy', description: 'Order medicines',
+      icon: 'pill', color: '#059669', sortOrder: 30, hasPreparation: false,
+      attributeSchema: { axes: ['strength', 'form'], pack: true, packUnits: ['TABLET', 'CAPSULE', 'ML', 'BOTTLE'] },
+    },
+    {
+      id: '00000000-0000-4000-a000-000000000004',
+      name: 'Grocery (liquid)', slug: 'grocery-liquid', description: 'Drinks & liquids',
+      icon: 'bottle', color: '#0EA5E9', sortOrder: 25, hasPreparation: false,
+      attributeSchema: { axes: ['flavor'], pack: true, packUnits: ['ML', 'L', 'BOTTLE', 'SACHET'] },
+    },
+    {
+      id: '00000000-0000-4000-a000-000000000005',
+      name: 'Fashion', slug: 'fashion', description: 'Clothing',
+      icon: 'shirt', color: '#DB2777', sortOrder: 40, hasPreparation: false,
+      attributeSchema: { axes: ['size', 'color'], pack: false },
+    },
+    {
+      id: '00000000-0000-4000-a000-000000000006',
+      name: 'Shoes', slug: 'shoes', description: 'Footwear',
+      icon: 'footprints', color: '#A16207', sortOrder: 45, hasPreparation: false,
+      attributeSchema: { axes: ['size', 'color'], pack: false, sizeSystem: 'EU' },
+    },
+    {
+      id: '00000000-0000-4000-a000-000000000007',
+      name: 'Electronics', slug: 'electronics', description: 'Phones & accessories',
+      icon: 'smartphone', color: '#475569', sortOrder: 50, hasPreparation: false,
+      attributeSchema: { axes: ['capacity', 'color'], pack: false },
+    },
   ];
   for (const cat of defaultCategories) {
     await prisma.merchantCategory.upsert({
       where: { slug: cat.slug },
-      update: { name: cat.name, description: cat.description, icon: cat.icon, color: cat.color, sortOrder: cat.sortOrder, hasPreparation: cat.hasPreparation, isActive: true },
+      update: {
+        name: cat.name, description: cat.description, icon: cat.icon, color: cat.color,
+        sortOrder: cat.sortOrder, hasPreparation: cat.hasPreparation, isActive: true,
+        attributeSchema: cat.attributeSchema,
+      },
       create: cat,
     });
   }
-  console.log(`✅ Seeded ${defaultCategories.length} default merchant categories`);
+  console.log(`✅ Seeded ${defaultCategories.length} default merchant categories (with attributeSchema)`);
 
   // Create test merchant
   const merchantPassword = await bcrypt.hash('merchant123', SALT_ROUNDS);
@@ -174,6 +219,316 @@ async function main() {
 
   console.log(`✅ Test merchant created: ${merchantUser.email} (approved, balance: ₦25,000)`);
 
+  // ─── Sample products on the test merchant ───────────────────────────────────
+  // Demonstrates the three patterns the customer + merchant apps must handle:
+  // (1) single-SKU product, (2) multi-variant product, (3) food combo with both
+  // variants and option groups including REQUIRED_ONE / OPTIONAL_MULTIPLE.
+  const merchantRow = await prisma.merchant.findUnique({ where: { userId: merchantUser.id } });
+  if (merchantRow) {
+    const existingProducts = await prisma.product.count({ where: { merchantId: merchantRow.id } });
+    if (existingProducts === 0) {
+      // (1) Single-SKU: water bottle. Auto-default variant.
+      const water = await prisma.product.create({
+        data: {
+          merchantId: merchantRow.id,
+          name: 'Bottled Water (50cl)',
+          description: 'Chilled bottled water',
+          category: 'beverages',
+          basePrice: 200,
+          stock: 200,
+          isAvailable: true,
+        },
+      });
+      await prisma.productVariant.create({
+        data: {
+          productId: water.id,
+          attributes: {},
+          packSize: 500,
+          packUnit: 'ML',
+          packLabel: '500 ml',
+          price: 200,
+          stock: 200,
+        },
+      });
+
+      // (2) Multi-variant: jollof rice with size axis.
+      const jollof = await prisma.product.create({
+        data: {
+          merchantId: merchantRow.id,
+          name: 'Jollof Rice',
+          description: 'Smoky Nigerian jollof rice',
+          category: 'mains',
+          basePrice: 1500,
+          stock: 0,
+          isAvailable: true,
+        },
+      });
+      await prisma.productVariant.createMany({
+        data: [
+          { productId: jollof.id, sku: 'JOLLOF-REG', attributes: { size: 'Regular' }, price: 1500, stock: 30 },
+          { productId: jollof.id, sku: 'JOLLOF-LRG', attributes: { size: 'Large' },   price: 2200, stock: 20 },
+        ],
+      });
+
+      // (3) Combo: Jollof Combo with size variant + REQUIRED protein + REQUIRED drink + OPTIONAL extras.
+      const combo = await prisma.product.create({
+        data: {
+          merchantId: merchantRow.id,
+          name: 'Jollof Combo',
+          description: 'Jollof with your choice of protein, drink, and extras',
+          category: 'combos',
+          basePrice: 2500,
+          stock: 0,
+          isAvailable: true,
+        },
+      });
+      await prisma.productVariant.createMany({
+        data: [
+          { productId: combo.id, sku: 'COMBO-REG', attributes: { size: 'Regular' }, price: 2500, stock: 25 },
+          { productId: combo.id, sku: 'COMBO-LRG', attributes: { size: 'Large' },   price: 3200, stock: 15 },
+        ],
+      });
+
+      await prisma.productOptionGroup.create({
+        data: {
+          productId: combo.id,
+          name: 'Pick a protein',
+          selectionRule: 'REQUIRED_ONE',
+          minSelect: 1,
+          maxSelect: 1,
+          sortOrder: 1,
+          items: {
+            create: [
+              { name: 'Chicken', priceDelta: 0,   isDefault: true,  sortOrder: 1 },
+              { name: 'Beef',    priceDelta: 200, sortOrder: 2 },
+              { name: 'Fish',    priceDelta: 300, sortOrder: 3 },
+            ],
+          },
+        },
+      });
+      await prisma.productOptionGroup.create({
+        data: {
+          productId: combo.id,
+          name: 'Pick a drink',
+          selectionRule: 'REQUIRED_ONE',
+          minSelect: 1,
+          maxSelect: 1,
+          sortOrder: 2,
+          items: {
+            create: [
+              { name: 'Coke',          priceDelta: 0, isDefault: true, sortOrder: 1 },
+              { name: 'Fanta',         priceDelta: 0, sortOrder: 2 },
+              { name: 'Sprite',        priceDelta: 0, sortOrder: 3 },
+              { name: 'Bottled water', priceDelta: 0, sortOrder: 4 },
+            ],
+          },
+        },
+      });
+      await prisma.productOptionGroup.create({
+        data: {
+          productId: combo.id,
+          name: 'Extras',
+          selectionRule: 'OPTIONAL_MULTIPLE',
+          minSelect: 0,
+          maxSelect: 3,
+          sortOrder: 3,
+          items: {
+            create: [
+              { name: 'Plantain',     priceDelta: 300, sortOrder: 1 },
+              { name: 'Coleslaw',     priceDelta: 200, sortOrder: 2 },
+              { name: 'Extra meat',   priceDelta: 800, sortOrder: 3 },
+              { name: 'Extra cheese', priceDelta: 500, sortOrder: 4 },
+            ],
+          },
+        },
+      });
+
+      console.log(`✅ Seeded 3 sample products on test merchant (1 single-SKU + 1 sized + 1 combo)`);
+    }
+  }
+
+  // ─── Phase 8 sample merchants: Pharmacy + Grocery ───────────────────────────
+  // Gives the customer app a real prescription-required SKU and a grocery item
+  // with pack-based variants so substitution preference and Rx upload can be
+  // exercised end-to-end immediately after a fresh seed.
+  const pharmacyPin = await bcrypt.hash('444444', SALT_ROUNDS);
+  const pharmacyUser = await prisma.user.upsert({
+    where: { email: 'pharmacy@test.com' },
+    update: {},
+    create: {
+      phone: '08077778888',
+      firstName: 'Sahel',
+      lastName: 'Pharmacy',
+      email: 'pharmacy@test.com',
+      passwordHash: await bcrypt.hash('pharmacy123', SALT_ROUNDS),
+      transactionPin: pharmacyPin,
+      role: 'MERCHANT',
+      status: 'ACTIVE',
+      wallet: {
+        create: {
+          balance: 10000,
+          virtualAccountNumber: '8077778888',
+          virtualAccountBank: 'Wema Bank',
+          virtualAccountName: 'VTU-Sahel Pharmacy',
+        },
+      },
+      merchant: {
+        create: {
+          category: { connect: { slug: 'pharmacy' } },
+          name: 'Sahel Pharmacy',
+          description: 'Trusted pharmacy serving Katsina',
+          phone: '08077778888',
+          email: 'pharmacy@test.com',
+          address: '5 Kofar Soro Road, Katsina',
+          lat: 13.0008,
+          lng: 7.6082,
+          openingTime: '08:00',
+          closingTime: '22:00',
+          status: 'APPROVED',
+          averageRating: 4.7,
+          isOpen: true,
+          isActive: true,
+        },
+      },
+    },
+  });
+  console.log(`✅ Test pharmacy merchant created: ${pharmacyUser.email}`);
+
+  const pharmacyMerchant = await prisma.merchant.findUnique({ where: { userId: pharmacyUser.id } });
+  if (pharmacyMerchant) {
+    const existingRxProducts = await prisma.product.count({ where: { merchantId: pharmacyMerchant.id } });
+    if (existingRxProducts === 0) {
+      // OTC analgesic — no prescription needed; pack-based variants.
+      const paracetamol = await prisma.product.create({
+        data: {
+          merchantId: pharmacyMerchant.id,
+          name: 'Paracetamol',
+          description: 'OTC analgesic for mild pain and fever',
+          category: 'analgesics',
+          basePrice: 300,
+          stock: 0,
+          requiresPrescription: false,
+          dosage: '1–2 tablets every 6 hours, max 4g/day',
+          isAvailable: true,
+        },
+      });
+      await prisma.productVariant.createMany({
+        data: [
+          { productId: paracetamol.id, sku: 'PARA-500MG-30', attributes: { strength: '500mg', form: 'TABLET' }, packSize: 30, packUnit: 'TABLET', packLabel: '30 tablets',   price: 600,  stock: 80 },
+          { productId: paracetamol.id, sku: 'PARA-500MG-10', attributes: { strength: '500mg', form: 'TABLET' }, packSize: 10, packUnit: 'TABLET', packLabel: '10 tablets',   price: 250,  stock: 200 },
+        ],
+      });
+
+      // Antibiotic — requires prescription. Two strengths.
+      const amoxicillin = await prisma.product.create({
+        data: {
+          merchantId: pharmacyMerchant.id,
+          name: 'Amoxicillin',
+          description: 'Antibiotic — sold against valid prescription only',
+          category: 'antibiotics',
+          basePrice: 1500,
+          stock: 0,
+          requiresPrescription: true,
+          dosage: '1 capsule every 8 hours — complete the full course',
+          isAvailable: true,
+        },
+      });
+      await prisma.productVariant.createMany({
+        data: [
+          { productId: amoxicillin.id, sku: 'AMOX-250-21',  attributes: { strength: '250mg', form: 'CAPSULE' }, packSize: 21, packUnit: 'CAPSULE', packLabel: '21 capsules', price: 1500, stock: 50 },
+          { productId: amoxicillin.id, sku: 'AMOX-500-21',  attributes: { strength: '500mg', form: 'CAPSULE' }, packSize: 21, packUnit: 'CAPSULE', packLabel: '21 capsules', price: 2200, stock: 40 },
+        ],
+      });
+      console.log(`✅ Seeded 2 sample products on pharmacy merchant (1 OTC + 1 Rx-required)`);
+    }
+  }
+
+  const groceryUser = await prisma.user.upsert({
+    where: { email: 'grocery@test.com' },
+    update: {},
+    create: {
+      phone: '08099990000',
+      firstName: 'Katsina',
+      lastName: 'Mart',
+      email: 'grocery@test.com',
+      passwordHash: await bcrypt.hash('grocery123', SALT_ROUNDS),
+      transactionPin: await bcrypt.hash('555555', SALT_ROUNDS),
+      role: 'MERCHANT',
+      status: 'ACTIVE',
+      wallet: {
+        create: {
+          balance: 10000,
+          virtualAccountNumber: '8099990000',
+          virtualAccountBank: 'Wema Bank',
+          virtualAccountName: 'VTU-Katsina Mart',
+        },
+      },
+      merchant: {
+        create: {
+          category: { connect: { slug: 'grocery' } },
+          name: 'Katsina Mart',
+          description: 'Everyday dry groceries delivered',
+          phone: '08099990000',
+          email: 'grocery@test.com',
+          address: '22 Nagogo Road, Katsina',
+          lat: 13.0093,
+          lng: 7.6005,
+          openingTime: '07:00',
+          closingTime: '21:30',
+          status: 'APPROVED',
+          averageRating: 4.5,
+          isOpen: true,
+          isActive: true,
+        },
+      },
+    },
+  });
+  console.log(`✅ Test grocery merchant created: ${groceryUser.email}`);
+
+  const groceryMerchant = await prisma.merchant.findUnique({ where: { userId: groceryUser.id } });
+  if (groceryMerchant) {
+    const existingGroceryProducts = await prisma.product.count({ where: { merchantId: groceryMerchant.id } });
+    if (existingGroceryProducts === 0) {
+      const rice = await prisma.product.create({
+        data: {
+          merchantId: groceryMerchant.id,
+          name: 'Long Grain Rice',
+          description: 'Parboiled long grain rice',
+          category: 'staples',
+          basePrice: 1800,
+          stock: 0,
+          isAvailable: true,
+        },
+      });
+      await prisma.productVariant.createMany({
+        data: [
+          { productId: rice.id, sku: 'RICE-1KG',  attributes: {}, packSize: 1,  packUnit: 'KG', packLabel: '1 kg pack',  price: 1800,  stock: 60 },
+          { productId: rice.id, sku: 'RICE-5KG',  attributes: {}, packSize: 5,  packUnit: 'KG', packLabel: '5 kg pack',  price: 8500,  stock: 40 },
+          { productId: rice.id, sku: 'RICE-25KG', attributes: {}, packSize: 25, packUnit: 'KG', packLabel: '25 kg sack', price: 38000, stock: 15 },
+        ],
+      });
+
+      const sugar = await prisma.product.create({
+        data: {
+          merchantId: groceryMerchant.id,
+          name: 'Granulated Sugar',
+          description: 'Refined granulated sugar',
+          category: 'staples',
+          basePrice: 700,
+          stock: 0,
+          isAvailable: true,
+        },
+      });
+      await prisma.productVariant.createMany({
+        data: [
+          { productId: sugar.id, sku: 'SUGAR-500G', attributes: {}, packSize: 500, packUnit: 'G',  packLabel: '500 g pack', price: 700,  stock: 90 },
+          { productId: sugar.id, sku: 'SUGAR-1KG',  attributes: {}, packSize: 1,   packUnit: 'KG', packLabel: '1 kg pack',  price: 1350, stock: 70 },
+        ],
+      });
+      console.log(`✅ Seeded 2 sample products on grocery merchant (rice + sugar with pack variants)`);
+    }
+  }
+
   // Seed platform settings
   const settings = [
     { key: 'delivery.baseFare', value: 200, description: 'Base fare for delivery in NGN' },
@@ -185,6 +540,13 @@ async function main() {
     { key: 'delivery.broadcastRadiusRings', value: [5, 10, 15], description: 'Rider search radius rings in km' },
     { key: 'delivery.broadcastRingTimeoutSec', value: 60, description: 'Seconds to wait per ring before expanding' },
     { key: 'delivery.autoCancelUnmatchedMs', value: 240000, description: 'Auto-cancel after all rings exhausted (ms)' },
+    // Feature flag for the rider-matching pipeline. Until the rider app
+    // workstream ships a client that listens for `rider:job:new` and accepts
+    // via the existing rider acceptance endpoint, set this to `false` in
+    // production — the worker will skip all rings and auto-cancel/refund
+    // immediately, preventing 4 minutes of phantom "searching..." per
+    // delivery. Flip back to `true` once a rider app is in the wild.
+    { key: 'delivery.matchingEnabled', value: true, description: 'Master switch for the rider matching worker' },
     { key: 'wallet.minTopup', value: 100, description: 'Minimum wallet top-up amount in NGN' },
     { key: 'wallet.minWithdraw', value: 500, description: 'Minimum withdrawal amount in NGN' },
     { key: 'wallet.maxWithdraw', value: 500000, description: 'Maximum single withdrawal in NGN' },

@@ -11,11 +11,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import api from "../../services/api";
 import { colors } from "../../theme";
 import Toast from "react-native-toast-message";
 
 export default function PhoneChangeScreen({ navigation }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState("request"); // request | verify
   const [newPhone, setNewPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -68,11 +70,15 @@ export default function PhoneChangeScreen({ navigation }) {
         <View style={{ height: 4, backgroundColor: colors.primary }} />
 
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
-          <TouchableOpacity onPress={() => (step === "verify" ? setStep("request") : navigation.goBack())}>
+          <TouchableOpacity
+            onPress={() => (step === "verify" ? setStep("request") : navigation.goBack())}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
+          >
             <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
-            Change Phone Number
+          <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
+            {t("phoneChange.title")}
           </Text>
         </View>
 

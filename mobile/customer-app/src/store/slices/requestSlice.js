@@ -1,6 +1,12 @@
 /**
  * Request slice — unified request state management
  * Handles MERCHANT_ORDER (any merchant fulfillment) and PACKAGE (courier) requests.
+ *
+ * Phase 4 additions:
+ *  - fetchActiveRoute  → GET /requests/:id/route (polyline + ETA)
+ *  - cancellation-fee preview + customer cancel (server applies fee policy)
+ *  - in-app messaging (fetch + post + socket-driven append)
+ *  - matching status + live ETA from sockets
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
@@ -10,6 +16,20 @@ import { newIdempotencyKey } from '../../services/idempotency';
 // ============================================================
 // Async Thunks
 // ============================================================
+
+// NB: services/api.js's response interceptor unwraps every call to the
+//   envelope body { success, message, data, meta }
+// so `envelope.data` is the payload (the request object, the request list,
+// etc) and `envelope.meta` is the pagination meta. The previous version of
+// this slice read `response.data.data` everywhere — that's
+// `envelope.data.data`, which is `undefined` on the unwrapped value, so
+// every thunk silently returned undefined. The reducers then fell through to
+// `|| []` defaults and showed empty UIs.
+//
+// Error catch blocks: api.js wraps errors with `.message`, `.status`, `.data`
+// (no `.response`). The old `error.response?.data?.message` always evaluated
+// to undefined and we got the fallback string instead of the server's actual
+// error message.
 
 // Fetch user's requests
 export const fetchRequests = createAsyncThunk(
@@ -22,10 +42,10 @@ export const fetchRequests = createAsyncThunk(
       params.append('page', page);
       params.append('limit', limit);
 
-      const response = await api.get(`/requests?${params.toString()}`);
-      return { requests: response.data.data, ...response.data.meta };
+      const envelope = await api.get(`/requests?${params.toString()}`);
+      return { requests: envelope?.data || [], ...(envelope?.meta || {}) };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch requests');
+      return rejectWithValue(error?.message || 'Failed to fetch requests');
     }
   }
 );
@@ -35,25 +55,32 @@ export const fetchRequestById = createAsyncThunk(
   'request/fetchRequestById',
   async (requestId, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/requests/${requestId}`);
-      return response.data.data;
+      const envelope = await api.get(`/requests/${requestId}`);
+      return envelope?.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch request');
+      return rejectWithValue(error?.message || 'Failed to fetch request');
     }
   }
 );
 
-// Create new request
+// Create new request — requires quoteToken issued by /requests/quote.
+// On failure we reject with the FULL normalised error so callers like
+// PinBottomSheet can read .status (e.g. 423 lockout) and .data.errors
+// (lockedUntil, attemptsRemaining). Reducer only renders the message.
 export const createRequest = createAsyncThunk(
   'request/createRequest',
   async (requestData, { rejectWithValue }) => {
     try {
-      const response = await api.post('/requests', requestData, {
+      const envelope = await api.post('/requests', requestData, {
         headers: { 'Idempotency-Key': newIdempotencyKey() },
       });
-      return response.data.data;
+      return envelope?.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to create request');
+      return rejectWithValue({
+        message: error?.message || 'Failed to create request',
+        status: error?.status ?? null,
+        data: error?.data ?? null,
+      });
     }
   }
 );
@@ -63,23 +90,40 @@ export const updateRequestStatus = createAsyncThunk(
   'request/updateRequestStatus',
   async ({ requestId, status, reason }, { rejectWithValue }) => {
     try {
-      const response = await api.patch(`/requests/${requestId}/status`, { status, reason });
-      return response.data.data;
+      const envelope = await api.patch(`/requests/${requestId}/status`, { status, reason });
+      return envelope?.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to update request status');
+      return rejectWithValue(error?.message || 'Failed to update request status');
     }
   }
 );
 
-// Cancel request
+// Cancellation preview — { allowed, fee, refundAmount, cancelToken }.
+// Used to show the "Cancel with ₦X fee?" sheet on the tracking screen.
+export const fetchCancellationQuote = createAsyncThunk(
+  'request/fetchCancellationQuote',
+  async (requestId, { rejectWithValue }) => {
+    try {
+      const envelope = await api.get(`/requests/${requestId}/cancel-quote`);
+      return envelope?.data;
+    } catch (error) {
+      return rejectWithValue(error?.message || 'Failed to load cancellation policy');
+    }
+  }
+);
+
+// Cancel request (server applies fee). `cancelToken` (from a prior
+// fetchCancellationQuote dispatch) locks in the fee shown to the customer in
+// the modal, so admin setting changes mid-flight can't change the charge.
 export const cancelRequest = createAsyncThunk(
   'request/cancelRequest',
-  async ({ requestId, reason }, { rejectWithValue }) => {
+  async ({ requestId, reason, cancelToken }, { rejectWithValue }) => {
     try {
-      const response = await api.delete(`/requests/${requestId}`, { data: { reason } });
-      return response.data.data;
+      const body = cancelToken ? { reason, cancelToken } : { reason };
+      const envelope = await api.delete(`/requests/${requestId}`, { data: body });
+      return envelope?.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to cancel request');
+      return rejectWithValue(error?.message || 'Failed to cancel request');
     }
   }
 );
@@ -89,10 +133,51 @@ export const rateRequest = createAsyncThunk(
   'request/rateRequest',
   async ({ requestId, ratingData }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/requests/${requestId}/rate`, ratingData);
-      return response.data.data;
+      const envelope = await api.post(`/requests/${requestId}/rate`, ratingData);
+      return envelope?.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to rate request');
+      return rejectWithValue(error?.message || 'Failed to rate request');
+    }
+  }
+);
+
+// Phase 4 — live route + ETA. Backend caches 30s.
+export const fetchActiveRoute = createAsyncThunk(
+  'request/fetchActiveRoute',
+  async (requestId, { rejectWithValue }) => {
+    try {
+      const envelope = await api.get(`/requests/${requestId}/route`);
+      return envelope?.data;
+    } catch (error) {
+      return rejectWithValue(error?.message || 'Failed to load route');
+    }
+  }
+);
+
+// Phase 4 — in-app messaging
+export const fetchMessages = createAsyncThunk(
+  'request/fetchMessages',
+  async ({ requestId, before, limit = 30 }, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      if (before) params.append('before', before);
+      params.append('limit', String(limit));
+      const envelope = await api.get(`/requests/${requestId}/messages?${params.toString()}`);
+      return envelope?.data || [];
+    } catch (error) {
+      return rejectWithValue(error?.message || 'Failed to load messages');
+    }
+  }
+);
+
+export const postMessage = createAsyncThunk(
+  'request/postMessage',
+  async ({ requestId, body }, { rejectWithValue }) => {
+    try {
+      const envelope = await api.post(`/requests/${requestId}/messages`, { body });
+      return envelope?.data;
+    } catch (error) {
+      return rejectWithValue(error?.message || 'Failed to send message');
     }
   }
 );
@@ -116,42 +201,79 @@ const initialState = {
     total: 0,
     totalPages: 0,
   },
+  // Phase 4
+  route: null, // { polyline, etaSeconds, distanceMeters, riderLat, ... }
+  matchingStatus: null, // { attempt, totalAttempts, radiusKm, candidates }
+  riderEta: null, // { etaSeconds, nextCheckpoint, timestamp }
+  messages: [], // chronological ASC, current request only
 };
 
 const requestSlice = createSlice({
   name: 'request',
   initialState,
   reducers: {
-    // Update request from socket event
+    // Update request from socket event. Server emitters don't always include
+    // every field (e.g. emitCancelled omits status pre-fix; emitRiderLocation
+    // never has status); the spread used to overwrite live fields with
+    // undefined and corrupt currentRequest. Strip undefined keys before merging.
     updateRequestFromSocket: (state, action) => {
-      const { requestId, status, rider, ...otherData } = action.payload;
-      
+      const { requestId, ...rest } = action.payload || {};
+      if (!requestId) return;
+
+      const patch = {};
+      for (const [k, v] of Object.entries(rest)) {
+        if (v !== undefined) patch[k] = v;
+      }
+
       // Update in list
       const index = state.requests.findIndex(r => r.id === requestId);
       if (index !== -1) {
-        state.requests[index] = {
-          ...state.requests[index],
-          status,
-          rider,
-          ...otherData,
-        };
+        state.requests[index] = { ...state.requests[index], ...patch };
       }
-      
+
       // Update current request if matches
       if (state.currentRequest?.id === requestId) {
-        state.currentRequest = {
-          ...state.currentRequest,
-          status,
-          ...otherData,
-        };
+        state.currentRequest = { ...state.currentRequest, ...patch };
       }
     },
     updateRiderLocationFromSocket: (state, action) => {
       const { requestId, lat, lng } = action.payload;
-
       if (state.currentRequest?.id === requestId) {
         state.currentRequest.riderLocation = { lat, lng };
       }
+    },
+    // Phase 4 — matching ring status
+    setMatchingStatus: (state, action) => {
+      const { requestId } = action.payload || {};
+      if (state.currentRequest?.id === requestId) {
+        state.matchingStatus = action.payload;
+      }
+    },
+    clearMatchingStatus: (state) => {
+      state.matchingStatus = null;
+    },
+    // Phase 4 — server-pushed ETA
+    setRiderEta: (state, action) => {
+      const { requestId } = action.payload || {};
+      if (state.currentRequest?.id === requestId) {
+        state.riderEta = action.payload;
+      }
+    },
+    // Phase 4 — chat append (socket-driven; de-duped against optimistic id)
+    appendMessageFromSocket: (state, action) => {
+      const { requestId, message } = action.payload || {};
+      if (state.currentRequest?.id !== requestId || !message) return;
+      const exists = state.messages.find((m) => m.id === message.id);
+      if (!exists) state.messages.push(message);
+    },
+    setRoute: (state, action) => {
+      state.route = action.payload;
+    },
+    clearTrackingState: (state) => {
+      state.route = null;
+      state.matchingStatus = null;
+      state.riderEta = null;
+      state.messages = [];
     },
     // Clear error
     clearError: (state) => {
@@ -179,7 +301,7 @@ const requestSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       });
-    
+
     // Fetch request by ID
     builder
       .addCase(fetchRequestById.pending, (state) => {
@@ -188,13 +310,21 @@ const requestSlice = createSlice({
       })
       .addCase(fetchRequestById.fulfilled, (state, action) => {
         state.isLoading = false;
+        const sameRequest = state.currentRequest?.id === action.payload?.id;
         state.currentRequest = action.payload;
+        if (!sameRequest) {
+          // New request opened — wipe per-request tracking caches.
+          state.route = null;
+          state.matchingStatus = null;
+          state.riderEta = null;
+          state.messages = [];
+        }
       })
       .addCase(fetchRequestById.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
-    
+
     // Create request
     builder
       .addCase(createRequest.pending, (state) => {
@@ -208,9 +338,10 @@ const requestSlice = createSlice({
       })
       .addCase(createRequest.rejected, (state, action) => {
         state.isCreating = false;
-        state.error = action.payload;
+        // payload is now {message, status, data}. Only surface the message.
+        state.error = action.payload?.message || action.payload || 'Failed to create request';
       });
-    
+
     // Update status
     builder
       .addCase(updateRequestStatus.pending, (state) => {
@@ -231,7 +362,7 @@ const requestSlice = createSlice({
         state.isUpdating = false;
         state.error = action.payload;
       });
-    
+
     // Cancel request
     builder
       .addCase(cancelRequest.pending, (state) => {
@@ -240,19 +371,28 @@ const requestSlice = createSlice({
       })
       .addCase(cancelRequest.fulfilled, (state, action) => {
         state.isCancelling = false;
-        const index = state.requests.findIndex(r => r.id === action.payload.id);
-        if (index !== -1) {
-          state.requests[index] = action.payload;
-        }
-        if (state.currentRequest?.id === action.payload.id) {
-          state.currentRequest = action.payload;
+        // Server returns { requestId, status, cancellationFee } — patch the
+        // current request and list entry rather than replacing wholesale.
+        const id = action.payload?.requestId || action.payload?.id;
+        if (id) {
+          const index = state.requests.findIndex(r => r.id === id);
+          if (index !== -1) {
+            state.requests[index] = { ...state.requests[index], status: 'CANCELLED' };
+          }
+          if (state.currentRequest?.id === id) {
+            state.currentRequest = {
+              ...state.currentRequest,
+              status: 'CANCELLED',
+              cancellationFee: action.payload.cancellationFee,
+            };
+          }
         }
       })
       .addCase(cancelRequest.rejected, (state, action) => {
         state.isCancelling = false;
         state.error = action.payload;
       });
-    
+
     // Rate request
     builder
       .addCase(rateRequest.pending, (state) => {
@@ -269,8 +409,45 @@ const requestSlice = createSlice({
         state.isRating = false;
         state.error = action.payload;
       });
+
+    // Phase 4 — route + ETA
+    builder
+      .addCase(fetchActiveRoute.fulfilled, (state, action) => {
+        state.route = action.payload;
+        if (action.payload?.etaSeconds != null) {
+          state.riderEta = {
+            requestId: action.payload.requestId,
+            etaSeconds: action.payload.etaSeconds,
+            nextCheckpoint: action.payload.nextCheckpoint,
+            timestamp: action.payload.computedAt || Date.now(),
+          };
+        }
+      });
+
+    // Phase 4 — messages
+    builder
+      .addCase(fetchMessages.fulfilled, (state, action) => {
+        state.messages = action.payload || [];
+      })
+      .addCase(postMessage.fulfilled, (state, action) => {
+        const msg = action.payload;
+        if (msg && !state.messages.find((m) => m.id === msg.id)) {
+          state.messages.push(msg);
+        }
+      });
   },
 });
 
-export const { updateRequestFromSocket, updateRiderLocationFromSocket, clearCurrentRequest, clearError } = requestSlice.actions;
+export const {
+  updateRequestFromSocket,
+  updateRiderLocationFromSocket,
+  setMatchingStatus,
+  clearMatchingStatus,
+  setRiderEta,
+  appendMessageFromSocket,
+  setRoute,
+  clearTrackingState,
+  clearError,
+} = requestSlice.actions;
+
 export default requestSlice.reducer;

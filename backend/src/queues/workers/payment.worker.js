@@ -6,6 +6,7 @@ const { prisma } = require('../../config/database');
 const walletService = require('../../modules/wallet/wallet.service');
 const katpayService = require('../../services/katpay.service');
 const notifyService = require('../../services/notify.service');
+const reconciliationService = require('../../services/reconciliation.service');
 
 const startPaymentWorker = () => {
   const worker = new Worker(
@@ -31,6 +32,9 @@ const startPaymentWorker = () => {
 
         case PAYMENT_JOBS.CLEANUP_EXPIRED_IDEMPOTENCY:
           return handleCleanupExpiredIdempotency();
+
+        case PAYMENT_JOBS.RUN_RECONCILIATION:
+          return handleRunReconciliation();
 
         default:
           logger.warn(`Unknown payment job type: ${job.name}`);
@@ -73,6 +77,19 @@ const handleCleanupExpiredIdempotency = async () => {
   });
   logger.info('Idempotency cleanup completed', { deleted: result.count });
   return result.count;
+};
+
+/**
+ * Nightly ledger reconciliation.
+ *
+ * Runs the wallet-parity + escrow-conservation invariants, persists the report
+ * as an AuditLog row, and surfaces failures via logger.error (which Sentry
+ * picks up). Phase 10 will plug an admin email alert into the failure branch.
+ */
+const handleRunReconciliation = async () => {
+  const report = await reconciliationService.runReconciliation();
+  await reconciliationService.persistReport(report);
+  return report;
 };
 
 /**
@@ -187,10 +204,16 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
 
     logger.info('Withdrawal payout completed', { transactionId, amount });
 
-    // Notify user their withdrawal completed
+    // Notify user their withdrawal completed — live balance + Notification Center row + push.
     if (userId) {
       const freshWallet = await prisma.wallet.findUnique({ where: { userId: userId }, select: { balance: true } });
       if (freshWallet) notifyService.balanceUpdated(userId, { balance: Number(freshWallet.balance) });
+      notifyService.onWalletEvent(userId, {
+        kind: 'WITHDRAWAL',
+        amount,
+        transactionId,
+        route: '/wallet',
+      }).catch((err) => logger.warn('WITHDRAWAL notification failed', { error: err.message }));
     }
   } catch (error) {
     logger.error('Withdrawal payout failed', { transactionId, error: error.message });
@@ -223,10 +246,17 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
         }),
       ]);
 
-      // Notify user their money was refunded
+      // Notify user their money was refunded — live nudge + persisted row + push.
       if (userId) {
         const refundedWallet = await prisma.wallet.findUnique({ where: { userId: userId }, select: { balance: true } });
         if (refundedWallet) notifyService.balanceUpdated(userId, { balance: Number(refundedWallet.balance) });
+        notifyService.onWalletEvent(userId, {
+          kind: 'REFUND',
+          amount,
+          transactionId: `REF-${transactionId}`,
+          route: '/wallet',
+          description: 'Your withdrawal failed — funds returned to your wallet.',
+        }).catch((err) => logger.warn('Withdrawal-refund notification failed', { error: err.message }));
       }
     }
 

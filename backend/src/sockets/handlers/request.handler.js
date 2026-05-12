@@ -183,20 +183,21 @@ const emitMerchantReady = (io, requestId, customerId) => {
 
 /**
  * Emit REQUEST.RIDER_ASSIGNED when rider is assigned.
- * Sends to customer's personal room and request room.
+ * Sends to customer's personal room and request room. Always carries `status`
+ * so the mobile reducer (which merges socket payloads into currentRequest)
+ * doesn't lag behind the canonical status — fixes the "rider found but
+ * UI still shows Searching" gap.
  */
 const emitRiderAssigned = (io, requestId, customerId, riderInfo) => {
   const room = getRequestRoom(requestId);
-  io.to(room).emit(REQUEST.RIDER_ASSIGNED, {
+  const payload = {
     requestId,
+    status: 'RIDER_ASSIGNED',
     rider: riderInfo,
     timestamp: Date.now(),
-  });
-  io.to(getUserRoom(customerId)).emit(REQUEST.RIDER_ASSIGNED, {
-    requestId,
-    rider: riderInfo,
-    timestamp: Date.now(),
-  });
+  };
+  io.to(room).emit(REQUEST.RIDER_ASSIGNED, payload);
+  io.to(getUserRoom(customerId)).emit(REQUEST.RIDER_ASSIGNED, payload);
   logger.info('REQUEST.RIDER_ASSIGNED emitted', { requestId, customerId });
 };
 
@@ -208,6 +209,7 @@ const emitCompleted = (io, requestId) => {
   const room = getRequestRoom(requestId);
   io.to(room).emit(REQUEST.COMPLETED, {
     requestId,
+    status: 'SETTLED',
     timestamp: Date.now(),
   });
   logger.info('REQUEST.COMPLETED emitted', { requestId });
@@ -215,20 +217,21 @@ const emitCompleted = (io, requestId) => {
 
 /**
  * Emit REQUEST.CANCELLED when request is cancelled.
- * Sends to request room and customer.
+ * Sends to request room and customer. Includes `status: 'CANCELLED'` and the
+ * optional `cancellationFee` so the customer's tracking screen can flip
+ * immediately without a round-trip refetch.
  */
-const emitCancelled = (io, requestId, customerId, reason) => {
+const emitCancelled = (io, requestId, customerId, reason, extras = {}) => {
   const room = getRequestRoom(requestId);
-  io.to(room).emit(REQUEST.CANCELLED, {
+  const payload = {
     requestId,
+    status: 'CANCELLED',
     reason,
     timestamp: Date.now(),
-  });
-  io.to(getUserRoom(customerId)).emit(REQUEST.CANCELLED, {
-    requestId,
-    reason,
-    timestamp: Date.now(),
-  });
+    ...extras, // e.g. { cancellationFee }
+  };
+  io.to(room).emit(REQUEST.CANCELLED, payload);
+  io.to(getUserRoom(customerId)).emit(REQUEST.CANCELLED, payload);
   logger.info('REQUEST.CANCELLED emitted', { requestId, reason });
 };
 

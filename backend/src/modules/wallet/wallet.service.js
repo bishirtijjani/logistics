@@ -63,8 +63,8 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
       include: { wallet: true },
     });
 
-    if (!recipient || !recipient.wallet) throw AppError.notFound('Recipient not found');
-    if (recipient.id === senderId) throw AppError.badRequest('Cannot transfer to yourself');
+    if (!recipient || !recipient.wallet) throw AppError.notFound('Recipient not found', { code: 'RECIPIENT_NOT_FOUND' });
+    if (recipient.id === senderId) throw AppError.badRequest('Cannot transfer to yourself', { code: 'TRANSFER_TO_SELF' });
 
     const recipientBalance = Number(recipient.wallet.balance);
 
@@ -82,6 +82,11 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
         creditWalletId: recipient.wallet.id,
         balanceBefore: senderBalance,
         balanceAfter: senderBalance - amount,
+        metadata: {
+          recipientPhone,
+          recipientName: `${recipient.firstName} ${recipient.lastName}`,
+          recipientId: recipient.id,
+        },
       },
     });
 
@@ -113,7 +118,7 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
 
   logger.info('P2P transfer completed', { senderId, recipientPhone, amount, reference });
 
-  // Emit real-time updates
+  // Live wallet-balance nudges (silent — no Notification Center row each time).
   const senderWallet = await prisma.wallet.findUnique({ where: { userId: senderId }, select: { balance: true } });
   notifyService.balanceUpdated(senderId, { balance: Number(senderWallet.balance) });
   notifyService.balanceUpdated(result.recipientId, { balance: Number((await prisma.wallet.findFirst({ where: { id: result.recipientWalletId } })).balance) });
@@ -123,13 +128,30 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
     reference,
   });
 
+  // Persisted notifications: sender + recipient each get a row + push.
+  // Sender-side fire-and-forget — failure of a notification must not roll back
+  // the transfer (already committed above).
+  notifyService.onWalletEvent(senderId, {
+    kind: 'TRANSFER_SENT',
+    amount,
+    transactionId: result.debitTransaction?.reference || reference,
+    route: '/wallet',
+  }).catch((err) => logger.warn('TRANSFER_SENT notification failed', { error: err.message }));
+  notifyService.onWalletEvent(result.recipientId, {
+    kind: 'TRANSFER_RECEIVED',
+    amount,
+    transactionId: result.creditTransaction?.reference || reference,
+    senderName: 'A user',
+    route: '/wallet',
+  }).catch((err) => logger.warn('TRANSFER_RECEIVED notification failed', { error: err.message }));
+
   return result;
 };
 
 /**
  * Withdraw to bank account — atomic debit + queue disbursement.
  */
-const withdrawToBank = async (userId, { bankCode, accountNumber, accountName, amount }) => {
+const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accountName, amount }) => {
   const reference = `WIT-${uuidv4()}`;
 
   const result = await prisma.$transaction(async (tx) => {
@@ -148,10 +170,10 @@ const withdrawToBank = async (userId, { bankCode, accountNumber, accountName, am
         type: 'WITHDRAWAL',
         status: 'PROCESSING',
         amount,
-        description: `Withdrawal to ${bankCode} - ${accountNumber}`,
+        description: `Withdrawal to ${bankName || bankCode} - ${accountNumber}`,
         debitWalletId: wallet.id,
         merchant: 'KATPAY',
-        metadata: { bankCode, accountNumber, accountName },
+        metadata: { bankCode, bankName, accountNumber, accountName },
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -170,6 +192,17 @@ const withdrawToBank = async (userId, { bankCode, accountNumber, accountName, am
 
   const freshWallet = await prisma.wallet.findUnique({ where: { userId }, select: { balance: true } });
   notifyService.balanceUpdated(userId, { balance: Number(freshWallet.balance) });
+
+  // Notification: withdrawal is PROCESSING here. We surface a "withdrawal
+  // initiated" entry; the payment worker will create another row when the
+  // payout actually clears.
+  notifyService.onWalletEvent(userId, {
+    kind: 'WALLET',
+    amount,
+    transactionId: reference,
+    route: '/wallet',
+    description: `Withdrawal of ₦${Number(amount).toLocaleString('en-NG')} initiated`,
+  }).catch((err) => logger.warn('Withdrawal-initiated notification failed', { error: err.message }));
 
   return result;
 };
@@ -214,11 +247,17 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
 
   logger.info('Wallet funded', { accountNumber, amount, reference });
 
-  // Emit real-time updates via socket
+  // Live wallet-balance nudge + Notification Center row + push.
   const ownerWallet = await prisma.wallet.findUnique({ where: { virtualAccountNumber: accountNumber }, select: { userId: true, balance: true } });
   if (ownerWallet) {
     notifyService.balanceUpdated(ownerWallet.userId, { balance: Number(ownerWallet.balance) });
     notifyService.fundingReceived(ownerWallet.userId, { amount, reference });
+    notifyService.onWalletEvent(ownerWallet.userId, {
+      kind: 'FUNDING',
+      amount,
+      transactionId: reference,
+      route: '/wallet',
+    }).catch((err) => logger.warn('FUNDING notification failed', { error: err.message }));
   }
 
   return result.transaction;
@@ -227,12 +266,29 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
 /**
  * Get paginated transaction history for a user.
  */
-const getTransactionHistory = async (userId, { page, limit, type, startDate, endDate }) => {
+const getTransactionHistory = async (userId, { page, limit, type, startDate, endDate, q }) => {
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
   if (!wallet) throw AppError.notFound('Wallet not found');
 
-  const where = {
+  // Search collapses to (matches user's wallet) AND (search term hits ref/desc).
+  // Keeping the wallet-membership clause in AND guarantees we never leak rows
+  // belonging to another user even if `q` accidentally matches their reference.
+  const walletClause = {
     OR: [{ debitWalletId: wallet.id }, { creditWalletId: wallet.id }],
+  };
+
+  const where = {
+    AND: [
+      walletClause,
+      ...(q
+        ? [{
+            OR: [
+              { reference: { contains: q, mode: 'insensitive' } },
+              { description: { contains: q, mode: 'insensitive' } },
+            ],
+          }]
+        : []),
+    ],
     ...(type && { type }),
     ...(startDate && endDate && { createdAt: { gte: startDate, lte: endDate } }),
   };

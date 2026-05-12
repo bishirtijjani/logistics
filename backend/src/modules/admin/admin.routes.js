@@ -29,6 +29,7 @@ const {
   createTagSchema,
   createCategorySchema,
   updateCategorySchema,
+  updateAttributeSchemaSchema,
   listCategoriesSchema,
   updateTagSchema,
   setMerchantTagsSchema,
@@ -78,6 +79,7 @@ router.delete('/tags/:tagId', adminController.deleteTag);
 router.get('/categories', validate(listCategoriesSchema, 'query'), adminController.getAllCategories);
 router.post('/categories', validate(createCategorySchema), adminController.createCategory);
 router.put('/categories/:categoryId', validate(updateCategorySchema), adminController.updateCategory);
+router.patch('/categories/:categoryId/attribute-schema', validate(updateAttributeSchemaSchema), adminController.updateCategoryAttributeSchema);
 router.delete('/categories/:categoryId', adminController.deleteCategory);
 
 // Rider management

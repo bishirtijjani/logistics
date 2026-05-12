@@ -25,10 +25,14 @@ const transactionOverviewSchema = z.object({
     'P2P_TRANSFER_SENT',
     'P2P_TRANSFER_RECEIVED',
     'WITHDRAWAL',
-    'DELIVERY_PAYMENT',
-    'DELIVERY_EARNING',
     'UTILITY_PAYMENT',
     'REFUND',
+    'ESCROW_HOLD',
+    'ESCROW_RELEASE',
+    'ESCROW_REFUND',
+    'PLATFORM_EARNING',
+    'RIDER_EARNING',
+    'MERCHANT_EARNING',
   ]).optional(),
   status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REVERSED']).optional(),
 });
@@ -152,6 +156,20 @@ const setMerchantTagsSchema = z.object({
 });
 
 // Merchant category schemas
+//
+// `attributeSchema` is an admin-managed JSON hint that tells the merchant app
+// which axes (size, color, strength, …) and pack units the category uses, plus
+// some category-specific extras (sizeSystem, etc.). The DB does not enforce it —
+// the merchant product form reads it to render the right inputs. Validation here
+// is loose on purpose (categories can be added without code changes); we only
+// constrain the shape of well-known fields.
+const attributeSchemaSchema = z.object({
+  axes: z.array(z.string().min(1).max(40)).max(10).optional(),
+  pack: z.boolean().optional(),
+  packUnits: z.array(z.enum(['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON'])).optional(),
+  sizeSystem: z.string().max(20).optional(),
+}).passthrough();
+
 const createCategorySchema = z.object({
   name: z.string().min(1).max(50),
   slug: z.string().min(1).max(50).optional(),
@@ -160,6 +178,7 @@ const createCategorySchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   sortOrder: z.number().int().min(0).max(10000).optional(),
   hasPreparation: z.boolean().optional(),
+  attributeSchema: attributeSchemaSchema.optional(),
 });
 
 const updateCategorySchema = z.object({
@@ -171,6 +190,11 @@ const updateCategorySchema = z.object({
   sortOrder: z.number().int().min(0).max(10000).optional(),
   hasPreparation: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  attributeSchema: attributeSchemaSchema.nullable().optional(),
+});
+
+const updateAttributeSchemaSchema = z.object({
+  attributeSchema: attributeSchemaSchema.nullable(),
 });
 
 const listCategoriesSchema = z.object({
@@ -223,6 +247,7 @@ module.exports = {
   setMerchantTagsSchema,
   createCategorySchema,
   updateCategorySchema,
+  updateAttributeSchemaSchema,
   listCategoriesSchema,
   listAllRidersSchema,
   getRiderEarningsSchema,

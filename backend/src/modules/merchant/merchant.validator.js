@@ -125,28 +125,91 @@ const merchantProductsSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+// ------------------------------------------------------------
+// Variants & Option Groups
+// ------------------------------------------------------------
+
+const PACK_UNITS = ['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON'];
+const SELECTION_RULES = ['REQUIRED_ONE','OPTIONAL_ONE','REQUIRED_MULTIPLE','OPTIONAL_MULTIPLE'];
+
+const variantInputSchema = z.object({
+  sku: z.string().optional(),
+  attributes: z.record(z.any()).optional(),
+  packSize: z.number().positive().optional(),
+  packUnit: z.enum(PACK_UNITS).optional(),
+  packLabel: z.string().max(60).optional(),
+  price: z.number().nonnegative(),
+  stock: z.number().int().min(0).default(0),
+  imageUrl: z.string().url().optional(),
+  isAvailable: z.boolean().default(true),
+});
+
+const optionItemInputSchema = z.object({
+  name: z.string().min(1).max(80),
+  priceDelta: z.number().default(0),
+  isDefault: z.boolean().default(false),
+  isAvailable: z.boolean().default(true),
+  sortOrder: z.number().int().min(0).default(0),
+});
+
+const optionGroupInputSchema = z.object({
+  name: z.string().min(1).max(80),
+  selectionRule: z.enum(SELECTION_RULES),
+  minSelect: z.number().int().min(0).default(0),
+  maxSelect: z.number().int().min(1).default(1),
+  sortOrder: z.number().int().min(0).default(0),
+  items: z.array(optionItemInputSchema).default([]),
+}).refine(d => d.maxSelect >= d.minSelect, { message: 'maxSelect must be >= minSelect' });
+
 const createProductSchema = z.object({
   name: z.string().min(2, 'Product name is required'),
   description: z.string().optional(),
-  basePrice: z.number().positive('Price must be positive'),
+  basePrice: z.number().nonnegative('Price must be non-negative'),
   category: z.string().optional(),
   imageUrl: z.string().url().optional(),
   isAvailable: z.boolean().default(true),
   stock: z.number().int().min(0).default(0),
+  requiresPrescription: z.boolean().default(false),
+  dosage: z.string().max(120).optional(),
+
+  /// Optional inline variant + option-group setup. When omitted, a default
+  /// single variant is created from basePrice/stock.
+  variants: z.array(variantInputSchema).optional(),
+  optionGroups: z.array(optionGroupInputSchema).optional(),
 });
 
 const updateProductSchema = z.object({
   name: z.string().min(2).optional(),
   description: z.string().optional(),
-  basePrice: z.number().positive().optional(),
+  basePrice: z.number().nonnegative().optional(),
   category: z.string().optional(),
   imageUrl: z.string().url().optional(),
   isAvailable: z.boolean().optional(),
   stock: z.number().int().min(0).optional(),
+  requiresPrescription: z.boolean().optional(),
+  dosage: z.string().max(120).optional(),
 });
 
 const toggleProductAvailabilitySchema = z.object({
   isAvailable: z.boolean(),
+});
+
+const updateVariantSchema = variantInputSchema.partial();
+
+const optionGroupUpdateSchema = z.object({
+  name: z.string().min(1).max(80).optional(),
+  selectionRule: z.enum(SELECTION_RULES).optional(),
+  minSelect: z.number().int().min(0).optional(),
+  maxSelect: z.number().int().min(1).optional(),
+  sortOrder: z.number().int().min(0).optional(),
+});
+
+const optionItemUpdateSchema = z.object({
+  name: z.string().min(1).max(80).optional(),
+  priceDelta: z.number().optional(),
+  isDefault: z.boolean().optional(),
+  isAvailable: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
 });
 
 const merchantAnalyticsSchema = z.object({
@@ -179,4 +242,13 @@ module.exports = {
   toggleProductAvailabilitySchema,
   merchantAnalyticsSchema,
   merchantOrderHistorySchema,
+  // variants + option groups
+  variantInputSchema,
+  updateVariantSchema,
+  optionGroupInputSchema,
+  optionGroupUpdateSchema,
+  optionItemInputSchema,
+  optionItemUpdateSchema,
+  PACK_UNITS,
+  SELECTION_RULES,
 };

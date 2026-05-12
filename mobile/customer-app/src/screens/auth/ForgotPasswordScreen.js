@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -15,16 +15,20 @@ import { useDispatch, useSelector } from "react-redux";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 import FormInput from "../../components/FormInput";
 import { requestPasswordReset } from "../../store/slices/authSlice";
-
-const schema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
+import { colors } from "../../theme";
 
 export default function ForgotPasswordScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { t } = useTranslation();
   const { isLoading } = useSelector((state) => state.auth);
+
+  const schema = useMemo(
+    () => z.object({ email: z.string().email(t("auth.form.emailInvalid")) }),
+    [t],
+  );
 
   const {
     control,
@@ -40,8 +44,8 @@ export default function ForgotPasswordScreen({ navigation }) {
     if (requestPasswordReset.fulfilled.match(result)) {
       Toast.show({
         type: "success",
-        text1: "Check your email",
-        text2: "A reset code has been sent if an account exists.",
+        text1: t("auth.toast.resetCodeSent"),
+        text2: t("auth.toast.resetCodeSentSub"),
       });
       navigation.navigate("OtpVerification", { email, mode: "reset" });
     }
@@ -50,33 +54,36 @@ export default function ForgotPasswordScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: "#FAFAFA" }}
+      style={{ flex: 1, backgroundColor: colors.background }}
     >
-      <View style={{ height: 4, backgroundColor: "#EA580C" }} />
+      <View style={{ height: 4, backgroundColor: colors.primary }} />
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 56 }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={{ marginBottom: 32 }}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color="#09090b" />
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
 
           <View style={{ marginBottom: 36 }}>
             <Text
+              accessibilityRole="header"
               style={{
                 fontSize: 38,
                 fontWeight: "900",
-                color: "#09090b",
+                color: colors.text,
                 letterSpacing: -1.5,
                 marginBottom: 8,
                 lineHeight: 44,
               }}
             >
-              Forgot{"\n"}password?
+              {t("auth.forgotTitle")}
             </Text>
-            <Text style={{ fontSize: 15, color: "#6B7280" }}>
-              Enter your email and we'll send you a reset code.
+            <Text style={{ fontSize: 15, color: colors.textMuted }}>
+              {t("auth.forgotSubtitle")}
             </Text>
           </View>
 
@@ -85,7 +92,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             name="email"
             render={({ field: { onChange, onBlur, value } }) => (
               <FormInput
-                label="Email address"
+                label={t("auth.email")}
                 icon="mail-outline"
                 placeholder="john@example.com"
                 error={errors.email?.message}
@@ -108,17 +115,20 @@ export default function ForgotPasswordScreen({ navigation }) {
               borderRadius: 16,
               alignItems: "center",
               marginTop: 4,
-              backgroundColor: isLoading ? "#EA580CB3" : "#EA580C",
+              backgroundColor: isLoading ? "#EA580CB3" : colors.primary,
             }}
             onPress={handleSubmit(onSubmit)}
             disabled={isLoading}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("auth.forgotCta")}
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             {isLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
-                Send reset code
+                {t("auth.forgotCta")}
               </Text>
             )}
           </TouchableOpacity>
@@ -130,14 +140,18 @@ export default function ForgotPasswordScreen({ navigation }) {
               marginTop: 20,
             }}
           >
-            <Text style={{ color: "#6B7280", fontSize: 14 }}>
-              Remember your password?{" "}
+            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+              {t("auth.rememberPassword")}{" "}
             </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Login")}
+              accessibilityRole="link"
+              accessibilityLabel={t("auth.signIn")}
+            >
               <Text
-                style={{ color: "#EA580C", fontSize: 14, fontWeight: "700" }}
+                style={{ color: colors.primary, fontSize: 14, fontWeight: "700" }}
               >
-                Sign in
+                {t("auth.signIn")}
               </Text>
             </TouchableOpacity>
           </View>
