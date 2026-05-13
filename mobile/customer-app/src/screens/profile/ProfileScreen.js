@@ -15,7 +15,9 @@ import { useTranslation } from "react-i18next";
 import { logout } from "../../store/slices/authSlice";
 import { fetchProfile } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import LocaleSheet from "../../components/LocaleSheet";
+import ThemeSheet from "../../components/ThemeSheet";
 
 // KYC badge metadata. `labelKey` resolves via t() at render so labels switch
 // with locale; colors are status-coded and locale-agnostic.
@@ -35,6 +37,12 @@ export default function ProfileScreen({ navigation }) {
   // (rather than inside <LocaleSheet>) so we can re-render the chip on close
   // with the updated language label.
   const [localeSheetVisible, setLocaleSheetVisible] = useState(false);
+  const [themeSheetVisible, setThemeSheetVisible] = useState(false);
+  const { mode } = useTheme();
+  const themeSubLabel =
+    mode === 'light' ? t('theme.rowSubLight')
+    : mode === 'dark' ? t('theme.rowSubDark')
+    : t('theme.rowSubSystem');
 
   useEffect(() => {
     dispatch(fetchProfile());
@@ -79,6 +87,12 @@ export default function ProfileScreen({ navigation }) {
   ];
 
   const settingsItems = [
+    {
+      icon: "color-palette-outline",
+      label: t("theme.rowLabel"),
+      sub: themeSubLabel,
+      onPress: () => setThemeSheetVisible(true),
+    },
     {
       icon: "lock-closed-outline",
       label: t("settings.rows.security"),
@@ -148,9 +162,9 @@ export default function ProfileScreen({ navigation }) {
           <TouchableOpacity
             key={item.label}
             onPress={() => {
-              if (!item.disabled && item.screen) {
-                navigation.navigate(item.screen);
-              }
+              if (item.disabled) return;
+              if (item.onPress) { item.onPress(); return; }
+              if (item.screen) navigation.navigate(item.screen);
             }}
             activeOpacity={item.disabled ? 1 : 0.6}
             accessibilityRole="button"
@@ -254,16 +268,31 @@ export default function ProfileScreen({ navigation }) {
               marginBottom: 20,
             }}
           >
-            <Text
-              style={{
-                fontSize: 28,
-                fontWeight: "900",
-                color: colors.text,
-                letterSpacing: -1,
-              }}
-            >
-              {t("tabs.profile")}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              {/* Profile is now a stack screen reached from the home avatar.
+                  The back button gives iOS users (no hardware back) and
+                  every user a clear way out without relying on swipe-back. */}
+              {navigation.canGoBack() && (
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("a11y.back")}
+                  style={{ padding: 6, marginRight: 8, marginLeft: -6 }}
+                >
+                  <Ionicons name="arrow-back" size={22} color={colors.text} />
+                </TouchableOpacity>
+              )}
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: "900",
+                  color: colors.text,
+                  letterSpacing: -1,
+                }}
+              >
+                {t("tabs.profile")}
+              </Text>
+            </View>
             <TouchableOpacity
               onPress={() => setLocaleSheetVisible(true)}
               accessibilityRole="button"
@@ -555,6 +584,10 @@ export default function ProfileScreen({ navigation }) {
       <LocaleSheet
         visible={localeSheetVisible}
         onClose={() => setLocaleSheetVisible(false)}
+      />
+      <ThemeSheet
+        visible={themeSheetVisible}
+        onClose={() => setThemeSheetVisible(false)}
       />
     </SafeAreaView>
   );

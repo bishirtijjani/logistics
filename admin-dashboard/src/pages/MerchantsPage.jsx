@@ -14,6 +14,7 @@ import {
 import { fetchCategories } from '../store/slices/categoriesSlice'
 import { exportToCSV } from '../lib/exportToCSV'
 import Pagination from '../components/Pagination'
+import LocationPicker from '../components/LocationPicker'
 import {
   Store, CheckCircle, XCircle, ShieldAlert, Shield, MoreVertical,
   Mail, Phone, DollarSign, MapPin, Eye, Edit2, Trash2, Download,
@@ -158,6 +159,8 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         phone: merchant.phone || '',
         email: merchant.email || '',
         address: merchant.address || '',
+        lat: typeof merchant.lat === 'number' ? merchant.lat : 0,
+        lng: typeof merchant.lng === 'number' ? merchant.lng : 0,
         openingTime: merchant.openingTime || '08:00',
         closingTime: merchant.closingTime || '22:00',
         adminActiveOverride: merchant.adminActiveOverride !== false,
@@ -340,8 +343,11 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                       <Input type="email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
                     </FormField>
                   </div>
-                  <FormField label="Address">
-                    <Textarea rows={2} value={editData.address} onChange={(e) => setEditData({ ...editData, address: e.target.value })} />
+                  <FormField label="Location">
+                    <LocationPicker
+                      value={{ address: editData.address, lat: editData.lat, lng: editData.lng }}
+                      onChange={({ address, lat, lng }) => setEditData({ ...editData, address, lat, lng })}
+                    />
                   </FormField>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <FormField label="Opening Time">
@@ -1461,20 +1467,15 @@ export default function MerchantsPage() {
               <Input value={newMerchant.phone} onChange={(e) => setNewMerchant({ ...newMerchant, phone: e.target.value })} placeholder="08012345678" />
             </FormField>
           </div>
-          <FormField label="Address">
-            <Textarea rows={2} value={newMerchant.address} onChange={(e) => setNewMerchant({ ...newMerchant, address: e.target.value })} placeholder="Full business address" />
+          <FormField label="Location">
+            <LocationPicker
+              value={{ address: newMerchant.address, lat: newMerchant.lat, lng: newMerchant.lng }}
+              onChange={({ address, lat, lng }) => setNewMerchant({ ...newMerchant, address, lat, lng })}
+            />
           </FormField>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label="Latitude">
-              <Input type="number" step="any" value={newMerchant.lat} onChange={(e) => setNewMerchant({ ...newMerchant, lat: parseFloat(e.target.value) || 0 })} />
-            </FormField>
-            <FormField label="Longitude">
-              <Input type="number" step="any" value={newMerchant.lng} onChange={(e) => setNewMerchant({ ...newMerchant, lng: parseFloat(e.target.value) || 0 })} />
-            </FormField>
-          </div>
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end pt-2">
             <Btn variant="outline" onClick={() => setCreateModal(false)}>Cancel</Btn>
-            <Btn variant="primary" loading={actionLoading === 'create'} disabled={!newMerchant.name || !newMerchant.phone} onClick={handleCreateMerchant}>
+            <Btn variant="primary" loading={actionLoading === 'create'} disabled={!newMerchant.name || !newMerchant.phone || !newMerchant.address || !newMerchant.lat || !newMerchant.lng} onClick={handleCreateMerchant}>
               <Plus size={15} /> Create Merchant
             </Btn>
           </div>

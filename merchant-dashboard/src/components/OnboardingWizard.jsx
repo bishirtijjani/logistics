@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { X, ArrowRight, ArrowLeft, Check, Store, Package, Clock, Settings, Sparkles } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import { X, ArrowRight, ArrowLeft, Check, Store, Package, Clock, Settings, Sparkles, MapPin } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
+import LocationPicker from './LocationPicker.jsx'
 
 export default function OnboardingWizard() {
-  const { merchantId } = useParams()
+  // The wizard is mounted inside Layout with no route params, so useParams()
+  // was always returning undefined here. Pull merchantId from auth state
+  // instead so all PATCH calls hit the right resource.
+  const { user } = useSelector((state) => state.auth)
+  const merchantId = user?.merchantId
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -16,6 +22,12 @@ export default function OnboardingWizard() {
     hasSetHours: false,
     hasConfiguredSettings: false
   })
+
+  // Location is collected here (not at registration) so merchants pin a real
+  // map location instead of starting at a hardcoded city centre. The PATCH
+  // is gated by `locationSaved` and the step cannot be skipped.
+  const [locationData, setLocationData] = useState({ address: '', lat: 0, lng: 0 })
+  const [locationSaved, setLocationSaved] = useState(false)
 
   const [productData, setProductData] = useState({
     name: '',
@@ -32,11 +44,17 @@ export default function OnboardingWizard() {
   })
 
   useEffect(() => {
-    // Check if merchant has completed onboarding
-    const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${merchantId}`)
-    if (!hasCompletedOnboarding) {
-      setIsVisible(true)
+    // Wait for auth state to hydrate before deciding visibility. Otherwise
+    // the first render with merchantId === undefined would read
+    // `onboarding_completed_undefined` (missing) and flash the wizard onto
+    // already-onboarded merchants for a frame before the real merchantId
+    // arrived.
+    if (!merchantId) {
+      setIsVisible(false)
+      return
     }
+    const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${merchantId}`)
+    setIsVisible(!hasCompletedOnboarding)
   }, [merchantId])
 
   const handleSkip = () => {
@@ -44,17 +62,60 @@ export default function OnboardingWizard() {
     localStorage.setItem(`onboarding_completed_${merchantId}`, 'true')
   }
 
-  const handleNext = () => {
-    if (currentStep === 1) {
+  const handleNext = async () => {
+    // Step 2 (location) is required — block advance until the pin is saved.
+    if (currentStep === 2 && !locationSaved) {
+      const ok = await saveLocation()
+      if (!ok) return
+    }
+    if (currentStep === 3) {
       if (onboardingData.hasAddedProduct && !validateProduct()) return
     }
-    if (currentStep === 2) {
+    if (currentStep === 4) {
       if (onboardingData.hasSetHours) {
-        // Save hours
         saveBusinessHours()
       }
     }
     setCurrentStep(currentStep + 1)
+  }
+
+  const saveLocation = async () => {
+    if (!locationData.lat || !locationData.lng) {
+      showErrorToast('Drop a pin on the map to set your location')
+      return false
+    }
+    if (!merchantId) {
+      showErrorToast('Missing merchant context — try logging out and back in')
+      return false
+    }
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`/api/merchants/merchant/${merchantId}/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          address: locationData.address,
+          lat: locationData.lat,
+          lng: locationData.lng,
+        }),
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to save location')
+      }
+      setLocationSaved(true)
+      showSuccessToast('Location saved!')
+      return true
+    } catch (err) {
+      showErrorToast(err.message || 'Failed to save location. Please try again.')
+      return false
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleBack = () => {
@@ -138,7 +199,7 @@ export default function OnboardingWizard() {
     setIsVisible(false)
     localStorage.setItem(`onboarding_completed_${merchantId}`, 'true')
     showSuccessToast('Welcome to VTU Logistics! Your dashboard is ready.')
-    navigate(`/dashboard/${merchantId}/orders`)
+    navigate('/dashboard/orders')
   }
 
   if (!isVisible) return null
@@ -156,15 +217,15 @@ export default function OnboardingWizard() {
             <ul className="space-y-2 text-sm text-muted dark:text-dark-muted">
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                Pin your business location
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                 Add your first product
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
                 Set your business hours
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                Configure basic settings
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -182,6 +243,32 @@ export default function OnboardingWizard() {
     },
     {
       id: 2,
+      icon: MapPin,
+      title: 'Pin Your Business Location',
+      description: 'Drop a pin so customers can find you and we can calculate accurate delivery fees.',
+      component: (
+        <div className="space-y-4">
+          <LocationPicker
+            value={locationData}
+            onChange={(next) => {
+              setLocationData(next)
+              setLocationSaved(false)
+            }}
+          />
+          {locationSaved && (
+            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-sm text-green-700 dark:text-green-400">
+              <Check className="w-4 h-4 flex-shrink-0" />
+              Location saved. Click Next to continue.
+            </div>
+          )}
+          <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl text-sm text-orange-700 dark:text-orange-400">
+            This step is required — your business won't be approved or visible to customers until your location is pinned.
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 3,
       icon: Package,
       title: 'Add Your First Product',
       description: 'Start by adding your first product to your catalog.',
@@ -263,7 +350,7 @@ export default function OnboardingWizard() {
       )
     },
     {
-      id: 3,
+      id: 4,
       icon: Clock,
       title: 'Set Business Hours',
       description: 'Configure when your business is open for orders.',
@@ -330,7 +417,7 @@ export default function OnboardingWizard() {
       )
     },
     {
-      id: 4,
+      id: 5,
       icon: Settings,
       title: 'You\'re All Set!',
       description: 'Your business is ready to start receiving orders.',
@@ -392,12 +479,14 @@ export default function OnboardingWizard() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleSkip}
-              className="text-muted hover:text-text dark:hover:text-dark-text transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            {currentStep !== 2 && (
+              <button
+                onClick={handleSkip}
+                className="text-muted hover:text-text dark:hover:text-dark-text transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            )}
           </div>
           {/* Progress Bar */}
           <div className="mt-4">
@@ -414,9 +503,7 @@ export default function OnboardingWizard() {
         <div className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className={`p-3 rounded-xl ${
-              currentStep === 1 ? 'bg-gradient-to-r from-primary to-primary-700' :
               currentStep === 2 ? 'bg-gradient-to-r from-success to-emerald-600' :
-              currentStep === 3 ? 'bg-gradient-to-r from-primary to-primary-700' :
               'bg-gradient-to-r from-primary to-primary-700'
             }`}>
               {React.createElement(steps[currentStep - 1].icon, { className: 'w-6 h-6 text-white' })}
@@ -469,8 +556,8 @@ export default function OnboardingWizard() {
             )}
           </div>
 
-          {/* Skip Button */}
-          {currentStep < steps.length && (
+          {/* Skip Button — hidden on the required Location step (step 2) */}
+          {currentStep < steps.length && currentStep !== 2 && (
             <button
               onClick={handleSkip}
               className="w-full mt-4 py-3 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors text-sm"

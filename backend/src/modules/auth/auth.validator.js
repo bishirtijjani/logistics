@@ -123,9 +123,12 @@ const merchantRegisterSchema = z.object({
   categoryId: z.string().uuid('categoryId must be a valid UUID'),
   businessPhone: z.string().min(10),
   businessEmail: z.string().email(),
-  businessAddress: z.string().min(5),
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
+  // Location is collected post-signup in the dashboard's OnboardingWizard so
+  // merchants can drop a real pin on a map; the merchant starts at
+  // PENDING_APPROVAL and admin approval blocks until coords are real.
+  businessAddress: z.string().min(5).optional(),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
   openingTime: z.string().regex(/^\d{2}:\d{2}$/).default('08:00'),
   closingTime: z.string().regex(/^\d{2}:\d{2}$/).default('22:00'),
 });

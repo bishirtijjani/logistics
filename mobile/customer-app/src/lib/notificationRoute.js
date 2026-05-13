@@ -11,9 +11,11 @@
  */
 
 // IMPORTANT: tab names below MUST match MainTabNavigator's screen names
-// (HomeTab/OrdersTab/WalletTab/ProfileTab). A mismatch produces a silent
+// (HomeTab/OrdersTab/WalletTab/CartTab). A mismatch produces a silent
 // "screen not found" inside the tab navigator, which presents as the tap
-// switching to MainTabs but never moving to the intended tab.
+// switching to MainTabs but never moving to the intended tab. Profile is no
+// longer a tab — it's a stack screen above MainTabs, reachable via the home
+// header avatar.
 const ROUTE_MAP = [
   // /request/:id → tracking screen
   {

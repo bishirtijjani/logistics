@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { fetchSettings, updateSettings } from '../store/slices/settingsSlice.js'
 import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone } from 'lucide-react'
 import { CardSkeleton } from '../components/LoadingSkeleton.jsx'
+import LocationPicker from '../components/LocationPicker.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 
 export default function SettingsPage() {
@@ -17,6 +18,8 @@ export default function SettingsPage() {
     phone: '',
     email: '',
     address: '',
+    lat: 0,
+    lng: 0,
     openingTime: '08:00',
     closingTime: '22:00',
   })
@@ -93,6 +96,8 @@ export default function SettingsPage() {
         phone: settings.phone || '',
         email: settings.email || '',
         address: settings.address || '',
+        lat: typeof settings.lat === 'number' ? settings.lat : 0,
+        lng: typeof settings.lng === 'number' ? settings.lng : 0,
         openingTime: settings.openingTime || '08:00',
         closingTime: settings.closingTime || '22:00',
       })
@@ -366,24 +371,27 @@ export default function SettingsPage() {
                   className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-text mb-1">Phone</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text mb-1">Address</label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text mb-1">Phone</label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-text mb-1">Location</label>
+              <LocationPicker
+                value={{ address: formData.address, lat: formData.lat, lng: formData.lng }}
+                onChange={({ address, lat, lng }) => setFormData({ ...formData, address, lat, lng })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-text mb-1">Opening Time</label>
                 <input

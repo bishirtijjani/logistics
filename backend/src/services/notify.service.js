@@ -212,7 +212,8 @@ const CATEGORY_TEMPLATE_OVERRIDES = {
 
 const resolveTemplate = (status, categorySlug) => {
   if (typeof categorySlug === 'string') {
-    // `grocery`, `grocery-liquid`, ... all share the grocery template.
+    // Any `grocery*` slug (admin can add `grocery-fresh` etc later) shares the
+    // grocery template, so we match by prefix rather than exact slug.
     const bucket = categorySlug.startsWith('grocery') ? 'grocery' : categorySlug;
     const override = CATEGORY_TEMPLATE_OVERRIDES[bucket]?.[status];
     if (override) return override;

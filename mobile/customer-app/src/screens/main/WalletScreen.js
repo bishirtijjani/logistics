@@ -127,30 +127,30 @@ export default function WalletScreen({ navigation }) {
                 onPress={() => navigation.navigate("FundWallet")}
                 accessibilityRole="button"
                 accessibilityLabel={t("wallet.fund")}
-                style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 13, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
+                style={{ flex: 1, height: 44, backgroundColor: colors.primary, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
               >
                 <Ionicons name="add" size={18} color={colors.white} />
-                <Text style={{ color: colors.white, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.fund")}</Text>
+                <Text numberOfLines={1} style={{ color: colors.white, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.fund")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => navigation.navigate("SendMoney")}
                 accessibilityRole="button"
                 accessibilityLabel={t("wallet.send")}
-                style={{ flex: 1, backgroundColor: colors.surface, paddingVertical: 13, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
+                style={{ flex: 1, height: 44, backgroundColor: colors.surface, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
               >
                 <Ionicons name="send" size={18} color={colors.text} />
-                <Text style={{ color: colors.text, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.send")}</Text>
+                <Text numberOfLines={1} style={{ color: colors.text, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.send")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => navigation.navigate("Withdraw")}
                 accessibilityRole="button"
                 accessibilityLabel={t("wallet.withdraw")}
-                style={{ flex: 1, backgroundColor: "#ffffff12", paddingVertical: 13, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#ffffff10" }}
+                style={{ flex: 1, height: 44, backgroundColor: "#ffffff12", borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#ffffff10" }}
               >
                 <Ionicons name="arrow-down" size={18} color={colors.white} />
-                <Text style={{ color: colors.white, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.withdraw")}</Text>
+                <Text numberOfLines={1} style={{ color: colors.white, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.withdraw")}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity

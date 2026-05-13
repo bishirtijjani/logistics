@@ -94,7 +94,21 @@
       "Bash(xargs grep -l \"merchant\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.json','utf8'\\)\\); console.log\\('settings.json: valid JSON'\\)\")",
       "Read(//c/Users/BISHIR~1/AppData/Local/Temp/claude/c--Users-BISHIR-TM-Documents-projects-logistics-app/35bdbd11-2741-43b1-9c76-4ef023e37b32/tasks/**)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(node \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/_audit_i18n.js\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/i18n/en.json', 'utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/i18n/ha.json', 'utf8'\\)\\); console.log\\('Both JSON files parse cleanly.'\\);\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\" -Directory)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/i18n/en.json', 'utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/i18n/ha.json', 'utf8'\\)\\); console.log\\('JSON OK'\\);\")",
+      "Bash(node -e \"require\\('./src/i18n/en.json'\\); require\\('./src/i18n/ha.json'\\); console.log\\('JSON parse OK'\\);\")",
+      "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/screens/main/HomeScreen.js\")",
+      "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/screens/main/ShopsScreen.js\")",
+      "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/lib/categoryIcons.js\")",
+      "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/navigation/AppNavigator.js\")",
+      "Bash(npx babel *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(node -e \"const r=require\\('lucide-react'\\); console.log\\(['Search','MapPin','Loader2'].map\\(n => n + ':' + \\(typeof r[n]\\)\\).join\\(' '\\)\\)\")",
+      "Bash(npx jest *)",
+      "Bash(node -e \"const m = require\\('./src/theme/tokens.js'\\); console.log\\('palettes OK, light.brand.default =', m.light.brand.default, '| dark.brand.default =', m.dark.brand.default\\);\")"
     ]
   }
 }

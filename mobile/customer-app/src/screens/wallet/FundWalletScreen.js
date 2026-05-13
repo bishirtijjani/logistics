@@ -33,10 +33,10 @@ export default function FundWalletScreen({ navigation }) {
   // Steps live inside the component so the translations re-evaluate on locale
   // change without a stale closure.
   const steps = [
-    { icon: "copy-outline", title: t("wallet.fund.stepCopyTitle"), desc: t("wallet.fund.stepCopyDesc") },
-    { icon: "phone-portrait-outline", title: t("wallet.fund.stepBankTitle"), desc: t("wallet.fund.stepBankDesc") },
-    { icon: "send-outline", title: t("wallet.fund.stepTransferTitle"), desc: t("wallet.fund.stepTransferDesc") },
-    { icon: "checkmark-done-outline", title: t("wallet.fund.stepDoneTitle"), desc: t("wallet.fund.stepDoneDesc") },
+    { icon: "copy-outline", title: t("wallet.fund_.stepCopyTitle"), desc: t("wallet.fund_.stepCopyDesc") },
+    { icon: "phone-portrait-outline", title: t("wallet.fund_.stepBankTitle"), desc: t("wallet.fund_.stepBankDesc") },
+    { icon: "send-outline", title: t("wallet.fund_.stepTransferTitle"), desc: t("wallet.fund_.stepTransferDesc") },
+    { icon: "checkmark-done-outline", title: t("wallet.fund_.stepDoneTitle"), desc: t("wallet.fund_.stepDoneDesc") },
   ];
 
   return (
@@ -87,10 +87,10 @@ export default function FundWalletScreen({ navigation }) {
             </View>
             <View>
               <Text style={{ fontSize: 16, fontWeight: "700", color: colors.white }}>
-                {t("wallet.fund.vAccountTitle")}
+                {t("wallet.fund_.vAccountTitle")}
               </Text>
               <Text style={{ fontSize: 13, color: colors.textMuted }}>
-                {t("wallet.fund.vAccountSubtitle")}
+                {t("wallet.fund_.vAccountSubtitle")}
               </Text>
             </View>
           </View>
@@ -105,7 +105,7 @@ export default function FundWalletScreen({ navigation }) {
             }}
           >
             <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>
-              {t("wallet.fund.accountNumber")}
+              {t("wallet.fund_.accountNumber")}
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text
@@ -116,7 +116,7 @@ export default function FundWalletScreen({ navigation }) {
                   color: colors.white,
                   letterSpacing: 2,
                 }}
-                accessibilityLabel={`${t("wallet.fund.accountNumber")} ${wallet?.accountNumber || ""}`}
+                accessibilityLabel={`${t("wallet.fund_.accountNumber")} ${wallet?.accountNumber || ""}`}
               >
                 {isLoading ? (
                   <ActivityIndicator color={colors.white} />
@@ -129,7 +129,7 @@ export default function FundWalletScreen({ navigation }) {
               <TouchableOpacity
                 onPress={() => wallet?.accountNumber && copyToClipboard(wallet.accountNumber)}
                 accessibilityRole="button"
-                accessibilityLabel={copied ? t("wallet.fund.copied") : t("wallet.fund.copy")}
+                accessibilityLabel={copied ? t("wallet.fund_.copied") : t("wallet.fund_.copy")}
                 accessibilityState={{ disabled: !wallet?.accountNumber }}
                 style={{
                   backgroundColor: colors.primary,
@@ -139,7 +139,7 @@ export default function FundWalletScreen({ navigation }) {
                 }}
               >
                 <Text style={{ color: colors.white, fontSize: 13, fontWeight: "700" }}>
-                  {copied ? t("wallet.fund.copied") : t("wallet.fund.copy")}
+                  {copied ? t("wallet.fund_.copied") : t("wallet.fund_.copy")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -157,7 +157,7 @@ export default function FundWalletScreen({ navigation }) {
           >
             <Ionicons name="business" size={20} color={colors.primary} />
             <Text style={{ marginLeft: 12, fontSize: 15, fontWeight: "600", color: colors.white }}>
-              {wallet?.bankName || t("wallet.fund.fallbackBank")}
+              {wallet?.bankName || t("wallet.fund_.fallbackBank")}
             </Text>
           </View>
         </View>
@@ -167,7 +167,7 @@ export default function FundWalletScreen({ navigation }) {
           accessibilityRole="header"
           style={{ fontSize: 16, fontWeight: "800", color: colors.text, marginTop: 24, marginBottom: 16 }}
         >
-          {t("wallet.fund.howTo")}
+          {t("wallet.fund_.howTo")}
         </Text>
 
         {steps.map((step, index) => (
@@ -209,10 +209,10 @@ export default function FundWalletScreen({ navigation }) {
             <Ionicons name="information-circle" size={20} color={colors.primary} style={{ marginRight: 8 }} />
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text, marginBottom: 4 }}>
-                {t("wallet.fund.importantTitle")}
+                {t("wallet.fund_.importantTitle")}
               </Text>
               <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 18 }}>
-                {t("wallet.fund.importantBody")}
+                {t("wallet.fund_.importantBody")}
               </Text>
             </View>
           </View>

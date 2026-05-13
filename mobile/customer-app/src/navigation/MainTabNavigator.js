@@ -2,17 +2,24 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
 
 // Screens
 import HomeScreen from "../screens/main/HomeScreen";
 import OrdersScreen from "../screens/main/OrdersScreen";
 import WalletScreen from "../screens/main/WalletScreen";
-import ProfileScreen from "../screens/profile/ProfileScreen";
+import CartScreen from "../screens/main/CartScreen";
+
+import { computeCartCount } from "../lib/cart";
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
   const insets = useSafeAreaInsets();
+  // Cart badge = total units, not lines, since "3× Burger" should read as 3
+  // items not 1. Pulled inline so the badge live-updates without rerendering
+  // the whole tab navigator's screenOptions.
+  const cartCount = useSelector((s) => computeCartCount(s.cart?.lines || []));
 
   return (
     <Tab.Navigator
@@ -27,8 +34,8 @@ export default function MainTabNavigator() {
             iconName = focused ? "document-text" : "document-text-outline";
           } else if (route.name === "WalletTab") {
             iconName = focused ? "wallet" : "wallet-outline";
-          } else if (route.name === "ProfileTab") {
-            iconName = focused ? "person" : "person-outline";
+          } else if (route.name === "CartTab") {
+            iconName = focused ? "bag-handle" : "bag-handle-outline";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -46,6 +53,15 @@ export default function MainTabNavigator() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "500",
+        },
+        tabBarBadgeStyle: {
+          backgroundColor: "#EA580C",
+          color: "#fff",
+          fontSize: 10,
+          fontWeight: "800",
+          minWidth: 18,
+          height: 18,
+          lineHeight: 18,
         },
       })}
     >
@@ -65,9 +81,14 @@ export default function MainTabNavigator() {
         options={{ title: "Wallet" }}
       />
       <Tab.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{ title: "Profile" }}
+        name="CartTab"
+        component={CartScreen}
+        options={{
+          title: "Cart",
+          // `> 0 ? count : undefined` is required — passing 0 or null still
+          // renders the empty badge dot in @react-navigation/bottom-tabs.
+          tabBarBadge: cartCount > 0 ? (cartCount > 99 ? "99+" : cartCount) : undefined,
+        }}
       />
     </Tab.Navigator>
   );

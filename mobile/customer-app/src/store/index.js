@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authReducer, { forceLogout as forceLogoutAction } from "./slices/authSlice";
 import walletReducer from "./slices/walletSlice";
@@ -10,6 +11,7 @@ import settingsReducer from "./slices/settingsSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 import addressesReducer from "./slices/addressesSlice";
 import homeReducer from "./slices/homeSlice";
+import cartReducer from "./slices/cartSlice";
 
 const combined = combineReducers({
   auth: authReducer,
@@ -23,6 +25,7 @@ const combined = combineReducers({
   notifications: notificationsReducer,
   addresses: addressesReducer,
   home: homeReducer,
+  cart: cartReducer,
 });
 
 // Root reducer with forced-logout passthrough. When the silent-refresh
@@ -30,9 +33,12 @@ const combined = combineReducers({
 // the next user that signs in on the same device doesn't briefly see the
 // previous user's wallet balance / notifications / orders during the
 // hydrate gap. `categories`, `settings`, and `location` are global/anonymous
-// — we keep them to avoid an extra cold-load.
+// — we keep them to avoid an extra cold-load. The cart is user-scoped and
+// belongs to whoever signed in; we wipe it AND clear the persisted blob so
+// the next user doesn't inherit it on cold start.
 const rootReducer = (state, action) => {
   if (forceLogoutAction.match(action)) {
+    AsyncStorage.removeItem("cart:v1").catch(() => {});
     state = {
       categories: state?.categories,
       settings: state?.settings,

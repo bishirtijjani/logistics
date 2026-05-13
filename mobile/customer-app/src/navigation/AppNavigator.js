@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, ActivityIndicator, Text, TouchableOpacity, AppState, Linking } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -9,6 +9,7 @@ import { hydrateAuth, logout } from "../store/slices/authSlice";
 import socketService from "../services/socket";
 import { subscribeToWalletSocket } from "../store/slices/walletSlice";
 import { fetchPublicSettings } from "../store/slices/settingsSlice";
+import { hydrateCartFromStorage } from "../store/slices/cartSlice";
 import {
   fetchUnreadCount,
   notificationReceived,
@@ -20,6 +21,7 @@ import {
   isBiometricEnabled,
   authenticateWithBiometric,
 } from "../services/biometric";
+import { useTheme, buildNavigationTheme } from "../theme";
 
 // Auth Screens
 import LoginScreen from "../screens/auth/LoginScreen";
@@ -31,7 +33,9 @@ import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
 // Main
 import MainTabNavigator from "./MainTabNavigator";
 
-// Profile Screens
+// Profile Screens (Profile is now a stack screen reachable via the home
+// header's avatar, not a bottom tab — that slot is the cart now.)
+import ProfileScreen from "../screens/profile/ProfileScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import ProfilePhotoScreen from "../screens/profile/ProfilePhotoScreen";
 import BvnVerificationScreen from "../screens/profile/BvnVerificationScreen";
@@ -81,6 +85,9 @@ import UtilityHistoryScreen from "../screens/utility/UtilityHistoryScreen";
 // Notification Center
 import NotificationCenterScreen from "../screens/main/NotificationCenterScreen";
 
+// Shops aggregator (long-tail categories not surfaced as tiles on Home).
+import ShopsScreen from "../screens/main/ShopsScreen";
+
 const Stack = createNativeStackNavigator();
 
 // react-navigation deep-link config — pairs with `customerapp` scheme in app.json.
@@ -89,10 +96,11 @@ const Stack = createNativeStackNavigator();
 //   - in-app: notificationRoute.routeToScreen handles dispatch via navigation.navigate
 //   - tray-tap: react-navigation's Linking handler parses the full URL on cold start
 // Deep-link config. Tab screen names MUST match the MainTabNavigator's
-// `HomeTab/OrdersTab/WalletTab/ProfileTab` exactly — react-navigation throws
+// `HomeTab/OrdersTab/WalletTab/CartTab` exactly — react-navigation throws
 // "screen not found" on a name mismatch, so `navigation.navigate('MainTabs',
 // { screen: 'Wallet' })` would silently fail. notificationRoute.js builds
-// the same screen names.
+// the same screen names. Profile moved off the tab bar and into a top-level
+// stack screen reachable from the home avatar.
 const NAV_LINKING = {
   prefixes: ["customerapp://", "https://customer.vtulogistics.app"],
   config: {
@@ -102,9 +110,10 @@ const NAV_LINKING = {
           HomeTab: "home",
           OrdersTab: "orders",
           WalletTab: "wallet",
-          ProfileTab: "profile",
+          CartTab: "cart",
         },
       },
+      Profile: "profile",
       NotificationCenter: "notifications",
       RequestTracking: "request/:requestId",
       TransactionHistory: "wallet/transactions",
@@ -122,6 +131,11 @@ export default function AppNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, isHydrating } = useSelector((state) => state.auth);
   const currentRequestId = useSelector((s) => s.request.currentRequest?.id);
+  const { tokens, isDark } = useTheme();
+  const navigationTheme = useMemo(
+    () => buildNavigationTheme(tokens, isDark),
+    [tokens, isDark]
+  );
 
   // navigationRef — used by the push-tap handler to navigate when there's
   // no useNavigation hook available (background → tray tap → cold start).
@@ -147,6 +161,10 @@ export default function AppNavigator() {
   useEffect(() => {
     dispatch(hydrateAuth());
     dispatch(fetchPublicSettings());
+    // Cart is user-scoped but the persisted blob is removed on forced logout
+    // (see store/index.js), so it's safe to read on every cold start before
+    // we know who's signed in — the worst case is an empty read.
+    dispatch(hydrateCartFromStorage());
   }, [dispatch]);
 
   // Phase 5 — handle push tap (foreground + background) and cold-start deep links.
@@ -383,6 +401,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer
       ref={navigationRef}
+      theme={navigationTheme}
       linking={NAV_LINKING}
       onReady={onNavReady}
       onStateChange={onNavStateChange}
@@ -392,6 +411,7 @@ export default function AppNavigator() {
           // Main App
           <>
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="ProfilePhoto" component={ProfilePhotoScreen} />
             <Stack.Screen
@@ -423,6 +443,9 @@ export default function AppNavigator() {
                 animation: "slide_from_bottom",
               }}
             />
+
+            {/* Shops aggregator → MerchantBrowse for the chosen category */}
+            <Stack.Screen name="Shops" component={ShopsScreen} />
 
             {/* Merchant Flow */}
             <Stack.Screen name="MerchantBrowse" component={MerchantBrowseScreen} />

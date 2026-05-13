@@ -1078,9 +1078,13 @@ const merchantRegister = async ({
           description: `${category.name} business`,
           phone: businessPhone,
           email: businessEmail,
-          address: businessAddress,
-          lat,
-          lng,
+          // Location is collected in the dashboard's onboarding wizard after
+          // first login; Prisma schema still requires these columns, so we
+          // seed safe placeholders. Admin approval gates customer visibility
+          // until coords are replaced with a real pin.
+          address: businessAddress || 'Pending — set in onboarding',
+          lat: typeof lat === 'number' ? lat : 0,
+          lng: typeof lng === 'number' ? lng : 0,
           openingTime,
           closingTime,
           status: 'PENDING_APPROVAL', // Merchant needs admin approval

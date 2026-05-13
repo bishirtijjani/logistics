@@ -35,11 +35,8 @@ export default function RegistrationPage() {
     categoryId: '',
     businessPhone: '',
     businessEmail: '',
-    businessAddress: '',
     openingTime: '08:00',
     closingTime: '22:00',
-    lat: 13.0059,
-    lng: 7.6017
   })
 
   const [categories, setCategories] = useState([])
@@ -69,7 +66,6 @@ export default function RegistrationPage() {
     businessName: '',
     businessPhone: '',
     businessEmail: '',
-    businessAddress: ''
   })
 
 
@@ -118,7 +114,6 @@ export default function RegistrationPage() {
       businessName: '',
       businessPhone: '',
       businessEmail: '',
-      businessAddress: ''
     }
     let isValid = true
 
@@ -136,10 +131,6 @@ export default function RegistrationPage() {
     }
     if (!businessInfo.businessEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessInfo.businessEmail)) {
       errors.businessEmail = 'Please enter a valid business email'
-      isValid = false
-    }
-    if (!businessInfo.businessAddress) {
-      errors.businessAddress = 'Please enter your business address'
       isValid = false
     }
 
@@ -671,26 +662,18 @@ export default function RegistrationPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Business Address
-                </label>
-                <textarea
-                  value={businessInfo.businessAddress}
-                  onChange={(e) => {
-                    setBusinessInfo({ ...businessInfo, businessAddress: e.target.value })
-                    setBusinessErrors({ ...businessErrors, businessAddress: '' })
-                  }}
-                  placeholder="123 Main Street, Katsina"
-                  rows={3}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text resize-none ${businessErrors.businessAddress ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
-                />
-                {businessErrors.businessAddress && (
-                  <p className="mt-1 text-sm text-error flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {businessErrors.businessAddress}
-                  </p>
-                )}
+              <div className="p-4 bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-text dark:text-dark-text mb-1">
+                      You'll pin your location next
+                    </p>
+                    <p className="text-sm text-muted dark:text-dark-muted">
+                      After you verify your email and log in, you'll drop a pin on a map so customers can find you and we can calculate accurate delivery fees.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -733,20 +716,6 @@ export default function RegistrationPage() {
                     onChange={(e) => setBusinessInfo({ ...businessInfo, closingTime: e.target.value })}
                     className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
                   />
-                </div>
-              </div>
-
-              <div className="p-4 bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-text dark:text-dark-text mb-1">
-                      Location Information
-                    </p>
-                    <p className="text-sm text-muted dark:text-dark-muted">
-                      Your business location will be set to Katsina, Nigeria. You can update this later in your settings.
-                    </p>
-                  </div>
                 </div>
               </div>
 

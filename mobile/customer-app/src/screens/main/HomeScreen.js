@@ -26,6 +26,7 @@ import EmptyState from "../../components/EmptyState";
 import SkeletonLoader from "../../components/SkeletonLoader";
 import socketService from "../../services/socket";
 import { statusDisplay } from "../../lib/requestStatus";
+import { resolveCategoryIcon } from "../../lib/categoryIcons";
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -36,6 +37,22 @@ import Toast from "react-native-toast-message";
 // UNIFIED REQUEST ARCHITECTURE
 // Everything is a Request. The category list is data-driven from /api/categories;
 // PACKAGE is the only static tile (no merchant — pure courier).
+
+// Home shows only these top-level categories; everything else lives behind
+// the Shops aggregator tile. Order here is the order they appear on the grid.
+const HOME_CATEGORY_SLUGS = ["restaurant", "grocery", "pharmacy"];
+
+// Static tile for the Shops aggregator. Tapping opens ShopsScreen which lists
+// every active category not surfaced on home (fashion, shoes, electronics, …).
+const SHOPS_TILE = {
+  id: "SHOPS",
+  isShops: true,
+  nameKey: "home.shops",
+  icon: "shopping",
+  color: "#9333EA",
+  bg: "#F5F3FF",
+  iconType: "MaterialCommunityIcons",
+};
 
 // Static tile for the courier flow. Always rendered last on the home screen.
 // `nameKey` + `descriptionKey` are resolved via t() at render time so a
@@ -58,6 +75,8 @@ const tintBackground = (hex) => {
   if (/^#[0-9a-fA-F]{6}$/.test(hex)) return `${hex}14`;
   return "#F3F4F6";
 };
+
+// Icon resolution is shared with ShopsScreen via `lib/categoryIcons.js`.
 
 // VTU services list. `key` ties the row to the i18n catalog (utility.*) and to
 // the screen name in the navigation switch below. `name` field removed in
@@ -117,9 +136,7 @@ export default function HomeScreen({ navigation }) {
   const { t } = useTranslation();
   const { user } = useSelector((state) => state.auth);
   const { balance } = useSelector((state) => state.wallet);
-  const { city, latitude, longitude, isLoaded: locationLoaded } = useSelector(
-    (state) => state.location,
-  );
+  const { latitude, longitude } = useSelector((state) => state.location);
   const { list: categories, loading: categoriesLoading, error: categoriesError } = useSelector(
     (state) => state.categories,
   );
@@ -166,24 +183,24 @@ export default function HomeScreen({ navigation }) {
     };
   }, [dispatch]);
 
-  // Build the tile list: dynamic categories first (sorted by sortOrder), PACKAGE last.
-  const categoryTiles = (categories || [])
-    .filter((c) => c.isActive)
+  // Home shows a curated set of categories (Food / Grocery / Pharmacy), plus
+  // Shops (aggregator for the long tail) and Package (static courier flow).
+  // The full category list lives behind Shops.
+  const homeCategoryTiles = HOME_CATEGORY_SLUGS
+    .map((slug) => (categories || []).find((c) => c.slug === slug && c.isActive))
+    .filter(Boolean)
     .map((c) => ({
       id: c.id,
       slug: c.slug,
       name: c.name,
-      icon: c.icon || "store",
+      icon: resolveCategoryIcon(c),
       color: c.color || "#7C3AED",
       bg: tintBackground(c.color),
       iconType: "MaterialCommunityIcons",
       description: c.description || "",
       hasPreparation: c.hasPreparation,
     }));
-  const tiles = [...categoryTiles, PACKAGE_TILE];
-  const tilesEmpty = !categoriesLoading && categoryTiles.length === 0 && !categoriesError;
-
-  const locationLabel = city ? `${city}, Nigeria` : "Katsina, Nigeria";
+  const tiles = [...homeCategoryTiles, SHOPS_TILE, PACKAGE_TILE];
 
   return (
     <SafeAreaView
@@ -197,128 +214,108 @@ export default function HomeScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
-        {/* Header */}
+        {/* Header — search bar takes the row, bell + profile on the right.
+            The location chip is gone; address is asked when actually needed
+            (checkout, request creation) rather than parked at the top. */}
         <View
-          style={{ paddingHorizontal: 20, paddingTop: 18, paddingBottom: 6 }}
-        >
-          <TouchableOpacity
-            onPress={() => navigation.navigate("LocationPicker")}
-            accessibilityRole="button"
-            accessibilityLabel={locationLabel}
-            accessibilityHint={t("home.searchPlaceholder")}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              alignSelf: "flex-start",
-              backgroundColor: "#09090b",
-              borderRadius: 20,
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              marginBottom: 18,
-            }}
-          >
-            <Ionicons name="location" size={14} color="#EA580C" />
-            <Text
-              style={{
-                fontSize: 13,
-                fontWeight: "600",
-                color: "#fff",
-                marginLeft: 5,
-                marginRight: 4,
-              }}
-            >
-              {locationLabel}
-            </Text>
-            <Ionicons name="chevron-down" size={13} color="#6B7280" />
-          </TouchableOpacity>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <View>
-              <Text
-                style={{
-                  fontSize: 12,
-                  color: "#6B7280",
-                  fontWeight: "600",
-                  letterSpacing: 1.2,
-                  textTransform: "uppercase",
-                }}
-              >
-                {user?.firstName
-                  ? t("home.greeting", { name: user.firstName })
-                  : t("home.greetingFallback")}
-              </Text>
-              <Text
-                accessibilityRole="header"
-                style={{
-                  fontSize: 30,
-                  fontWeight: "900",
-                  color: "#09090b",
-                  marginTop: 4,
-                  letterSpacing: -1.2,
-                  lineHeight: 36,
-                }}
-              >
-                {t("home.headline")}
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6 }}>
-              <NotificationBell navigation={navigation} />
-              <TouchableOpacity
-                onPress={() => navigation.navigate("ProfileTab")}
-                accessibilityRole="button"
-                accessibilityLabel={t("a11y.profile")}
-                style={{
-                  width: 46,
-                  height: 46,
-                  backgroundColor: "#09090b",
-                  borderRadius: 23,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginLeft: 10,
-                }}
-              >
-                <Ionicons name="person" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Search Bar */}
-        <TouchableOpacity
-          onPress={() => setSearchVisible(true)}
-          accessibilityRole="search"
-          accessibilityLabel={t("common.search")}
-          accessibilityHint={t("home.searchPlaceholder")}
           style={{
-            marginHorizontal: 20,
-            marginTop: 16,
-            backgroundColor: "#fff",
-            borderRadius: 14,
-            paddingHorizontal: 16,
-            paddingVertical: 14,
+            paddingHorizontal: 20,
+            paddingTop: 12,
+            paddingBottom: 4,
             flexDirection: "row",
             alignItems: "center",
-            borderWidth: 1.5,
-            borderColor: "#E5E7EB",
           }}
         >
-          <Ionicons name="search-outline" size={18} color="#6B7280" />
-          <Text
+          <TouchableOpacity
+            onPress={() => setSearchVisible(true)}
+            accessibilityRole="search"
+            accessibilityLabel={t("common.search")}
+            accessibilityHint={t("home.searchPlaceholder")}
             style={{
-              color: "#9CA3AF",
-              fontSize: 14,
-              marginLeft: 10,
-              fontWeight: "500",
+              flex: 1,
+              backgroundColor: "#fff",
+              borderRadius: 999,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: "#EEF0F2",
+              shadowColor: "#000",
+              shadowOpacity: 0.05,
+              shadowOffset: { width: 0, height: 2 },
+              shadowRadius: 8,
+              elevation: 1,
+              marginRight: 10,
             }}
           >
-            {t("home.searchPlaceholder")}
-          </Text>
-        </TouchableOpacity>
+            <Ionicons name="search" size={18} color="#6B7280" />
+            <Text
+              numberOfLines={1}
+              style={{
+                color: "#9CA3AF",
+                fontSize: 14,
+                marginLeft: 10,
+                fontWeight: "500",
+                flex: 1,
+              }}
+            >
+              {t("home.searchPlaceholder")}
+            </Text>
+          </TouchableOpacity>
+          <NotificationBell navigation={navigation} />
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Profile")}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.profile")}
+            accessibilityHint={t("a11y.settings")}
+            // The TouchableOpacity itself has no borderRadius so the gear
+            // badge can sit outside the avatar circle without Android
+            // clipping the overflow. The dark circle below carries the
+            // borderRadius for the actual visual.
+            style={{
+              marginLeft: 8,
+              width: 42,
+              height: 42,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                backgroundColor: "#09090b",
+                borderRadius: 20,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="person" size={18} color="#fff" />
+            </View>
+            {/* Settings gear badge — bottom-right corner of the avatar.
+                Sits inside the parent TouchableOpacity (no borderRadius) so
+                taps anywhere on the badge open Profile via the parent
+                without a second tap target. */}
+            <View
+              style={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                width: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: "#EA580C",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 2,
+                borderColor: "#FAFAFA",
+              }}
+            >
+              <Ionicons name="settings-sharp" size={9} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* Active Request Banner — appears when the customer has an in-flight order. */}
         {activeRequest && (
@@ -334,10 +331,11 @@ export default function HomeScreen({ navigation }) {
           accessibilityHint={t("home.viewWallet")}
           style={{
             marginHorizontal: 20,
-            marginTop: 18,
+            marginTop: 28,
             backgroundColor: "#09090b",
-            borderRadius: 18,
-            padding: 16,
+            borderRadius: 20,
+            paddingHorizontal: 18,
+            paddingVertical: 18,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
@@ -411,19 +409,19 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
 
           {/* Request Types - Unified Architecture */}
-        <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <View style={{ paddingHorizontal: 20, marginTop: 40 }}>
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 18,
+              marginBottom: 22,
             }}
           >
             <Text
               accessibilityRole="header"
               style={{
-                fontSize: 19,
+                fontSize: 20,
                 fontWeight: "900",
                 color: "#09090b",
                 letterSpacing: -0.5,
@@ -440,18 +438,18 @@ export default function HomeScreen({ navigation }) {
               }}
             />
           </View>
-          {categoriesLoading && categoryTiles.length === 0 ? (
+          {categoriesLoading && homeCategoryTiles.length === 0 ? (
             // Skeleton tiles instead of a spinner — gives the user a sense of
             // the layout that's about to arrive (much faster perceived load).
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <View key={i} style={{ width: "22%", alignItems: "center" }}>
-                  <SkeletonLoader width={62} height={62} radius={18} style={{ marginBottom: 8 }} />
-                  <SkeletonLoader width={50} height={10} />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 24 }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <View key={i} style={{ width: "33.33%", alignItems: "center" }}>
+                  <SkeletonLoader width={84} height={84} radius={20} style={{ marginBottom: 12 }} />
+                  <SkeletonLoader width={56} height={12} />
                 </View>
               ))}
             </View>
-          ) : categoriesError && categoryTiles.length === 0 ? (
+          ) : categoriesError && homeCategoryTiles.length === 0 ? (
             <View style={{ paddingVertical: 16, alignItems: "center" }}>
               <Text style={{ color: "#DC2626", fontSize: 13, marginBottom: 8 }}>
                 {t("home.servicesError")}
@@ -471,13 +469,12 @@ export default function HomeScreen({ navigation }) {
             style={{
               flexDirection: "row",
               flexWrap: "wrap",
-              justifyContent: "flex-start",
-              gap: 12,
+              rowGap: 24,
             }}
           >
             {tiles.map((item) => {
               const Icon = resolveIcon(item);
-              // Static tiles (PACKAGE) carry a translation key; dynamic
+              // Static tiles (PACKAGE, SHOPS) carry a translation key; dynamic
               // category tiles use the admin-supplied `name` directly.
               const displayName = item.nameKey ? t(item.nameKey) : item.name;
               const handlePress = () => {
@@ -487,6 +484,11 @@ export default function HomeScreen({ navigation }) {
                     requestType: "PACKAGE",
                     hasMerchant: false,
                   });
+                  return;
+                }
+                if (item.isShops) {
+                  // Shops: aggregator that opens the long-tail category list.
+                  navigation.navigate("Shops");
                   return;
                 }
                 // Any merchant category: browse merchants filtered by category.
@@ -504,26 +506,50 @@ export default function HomeScreen({ navigation }) {
                   accessibilityRole="button"
                   accessibilityLabel={displayName}
                   accessibilityState={{ disabled: !!item.comingSoon }}
-                  style={{ width: "22%", alignItems: "center" }}
+                  // 33.33% gives 3 tiles per row; the 4th + 5th wrap onto a
+                  // second row, left-aligned beneath the first two tiles.
+                  style={{ width: "33.33%", alignItems: "center" }}
                 >
+                  {/* Outer white card — rounded rectangle to match the search
+                      bar, wallet pill, and section cards elsewhere on the
+                      page. The primary-orange hairline ring ties the tile to
+                      the brand palette so it doesn't read as a floating
+                      neutral surface, while the inner tinted halo keeps each
+                      category visually distinct. */}
                   <View
                     style={{
-                      width: 62,
-                      height: 62,
-                      backgroundColor: item.bg,
-                      borderRadius: 18,
+                      width: 84,
+                      height: 84,
+                      borderRadius: 20,
+                      backgroundColor: "#fff",
                       alignItems: "center",
                       justifyContent: "center",
-                      marginBottom: 8,
+                      marginBottom: 12,
+                      shadowColor: "#000",
+                      shadowOpacity: 0.07,
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowRadius: 12,
+                      elevation: 3,
                       borderWidth: 1.5,
-                      borderColor: item.color + "25",
+                      borderColor: "#EA580C30",
                     }}
                   >
-                    <Icon name={item.icon} size={26} color={item.color} />
+                    <View
+                      style={{
+                        width: 58,
+                        height: 58,
+                        borderRadius: 16,
+                        backgroundColor: item.bg,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Icon name={item.icon} size={30} color={item.color} />
+                    </View>
                   </View>
                   <Text
                     style={{
-                      fontSize: 12,
+                      fontSize: 13,
                       fontWeight: "700",
                       color: "#09090b",
                       textAlign: "center",
@@ -539,19 +565,19 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* Bills & Utilities */}
-        <View style={{ paddingHorizontal: 20, marginTop: 32 }}>
+        <View style={{ paddingHorizontal: 20, marginTop: 40 }}>
           <View
             style={{
               flexDirection: "row",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 18,
+              marginBottom: 22,
             }}
           >
             <Text
               accessibilityRole="header"
               style={{
-                fontSize: 19,
+                fontSize: 20,
                 fontWeight: "900",
                 color: "#09090b",
                 letterSpacing: -0.5,
@@ -595,16 +621,16 @@ export default function HomeScreen({ navigation }) {
                 >
                   <View
                     style={{
-                      width: 62,
-                      height: 62,
+                      width: 64,
+                      height: 64,
                       backgroundColor: "#09090b",
-                      borderRadius: 18,
+                      borderRadius: 20,
                       alignItems: "center",
                       justifyContent: "center",
-                      marginBottom: 8,
+                      marginBottom: 10,
                     }}
                   >
-                    <Icon name={item.icon} size={24} color={item.color} />
+                    <Icon name={item.icon} size={26} color={item.color} />
                   </View>
                   <Text
                     style={{
@@ -820,10 +846,10 @@ function NotificationBell({ navigation }) {
     <TouchableOpacity
       onPress={() => navigation.navigate("NotificationCenter")}
       style={{
-        width: 46,
-        height: 46,
+        width: 40,
+        height: 40,
         backgroundColor: "#fff",
-        borderRadius: 23,
+        borderRadius: 20,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1.5,
@@ -836,15 +862,15 @@ function NotificationBell({ navigation }) {
           : t("a11y.notifications")
       }
     >
-      <Ionicons name="notifications-outline" size={22} color="#09090b" />
+      <Ionicons name="notifications-outline" size={20} color="#09090b" />
       {unreadCount > 0 && (
         <View
           style={{
             position: "absolute",
-            top: 6,
-            right: 6,
-            minWidth: 18,
-            height: 18,
+            top: 4,
+            right: 4,
+            minWidth: 16,
+            height: 16,
             paddingHorizontal: 4,
             borderRadius: 9,
             backgroundColor: "#EF4444",
@@ -885,12 +911,12 @@ function ActiveRequestBanner({ request, navigation }) {
       accessibilityHint={t("home.active.trackCta")}
       style={{
         marginHorizontal: 20,
-        marginTop: 16,
+        marginTop: 14,
         backgroundColor: "#fff",
-        borderRadius: 16,
-        padding: 14,
-        borderWidth: 1.5,
-        borderColor: "#EA580C40",
+        borderRadius: 18,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: "#EA580C30",
         flexDirection: "row",
         alignItems: "center",
         shadowColor: "#EA580C",
@@ -965,7 +991,7 @@ function PromoBanner({ banner, navigation }) {
       activeOpacity={banner.deepLink ? 0.85 : 1}
       style={{
         marginHorizontal: 20,
-        marginTop: 32,
+        marginTop: 40,
         backgroundColor: bg,
         borderRadius: 22,
         padding: 22,
@@ -1038,9 +1064,9 @@ function RecentActivity({ items, navigation }) {
   };
 
   return (
-    <View style={{ paddingHorizontal: 20, marginTop: 32, marginBottom: 24 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
-        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 19, fontWeight: "900", color: "#09090b", letterSpacing: -0.5 }}>
+    <View style={{ paddingHorizontal: 20, marginTop: 40, marginBottom: 28 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 18 }}>
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: "900", color: "#09090b", letterSpacing: -0.5 }}>
           {t("home.sectionRecent")}
         </Text>
         {items.length > 0 && (

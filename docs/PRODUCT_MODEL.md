@@ -32,13 +32,15 @@ Phase 2 split the product model into three concepts that previously got conflate
 - **Pack:** required — `30 × TABLET`, `120 × ML`, etc.
 - **Option groups:** rare in V1 (some products may offer a generic-vs-brand pick).
 
-### Grocery (liquid)
-- **Variants:** Optional `flavor` axis — Original / Strawberry / Vanilla.
-- **Pack:** required — `500 × ML`, `1 × L`, `5 × BOTTLE`.
-
-### Grocery (dry)
-- **Variants:** none (single-SKU products mostly).
-- **Pack:** required — `5 × KG`, `1 × PACK`.
+### Groceries
+A single category covers both dry and liquid stock (real merchants typically
+carry both, so splitting them forced double-listing). Pack units span every
+common option:
+- **Variants:** none by default. Merchants opt in to a `flavor` axis for
+  liquids (Original / Strawberry / Vanilla) or `size`/other axes per product.
+- **Pack:** required — dry: `5 × KG`, `1 × PACK`, `1 × SACHET`; liquid:
+  `500 × ML`, `1 × L`, `5 × BOTTLE`. The `attributeSchema.packUnits` list
+  exposes the union so the merchant product form offers every choice.
 
 ### Fashion
 - **Variants:** Size + Color axes — `{size:"M", color:"Black"}`.

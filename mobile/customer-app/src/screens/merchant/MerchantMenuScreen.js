@@ -1,10 +1,14 @@
 /**
- * MerchantMenuScreen — browse a merchant's catalogue and build a cart of
- * fully-configured line items.
+ * MerchantMenuScreen — browse a merchant's catalogue and build a cart.
  *
- * Every product opens ProductDetailScreen for variant + option-group selection
- * (even single-SKU products with no options pass through it for consistency).
- * Lines come back via `route.params.cartReturn` and are merged into local state.
+ * Cart is single-merchant and lives in Redux (`cartSlice`). This screen:
+ *   - Reads the cart from the store, but only renders the inline preview when
+ *     the cart actually belongs to *this* merchant (otherwise the preview
+ *     would show another merchant's items).
+ *   - Lets the customer edit/remove cart lines that belong here.
+ *   - Dispatches `removeLine` directly; adds happen in ProductDetailScreen.
+ *   - "View cart" CTA navigates to `Cart` (the dedicated review screen) —
+ *     which in turn opens Checkout. Single source of truth for the cart UI.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -13,12 +17,15 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
 import socketService from '../../services/socket';
 import { colors } from '../../theme';
 import { substitutionLabel } from '../../lib/requestStatus';
+import { computeCartTotal } from '../../lib/cart';
+import { removeLine, selectCart } from '../../store/slices/cartSlice';
 
 const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
@@ -26,20 +33,21 @@ export default function MerchantMenuScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { t } = useTranslation();
-  const { merchantId, categorySlug, cartReturn } = route.params || {};
+  const dispatch = useDispatch();
+  const { merchantId, categorySlug, highlightProductId } = route.params || {};
+
+  const cart = useSelector(selectCart);
+  // Only show the inline cart preview when the cart actually belongs to this
+  // merchant — otherwise we'd be showing another merchant's items in the
+  // wrong context.
+  const linesHere = useMemo(
+    () => (cart.merchantId === merchantId ? cart.lines : []),
+    [cart.merchantId, cart.lines, merchantId],
+  );
 
   const [merchant, setMerchant] = useState(null);
   const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Merge cart returned from ProductDetailScreen.
-  useEffect(() => {
-    if (cartReturn) {
-      setCart(cartReturn);
-      navigation.setParams({ cartReturn: undefined });
-    }
-  }, [cartReturn, navigation]);
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -52,7 +60,7 @@ export default function MerchantMenuScreen() {
     } finally {
       setLoading(false);
     }
-  }, [merchantId]);
+  }, [merchantId, t]);
 
   useEffect(() => {
     let alive = true;
@@ -84,33 +92,34 @@ export default function MerchantMenuScreen() {
   const isGrocery = typeof merchantCategorySlug === 'string' && merchantCategorySlug.startsWith('grocery');
 
   const openProduct = (product) => {
-    navigation.navigate('ProductDetail', { product, merchantId, merchantCategorySlug, cart });
+    navigation.navigate('ProductDetail', {
+      product,
+      merchantId,
+      merchant,
+      merchantCategorySlug,
+    });
   };
 
   const editLine = (lineId) => {
-    const line = cart.find((l) => l.lineId === lineId);
+    const line = linesHere.find((l) => l.lineId === lineId);
     if (!line) return;
     const product = products.find((p) => p.id === line.productId);
     if (!product) return;
-    navigation.navigate('ProductDetail', { product, merchantId, merchantCategorySlug, cart, editingLineId: lineId });
-  };
-
-  const removeLine = (lineId) => setCart(cart.filter((l) => l.lineId !== lineId));
-
-  const cartTotal = useMemo(() => cart.reduce((s, l) => s + Number(l.lineTotal || 0), 0), [cart]);
-
-  const goCheckout = () => {
-    if (cart.length === 0) return;
-    navigation.navigate('Checkout', {
-      cart,
+    navigation.navigate('ProductDetail', {
+      product,
       merchantId,
-      categorySlug,
-      pickupLat: merchant?.lat || 0,
-      pickupLng: merchant?.lng || 0,
-      pickupAddress: merchant?.address || 'Merchant Location',
-      pickupName: merchant?.name,
+      merchant,
+      merchantCategorySlug,
+      editingLineId: lineId,
     });
   };
+
+  const onRemoveLine = (lineId) => dispatch(removeLine(lineId));
+
+  const cartTotal = useMemo(() => computeCartTotal(linesHere), [linesHere]);
+
+  const goViewCart = () =>
+    navigation.navigate('MainTabs', { screen: 'CartTab' });
 
   if (loading) {
     return (
@@ -122,7 +131,7 @@ export default function MerchantMenuScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: linesHere.length > 0 ? 110 : 24 }}>
         {merchant?.coverImageUrl && <Image source={{ uri: merchant.coverImageUrl }} style={styles.cover} />}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -136,11 +145,11 @@ export default function MerchantMenuScreen() {
           </View>
         </View>
 
-        {/* Cart preview */}
-        {cart.length > 0 && (
+        {/* Cart preview — only when the cart belongs to this merchant. */}
+        {linesHere.length > 0 && (
           <View style={styles.cartPanel}>
             <Text accessibilityRole="header" style={styles.cartHeader}>{t('merchant.yourOrder')}</Text>
-            {cart.map((line) => (
+            {linesHere.map((line) => (
               <View key={line.lineId} style={styles.cartLine}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cartItemName}>
@@ -184,7 +193,7 @@ export default function MerchantMenuScreen() {
                       <Ionicons name="pencil" size={14} color={colors.primary} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => removeLine(line.lineId)}
+                      onPress={() => onRemoveLine(line.lineId)}
                       style={styles.lineBtn}
                       accessibilityRole="button"
                       accessibilityLabel={t('a11y.removeItem')}
@@ -210,7 +219,7 @@ export default function MerchantMenuScreen() {
               <TouchableOpacity
                 key={p.id}
                 onPress={() => openProduct(p)}
-                style={styles.productCard}
+                style={[styles.productCard, p.id === highlightProductId && styles.productCardHighlight]}
                 accessibilityRole="button"
                 accessibilityLabel={p.name}
                 accessibilityHint={p.description || ''}
@@ -235,19 +244,20 @@ export default function MerchantMenuScreen() {
         </View>
       </ScrollView>
 
-      {cart.length > 0 && (
+      {linesHere.length > 0 && (
         <View style={styles.footer}>
           <View>
-            <Text style={styles.fCount}>{t('merchant.itemCount', { count: cart.length })}</Text>
+            <Text style={styles.fCount}>{t('merchant.itemCount', { count: linesHere.length })}</Text>
             <Text style={styles.fTotal}>{money(cartTotal)}</Text>
           </View>
           <TouchableOpacity
             style={styles.checkoutBtn}
-            onPress={goCheckout}
+            onPress={goViewCart}
             accessibilityRole="button"
-            accessibilityLabel={t('merchant.reviewCheckout')}
+            accessibilityLabel={t('cart.viewCart')}
           >
-            <Text style={styles.checkoutText}>{t('merchant.reviewCheckout')}</Text>
+            <Ionicons name="bag-handle" size={16} color="#fff" style={{ marginRight: 6 }} />
+            <Text style={styles.checkoutText}>{t('cart.viewCart')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -280,6 +290,7 @@ const styles = StyleSheet.create({
   menuContainer: { padding: 16 },
   menuTitle: { fontSize: 18, fontWeight: '600', color: colors.text, marginBottom: 12 },
   productCard: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: colors.surface, borderRadius: 12, marginBottom: 10 },
+  productCardHighlight: { borderWidth: 1.5, borderColor: colors.primary },
   productImage: { width: 64, height: 64, borderRadius: 8, marginRight: 12 },
   productInfo: { flex: 1 },
   productName: { fontSize: 15, fontWeight: '600', color: colors.text },
@@ -293,6 +304,6 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, padding: 14, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   fCount: { fontSize: 12, color: colors.textMuted },
   fTotal: { fontSize: 18, fontWeight: '700', color: colors.text },
-  checkoutBtn: { backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
-  checkoutText: { color: '#fff', fontWeight: '600' },
+  checkoutBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 10 },
+  checkoutText: { color: '#fff', fontWeight: '700' },
 });

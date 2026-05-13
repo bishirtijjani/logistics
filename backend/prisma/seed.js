@@ -118,27 +118,24 @@ async function main() {
   const defaultCategories = [
     {
       id: '00000000-0000-4000-a000-000000000001',
-      name: 'Restaurant', slug: 'restaurant', description: 'Order from restaurants',
+      name: 'Food', slug: 'restaurant', description: 'Order from restaurants',
       icon: 'restaurant', color: '#EA580C', sortOrder: 10, hasPreparation: true,
       attributeSchema: { axes: ['size'], pack: false },
     },
     {
       id: '00000000-0000-4000-a000-000000000002',
-      name: 'Grocery (dry)', slug: 'grocery', description: 'Shop supermarkets',
+      name: 'Groceries', slug: 'grocery', description: 'Shop supermarkets, drinks and household',
       icon: 'basket', color: '#7C3AED', sortOrder: 20, hasPreparation: true,
-      attributeSchema: { axes: [], pack: true, packUnits: ['G', 'KG', 'PACK', 'SACHET', 'CARTON'] },
+      // A single merchant typically carries both dry and liquid items, so the
+      // pack-unit list is the union of the two. Axes stays empty — merchants
+      // add their own (flavor/size) per product when needed.
+      attributeSchema: { axes: [], pack: true, packUnits: ['G', 'KG', 'PACK', 'SACHET', 'CARTON', 'ML', 'L', 'BOTTLE', 'PIECE'] },
     },
     {
       id: '00000000-0000-4000-a000-000000000003',
       name: 'Pharmacy', slug: 'pharmacy', description: 'Order medicines',
       icon: 'pill', color: '#059669', sortOrder: 30, hasPreparation: false,
       attributeSchema: { axes: ['strength', 'form'], pack: true, packUnits: ['TABLET', 'CAPSULE', 'ML', 'BOTTLE'] },
-    },
-    {
-      id: '00000000-0000-4000-a000-000000000004',
-      name: 'Grocery (liquid)', slug: 'grocery-liquid', description: 'Drinks & liquids',
-      icon: 'bottle', color: '#0EA5E9', sortOrder: 25, hasPreparation: false,
-      attributeSchema: { axes: ['flavor'], pack: true, packUnits: ['ML', 'L', 'BOTTLE', 'SACHET'] },
     },
     {
       id: '00000000-0000-4000-a000-000000000005',

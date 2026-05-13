@@ -18,15 +18,23 @@
  * via route params. Server validates and recomputes prices at order time.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, Image, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform,
+  StyleSheet, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../theme';
+import { buildMerchantSnapshot } from '../../lib/cart';
+import {
+  addLine,
+  clearCart,
+  selectCart,
+  updateLine,
+} from '../../store/slices/cartSlice';
 
 const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
@@ -45,14 +53,19 @@ export default function ProductDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { t } = useTranslation();
-  const { product, merchantId, merchantCategorySlug, cart = [], editingLineId } = route.params || {};
+  const dispatch = useDispatch();
+  const cart = useSelector(selectCart);
+  const { product, merchantId, merchant, merchantCategorySlug, editingLineId } = route.params || {};
 
   const variants = useMemo(() => product?.variants || [], [product]);
   const optionGroups = useMemo(() => product?.optionGroups || [], [product]);
   const showSubstitution = isGrocerySlug(merchantCategorySlug);
 
-  // Pre-fill from editing line if one was passed.
-  const editingLine = editingLineId ? cart.find((l) => l.lineId === editingLineId) : null;
+  // Pre-fill from editing line if one was passed (works because the line is
+  // already in Redux when MerchantMenuScreen navigates here with editingLineId).
+  const editingLine = editingLineId
+    ? cart.lines.find((l) => l.lineId === editingLineId)
+    : null;
 
   const [variantId, setVariantId] = useState(
     editingLine?.variantId || (variants.length === 1 ? variants[0].id : variants.find((v) => v.isAvailable)?.id) || ''
@@ -187,17 +200,46 @@ export default function ProductDetailScreen() {
       dosage: product.dosage || null,
     };
 
-    let nextCart;
+    // Editing an existing line never changes the merchant, so we always
+    // dispatch updateLine straight through.
     if (editingLineId) {
-      nextCart = cart.map((l) => (l.lineId === editingLineId ? line : l));
-    } else {
-      nextCart = [...cart, line];
+      dispatch(updateLine(line));
+      navigation.goBack();
+      return;
     }
-    navigation.navigate({
-      name: 'MerchantMenu',
-      params: { merchantId, cartReturn: nextCart },
-      merge: true,
-    });
+
+    const snapshot = buildMerchantSnapshot(merchant, merchantCategorySlug);
+    const currentMerchantId = cart.merchantId;
+    const hasItemsFromAnotherMerchant =
+      currentMerchantId && currentMerchantId !== merchantId;
+
+    if (hasItemsFromAnotherMerchant) {
+      // Single-merchant cart rule. Prompt before wiping the existing cart so
+      // the user doesn't lose work they were actively building.
+      Alert.alert(
+        t('cart.startNewTitle'),
+        t('cart.startNewBody', {
+          prev: cart.merchant?.name || t('cart.previousMerchantFallback'),
+          next: snapshot?.name || product.name,
+        }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('cart.startNewCta'),
+            style: 'destructive',
+            onPress: () => {
+              dispatch(clearCart());
+              dispatch(addLine(line, snapshot));
+              navigation.goBack();
+            },
+          },
+        ],
+      );
+      return;
+    }
+
+    dispatch(addLine(line, snapshot));
+    navigation.goBack();
   };
 
   if (!product) {

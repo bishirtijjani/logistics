@@ -24,7 +24,6 @@
     "currency": "₦",
     "perKm": "/km"
   },
-
   "a11y": {
     "back": "Go back",
     "close": "Close",
@@ -47,7 +46,6 @@
     "unreadCount_one": "{{count}} unread notification",
     "unreadCount_other": "{{count}} unread notifications"
   },
-
   "states": {
     "loading": "Loading…",
     "errorTitle": "Something went wrong",
@@ -71,7 +69,6 @@
       "activityHint": "Orders and wallet activity will appear here."
     }
   },
-
   "locale": {
     "title": "Language",
     "subtitle": "Choose how the app speaks to you",
@@ -79,7 +76,20 @@
     "ha": "Hausa",
     "system": "Match my phone"
   },
-
+  "theme": {
+    "title": "Appearance",
+    "subtitle": "Choose how the app looks",
+    "system": "Match device",
+    "systemHint": "Follow your phone's setting",
+    "light": "Light",
+    "lightHint": "Always bright",
+    "dark": "Dark",
+    "darkHint": "Always dim",
+    "rowLabel": "Appearance",
+    "rowSubSystem": "Matching device",
+    "rowSubLight": "Light",
+    "rowSubDark": "Dark"
+  },
   "auth": {
     "welcomeTitle": "Get anything\ndelivered.",
     "welcomeSubtitle": "Food, packages, prescriptions, groceries — across Katsina in minutes.",
@@ -122,7 +132,6 @@
     "logoutConfirm": "Are you sure you want to log out?",
     "passwordResetTitle": "Reset your password",
     "passwordResetSubtitle": "We'll send a code to your email.",
-
     "forgotTitle": "Forgot password?",
     "forgotSubtitle": "Enter your email and we'll send you a reset code.",
     "forgotCta": "Send reset code",
@@ -134,7 +143,6 @@
     "resetCta": "Reset password",
     "passwordResetToast": "Password updated",
     "passwordResetToastSub": "Sign in with your new password.",
-
     "form": {
       "emailInvalid": "Please enter a valid email address",
       "passwordRequired": "Password is required",
@@ -148,7 +156,6 @@
       "pinMismatch": "PINs don't match — try again",
       "termsRequired": "Please accept the terms to continue"
     },
-
     "toast": {
       "welcomeBack": "Welcome back!",
       "accountCreated": "Account created",
@@ -159,7 +166,6 @@
       "resetCodeSentSub": "A reset code has been sent if an account exists."
     }
   },
-
   "home": {
     "greeting": "Hello, {{name}}",
     "greetingFallback": "Hello, there",
@@ -187,16 +193,16 @@
       "send": "Send Money"
     },
     "package": "Package",
-    "packageDescription": "Send or receive packages"
+    "packageDescription": "Send or receive packages",
+    "shops": "Shops"
   },
-
   "tabs": {
     "home": "Home",
     "orders": "Orders",
     "wallet": "Wallet",
-    "profile": "Profile"
+    "profile": "Profile",
+    "cart": "Cart"
   },
-
   "orders": {
     "title": "My Orders",
     "tabActive": "Active",
@@ -222,12 +228,10 @@
       "awaitingRating": "Awaiting rating"
     }
   },
-
   "wallet": {
     "title": "Wallet",
     "balance": "Available balance",
     "balanceAvailable": "AVAILABLE BALANCE",
-    "fund": "Fund",
     "send": "Send",
     "withdraw": "Withdraw",
     "savedBeneficiaries": "Saved Beneficiaries",
@@ -343,25 +347,6 @@
     },
     "fundTitle": "Fund Wallet",
     "fundSubtitle": "Top up your balance.",
-    "fund": {
-      "vAccountTitle": "Your Virtual Account",
-      "vAccountSubtitle": "Bank Transfer • Instant",
-      "accountNumber": "Account Number",
-      "copy": "Copy",
-      "copied": "Copied!",
-      "fallbackBank": "Wema Bank",
-      "howTo": "How to Fund",
-      "stepCopyTitle": "Copy Account Number",
-      "stepCopyDesc": "Tap the Copy button above",
-      "stepBankTitle": "Open Your Bank App",
-      "stepBankDesc": "Use any banking app or USSD",
-      "stepTransferTitle": "Transfer Money",
-      "stepTransferDesc": "Send any amount to the account number",
-      "stepDoneTitle": "Wallet Updated",
-      "stepDoneDesc": "Funds appear instantly",
-      "importantTitle": "Important",
-      "importantBody": "This is your personal virtual account. Only transfer from your own bank account. Third-party transfers may be flagged for review."
-    },
     "sendTitle": "Send Money",
     "sendSubtitle": "Send to a phone number on the platform.",
     "send_": {
@@ -405,9 +390,28 @@
       "ESCROW_REFUND": "Escrow refund",
       "DELIVERY_EARNING": "Delivery earning",
       "RIDER_EARNING": "Rider earning"
-    }
+    },
+    "fund_": {
+      "vAccountTitle": "Your Virtual Account",
+      "vAccountSubtitle": "Bank Transfer • Instant",
+      "accountNumber": "Account Number",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "fallbackBank": "Wema Bank",
+      "howTo": "How to Fund",
+      "stepCopyTitle": "Copy Account Number",
+      "stepCopyDesc": "Tap the Copy button above",
+      "stepBankTitle": "Open Your Bank App",
+      "stepBankDesc": "Use any banking app or USSD",
+      "stepTransferTitle": "Transfer Money",
+      "stepTransferDesc": "Send any amount to the account number",
+      "stepDoneTitle": "Wallet Updated",
+      "stepDoneDesc": "Funds appear instantly",
+      "importantTitle": "Important",
+      "importantBody": "This is your personal virtual account. Only transfer from your own bank account. Third-party transfers may be flagged for review."
+    },
+    "fund": "Fund"
   },
-
   "request": {
     "createTitle": "Send a package",
     "pickup": "Pickup",
@@ -510,8 +514,6 @@
       "noDescription": "No description",
       "from": "From",
       "to": "To",
-      "rider": "Rider",
-      "merchant": "Merchant",
       "liveTracking": "Live Tracking",
       "markerRider": "Rider",
       "markerPickup": "Pickup",
@@ -564,7 +566,6 @@
       "confirmPaymentSub": "Pay {{amount}} for this order"
     }
   },
-
   "merchant": {
     "browseTitle": "{{category}} near you",
     "browseFallbackHeader": "Merchants",
@@ -608,7 +609,6 @@
     "unavailableToday": "Unavailable today",
     "unavailable": "Unavailable"
   },
-
   "utility": {
     "airtime": "Airtime",
     "data": "Data",
@@ -626,7 +626,6 @@
     "verified": "Verified",
     "verifying": "Verifying…",
     "buy": "Buy",
-
     "airtimeScreen": {
       "title": "Buy Airtime",
       "selectNetwork": "Select Network",
@@ -647,7 +646,6 @@
       "errMinAmount": "Minimum airtime is {{amount}}",
       "errInsufficientBalance": "Insufficient wallet balance"
     },
-
     "dataScreen": {
       "title": "Buy Data",
       "selectNetwork": "Select Network",
@@ -663,7 +661,6 @@
       "errSelectPlan": "Please select a plan",
       "errInsufficientBalance": "Insufficient wallet balance"
     },
-
     "cableScreen": {
       "title": "Cable TV",
       "selectProvider": "Select Provider",
@@ -681,7 +678,6 @@
       "errSelectPackage": "Please select a package",
       "errVerifyFirst": "Verify the card first"
     },
-
     "electricityScreen": {
       "title": "Electricity",
       "selectDisco": "Select Distributor",
@@ -710,7 +706,6 @@
       "errMinAmount": "Minimum amount is {{amount}}",
       "errInsufficientBalance": "Insufficient wallet balance"
     },
-
     "result": {
       "title": "Electricity Token",
       "successTitle": "Payment Successful",
@@ -734,7 +729,6 @@
       "done": "Done",
       "viewHistory": "View History"
     },
-
     "history": {
       "title": "Utility History",
       "noTransactions": "No utility purchases yet",
@@ -746,22 +740,18 @@
       "tabElectricity": "Electricity"
     }
   },
-
   "settings": {
     "title": "Settings",
     "language": "Language",
     "languageSubtitle": "English",
     "profile": "Profile",
-    "security": "Security",
     "notifications": "Notification preferences",
     "savedAddresses": "Saved addresses",
     "savedBeneficiaries": "Saved beneficiaries",
     "transactionPin": "Transaction PIN",
     "kyc": "Identity verification",
-    "sessions": "Active sessions",
     "deleteAccount": "Delete account",
     "support": "Support",
-    "legal": "Legal",
     "version": "Version {{version}}",
     "sections": {
       "account": "Account",
@@ -803,249 +793,232 @@
     "pinBanner": {
       "title": "Set your transaction PIN",
       "subtitle": "Required for payments and transfers"
-    },
-
-    "about": {
-      "title": "About",
-      "appName": "VTU Logistics",
-      "tagline": "Bold logistics for Katsina and beyond.",
-      "version": "Version {{version}}",
-      "build": "Build {{build}}",
-      "policySection": "Policies",
-      "openTerms": "Terms of Service",
-      "openPrivacy": "Privacy Policy",
-      "rateAppCta": "Rate the App"
-    },
-
-    "legal": {
-      "title": "Legal",
-      "terms": "Terms of Service",
-      "privacy": "Privacy Policy",
-      "termsBody": "Read the full terms in your browser.",
-      "openInBrowser": "Open in browser"
-    },
-
-    "help": {
-      "title": "Help & Support",
-      "intro": "Need a hand? Browse common questions or reach the support team.",
-      "faqHeader": "Frequently Asked Questions",
-      "contactHeader": "Contact Us",
-      "chatLabel": "Live Chat",
-      "chatSub": "Chat with our support team",
-      "emailLabel": "Email Support",
-      "emailValue": "support@vtulogistics.com",
-      "phoneLabel": "Phone Support",
-      "phoneValue": "0800-VTU-HELP",
-      "phone": "Call support",
-      "email": "Email support",
-      "whatsapp": "Message on WhatsApp",
-      "openLink": "Open",
-      "faq": {
-        "q1": "How do I fund my wallet?",
-        "a1": "Go to Wallet → Fund Wallet. You can fund via bank transfer to your virtual account.",
-        "q2": "How long does delivery take?",
-        "a2": "Delivery times vary by distance and rider availability. Most deliveries within Katsina complete in 30–60 minutes.",
-        "q3": "How do I track my order?",
-        "a3": "Once a rider is assigned, you'll see real-time tracking on the order details screen.",
-        "q4": "Can I cancel an order?",
-        "a4": "You can cancel before a rider picks up your package. Cancellation after pickup may incur a fee.",
-        "q5": "What if my delivery is damaged?",
-        "a5": "Contact support within 24 hours with photos. We'll investigate and process a refund if applicable."
-      }
-    },
-
-    "edit": {
-      "title": "Edit Profile",
-      "firstName": "First name",
-      "lastName": "Last name",
-      "email": "Email",
-      "phone": "Phone",
-      "save": "Save changes",
-      "saving": "Saving…",
-      "saved": "Profile updated",
-      "phoneNote": "Phone changes require verification.",
-      "emailReadonly": "Contact support to change your email."
-    },
-
-    "photo": {
-      "title": "Profile Photo",
-      "tapToChange": "Tap the photo to change it",
-      "savePhoto": "Save Photo",
-      "chooseDifferent": "Choose Different Photo",
-      "chooseSource": "Choose a source",
-      "camera": "Camera",
-      "library": "Photo Library",
-      "cancel": "Cancel",
-      "permissionCamera": "Camera access is required to take a photo.",
-      "permissionLibrary": "Photo library access is required.",
-      "permissionTitle": "Permission needed",
-      "saved": "Photo updated",
-      "savedSub": "Your profile photo has been saved.",
-      "uploadFailed": "Upload failed"
-    },
-
-    "security": {
-      "title": "Security",
-      "password": "Change Password",
-      "passwordSub": "Update your login password",
-      "pin": "Change Transaction PIN",
-      "pinSub": "Update your 6-digit PIN",
-      "sessions": "Active Sessions",
-      "sessionsSub": "View and manage logged-in devices",
-      "biometric": "Biometric Login",
-      "biometricSubAvailable": "Use fingerprint or Face ID to sign in",
-      "biometricSubUnavailable": "No biometrics enrolled on this device",
-      "biometricEnabled": "Biometric login enabled",
-      "biometricDisabled": "Biometric login disabled",
-      "biometricEnablePrompt": "Enable biometric login",
-      "biometricDisablePrompt": "Disable biometric login",
-      "biometricUnavailable": "Biometrics unavailable",
-      "biometricUnavailableSub": "Enroll a fingerprint or Face ID in your device settings first.",
-      "biometricUpdateFailed": "Could not update biometrics",
-      "phone": "Change Phone Number",
-      "phoneSub": "Update your registered phone number",
-      "sectionAuth": "Authentication",
-      "sectionBiometrics": "Biometrics",
-      "sectionSessions": "Sessions",
-      "sectionDanger": "Danger Zone",
-      "logoutAll": "Log Out All Devices",
-      "logoutAllSub": "Sign out everywhere except here",
-      "logoutAllTitle": "Log Out All Devices",
-      "logoutAllBody": "This will sign you out of all active sessions. You will need to log in again on each device.",
-      "logoutAllCta": "Log Out All",
-      "deleteAccount": "Delete Account",
-      "deleteAccountSub": "Permanently delete your account and data",
-      "deleteAccountTitle": "Delete Account",
-      "deleteAccountBody": "This action is permanent and cannot be undone. All your data will be deleted.\n\n• Complete all active deliveries first\n• Withdraw your wallet balance\n• This cannot be reversed",
-      "deleteAccountCta": "Delete Forever",
-      "deleteSuccess": "Account Deleted",
-      "deleteSuccessSub": "Your account has been permanently deleted",
-      "deleteFailed": "Cannot Delete Account",
-      "deleteFailedSub": "Please complete deliveries and withdraw balance first"
-    },
-
-    "sessions": {
-      "title": "Active Sessions",
-      "thisDevice": "This device",
-      "lastUsed": "Last used {{when}}",
-      "signOut": "Sign out",
-      "signOutOthers": "Sign out other devices",
-      "signOutAllCta": "Sign out from all other devices",
-      "signedOut": "Signed out",
-      "confirmSignOutTitle": "Sign out this device?",
-      "confirmSignOutBody": "You can sign back in any time.",
-      "confirmAllTitle": "Sign out other devices?",
-      "confirmAllBody": "You'll stay signed in here. All other devices will need to log in again.",
-      "loading": "Loading sessions…",
-      "noOther": "No other devices are signed in."
-    },
-
-    "bvn": {
-      "title": "Identity Verification",
-      "intro": "Verify your BVN to unlock wallet funding, transfers, and bigger limits.",
-      "bvnLabel": "BVN",
-      "bvnPh": "Enter your 11-digit BVN",
-      "verifying": "Verifying…",
-      "verify": "Verify",
-      "verified": "Verified",
-      "verifiedSub": "Your identity is confirmed.",
-      "failed": "Verification failed",
-      "failedSub": "Double-check your BVN and try again.",
-      "consentTitle": "We use BVN only for KYC",
-      "consentBody": "Your BVN is hashed and stored encrypted. We never share it with anyone."
-    },
-
-    "changePin": {
-      "title": "Change Transaction PIN",
-      "currentPinLabel": "Current PIN",
-      "newPinLabel": "New PIN",
-      "confirmPinLabel": "Confirm new PIN",
-      "submit": "Change PIN",
-      "submitting": "Changing PIN…",
-      "success": "PIN changed",
-      "currentRequired": "Enter your current PIN",
-      "newRequired": "Enter your new PIN",
-      "mismatch": "PINs don't match"
-    },
-
-    "phoneChange": {
-      "title": "Change Phone Number",
-      "currentLabel": "Current phone",
-      "newLabel": "New phone number",
-      "newPh": "08012345678",
-      "sendOtpCta": "Send code",
-      "verifyTitle": "Enter verification code",
-      "verifySub": "We sent a 6-digit code to {{phone}}",
-      "verifyCta": "Verify and change",
-      "success": "Phone number updated"
-    },
-
-    "notifications2": {
-      "title": "Notifications",
-      "pushHeader": "Push notifications",
-      "emailHeader": "Email notifications",
-      "smsHeader": "SMS notifications",
-      "orderUpdates": "Order updates",
-      "orderUpdatesSub": "Status changes, ETA, delivery",
-      "promo": "Offers & promotions",
-      "promoSub": "Discounts and seasonal deals",
-      "wallet": "Wallet activity",
-      "walletSub": "Funding, transfers, refunds"
-    },
-
-    "addresses": {
-      "title": "Saved Addresses",
-      "empty": "No saved addresses",
-      "emptyHint": "Add a delivery address to checkout faster.",
-      "addCta": "Add new address",
-      "labelPh": "Label (Home, Work…)",
-      "addressPh": "Search or pick on the map",
-      "save": "Save address",
-      "saving": "Saving…",
-      "saved": "Address saved",
-      "edit": "Edit",
-      "delete": "Delete",
-      "deleteTitle": "Delete address?",
-      "deleteBody": "This can't be undone.",
-      "setDefault": "Set as default",
-      "default": "Default"
-    },
-
-    "notificationCenter": {
-      "title": "Notifications",
-      "markAllRead": "Mark all read",
-      "empty": "No notifications",
-      "emptyHint": "We'll let you know when something happens."
-    },
-
-    "locationPicker": {
-      "title": "Pick location",
-      "searchPh": "Search neighborhoods, streets, landmarks…",
-      "useCurrent": "Use my current location",
-      "savedHeader": "Saved",
-      "permissionRequired": "Location permission required",
-      "permissionHint": "Allow access so we can show options near you."
-    },
-
-    "search": {
-      "title": "Search",
-      "ph": "Search restaurants, food, items…",
-      "noResults": "No results",
-      "noResultsHint": "Try a different keyword.",
-      "recent": "Recent searches",
-      "clearRecent": "Clear",
-      "merchants": "Merchants",
-      "products": "Items"
     }
   },
-
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark all read",
     "unreadOnly": "Unread only",
     "all": "All"
   },
-
+  "notificationCenter": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications",
+    "emptyHint": "We'll let you know when something happens."
+  },
+  "search": {
+    "title": "Search",
+    "ph": "Search restaurants, food, items…",
+    "noResults": "No results",
+    "noResultsHint": "Try a different keyword.",
+    "recent": "Recent searches",
+    "clearRecent": "Clear",
+    "merchants": "Merchants",
+    "products": "Items"
+  },
+  "locationPicker": {
+    "title": "Pick location",
+    "searchPh": "Search neighborhoods, streets, landmarks…",
+    "useCurrent": "Use my current location",
+    "savedHeader": "Saved",
+    "permissionRequired": "Location permission required",
+    "permissionHint": "Allow access so we can show options near you."
+  },
+  "addresses": {
+    "title": "Saved Addresses",
+    "empty": "No saved addresses",
+    "emptyHint": "Add a delivery address to checkout faster.",
+    "addCta": "Add new address",
+    "labelPh": "Label (Home, Work…)",
+    "addressPh": "Search or pick on the map",
+    "save": "Save address",
+    "saving": "Saving…",
+    "saved": "Address saved",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteTitle": "Delete address?",
+    "deleteBody": "This can't be undone.",
+    "setDefault": "Set as default",
+    "default": "Default"
+  },
+  "notifications2": {
+    "title": "Notifications",
+    "pushHeader": "Push notifications",
+    "emailHeader": "Email notifications",
+    "smsHeader": "SMS notifications",
+    "orderUpdates": "Order updates",
+    "orderUpdatesSub": "Status changes, ETA, delivery",
+    "promo": "Offers & promotions",
+    "promoSub": "Discounts and seasonal deals",
+    "wallet": "Wallet activity",
+    "walletSub": "Funding, transfers, refunds"
+  },
+  "edit": {
+    "title": "Edit Profile",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Profile updated",
+    "phoneNote": "Phone changes require verification.",
+    "emailReadonly": "Contact support to change your email."
+  },
+  "photo": {
+    "title": "Profile Photo",
+    "tapToChange": "Tap the photo to change it",
+    "savePhoto": "Save Photo",
+    "chooseDifferent": "Choose Different Photo",
+    "chooseSource": "Choose a source",
+    "camera": "Camera",
+    "library": "Photo Library",
+    "cancel": "Cancel",
+    "permissionCamera": "Camera access is required to take a photo.",
+    "permissionLibrary": "Photo library access is required.",
+    "permissionTitle": "Permission needed",
+    "saved": "Photo updated",
+    "savedSub": "Your profile photo has been saved.",
+    "uploadFailed": "Upload failed"
+  },
+  "security": {
+    "title": "Security",
+    "password": "Change Password",
+    "passwordSub": "Update your login password",
+    "pin": "Change Transaction PIN",
+    "pinSub": "Update your 6-digit PIN",
+    "sessions": "Active Sessions",
+    "sessionsSub": "View and manage logged-in devices",
+    "biometric": "Biometric Login",
+    "biometricSubAvailable": "Use fingerprint or Face ID to sign in",
+    "biometricSubUnavailable": "No biometrics enrolled on this device",
+    "biometricEnabled": "Biometric login enabled",
+    "biometricDisabled": "Biometric login disabled",
+    "biometricEnablePrompt": "Enable biometric login",
+    "biometricDisablePrompt": "Disable biometric login",
+    "biometricUnavailable": "Biometrics unavailable",
+    "biometricUnavailableSub": "Enroll a fingerprint or Face ID in your device settings first.",
+    "biometricUpdateFailed": "Could not update biometrics",
+    "phone": "Change Phone Number",
+    "phoneSub": "Update your registered phone number",
+    "sectionAuth": "Authentication",
+    "sectionBiometrics": "Biometrics",
+    "sectionSessions": "Sessions",
+    "sectionDanger": "Danger Zone",
+    "logoutAll": "Log Out All Devices",
+    "logoutAllSub": "Sign out everywhere except here",
+    "logoutAllTitle": "Log Out All Devices",
+    "logoutAllBody": "This will sign you out of all active sessions. You will need to log in again on each device.",
+    "logoutAllCta": "Log Out All",
+    "deleteAccount": "Delete Account",
+    "deleteAccountSub": "Permanently delete your account and data",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountBody": "This action is permanent and cannot be undone. All your data will be deleted.\n\n• Complete all active deliveries first\n• Withdraw your wallet balance\n• This cannot be reversed",
+    "deleteAccountCta": "Delete Forever",
+    "deleteSuccess": "Account Deleted",
+    "deleteSuccessSub": "Your account has been permanently deleted",
+    "deleteFailed": "Cannot Delete Account",
+    "deleteFailedSub": "Please complete deliveries and withdraw balance first"
+  },
+  "sessions": {
+    "title": "Active Sessions",
+    "thisDevice": "This device",
+    "lastUsed": "Last used {{when}}",
+    "signOut": "Sign out",
+    "signOutOthers": "Sign out other devices",
+    "signOutAllCta": "Sign out from all other devices",
+    "signedOut": "Signed out",
+    "confirmSignOutTitle": "Sign out this device?",
+    "confirmSignOutBody": "You can sign back in any time.",
+    "confirmAllTitle": "Sign out other devices?",
+    "confirmAllBody": "You'll stay signed in here. All other devices will need to log in again.",
+    "loading": "Loading sessions…",
+    "noOther": "No other devices are signed in."
+  },
+  "bvn": {
+    "title": "Identity Verification",
+    "intro": "Verify your BVN to unlock wallet funding, transfers, and bigger limits.",
+    "bvnLabel": "BVN",
+    "bvnPh": "Enter your 11-digit BVN",
+    "verifying": "Verifying…",
+    "verify": "Verify",
+    "verified": "Verified",
+    "verifiedSub": "Your identity is confirmed.",
+    "failed": "Verification failed",
+    "failedSub": "Double-check your BVN and try again.",
+    "consentTitle": "We use BVN only for KYC",
+    "consentBody": "Your BVN is hashed and stored encrypted. We never share it with anyone."
+  },
+  "changePin": {
+    "title": "Change Transaction PIN",
+    "currentPinLabel": "Current PIN",
+    "newPinLabel": "New PIN",
+    "confirmPinLabel": "Confirm new PIN",
+    "submit": "Change PIN",
+    "submitting": "Changing PIN…",
+    "success": "PIN changed",
+    "currentRequired": "Enter your current PIN",
+    "newRequired": "Enter your new PIN",
+    "mismatch": "PINs don't match"
+  },
+  "phoneChange": {
+    "title": "Change Phone Number",
+    "currentLabel": "Current phone",
+    "newLabel": "New phone number",
+    "newPh": "08012345678",
+    "sendOtpCta": "Send code",
+    "verifyTitle": "Enter verification code",
+    "verifySub": "We sent a 6-digit code to {{phone}}",
+    "verifyCta": "Verify and change",
+    "success": "Phone number updated"
+  },
+  "about": {
+    "title": "About",
+    "appName": "VTU Logistics",
+    "tagline": "Bold logistics for Katsina and beyond.",
+    "version": "Version {{version}}",
+    "build": "Build {{build}}",
+    "policySection": "Policies",
+    "openTerms": "Terms of Service",
+    "openPrivacy": "Privacy Policy",
+    "rateAppCta": "Rate the App"
+  },
+  "legal": {
+    "title": "Legal",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "termsBody": "Read the full terms in your browser.",
+    "openInBrowser": "Open in browser"
+  },
+  "help": {
+    "title": "Help & Support",
+    "intro": "Need a hand? Browse common questions or reach the support team.",
+    "faqHeader": "Frequently Asked Questions",
+    "contactHeader": "Contact Us",
+    "chatLabel": "Live Chat",
+    "chatSub": "Chat with our support team",
+    "emailLabel": "Email Support",
+    "emailValue": "support@vtulogistics.com",
+    "phoneLabel": "Phone Support",
+    "phoneValue": "0800-VTU-HELP",
+    "phone": "Call support",
+    "email": "Email support",
+    "whatsapp": "Message on WhatsApp",
+    "openLink": "Open",
+    "faq": {
+      "q1": "How do I fund my wallet?",
+      "a1": "Go to Wallet → Fund Wallet. You can fund via bank transfer to your virtual account.",
+      "q2": "How long does delivery take?",
+      "a2": "Delivery times vary by distance and rider availability. Most deliveries within Katsina complete in 30–60 minutes.",
+      "q3": "How do I track my order?",
+      "a3": "Once a rider is assigned, you'll see real-time tracking on the order details screen.",
+      "q4": "Can I cancel an order?",
+      "a4": "You can cancel before a rider picks up your package. Cancellation after pickup may incur a fee.",
+      "q5": "What if my delivery is damaged?",
+      "a5": "Contact support within 24 hours with photos. We'll investigate and process a refund if applicable."
+    }
+  },
   "rate": {
     "title": "Rate your order",
     "merchant": "How was the merchant?",
@@ -1063,12 +1036,10 @@
     "starLabel": "{{count}} star",
     "starLabel_plural": "{{count}} stars"
   },
-
   "errors": {
     "title": "Something went wrong",
     "tryAgain": "Try again",
     "_fallback": "{{message}}",
-
     "BAD_REQUEST": "That didn't work — please check your details and try again.",
     "UNAUTHORIZED": "Please sign in to continue.",
     "FORBIDDEN": "You don't have permission to do that.",
@@ -1080,7 +1051,6 @@
     "UNKNOWN_ERROR": "Something went wrong. Please try again.",
     "VALIDATION_FAILED": "Please check the highlighted fields.",
     "NETWORK_ERROR": "Network error. Please check your connection and try again.",
-
     "EMAIL_TAKEN": "That email is already registered. Try signing in.",
     "PHONE_TAKEN": "That phone number is already registered.",
     "INVALID_CREDENTIALS": "Wrong email or password.",
@@ -1099,21 +1069,44 @@
     "KYC_INCOMPLETE": "Finish identity verification to continue.",
     "BVN_ALREADY_VERIFIED": "Your BVN is already verified.",
     "BVN_MISMATCH": "That BVN doesn't match the one on file.",
-
     "INSUFFICIENT_BALANCE": "Your wallet balance is too low for this.",
     "DUPLICATE_TRANSACTION": "Looks like we already processed that.",
     "RECIPIENT_NOT_FOUND": "We couldn't find an account for that phone number.",
     "TRANSFER_TO_SELF": "You can't transfer to your own number.",
     "AMOUNT_TOO_LOW": "Amount is too low.",
     "AMOUNT_TOO_HIGH": "Amount is too high.",
-
     "QUOTE_EXPIRED": "Your quote expired. Please refresh and try again.",
     "QUOTE_INVALID": "Quote is invalid — please request a fresh one.",
     "QUOTE_MISMATCH": "The quote no longer matches your order. Please refresh.",
     "INVALID_TRANSITION": "That status change isn't allowed right now.",
     "REQUEST_NOT_FOUND": "Order not found.",
     "ALREADY_RATED": "You've already rated this order.",
+    "CANCELLED": "Cancelled",
     "PRESCRIPTION_REQUIRED": "One or more items need a valid prescription. Upload it at checkout to continue.",
     "INVALID_PRESCRIPTION_URL": "Invalid prescription — please upload via the in-app flow."
+  },
+  "shops": {
+    "title": "Shops",
+    "subtitle": "Browse everything else",
+    "empty": "No shops yet",
+    "emptyHint": "New categories will appear here as they go live."
+  },
+  "cart": {
+    "title": "Your Cart",
+    "fromMerchant": "From {{name}}",
+    "viewCart": "View cart",
+    "checkoutCta": "Checkout",
+    "subtotal": "Subtotal",
+    "feesHint": "Delivery and other fees are calculated at checkout.",
+    "emptyTitle": "Your cart is empty",
+    "emptyHint": "Add items from any shop and they will appear here.",
+    "browseCta": "Browse shops",
+    "clearTitle": "Clear cart?",
+    "clearBody": "This removes every item from your cart. You cannot undo this.",
+    "clearCta": "Clear cart",
+    "startNewTitle": "Start a new cart?",
+    "startNewBody": "Your cart has items from {{prev}}. Adding from {{next}} will clear those items.",
+    "startNewCta": "Start new cart",
+    "previousMerchantFallback": "another shop"
   }
 }

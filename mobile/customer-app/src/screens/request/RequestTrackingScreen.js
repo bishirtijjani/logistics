@@ -277,8 +277,8 @@ const RequestTrackingScreen = () => {
   }
 
   // Phase 8 — type-specific copy keyed off the merchant's admin-managed
-  // category slug ('pharmacy', 'grocery', 'grocery-liquid', ...). The slug
-  // is included in /requests/:id by request.service.getRequestById.
+  // category slug ('pharmacy', 'grocery', 'restaurant', ...). The slug is
+  // included in /requests/:id by request.service.getRequestById.
   const categorySlug = currentRequest.merchant?.category?.slug || null;
 
   const timeline = statusTimeline(currentRequest.type).map((s) => ({

@@ -3,7 +3,6 @@
     "_draft": true,
     "_note": "All translations are a working draft. Every key needs review by a native Hausa speaker before launch. Track progress in mobile/customer-app/src/i18n/HAUSA_REVIEW.md."
   },
-
   "common": {
     "appName": "VTU Logistics",
     "ok": "To",
@@ -29,7 +28,6 @@
     "currency": "₦",
     "perKm": "/km"
   },
-
   "a11y": {
     "back": "Koma baya",
     "close": "Rufe",
@@ -52,7 +50,6 @@
     "unreadCount_one": "Sanarwa {{count}} da ba a karanta ba",
     "unreadCount_other": "Sanarwowi {{count}} da ba a karanta ba"
   },
-
   "states": {
     "loading": "Ana lodawa…",
     "errorTitle": "An samu matsala",
@@ -76,7 +73,6 @@
       "activityHint": "Odar da ayyukan walat zasu bayyana a nan."
     }
   },
-
   "locale": {
     "title": "Harshe",
     "subtitle": "Zaɓi yadda manhajar zata yi maka magana",
@@ -84,7 +80,20 @@
     "ha": "Hausa",
     "system": "Daidaita da wayata"
   },
-
+  "theme": {
+    "title": "Bayyanar manhaja",
+    "subtitle": "Zaɓi yadda manhajar zai bayyana",
+    "system": "Daidaita da na'urar",
+    "systemHint": "Bi saitin wayarka",
+    "light": "Haske",
+    "lightHint": "A koyaushe haske",
+    "dark": "Duhu",
+    "darkHint": "A koyaushe duhu",
+    "rowLabel": "Bayyanarwa",
+    "rowSubSystem": "Yana bin na'urar",
+    "rowSubLight": "Haske",
+    "rowSubDark": "Duhu"
+  },
   "auth": {
     "welcomeTitle": "Sami komai\nan kawo maka.",
     "welcomeSubtitle": "Abinci, fakiti, magunguna, kayan abinci — a faɗin Katsina cikin mintuna.",
@@ -127,7 +136,6 @@
     "logoutConfirm": "Ka tabbata kana son fita?",
     "passwordResetTitle": "Sake saita kalmar sirri",
     "passwordResetSubtitle": "Za mu aika lamba zuwa imel ɗinka.",
-
     "forgotTitle": "Ka manta kalmar sirri?",
     "forgotSubtitle": "Shigar da imel ɗinka kuma za mu aiko maka da lambar sake saitawa.",
     "forgotCta": "Aika lambar sake saitawa",
@@ -139,7 +147,6 @@
     "resetCta": "Sake saita kalmar sirri",
     "passwordResetToast": "An sabunta kalmar sirri",
     "passwordResetToastSub": "Shiga da sabuwar kalmar sirrinka.",
-
     "form": {
       "emailInvalid": "Ka shigar da imel da ya dace",
       "passwordRequired": "Ana bukatar kalmar sirri",
@@ -153,7 +160,6 @@
       "pinMismatch": "PINs ba su dace ba — sake gwadawa",
       "termsRequired": "Ka karɓi sharuɗɗan don ci gaba"
     },
-
     "toast": {
       "welcomeBack": "Barka da dawowa!",
       "accountCreated": "An ƙirƙira asusu",
@@ -164,7 +170,6 @@
       "resetCodeSentSub": "An aika lambar sake saitawa idan akwai asusu."
     }
   },
-
   "home": {
     "greeting": "Sannu, {{name}}",
     "greetingFallback": "Sannu",
@@ -192,16 +197,16 @@
       "send": "Aika Kuɗi"
     },
     "package": "Fakiti",
-    "packageDescription": "Aika ko karɓi fakiti"
+    "packageDescription": "Aika ko karɓi fakiti",
+    "shops": "Kantuna"
   },
-
   "tabs": {
     "home": "Gida",
     "orders": "Odar",
     "wallet": "Walat",
-    "profile": "Bayanai"
+    "profile": "Bayanai",
+    "cart": "Kwando"
   },
-
   "orders": {
     "title": "Oda na",
     "tabActive": "Mai aiki",
@@ -227,12 +232,10 @@
       "awaitingRating": "Ana jiran ƙima"
     }
   },
-
   "wallet": {
     "title": "Walat",
     "balance": "Ma'auni a kasa",
     "balanceAvailable": "MA'AUNI A KASA",
-    "fund": "Ƙara",
     "send": "Aika",
     "withdraw": "Cire",
     "savedBeneficiaries": "Mutanen da aka ajiye",
@@ -348,25 +351,6 @@
     },
     "fundTitle": "Ƙara Walat",
     "fundSubtitle": "Ƙara ma'auni a walat ɗinka.",
-    "fund": {
-      "vAccountTitle": "Asusunka na bidiyo",
-      "vAccountSubtitle": "Canja wuri ta banki • Nan take",
-      "accountNumber": "Lambar asusu",
-      "copy": "Kwafa",
-      "copied": "An kwafa!",
-      "fallbackBank": "Wema Bank",
-      "howTo": "Yadda za a ƙara",
-      "stepCopyTitle": "Kwafa lambar asusu",
-      "stepCopyDesc": "Latsa maɓallin kwafa a sama",
-      "stepBankTitle": "Buɗe manhajar bankinka",
-      "stepBankDesc": "Yi amfani da kowane manhajar banki ko USSD",
-      "stepTransferTitle": "Canja kuɗi",
-      "stepTransferDesc": "Aika kowane adadi zuwa lambar asusu",
-      "stepDoneTitle": "An sabunta walat",
-      "stepDoneDesc": "Kuɗi yana bayyana nan take",
-      "importantTitle": "Mahimmanci",
-      "importantBody": "Wannan asusunka ne na bidiyo na kanka. Canja wuri ne kawai daga asusun bankinka. Ana iya yiwa canja wuri daga wani bita."
-    },
     "sendTitle": "Aika Kuɗi",
     "sendSubtitle": "Aika zuwa lambar wayar mai amfani da manhajar.",
     "send_": {
@@ -410,9 +394,28 @@
       "ESCROW_REFUND": "Mayar da Escrow",
       "DELIVERY_EARNING": "Riba ta isar",
       "RIDER_EARNING": "Ribar mai keke"
-    }
+    },
+    "fund_": {
+      "vAccountTitle": "Asusunka na bidiyo",
+      "vAccountSubtitle": "Canja wuri ta banki • Nan take",
+      "accountNumber": "Lambar asusu",
+      "copy": "Kwafa",
+      "copied": "An kwafa!",
+      "fallbackBank": "Wema Bank",
+      "howTo": "Yadda za a ƙara",
+      "stepCopyTitle": "Kwafa lambar asusu",
+      "stepCopyDesc": "Latsa maɓallin kwafa a sama",
+      "stepBankTitle": "Buɗe manhajar bankinka",
+      "stepBankDesc": "Yi amfani da kowane manhajar banki ko USSD",
+      "stepTransferTitle": "Canja kuɗi",
+      "stepTransferDesc": "Aika kowane adadi zuwa lambar asusu",
+      "stepDoneTitle": "An sabunta walat",
+      "stepDoneDesc": "Kuɗi yana bayyana nan take",
+      "importantTitle": "Mahimmanci",
+      "importantBody": "Wannan asusunka ne na bidiyo na kanka. Canja wuri ne kawai daga asusun bankinka. Ana iya yiwa canja wuri daga wani bita."
+    },
+    "fund": "Ƙara"
   },
-
   "request": {
     "createTitle": "Aika fakiti",
     "pickup": "Ɗaukowa",
@@ -515,8 +518,6 @@
       "noDescription": "Babu bayani",
       "from": "Daga",
       "to": "Zuwa",
-      "rider": "Mai keke",
-      "merchant": "Mai shago",
       "liveTracking": "Bibiya kai tsaye",
       "markerRider": "Mai keke",
       "markerPickup": "Ɗauko",
@@ -569,7 +570,6 @@
       "confirmPaymentSub": "Biya {{amount}} don wannan oda"
     }
   },
-
   "merchant": {
     "browseTitle": "{{category}} kusa da kai",
     "browseFallbackHeader": "Shaguna",
@@ -613,7 +613,6 @@
     "unavailableToday": "Bai samuwa yau",
     "unavailable": "Bai samuwa"
   },
-
   "utility": {
     "airtime": "Airtime",
     "data": "Data",
@@ -631,7 +630,6 @@
     "verified": "An tabbatar",
     "verifying": "Ana tabbatarwa…",
     "buy": "Saya",
-
     "airtimeScreen": {
       "title": "Saya Airtime",
       "selectNetwork": "Zaɓi hanyar sadarwa",
@@ -652,7 +650,6 @@
       "errMinAmount": "Mafi ƙanƙancin airtime shine {{amount}}",
       "errInsufficientBalance": "Ma'auni bai isa ba"
     },
-
     "dataScreen": {
       "title": "Saya Data",
       "selectNetwork": "Zaɓi hanyar sadarwa",
@@ -668,7 +665,6 @@
       "errSelectPlan": "Zaɓi shiri",
       "errInsufficientBalance": "Ma'auni bai isa ba"
     },
-
     "cableScreen": {
       "title": "Cable TV",
       "selectProvider": "Zaɓi mai bayarwa",
@@ -686,7 +682,6 @@
       "errSelectPackage": "Zaɓi shiri",
       "errVerifyFirst": "Tabbatar da katin tukuna"
     },
-
     "electricityScreen": {
       "title": "Wuta",
       "selectDisco": "Zaɓi mai bayar da wuta",
@@ -715,7 +710,6 @@
       "errMinAmount": "Mafi ƙanƙancin adadi shine {{amount}}",
       "errInsufficientBalance": "Ma'auni bai isa ba"
     },
-
     "result": {
       "title": "Token ɗin wuta",
       "successTitle": "Biya ya yi nasara",
@@ -739,7 +733,6 @@
       "done": "An gama",
       "viewHistory": "Duba tarihi"
     },
-
     "history": {
       "title": "Tarihin sabis",
       "noTransactions": "Babu siyan sabis har yanzu",
@@ -751,22 +744,18 @@
       "tabElectricity": "Wuta"
     }
   },
-
   "settings": {
     "title": "Saituna",
     "language": "Harshe",
     "languageSubtitle": "Hausa",
     "profile": "Bayanan kai",
-    "security": "Tsaro",
     "notifications": "Saituna na sanarwa",
     "savedAddresses": "Adireshin da aka ajiye",
     "savedBeneficiaries": "Mutanen da aka ajiye",
     "transactionPin": "PIN na mu'amalla",
     "kyc": "Tabbatar da kai",
-    "sessions": "Zaman mai aiki",
     "deleteAccount": "Goge asusu",
     "support": "Tallafi",
-    "legal": "Doka",
     "version": "Sigar {{version}}",
     "sections": {
       "account": "Asusu",
@@ -808,249 +797,232 @@
     "pinBanner": {
       "title": "Saita PIN ɗinka na mu'amalla",
       "subtitle": "Ana bukatar shi don biya da canja wuri"
-    },
-
-    "about": {
-      "title": "Game da",
-      "appName": "VTU Logistics",
-      "tagline": "Sabis na hanya don Katsina da bayanta.",
-      "version": "Sigar {{version}}",
-      "build": "Build {{build}}",
-      "policySection": "Manufofi",
-      "openTerms": "Sharuɗɗan Sabis",
-      "openPrivacy": "Manufar Sirri",
-      "rateAppCta": "Ƙimanta manhajar"
-    },
-
-    "legal": {
-      "title": "Doka",
-      "terms": "Sharuɗɗan Sabis",
-      "privacy": "Manufar Sirri",
-      "termsBody": "Karanta cikakkun sharuɗɗan a mai bincike.",
-      "openInBrowser": "Buɗe a mai bincike"
-    },
-
-    "help": {
-      "title": "Taimako & Tallafi",
-      "intro": "Kana bukatar taimako? Duba tambayoyin gama-gari ko tuntuɓi tallafi.",
-      "faqHeader": "Tambayoyin gama-gari",
-      "contactHeader": "Tuntuɓe mu",
-      "chatLabel": "Taɗi kai tsaye",
-      "chatSub": "Yi taɗi da masu tallafi",
-      "emailLabel": "Imel na tallafi",
-      "emailValue": "support@vtulogistics.com",
-      "phoneLabel": "Wayar tallafi",
-      "phoneValue": "0800-VTU-HELP",
-      "phone": "Kira tallafi",
-      "email": "Aika imel zuwa tallafi",
-      "whatsapp": "Aika saƙo a WhatsApp",
-      "openLink": "Buɗe",
-      "faq": {
-        "q1": "Ta yaya zan ƙara walat ɗina?",
-        "a1": "Tafi Walat → Ƙara Walat. Za ka iya ƙarawa ta canja wuri zuwa asusunka na bidiyo.",
-        "q2": "Tsawon lokacin isar yake ɗauka?",
-        "a2": "Lokacin isar yana bambanta da nisa da samun masu keke. Yawancin isarwa a Katsina yana ɗaukar mintuna 30–60.",
-        "q3": "Ta yaya zan bibiyi odar?",
-        "a3": "Da zarar an ba mai keke aiki, za ka ga bibiya kai tsaye a shafin bayanan oda.",
-        "q4": "Zan iya soke oda?",
-        "a4": "Za ka iya soke kafin mai keke ya ɗauko. Sokewa bayan ɗauko zai iya samun kuɗi.",
-        "q5": "Idan an lalata isar?",
-        "a5": "Tuntuɓi tallafi cikin sa'o'i 24 da hotuna. Za mu binciki kuma mu mayar da kuɗi idan ya cancanta."
-      }
-    },
-
-    "edit": {
-      "title": "Gyara bayanai",
-      "firstName": "Sunan farko",
-      "lastName": "Sunan ƙarshe",
-      "email": "Imel",
-      "phone": "Waya",
-      "save": "Ajiye canje-canje",
-      "saving": "Ana ajiyewa…",
-      "saved": "An sabunta bayanai",
-      "phoneNote": "Canza lambar waya yana bukatar tabbatarwa.",
-      "emailReadonly": "Tuntuɓi tallafi don canza imel ɗinka."
-    },
-
-    "photo": {
-      "title": "Hoton bayani",
-      "tapToChange": "Latsa hoton don canzawa",
-      "savePhoto": "Ajiye hoto",
-      "chooseDifferent": "Zaɓi wani hoto",
-      "chooseSource": "Zaɓi tushe",
-      "camera": "Kamara",
-      "library": "Gida na hotuna",
-      "cancel": "Soke",
-      "permissionCamera": "Ana bukatar izinin kamara don ɗaukar hoto.",
-      "permissionLibrary": "Ana bukatar izinin gida na hotuna.",
-      "permissionTitle": "Ana bukatar izini",
-      "saved": "An sabunta hoto",
-      "savedSub": "An ajiye hoton bayanan ka.",
-      "uploadFailed": "Ɗorawa ya kasa"
-    },
-
-    "security": {
-      "title": "Tsaro",
-      "password": "Canza kalmar sirri",
-      "passwordSub": "Sabunta kalmar sirri ta shiga",
-      "pin": "Canza PIN na mu'amalla",
-      "pinSub": "Sabunta PIN ɗinka mai lambobi shida",
-      "sessions": "Zaman mai aiki",
-      "sessionsSub": "Duba kuma sarrafa na'urorin da suka shiga",
-      "biometric": "Shiga ta biometric",
-      "biometricSubAvailable": "Yi amfani da yatsa ko Face ID don shiga",
-      "biometricSubUnavailable": "Ba a yi rajistar biometric a wannan na'urar ba",
-      "biometricEnabled": "An kunna shiga ta biometric",
-      "biometricDisabled": "An kashe shiga ta biometric",
-      "biometricEnablePrompt": "Kunna shiga ta biometric",
-      "biometricDisablePrompt": "Kashe shiga ta biometric",
-      "biometricUnavailable": "Biometric bai samuwa ba",
-      "biometricUnavailableSub": "Ka yi rajistar yatsa ko Face ID a saituna na na'urarka tukuna.",
-      "biometricUpdateFailed": "Ba a iya sabunta biometric ba",
-      "phone": "Canza lambar waya",
-      "phoneSub": "Sabunta lambar da ta yi rajista",
-      "sectionAuth": "Tabbatarwa",
-      "sectionBiometrics": "Biometrics",
-      "sectionSessions": "Zama",
-      "sectionDanger": "Yankin haɗari",
-      "logoutAll": "Fita daga duk na'urori",
-      "logoutAllSub": "Fita ko'ina sai a nan",
-      "logoutAllTitle": "Fita daga duk na'urori",
-      "logoutAllBody": "Wannan zai fita daga duk zaman mai aiki. Za ka buƙaci sake shiga a kowace na'ura.",
-      "logoutAllCta": "Fita daga duka",
-      "deleteAccount": "Goge asusu",
-      "deleteAccountSub": "Goge asusunka da bayanai gaba ɗaya",
-      "deleteAccountTitle": "Goge asusu",
-      "deleteAccountBody": "Wannan aiki na har abada ba a iya soke shi ba. Za a goge duk bayanan ka.\n\n• Gama duk isarwar da ke aiki tukuna\n• Cire ma'auni daga walat ɗinka\n• Ba a iya juya wannan ba",
-      "deleteAccountCta": "Goge har abada",
-      "deleteSuccess": "An goge asusu",
-      "deleteSuccessSub": "An goge asusunka gaba ɗaya",
-      "deleteFailed": "Ba a iya goge asusu ba",
-      "deleteFailedSub": "Ka gama isarwa kuma ka cire ma'auni tukuna"
-    },
-
-    "sessions": {
-      "title": "Zaman mai aiki",
-      "thisDevice": "Wannan na'urar",
-      "lastUsed": "An yi amfani ƙarshe {{when}}",
-      "signOut": "Fita",
-      "signOutOthers": "Fita daga sauran na'urori",
-      "signOutAllCta": "Fita daga duk sauran na'urori",
-      "signedOut": "An fita",
-      "confirmSignOutTitle": "Fita daga wannan na'urar?",
-      "confirmSignOutBody": "Za ka iya sake shiga a kowane lokaci.",
-      "confirmAllTitle": "Fita daga sauran na'urori?",
-      "confirmAllBody": "Za ka kasance a shiga a nan. Duk sauran na'urori za su buƙaci sake shiga.",
-      "loading": "Ana loda zama…",
-      "noOther": "Babu wasu na'urori da suka shiga."
-    },
-
-    "bvn": {
-      "title": "Tabbatar da kai",
-      "intro": "Tabbatar da BVN ɗinka don buɗe ƙarin walat, canja wuri, da iyaka mafi girma.",
-      "bvnLabel": "BVN",
-      "bvnPh": "Shigar da BVN mai lambobi 11",
-      "verifying": "Ana tabbatarwa…",
-      "verify": "Tabbatar",
-      "verified": "An tabbatar",
-      "verifiedSub": "An tabbatar da kai.",
-      "failed": "Tabbatarwa ya kasa",
-      "failedSub": "Duba BVN ɗinka kuma sake gwadawa.",
-      "consentTitle": "Mun yi amfani da BVN don KYC ne kawai",
-      "consentBody": "An hash kuma adana BVN ɗinka da boyewa. Ba mu raba shi da kowa."
-    },
-
-    "changePin": {
-      "title": "Canza PIN na mu'amalla",
-      "currentPinLabel": "PIN ɗin yanzu",
-      "newPinLabel": "Sabuwar PIN",
-      "confirmPinLabel": "Tabbatar da sabuwar PIN",
-      "submit": "Canza PIN",
-      "submitting": "Ana canzawa…",
-      "success": "An canza PIN",
-      "currentRequired": "Shigar da PIN ɗinka na yanzu",
-      "newRequired": "Shigar da sabuwar PIN",
-      "mismatch": "PINs ba su dace ba"
-    },
-
-    "phoneChange": {
-      "title": "Canza lambar waya",
-      "currentLabel": "Waya ta yanzu",
-      "newLabel": "Sabuwar lambar waya",
-      "newPh": "08012345678",
-      "sendOtpCta": "Aika lamba",
-      "verifyTitle": "Shigar da lambar tabbatarwa",
-      "verifySub": "Mun aika lamba mai lambobi shida zuwa {{phone}}",
-      "verifyCta": "Tabbatar a canza",
-      "success": "An sabunta lambar waya"
-    },
-
-    "notifications2": {
-      "title": "Sanarwa",
-      "pushHeader": "Sanarwa ta push",
-      "emailHeader": "Sanarwa ta imel",
-      "smsHeader": "Sanarwa ta SMS",
-      "orderUpdates": "Sabuntawar oda",
-      "orderUpdatesSub": "Canje-canjen yanayi, ETA, isar",
-      "promo": "Tallace-tallace & kayyade",
-      "promoSub": "Rangwame da tallace-tallacen kakar",
-      "wallet": "Ayyukan walat",
-      "walletSub": "Ƙarawa, canja wuri, dawowa"
-    },
-
-    "addresses": {
-      "title": "Adireshin da aka ajiye",
-      "empty": "Babu adireshi da aka ajiye",
-      "emptyHint": "Ƙara adireshin isar don sauƙaƙe biya.",
-      "addCta": "Ƙara sabon adireshi",
-      "labelPh": "Lakabi (Gida, Aiki…)",
-      "addressPh": "Bincika ko zaɓi a taswira",
-      "save": "Ajiye adireshi",
-      "saving": "Ana ajiyewa…",
-      "saved": "An ajiye adireshi",
-      "edit": "Gyara",
-      "delete": "Goge",
-      "deleteTitle": "A goge adireshi?",
-      "deleteBody": "Ba a iya soke wannan.",
-      "setDefault": "Saita a matsayin tsoho",
-      "default": "Tsoho"
-    },
-
-    "notificationCenter": {
-      "title": "Sanarwa",
-      "markAllRead": "Yi alama duka an karanta",
-      "empty": "Babu sanarwa",
-      "emptyHint": "Za mu sanar da kai idan akwai sabon abu."
-    },
-
-    "locationPicker": {
-      "title": "Zaɓi wuri",
-      "searchPh": "Bincika unguwanni, hanyoyi, alamomi…",
-      "useCurrent": "Yi amfani da wurina na yanzu",
-      "savedHeader": "An ajiye",
-      "permissionRequired": "Ana bukatar izinin wuri",
-      "permissionHint": "Yarda da damar don mu nuna zaɓuɓɓuka kusa da kai."
-    },
-
-    "search": {
-      "title": "Bincike",
-      "ph": "Bincika gidajen abinci, abinci, kayayyaki…",
-      "noResults": "Babu sakamako",
-      "noResultsHint": "Gwada kalmar bincike daban.",
-      "recent": "Bincike na kwanan nan",
-      "clearRecent": "Share",
-      "merchants": "Shaguna",
-      "products": "Kayayyaki"
     }
   },
-
   "notifications": {
     "title": "Sanarwa",
     "markAllRead": "Yi alama duka an karanta",
     "unreadOnly": "Wadanda ba a karanta ba",
     "all": "Duka"
   },
-
+  "notificationCenter": {
+    "title": "Sanarwa",
+    "markAllRead": "Yi alama duka an karanta",
+    "empty": "Babu sanarwa",
+    "emptyHint": "Za mu sanar da kai idan akwai sabon abu."
+  },
+  "search": {
+    "title": "Bincike",
+    "ph": "Bincika gidajen abinci, abinci, kayayyaki…",
+    "noResults": "Babu sakamako",
+    "noResultsHint": "Gwada kalmar bincike daban.",
+    "recent": "Bincike na kwanan nan",
+    "clearRecent": "Share",
+    "merchants": "Shaguna",
+    "products": "Kayayyaki"
+  },
+  "locationPicker": {
+    "title": "Zaɓi wuri",
+    "searchPh": "Bincika unguwanni, hanyoyi, alamomi…",
+    "useCurrent": "Yi amfani da wurina na yanzu",
+    "savedHeader": "An ajiye",
+    "permissionRequired": "Ana bukatar izinin wuri",
+    "permissionHint": "Yarda da damar don mu nuna zaɓuɓɓuka kusa da kai."
+  },
+  "addresses": {
+    "title": "Adireshin da aka ajiye",
+    "empty": "Babu adireshi da aka ajiye",
+    "emptyHint": "Ƙara adireshin isar don sauƙaƙe biya.",
+    "addCta": "Ƙara sabon adireshi",
+    "labelPh": "Lakabi (Gida, Aiki…)",
+    "addressPh": "Bincika ko zaɓi a taswira",
+    "save": "Ajiye adireshi",
+    "saving": "Ana ajiyewa…",
+    "saved": "An ajiye adireshi",
+    "edit": "Gyara",
+    "delete": "Goge",
+    "deleteTitle": "A goge adireshi?",
+    "deleteBody": "Ba a iya soke wannan.",
+    "setDefault": "Saita a matsayin tsoho",
+    "default": "Tsoho"
+  },
+  "notifications2": {
+    "title": "Sanarwa",
+    "pushHeader": "Sanarwa ta push",
+    "emailHeader": "Sanarwa ta imel",
+    "smsHeader": "Sanarwa ta SMS",
+    "orderUpdates": "Sabuntawar oda",
+    "orderUpdatesSub": "Canje-canjen yanayi, ETA, isar",
+    "promo": "Tallace-tallace & kayyade",
+    "promoSub": "Rangwame da tallace-tallacen kakar",
+    "wallet": "Ayyukan walat",
+    "walletSub": "Ƙarawa, canja wuri, dawowa"
+  },
+  "edit": {
+    "title": "Gyara bayanai",
+    "firstName": "Sunan farko",
+    "lastName": "Sunan ƙarshe",
+    "email": "Imel",
+    "phone": "Waya",
+    "save": "Ajiye canje-canje",
+    "saving": "Ana ajiyewa…",
+    "saved": "An sabunta bayanai",
+    "phoneNote": "Canza lambar waya yana bukatar tabbatarwa.",
+    "emailReadonly": "Tuntuɓi tallafi don canza imel ɗinka."
+  },
+  "photo": {
+    "title": "Hoton bayani",
+    "tapToChange": "Latsa hoton don canzawa",
+    "savePhoto": "Ajiye hoto",
+    "chooseDifferent": "Zaɓi wani hoto",
+    "chooseSource": "Zaɓi tushe",
+    "camera": "Kamara",
+    "library": "Gida na hotuna",
+    "cancel": "Soke",
+    "permissionCamera": "Ana bukatar izinin kamara don ɗaukar hoto.",
+    "permissionLibrary": "Ana bukatar izinin gida na hotuna.",
+    "permissionTitle": "Ana bukatar izini",
+    "saved": "An sabunta hoto",
+    "savedSub": "An ajiye hoton bayanan ka.",
+    "uploadFailed": "Ɗorawa ya kasa"
+  },
+  "security": {
+    "title": "Tsaro",
+    "password": "Canza kalmar sirri",
+    "passwordSub": "Sabunta kalmar sirri ta shiga",
+    "pin": "Canza PIN na mu'amalla",
+    "pinSub": "Sabunta PIN ɗinka mai lambobi shida",
+    "sessions": "Zaman mai aiki",
+    "sessionsSub": "Duba kuma sarrafa na'urorin da suka shiga",
+    "biometric": "Shiga ta biometric",
+    "biometricSubAvailable": "Yi amfani da yatsa ko Face ID don shiga",
+    "biometricSubUnavailable": "Ba a yi rajistar biometric a wannan na'urar ba",
+    "biometricEnabled": "An kunna shiga ta biometric",
+    "biometricDisabled": "An kashe shiga ta biometric",
+    "biometricEnablePrompt": "Kunna shiga ta biometric",
+    "biometricDisablePrompt": "Kashe shiga ta biometric",
+    "biometricUnavailable": "Biometric bai samuwa ba",
+    "biometricUnavailableSub": "Ka yi rajistar yatsa ko Face ID a saituna na na'urarka tukuna.",
+    "biometricUpdateFailed": "Ba a iya sabunta biometric ba",
+    "phone": "Canza lambar waya",
+    "phoneSub": "Sabunta lambar da ta yi rajista",
+    "sectionAuth": "Tabbatarwa",
+    "sectionBiometrics": "Biometrics",
+    "sectionSessions": "Zama",
+    "sectionDanger": "Yankin haɗari",
+    "logoutAll": "Fita daga duk na'urori",
+    "logoutAllSub": "Fita ko'ina sai a nan",
+    "logoutAllTitle": "Fita daga duk na'urori",
+    "logoutAllBody": "Wannan zai fita daga duk zaman mai aiki. Za ka buƙaci sake shiga a kowace na'ura.",
+    "logoutAllCta": "Fita daga duka",
+    "deleteAccount": "Goge asusu",
+    "deleteAccountSub": "Goge asusunka da bayanai gaba ɗaya",
+    "deleteAccountTitle": "Goge asusu",
+    "deleteAccountBody": "Wannan aiki na har abada ba a iya soke shi ba. Za a goge duk bayanan ka.\n\n• Gama duk isarwar da ke aiki tukuna\n• Cire ma'auni daga walat ɗinka\n• Ba a iya juya wannan ba",
+    "deleteAccountCta": "Goge har abada",
+    "deleteSuccess": "An goge asusu",
+    "deleteSuccessSub": "An goge asusunka gaba ɗaya",
+    "deleteFailed": "Ba a iya goge asusu ba",
+    "deleteFailedSub": "Ka gama isarwa kuma ka cire ma'auni tukuna"
+  },
+  "sessions": {
+    "title": "Zaman mai aiki",
+    "thisDevice": "Wannan na'urar",
+    "lastUsed": "An yi amfani ƙarshe {{when}}",
+    "signOut": "Fita",
+    "signOutOthers": "Fita daga sauran na'urori",
+    "signOutAllCta": "Fita daga duk sauran na'urori",
+    "signedOut": "An fita",
+    "confirmSignOutTitle": "Fita daga wannan na'urar?",
+    "confirmSignOutBody": "Za ka iya sake shiga a kowane lokaci.",
+    "confirmAllTitle": "Fita daga sauran na'urori?",
+    "confirmAllBody": "Za ka kasance a shiga a nan. Duk sauran na'urori za su buƙaci sake shiga.",
+    "loading": "Ana loda zama…",
+    "noOther": "Babu wasu na'urori da suka shiga."
+  },
+  "bvn": {
+    "title": "Tabbatar da kai",
+    "intro": "Tabbatar da BVN ɗinka don buɗe ƙarin walat, canja wuri, da iyaka mafi girma.",
+    "bvnLabel": "BVN",
+    "bvnPh": "Shigar da BVN mai lambobi 11",
+    "verifying": "Ana tabbatarwa…",
+    "verify": "Tabbatar",
+    "verified": "An tabbatar",
+    "verifiedSub": "An tabbatar da kai.",
+    "failed": "Tabbatarwa ya kasa",
+    "failedSub": "Duba BVN ɗinka kuma sake gwadawa.",
+    "consentTitle": "Mun yi amfani da BVN don KYC ne kawai",
+    "consentBody": "An hash kuma adana BVN ɗinka da boyewa. Ba mu raba shi da kowa."
+  },
+  "changePin": {
+    "title": "Canza PIN na mu'amalla",
+    "currentPinLabel": "PIN ɗin yanzu",
+    "newPinLabel": "Sabuwar PIN",
+    "confirmPinLabel": "Tabbatar da sabuwar PIN",
+    "submit": "Canza PIN",
+    "submitting": "Ana canzawa…",
+    "success": "An canza PIN",
+    "currentRequired": "Shigar da PIN ɗinka na yanzu",
+    "newRequired": "Shigar da sabuwar PIN",
+    "mismatch": "PINs ba su dace ba"
+  },
+  "phoneChange": {
+    "title": "Canza lambar waya",
+    "currentLabel": "Waya ta yanzu",
+    "newLabel": "Sabuwar lambar waya",
+    "newPh": "08012345678",
+    "sendOtpCta": "Aika lamba",
+    "verifyTitle": "Shigar da lambar tabbatarwa",
+    "verifySub": "Mun aika lamba mai lambobi shida zuwa {{phone}}",
+    "verifyCta": "Tabbatar a canza",
+    "success": "An sabunta lambar waya"
+  },
+  "about": {
+    "title": "Game da",
+    "appName": "VTU Logistics",
+    "tagline": "Sabis na hanya don Katsina da bayanta.",
+    "version": "Sigar {{version}}",
+    "build": "Build {{build}}",
+    "policySection": "Manufofi",
+    "openTerms": "Sharuɗɗan Sabis",
+    "openPrivacy": "Manufar Sirri",
+    "rateAppCta": "Ƙimanta manhajar"
+  },
+  "legal": {
+    "title": "Doka",
+    "terms": "Sharuɗɗan Sabis",
+    "privacy": "Manufar Sirri",
+    "termsBody": "Karanta cikakkun sharuɗɗan a mai bincike.",
+    "openInBrowser": "Buɗe a mai bincike"
+  },
+  "help": {
+    "title": "Taimako & Tallafi",
+    "intro": "Kana bukatar taimako? Duba tambayoyin gama-gari ko tuntuɓi tallafi.",
+    "faqHeader": "Tambayoyin gama-gari",
+    "contactHeader": "Tuntuɓe mu",
+    "chatLabel": "Taɗi kai tsaye",
+    "chatSub": "Yi taɗi da masu tallafi",
+    "emailLabel": "Imel na tallafi",
+    "emailValue": "support@vtulogistics.com",
+    "phoneLabel": "Wayar tallafi",
+    "phoneValue": "0800-VTU-HELP",
+    "phone": "Kira tallafi",
+    "email": "Aika imel zuwa tallafi",
+    "whatsapp": "Aika saƙo a WhatsApp",
+    "openLink": "Buɗe",
+    "faq": {
+      "q1": "Ta yaya zan ƙara walat ɗina?",
+      "a1": "Tafi Walat → Ƙara Walat. Za ka iya ƙarawa ta canja wuri zuwa asusunka na bidiyo.",
+      "q2": "Tsawon lokacin isar yake ɗauka?",
+      "a2": "Lokacin isar yana bambanta da nisa da samun masu keke. Yawancin isarwa a Katsina yana ɗaukar mintuna 30–60.",
+      "q3": "Ta yaya zan bibiyi odar?",
+      "a3": "Da zarar an ba mai keke aiki, za ka ga bibiya kai tsaye a shafin bayanan oda.",
+      "q4": "Zan iya soke oda?",
+      "a4": "Za ka iya soke kafin mai keke ya ɗauko. Sokewa bayan ɗauko zai iya samun kuɗi.",
+      "q5": "Idan an lalata isar?",
+      "a5": "Tuntuɓi tallafi cikin sa'o'i 24 da hotuna. Za mu binciki kuma mu mayar da kuɗi idan ya cancanta."
+    }
+  },
   "rate": {
     "title": "Ƙimanta oda",
     "merchant": "Yaya mai shago?",
@@ -1068,12 +1040,10 @@
     "starLabel": "Tauraro {{count}}",
     "starLabel_plural": "Taurari {{count}}"
   },
-
   "errors": {
     "title": "An samu matsala",
     "tryAgain": "Sake gwadawa",
     "_fallback": "{{message}}",
-
     "BAD_REQUEST": "Bai yi aiki ba — ka duba bayanan ka kuma sake gwadawa.",
     "UNAUTHORIZED": "Ka shiga don ci gaba.",
     "FORBIDDEN": "Ba ka da izinin yin haka.",
@@ -1085,7 +1055,6 @@
     "UNKNOWN_ERROR": "An samu matsala. Sake gwadawa.",
     "VALIDATION_FAILED": "Ka duba filayen da aka nuna.",
     "NETWORK_ERROR": "Matsalar haɗi. Ka duba intanetka kuma sake gwadawa.",
-
     "EMAIL_TAKEN": "Wannan imel ya riga ya yi rijista. Yi ƙoƙarin shiga.",
     "PHONE_TAKEN": "Wannan lambar waya ta riga ta yi rijista.",
     "INVALID_CREDENTIALS": "Imel ko kalmar sirri ba daidai ba.",
@@ -1104,21 +1073,44 @@
     "KYC_INCOMPLETE": "Gama tabbatar da kai don ci gaba.",
     "BVN_ALREADY_VERIFIED": "An riga an tabbatar da BVN ɗinka.",
     "BVN_MISMATCH": "BVN bai dace da abin da aka ajiye ba.",
-
     "INSUFFICIENT_BALANCE": "Ma'auninka bai isa wannan ba.",
     "DUPLICATE_TRANSACTION": "Da alama mun riga mun aiwatar da wannan.",
     "RECIPIENT_NOT_FOUND": "Ba mu samu asusu da wannan lambar waya ba.",
     "TRANSFER_TO_SELF": "Ba za ka iya canja wa lambar ka ba.",
     "AMOUNT_TOO_LOW": "Adadi ya yi ƙanƙanta.",
     "AMOUNT_TOO_HIGH": "Adadi ya yi yawa.",
-
     "QUOTE_EXPIRED": "Kuɗin ya kare. Sabunta a sake gwadawa.",
     "QUOTE_INVALID": "Kuɗi bai dace ba — nemi sabo.",
     "QUOTE_MISMATCH": "Kuɗi bai sake dacewa da odarka ba. Sabunta.",
     "INVALID_TRANSITION": "Ba a iya canza yanayi haka a yanzu.",
     "REQUEST_NOT_FOUND": "Ba a samu oda ba.",
     "ALREADY_RATED": "Ka riga ka ƙimanta wannan oda.",
+    "CANCELLED": "An soke",
     "PRESCRIPTION_REQUIRED": "Magunguna ɗaya ko fiye suna bukatar takardar shaida. Ɗora ta a biya don ci gaba.",
     "INVALID_PRESCRIPTION_URL": "Takardar shaida ba ta dace ba — ɗora ta cikin manhajar."
+  },
+  "shops": {
+    "title": "Kantuna",
+    "subtitle": "Bincika sauran abubuwa",
+    "empty": "Babu kantuna har yanzu",
+    "emptyHint": "Sababbin nau'i za su bayyana a nan idan an buɗe su."
+  },
+  "cart": {
+    "title": "Kwandonka",
+    "fromMerchant": "Daga {{name}}",
+    "viewCart": "Duba kwando",
+    "checkoutCta": "Biya",
+    "subtotal": "Jimillar farko",
+    "feesHint": "Ana lissafa kuɗin isar da sauran kuɗi a lokacin biya.",
+    "emptyTitle": "Kwandonka babu komai",
+    "emptyHint": "Ƙara kayayyaki daga kowanne shago kuma za su bayyana a nan.",
+    "browseCta": "Bincika shaguna",
+    "clearTitle": "A share kwando?",
+    "clearBody": "Wannan zai cire dukan kayayyaki daga kwandonka. Ba a iya juya wannan ba.",
+    "clearCta": "Share kwando",
+    "startNewTitle": "Fara sabon kwando?",
+    "startNewBody": "Kwandonka yana da kayayyaki daga {{prev}}. Ƙara daga {{next}} zai cire wadannan kayayyakin.",
+    "startNewCta": "Fara sabon kwando",
+    "previousMerchantFallback": "wani shago"
   }
 }

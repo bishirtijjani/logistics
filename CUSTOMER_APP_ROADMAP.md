@@ -691,7 +691,7 @@ Open Pharmacy and Grocery to customers. Reuse the unified Request infrastructure
 - ✅ HomeScreen Pharmacy & Grocery tiles activated. Pure data-driven via `/api/categories` — admin can add or hide categories without an app release.
 - ✅ `ProductDetailScreen` renders type-specific UX:
   - Pharmacy: amber prescription banner when `product.requiresPrescription`.
-  - Grocery: substitution preference radio group (`Pick a substitute` / `Contact me first` / `Do not substitute`), defaulted to `MERCHANT_PICK` on first add. Detection is `category.slug.startsWith('grocery')`, so `grocery`, `grocery-liquid`, and any future `grocery-*` admin category get the control automatically.
+  - Grocery: substitution preference radio group (`Pick a substitute` / `Contact me first` / `Do not substitute`), defaulted to `MERCHANT_PICK` on first add. Detection is `category.slug.startsWith('grocery')`, which picks up the unified `grocery` slug today and any future `grocery-*` admin category automatically.
   - Cart line carries `substitution`, `requiresPrescription`, and `dosage` snapshots so downstream screens never re-derive them from the product object.
 - ✅ `MerchantMenuScreen` cart preview shows a substitution chip (purple) and Rx pill (amber) per line, and forwards `merchantCategorySlug` into `ProductDetailScreen`.
 - ✅ `CheckoutScreen` adds:

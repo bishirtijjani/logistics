@@ -10,12 +10,12 @@
  *   - PIN bottom sheet before submit.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,8 @@ import api from '../../services/api';
 import { colors } from '../../theme';
 import { createRequest } from '../../store/slices/requestSlice';
 import { fetchWallet } from '../../store/slices/walletSlice';
+import { clearCart, selectCart } from '../../store/slices/cartSlice';
+import { toServerItems } from '../../lib/cart';
 import PinBottomSheet from '../../components/PinBottomSheet';
 import { substitutionLabel } from '../../lib/requestStatus';
 
@@ -35,13 +37,18 @@ const QUOTE_WARN_MS = 30 * 1000;
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
-  const route = useRoute();
   const dispatch = useDispatch();
   const { t } = useTranslation();
-  const {
-    cart, merchantId, pickupLat = 0, pickupLng = 0,
-    pickupAddress = 'Merchant Location', pickupName,
-  } = route.params || {};
+  // Cart, merchant identity, and pickup metadata all come from Redux now.
+  // The previous shape (route.params.cart/merchantId/pickupLat/...) is dead.
+  const cartState = useSelector(selectCart);
+  const cart = cartState.lines;
+  const merchantId = cartState.merchantId;
+  const merchantSnapshot = cartState.merchant;
+  const pickupLat = merchantSnapshot?.lat ?? 0;
+  const pickupLng = merchantSnapshot?.lng ?? 0;
+  const pickupAddress = merchantSnapshot?.address || 'Merchant Location';
+  const pickupName = merchantSnapshot?.name;
   const { balance } = useSelector((s) => s.wallet);
   const { isCreating } = useSelector((s) => s.request);
 
@@ -69,22 +76,20 @@ export default function CheckoutScreen() {
 
   useEffect(() => { dispatch(fetchWallet()); }, [dispatch]);
 
-  const itemsForServer = useMemo(
-    () => cart.map((line) => ({
-      productId: line.productId,
-      variantId: line.variantId,
-      quantity: line.quantity,
-      selectedOptions: (line.selectedOptions || []).map((g) => ({
-        groupId: g.groupId,
-        itemIds: g.itemIds,
-      })),
-      specialInstructions: line.specialInstructions || undefined,
-      // Phase 8 — per-line grocery substitution preference. Sent only when
-      // the customer actually picked one; server treats absence as NONE.
-      substitution: line.substitution || undefined,
-    })),
-    [cart],
-  );
+  // If we land here with no cart (stale route / cleared cart elsewhere /
+  // logout-then-back), bounce to the Cart tab so the user sees an empty
+  // state in the right place instead of a half-broken Checkout. The ref
+  // suppresses the bounce in the brief window between dispatch(clearCart())
+  // and navigation.replace('RequestTracking') after a successful submit.
+  const justSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (justSubmittedRef.current) return;
+    if (!merchantId || cart.length === 0) {
+      navigation.replace('MainTabs', { screen: 'CartTab' });
+    }
+  }, [merchantId, cart.length, navigation]);
+
+  const itemsForServer = useMemo(() => toServerItems(cart), [cart]);
 
   const quotePayload = useMemo(() => {
     if (!selectedAddress) return null;
@@ -283,6 +288,11 @@ export default function CheckoutScreen() {
         })
       ).unwrap();
       setPinVisible(false);
+      // Order is now the backend's responsibility — the cart has done its
+      // job. Wipe Redux + AsyncStorage so a tab-back to Cart shows empty
+      // state and a returning shopper doesn't see stale items.
+      justSubmittedRef.current = true;
+      dispatch(clearCart());
       Toast.show({ type: 'success', text1: t('request.toast.requestPlaced') });
       navigation.replace('RequestTracking', { requestId: result.id });
     } catch (err) {
