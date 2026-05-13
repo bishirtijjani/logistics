@@ -178,7 +178,7 @@ const _notifyOutcome = async ({ payment, status, token }) => {
 const _smsElectricityToken = async ({ payment, token }) => {
   if (!token || !payment?.phoneNumber) return;
   const amount = `₦${Number(payment.amount || 0).toLocaleString('en-NG')}`;
-  const msg = `Your ${payment.merchant} token for meter ${payment.meterNumber} (${amount}): ${token}. — Katsina Logistics`;
+  const msg = `Your ${payment.biller} token for meter ${payment.meterNumber} (${amount}): ${token}. — Katsina Logistics`;
   try {
     await termiiService.sendSms(payment.phoneNumber, msg);
   } catch (err) {

@@ -172,7 +172,7 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
         amount,
         description: `Withdrawal to ${bankName || bankCode} - ${accountNumber}`,
         debitWalletId: wallet.id,
-        merchant: 'KATPAY',
+        provider: 'KATPAY',
         metadata: { bankCode, bankName, accountNumber, accountName },
         balanceBefore: balance,
         balanceAfter: balance - amount,
@@ -234,8 +234,8 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
         amount,
         description: 'Wallet funding via bank transfer',
         creditWalletId: wallet.id,
-        merchant: 'KATPAY',
-        merchantRef: reference,
+        provider: 'KATPAY',
+        providerRef: reference,
         metadata,
         balanceBefore: currentBalance,
         balanceAfter: currentBalance + amount,
@@ -356,15 +356,15 @@ const initiateTransferPaymentFunding = async (userId, { amount }) => {
   });
   if (!user) throw AppError.notFound('User not found');
 
-  const merchantRef = `TOPUP-${uuidv4()}`;
+  const providerRef = `TOPUP-${uuidv4()}`;
   const result = await katpayService.initiateTransferPayment({
     amount,
     customer: { email: user.email, name: `${user.firstName} ${user.lastName}`, phone: user.phone },
-    merchant_reference: merchantRef,
+    merchant_reference: providerRef, // KatPay API field name — do not rename the key
     metadata: { userId, purpose: 'WALLET_TOPUP' },
   });
 
-  logger.info('Transfer payment funding initiated', { userId, amount, merchantRef });
+  logger.info('Transfer payment funding initiated', { userId, amount, providerRef });
   return result;
 };
 

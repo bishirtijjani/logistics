@@ -86,7 +86,7 @@ export default function ElectricityScreen({ navigation }) {
       paymentId: payment?.id,
       amount: Number(amount),
       meterNumber: meterNumber.trim(),
-      merchant: selectedDisco?.networkName,
+      biller: selectedDisco?.networkName,
       beneficiaryName: payment?.beneficiaryName || null,
     });
   };

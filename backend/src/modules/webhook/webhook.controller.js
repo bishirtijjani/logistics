@@ -56,7 +56,7 @@ const handleKatpay = async (req, res, next) => {
     // 4. Log event
     await prisma.webhookEvent.create({
       data: {
-        merchant: 'katpay',
+        provider: 'katpay',
         eventType: eventType || 'UNKNOWN',
         transactionRef,
         payload,

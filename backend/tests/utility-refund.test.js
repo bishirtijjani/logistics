@@ -24,7 +24,7 @@ const { POLL_CONFIG } = require('../src/queues/jobs');
 const seedPayment = ({ status = 'PROCESSING', type = 'AIRTIME', pollAttempts = 0, amount = 500 } = {}) => {
   stubs.state.payment = {
     id: 'pay1', userId: 'u1', amount, type,
-    merchant: 'MTN', phoneNumber: '08012345678', meterNumber: null,
+    biller: 'MTN', phoneNumber: '08012345678', meterNumber: null,
     status, providerRequestId: 'AIR-1', transactionId: 'AIR-1', pollAttempts,
     token: null, beneficiaryName: null,
   };

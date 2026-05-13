@@ -179,8 +179,8 @@ export default function AirtimeScreen({ navigation }) {
                 >
                   <Ionicons name="time-outline" size={14} color={colors.textMuted} style={{ marginRight: 6 }} />
                   <Text style={{ fontSize: 13, fontWeight: "600", color: colors.text }}>{r.recipient}</Text>
-                  {r.merchant ? (
-                    <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textMuted, marginLeft: 6 }}>• {r.merchant}</Text>
+                  {r.biller ? (
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: colors.textMuted, marginLeft: 6 }}>• {r.biller}</Text>
                   ) : null}
                 </TouchableOpacity>
               ))}

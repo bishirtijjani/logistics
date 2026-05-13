@@ -274,7 +274,7 @@ Wallet feels live, not stale. Customer can fund, send, withdraw, see history, sa
 
 **DB**
 - ✅ `SystemWallet` table — `PLATFORM_ESCROW` and `PLATFORM_EARNINGS` rows seeded.
-- ⏭ `WithdrawalRequest` table — **intentionally skipped**. Withdrawal lifecycle is already fully tracked on `Transaction(type=WITHDRAWAL)` (status, KatPay ref via `merchantRef`, retry count via BullMQ `attemptsMade`). A separate table would duplicate that without functional gain.
+- ⏭ `WithdrawalRequest` table — **intentionally skipped**. Withdrawal lifecycle is already fully tracked on `Transaction(type=WITHDRAWAL)` (status, KatPay ref via `providerRef`, retry count via BullMQ `attemptsMade`). A separate table would duplicate that without functional gain.
 - ✅ `SavedBeneficiary` model present with phone/bank distinction.
 
 **MO**

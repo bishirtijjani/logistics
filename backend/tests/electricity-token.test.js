@@ -23,7 +23,7 @@ const { _internal } = require('../src/queues/workers/utility.worker');
 const seedElectricityPayment = () => {
   stubs.state.payment = {
     id: 'pay-elec', userId: 'u1', amount: 5000, type: 'ELECTRICITY',
-    merchant: 'IKEDC', phoneNumber: '08012345678', meterNumber: '1234567890123',
+    biller: 'IKEDC', phoneNumber: '08012345678', meterNumber: '1234567890123',
     status: 'PROCESSING', providerRequestId: 'ELEC-1', transactionId: 'ELEC-1',
     pollAttempts: 0, token: null, beneficiaryName: null,
   };

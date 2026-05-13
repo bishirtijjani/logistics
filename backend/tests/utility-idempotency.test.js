@@ -25,7 +25,7 @@ const { _internal } = require('../src/queues/workers/utility.worker');
 const seedPayment = (overrides = {}) => {
   stubs.state.payment = {
     id: 'pay1', userId: 'u1', amount: 500, type: 'AIRTIME',
-    merchant: 'MTN', phoneNumber: '08012345678', meterNumber: null,
+    biller: 'MTN', phoneNumber: '08012345678', meterNumber: null,
     status: 'PROCESSING', providerRequestId: 'AIR-1', transactionId: 'AIR-1',
     pollAttempts: 0, token: null, beneficiaryName: null,
     ...overrides,

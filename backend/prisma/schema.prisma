@@ -141,7 +141,7 @@ enum UtilityStatus {
   REFUNDED
 }
 
-enum PaymentMerchant {
+enum PaymentProvider {
   ALRAHUZ
   KATPAY
 }
@@ -264,15 +264,15 @@ model Transaction {
   amount      Decimal           @db.Decimal(15, 2)
   fee         Decimal           @default(0) @db.Decimal(15, 2)
   description String?
-  metadata    Json? /// Merchant-specific data (KatPay ref, AlRahuz token, etc.)
+  metadata    Json? /// Provider-specific data (KatPay ref, AlRahuz token, etc.)
 
   // Wallet relations — a transaction debits one wallet and/or credits another
   debitWalletId  String?
   creditWalletId String?
 
-  // Merchant tracking
-  merchant    PaymentMerchant?
-  merchantRef String? /// External merchant reference
+  // Payment provider tracking (KatPay, AlRahuz, etc.)
+  provider    PaymentProvider?
+  providerRef String? /// External provider reference
 
   // Balances at time of transaction (for audit trail)
   balanceBefore Decimal? @db.Decimal(15, 2)
@@ -347,7 +347,7 @@ model UtilityPayment {
   status UtilityStatus @default(PENDING)
 
   // Payment details
-  merchant    String /// e.g., "MTN", "AEDC", "IKEDC"
+  biller      String /// e.g., "MTN", "AEDC", "IKEDC"
   amount      Decimal @db.Decimal(15, 2)
   phoneNumber String? /// For airtime/data
   meterNumber String? /// For electricity
@@ -1101,7 +1101,7 @@ model Banner {
 /// External payment-provider webhook event log — for idempotency and audit.
 model WebhookEvent {
   id             String    @id @default(uuid())
-  merchant       String /// "katpay" (or other future providers)
+  provider       String /// "katpay" (or other future providers)
   eventType      String /// e.g., "SUCCESSFUL_TRANSACTION"
   transactionRef String    @unique /// External reference for deduplication
   payload        Json /// Raw webhook payload
@@ -1111,7 +1111,7 @@ model WebhookEvent {
 
   createdAt DateTime @default(now())
 
-  @@index([merchant, eventType])
+  @@index([provider, eventType])
   @@index([transactionRef])
   @@index([processed])
   @@map("webhook_events")

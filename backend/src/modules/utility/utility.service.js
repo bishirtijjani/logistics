@@ -19,7 +19,7 @@ const {
 const alrahuzService = require('../../services/alrahuz.service');
 const { addUtilityJob } = require('../../queues');
 
-const deductAndCreate = async (userId, { type, merchant, amount, phoneNumber, meterNumber, plan, reference }) => {
+const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, meterNumber, plan, reference }) => {
   return prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw AppError.notFound('Wallet not found');
@@ -36,9 +36,9 @@ const deductAndCreate = async (userId, { type, merchant, amount, phoneNumber, me
         type: 'UTILITY_PAYMENT',
         status: 'PROCESSING',
         amount,
-        description: `${merchant} ${type.toLowerCase()} ${phoneNumber || meterNumber || ''}`.trim(),
+        description: `${biller} ${type.toLowerCase()} ${phoneNumber || meterNumber || ''}`.trim(),
         debitWalletId: wallet.id,
-        merchant: 'ALRAHUZ',
+        provider: 'ALRAHUZ',
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -48,7 +48,7 @@ const deductAndCreate = async (userId, { type, merchant, amount, phoneNumber, me
       data: {
         userId,
         type,
-        merchant,
+        biller,
         amount,
         phoneNumber,
         meterNumber,
@@ -146,7 +146,7 @@ const buyAirtime = async (userId, { phone, networkId, amount }) => {
 
   const { payment } = await deductAndCreate(userId, {
     type: 'AIRTIME',
-    merchant: plan.networkName,
+    biller: plan.networkName,
     amount,
     phoneNumber: phone,
     reference,
@@ -174,7 +174,7 @@ const buyData = async (userId, { phone, planId }) => {
 
   const { payment } = await deductAndCreate(userId, {
     type: 'DATA',
-    merchant: plan.networkName,
+    biller: plan.networkName,
     amount: Number(plan.sellingPrice),
     phoneNumber: phone,
     plan: plan.name,
@@ -204,7 +204,7 @@ const buyCable = async (userId, { smartCardNumber, planId }) => {
 
   const { payment } = await deductAndCreate(userId, {
     type: 'CABLE',
-    merchant: plan.networkName,
+    biller: plan.networkName,
     amount: Number(plan.sellingPrice),
     meterNumber: smartCardNumber,  // reuse meterNumber field to store smart card
     plan: plan.name,
@@ -250,7 +250,7 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
 
   const { payment } = await deductAndCreate(userId, {
     type: 'ELECTRICITY',
-    merchant: disco.networkName,
+    biller: disco.networkName,
     amount,
     meterNumber,
     phoneNumber: phone,
@@ -328,7 +328,7 @@ const getRecentRecipients = async (userId, { type, limit }) => {
     take: 50,
     select: {
       [recipientField]: true,
-      merchant: true,
+      biller: true,
       beneficiaryName: true,
       createdAt: true,
     },
@@ -342,7 +342,7 @@ const getRecentRecipients = async (userId, { type, limit }) => {
     seen.add(recipient);
     out.push({
       recipient,
-      merchant: row.merchant,
+      biller: row.biller,
       beneficiaryName: row.beneficiaryName,
       lastUsed: row.createdAt,
     });

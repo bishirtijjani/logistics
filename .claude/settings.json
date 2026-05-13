@@ -10,9 +10,6 @@
       "Bash(node --test backend/tests/idempotency.integration.test.js)",
       "Bash(echo \"EXIT=$?\")",
       "Read(//tmp/**)",
-      "Bash(node -e 'const { PrismaClient } = require\\('\\\\''@prisma/client'\\\\''\\); const p = new PrismaClient\\(\\); p.$queryRawUnsafe\\('\\\\''SELECT DISTINCT merchant::text FROM transactions WHERE merchant IS NOT NULL'\\\\''\\).then\\(r => { console.log\\('\\\\''distinct merchant values:'\\\\'', r\\); p.$disconnect\\(\\); }\\).catch\\(e => { console.error\\(e.message\\); p.$disconnect\\(\\); }\\)')",
-      "Bash(node -e 'const { PrismaClient } = require\\('\\\\''@prisma/client'\\\\''\\); const p = new PrismaClient\\(\\); p.$queryRawUnsafe\\(\"SELECT enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname='\\\\''PaymentMerchant'\\\\'' ORDER BY enumsortorder\"\\).then\\(r => { console.log\\(r\\); p.$disconnect\\(\\); }\\)')",
-      "Bash(node -e 'const { PrismaClient } = require\\('\\\\''@prisma/client'\\\\''\\); const p = new PrismaClient\\(\\); p.$queryRawUnsafe\\('\\\\''SELECT DISTINCT merchant::text FROM transactions WHERE merchant IS NOT NULL'\\\\''\\).then\\(r => { console.log\\(r\\); p.$disconnect\\(\\); }\\)')",
       "Bash(node --test tests/*.test.js)",
       "Bash(awk '{print $2}')",
       "Bash(wmic process *)",
@@ -93,7 +90,11 @@
       "PowerShell(Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Get-Process -Id $_ -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, Path })",
       "PowerShell($pids = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if \\(-not $pids\\) { Write-Output \"no processes on port 3000\"; return }; foreach \\($p in $pids\\) { Get-CimInstance Win32_Process -Filter \"ProcessId = $p\" | Select-Object ProcessId, Name, @{n='CommandLine';e={$_.CommandLine}} | Format-List })",
       "PowerShell($base = \"C:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\\\\mobile\\\\customer-app\\\\node_modules\"; $paths = @\\(\"$base\\\\@babel\\\\helper-define-polyfill-provider\", \"$base\\\\babel-plugin-polyfill-corejs2\\\\node_modules\\\\@babel\\\\helper-define-polyfill-provider\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"EXISTS: $p\" } else { Write-Output \"MISSING: $p\" } })",
-      "PowerShell(Set-Location \"C:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\\\\mobile\\\\customer-app\"; Write-Output \"=== removing node_modules ===\"; if \\(Test-Path node_modules\\) { Remove-Item -Recurse -Force node_modules; Write-Output \"node_modules removed\" } else { Write-Output \"node_modules was already absent\" }; Write-Output \"=== removing package-lock.json ===\"; if \\(Test-Path package-lock.json\\) { Remove-Item -Force package-lock.json; Write-Output \"package-lock.json removed\" } else { Write-Output \"package-lock.json was already absent\" }; Write-Output \"=== running npm install ===\"; npm install 2>&1 | Tee-Object -Variable installOutput; Write-Output \"=== install exit code: $LASTEXITCODE ===\")"
+      "PowerShell(Set-Location \"C:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\\\\mobile\\\\customer-app\"; Write-Output \"=== removing node_modules ===\"; if \\(Test-Path node_modules\\) { Remove-Item -Recurse -Force node_modules; Write-Output \"node_modules removed\" } else { Write-Output \"node_modules was already absent\" }; Write-Output \"=== removing package-lock.json ===\"; if \\(Test-Path package-lock.json\\) { Remove-Item -Force package-lock.json; Write-Output \"package-lock.json removed\" } else { Write-Output \"package-lock.json was already absent\" }; Write-Output \"=== running npm install ===\"; npm install 2>&1 | Tee-Object -Variable installOutput; Write-Output \"=== install exit code: $LASTEXITCODE ===\")",
+      "Bash(xargs grep -l \"merchant\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.json','utf8'\\)\\); console.log\\('settings.json: valid JSON'\\)\")",
+      "Read(//c/Users/BISHIR~1/AppData/Local/Temp/claude/c--Users-BISHIR-TM-Documents-projects-logistics-app/35bdbd11-2741-43b1-9c76-4ef023e37b32/tasks/**)",
+      "Bash(git stash *)"
     ]
   }
 }

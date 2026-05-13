@@ -102,7 +102,7 @@ export default function UtilityHistoryScreen({ navigation }) {
         paymentId: item.id,
         amount: Number(item.amount),
         meterNumber: item.meterNumber,
-        merchant: item.merchant,
+        biller: item.biller,
         beneficiaryName: item.beneficiaryName,
       });
     }

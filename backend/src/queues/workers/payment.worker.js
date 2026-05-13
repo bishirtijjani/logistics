@@ -198,7 +198,7 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
       where: { reference: transactionId },
       data: {
         status: 'COMPLETED',
-        merchantRef: payout?.reference || payout?.id || transactionId,
+        providerRef: payout?.reference || payout?.id || transactionId,
       },
     });
 
@@ -235,7 +235,7 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
             amount,
             description: 'Withdrawal refund — payout failed',
             creditWalletId: wallet.id,
-            merchant: 'KATPAY',
+            provider: 'KATPAY',
             balanceBefore: currentBalance,
             balanceAfter: currentBalance + amount,
           },

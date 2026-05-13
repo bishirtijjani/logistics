@@ -21,7 +21,7 @@ const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
 export default function ElectricityResultScreen({ route, navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
-  const { paymentId, amount, meterNumber, merchant, beneficiaryName: initialName } = route.params || {};
+  const { paymentId, amount, meterNumber, biller, beneficiaryName: initialName } = route.params || {};
 
   const [status, setStatus] = useState("PROCESSING");
   const [token, setToken] = useState(null);
@@ -71,7 +71,7 @@ export default function ElectricityResultScreen({ route, navigation }) {
     try {
       await Share.share({
         message: t("utility.result.shareLine", {
-          disco: merchant || t("utility.electricity"),
+          disco: biller || t("utility.electricity"),
           meter: meterNumber,
           token,
         }),
@@ -126,7 +126,7 @@ export default function ElectricityResultScreen({ route, navigation }) {
         {/* Payment summary */}
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 20 }}>
           <Row label={t("utility.result.amountLabel")} value={naira(amount)} />
-          <Row label={t("utility.result.discoLabel")} value={merchant || "—"} />
+          <Row label={t("utility.result.discoLabel")} value={biller || "—"} />
           <Row label={t("utility.result.meterLabel")} value={meterNumber || "—"} />
           {beneficiaryName ? <Row label={t("utility.result.accountLabel")} value={beneficiaryName} /> : null}
           <Row label={t("utility.result.statusLabel")} value={status} last />
