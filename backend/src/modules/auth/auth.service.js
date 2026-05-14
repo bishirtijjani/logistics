@@ -636,6 +636,14 @@ const updateProfilePicture = async (userId, url) => {
  * 60s resend cooldown keyed by userId to limit SMS spend.
  */
 const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
+  if (config.SKIP_KYC_PHONE_OTP) {
+    // OTP step is bypassed — short-circuit before touching Termii so a stale
+    // client that still calls this endpoint doesn't crash. The verify step
+    // will accept the BVN payload without an OTP under the same flag.
+    logger.info('KYC phone OTP request short-circuited (bypass flag on)', { userId, bvnPhone });
+    return { bypassed: true };
+  }
+
   const cooldownKey = `kyc:phone:otp:cooldown:${userId}`;
   const ttl = await redis.ttl(cooldownKey);
   if (ttl > 0) {
