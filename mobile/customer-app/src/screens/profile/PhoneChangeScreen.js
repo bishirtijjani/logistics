@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   ActivityIndicator,
 } from "react-native";
@@ -65,7 +64,7 @@ export default function PhoneChangeScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
         <View style={{ height: 4, backgroundColor: colors.primary }} />
 
@@ -82,7 +81,7 @@ export default function PhoneChangeScreen({ navigation }) {
           </Text>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           {step === "request" ? (
             <>
               <Text style={{ fontSize: 14, color: colors.textMuted, marginBottom: 28, lineHeight: 20 }}>

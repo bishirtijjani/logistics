@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -140,13 +139,14 @@ export default function EditProfileScreen({ navigation }) {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={{ flex: 1 }}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 48 }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           {/* Email (read-only) */}
           <View style={{ marginBottom: 6 }}>

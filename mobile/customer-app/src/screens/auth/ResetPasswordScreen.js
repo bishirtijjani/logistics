@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
@@ -81,7 +80,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />

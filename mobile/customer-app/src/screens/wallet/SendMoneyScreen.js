@@ -9,7 +9,6 @@ import {
   Alert,
   Animated,
   KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -263,11 +262,11 @@ export default function SendMoneyScreen({ navigation, route }) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
         <View style={{ height: 4, backgroundColor: colors.primary }} />
 
-        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 28 }}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}

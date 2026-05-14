@@ -21,7 +21,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, Image, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, Alert,
+  StyleSheet, KeyboardAvoidingView, Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -251,9 +251,9 @@ export default function ProductDetailScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <View style={styles.container}>
-        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 140 }}>
+        <ScrollView ref={scrollRef} contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           {/* Hero */}
           {product.imageUrl && (
             <Image source={{ uri: product.imageUrl }} style={styles.hero} />

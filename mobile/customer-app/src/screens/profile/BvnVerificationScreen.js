@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   Clipboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -462,13 +461,14 @@ export default function BvnVerificationScreen({ navigation }) {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={{ flex: 1 }}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 48 }}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           {step === "details" ? (
             <>

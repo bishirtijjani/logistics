@@ -139,7 +139,9 @@
       "Bash(node --check src/config/index.js)",
       "PowerShell($files = 'mobile/customer-app/src/screens/profile/BvnVerificationScreen.js','mobile/customer-app/src/components/BvnConfirmSheet.js','mobile/customer-app/src/store/slices/profileSlice.js'; foreach \\($f in $files\\) { $out = & \"admin-dashboard\\\\node_modules\\\\.bin\\\\esbuild.cmd\" \"--loader:.js=jsx\" $f 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { Write-Host \"$f OK\" } else { Write-Host \"$f FAIL\"; Write-Host $out } })",
       "PowerShell($esbuild = \".\\\\admin-dashboard\\\\node_modules\\\\.bin\\\\esbuild.cmd\"; $files = 'mobile/customer-app/src/screens/profile/BvnVerificationScreen.js','mobile/customer-app/src/components/BvnConfirmSheet.js','mobile/customer-app/src/store/slices/profileSlice.js'; foreach \\($f in $files\\) { $out = & $esbuild \"--loader:.js=jsx\" $f 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { Write-Host \"$f OK\" } else { Write-Host \"$f FAIL\"; Write-Host $out } })",
-      "Bash(node --check src/services/katpay.service.js)"
+      "Bash(node --check src/services/katpay.service.js)",
+      "Bash(git check-ignore *)",
+      "Bash(git checkout *)"
     ]
   }
 }

@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
-  Platform,
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
@@ -86,7 +85,7 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior="padding"
       style={{ flex: 1 }}
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
@@ -96,6 +95,7 @@ export default function RegisterScreen({ navigation }) {
           contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 52 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
         >
           <View style={{ marginBottom: 32 }}>
             <Text

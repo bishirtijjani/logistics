@@ -23,7 +23,6 @@ import {
   FlatList,
   TextInput,
   KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -794,7 +793,7 @@ const RequestTrackingScreen = () => {
       <Modal visible={chatVisible} transparent animationType="slide" onRequestClose={() => setChatVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior="padding"
             style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%' }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>

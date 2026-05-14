@@ -14,7 +14,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -208,7 +208,7 @@ export default function CreateRequestScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -223,7 +223,7 @@ export default function CreateRequestScreen() {
           <View style={{ width: 22 }} />
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           <Section title={t('request.pickup')}>
             <LocationPicker placeholder={t('request.pickupPh')} value={pickup} onPress={() => pickLocation('pickup')} a11yLabel={t('request.pickupAddress')} />
           </Section>

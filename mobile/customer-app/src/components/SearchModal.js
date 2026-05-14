@@ -11,7 +11,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Modal, View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
@@ -167,7 +167,7 @@ export default function SearchModal({ visible, onClose, onNavigate }) {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ paddingTop: 50, paddingHorizontal: 16, paddingBottom: 12, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
           <TouchableOpacity
             onPress={onClose}

@@ -26,7 +26,6 @@ import {
   Alert,
   Modal,
   KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -329,7 +328,7 @@ export default function SavedAddressesScreen() {
 
       {/* Label + default modal — used both for new entries and edits. */}
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
           <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
               <Text style={{ flex: 1, fontSize: 18, fontWeight: "800", color: colors.text }}>
