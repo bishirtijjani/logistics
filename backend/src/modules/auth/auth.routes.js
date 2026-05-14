@@ -24,6 +24,7 @@ const {
   resetPasswordSchema,
   updateFcmTokenSchema,
   verifyBvnSchema,
+  requestKycPhoneOtpSchema,
   updateProfileSchema,
   updateProfilePictureSchema,
   updateNotificationPreferencesSchema,
@@ -107,6 +108,13 @@ router.put(
   "/profile/picture",
   authenticate,
   authController.updateProfilePicture,
+);
+router.post(
+  "/kyc/request-phone-otp",
+  authenticate,
+  otpLimiter,
+  validate(requestKycPhoneOtpSchema),
+  authController.requestKycPhoneOtp,
 );
 router.post(
   "/kyc/verify-bvn",

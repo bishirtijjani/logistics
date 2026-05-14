@@ -624,7 +624,73 @@ const updateProfilePicture = async (userId, url) => {
  * Returns the wallet payload (with NUBAN if provisioned synchronously) so the
  * client can show "your account is ready" immediately.
  */
-const verifyBvn = async (userId, { bvn, firstName, lastName }, context = {}) => {
+/**
+ * Step 1 of KYC: send an SMS OTP to the BVN-linked phone the user supplied.
+ * Stores the code + the phone in Redis so the verify step can prove:
+ *   (a) the user knows the code (owns the phone)
+ *   (b) the phone they submit on verify is the same one we SMSed
+ * 60s resend cooldown keyed by userId to limit SMS spend.
+ */
+const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
+  const cooldownKey = `kyc:phone:otp:cooldown:${userId}`;
+  const ttl = await redis.ttl(cooldownKey);
+  if (ttl > 0) {
+    throw AppError.tooManyRequests(
+      `Please wait ${ttl} second${ttl === 1 ? '' : 's'} before requesting another code.`,
+    );
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const otpKey = `kyc:phone:otp:${userId}`;
+  const termiiService = require('../../services/termii.service');
+
+  // SMS first, persist second — if Termii fails we don't want the user to see
+  // "OTP expired" later when really it was never sent.
+  try {
+    await termiiService.sendSms(
+      bvnPhone,
+      `Your ${config.APP_NAME || 'VTU Logistics'} identity verification code is ${code}. It expires in 10 minutes.`,
+    );
+  } catch (err) {
+    logger.warn('KYC phone OTP SMS failed', { userId, error: err.message });
+    throw AppError.serviceUnavailable('Could not send verification SMS. Please try again shortly.');
+  }
+
+  await redis.set(otpKey, JSON.stringify({ code, phone: bvnPhone }), 'EX', 10 * 60);
+  await redis.set(cooldownKey, '1', 'EX', 60);
+
+  logger.info('KYC phone OTP generated', { userId, bvnPhone });
+  // Dev-only echo so QA can run the flow without a real phone — controller
+  // strips this in production.
+  return { code };
+};
+
+const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, context = {}) => {
+  // Gate the entire flow on the SMS OTP — we never want to provision a NUBAN
+  // against a phone the user can't prove ownership of.
+  const otpKey = `kyc:phone:otp:${userId}`;
+  const otpRaw = await redis.get(otpKey);
+  if (!otpRaw) {
+    throw AppError.badRequest('Verification code expired or not requested. Please request a new code.', {
+      code: 'KYC_OTP_EXPIRED',
+    });
+  }
+  const { code: expectedOtp, phone: otpPhone } = JSON.parse(otpRaw);
+  // The phone on the verify call MUST match the one we SMSed — otherwise a
+  // user could OTP-verify one phone and then submit a different phone to
+  // KatPay, defeating the whole point.
+  if (otpPhone !== bvnPhone) {
+    throw AppError.badRequest('Phone number does not match the one the code was sent to.', {
+      code: 'KYC_OTP_PHONE_MISMATCH',
+    });
+  }
+  if (expectedOtp !== otp) {
+    throw AppError.badRequest('Invalid verification code.', { code: 'KYC_OTP_INVALID' });
+  }
+  // OTP is single-use — burn it before any external call so a failed KatPay
+  // call doesn't leak a reusable OTP window.
+  await redis.del(otpKey);
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { wallet: true },
@@ -716,7 +782,11 @@ const verifyBvn = async (userId, { bvn, firstName, lastName }, context = {}) => 
     virtualAccount = await katpayService.createVirtualAccount({
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
-      phoneNumber: user.phone || '',
+      // Prefer the BVN-linked phone the user supplied on this call — that's
+      // the phone tied to the identity KatPay is creating the NUBAN under.
+      // Fall back to user.phone for the recovery path (where bvnPhone is
+      // optional since the user has already verified once).
+      phoneNumber: bvnPhone || user.phone || '',
       bankCodes: ['PALMPAY', 'OPAY'],
     });
 
@@ -734,7 +804,14 @@ const verifyBvn = async (userId, { bvn, firstName, lastName }, context = {}) => 
     try {
       await getPaymentQueue().add(
         PAYMENT_JOBS.PROVISION_VIRTUAL_ACCOUNT,
-        { userId: user.id, email: user.email, name: `${user.firstName} ${user.lastName}`, phoneNumber: user.phone },
+        {
+          userId: user.id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          // Carry the BVN-linked phone into the retry so the worker provisions
+          // the NUBAN under the same identity, not the login phone.
+          phoneNumber: bvnPhone || user.phone,
+        },
         { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
       );
     } catch (queueErr) {
@@ -1231,6 +1308,7 @@ module.exports = {
   updateProfile,
   updateProfilePicture,
   verifyBvn,
+  requestKycPhoneOtp,
   logout,
   listSessions,
   revokeSession,

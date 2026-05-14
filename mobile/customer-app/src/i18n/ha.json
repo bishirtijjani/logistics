@@ -112,8 +112,8 @@
     "forgotPassword": "Ka manta kalmar sirri?",
     "noAccount": "Ba ka da asusu?",
     "hasAccount": "Kana da asusu?",
-    "otpTitle": "Tabbatar da lambar wayarka",
-    "otpSubtitle": "Shigar da lamba mai lamba shida da muka aiko zuwa {{phone}}.",
+    "otpTitle": "Tabbatar da imel ɗinka",
+    "otpSubtitle": "Shigar da lamba mai lamba shida da muka aiko zuwa {{email}}.",
     "otpResend": "Ba ka samu lambar ba?",
     "otpResendCta": "Sake aikawa",
     "otpResendIn": "Sake aikawa cikin {{seconds}}s",
@@ -412,7 +412,12 @@
       "stepDoneTitle": "An sabunta walat",
       "stepDoneDesc": "Kuɗi yana bayyana nan take",
       "importantTitle": "Mahimmanci",
-      "importantBody": "Wannan asusunka ne na bidiyo na kanka. Canja wuri ne kawai daga asusun bankinka. Ana iya yiwa canja wuri daga wani bita."
+      "importantBody": "Wannan asusunka ne na bidiyo na kanka. Canja wuri ne kawai daga asusun bankinka. Ana iya yiwa canja wuri daga wani bita.",
+      "notReadyTitle": "Asusu bai yi shiri ba tukuna",
+      "notReadyBody": "Tabbatar da BVN ɗinka don buɗe asusunka na bidiyo. Yana ɗaukar mintuna kaɗan kuma yana buɗe ƙarin walat, canja wuri, da iyaka mafi girma.",
+      "verifyCta": "Tabbatar da kai",
+      "provisioningTitle": "Ana shirya asusunka",
+      "provisioningBody": "Ana shirya asusunka na bidiyo. Yawanci yana ɗaukar daƙiƙu kaɗan — ja ƙasa don sabuntawa."
     },
     "fund": "Ƙara"
   },

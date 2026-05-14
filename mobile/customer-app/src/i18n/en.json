@@ -108,8 +108,8 @@
     "forgotPassword": "Forgot password?",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?",
-    "otpTitle": "Verify your phone",
-    "otpSubtitle": "Enter the 6-digit code we sent to {{phone}}.",
+    "otpTitle": "Verify your email",
+    "otpSubtitle": "Enter the 6-digit code we sent to {{email}}.",
     "otpResend": "Didn't get the code?",
     "otpResendCta": "Resend",
     "otpResendIn": "Resend in {{seconds}}s",
@@ -408,7 +408,12 @@
       "stepDoneTitle": "Wallet Updated",
       "stepDoneDesc": "Funds appear instantly",
       "importantTitle": "Important",
-      "importantBody": "This is your personal virtual account. Only transfer from your own bank account. Third-party transfers may be flagged for review."
+      "importantBody": "This is your personal virtual account. Only transfer from your own bank account. Third-party transfers may be flagged for review.",
+      "notReadyTitle": "Account not ready yet",
+      "notReadyBody": "Verify your identity (BVN) to activate your virtual account. It takes about a minute and unlocks wallet funding, transfers, and bigger limits.",
+      "verifyCta": "Verify identity",
+      "provisioningTitle": "Setting up your account",
+      "provisioningBody": "Your virtual account is being set up. This usually takes a few seconds — pull to refresh."
     },
     "fund": "Fund"
   },

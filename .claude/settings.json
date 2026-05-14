@@ -108,7 +108,20 @@
       "Bash(echo \"exit=$?\")",
       "Bash(node -e \"const r=require\\('lucide-react'\\); console.log\\(['Search','MapPin','Loader2'].map\\(n => n + ':' + \\(typeof r[n]\\)\\).join\\(' '\\)\\)\")",
       "Bash(npx jest *)",
-      "Bash(node -e \"const m = require\\('./src/theme/tokens.js'\\); console.log\\('palettes OK, light.brand.default =', m.light.brand.default, '| dark.brand.default =', m.dark.brand.default\\);\")"
+      "Bash(node -e \"const m = require\\('./src/theme/tokens.js'\\); console.log\\('palettes OK, light.brand.default =', m.light.brand.default, '| dark.brand.default =', m.dark.brand.default\\);\")",
+      "Read(//c//**)",
+      "Bash(rm -rf /c/Users/BISHIR-TM/Documents/projects/logistics-app/website)",
+      "Bash(npx --yes create-next-app@latest website --js --tailwind --app --no-src-dir --no-eslint --import-alias \"@/*\" --turbopack --use-npm)",
+      "Bash(curl -sS -o /tmp/page.html -w \"HTTP %{http_code}\\\\n\" http://localhost:3001/)",
+      "Bash(npx next *)",
+      "Bash(curl -sS -o /tmp/page2.html -w \"HTTP %{http_code}\\\\n\" http://localhost:3030/)",
+      "Bash(taskkill //PID 54080 //F)",
+      "Bash(curl -sS -o /tmp/page3.html -w \"HTTP %{http_code} size=%{size_download}\\\\n\" http://localhost:3030/)",
+      "Bash(grep -oE '<h1[^>]*>.{0,200}' /tmp/page3.html)",
+      "Bash(curl -sS -o /tmp/page4.html -w \"HTTP %{http_code} size=%{size_download}\\\\n\" http://localhost:3030/)",
+      "Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost:3030/robots.txt)",
+      "Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost:3030/sitemap.xml)",
+      "PowerShell($ports = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -eq 3000 }; if \\($ports\\) { $ports | Select-Object LocalAddress, LocalPort, OwningProcess | Format-Table -AutoSize } else { \"No process listening on port 3000\" })"
     ]
   }
 }

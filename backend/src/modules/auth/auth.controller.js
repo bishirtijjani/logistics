@@ -253,6 +253,22 @@ const verifyBvn = async (req, res, next) => {
   }
 };
 
+const requestKycPhoneOtp = async (req, res, next) => {
+  try {
+    const result = await authService.requestKycPhoneOtp(req.user.id, req.body);
+    // Mirror the phone-change endpoint: surface the OTP in non-prod envs so
+    // dev/QA can run the flow without a real SMS-receiving handset.
+    res.json(
+      ApiResponse.success(
+        'Verification code sent to your BVN phone',
+        process.env.NODE_ENV !== 'production' ? { devOtp: result.code } : undefined,
+      ),
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 const logout = async (req, res, next) => {
   try {
     await authService.logout(req.body.refreshToken);
@@ -366,6 +382,7 @@ module.exports = {
   updateProfile,
   updateProfilePicture,
   verifyBvn,
+  requestKycPhoneOtp,
   logout,
   listSessions,
   revokeSession,

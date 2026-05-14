@@ -62,6 +62,17 @@ const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+// Step 1 of KYC: request an SMS OTP to the BVN-linked phone so we can prove
+// the user actually owns the phone they're about to attach to KatPay.
+const requestKycPhoneOtpSchema = z.object({
+  bvnPhone: z
+    .string()
+    .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
+});
+
+// Step 2 of KYC: submit the full KYC payload plus the OTP that proves
+// ownership of bvnPhone. The service rejects if the OTP doesn't match what we
+// SMSed in step 1.
 const verifyBvnSchema = z.object({
   bvn: z
     .string()
@@ -69,6 +80,13 @@ const verifyBvnSchema = z.object({
     .regex(/^\d{11}$/, "BVN must be 11 digits"),
   firstName: z.string().min(2),
   lastName: z.string().min(2),
+  bvnPhone: z
+    .string()
+    .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
+  otp: z
+    .string()
+    .length(6)
+    .regex(/^\d{6}$/, "OTP must be 6 digits"),
 });
 
 const updateFcmTokenSchema = z.object({
@@ -144,6 +162,7 @@ module.exports = {
   resetPasswordSchema,
   refreshTokenSchema,
   verifyBvnSchema,
+  requestKycPhoneOtpSchema,
   updateFcmTokenSchema,
   updateProfileSchema,
   updateProfilePictureSchema,

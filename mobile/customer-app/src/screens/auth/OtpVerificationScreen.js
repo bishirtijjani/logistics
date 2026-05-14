@@ -120,7 +120,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
               {t("auth.otpTitle")}
             </Text>
             <Text style={{ fontSize: 15, color: colors.textMuted, lineHeight: 22 }}>
-              {t("auth.otpSubtitle", { phone: email })}
+              {t("auth.otpSubtitle", { email })}
             </Text>
           </View>
 
