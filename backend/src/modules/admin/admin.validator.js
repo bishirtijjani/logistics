@@ -4,11 +4,47 @@
 
 const { z } = require('zod');
 
+const paginationSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+});
+
+const paginationStatusSchema = paginationSchema.extend({
+  status: z.string().optional(),
+});
+
+const paginationDateRangeSchema = paginationSchema.extend({
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
+const paginationStatusDateRangeSchema = paginationSchema.extend({
+  status: z.string().optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
+const getAllTagsSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(50),
+  category: z.string().optional(),
+  isActive: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
+});
+
+const getAuditLogsSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  action: z.string().optional(),
+  entityType: z.string().optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
 const reviewRiderSchema = z.object({
   decision: z.enum(['approve', 'reject']),
 });
 
-const updateUserStatusSchema = z.object({
+const updateCustomerStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']),
 });
 
@@ -59,6 +95,12 @@ const listAllRequestsSchema = z.object({
   ]).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+});
+
+const listAllCustomersSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  search: z.string().optional(),
 });
 
 const customerRequestsSchema = z.object({
@@ -264,8 +306,15 @@ const updatePlatformSettingsSchema = z.object({
 
 module.exports = {
   reviewRiderSchema,
-  updateUserStatusSchema,
+  updateCustomerStatusSchema,
   listPendingRidersSchema,
+  listAllCustomersSchema,
+  paginationSchema,
+  paginationStatusSchema,
+  paginationDateRangeSchema,
+  paginationStatusDateRangeSchema,
+  getAllTagsSchema,
+  getAuditLogsSchema,
   transactionOverviewSchema,
   customerRequestsSchema,
   customerTransactionsSchema,

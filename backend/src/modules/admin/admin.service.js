@@ -73,11 +73,11 @@ const reviewRider = async (riderId, decision) => {
 };
 
 /**
- * List all users with filtering.
+ * List all customers with optional search.
  */
-const getAllUsers = async ({ page = 1, limit = 20, role, search }) => {
+const getAllCustomers = async ({ page = 1, limit = 20, search }) => {
   const where = {
-    ...(role && { role }),
+    role: 'CUSTOMER',
     ...(search && {
       OR: [
         { firstName: { contains: search, mode: 'insensitive' } },
@@ -88,7 +88,7 @@ const getAllUsers = async ({ page = 1, limit = 20, role, search }) => {
     }),
   };
 
-  const [users, total] = await Promise.all([
+  const [customers, total] = await Promise.all([
     prisma.user.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -108,22 +108,24 @@ const getAllUsers = async ({ page = 1, limit = 20, role, search }) => {
     prisma.user.count({ where }),
   ]);
 
-  return { users, total, page, limit };
+  return { customers, total, page, limit };
 };
 
 /**
- * Suspend or activate a user.
+ * Suspend or activate a customer. Refuses to act on non-CUSTOMER users —
+ * merchants/riders have their own status endpoints.
  */
-const updateUserStatus = async (userId, status) => {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw AppError.notFound('User not found');
+const updateCustomerStatus = async (customerId, status) => {
+  const user = await prisma.user.findUnique({ where: { id: customerId } });
+  if (!user) throw AppError.notFound('Customer not found');
+  if (user.role !== 'CUSTOMER') throw AppError.badRequest('Not a customer account');
 
+  const userId = customerId; // alias used by the socket-auth invalidation below
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { status },
   });
 
-  // If suspending, also lock their wallet
   if (status === 'SUSPENDED') {
     await prisma.wallet.updateMany({
       where: { userId },
@@ -131,7 +133,7 @@ const updateUserStatus = async (userId, status) => {
     });
   }
 
-  logger.info('User status updated', { userId, status });
+  logger.info('Customer status updated', { customerId, status });
 
   // Drop the socket-auth cache so the user's existing socket connections are
   // refused on their next reconnect (within seconds via Socket.IO retry).
@@ -2159,8 +2161,8 @@ const getComplianceReport = async () => {
 module.exports = {
   getPendingRiders,
   reviewRider,
-  getAllUsers,
-  updateUserStatus,
+  getAllCustomers,
+  updateCustomerStatus,
   getCustomerById,
   getCustomerRequests,
   getCustomerTransactions,

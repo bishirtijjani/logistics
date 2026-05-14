@@ -10,7 +10,7 @@ const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
 const {
   reviewRiderSchema,
-  updateUserStatusSchema,
+  updateCustomerStatusSchema,
   listPendingRidersSchema,
   transactionOverviewSchema,
   listAllRequestsSchema,
@@ -38,6 +38,13 @@ const {
   updatePlatformSettingsSchema,
   customerRequestsSchema,
   customerTransactionsSchema,
+  listAllCustomersSchema,
+  paginationSchema,
+  paginationStatusSchema,
+  paginationDateRangeSchema,
+  paginationStatusDateRangeSchema,
+  getAllTagsSchema,
+  getAuditLogsSchema,
 } = require('./admin.validator');
 
 const router = Router();
@@ -63,7 +70,7 @@ router.patch('/merchants/:merchantId/reject', validate(rejectMerchantSchema), ad
 router.patch('/merchants/:merchantId/suspend', validate(suspendMerchantSchema), adminController.suspendMerchant);
 router.patch('/merchants/:merchantId/unsuspend', validate(unsuspendMerchantSchema), adminController.unsuspendMerchant);
 router.patch('/merchants/:merchantId/commission', validate(updateMerchantCommissionSchema), adminController.updateMerchantCommission);
-router.get('/merchants/:merchantId/commission-history', adminController.getMerchantCommissionHistory);
+router.get('/merchants/:merchantId/commission-history', validate(paginationSchema, 'query'), adminController.getMerchantCommissionHistory);
 router.patch('/merchants/:merchantId/withdrawal-hold', validate(setWithdrawalHoldSchema), adminController.setWithdrawalHold);
 router.get('/merchants/:merchantId/analytics', adminController.getMerchantAnalytics);
 router.post('/merchants/:merchantId/tags', validate(setMerchantTagsSchema), adminController.setMerchantTags);
@@ -72,7 +79,7 @@ router.post('/merchants/:merchantId/tags', validate(setMerchantTagsSchema), admi
 router.post('/withdrawals/bulk-approve', validate(bulkApproveWithdrawalsSchema), adminController.bulkApproveWithdrawals);
 
 // Tag management
-router.get('/tags', adminController.getAllTags);
+router.get('/tags', validate(getAllTagsSchema, 'query'), adminController.getAllTags);
 router.post('/tags', validate(createTagSchema), adminController.createTag);
 router.put('/tags/:tagId', validate(updateTagSchema), adminController.updateTag);
 router.delete('/tags/:tagId', adminController.deleteTag);
@@ -89,15 +96,15 @@ router.get('/riders/pending', validate(listPendingRidersSchema, 'query'), adminC
 router.get('/riders', validate(listAllRidersSchema, 'query'), adminController.getAllRiders);
 router.patch('/riders/:riderId/review', validate(reviewRiderSchema), adminController.reviewRider);
 router.get('/riders/:riderId/earnings', validate(getRiderEarningsSchema, 'query'), adminController.getRiderEarnings);
-router.get('/riders/:riderId/deliveries', adminController.getRiderDeliveryHistory);
+router.get('/riders/:riderId/deliveries', validate(paginationSchema, 'query'), adminController.getRiderDeliveryHistory);
 
-// User management
-router.get('/users', adminController.getAllUsers);
-router.get('/users/:userId', adminController.getCustomerById);
-router.get('/users/:userId/requests', validate(customerRequestsSchema, 'query'), adminController.getCustomerRequests);
-router.get('/users/:userId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getCustomerTransactions);
-router.get('/users/:userId/addresses', adminController.getCustomerAddresses);
-router.patch('/users/:userId/status', validate(updateUserStatusSchema), adminController.updateUserStatus);
+// Customer management
+router.get('/customers', validate(listAllCustomersSchema, 'query'), adminController.getAllCustomers);
+router.get('/customers/:customerId', adminController.getCustomerById);
+router.get('/customers/:customerId/requests', validate(customerRequestsSchema, 'query'), adminController.getCustomerRequests);
+router.get('/customers/:customerId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getCustomerTransactions);
+router.get('/customers/:customerId/addresses', adminController.getCustomerAddresses);
+router.patch('/customers/:customerId/status', validate(updateCustomerStatusSchema), adminController.updateCustomerStatus);
 
 // Transaction oversight
 router.get('/transactions', validate(transactionOverviewSchema, 'query'), adminController.getTransactions);
@@ -107,7 +114,7 @@ router.get('/settings', adminController.getPlatformSettings);
 router.patch('/settings', validate(updatePlatformSettingsSchema), adminController.updatePlatformSettings);
 
 // Audit logs
-router.get('/audit-logs', adminController.getAuditLogs);
+router.get('/audit-logs', validate(getAuditLogsSchema, 'query'), adminController.getAuditLogs);
 
 // Platform analytics
 router.get('/analytics/revenue', adminController.getRevenueAnalytics);
@@ -117,31 +124,31 @@ router.get('/analytics/geographic', adminController.getGeographicAnalytics);
 router.get('/analytics/realtime', adminController.getRealtimeMetrics);
 
 // Withdrawal management
-router.get('/withdrawals/pending', adminController.getPendingWithdrawals);
+router.get('/withdrawals/pending', validate(paginationSchema, 'query'), adminController.getPendingWithdrawals);
 router.patch('/withdrawals/:withdrawalId/approve', adminController.approveWithdrawal);
 router.patch('/withdrawals/:withdrawalId/reject', adminController.rejectWithdrawal);
-router.get('/withdrawals/history', adminController.getWithdrawalHistory);
+router.get('/withdrawals/history', validate(paginationStatusDateRangeSchema, 'query'), adminController.getWithdrawalHistory);
 
 // Dispute resolution
-router.get('/disputes', adminController.getDisputes);
+router.get('/disputes', validate(paginationStatusSchema, 'query'), adminController.getDisputes);
 router.patch('/disputes/:disputeId/resolve', adminController.resolveDispute);
 
 // Support management
-router.get('/support/tickets', adminController.getSupportTickets);
+router.get('/support/tickets', validate(paginationStatusSchema, 'query'), adminController.getSupportTickets);
 router.patch('/support/tickets/:ticketId/status', adminController.updateTicketStatus);
 
 // Marketing oversight
-router.get('/marketing/campaigns', adminController.getPlatformCampaigns);
-router.get('/marketing/discounts', adminController.getDiscountCodes);
+router.get('/marketing/campaigns', validate(paginationSchema, 'query'), adminController.getPlatformCampaigns);
+router.get('/marketing/discounts', validate(paginationStatusSchema, 'query'), adminController.getDiscountCodes);
 router.patch('/marketing/discounts/:discountId/approve', adminController.approveDiscountCode);
 router.patch('/marketing/discounts/:discountId/reject', adminController.rejectDiscountCode);
 
 // Rider operations
-router.get('/riders/performance', adminController.getRiderPerformance);
+router.get('/riders/performance', validate(paginationDateRangeSchema, 'query'), adminController.getRiderPerformance);
 router.get('/riders/realtime', adminController.getRiderRealtimeLocation);
 
 // Safety & compliance
-router.get('/safety/incidents', adminController.getSafetyIncidents);
+router.get('/safety/incidents', validate(paginationStatusSchema, 'query'), adminController.getSafetyIncidents);
 router.get('/safety/compliance', adminController.getComplianceReport);
 
 // VTU plan management

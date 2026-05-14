@@ -127,7 +127,13 @@
       "Bash(curl -s -X POST \"https://logistics.codeket.com/api/auth/kyc/verify-bvn\" -H \"Content-Type: application/json\" -d \"{}\")",
       "Bash(curl -sv -X POST \"https://logistics.codeket.com/api/auth/kyc/verify-bvn\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer faketoken\" -d \"{}\")",
       "Bash(node -e \"import\\('./src/pages/CustomersPage.jsx'\\).catch\\(e=>console.error\\(e.message\\)\\)\")",
-      "Bash(npx esbuild *)"
+      "Bash(npx esbuild *)",
+      "PowerShell($files = 'src/pages/CustomerDetailPage.jsx','src/pages/CustomersPage.jsx','src/store/slices/customersSlice.js','src/components/Breadcrumb.jsx','src/App.jsx'; foreach \\($f in $files\\) { $out = & npx --prefix admin-dashboard esbuild \"--loader:.jsx=jsx\" \"--loader:.js=jsx\" \"admin-dashboard/$f\" 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { Write-Host \"$f OK\" } else { Write-Host \"$f FAIL\"; Write-Host $out } })",
+      "PowerShell(Set-Location admin-dashboard; $files = 'src/pages/CustomerDetailPage.jsx','src/pages/CustomersPage.jsx','src/store/slices/customersSlice.js','src/components/Breadcrumb.jsx','src/App.jsx'; foreach \\($f in $files\\) { $out = & node_modules\\\\.bin\\\\esbuild.cmd \"--loader:.jsx=jsx\" \"--loader:.js=jsx\" $f 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { Write-Host \"$f OK\" } else { Write-Host \"$f FAIL\"; Write-Host $out } })",
+      "Bash(node --check src/modules/admin/admin.service.js)",
+      "Bash(node --check src/modules/admin/admin.controller.js)",
+      "Bash(node --check src/modules/admin/admin.routes.js)",
+      "Bash(node --check src/modules/admin/admin.validator.js)"
     ]
   }
 }

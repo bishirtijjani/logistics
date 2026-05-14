@@ -7,10 +7,9 @@ export const fetchAllCustomers = createAsyncThunk(
     const params = new URLSearchParams({
       page: page || 1,
       limit: limit || 20,
-      role: 'CUSTOMER',
       ...(search && { search }),
     })
-    const response = await api.get(`/admin/users?${params}`)
+    const response = await api.get(`/admin/customers?${params}`)
     return response.data
   }
 )
@@ -18,7 +17,7 @@ export const fetchAllCustomers = createAsyncThunk(
 export const suspendCustomer = createAsyncThunk(
   'customers/suspend',
   async ({ userId, reason }) => {
-    const response = await api.patch(`/admin/users/${userId}/status`, { status: 'SUSPENDED', reason })
+    const response = await api.patch(`/admin/customers/${userId}/status`, { status: 'SUSPENDED', reason })
     return response.data.data
   }
 )
@@ -26,7 +25,7 @@ export const suspendCustomer = createAsyncThunk(
 export const unsuspendCustomer = createAsyncThunk(
   'customers/unsuspend',
   async (userId) => {
-    const response = await api.patch(`/admin/users/${userId}/status`, { status: 'ACTIVE' })
+    const response = await api.patch(`/admin/customers/${userId}/status`, { status: 'ACTIVE' })
     return response.data.data
   }
 )
@@ -34,7 +33,7 @@ export const unsuspendCustomer = createAsyncThunk(
 export const fetchCustomerDetail = createAsyncThunk(
   'customers/fetchDetail',
   async (customerId) => {
-    const response = await api.get(`/admin/users/${customerId}`)
+    const response = await api.get(`/admin/customers/${customerId}`)
     return response.data.data
   }
 )
@@ -47,7 +46,7 @@ export const fetchCustomerRequests = createAsyncThunk(
       limit: limit || 20,
       ...(status && { status }),
     })
-    const response = await api.get(`/admin/users/${customerId}/requests?${params}`)
+    const response = await api.get(`/admin/customers/${customerId}/requests?${params}`)
     return { data: response.data.data, meta: response.data.meta }
   }
 )
@@ -61,7 +60,7 @@ export const fetchCustomerTransactions = createAsyncThunk(
       ...(type && { type }),
       ...(status && { status }),
     })
-    const response = await api.get(`/admin/users/${customerId}/transactions?${params}`)
+    const response = await api.get(`/admin/customers/${customerId}/transactions?${params}`)
     return { data: response.data.data, meta: response.data.meta }
   }
 )
@@ -69,7 +68,7 @@ export const fetchCustomerTransactions = createAsyncThunk(
 export const fetchCustomerAddresses = createAsyncThunk(
   'customers/fetchAddresses',
   async (customerId) => {
-    const response = await api.get(`/admin/users/${customerId}/addresses`)
+    const response = await api.get(`/admin/customers/${customerId}/addresses`)
     return response.data.data
   }
 )
