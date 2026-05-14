@@ -21,22 +21,33 @@ const BANK_CACHE_TTL = 60 * 60 * 1000; // 1 hour
  * Create a permanent virtual account for a user (wallet funding).
  */
 const createVirtualAccount = async ({ email, name, phoneNumber, bankCodes, merchantID }) => {
+  const startedAt = Date.now();
+  const requestBody = {
+    email,
+    name,
+    phoneNumber,
+    bankCode: bankCodes || ['PALMPAY', 'OPAY', '20897'],
+    merchantID: merchantID || config.KATPAY_MERCHANT_ID,
+  };
+  logger.info('KatPay createVirtualAccount started', { email, phoneNumber, bankCode: requestBody.bankCode });
+
   try {
     const response = await axios.post(
       `${BASE_URL()}/virtual-accounts`,
-      {
-        email,
-        name,
-        phoneNumber,
-        bankCode: bankCodes || ['PALMPAY', 'OPAY', '20897'],
-        merchantID: merchantID || config.KATPAY_MERCHANT_ID,
-      },
-      { headers: authHeaders() }
+      requestBody,
+      { headers: authHeaders(), timeout: 30000 },
     );
 
     const data = response.data?.data || response.data;
+    const durationMs = Date.now() - startedAt;
 
-    logger.info('KatPay virtual account created', { email });
+    logger.info('KatPay createVirtualAccount succeeded', {
+      email,
+      durationMs,
+      httpStatus: response.status,
+      accountNumber: data.accountNumber || data.account_number,
+      bankName: data.bankName || data.bank_name,
+    });
 
     return {
       accountNumber: data.accountNumber || data.account_number,
@@ -44,7 +55,15 @@ const createVirtualAccount = async ({ email, name, phoneNumber, bankCodes, merch
       accountName: data.accountName || data.account_name || name,
     };
   } catch (error) {
-    logger.error('KatPay createVirtualAccount failed', { error: error.response?.data || error.message });
+    const durationMs = Date.now() - startedAt;
+    logger.error('KatPay createVirtualAccount failed', {
+      email,
+      durationMs,
+      httpStatus: error.response?.status,
+      code: error.code, // ECONNABORTED on timeout, ENOTFOUND on DNS, etc.
+      responseBody: error.response?.data,
+      message: error.message,
+    });
     throw AppError.internal('Failed to create virtual account');
   }
 };

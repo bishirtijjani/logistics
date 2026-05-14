@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
@@ -263,11 +262,14 @@ export default function SendMoneyScreen({ navigation, route }) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-        <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+      <View style={{ height: 4, backgroundColor: colors.primary }} />
 
-        <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView
+        bottomOffset={20}
+        contentContainerStyle={{ padding: 20 }}
+        keyboardShouldPersistTaps="handled"
+      >
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 28 }}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
@@ -389,8 +391,7 @@ export default function SendMoneyScreen({ navigation, route }) {
           >
             <Text style={{ color: colors.white, fontWeight: "800", fontSize: 16 }}>{t("wallet.send_.continue")}</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }

@@ -13,11 +13,6 @@ import { colors } from "../theme";
 
 const { height } = Dimensions.get("window");
 
-const maskBvn = (bvn) => {
-  if (!bvn || bvn.length < 4) return bvn || "";
-  return `${"•".repeat(bvn.length - 4)}${bvn.slice(-4)}`;
-};
-
 /**
  * Confirmation sheet shown right before BVN verification submits.
  * Used while phone-OTP is bypassed — the only friction we have left between
@@ -79,7 +74,7 @@ export default function BvnConfirmSheet({
 
           {/* Details */}
           <View style={{ backgroundColor: colors.surfaceMuted, borderRadius: 16, padding: 16, marginBottom: 16 }}>
-            <Row label="BVN" value={maskBvn(details?.bvn)} mono />
+            <Row label="BVN" value={details?.bvn} mono />
             <Row label="First name" value={details?.firstName} />
             <Row label="Last name" value={details?.lastName} />
             <Row label="Phone (BVN-linked)" value={details?.bvnPhone} mono last />

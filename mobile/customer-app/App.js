@@ -16,6 +16,7 @@ import { Provider } from "react-redux";
 import { store } from "./src/store";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { ErrorBoundary } from "react-error-boundary";
@@ -102,19 +103,21 @@ export default function App() {
   // intentionally uses static colors — it cannot consume useTheme.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <ThemeProvider>
-            <Provider store={store}>
-              <ThemedRoot>
-                <AppNavigator />
-              </ThemedRoot>
-            </Provider>
-            <ThemedToast />
-            <ThemedStatusBar />
-          </ThemeProvider>
-        </ErrorBoundary>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <ThemeProvider>
+              <Provider store={store}>
+                <ThemedRoot>
+                  <AppNavigator />
+                </ThemedRoot>
+              </Provider>
+              <ThemedToast />
+              <ThemedStatusBar />
+            </ThemeProvider>
+          </ErrorBoundary>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
