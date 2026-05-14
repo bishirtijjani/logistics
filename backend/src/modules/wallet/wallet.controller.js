@@ -128,6 +128,15 @@ const getReceipt = async (req, res, next) => {
   }
 };
 
+const retryProvisioning = async (req, res, next) => {
+  try {
+    const result = await walletService.retryVirtualAccountProvisioning(req.user.id);
+    res.status(202).json(ApiResponse.success('Provisioning retry accepted', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getWallet,
   transfer,
@@ -141,4 +150,5 @@ module.exports = {
   addBeneficiary,
   deleteBeneficiary,
   getReceipt,
+  retryProvisioning,
 };

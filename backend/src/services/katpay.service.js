@@ -33,7 +33,7 @@ const createVirtualAccount = async ({ email, name, phoneNumber, bankCodes, merch
 
   try {
     const response = await axios.post(
-      `${BASE_URL()}/virtual-accounts`,
+      `${BASE_URL()}/v1/virtual-accounts`,
       requestBody,
       { headers: authHeaders(), timeout: 30000 },
     );
@@ -74,7 +74,7 @@ const createVirtualAccount = async ({ email, name, phoneNumber, bankCodes, merch
 const initiatePayout = async ({ amount, bank_code, account_number, account_name, description, reference }) => {
   try {
     const response = await axios.post(
-      `${BASE_URL()}/payouts`,
+      `${BASE_URL()}/v1/payouts`,
       {
         amount,
         bank_code,

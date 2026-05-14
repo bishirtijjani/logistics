@@ -20,6 +20,7 @@ router.get('/banks', walletController.getBanks);
 router.use(authenticate);
 
 router.get('/', walletController.getWallet);
+router.post('/retry-provisioning', walletController.retryProvisioning);
 router.post('/transfer', authorize('CUSTOMER', 'RIDER'), pinLimiter, idempotency, validate(transferSchema), walletController.transfer);
 router.post('/withdraw', authorize('CUSTOMER', 'RIDER'), pinLimiter, idempotency, validate(withdrawSchema), walletController.withdraw);
 router.get('/transactions', validate(transactionHistorySchema, 'query'), walletController.getTransactionHistory);

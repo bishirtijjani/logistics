@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
-import { fetchWallet } from "../../store/slices/walletSlice";
+import { fetchWallet, retryProvisioning } from "../../store/slices/walletSlice";
 import { fetchProfile } from "../../store/slices/profileSlice";
 
 export default function FundWalletScreen({ navigation }) {
@@ -23,6 +23,7 @@ export default function FundWalletScreen({ navigation }) {
   const { profile } = useSelector((state) => state.profile);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Profile is fetched alongside the wallet so kycStatus is fresh — without it
   // we can't tell "user needs to verify" from "verified but provisioning still
@@ -64,6 +65,31 @@ export default function FundWalletScreen({ navigation }) {
   //   isVerified && !account → KatPay provisioning still pending (queue retry)
   const showVerifyCta = !hasAccount && !isVerified;
   const showProvisioning = !hasAccount && isVerified;
+
+  // Self-heal: when the user lands here in the stuck state, fire one retry on
+  // mount, then poll the wallet for ~30s to pick up the NUBAN. Server enforces
+  // its own 30s throttle so a quick screen re-mount won't spam KatPay.
+  const handleRetry = async () => {
+    if (isRetrying) return;
+    setIsRetrying(true);
+    try {
+      await dispatch(retryProvisioning());
+      for (let i = 0; i < 6; i += 1) {
+        await new Promise((r) => setTimeout(r, 5000));
+        const res = await dispatch(fetchWallet());
+        if (res?.payload?.data?.accountNumber || res?.payload?.accountNumber) break;
+      }
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showProvisioning && !isRetrying) {
+      handleRetry();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showProvisioning]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
@@ -162,9 +188,25 @@ export default function FundWalletScreen({ navigation }) {
             >
               {t("wallet.fund_.provisioningTitle")}
             </Text>
-            <Text style={{ fontSize: 14, color: colors.textMuted, lineHeight: 20, textAlign: "center" }}>
+            <Text style={{ fontSize: 14, color: colors.textMuted, lineHeight: 20, textAlign: "center", marginBottom: 16 }}>
               {t("wallet.fund_.provisioningBody")}
             </Text>
+            <TouchableOpacity
+              onPress={handleRetry}
+              disabled={isRetrying}
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                opacity: isRetrying ? 0.5 : 1,
+              }}
+            >
+              <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+                {isRetrying ? "Retrying..." : "Retry now"}
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <>

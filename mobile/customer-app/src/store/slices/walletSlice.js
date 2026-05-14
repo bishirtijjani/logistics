@@ -17,6 +17,18 @@ export const fetchWallet = createAsyncThunk(
   },
 );
 
+export const retryProvisioning = createAsyncThunk(
+  "wallet/retryProvisioning",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/wallet/retry-provisioning");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 export const fetchTransactions = createAsyncThunk(
   "wallet/fetchTransactions",
   async (

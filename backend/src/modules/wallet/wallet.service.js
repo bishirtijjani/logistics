@@ -408,6 +408,49 @@ const _walletIdForUser = async (userId) => {
   return wallet ? [wallet.id] : [];
 };
 
+/**
+ * Re-enqueue a virtual-account provisioning job for a user who is KYC-verified
+ * but whose wallet has no NUBAN (KatPay was down/misconfigured at original
+ * verification). Throttled per-user via Redis so the client can't spam KatPay.
+ *
+ * Worker handler is idempotent — short-circuits if accountNumber already set.
+ */
+const retryVirtualAccountProvisioning = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { wallet: true },
+  });
+  if (!user) throw AppError.notFound('User not found');
+  if (user.kycStatus !== 'VERIFIED') {
+    throw AppError.badRequest('Complete BVN verification first', { code: 'KYC_NOT_VERIFIED' });
+  }
+  if (user.wallet?.virtualAccountNumber) {
+    return { alreadyProvisioned: true };
+  }
+
+  // 30s throttle keyed by user — generous enough to absorb screen mounts +
+  // pull-to-refreshes while still letting a user manually retry.
+  const throttleKey = `wallet:provision:retry:${userId}`;
+  const acquired = await redis.set(throttleKey, '1', 'EX', 30, 'NX');
+  if (!acquired) {
+    throw AppError.tooManyRequests('A provisioning attempt is already in progress. Please wait a moment.');
+  }
+
+  await paymentQueue.add(
+    PAYMENT_JOBS.PROVISION_VIRTUAL_ACCOUNT,
+    {
+      userId: user.id,
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`.trim(),
+      phoneNumber: user.phone || '',
+    },
+    { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
+  );
+
+  logger.info('Virtual account re-provision enqueued', { userId });
+  return { queued: true };
+};
+
 module.exports = {
   getWallet,
   transfer,
@@ -420,4 +463,5 @@ module.exports = {
   addBeneficiary,
   deleteBeneficiary,
   getTransactionReceipt,
+  retryVirtualAccountProvisioning,
 };
