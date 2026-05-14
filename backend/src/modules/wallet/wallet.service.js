@@ -428,6 +428,18 @@ const retryVirtualAccountProvisioning = async (userId) => {
     return { alreadyProvisioned: true };
   }
 
+  // KatPay requires phoneNumber. We adopt the BVN-verified phone into
+  // user.phone at verification time, so it should always be set by here.
+  // If it isn't, the user is from before that fix landed — they need to
+  // re-submit BVN so verification can adopt their bvnPhone.
+  if (!user.phone) {
+    throw AppError.badRequest(
+      'No phone on file. Please re-submit your BVN to recover your account.',
+      { code: 'BVN_PHONE_MISSING' },
+    );
+  }
+  const phoneNumber = user.phone;
+
   // 30s throttle keyed by user — generous enough to absorb screen mounts +
   // pull-to-refreshes while still letting a user manually retry.
   const throttleKey = `wallet:provision:retry:${userId}`;
@@ -442,12 +454,12 @@ const retryVirtualAccountProvisioning = async (userId) => {
       userId: user.id,
       email: user.email,
       name: `${user.firstName} ${user.lastName}`.trim(),
-      phoneNumber: user.phone || '',
+      phoneNumber,
     },
     { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
   );
 
-  logger.info('Virtual account re-provision enqueued', { userId });
+  logger.info('Virtual account re-provision enqueued', { userId, phoneNumber });
   return { queued: true };
 };
 

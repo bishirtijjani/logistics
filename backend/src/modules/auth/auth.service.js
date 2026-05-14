@@ -755,17 +755,37 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     //   throw AppError.badRequest("BVN verification failed");
     // }
 
-    // Atomically: persist bvnHash + flip kycStatus. If a wallet doesn't exist
-    // yet (shouldn't happen for verified users, but defensive), create one.
+    // The BVN-verified phone becomes user.phone. Hard requirement: every
+    // verified account must have a phone (KatPay needs it; ops needs it).
+    // If another account already owns this phone, refuse verification — we
+    // can't have two users sharing one BVN-linked phone.
+    const phoneOwner = await prisma.user.findUnique({
+      where: { phone: bvnPhone },
+      select: { id: true },
+    });
+    if (phoneOwner && phoneOwner.id !== userId) {
+      await logAttempt('FAILED', 'bvnPhone already linked to another account');
+      throw AppError.conflict(
+        'This phone number is already linked to another account.',
+        { code: 'BVN_PHONE_TAKEN' },
+      );
+    }
+
+    // Atomically: persist bvnHash + adopt bvnPhone + flip kycStatus.
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
-        data: { bvnHash: attemptedHash, kycStatus: 'VERIFIED' },
+        data: {
+          bvnHash: attemptedHash,
+          kycStatus: 'VERIFIED',
+          phone: bvnPhone,
+        },
       });
       if (!user.wallet) {
         await tx.wallet.create({ data: { userId, balance: 0 } });
       }
     });
+    user.phone = bvnPhone; // keep local copy in sync for the KatPay call below
 
     await logAttempt('SUCCESS');
     logger.info('BVN verified', { userId });
@@ -785,6 +805,22 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     // Defensive: ensure a wallet row exists for the provisioning step below.
     if (!user.wallet) {
       await prisma.wallet.create({ data: { userId, balance: 0 } });
+    }
+    // Adopt bvnPhone same as the SUCCESS path. Same uniqueness rule applies.
+    const phoneOwner = await prisma.user.findUnique({
+      where: { phone: bvnPhone },
+      select: { id: true },
+    });
+    if (phoneOwner && phoneOwner.id !== userId) {
+      await logAttempt('FAILED', 'bvnPhone already linked to another account (recovery)');
+      throw AppError.conflict(
+        'This phone number is already linked to another account.',
+        { code: 'BVN_PHONE_TAKEN' },
+      );
+    }
+    if (user.phone !== bvnPhone) {
+      await prisma.user.update({ where: { id: userId }, data: { phone: bvnPhone } });
+      user.phone = bvnPhone;
     }
     await logAttempt('RECOVERY', 'Re-verify to recover failed virtual-account provisioning');
     logger.info('BVN re-verify: provisioning recovery for verified user without NUBAN', { userId });
