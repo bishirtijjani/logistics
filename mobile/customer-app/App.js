@@ -16,6 +16,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { registerForceLogout } from "./src/services/api";
 import { forceLogout as forceLogoutAction } from "./src/store/slices/authSlice";
 import { ThemeProvider, useTheme } from "./src/theme";
+import BackgroundPattern from "./src/components/BackgroundPattern";
 
 // Phase 5 — register the silent-refresh fallback so the api.js interceptor
 // can flip the auth state out from anywhere in the tree when the refresh
@@ -99,6 +100,7 @@ export default function App() {
             <Provider store={store}>
               <AppNavigator />
             </Provider>
+            <BackgroundPattern />
             <ThemedToast />
             <ThemedStatusBar />
           </ThemeProvider>
