@@ -53,6 +53,15 @@ const envSchema = z.object({
   TERMII_SECRET_KEY: isDev ? z.string().default('') : z.string().min(1),
   TERMII_SENDER_ID: isDev ? z.string().default('') : z.string().min(1),
 
+  // Temporary bypass for KYC phone-OTP. Set to 'true' while Termii sender ID
+  // approval is pending so users can verify BVN without proving phone
+  // ownership. Trust-based — DO NOT leave on in steady-state production.
+  SKIP_KYC_PHONE_OTP: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true')
+    .default('false'),
+
   // Email (SMTP)
   SMTP_USER: z.string().email(),
   SMTP_PASS: z.string().min(1),

@@ -554,6 +554,10 @@ const getProfile = async (userId) => {
     ...user,
     hasPinSet: !!user.transactionPin,
     transactionPin: undefined, // Never expose the hash
+    // Tells the client whether the KYC phone-OTP step is currently required.
+    // While false, the client should show the BVN confirmation sheet instead
+    // of the OTP entry step.
+    kycPhoneOtpEnabled: !config.SKIP_KYC_PHONE_OTP,
   };
 };
 
@@ -666,30 +670,38 @@ const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
 };
 
 const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, context = {}) => {
-  // Gate the entire flow on the SMS OTP — we never want to provision a NUBAN
-  // against a phone the user can't prove ownership of.
-  const otpKey = `kyc:phone:otp:${userId}`;
-  const otpRaw = await redis.get(otpKey);
-  if (!otpRaw) {
-    throw AppError.badRequest('Verification code expired or not requested. Please request a new code.', {
-      code: 'KYC_OTP_EXPIRED',
-    });
+  if (config.SKIP_KYC_PHONE_OTP) {
+    // Temporary bypass: while Termii sender ID approval is pending, we trust
+    // the user's submitted bvnPhone instead of proving ownership via SMS. The
+    // BvnVerificationLog still captures the attempt so we can audit who was
+    // verified during this window.
+    logger.warn('KYC phone OTP bypass active — trusting client-supplied bvnPhone', { userId, bvnPhone });
+  } else {
+    // Gate the entire flow on the SMS OTP — we never want to provision a NUBAN
+    // against a phone the user can't prove ownership of.
+    const otpKey = `kyc:phone:otp:${userId}`;
+    const otpRaw = await redis.get(otpKey);
+    if (!otpRaw) {
+      throw AppError.badRequest('Verification code expired or not requested. Please request a new code.', {
+        code: 'KYC_OTP_EXPIRED',
+      });
+    }
+    const { code: expectedOtp, phone: otpPhone } = JSON.parse(otpRaw);
+    // The phone on the verify call MUST match the one we SMSed — otherwise a
+    // user could OTP-verify one phone and then submit a different phone to
+    // KatPay, defeating the whole point.
+    if (otpPhone !== bvnPhone) {
+      throw AppError.badRequest('Phone number does not match the one the code was sent to.', {
+        code: 'KYC_OTP_PHONE_MISMATCH',
+      });
+    }
+    if (!otp || expectedOtp !== otp) {
+      throw AppError.badRequest('Invalid verification code.', { code: 'KYC_OTP_INVALID' });
+    }
+    // OTP is single-use — burn it before any external call so a failed KatPay
+    // call doesn't leak a reusable OTP window.
+    await redis.del(otpKey);
   }
-  const { code: expectedOtp, phone: otpPhone } = JSON.parse(otpRaw);
-  // The phone on the verify call MUST match the one we SMSed — otherwise a
-  // user could OTP-verify one phone and then submit a different phone to
-  // KatPay, defeating the whole point.
-  if (otpPhone !== bvnPhone) {
-    throw AppError.badRequest('Phone number does not match the one the code was sent to.', {
-      code: 'KYC_OTP_PHONE_MISMATCH',
-    });
-  }
-  if (expectedOtp !== otp) {
-    throw AppError.badRequest('Invalid verification code.', { code: 'KYC_OTP_INVALID' });
-  }
-  // OTP is single-use — burn it before any external call so a failed KatPay
-  // call doesn't leak a reusable OTP window.
-  await redis.del(otpKey);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

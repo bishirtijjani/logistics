@@ -58,7 +58,7 @@ export const verifyBvn = createAsyncThunk(
         firstName,
         lastName,
         bvnPhone,
-        otp,
+        ...(otp && { otp }),
       });
       return response.data;
     } catch (error) {

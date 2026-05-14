@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Toast from "react-native-toast-message";
 import FormInput from "../../components/FormInput";
+import BvnConfirmSheet from "../../components/BvnConfirmSheet";
 import { verifyBvn, requestKycPhoneOtp } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
 
@@ -55,6 +56,13 @@ export default function BvnVerificationScreen({ navigation }) {
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState(null);
   const [isRequestingOtp, setIsRequestingOtp] = useState(false);
+  // Server-driven flag. When false, the phone-OTP step is bypassed and the
+  // BVN confirmation sheet stands in for the OTP entry as the only friction
+  // between the form and KatPay account provisioning.
+  const phoneOtpEnabled = profile?.kycPhoneOtpEnabled !== false;
+  const [showConfirmSheet, setShowConfirmSheet] = useState(false);
+  const [confirmError, setConfirmError] = useState(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   // Server response after a successful verify: { kycStatus, wallet, virtualAccountReady }.
   // Held locally so we can render the NUBAN immediately without a profile refetch round-trip.
   const [verificationResult, setVerificationResult] = useState(null);
@@ -102,6 +110,15 @@ export default function BvnVerificationScreen({ navigation }) {
   }, []);
 
   const onSubmitDetails = async (data) => {
+    if (!phoneOtpEnabled) {
+      // SMS-OTP bypass active — show the confirmation sheet in place of the
+      // OTP entry step. The sheet's Confirm button submits straight to
+      // verifyBvn.
+      setKycDraft(data);
+      setConfirmError(null);
+      setShowConfirmSheet(true);
+      return;
+    }
     setIsRequestingOtp(true);
     try {
       const result = await dispatch(requestKycPhoneOtp({ bvnPhone: data.bvnPhone }));
@@ -125,6 +142,28 @@ export default function BvnVerificationScreen({ navigation }) {
       }
     } finally {
       setIsRequestingOtp(false);
+    }
+  };
+
+  const onConfirmTrustedBvn = async () => {
+    if (!kycDraft) return;
+    setIsConfirming(true);
+    setConfirmError(null);
+    try {
+      const result = await dispatch(verifyBvn(kycDraft));
+      if (verifyBvn.fulfilled.match(result)) {
+        Toast.show({
+          type: "success",
+          text1: "BVN Verified",
+          text2: "Your wallet account is being set up.",
+        });
+        setVerificationResult(result.payload);
+        setShowConfirmSheet(false);
+      } else {
+        setConfirmError(result.payload || "Verification failed. Please try again.");
+      }
+    } finally {
+      setIsConfirming(false);
     }
   };
 
@@ -563,9 +602,9 @@ export default function BvnVerificationScreen({ navigation }) {
                   paddingHorizontal: 4,
                 }}
               >
-                We'll send a verification code to this number. Use the phone
-                your BVN is registered with — it may differ from the one you
-                signed up with.
+                {phoneOtpEnabled
+                  ? "We'll send a verification code to this number. Use the phone your BVN is registered with — it may differ from the one you signed up with."
+                  : "Use the phone your BVN is registered with — it may differ from the one you signed up with. You'll get to double-check before submitting."}
               </Text>
 
               <View
@@ -612,7 +651,7 @@ export default function BvnVerificationScreen({ navigation }) {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
-                    Send verification code
+                    {phoneOtpEnabled ? "Send verification code" : "Review & confirm"}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -736,6 +775,20 @@ export default function BvnVerificationScreen({ navigation }) {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <BvnConfirmSheet
+        isVisible={showConfirmSheet}
+        onClose={() => {
+          if (!isConfirming) {
+            setShowConfirmSheet(false);
+            setConfirmError(null);
+          }
+        }}
+        onConfirm={onConfirmTrustedBvn}
+        details={kycDraft}
+        submitting={isConfirming}
+        error={confirmError}
+      />
     </SafeAreaView>
   );
 }

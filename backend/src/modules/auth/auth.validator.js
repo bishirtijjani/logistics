@@ -83,10 +83,14 @@ const verifyBvnSchema = z.object({
   bvnPhone: z
     .string()
     .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
+  // Optional at the schema level so the request can succeed without one when
+  // SKIP_KYC_PHONE_OTP is on. The service still enforces the OTP when the flag
+  // is off — schema permissiveness here does NOT relax that gate.
   otp: z
     .string()
     .length(6)
-    .regex(/^\d{6}$/, "OTP must be 6 digits"),
+    .regex(/^\d{6}$/, "OTP must be 6 digits")
+    .optional(),
 });
 
 const updateFcmTokenSchema = z.object({

@@ -133,7 +133,12 @@
       "Bash(node --check src/modules/admin/admin.service.js)",
       "Bash(node --check src/modules/admin/admin.controller.js)",
       "Bash(node --check src/modules/admin/admin.routes.js)",
-      "Bash(node --check src/modules/admin/admin.validator.js)"
+      "Bash(node --check src/modules/admin/admin.validator.js)",
+      "PowerShell($conns = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conns\\) { $conns | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; if \\($p\\) { Write-Host \"Killing PID $\\($p.Id\\) \\($\\($p.ProcessName\\)\\)\"; Stop-Process -Id $p.Id -Force } } } else { Write-Host \"No listener on :3000\" })",
+      "Bash(node --check src/modules/auth/auth.validator.js)",
+      "Bash(node --check src/config/index.js)",
+      "PowerShell($files = 'mobile/customer-app/src/screens/profile/BvnVerificationScreen.js','mobile/customer-app/src/components/BvnConfirmSheet.js','mobile/customer-app/src/store/slices/profileSlice.js'; foreach \\($f in $files\\) { $out = & \"admin-dashboard\\\\node_modules\\\\.bin\\\\esbuild.cmd\" \"--loader:.js=jsx\" $f 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { Write-Host \"$f OK\" } else { Write-Host \"$f FAIL\"; Write-Host $out } })",
+      "PowerShell($esbuild = \".\\\\admin-dashboard\\\\node_modules\\\\.bin\\\\esbuild.cmd\"; $files = 'mobile/customer-app/src/screens/profile/BvnVerificationScreen.js','mobile/customer-app/src/components/BvnConfirmSheet.js','mobile/customer-app/src/store/slices/profileSlice.js'; foreach \\($f in $files\\) { $out = & $esbuild \"--loader:.js=jsx\" $f 2>&1 | Out-String; if \\($LASTEXITCODE -eq 0\\) { Write-Host \"$f OK\" } else { Write-Host \"$f FAIL\"; Write-Host $out } })"
     ]
   }
 }
