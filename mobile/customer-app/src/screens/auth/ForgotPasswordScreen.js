@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from "react-native";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
@@ -57,13 +65,13 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
-      <KeyboardAwareScrollView
-        bottomOffset={20}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 56 }}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 56 }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={{ marginBottom: 32 }}
@@ -162,7 +170,8 @@ export default function ForgotPasswordScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
           </View>
-      </KeyboardAwareScrollView>
-    </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }

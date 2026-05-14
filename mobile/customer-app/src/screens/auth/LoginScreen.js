@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useRef } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from "react-native";
 import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
 import { login, clearError } from "../../store/slices/authSlice";
@@ -78,18 +86,20 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
-      <KeyboardAwareScrollView
-        bottomOffset={20}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "center",
-          paddingHorizontal: 24,
-          paddingVertical: 48,
-        }}
-      >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            paddingHorizontal: 24,
+            paddingVertical: 48,
+          }}
+        >
           <View style={{ marginBottom: 36 }}>
             <Text
               accessibilityRole="header"
@@ -210,7 +220,8 @@ export default function LoginScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
           </View>
-      </KeyboardAwareScrollView>
-    </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
