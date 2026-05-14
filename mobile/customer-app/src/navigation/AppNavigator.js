@@ -316,7 +316,7 @@ export default function AppNavigator() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#f4f4f7",
+          backgroundColor: "transparent",
         }}
       >
         <ActivityIndicator size="large" color="#EA580C" />
@@ -331,7 +331,7 @@ export default function AppNavigator() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#f4f4f7",
+          backgroundColor: "transparent",
           paddingHorizontal: 32,
         }}
       >

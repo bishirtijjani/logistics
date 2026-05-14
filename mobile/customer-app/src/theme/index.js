@@ -26,7 +26,11 @@ export const colors = {
   primary:       light.brand.default,
   primaryStrong: light.brand.strong,
   dark:          light.bg.elevated,
-  background:    light.bg.canvas,
+  // Outer screen containers read this; flipping to `transparent` lets the
+  // app-wide BackgroundPattern (mounted in App.js behind NavigationContainer)
+  // show through every screen without touching the screens individually.
+  // Cards / headers / modals still set their own opaque fills.
+  background:    'transparent',
   surface:       light.bg.surface,
   surfaceMuted:  light.bg.surfaceMuted,
   text:          light.text.primary,

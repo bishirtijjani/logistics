@@ -121,7 +121,13 @@
       "Bash(curl -sS -o /tmp/page4.html -w \"HTTP %{http_code} size=%{size_download}\\\\n\" http://localhost:3030/)",
       "Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost:3030/robots.txt)",
       "Bash(curl -sS -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost:3030/sitemap.xml)",
-      "PowerShell($ports = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -eq 3000 }; if \\($ports\\) { $ports | Select-Object LocalAddress, LocalPort, OwningProcess | Format-Table -AutoSize } else { \"No process listening on port 3000\" })"
+      "PowerShell($ports = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { $_.LocalPort -eq 3000 }; if \\($ports\\) { $ports | Select-Object LocalAddress, LocalPort, OwningProcess | Format-Table -AutoSize } else { \"No process listening on port 3000\" })",
+      "Bash(curl -s -o nul -w \"%{http_code}\" -X POST \"https://logistics.codeket.com/api/auth/kyc/verify-bvn\" -H \"Content-Type: application/json\" -d \"{}\")",
+      "Bash(curl -s -o nul -w \"%{http_code}\" -X POST \"https://logistics.codeket.com/api/auth/kyc/request-phone-otp\" -H \"Content-Type: application/json\" -d \"{}\")",
+      "Bash(curl -s -X POST \"https://logistics.codeket.com/api/auth/kyc/verify-bvn\" -H \"Content-Type: application/json\" -d \"{}\")",
+      "Bash(curl -sv -X POST \"https://logistics.codeket.com/api/auth/kyc/verify-bvn\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer faketoken\" -d \"{}\")",
+      "Bash(node -e \"import\\('./src/pages/CustomersPage.jsx'\\).catch\\(e=>console.error\\(e.message\\)\\)\")",
+      "Bash(npx esbuild *)"
     ]
   }
 }

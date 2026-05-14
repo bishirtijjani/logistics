@@ -1,0 +1,452 @@
+import { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+  fetchCustomerDetail,
+  fetchCustomerRequests,
+  fetchCustomerTransactions,
+  fetchCustomerAddresses,
+  suspendCustomer,
+  unsuspendCustomer,
+  clearCustomerDetail,
+} from '../store/slices/customersSlice'
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  ShieldAlert,
+  Shield,
+  Wallet,
+  Lock,
+  MapPin,
+  Package,
+  Receipt,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react'
+import Pagination from '../components/Pagination'
+
+const STATUS_COLORS = {
+  ACTIVE: 'bg-success/10 text-success',
+  SUSPENDED: 'bg-error/10 text-error',
+  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  DEACTIVATED: 'bg-surface-muted text-muted',
+}
+
+const KYC_COLORS = {
+  NONE: 'bg-surface-muted text-muted',
+  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  VERIFIED: 'bg-success/10 text-success',
+  REJECTED: 'bg-error/10 text-error',
+}
+
+const REQUEST_STATUS_COLORS = {
+  REQUESTED: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  ACCEPTED: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  PROCESSING: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  READY_FOR_PICKUP: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  RIDER_ASSIGNED: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  RIDER_EN_ROUTE: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  PICKED_UP: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  IN_TRANSIT: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  DELIVERED: 'bg-success/10 text-success',
+  SETTLED: 'bg-success/10 text-success',
+  CANCELLED: 'bg-error/10 text-error',
+}
+
+const formatNGN = (n) =>
+  new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(
+    Number(n) || 0,
+  )
+
+const TABS = [
+  { key: 'requests', label: 'Requests', icon: Package },
+  { key: 'transactions', label: 'Transactions', icon: Receipt },
+  { key: 'addresses', label: 'Addresses', icon: MapPin },
+]
+
+export default function CustomerDetailPage() {
+  const { customerId } = useParams()
+  const dispatch = useDispatch()
+  const { detail, requests, transactions, addresses } = useSelector((state) => state.customers)
+  const [activeTab, setActiveTab] = useState('requests')
+  const [showSuspendModal, setShowSuspendModal] = useState(false)
+  const [suspendReason, setSuspendReason] = useState('')
+  const [actionLoading, setActionLoading] = useState(null)
+
+  const customer = detail.data
+
+  useEffect(() => {
+    dispatch(fetchCustomerDetail(customerId))
+    dispatch(fetchCustomerRequests({ customerId, page: 1, limit: 10 }))
+    dispatch(fetchCustomerTransactions({ customerId, page: 1, limit: 10 }))
+    dispatch(fetchCustomerAddresses(customerId))
+    return () => dispatch(clearCustomerDetail())
+  }, [dispatch, customerId])
+
+  const handleSuspend = async () => {
+    if (!suspendReason.trim()) return
+    setActionLoading('suspend')
+    await dispatch(suspendCustomer({ userId: customerId, reason: suspendReason }))
+    setActionLoading(null)
+    setShowSuspendModal(false)
+    setSuspendReason('')
+    dispatch(fetchCustomerDetail(customerId))
+  }
+
+  const handleUnsuspend = async () => {
+    setActionLoading('unsuspend')
+    await dispatch(unsuspendCustomer(customerId))
+    setActionLoading(null)
+    dispatch(fetchCustomerDetail(customerId))
+  }
+
+  if (detail.loading && !customer) {
+    return <div className="p-12 text-center text-muted dark:text-dark-muted">Loading customer...</div>
+  }
+
+  if (detail.error) {
+    return (
+      <div className="p-12 text-center">
+        <p className="text-error mb-4">{detail.error}</p>
+        <Link to="/customers" className="text-primary hover:underline">
+          Back to customers
+        </Link>
+      </div>
+    )
+  }
+
+  if (!customer) return null
+
+  return (
+    <div>
+      <Link to="/customers" className="inline-flex items-center gap-2 text-sm text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text mb-4">
+        <ArrowLeft size={16} />
+        Back to customers
+      </Link>
+
+      {/* Header */}
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              {customer.profilePicture ? (
+                <img src={customer.profilePicture} alt="" className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <User size={28} className="text-primary" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text truncate">
+                {customer.firstName} {customer.lastName}
+              </h1>
+              <p className="text-sm text-muted dark:text-dark-muted truncate">{customer.email}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[customer.status] || 'bg-surface-muted text-muted'}`}>
+                  {customer.status}
+                </span>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${KYC_COLORS[customer.kycStatus] || 'bg-surface-muted text-muted'}`}>
+                  KYC: {customer.kycStatus}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {customer.status === 'SUSPENDED' ? (
+              <button
+                onClick={handleUnsuspend}
+                disabled={actionLoading === 'unsuspend'}
+                className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 disabled:opacity-50 flex items-center gap-2 text-sm"
+              >
+                <Shield size={16} />
+                {actionLoading === 'unsuspend' ? 'Unsuspending...' : 'Unsuspend'}
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowSuspendModal(true)}
+                className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-2 text-sm"
+              >
+                <ShieldAlert size={16} />
+                Suspend
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <StatCard label="Wallet Balance" value={formatNGN(customer.wallet?.balance)} icon={Wallet} tone={customer.wallet?.isLocked ? 'warning' : 'default'} sub={customer.wallet?.isLocked ? 'Locked' : null} />
+        <StatCard label="Total Orders" value={customer.counts?.requests ?? 0} icon={Package} />
+        <StatCard label="Transactions" value={customer.counts?.transactions ?? 0} icon={Receipt} />
+        <StatCard label="Saved Addresses" value={customer.counts?.addresses ?? 0} icon={MapPin} />
+      </div>
+
+      {/* Profile + Wallet detail */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+        <Card title="Profile">
+          <InfoRow icon={Mail} label="Email" value={customer.email} />
+          <InfoRow icon={Phone} label="Phone" value={customer.phone || '—'} />
+          <InfoRow icon={Calendar} label="Joined" value={new Date(customer.createdAt).toLocaleString()} />
+          <InfoRow icon={User} label="Date of Birth" value={customer.dateOfBirth ? new Date(customer.dateOfBirth).toLocaleDateString() : '—'} />
+        </Card>
+        <Card title="Wallet">
+          {customer.wallet ? (
+            <>
+              <InfoRow icon={Wallet} label="Balance" value={formatNGN(customer.wallet.balance)} />
+              <InfoRow icon={Lock} label="Status" value={customer.wallet.isLocked ? 'Locked' : 'Active'} />
+              <InfoRow label="Virtual Account" value={customer.wallet.virtualAccountNumber || '—'} />
+              <InfoRow label="Bank" value={customer.wallet.virtualAccountBank || '—'} />
+              <InfoRow label="Account Name" value={customer.wallet.virtualAccountName || '—'} />
+            </>
+          ) : (
+            <p className="text-sm text-muted dark:text-dark-muted">No wallet provisioned.</p>
+          )}
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
+        <div className="flex border-b border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
+          {TABS.map((tab) => {
+            const Icon = tab.icon
+            const active = activeTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  active
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'
+                }`}
+              >
+                <Icon size={16} />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="p-4 sm:p-6">
+          {activeTab === 'requests' && (
+            <RequestsTab
+              customerId={customerId}
+              state={requests}
+              onPageChange={(page) => dispatch(fetchCustomerRequests({ customerId, page, limit: requests.limit }))}
+            />
+          )}
+          {activeTab === 'transactions' && (
+            <TransactionsTab
+              customerId={customerId}
+              state={transactions}
+              onPageChange={(page) => dispatch(fetchCustomerTransactions({ customerId, page, limit: transactions.limit }))}
+            />
+          )}
+          {activeTab === 'addresses' && <AddressesTab state={addresses} />}
+        </div>
+      </div>
+
+      {/* Suspend Modal */}
+      {showSuspendModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Suspend Customer</h3>
+            <textarea
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+              placeholder="Enter suspension reason..."
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
+              rows={3}
+            />
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+              <button onClick={() => { setShowSuspendModal(false); setSuspendReason('') }} className="w-full sm:w-auto px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
+                Cancel
+              </button>
+              <button
+                onClick={handleSuspend}
+                disabled={!suspendReason.trim() || actionLoading === 'suspend'}
+                className="w-full sm:w-auto px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading === 'suspend' ? 'Suspending...' : 'Suspend'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StatCard({ label, value, icon: Icon, tone = 'default', sub }) {
+  const toneClass = tone === 'warning' ? 'text-orange-600' : 'text-primary'
+  return (
+    <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs uppercase tracking-wide text-muted dark:text-dark-muted">{label}</span>
+        <Icon size={16} className={toneClass} />
+      </div>
+      <p className="text-lg sm:text-2xl font-bold text-text dark:text-dark-text break-words">{value}</p>
+      {sub && <p className="text-xs text-orange-600 mt-1">{sub}</p>}
+    </div>
+  )
+}
+
+function Card({ title, children }) {
+  return (
+    <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
+      <h2 className="text-sm font-semibold text-text dark:text-dark-text mb-4">{title}</h2>
+      <dl className="space-y-3">{children}</dl>
+    </div>
+  )
+}
+
+function InfoRow({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-start gap-3">
+      {Icon && <Icon size={16} className="text-muted dark:text-dark-muted mt-0.5 shrink-0" />}
+      <div className="min-w-0 flex-1">
+        <dt className="text-xs text-muted dark:text-dark-muted">{label}</dt>
+        <dd className="text-sm text-text dark:text-dark-text break-words">{value}</dd>
+      </div>
+    </div>
+  )
+}
+
+function RequestsTab({ state, onPageChange }) {
+  if (state.loading && !state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">Loading...</p>
+  if (!state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">No requests yet.</p>
+  return (
+    <>
+      <div className="overflow-x-auto -mx-4 sm:-mx-6">
+        <table className="w-full">
+          <thead className="bg-surface-muted dark:bg-dark-surface-muted">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Route</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Total</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Created</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
+            {state.data.map((r) => (
+              <tr key={r.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
+                <td className="px-4 py-3 text-sm text-text dark:text-dark-text whitespace-nowrap">{r.type}</td>
+                <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted">
+                  <div className="max-w-xs truncate" title={`${r.pickupAddress} → ${r.dropoffAddress}`}>
+                    {r.pickupAddress} → {r.dropoffAddress}
+                  </div>
+                  {r.merchant?.name && <div className="text-xs text-muted dark:text-dark-muted">via {r.merchant.name}</div>}
+                </td>
+                <td className="px-4 py-3 text-sm text-text dark:text-dark-text whitespace-nowrap">{formatNGN(r.total)}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${REQUEST_STATUS_COLORS[r.status] || 'bg-surface-muted text-muted'}`}>
+                    {r.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {state.total > state.limit && (
+        <Pagination
+          currentPage={state.page}
+          totalPages={Math.ceil(state.total / state.limit)}
+          totalItems={state.total}
+          pageSize={state.limit}
+          onPageChange={onPageChange}
+        />
+      )}
+    </>
+  )
+}
+
+function TransactionsTab({ state, onPageChange }) {
+  if (state.loading && !state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">Loading...</p>
+  if (!state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">No transactions yet.</p>
+  return (
+    <>
+      <div className="overflow-x-auto -mx-4 sm:-mx-6">
+        <table className="w-full">
+          <thead className="bg-surface-muted dark:bg-dark-surface-muted">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Reference</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Direction</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted dark:text-dark-muted uppercase">Amount</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Date</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
+            {state.data.map((t) => (
+              <tr key={t.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
+                <td className="px-4 py-3 text-xs text-muted dark:text-dark-muted font-mono break-all max-w-[160px]">{t.reference}</td>
+                <td className="px-4 py-3 text-sm text-text dark:text-dark-text whitespace-nowrap">{t.type}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.direction === 'CREDIT' ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
+                    {t.direction}
+                  </span>
+                </td>
+                <td className={`px-4 py-3 text-sm font-medium whitespace-nowrap text-right ${t.direction === 'CREDIT' ? 'text-success' : 'text-error'}`}>
+                  {t.direction === 'CREDIT' ? '+' : '−'}{formatNGN(t.amount)}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className="flex items-center gap-1 text-xs">
+                    {t.status === 'COMPLETED' ? (
+                      <CheckCircle2 size={14} className="text-success" />
+                    ) : t.status === 'FAILED' ? (
+                      <XCircle size={14} className="text-error" />
+                    ) : null}
+                    {t.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {state.total > state.limit && (
+        <Pagination
+          currentPage={state.page}
+          totalPages={Math.ceil(state.total / state.limit)}
+          totalItems={state.total}
+          pageSize={state.limit}
+          onPageChange={onPageChange}
+        />
+      )}
+    </>
+  )
+}
+
+function AddressesTab({ state }) {
+  if (state.loading && !state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">Loading...</p>
+  if (!state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">No saved addresses.</p>
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {state.data.map((addr) => (
+        <div key={addr.id} className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-4">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <MapPin size={16} className="text-primary shrink-0" />
+              <span className="font-medium text-sm text-text dark:text-dark-text truncate">{addr.label}</span>
+            </div>
+            {addr.isDefault && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary shrink-0">Default</span>
+            )}
+          </div>
+          <p className="text-sm text-muted dark:text-dark-muted break-words">{addr.address}</p>
+          <p className="text-xs text-muted dark:text-dark-muted mt-2">
+            {addr.lat?.toFixed?.(4)}, {addr.lng?.toFixed?.(4)}
+          </p>
+        </div>
+      ))}
+    </div>
+  )
+}

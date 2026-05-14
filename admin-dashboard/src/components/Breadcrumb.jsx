@@ -7,16 +7,24 @@ const breadcrumbMap = {
   '/merchants': { label: 'Merchants', parent: '/dashboard' },
   '/riders': { label: 'Riders', parent: '/dashboard' },
   '/pending-riders': { label: 'Pending Riders', parent: '/dashboard' },
-  '/users': { label: 'Users', parent: '/dashboard' },
+  '/customers': { label: 'Customers', parent: '/dashboard' },
   '/transactions': { label: 'Transactions', parent: '/dashboard' },
   '/audit-logs': { label: 'Audit Logs', parent: '/dashboard' },
   '/settings': { label: 'Settings', parent: '/dashboard' },
 }
 
+const resolveBreadcrumb = (path) => {
+  if (breadcrumbMap[path]) return breadcrumbMap[path]
+  if (/^\/customers\/[^/]+$/.test(path)) {
+    return { label: 'Customer', parent: '/customers' }
+  }
+  return null
+}
+
 export default function Breadcrumb() {
   const location = useLocation()
   const currentPath = location.pathname
-  const currentBreadcrumb = breadcrumbMap[currentPath]
+  const currentBreadcrumb = resolveBreadcrumb(currentPath)
 
   if (!currentBreadcrumb || currentPath === '/dashboard') {
     return null
@@ -30,7 +38,7 @@ export default function Breadcrumb() {
     breadcrumbs.unshift({ label: current.label, path })
     if (current.parent) {
       path = current.parent
-      current = breadcrumbMap[path]
+      current = resolveBreadcrumb(path)
     } else {
       current = null
     }

@@ -41,6 +41,48 @@ const updateUserStatus = async (req, res, next) => {
   }
 };
 
+const getCustomerById = async (req, res, next) => {
+  try {
+    const customer = await adminService.getCustomerById(req.params.userId);
+    res.json(ApiResponse.success('Customer detail', customer));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCustomerRequests = async (req, res, next) => {
+  try {
+    const { requests, total, page, limit } = await adminService.getCustomerRequests({
+      customerId: req.params.userId,
+      ...req.query,
+    });
+    res.json(ApiResponse.paginated('Customer requests', requests, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCustomerTransactions = async (req, res, next) => {
+  try {
+    const { transactions, total, page, limit } = await adminService.getCustomerTransactions({
+      customerId: req.params.userId,
+      ...req.query,
+    });
+    res.json(ApiResponse.paginated('Customer transactions', transactions, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCustomerAddresses = async (req, res, next) => {
+  try {
+    const addresses = await adminService.getCustomerAddresses(req.params.userId);
+    res.json(ApiResponse.success('Customer addresses', addresses));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getTransactions = async (req, res, next) => {
   try {
     const { transactions, total, page, limit } = await adminService.getTransactionOverview(req.query);
@@ -649,6 +691,10 @@ module.exports = {
   reviewRider,
   getAllUsers,
   updateUserStatus,
+  getCustomerById,
+  getCustomerRequests,
+  getCustomerTransactions,
+  getCustomerAddresses,
   getTransactions,
   getDashboard,
   getAllRequests,

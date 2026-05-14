@@ -46,7 +46,7 @@ const navItems = [
   { path: '/rider-operations', icon: Bike, label: 'Rider Ops' },
   { path: '/safety', icon: Shield, label: 'Safety' },
   { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans' },
-  { path: '/users', icon: Users, label: 'Users' },
+  { path: '/customers', icon: Users, label: 'Customers' },
   { path: '/audit-logs', icon: FileText, label: 'Audit Logs' },
   { path: '/transactions', icon: Receipt, label: 'Transactions' },
   { path: '/settings', icon: Settings, label: 'Settings' },

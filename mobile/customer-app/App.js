@@ -1,6 +1,12 @@
 import "react-native-gesture-handler";
-import React, { useEffect, useMemo } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, LogBox } from "react-native";
+import React, { useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  LogBox,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
 import "./global.css";
 // Phase 9 — initialize i18n before any screen mounts so the device locale (or
@@ -17,6 +23,7 @@ import { registerForceLogout } from "./src/services/api";
 import { forceLogout as forceLogoutAction } from "./src/store/slices/authSlice";
 import { ThemeProvider, useTheme } from "./src/theme";
 import BackgroundPattern from "./src/components/BackgroundPattern";
+import { useToastConfig } from "./src/components/toastShared";
 
 // Phase 5 — register the silent-refresh fallback so the api.js interceptor
 // can flip the auth state out from anywhere in the tree when the refresh
@@ -28,41 +35,24 @@ LogBox.ignoreLogs(["ViewPropTypes will be removed"]);
 LogBox.ignoreAllLogs();
 
 // Themed toast — built inside ThemeProvider so the pill bg flips with mode.
-// Built once per scheme change via useMemo so each row in the toast queue isn't
-// rebuilt on every render.
+// Wrapped in a position:absolute + elevation View so on Android the toast
+// paints ABOVE the navigator (whose container in ThemedRoot uses elevation: 1
+// to sit above BackgroundPattern). Without the higher elevation here the
+// navigator's native layer would cover the toast.
+// `pointerEvents="box-none"` lets taps on empty area fall through to the
+// navigator underneath while the toast pill itself still receives swipes.
+// Sheets that mount their own RN-<Modal> stack a sibling <InModalToast />
+// inside themselves to stay covered while the sheet is open.
 function ThemedToast() {
-  const { tokens } = useTheme();
-  const toastConfig = useMemo(() => {
-    const baseContainer = {
-      paddingHorizontal: 20,
-      paddingVertical: 14,
-      marginHorizontal: 12,
-      borderRadius: 12,
-    };
-    const textBase = {
-      fontSize: 16,
-      fontWeight: "600",
-      color: "#FFFFFF",
-    };
-    const subTextBase = {
-      fontSize: 14,
-      color: "#FFFFFF",
-      marginTop: 4,
-      opacity: 0.95,
-    };
-    const make = (bg) => (props) => (
-      <View style={[baseContainer, { backgroundColor: bg }]}>
-        <Text style={textBase}>{props.text1}</Text>
-        {props.text2 ? <Text style={subTextBase}>{props.text2}</Text> : null}
-      </View>
-    );
-    return {
-      success: make(tokens.status.success),
-      error: make(tokens.status.error),
-      info: make(tokens.status.info),
-    };
-  }, [tokens]);
-  return <Toast config={toastConfig} />;
+  const toastConfig = useToastConfig();
+  return (
+    <View
+      pointerEvents="box-none"
+      style={[StyleSheet.absoluteFillObject, { elevation: 10, zIndex: 10 }]}
+    >
+      <Toast config={toastConfig} />
+    </View>
+  );
 }
 
 // Reactive status-bar style. In light mode the OS bar shows dark icons on the
@@ -70,6 +60,24 @@ function ThemedToast() {
 function ThemedStatusBar() {
   const { isDark } = useTheme();
   return <StatusBar style={isDark ? "light" : "dark"} />;
+}
+
+// Root canvas: provides the app-wide background color and renders the
+// BackgroundPattern BEHIND its children. Because the navigation theme and
+// screen-level containers are transparent (see theme/index.js + navigationTheme.js),
+// the pattern shows through every screen — cards/headers keep their own opaque
+// fills and cover the pattern locally.
+function ThemedRoot({ children }) {
+  const { tokens } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
+      {/* <BackgroundPattern /> — temporarily omitted, component preserved. */}
+      {/* Explicit zIndex/elevation keeps the navigator ABOVE the absolutely-
+          positioned pattern. RN otherwise renders absolute siblings on top of
+          relative ones regardless of source order. */}
+      <View style={{ flex: 1, zIndex: 1, elevation: 1 }}>{children}</View>
+    </View>
+  );
 }
 
 // Fatal Error UI Component
@@ -98,9 +106,10 @@ export default function App() {
         <ErrorBoundary FallbackComponent={ErrorFallback}>
           <ThemeProvider>
             <Provider store={store}>
-              <AppNavigator />
+              <ThemedRoot>
+                <AppNavigator />
+              </ThemedRoot>
             </Provider>
-            <BackgroundPattern />
             <ThemedToast />
             <ThemedStatusBar />
           </ThemeProvider>

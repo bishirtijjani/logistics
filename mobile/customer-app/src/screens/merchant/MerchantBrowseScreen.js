@@ -25,7 +25,10 @@ const MerchantBrowseScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { t } = useTranslation();
-  const { categorySlug, categoryName, lat, lng } = route.params;
+  // route.params is undefined when entered from the "Start an order" CTA on
+  // OrdersScreen (no category context); HomeScreen / ShopsScreen do pass them.
+  // The screen treats every field as optional, so a missing params bag is fine.
+  const { categorySlug, categoryName, lat, lng } = route.params || {};
 
   const [merchants, setMerchants] = useState([]);
   const [loading, setLoading] = useState(true);

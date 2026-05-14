@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import FormInput from "../../components/FormInput";
+import AuthErrorBanner from "../../components/AuthErrorBanner";
 import { colors } from "../../theme";
 
 export default function RegisterScreen({ navigation }) {
@@ -52,6 +53,12 @@ export default function RegisterScreen({ navigation }) {
     defaultValues: { firstName: "", lastName: "", email: "", password: "" },
   });
 
+  // Start with a clean error state so a previous screen's failure doesn't
+  // appear in this screen's banner.
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
   const onSubmit = async (data) => {
     dispatch(clearError());
     const resultAction = await dispatch(
@@ -68,6 +75,12 @@ export default function RegisterScreen({ navigation }) {
         text2: t("auth.toast.otpSent"),
       });
       navigation.navigate("OtpVerification", { email: data.email });
+    } else {
+      Toast.show({
+        type: "error",
+        text1: t("errors.title"),
+        text2: resultAction.payload || t("errors.UNKNOWN_ERROR"),
+      });
     }
   };
 
@@ -102,6 +115,8 @@ export default function RegisterScreen({ navigation }) {
               {t("auth.registerSubtitle")}
             </Text>
           </View>
+
+          <AuthErrorBanner />
 
           <View style={{ flexDirection: "row", gap: 12 }}>
             <View style={{ flex: 1 }}>

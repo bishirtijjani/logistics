@@ -23,6 +23,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme';
+import { InModalToast } from './toastShared';
 
 const MODES = ['system', 'light', 'dark'];
 
@@ -112,6 +113,7 @@ const ThemeSheet = ({ visible, onClose }) => {
             </Text>
           </TouchableOpacity>
         </View>
+        <InModalToast />
       </View>
     </Modal>
   );

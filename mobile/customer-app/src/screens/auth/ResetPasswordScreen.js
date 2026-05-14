@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import FormInput from "../../components/FormInput";
-import { resetPassword } from "../../store/slices/authSlice";
+import AuthErrorBanner from "../../components/AuthErrorBanner";
+import { resetPassword, clearError } from "../../store/slices/authSlice";
 import { colors } from "../../theme";
 
 export default function ResetPasswordScreen({ route, navigation }) {
@@ -50,7 +51,13 @@ export default function ResetPasswordScreen({ route, navigation }) {
     defaultValues: { password: "", confirmPassword: "" },
   });
 
+  // Clear any error left over from a prior screen so the banner starts empty.
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
   const onSubmit = async ({ password }) => {
+    dispatch(clearError());
     const result = await dispatch(
       resetPassword({ email, code, newPassword: password }),
     );
@@ -63,6 +70,12 @@ export default function ResetPasswordScreen({ route, navigation }) {
       });
       // Navigate back to Login and clear the reset stack
       navigation.navigate("Login");
+    } else {
+      Toast.show({
+        type: "error",
+        text1: t("errors.title"),
+        text2: result.payload || t("errors.UNKNOWN_ERROR"),
+      });
     }
   };
 
@@ -101,6 +114,8 @@ export default function ResetPasswordScreen({ route, navigation }) {
               {t("auth.resetSubtitle")}
             </Text>
           </View>
+
+          <AuthErrorBanner />
 
           <Controller
             control={control}

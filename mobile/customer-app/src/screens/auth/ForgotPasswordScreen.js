@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import FormInput from "../../components/FormInput";
-import { requestPasswordReset } from "../../store/slices/authSlice";
+import AuthErrorBanner from "../../components/AuthErrorBanner";
+import { requestPasswordReset, clearError } from "../../store/slices/authSlice";
 import { colors } from "../../theme";
 
 export default function ForgotPasswordScreen({ navigation }) {
@@ -39,7 +40,13 @@ export default function ForgotPasswordScreen({ navigation }) {
     defaultValues: { email: "" },
   });
 
+  // Clear any error left over from a prior screen so the banner starts empty.
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
   const onSubmit = async ({ email }) => {
+    dispatch(clearError());
     const result = await dispatch(requestPasswordReset(email));
     if (requestPasswordReset.fulfilled.match(result)) {
       Toast.show({
@@ -48,6 +55,12 @@ export default function ForgotPasswordScreen({ navigation }) {
         text2: t("auth.toast.resetCodeSentSub"),
       });
       navigation.navigate("OtpVerification", { email, mode: "reset" });
+    } else {
+      Toast.show({
+        type: "error",
+        text1: t("errors.title"),
+        text2: result.payload || t("errors.UNKNOWN_ERROR"),
+      });
     }
   };
 
@@ -86,6 +99,8 @@ export default function ForgotPasswordScreen({ navigation }) {
               {t("auth.forgotSubtitle")}
             </Text>
           </View>
+
+          <AuthErrorBanner />
 
           <Controller
             control={control}

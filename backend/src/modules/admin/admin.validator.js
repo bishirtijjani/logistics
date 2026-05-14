@@ -61,6 +61,44 @@ const listAllRequestsSchema = z.object({
   endDate: z.string().optional(),
 });
 
+const customerRequestsSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  status: z.enum([
+    'REQUESTED',
+    'ACCEPTED',
+    'PROCESSING',
+    'READY_FOR_PICKUP',
+    'RIDER_ASSIGNED',
+    'RIDER_EN_ROUTE',
+    'PICKED_UP',
+    'IN_TRANSIT',
+    'DELIVERED',
+    'SETTLED',
+    'CANCELLED',
+  ]).optional(),
+});
+
+const customerTransactionsSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  type: z.enum([
+    'WALLET_FUNDING',
+    'P2P_TRANSFER_SENT',
+    'P2P_TRANSFER_RECEIVED',
+    'WITHDRAWAL',
+    'UTILITY_PAYMENT',
+    'REFUND',
+    'ESCROW_HOLD',
+    'ESCROW_RELEASE',
+    'ESCROW_REFUND',
+    'PLATFORM_EARNING',
+    'RIDER_EARNING',
+    'MERCHANT_EARNING',
+  ]).optional(),
+  status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REVERSED']).optional(),
+});
+
 const reassignRiderSchema = z.object({
   newRiderId: z.string().uuid(),
 });
@@ -229,6 +267,8 @@ module.exports = {
   updateUserStatusSchema,
   listPendingRidersSchema,
   transactionOverviewSchema,
+  customerRequestsSchema,
+  customerTransactionsSchema,
   listAllRequestsSchema,
   reassignRiderSchema,
   forceCancelRequestSchema,

@@ -36,6 +36,8 @@ const {
   listAllRidersSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,
+  customerRequestsSchema,
+  customerTransactionsSchema,
 } = require('./admin.validator');
 
 const router = Router();
@@ -91,6 +93,10 @@ router.get('/riders/:riderId/deliveries', adminController.getRiderDeliveryHistor
 
 // User management
 router.get('/users', adminController.getAllUsers);
+router.get('/users/:userId', adminController.getCustomerById);
+router.get('/users/:userId/requests', validate(customerRequestsSchema, 'query'), adminController.getCustomerRequests);
+router.get('/users/:userId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getCustomerTransactions);
+router.get('/users/:userId/addresses', adminController.getCustomerAddresses);
 router.patch('/users/:userId/status', validate(updateUserStatusSchema), adminController.updateUserStatus);
 
 // Transaction oversight

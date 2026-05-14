@@ -4,7 +4,7 @@ import dashboardReducer from './slices/dashboardSlice.js'
 import requestsReducer from './slices/requestsSlice.js'
 import merchantsReducer from './slices/merchantsSlice.js'
 import ridersReducer from './slices/ridersSlice.js'
-import usersReducer from './slices/usersSlice.js'
+import customersReducer from './slices/customersSlice.js'
 import transactionsReducer from './slices/transactionsSlice.js'
 import settingsReducer from './slices/settingsSlice.js'
 import pendingRidersReducer from './slices/pendingRidersSlice.js'
@@ -18,7 +18,7 @@ export const store = configureStore({
     requests: requestsReducer,
     merchants: merchantsReducer,
     riders: ridersReducer,
-    users: usersReducer,
+    customers: customersReducer,
     transactions: transactionsReducer,
     settings: settingsReducer,
     pendingRiders: pendingRidersReducer,

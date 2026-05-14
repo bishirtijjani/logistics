@@ -11,7 +11,9 @@ export function buildNavigationTheme(tokens, isDark) {
     colors: {
       ...base.colors,
       primary: tokens.brand.default,
-      background: tokens.bg.canvas,
+      // Transparent so the app-wide BackgroundPattern in App.js shows through
+      // every screen; the themed root View underneath provides the canvas color.
+      background: 'transparent',
       card: tokens.bg.surface,
       text: tokens.text.primary,
       border: tokens.border.default,

@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../theme';
 import { SUPPORTED_LOCALES, setLocale } from '../i18n';
+import { InModalToast } from './toastShared';
 
 const FLAG_FOR = {
   // Plain text icons keep the sheet readable even for users with rendering
@@ -96,6 +97,7 @@ const LocaleSheet = ({ visible, onClose }) => {
             <Text style={styles.dismissText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
+        <InModalToast />
       </View>
     </Modal>
   );

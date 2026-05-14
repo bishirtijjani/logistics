@@ -18,6 +18,7 @@ import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import api from "../services/api";
 import { colors } from "../theme";
+import { InModalToast } from "./toastShared";
 
 const DEBOUNCE_MS = 300;
 const MIN_QUERY = 2;
@@ -222,6 +223,7 @@ export default function SearchModal({ visible, onClose, onNavigate }) {
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={renderEmpty}
         />
+        <InModalToast />
       </KeyboardAvoidingView>
     </Modal>
   );

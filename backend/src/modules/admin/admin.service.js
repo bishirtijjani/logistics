@@ -154,6 +154,150 @@ const updateUserStatus = async (userId, status) => {
 };
 
 /**
+ * Get a single customer with profile, wallet, and lightweight activity counts.
+ * Rejects non-CUSTOMER roles so admins can't accidentally use customer-only
+ * endpoints to peek at merchant/rider records.
+ */
+const getCustomerById = async (customerId) => {
+  const user = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      profilePicture: true,
+      dateOfBirth: true,
+      kycStatus: true,
+      role: true,
+      status: true,
+      deletedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      wallet: {
+        select: {
+          id: true,
+          balance: true,
+          isLocked: true,
+          virtualAccountNumber: true,
+          virtualAccountBank: true,
+          virtualAccountName: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+
+  const walletId = user.wallet?.id;
+  const [requestCount, addressCount, transactionCount] = await Promise.all([
+    prisma.request.count({ where: { customerId } }),
+    prisma.savedAddress.count({ where: { userId: customerId } }),
+    walletId
+      ? prisma.transaction.count({
+          where: { OR: [{ debitWalletId: walletId }, { creditWalletId: walletId }] },
+        })
+      : Promise.resolve(0),
+  ]);
+
+  return { ...user, counts: { requests: requestCount, addresses: addressCount, transactions: transactionCount } };
+};
+
+/**
+ * Paginated request history for a customer.
+ */
+const getCustomerRequests = async ({ customerId, page = 1, limit = 20, status }) => {
+  const customer = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true },
+  });
+  if (!customer) throw AppError.notFound('Customer not found');
+
+  const where = { customerId, ...(status && { status }) };
+
+  const [requests, total] = await Promise.all([
+    prisma.request.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        pickupAddress: true,
+        dropoffAddress: true,
+        total: true,
+        createdAt: true,
+        merchant: { select: { id: true, name: true } },
+        rider: { select: { id: true, user: { select: { firstName: true, lastName: true } } } },
+      },
+    }),
+    prisma.request.count({ where }),
+  ]);
+
+  return { requests, total, page, limit };
+};
+
+/**
+ * Paginated wallet-transaction history for a customer.
+ * Looks at both debit and credit sides of the ledger.
+ */
+const getCustomerTransactions = async ({ customerId, page = 1, limit = 20, type, status }) => {
+  const customer = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true, wallet: { select: { id: true } } },
+  });
+  if (!customer) throw AppError.notFound('Customer not found');
+
+  const walletId = customer.wallet?.id;
+  if (!walletId) return { transactions: [], total: 0, page, limit };
+
+  const where = {
+    OR: [{ debitWalletId: walletId }, { creditWalletId: walletId }],
+    ...(type && { type }),
+    ...(status && { status }),
+  };
+
+  const [transactions, total] = await Promise.all([
+    prisma.transaction.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.transaction.count({ where }),
+  ]);
+
+  return {
+    transactions: transactions.map((t) => ({
+      ...t,
+      direction: t.debitWalletId === walletId ? 'DEBIT' : 'CREDIT',
+    })),
+    total,
+    page,
+    limit,
+  };
+};
+
+/**
+ * Saved addresses for a customer.
+ */
+const getCustomerAddresses = async (customerId) => {
+  const customer = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true },
+  });
+  if (!customer) throw AppError.notFound('Customer not found');
+
+  return prisma.savedAddress.findMany({
+    where: { userId: customerId },
+    orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+  });
+};
+
+/**
  * Get platform-wide transaction overview.
  */
 const getTransactionOverview = async ({ page = 1, limit = 50, type, status }) => {
@@ -2017,6 +2161,10 @@ module.exports = {
   reviewRider,
   getAllUsers,
   updateUserStatus,
+  getCustomerById,
+  getCustomerRequests,
+  getCustomerTransactions,
+  getCustomerAddresses,
   getTransactionOverview,
   getDashboardStats,
   getAllRequests,

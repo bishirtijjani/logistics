@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { login, clearError } from "../../store/slices/authSlice";
 import { useForm, Controller } from "react-hook-form";
 import FormInput from "../../components/FormInput";
+import AuthErrorBanner from "../../components/AuthErrorBanner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -49,8 +50,11 @@ export default function LoginScreen({ navigation }) {
     defaultValues: { email: "", password: "" },
   });
 
-  // Load last used email on mount
+  // Load last used email on mount; also clear any stale auth error left over
+  // from a previous screen (e.g., session-expired bounce) so this screen
+  // starts clean.
   useEffect(() => {
+    dispatch(clearError());
     const loadLastEmail = async () => {
       try {
         const savedEmail = await AsyncStorage.getItem(LAST_EMAIL_KEY);
@@ -62,7 +66,7 @@ export default function LoginScreen({ navigation }) {
       }
     };
     loadLastEmail();
-  }, [setValue]);
+  }, [setValue, dispatch]);
 
   const onSubmit = async (data) => {
     dispatch(clearError());
@@ -72,6 +76,12 @@ export default function LoginScreen({ navigation }) {
       // Remember email on success
       await AsyncStorage.setItem(LAST_EMAIL_KEY, data.email);
       Toast.show({ type: "success", text1: t("auth.toast.welcomeBack") });
+    } else {
+      Toast.show({
+        type: "error",
+        text1: t("errors.title"),
+        text2: resultAction.payload || t("errors.UNKNOWN_ERROR"),
+      });
     }
   };
 
@@ -108,6 +118,8 @@ export default function LoginScreen({ navigation }) {
               {t("auth.loginSubtitle")}
             </Text>
           </View>
+
+          <AuthErrorBanner />
 
           <Controller
             control={control}

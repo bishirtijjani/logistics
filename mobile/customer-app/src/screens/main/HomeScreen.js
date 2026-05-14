@@ -204,7 +204,7 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: "#FAFAFA" }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
@@ -444,7 +444,7 @@ export default function HomeScreen({ navigation }) {
             <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 24 }}>
               {Array.from({ length: 5 }).map((_, i) => (
                 <View key={i} style={{ width: "33.33%", alignItems: "center" }}>
-                  <SkeletonLoader width={84} height={84} radius={20} style={{ marginBottom: 12 }} />
+                  <SkeletonLoader width={78} height={78} radius={36} style={{ marginBottom: 10 }} />
                   <SkeletonLoader width={56} height={12} />
                 </View>
               ))}
@@ -472,8 +472,17 @@ export default function HomeScreen({ navigation }) {
               rowGap: 24,
             }}
           >
-            {tiles.map((item) => {
+            {tiles.map((item, idx) => {
               const Icon = resolveIcon(item);
+              // Irregular pebble shapes — four asymmetric radius presets cycled
+              // by index so adjacent tiles never share the same silhouette.
+              const blobShapes = [
+                { borderTopLeftRadius: 46, borderTopRightRadius: 30, borderBottomRightRadius: 44, borderBottomLeftRadius: 34 },
+                { borderTopLeftRadius: 30, borderTopRightRadius: 48, borderBottomRightRadius: 32, borderBottomLeftRadius: 46 },
+                { borderTopLeftRadius: 40, borderTopRightRadius: 44, borderBottomRightRadius: 28, borderBottomLeftRadius: 48 },
+                { borderTopLeftRadius: 48, borderTopRightRadius: 34, borderBottomRightRadius: 46, borderBottomLeftRadius: 28 },
+              ];
+              const blob = blobShapes[idx % blobShapes.length];
               // Static tiles (PACKAGE, SHOPS) carry a translation key; dynamic
               // category tiles use the admin-supplied `name` directly.
               const displayName = item.nameKey ? t(item.nameKey) : item.name;
@@ -510,42 +519,27 @@ export default function HomeScreen({ navigation }) {
                   // second row, left-aligned beneath the first two tiles.
                   style={{ width: "33.33%", alignItems: "center" }}
                 >
-                  {/* Outer white card — rounded rectangle to match the search
-                      bar, wallet pill, and section cards elsewhere on the
-                      page. The primary-orange hairline ring ties the tile to
-                      the brand palette so it doesn't read as a floating
-                      neutral surface, while the inner tinted halo keeps each
-                      category visually distinct. */}
+                  {/* Pebble-shaped tile — solid burnt orange with a near-black
+                      hairline border. Icons are white for contrast. */}
                   <View
                     style={{
-                      width: 84,
-                      height: 84,
-                      borderRadius: 20,
-                      backgroundColor: "#fff",
+                      width: 78,
+                      height: 78,
+                      backgroundColor: "#EA580C",
                       alignItems: "center",
                       justifyContent: "center",
-                      marginBottom: 12,
-                      shadowColor: "#000",
-                      shadowOpacity: 0.07,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowRadius: 12,
-                      elevation: 3,
+                      marginBottom: 10,
                       borderWidth: 1.5,
-                      borderColor: "#EA580C30",
+                      borderColor: "#09090b",
+                      shadowColor: "#EA580C",
+                      shadowOpacity: 0.32,
+                      shadowOffset: { width: 0, height: 8 },
+                      shadowRadius: 14,
+                      elevation: 5,
+                      ...blob,
                     }}
                   >
-                    <View
-                      style={{
-                        width: 58,
-                        height: 58,
-                        borderRadius: 16,
-                        backgroundColor: item.bg,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Icon name={item.icon} size={30} color={item.color} />
-                    </View>
+                    <Icon name={item.icon} size={34} color="#FFFFFF" />
                   </View>
                   <Text
                     style={{
@@ -554,6 +548,7 @@ export default function HomeScreen({ navigation }) {
                       color: "#09090b",
                       textAlign: "center",
                       opacity: item.comingSoon ? 0.6 : 1,
+                      letterSpacing: -0.2,
                     }}
                   >
                     {displayName}

@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { verifyOtp, clearError } from "../../store/slices/authSlice";
 import api from "../../services/api";
+import AuthErrorBanner from "../../components/AuthErrorBanner";
 import { colors } from "../../theme";
 
 const RESEND_COOLDOWN = 60;
@@ -36,6 +37,11 @@ export default function OtpVerificationScreen({ route, navigation }) {
     const id = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(id);
   }, [countdown]);
+
+  // Clear any error left over from a prior screen so the banner starts empty.
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleVerify = useCallback(async () => {
     if (code.length !== 6) {
@@ -64,6 +70,12 @@ export default function OtpVerificationScreen({ route, navigation }) {
         text2: t("auth.signIn"),
       });
       navigation.navigate("Login");
+    } else {
+      Toast.show({
+        type: "error",
+        text1: t("errors.title"),
+        text2: resultAction.payload || t("errors.UNKNOWN_ERROR"),
+      });
     }
   }, [code, mode, email, dispatch, navigation, t]);
 
@@ -123,6 +135,8 @@ export default function OtpVerificationScreen({ route, navigation }) {
               {t("auth.otpSubtitle", { email })}
             </Text>
           </View>
+
+          <AuthErrorBanner />
 
           <View style={{ marginBottom: 28 }}>
             <TextInput

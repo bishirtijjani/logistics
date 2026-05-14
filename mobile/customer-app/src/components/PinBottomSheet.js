@@ -11,6 +11,7 @@ import {
 import * as SecureStore from "expo-secure-store";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme";
+import { InModalToast } from "./toastShared";
 
 const { height } = Dimensions.get("window");
 const PIN_LENGTH = 6;
@@ -293,6 +294,7 @@ export default function PinBottomSheet({
             <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textMuted }}>Cancel</Text>
           </TouchableOpacity>
         </Animated.View>
+        <InModalToast />
       </View>
     </Modal>
   );
