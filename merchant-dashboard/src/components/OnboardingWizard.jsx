@@ -1,20 +1,26 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import React, { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
 import { X, ArrowRight, ArrowLeft, Check, Store, Package, Clock, Settings, Sparkles, MapPin } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
+import { updateSettings } from '../store/slices/settingsSlice.js'
 import LocationPicker from './LocationPicker.jsx'
 
-export default function OnboardingWizard() {
-  // The wizard is mounted inside Layout with no route params, so useParams()
-  // was always returning undefined here. Pull merchantId from auth state
-  // instead so all PATCH calls hit the right resource.
+/**
+ * Onboarding flow. Visibility and the "needs onboarding" signal both come
+ * from the parent (Layout) — which derives them from the merchant profile in
+ * Redux (lat/lng/address). No more localStorage flag, so a merchant who
+ * skips can be re-engaged via the dashboard banner.
+ *
+ * props:
+ *   open      — whether the modal is currently visible
+ *   onClose   — called when the wizard is dismissed for any reason
+ */
+export default function OnboardingWizard({ open, onClose }) {
+  const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
-  const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
 
   const [onboardingData, setOnboardingData] = useState({
     skipForLater: false,
@@ -43,23 +49,8 @@ export default function OnboardingWizard() {
     isOpen: true
   })
 
-  useEffect(() => {
-    // Wait for auth state to hydrate before deciding visibility. Otherwise
-    // the first render with merchantId === undefined would read
-    // `onboarding_completed_undefined` (missing) and flash the wizard onto
-    // already-onboarded merchants for a frame before the real merchantId
-    // arrived.
-    if (!merchantId) {
-      setIsVisible(false)
-      return
-    }
-    const hasCompletedOnboarding = localStorage.getItem(`onboarding_completed_${merchantId}`)
-    setIsVisible(!hasCompletedOnboarding)
-  }, [merchantId])
-
   const handleSkip = () => {
-    setIsVisible(false)
-    localStorage.setItem(`onboarding_completed_${merchantId}`, 'true')
+    onClose?.()
   }
 
   const handleNext = async () => {
@@ -90,28 +81,22 @@ export default function OnboardingWizard() {
     }
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`/api/merchants/merchant/${merchantId}/profile`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      // Dispatch via Redux so the parent Layout's `needsOnboarding` selector
+      // flips immediately and the dashboard banner self-dismisses without a
+      // refetch.
+      await dispatch(
+        updateSettings({
+          merchantId,
           address: locationData.address,
           lat: locationData.lat,
           lng: locationData.lng,
         }),
-      })
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || 'Failed to save location')
-      }
+      ).unwrap()
       setLocationSaved(true)
       showSuccessToast('Location saved!')
       return true
     } catch (err) {
-      showErrorToast(err.message || 'Failed to save location. Please try again.')
+      showErrorToast(err?.message || 'Failed to save location. Please try again.')
       return false
     } finally {
       setLoading(false)
@@ -196,13 +181,11 @@ export default function OnboardingWizard() {
   }
 
   const handleComplete = () => {
-    setIsVisible(false)
-    localStorage.setItem(`onboarding_completed_${merchantId}`, 'true')
     showSuccessToast('Welcome to VTU Logistics! Your dashboard is ready.')
-    navigate('/dashboard/orders')
+    onClose?.()
   }
 
-  if (!isVisible) return null
+  if (!open) return null
 
   const steps = [
     {

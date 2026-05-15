@@ -65,10 +65,11 @@ export default function LocationPicker({ value, onChange }) {
     const coordFallback = `Pin at ${newLat.toFixed(5)}, ${newLng.toFixed(5)}`
     geocodeTimeout.current = setTimeout(async () => {
       try {
-        const { data } = await api.get('/maps/reverse-geocode', {
+        const response = await api.get('/maps/reverse-geocode', {
           params: { lat: newLat, lng: newLng },
         })
-        onChange({ lat: newLat, lng: newLng, address: data?.formattedAddress || address || coordFallback })
+        const payload = response.data?.data
+        onChange({ lat: newLat, lng: newLng, address: payload?.formattedAddress || address || coordFallback })
       } catch {
         onChange({ lat: newLat, lng: newLng, address: address || coordFallback })
       } finally {
@@ -87,10 +88,11 @@ export default function LocationPicker({ value, onChange }) {
     setSearching(true)
     searchTimeout.current = setTimeout(async () => {
       try {
-        const { data } = await api.get('/maps/autocomplete', {
+        const response = await api.get('/maps/autocomplete', {
           params: { query: text, sessionToken: sessionRef.current },
         })
-        setPredictions(Array.isArray(data) ? data : [])
+        const payload = response.data?.data
+        setPredictions(Array.isArray(payload) ? payload : [])
       } catch {
         setPredictions([])
       } finally {
@@ -104,15 +106,18 @@ export default function LocationPicker({ value, onChange }) {
     setPredictions([])
     setGeocoding(true)
     try {
-      const { data } = await api.get('/maps/place-details', {
+      const response = await api.get('/maps/place-details', {
         params: { placeId: prediction.placeId, sessionToken: sessionRef.current },
       })
+      const payload = response.data?.data
       sessionRef.current = `${Date.now()}-${Math.random()}`
-      onChange({
-        lat: data.lat,
-        lng: data.lng,
-        address: data.formattedAddress,
-      })
+      if (payload?.lat != null && payload?.lng != null) {
+        onChange({
+          lat: payload.lat,
+          lng: payload.lng,
+          address: payload.formattedAddress,
+        })
+      }
     } catch {
       // ignore
     } finally {
@@ -172,8 +177,10 @@ export default function LocationPicker({ value, onChange }) {
           scrollWheelZoom
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            subdomains="abcd"
+            maxZoom={20}
           />
           {hasPin && (
             <Marker

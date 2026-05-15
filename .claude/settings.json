@@ -156,7 +156,8 @@
       "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/screens/wallet/FundWalletScreen.js\")",
       "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/store/slices/walletSlice.js\")",
       "WebSearch",
-      "WebFetch(domain:careers.wolt.com)"
+      "WebFetch(domain:careers.wolt.com)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\" | Where-Object { $_.PSIsContainer } | Select-Object Name)"
     ]
   }
 }

@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/slices/authSlice.js'
+import { fetchSettings } from '../store/slices/settingsSlice.js'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import OnboardingWizard from './OnboardingWizard.jsx'
 import {
@@ -17,8 +18,10 @@ import {
   X,
   Moon,
   Sun,
+  AlertTriangle,
+  ArrowRight,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function Layout() {
   const navigate = useNavigate()
@@ -26,8 +29,38 @@ export default function Layout() {
   const location = useLocation()
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
+  const merchantProfile = useSelector((state) => state.settings.settings)
   const { isDark, toggleTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
+  const autoOpenedRef = useRef(false)
+
+  // Pull the merchant profile so we can detect missing location server-side
+  // (instead of a per-device localStorage flag that strands merchants who
+  // skipped the wizard).
+  useEffect(() => {
+    if (merchantId) dispatch(fetchSettings({ merchantId }))
+  }, [dispatch, merchantId])
+
+  // Placeholder coords are 0,0 (Gulf of Guinea — no Nigerian merchant lands
+  // there) and the placeholder address starts with "Pending". Either signal
+  // means the merchant still needs to pin their real location.
+  const needsOnboarding =
+    !!merchantProfile &&
+    (
+      (Number(merchantProfile.lat) === 0 && Number(merchantProfile.lng) === 0) ||
+      (typeof merchantProfile.address === 'string' && merchantProfile.address.startsWith('Pending'))
+    )
+
+  // Auto-open once per page load — after the user dismisses, the banner is
+  // the entry point. Layout persists across route changes, so this won't
+  // re-pop on every navigation.
+  useEffect(() => {
+    if (needsOnboarding && !autoOpenedRef.current) {
+      autoOpenedRef.current = true
+      setWizardOpen(true)
+    }
+  }, [needsOnboarding])
 
   const handleLogout = async () => {
     await dispatch(logout())
@@ -158,12 +191,32 @@ export default function Layout() {
 
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          {needsOnboarding && !wizardOpen && (
+            <button
+              type="button"
+              onClick={() => setWizardOpen(true)}
+              className="w-full mb-6 flex items-center gap-3 p-4 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-left transition-colors"
+            >
+              <div className="flex-shrink-0 p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-amber-900 dark:text-amber-200">
+                  Finish your business setup
+                </div>
+                <div className="text-sm text-amber-800/80 dark:text-amber-300/80">
+                  Pin your business on the map — until you do, customers can't find you and admin can't approve your account.
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0" />
+            </button>
+          )}
           <Outlet />
         </main>
       </div>
 
       {/* Onboarding Wizard */}
-      <OnboardingWizard />
+      <OnboardingWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
     </div>
   )
 }
