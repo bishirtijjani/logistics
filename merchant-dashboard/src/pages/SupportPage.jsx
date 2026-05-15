@@ -1,575 +1,438 @@
-import { useState, useEffect, useRef } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
-import { showSuccessToast, showErrorToast } from '../utils/toast.js'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 import {
-  MessageCircle,
-  Send,
-  Phone,
-  Mail,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  User,
-  Search,
+  HelpCircle,
+  Inbox,
   Plus,
-  Archive,
-  Star,
+  RefreshCw,
+  ShieldAlert,
+  BookOpen,
+  X,
 } from 'lucide-react'
+import { showSuccessToast, showErrorToast } from '../utils/toast.js'
+import CloudinaryImageUploader from '../components/CloudinaryImageUploader.jsx'
+import { fetchMyTickets, createTicket } from '../store/slices/supportTicketsSlice'
+import { fetchMyDisputes } from '../store/slices/disputesSlice'
+import supportContent from '../content/support-content.json'
 
-export default function SupportPage() {
-  const { user } = useSelector((state) => state.auth)
-  const merchantId = user?.merchantId
-  const [activeTab, setActiveTab] = useState('chat')
-  const [selectedChat, setSelectedChat] = useState(null)
-  const [message, setMessage] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [tickets, setTickets] = useState([])
-  const [faqs, setFaqs] = useState([])
-  const [knowledgeBase, setKnowledgeBase] = useState([])
-  const [showNewTicketModal, setShowNewTicketModal] = useState(false)
-  const [newTicket, setNewTicket] = useState({ subject: '', category: '', priority: 'medium', description: '' })
-  const [chatMessages, setChatMessages] = useState([])
-  const [onlineStatus, setOnlineStatus] = useState(true)
-  const chatEndRef = useRef(null)
+const TICKET_CATEGORIES = [
+  { value: 'ACCOUNT', label: 'Account' },
+  { value: 'PAYMENT', label: 'Payment' },
+  { value: 'ORDER', label: 'Order' },
+  { value: 'DELIVERY', label: 'Delivery' },
+  { value: 'PRODUCT', label: 'Product' },
+  { value: 'TECHNICAL', label: 'Technical' },
+  { value: 'OTHER', label: 'Other' },
+]
 
-  // Mock data - in production, these would come from API
-  const mockChats = [
-    { id: 1, customer: 'John Doe', lastMessage: 'When will my order arrive?', time: '2 min ago', unread: 2, status: 'active' },
-    { id: 2, customer: 'Jane Smith', lastMessage: 'I want to cancel my order', time: '15 min ago', unread: 1, status: 'active' },
-    { id: 3, customer: 'Mike Johnson', lastMessage: 'Thank you for the quick delivery!', time: '1 hour ago', unread: 0, status: 'resolved' },
-  ]
+const TICKET_PRIORITIES = [
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' },
+  { value: 'URGENT', label: 'Urgent' },
+]
 
-  const mockMessages = [
-    { id: 1, sender: 'customer', text: 'Hi, I need help with my order', time: '10:30 AM' },
-    { id: 2, sender: 'merchant', text: 'Hello! I\'d be happy to help. What\'s your order number?', time: '10:31 AM' },
-    { id: 3, sender: 'customer', text: 'It\'s #12345. When will it arrive?', time: '10:32 AM' },
-    { id: 4, sender: 'merchant', text: 'Let me check that for you. Your order is out for delivery and should arrive within 30 minutes.', time: '10:33 AM' },
-  ]
+const ticketStatusBadge = (status) => {
+  switch (status) {
+    case 'OPEN': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+    case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+    case 'PENDING_USER': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+    case 'RESOLVED': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+    case 'CLOSED': return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+    default: return 'bg-surface-muted dark:bg-dark-surface-muted'
+  }
+}
 
-  const mockTickets = [
-    { id: 1, subject: 'Late Delivery', customer: 'John Doe', status: 'open', priority: 'high', created: '2 hours ago', category: 'delivery' },
-    { id: 2, subject: 'Wrong Item', customer: 'Jane Smith', status: 'in-progress', priority: 'medium', created: '5 hours ago', category: 'product' },
-    { id: 3, subject: 'Refund Request', customer: 'Mike Johnson', status: 'resolved', priority: 'low', created: '1 day ago', category: 'payment' },
-  ]
+const disputeStatusBadge = (status) => {
+  switch (status) {
+    case 'OPEN': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+    case 'UNDER_REVIEW': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+    case 'AWAITING_RESPONSE': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+    case 'RESOLVED': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+    case 'REJECTED': return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+    default: return 'bg-surface-muted dark:bg-dark-surface-muted'
+  }
+}
 
-  const mockFaqs = [
-    { id: 1, question: 'How long does delivery take?', answer: 'Delivery typically takes 30-45 minutes within our service area.', category: 'delivery', views: 245 },
-    { id: 2, question: 'How do I cancel an order?', answer: 'You can cancel your order from the app within 5 minutes of placing it.', category: 'orders', views: 189 },
-    { id: 3, question: 'What payment methods do you accept?', answer: 'We accept credit cards, debit cards, and mobile payments.', category: 'payment', views: 156 },
-  ]
+const TABS = [
+  { id: 'tickets', label: 'My Tickets', icon: Inbox },
+  { id: 'disputes', label: 'Disputes', icon: ShieldAlert },
+  { id: 'faq', label: 'FAQ', icon: HelpCircle },
+  { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
+]
 
-  const mockKnowledgeBase = [
-    { id: 1, title: 'Complete Delivery Guide', category: 'delivery', views: 523, lastUpdated: '2 days ago' },
-    { id: 2, title: 'Order Management Tutorial', category: 'orders', views: 412, lastUpdated: '1 week ago' },
-    { id: 3, title: 'Payment Processing Explained', category: 'payment', views: 287, lastUpdated: '3 days ago' },
-  ]
+function CreateTicketModal({ onClose, onCreated }) {
+  const dispatch = useDispatch()
+  const [form, setForm] = useState({
+    category: 'OTHER',
+    priority: 'MEDIUM',
+    subject: '',
+    description: '',
+  })
+  const [attachmentUrls, setAttachmentUrls] = useState([])
+  const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    setTickets(mockTickets)
-    setFaqs(mockFaqs)
-    setKnowledgeBase(mockKnowledgeBase)
-    if (selectedChat) {
-      setChatMessages(mockMessages)
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!form.subject.trim() || !form.description.trim()) {
+      showErrorToast('Subject and description are required')
+      return
     }
-  }, [selectedChat])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [chatMessages])
-
-  const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  const sendMessage = () => {
-    if (message.trim()) {
-      const newMessage = {
-        id: chatMessages.length + 1,
-        sender: 'merchant',
-        text: message,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-      setChatMessages([...chatMessages, newMessage])
-      setMessage('')
-      showSuccessToast('Message sent')
-    }
-  }
-
-  const createTicket = () => {
-    if (newTicket.subject && newTicket.description) {
-      const ticket = {
-        id: tickets.length + 1,
-        ...newTicket,
-        customer: 'New Customer',
-        status: 'open',
-        created: 'Just now'
-      }
-      setTickets([ticket, ...tickets])
-      setShowNewTicketModal(false)
-      setNewTicket({ subject: '', category: '', priority: 'medium', description: '' })
-      showSuccessToast('Ticket created successfully')
-    }
-  }
-
-  const updateTicketStatus = (ticketId, newStatus) => {
-    setTickets(tickets.map(ticket => 
-      ticket.id === ticketId ? { ...ticket, status: newStatus } : ticket
-    ))
-    showSuccessToast(`Ticket status updated to ${newStatus}`)
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'open': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-      case 'in-progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-      case 'resolved': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-      default: return 'bg-surface-muted text-gray-800 dark:bg-gray-900/30 dark:text-muted'
-    }
-  }
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'high': return 'text-red-600 dark:text-red-400'
-      case 'medium': return 'text-yellow-600 dark:text-yellow-400'
-      case 'low': return 'text-green-600 dark:text-green-400'
-      default: return 'text-muted dark:text-dark-muted'
+    setSubmitting(true)
+    try {
+      const ticket = await dispatch(createTicket({ ...form, attachmentUrls })).unwrap()
+      showSuccessToast('Ticket created')
+      onCreated?.(ticket)
+      onClose()
+    } catch (err) {
+      showErrorToast(err?.message || 'Failed to create ticket')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="bg-white dark:bg-dark-surface border-b border-surface-muted dark:border-dark-surface-muted px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-text dark:text-dark-text">Customer Support</h1>
-            <p className="text-muted dark:text-dark-muted">Manage customer inquiries and support tickets</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${onlineStatus ? 'bg-green-500' : 'bg-muted'}`} />
-              <span className="text-sm text-muted dark:text-dark-muted">
-                {onlineStatus ? 'Online' : 'Offline'}
-              </span>
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-surface-muted dark:border-dark-surface-muted">
+          <h2 className="font-semibold text-text dark:text-dark-text">New support ticket</h2>
+          <button onClick={onClose} className="p-1 hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
+            <X size={18} />
+          </button>
+        </div>
+        <form onSubmit={submit} className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Category</label>
+              <select
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-surface dark:bg-dark-surface text-text dark:text-dark-text text-sm"
+              >
+                {TICKET_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
             </div>
-            <button
-              onClick={() => setOnlineStatus(!onlineStatus)}
-              className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-sm"
-            >
-              {onlineStatus ? 'Go Offline' : 'Go Online'}
-            </button>
+            <div>
+              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Priority</label>
+              <select
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value })}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-surface dark:bg-dark-surface text-text dark:text-dark-text text-sm"
+              >
+                {TICKET_PRIORITIES.map((p) => (
+                  <option key={p.value} value={p.value}>{p.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white dark:bg-dark-surface border-b border-surface-muted dark:border-dark-surface-muted">
-        <div className="flex space-x-8 px-6">
-          {['chat', 'tickets', 'faq', 'knowledge'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
-                activeTab === tab
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-muted hover:text-text dark:text-muted dark:hover:text-dark-text'
-              }`}
-            >
-              {tab === 'faq' ? 'FAQ' : tab}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {/* Chat Tab */}
-        {activeTab === 'chat' && (
-          <div className="h-full flex">
-            {/* Chat List */}
-            <div className="w-80 border-r border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface">
-              <div className="p-4 border-b border-surface-muted dark:border-dark-surface-muted">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted" />
-                  <input
-                    type="text"
-                    placeholder="Search conversations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  />
-                </div>
-              </div>
-              <div className="overflow-y-auto h-full">
-                {mockChats.map((chat) => (
-                  <div
-                    key={chat.id}
-                    onClick={() => setSelectedChat(chat)}
-                    className={`p-4 border-b border-surface-muted dark:border-dark-surface-muted cursor-pointer hover:bg-surface-muted dark:hover:bg-dark-surface-muted ${
-                      selectedChat?.id === chat.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-surface-muted dark:bg-dark-surface-muted rounded-full flex items-center justify-center">
-                          <User className="w-4 h-4 text-text dark:text-dark-text" />
-                        </div>
-                        <span className="font-medium text-text dark:text-dark-text">{chat.customer}</span>
-                      </div>
-                      <span className="text-xs text-muted dark:text-muted">{chat.time}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted dark:text-dark-muted truncate">{chat.lastMessage}</p>
-                      {chat.unread > 0 && (
-                        <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-1">
-                          {chat.unread}
-                        </span>
-                      )}
-                    </div>
+          <div>
+            <label className="text-xs text-muted dark:text-dark-muted block mb-1">Subject</label>
+            <input
+              type="text"
+              value={form.subject}
+              onChange={(e) => setForm({ ...form, subject: e.target.value })}
+              maxLength={200}
+              placeholder="Short summary"
+              className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-surface dark:bg-dark-surface text-text dark:text-dark-text text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted dark:text-dark-muted block mb-1">Describe the issue</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              rows={5}
+              maxLength={5000}
+              placeholder="Explain what's going on in as much detail as possible."
+              className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-surface dark:bg-dark-surface text-text dark:text-dark-text text-sm resize-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted dark:text-dark-muted block mb-1">Attach a screenshot (optional)</label>
+            {attachmentUrls.length > 0 ? (
+              <div className="flex gap-2 flex-wrap">
+                {attachmentUrls.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded border border-surface-muted overflow-hidden">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setAttachmentUrls(attachmentUrls.filter((u) => u !== url))}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center text-xs"
+                    >
+                      <X size={12} />
+                    </button>
                   </div>
                 ))}
+                {attachmentUrls.length < 5 && (
+                  <div className="w-20 h-20">
+                    <CloudinaryImageUploader
+                      kind="ticket"
+                      size="sm"
+                      value=""
+                      onChange={(url) => url && setAttachmentUrls([...attachmentUrls, url])}
+                    />
+                  </div>
+                )}
               </div>
-            </div>
-
-            {/* Chat Window */}
-            <div className="flex-1 flex flex-col bg-white dark:bg-dark-surface">
-              {selectedChat ? (
-                <>
-                  {/* Chat Header */}
-                  <div className="p-4 border-b border-surface-muted dark:border-dark-surface-muted">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-surface-muted dark:bg-dark-surface-muted rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-text dark:text-dark-text" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-text dark:text-dark-text">{selectedChat.customer}</h3>
-                          <p className="text-sm text-muted dark:text-muted">Active now</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className="p-2 text-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg">
-                          <Phone className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg">
-                          <Mail className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {chatMessages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex ${msg.sender === 'merchant' ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-xs px-4 py-2 rounded-lg ${
-                            msg.sender === 'merchant'
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'
-                          }`}
-                        >
-                          <p>{msg.text}</p>
-                          <p className={`text-xs mt-1 ${
-                            msg.sender === 'merchant' ? 'text-blue-100' : 'text-muted dark:text-muted'
-                          }`}>
-                            {msg.time}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={chatEndRef} />
-                  </div>
-
-                  {/* Message Input */}
-                  <div className="p-4 border-t border-surface-muted dark:border-dark-surface-muted">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Type a message..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                        className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                      <button
-                        onClick={sendMessage}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <MessageCircle className="w-12 h-12 text-muted mx-auto mb-4" />
-                    <p className="text-muted dark:text-dark-muted">Select a conversation to start chatting</p>
-                  </div>
-                </div>
-              )}
-            </div>
+            ) : (
+              <CloudinaryImageUploader
+                kind="ticket"
+                size="sm"
+                value=""
+                onChange={(url) => url && setAttachmentUrls([url])}
+              />
+            )}
           </div>
-        )}
-
-        {/* Tickets Tab */}
-        {activeTab === 'tickets' && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-text dark:text-dark-text">Support Tickets</h2>
-              <button
-                onClick={() => setShowNewTicketModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                New Ticket
-              </button>
-            </div>
-
-            <div className="bg-white dark:bg-dark-surface rounded-lg shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-surface-muted dark:bg-dark-surface-muted">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-muted uppercase tracking-wider">
-                        Subject
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-muted uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-muted uppercase tracking-wider">
-                        Category
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-muted uppercase tracking-wider">
-                        Priority
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-muted uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-muted uppercase tracking-wider">
-                        Created
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted dark:text-muted uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
-                    {tickets.map((ticket) => (
-                      <tr key={ticket.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-text dark:text-dark-text">
-                            {ticket.subject}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-text dark:text-dark-text">{ticket.customer}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-text dark:text-dark-text capitalize">{ticket.category}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`text-sm font-medium capitalize ${getPriorityColor(ticket.priority)}`}>
-                            {ticket.priority}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full capitalize ${getStatusColor(ticket.status)}`}>
-                            {ticket.status.replace('-', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-muted">
-                          {ticket.created}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <div className="flex items-center gap-2">
-                            {ticket.status === 'open' && (
-                              <button
-                                onClick={() => updateTicketStatus(ticket.id, 'in-progress')}
-                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                              >
-                                Start
-                              </button>
-                            )}
-                            {ticket.status === 'in-progress' && (
-                              <button
-                                onClick={() => updateTicketStatus(ticket.id, 'resolved')}
-                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                              >
-                                Resolve
-                              </button>
-                            )}
-                            <button className="text-text hover:text-text dark:text-muted dark:hover:text-dark-text">
-                              Archive
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm rounded-lg border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-white disabled:opacity-50"
+            >
+              {submitting ? 'Creating...' : 'Create ticket'}
+            </button>
           </div>
-        )}
+        </form>
+      </div>
+    </div>
+  )
+}
 
-        {/* FAQ Tab */}
-        {activeTab === 'faq' && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-text dark:text-dark-text">Frequently Asked Questions</h2>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Add FAQ
-              </button>
-            </div>
+export default function SupportPage() {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const { tickets, total: ticketsTotal, loading: ticketsLoading } = useSelector((s) => s.supportTickets)
+  const { disputes, total: disputesTotal, loading: disputesLoading } = useSelector((s) => s.disputes)
 
-            <div className="grid gap-4">
-              {faqs.map((faq) => (
-                <div key={faq.id} className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-medium text-text dark:text-dark-text">{faq.question}</h3>
-                        <span className="px-2 py-1 text-xs bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted rounded">
-                          {faq.category}
-                        </span>
-                      </div>
-                      <p className="text-muted dark:text-dark-muted mb-3">{faq.answer}</p>
-                      <div className="flex items-center gap-4 text-sm text-muted dark:text-muted">
-                        <span>{faq.views} views</span>
-                        <button className="flex items-center gap-1 hover:text-text dark:hover:text-dark-text">
-                          <Star className="w-4 h-4" />
-                          Helpful
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <button className="p-2 text-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg">
-                        Edit
-                      </button>
-                      <button className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg">
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  const [activeTab, setActiveTab] = useState('tickets')
+  const [showCreate, setShowCreate] = useState(false)
 
-        {/* Knowledge Base Tab */}
-        {activeTab === 'knowledge' && (
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-text dark:text-dark-text">Knowledge Base</h2>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Add Article
-              </button>
-            </div>
+  const loadTickets = () => dispatch(fetchMyTickets({}))
+  const loadDisputes = () => dispatch(fetchMyDisputes({}))
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {knowledgeBase.map((article) => (
-                <div key={article.id} className="bg-white dark:bg-dark-surface rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="px-2 py-1 text-xs bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted rounded">
-                      {article.category}
-                    </span>
-                    <Archive className="w-4 h-4 text-muted" />
-                  </div>
-                  <h3 className="font-medium text-text dark:text-dark-text mb-2">{article.title}</h3>
-                  <div className="flex items-center justify-between text-sm text-muted dark:text-muted">
-                    <span>{article.views} views</span>
-                    <span>Updated {article.lastUpdated}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  useEffect(() => {
+    loadTickets()
+    loadDisputes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">Support</h1>
+          <p className="text-sm text-muted dark:text-dark-muted">
+            Raise issues with the platform team, follow up on disputes, and browse the merchant knowledge base.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              if (activeTab === 'tickets') loadTickets()
+              if (activeTab === 'disputes') loadDisputes()
+            }}
+            className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg flex items-center justify-center hover:bg-surface-muted dark:hover:bg-dark-surface-muted"
+            title="Refresh"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          {activeTab === 'tickets' && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="px-4 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-2 hover:opacity-90"
+            >
+              <Plus size={16} /> New ticket
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* New Ticket Modal */}
-      {showNewTicketModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
-              <h2 className="text-xl font-bold text-text dark:text-dark-text">Create New Ticket</h2>
+      <div className="flex gap-1 sm:gap-3 border-b border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          const isActive = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap flex items-center gap-2 transition-colors ${
+                isActive
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'
+              }`}
+            >
+              <Icon size={14} />
+              {tab.label}
+              {tab.id === 'tickets' && ticketsTotal > 0 && (
+                <span className="ml-1 text-xs bg-surface-muted dark:bg-dark-surface-muted px-1.5 py-0.5 rounded">
+                  {ticketsTotal}
+                </span>
+              )}
+              {tab.id === 'disputes' && disputesTotal > 0 && (
+                <span className="ml-1 text-xs bg-surface-muted dark:bg-dark-surface-muted px-1.5 py-0.5 rounded">
+                  {disputesTotal}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {activeTab === 'tickets' && (
+        <div>
+          {ticketsLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={newTicket.subject}
-                  onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Category
-                </label>
-                <select
-                  value={newTicket.category}
-                  onChange={(e) => setNewTicket({ ...newTicket, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  <option value="">Select category</option>
-                  <option value="delivery">Delivery</option>
-                  <option value="product">Product</option>
-                  <option value="payment">Payment</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Priority
-                </label>
-                <select
-                  value={newTicket.priority}
-                  onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={newTicket.description}
-                  onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-            <div className="p-6 border-t border-surface-muted dark:border-dark-surface-muted flex gap-3 justify-end">
+          ) : tickets.length === 0 ? (
+            <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted py-12 flex flex-col items-center gap-3 text-muted dark:text-dark-muted">
+              <Inbox size={32} />
+              <span>You haven't raised any tickets yet.</span>
               <button
-                onClick={() => setShowNewTicketModal(false)}
-                className="px-4 py-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2 bg-primary text-white rounded-lg text-sm"
               >
-                Cancel
-              </button>
-              <button
-                onClick={createTicket}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Create Ticket
+                Create your first ticket
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
+              <table className="w-full min-w-[600px]">
+                <thead className="bg-surface-muted dark:bg-dark-surface-muted text-xs uppercase tracking-wide text-muted dark:text-dark-muted">
+                  <tr>
+                    <th className="px-4 py-3 text-left">#</th>
+                    <th className="px-4 py-3 text-left">Subject</th>
+                    <th className="px-4 py-3 text-left">Category</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Last activity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
+                  {tickets.map((t) => (
+                    <tr
+                      key={t.id}
+                      onClick={() => navigate(`/dashboard/support/tickets/${t.id}`)}
+                      className="cursor-pointer hover:bg-surface-muted/50 dark:hover:bg-dark-surface-muted/50 text-sm text-text dark:text-dark-text"
+                    >
+                      <td className="px-4 py-3 font-mono">#{t.number}</td>
+                      <td className="px-4 py-3 max-w-xs truncate">{t.subject}</td>
+                      <td className="px-4 py-3 text-xs">{t.category}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded text-xs ${ticketStatusBadge(t.status)}`}>
+                          {t.status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted dark:text-dark-muted whitespace-nowrap">
+                        {new Date(t.lastActivityAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+      )}
+
+      {activeTab === 'disputes' && (
+        <div>
+          {disputesLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : disputes.length === 0 ? (
+            <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted py-12 flex flex-col items-center gap-3 text-muted dark:text-dark-muted">
+              <ShieldAlert size={32} />
+              <span>No customer disputes against your orders. Keep it up.</span>
+            </div>
+          ) : (
+            <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead className="bg-surface-muted dark:bg-dark-surface-muted text-xs uppercase tracking-wide text-muted dark:text-dark-muted">
+                  <tr>
+                    <th className="px-4 py-3 text-left">#</th>
+                    <th className="px-4 py-3 text-left">Customer</th>
+                    <th className="px-4 py-3 text-left">Reason</th>
+                    <th className="px-4 py-3 text-left">Category</th>
+                    <th className="px-4 py-3 text-left">Status</th>
+                    <th className="px-4 py-3 text-left">Last activity</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
+                  {disputes.map((d) => (
+                    <tr
+                      key={d.id}
+                      onClick={() => navigate(`/dashboard/support/disputes/${d.id}`)}
+                      className="cursor-pointer hover:bg-surface-muted/50 dark:hover:bg-dark-surface-muted/50 text-sm text-text dark:text-dark-text"
+                    >
+                      <td className="px-4 py-3 font-mono">#{d.number}</td>
+                      <td className="px-4 py-3">
+                        {d.request?.customer?.firstName} {d.request?.customer?.lastName}
+                      </td>
+                      <td className="px-4 py-3 max-w-xs truncate">{d.reason}</td>
+                      <td className="px-4 py-3 text-xs">{d.category.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded text-xs ${disputeStatusBadge(d.status)}`}>
+                          {d.status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted dark:text-dark-muted whitespace-nowrap">
+                        {new Date(d.lastActivityAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'faq' && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {supportContent.faq.map((item) => (
+            <div
+              key={item.id}
+              className="bg-surface dark:bg-dark-surface border border-surface-muted dark:border-dark-surface-muted rounded-lg p-4 space-y-2"
+            >
+              <div className="text-xs text-primary uppercase tracking-wide">{item.category}</div>
+              <h3 className="font-semibold text-text dark:text-dark-text">{item.question}</h3>
+              <p className="text-sm text-muted dark:text-dark-muted leading-relaxed">{item.answer}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'knowledge' && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {supportContent.articles.map((article) => (
+            <div
+              key={article.id}
+              className="bg-surface dark:bg-dark-surface border border-surface-muted dark:border-dark-surface-muted rounded-lg p-4 space-y-2"
+            >
+              <div className="text-xs text-primary uppercase tracking-wide">{article.category}</div>
+              <h3 className="font-semibold text-text dark:text-dark-text">{article.title}</h3>
+              <p className="text-sm text-muted dark:text-dark-muted leading-relaxed">{article.summary}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showCreate && (
+        <CreateTicketModal
+          onClose={() => setShowCreate(false)}
+          onCreated={(ticket) => navigate(`/dashboard/support/tickets/${ticket.id}`)}
+        />
       )}
     </div>
   )

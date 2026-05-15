@@ -1,0 +1,60 @@
+{
+  "faq": [
+    {
+      "id": "approval",
+      "category": "Onboarding",
+      "question": "How long does merchant approval take?",
+      "answer": "Most merchant applications are reviewed within 24–48 business hours. You will receive an email when your store is approved and goes live to customers."
+    },
+    {
+      "id": "withdrawals",
+      "category": "Payouts",
+      "question": "When can I withdraw my earnings?",
+      "answer": "Earnings move from 'pending' to 'available' once an order is settled (delivered + payment captured). You can request a withdrawal from the Earnings page any time after that."
+    },
+    {
+      "id": "commission",
+      "category": "Payouts",
+      "question": "How is the platform commission calculated?",
+      "answer": "Commission is a percentage of the order subtotal, configured by the platform. The rate that applies to your store appears on the Earnings page and any changes are logged in your commission history."
+    },
+    {
+      "id": "open-hours",
+      "category": "Operations",
+      "question": "How do I open or close my store temporarily?",
+      "answer": "Go to Settings → toggle 'Store is open'. While closed, customers cannot place new orders but in-flight orders continue."
+    },
+    {
+      "id": "stock",
+      "category": "Operations",
+      "question": "How do I mark an item as out of stock?",
+      "answer": "Open the item in the Menu page and toggle 'Available'. You can also flip whole variants on or off without removing the parent product."
+    },
+    {
+      "id": "dispute",
+      "category": "Disputes",
+      "question": "What happens when a customer raises a dispute?",
+      "answer": "You'll get a notification and the dispute appears in the Disputes tab. You can post messages explaining your side. The platform admin makes the final ruling; if a refund is issued, the amount is taken from the order's settlement."
+    }
+  ],
+  "articles": [
+    {
+      "id": "getting-started",
+      "category": "Onboarding",
+      "title": "Setting up your storefront for the first time",
+      "summary": "Add your logo, cover image, opening hours, and your first three products. Customers see the product image first — invest in good photos."
+    },
+    {
+      "id": "menu-best-practices",
+      "category": "Operations",
+      "title": "Menu best practices: variants, options, and pack sizes",
+      "summary": "Use variants for SKU-level differences (size, colour). Use option groups for add-ons that don't change the SKU (sides, spice level)."
+    },
+    {
+      "id": "payouts",
+      "category": "Payouts",
+      "title": "How payouts work end-to-end",
+      "summary": "Order is paid → escrow → delivered → settled → available. Withdrawals are processed within 1–2 business days once approved."
+    }
+  ]
+}

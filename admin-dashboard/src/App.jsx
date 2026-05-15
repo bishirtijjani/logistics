@@ -22,7 +22,9 @@ import NotFoundPage from './pages/NotFoundPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import FinancialPage from './pages/FinancialPage'
 import DisputesPage from './pages/DisputesPage'
+import DisputeDetailPage from './pages/DisputeDetailPage'
 import SupportPage from './pages/SupportPage'
+import SupportTicketDetailPage from './pages/SupportTicketDetailPage'
 import MarketingPage from './pages/MarketingPage'
 import RiderOperationsPage from './pages/RiderOperationsPage'
 import SafetyPage from './pages/SafetyPage'
@@ -90,7 +92,9 @@ function App() {
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="financial" element={<FinancialPage />} />
           <Route path="disputes" element={<DisputesPage />} />
+          <Route path="disputes/:disputeId" element={<DisputeDetailPage />} />
           <Route path="support" element={<SupportPage />} />
+          <Route path="support/:ticketId" element={<SupportTicketDetailPage />} />
           <Route path="marketing" element={<MarketingPage />} />
           <Route path="rider-operations" element={<RiderOperationsPage />} />
           <Route path="safety" element={<SafetyPage />} />

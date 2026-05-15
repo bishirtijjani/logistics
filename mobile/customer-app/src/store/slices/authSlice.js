@@ -61,7 +61,18 @@ export const verifyOtp = createAsyncThunk(
   async (verificationData, { rejectWithValue }) => {
     try {
       const response = await api.post("/auth/otp/verify", verificationData);
-      return response.data;
+      const data = response.data;
+      // Customer registrations now come back with tokens + user — persist them
+      // so the navigator's auth gate flips on `isAuthenticated` and the user
+      // lands in the main app without a separate login step. Password-reset
+      // OTPs (handled on a different screen) carry no tokens, so this is a
+      // no-op for them.
+      if (data?.tokens?.accessToken && data?.tokens?.refreshToken && data?.user) {
+        await SecureStore.setItemAsync("accessToken", data.tokens.accessToken);
+        await SecureStore.setItemAsync("refreshToken", data.tokens.refreshToken);
+        registerPushToken().catch(() => {});
+      }
+      return data;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -192,9 +203,15 @@ const authSlice = createSlice({
       state.isLoading = true;
       state.error = null;
     });
-    builder.addCase(verifyOtp.fulfilled, (state) => {
+    builder.addCase(verifyOtp.fulfilled, (state, action) => {
       state.isLoading = false;
       state.pendingEmail = null;
+      // When tokens are present (customer registration path) flip the auth
+      // gate here so AppNavigator swaps to the authed stack automatically.
+      if (action.payload?.user && action.payload?.tokens) {
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+      }
     });
     builder.addCase(verifyOtp.rejected, (state, action) => {
       state.isLoading = false;

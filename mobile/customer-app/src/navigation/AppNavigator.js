@@ -85,6 +85,13 @@ import UtilityHistoryScreen from "../screens/utility/UtilityHistoryScreen";
 // Notification Center
 import NotificationCenterScreen from "../screens/main/NotificationCenterScreen";
 
+// Support
+import MyTicketsScreen from "../screens/support/MyTicketsScreen";
+import CreateTicketScreen from "../screens/support/CreateTicketScreen";
+import TicketDetailScreen from "../screens/support/TicketDetailScreen";
+import CreateDisputeScreen from "../screens/support/CreateDisputeScreen";
+import DisputeDetailScreen from "../screens/support/DisputeDetailScreen";
+
 // Shops aggregator (long-tail categories not surfaced as tiles on Home).
 import ShopsScreen from "../screens/main/ShopsScreen";
 
@@ -116,6 +123,11 @@ const NAV_LINKING = {
       Profile: "profile",
       NotificationCenter: "notifications",
       RequestTracking: "request/:requestId",
+      MyTickets: "support",
+      CreateSupportTicket: "support/new",
+      SupportTicketDetail: "support/ticket/:ticketId",
+      CreateDispute: "support/dispute/new/:requestId",
+      SupportDisputeDetail: "support/dispute/:disputeId",
       TransactionHistory: "wallet/transactions",
       Airtime: "utility/airtime",
       Data: "utility/data",
@@ -480,6 +492,13 @@ export default function AppNavigator() {
 
             {/* Notifications */}
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
+
+            {/* Support — tickets and disputes */}
+            <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
+            <Stack.Screen name="CreateSupportTicket" component={CreateTicketScreen} />
+            <Stack.Screen name="SupportTicketDetail" component={TicketDetailScreen} />
+            <Stack.Screen name="CreateDispute" component={CreateDisputeScreen} />
+            <Stack.Screen name="SupportDisputeDetail" component={DisputeDetailScreen} />
           </>
         ) : (
           // Auth Flow

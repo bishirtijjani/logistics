@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/slices/authSlice.js'
 import { fetchSettings } from '../store/slices/settingsSlice.js'
 import { useTheme } from '../contexts/ThemeContext.jsx'
+import { useAuthSession } from '../lib/useAuthSession.js'
 import OnboardingWizard from './OnboardingWizard.jsx'
 import {
   ShoppingBag,
@@ -20,6 +21,7 @@ import {
   Sun,
   AlertTriangle,
   ArrowRight,
+  Clock,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -34,6 +36,14 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
   const autoOpenedRef = useRef(false)
+  const {
+    showWarning,
+    timeRemaining,
+    extending,
+    formatTimeRemaining,
+    handleLogout: handleSessionExpiredLogout,
+    extendSession,
+  } = useAuthSession()
 
   // Pull the merchant profile so we can detect missing location server-side
   // (instead of a per-device localStorage flag that strands merchants who
@@ -217,6 +227,50 @@ export default function Layout() {
 
       {/* Onboarding Wizard */}
       <OnboardingWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
+
+      {/* Session expiry warning — shown 5 minutes before the access token
+          dies. "Stay signed in" silently refreshes via /auth/refresh so
+          merchants rarely lose context mid-order. */}
+      {showWarning && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white dark:bg-dark-surface rounded-2xl p-6 w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">
+                Your session is about to expire
+              </h3>
+            </div>
+            <p className="text-muted dark:text-dark-muted mb-2">
+              You'll be signed out in{' '}
+              <span className="font-semibold text-text dark:text-dark-text">
+                {formatTimeRemaining(timeRemaining) || 'a moment'}
+              </span>
+              .
+            </p>
+            <p className="text-sm text-muted dark:text-dark-muted mb-6">
+              Stay signed in to keep receiving orders without interruption.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={extendSession}
+                disabled={extending}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {extending ? 'Extending…' : 'Stay signed in'}
+              </button>
+              <button
+                onClick={handleSessionExpiredLogout}
+                disabled={extending}
+                className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors disabled:opacity-60"
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

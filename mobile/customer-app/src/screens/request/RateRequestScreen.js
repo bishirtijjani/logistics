@@ -97,6 +97,18 @@ export default function RateRequestScreen() {
         >
           {isRating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700' }}>{t('rate.submit')}</Text>}
         </TouchableOpacity>
+
+        {request.id && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('CreateDispute', { requestId: request.id })}
+            accessibilityRole="button"
+            style={{ paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
+          >
+            <Text style={{ color: colors.error, fontWeight: '600', fontSize: 13 }}>
+              {t('support.somethingWrong')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

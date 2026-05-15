@@ -73,6 +73,85 @@ export default function HelpSupportScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
+        {/* Quick actions — open tickets */}
+        <View style={{ marginHorizontal: 20, marginBottom: 24, gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("CreateSupportTicket")}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: colors.primary,
+              borderRadius: 14,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              gap: 12,
+            }}
+          >
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                backgroundColor: "rgba(255,255,255,0.18)",
+                borderRadius: 11,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="create-outline" size={19} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>
+                {t("support.createTicket")}
+              </Text>
+              <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
+                {t("support.createTicketSub")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={17} color="rgba(255,255,255,0.8)" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate("MyTickets")}
+            activeOpacity={0.6}
+            accessibilityRole="button"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: colors.surface,
+              borderWidth: 1.5,
+              borderColor: colors.border,
+              borderRadius: 14,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              gap: 12,
+            }}
+          >
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                backgroundColor: colors.surfaceMuted,
+                borderRadius: 11,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="folder-open-outline" size={19} color={colors.text} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>
+                {t("support.myTickets")}
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                {t("support.myTicketsSub")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={17} color={colors.textLight} />
+          </TouchableOpacity>
+        </View>
+
         {/* Contact */}
         <View style={{ marginHorizontal: 20 }}>
           <Text
@@ -103,6 +182,7 @@ export default function HelpSupportScreen({ navigation }) {
                 icon: "chatbubble-ellipses-outline",
                 label: t("help.chatLabel"),
                 sub: t("help.chatSub"),
+                onPress: () => navigation.navigate("CreateSupportTicket"),
               },
               {
                 icon: "mail-outline",

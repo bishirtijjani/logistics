@@ -25,7 +25,6 @@ export default function OnboardingWizard({ open, onClose }) {
   const [onboardingData, setOnboardingData] = useState({
     skipForLater: false,
     hasAddedProduct: false,
-    hasSetHours: false,
     hasConfiguredSettings: false
   })
 
@@ -63,9 +62,12 @@ export default function OnboardingWizard({ open, onClose }) {
       if (onboardingData.hasAddedProduct && !validateProduct()) return
     }
     if (currentStep === 4) {
-      if (onboardingData.hasSetHours) {
-        saveBusinessHours()
-      }
+      // The Next button is the only save affordance for hours now — the
+      // inline "Save Hours" button was removed because it never updated the
+      // wizard's own state, so users hit Next thinking they were done and
+      // nothing actually persisted.
+      const ok = await saveBusinessHours()
+      if (!ok) return
     }
     setCurrentStep(currentStep + 1)
   }
@@ -173,8 +175,10 @@ export default function OnboardingWizard({ open, onClose }) {
       }
 
       showSuccessToast('Business hours saved!')
+      return true
     } catch (err) {
       showErrorToast('Failed to save hours. Please try again.')
+      return false
     } finally {
       setLoading(false)
     }
@@ -388,14 +392,6 @@ export default function OnboardingWizard({ open, onClose }) {
               </p>
             </div>
           </div>
-          <button
-            onClick={saveBusinessHours}
-            disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-primary to-primary-700 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? 'Saving...' : 'Save Hours'}
-            <Clock className="w-5 h-5" />
-          </button>
         </div>
       )
     },
@@ -445,7 +441,7 @@ export default function OnboardingWizard({ open, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-dark-surface rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-dark-surface rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-surface dark:bg-dark-surface border-b border-surface-muted dark:border-dark-surface-muted p-6 rounded-t-3xl">
           <div className="flex items-center justify-between">

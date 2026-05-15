@@ -144,7 +144,11 @@ const requestPasswordReset = async (req, res, next) => {
 
 const verifyOtp = async (req, res, next) => {
   try {
-    const result = await authService.verifyOtp(req.body.email, req.body.code);
+    const result = await authService.verifyOtp(
+      req.body.email,
+      req.body.code,
+      extractSessionMeta(req),
+    );
     res.json(ApiResponse.success("Email verified successfully", result));
   } catch (error) {
     next(error);

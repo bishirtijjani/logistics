@@ -148,11 +148,13 @@ export default function LocationPicker({ value, onChange }) {
             className="w-full pl-10 pr-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-white dark:bg-dark-surface text-text dark:text-dark-text focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           />
           {searching && (
-            <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted animate-spin" />
+            <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted dark:text-dark-muted animate-spin" />
           )}
         </div>
         {predictions.length > 0 && (
-          <ul className="absolute z-[1000] left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-white dark:bg-dark-surface border border-surface-muted dark:border-dark-surface-muted rounded-lg shadow-lg">
+          // z-[1100] sits above Leaflet's zoom control (which uses z-index 1000)
+          // so the +/- buttons can't bleed through the search results.
+          <ul className="absolute z-[1100] left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-white dark:bg-dark-surface border border-surface-muted dark:border-dark-surface-muted rounded-lg shadow-lg">
             {predictions.map((p) => (
               <li key={p.placeId}>
                 <button

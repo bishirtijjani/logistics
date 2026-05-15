@@ -1,6 +1,4 @@
-const crypto = require('crypto');
 const { prisma } = require('../../config/database');
-const { config } = require('../../config');
 const { ApiResponse } = require('../../utils/api-response');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
@@ -22,7 +20,6 @@ const handleKatpay = async (req, res, next) => {
   try {
     const signature = req.headers['x-katpay-signature'];
     const timestamp = req.headers['x-katpay-timestamp'];
-    const eventType = req.headers['x-katpay-event'];
     const deliveryId = req.headers['x-katpay-delivery-id'];
 
     // Raw body is available because this route uses express.raw()
@@ -41,7 +38,19 @@ const handleKatpay = async (req, res, next) => {
     }
 
     const payload = JSON.parse(rawBody);
-    const transactionRef = deliveryId || payload?.uuid || payload?.merchant_reference || `katpay-${Date.now()}`;
+    // KatPay wraps event content under `data`. Event type lives at the root
+    // (`event_type` for VA events, `event` for transfer payments). The header
+    // `x-katpay-event` is not documented; we still honor it as a fallback.
+    const data = payload.data || payload;
+    const eventType = payload.event_type || payload.event || req.headers['x-katpay-event'];
+    const transactionRef =
+      deliveryId ||
+      payload.event_id ||
+      data.uuid ||
+      data.transaction?.order_no ||
+      data.merchant_reference ||
+      data.reference ||
+      `katpay-${Date.now()}`;
 
     // 3. Idempotency check
     const existing = await prisma.webhookEvent.findUnique({
@@ -73,9 +82,9 @@ const handleKatpay = async (req, res, next) => {
         switch (eventType) {
           case 'virtual_account.payment_received':
           case 'transaction.completed': {
-            const accountNumber = payload.virtual_account?.account_number || payload.accountNumber;
-            const amount = Number(payload.amount_received ?? payload.amount ?? 0);
-            const ref = payload.reference || transactionRef;
+            const accountNumber = data.virtual_account?.account_number;
+            const amount = Number(data.transaction?.order_amount ?? 0);
+            const ref = data.transaction?.order_no || transactionRef;
             await paymentQueue.add(
               PAYMENT_JOBS.PROCESS_KATPAY_WEBHOOK,
               { transactionRef, accountNumber, amount, ref, eventData: payload },
@@ -85,9 +94,9 @@ const handleKatpay = async (req, res, next) => {
           }
 
           case 'transfer_payment.completed': {
-            const amount = Number(payload.amount_received ?? payload.amount ?? 0);
-            const metadata = payload.metadata || {};
-            const ref = payload.merchant_reference || transactionRef;
+            const amount = Number(data.amount_received ?? data.amount ?? 0);
+            const metadata = data.metadata || {};
+            const ref = data.merchant_reference || transactionRef;
             await paymentQueue.add(
               PAYMENT_JOBS.PROCESS_TRANSFER_PAYMENT_WEBHOOK,
               { transactionRef, amount, ref, metadata, eventData: payload },
@@ -97,7 +106,7 @@ const handleKatpay = async (req, res, next) => {
           }
 
           case 'payout.processed': {
-            const katpayRef = payload.reference;
+            const katpayRef = data.reference;
             if (katpayRef) {
               await prisma.merchantWalletTransaction.updateMany({
                 where: { katpayReference: katpayRef },

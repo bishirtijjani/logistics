@@ -58,7 +58,7 @@ export default function Layout() {
   const { user } = useSelector((state) => state.auth)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isDark, toggleTheme } = useTheme()
-  const { showWarning, timeRemaining, formatTimeRemaining, handleLogout, extendSession } = useAuthSession()
+  const { showWarning, timeRemaining, extending, formatTimeRemaining, handleLogout, extendSession } = useAuthSession()
 
   return (
     <div className="flex h-screen bg-background dark:bg-dark-background">
@@ -167,13 +167,15 @@ export default function Layout() {
             <div className="flex gap-3">
               <button
                 onClick={extendSession}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
+                disabled={extending}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Extend Session
+                {extending ? 'Extending…' : 'Extend Session'}
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
+                disabled={extending}
+                className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text disabled:opacity-60"
               >
                 Logout
               </button>

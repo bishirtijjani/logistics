@@ -26,7 +26,15 @@ export const fetchBankList = createAsyncThunk(
   'earnings/fetchBankList',
   async () => {
     const response = await api.get('/wallet/banks')
-    return response.data.data || []
+    // KatPay's bank list can come back as a bare array, or wrapped in an
+    // object (`{ banks: [...] }` / `{ items: [...] }`). Normalize to an array
+    // so reducers and `.map(...)` consumers never crash on a non-array.
+    const payload = response.data?.data
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.banks)) return payload.banks
+    if (Array.isArray(payload?.items)) return payload.items
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
   }
 )
 
@@ -65,7 +73,7 @@ const earningsSlice = createSlice({
       })
       .addCase(fetchBankList.fulfilled, (state, action) => {
         state.banksLoading = false
-        state.banks = action.payload
+        state.banks = Array.isArray(action.payload) ? action.payload : []
       })
       .addCase(fetchBankList.rejected, (state) => {
         state.banksLoading = false

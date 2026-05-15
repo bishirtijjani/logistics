@@ -684,7 +684,9 @@ const createMerchantProduct = async (merchantId, userId, role, productData) => {
             items: {
               create: (group.items || []).map((it) => ({
                 name: it.name,
+                description: it.description || null,
                 priceDelta: it.priceDelta ?? 0,
+                imageUrl: it.imageUrl || null,
                 isDefault: it.isDefault ?? false,
                 isAvailable: it.isAvailable ?? true,
                 sortOrder: it.sortOrder ?? 0,
@@ -1037,7 +1039,9 @@ const createOptionGroup = async (merchantId, userId, role, productId, groupData)
       items: {
         create: (groupData.items || []).map((it) => ({
           name: it.name,
+          description: it.description || null,
           priceDelta: it.priceDelta ?? 0,
+          imageUrl: it.imageUrl || null,
           isDefault: it.isDefault ?? false,
           isAvailable: it.isAvailable ?? true,
           sortOrder: it.sortOrder ?? 0,
@@ -1076,7 +1080,9 @@ const createOptionItem = async (merchantId, userId, role, productId, groupId, it
     data: {
       groupId,
       name: itemData.name,
+      description: itemData.description || null,
       priceDelta: itemData.priceDelta ?? 0,
+      imageUrl: itemData.imageUrl || null,
       isDefault: itemData.isDefault ?? false,
       isAvailable: itemData.isAvailable ?? true,
       sortOrder: itemData.sortOrder ?? 0,
@@ -1188,7 +1194,9 @@ const bulkUpsertOptionGroups = async (merchantId, userId, role, productId, group
             where: { id: item.id },
             data: {
               name: item.name,
+              description: item.description || null,
               priceDelta: item.priceDelta ?? 0,
+              imageUrl: item.imageUrl || null,
               isDefault: item.isDefault ?? false,
               isAvailable: item.isAvailable ?? true,
               sortOrder: itemSortOrder,
@@ -1199,7 +1207,9 @@ const bulkUpsertOptionGroups = async (merchantId, userId, role, productId, group
             data: {
               groupId: groupRow.id,
               name: item.name,
+              description: item.description || null,
               priceDelta: item.priceDelta ?? 0,
+              imageUrl: item.imageUrl || null,
               isDefault: item.isDefault ?? false,
               isAvailable: item.isAvailable ?? true,
               sortOrder: itemSortOrder,

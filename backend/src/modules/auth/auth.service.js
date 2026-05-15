@@ -179,8 +179,14 @@ const generateOtp = async (email, { checkCooldown = false } = {}) => {
 
 /**
  * Verify OTP and create user from pending registration data.
+ *
+ * For customer registrations, also issues an access/refresh token pair and
+ * creates a session row so the client can drop straight into the authed app
+ * (no second login step). Merchant registrations intentionally still return
+ * verification-only — the merchant dashboard funnels them to /login because
+ * their merchant profile is PENDING_APPROVAL until an admin approves it.
  */
-const verifyOtp = async (email, code) => {
+const verifyOtp = async (email, code, sessionMeta = {}) => {
   const otpKey = `${REDIS_KEYS.OTP}${email}`;
   const storedCode = await redis.get(otpKey);
 
@@ -321,6 +327,42 @@ const verifyOtp = async (email, code) => {
   // NOTE: Virtual-account provisioning is intentionally NOT triggered here.
   // Per compliance (BVN required before any NUBAN is minted), provisioning
   // happens in `verifyBvn()` once KYC succeeds.
+
+  // Auto-login customers right after verification — the user just proved
+  // email ownership and we hold their password hash, so a second login step
+  // adds nothing. Merchants skip this on purpose (see function-level note).
+  if (user.role !== 'MERCHANT') {
+    const tokens = generateTokens(user);
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        refreshToken: tokens.refreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        ipAddress: sessionMeta.ipAddress || null,
+        deviceInfo: sessionMeta.deviceInfo || null,
+        deviceName: sessionMeta.deviceName || null,
+        deviceModel: sessionMeta.deviceModel || null,
+        userAgent: sessionMeta.userAgent || null,
+        lastUsedAt: new Date(),
+      },
+    });
+
+    return {
+      verified: true,
+      userId: user.id,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        status: user.status,
+        hasPinSet: !!user.transactionPin,
+        merchantId: null,
+      },
+      tokens,
+    };
+  }
 
   return { verified: true, userId: user.id };
 };
@@ -1080,6 +1122,7 @@ const updateNotificationPreferences = async (userId, data) => {
  *   - "profile"      → vtu-logistics/profiles/{userId}/profile_{ts}      (default)
  *   - "prescription" → vtu-logistics/prescriptions/{userId}/rx_{ts}_{nonce}
  *   - "return"       → vtu-logistics/returns/{userId}/return_{ts}_{nonce} (Phase 8.5)
+ *   - "product"      → vtu-logistics/products/{userId}/prod_{ts}_{nonce}
  *
  * Each issued signature is logged with the customer id + folder. The durable
  * audit trail of *which* prescription was used for *which* order lives on
@@ -1089,6 +1132,9 @@ const UPLOAD_KINDS = {
   profile: { root: "profiles", prefix: "profile" },
   prescription: { root: "prescriptions", prefix: "rx" },
   return: { root: "returns", prefix: "return" },
+  product: { root: "products", prefix: "prod" },
+  dispute: { root: "disputes", prefix: "ev" },
+  ticket: { root: "tickets", prefix: "att" },
 };
 
 const getCloudinaryUploadSignature = (userId, kind = "profile") => {

@@ -8,23 +8,7 @@ const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
 const emailService = require('../../services/email.service');
-
-/**
- * Create an audit log entry.
- */
-const createAuditLog = async (adminUserId, action, entityType, entityId, details, ipAddress, userAgent) => {
-  await prisma.auditLog.create({
-    data: {
-      adminUserId,
-      action,
-      entityType,
-      entityId,
-      details,
-      ipAddress,
-      userAgent,
-    },
-  });
-};
+const { createAuditLog } = require('../../utils/audit');
 
 /**
  * List all riders pending approval.
@@ -2070,105 +2054,13 @@ const getWithdrawalHistory = async ({ page = 1, limit = 20, status, startDate, e
 };
 
 // ============================================================
-// Dispute Resolution
+// Dispute Resolution & Support Tickets
+// ----------------------------------------------------------------
+// Backed by the `support` module (modules/support/support.service.js).
+// The admin namespace keeps these paths for backward compatibility with
+// admin-dashboard URLs; the actual logic — including the atomic refund on
+// dispute resolution — lives in the support service.
 // ============================================================
-
-const getDisputes = async ({ page = 1, limit = 20, status }) => {
-  const skip = (page - 1) * limit;
-  const where = {
-    ...(status && { status }),
-  };
-
-  const [disputes, total] = await Promise.all([
-    prisma.dispute.findMany({
-      where,
-      include: {
-        request: {
-          include: {
-            customer: true,
-            merchant: true,
-          },
-        },
-      },
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.dispute.count({ where }),
-  ]);
-
-  return { disputes, total, page, limit };
-};
-
-const resolveDispute = async (disputeId, resolution, notes) => {
-  const dispute = await prisma.dispute.update({
-    where: { id: disputeId },
-    data: {
-      status: 'RESOLVED',
-      resolution,
-      notes,
-      resolvedAt: new Date(),
-    },
-  });
-
-  await createAuditLog({
-    action: 'RESOLVE_DISPUTE',
-    entityType: 'Dispute',
-    entityId: disputeId,
-    details: { resolution, notes },
-  });
-
-  return dispute;
-};
-
-// ============================================================
-// Support Management
-// ============================================================
-
-const getSupportTickets = async ({ page = 1, limit = 20, status }) => {
-  const skip = (page - 1) * limit;
-  const where = {
-    ...(status && { status }),
-  };
-
-  const [tickets, total] = await Promise.all([
-    prisma.supportTicket.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.supportTicket.count({ where }),
-  ]);
-
-  return { tickets, total, page, limit };
-};
-
-const updateTicketStatus = async (ticketId, status, notes) => {
-  const ticket = await prisma.supportTicket.update({
-    where: { id: ticketId },
-    data: { status, notes },
-  });
-
-  await createAuditLog({
-    action: 'UPDATE_TICKET_STATUS',
-    entityType: 'SupportTicket',
-    entityId: ticketId,
-    details: { status, notes },
-  });
-
-  return ticket;
-};
 
 // ============================================================
 // Marketing Oversight

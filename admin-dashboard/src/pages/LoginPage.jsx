@@ -28,7 +28,7 @@ export default function LoginPage() {
         return
       }
 
-      dispatch(setCredentials({ user, token: tokens.accessToken }))
+      dispatch(setCredentials({ user, token: tokens.accessToken, refreshToken: tokens.refreshToken }))
       navigate('/dashboard')
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed')

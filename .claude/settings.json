@@ -157,7 +157,24 @@
       "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/store/slices/walletSlice.js\")",
       "WebSearch",
       "WebFetch(domain:careers.wolt.com)",
-      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\" | Where-Object { $_.PSIsContainer } | Select-Object Name)"
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\" | Where-Object { $_.PSIsContainer } | Select-Object Name)",
+      "Bash(dir /B c:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs grep -l \"support\\\\|ticket\\\\|dispute\\\\|complaint\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\" -Recurse -Directory | Where-Object { $_.Name -eq \"screens\" -or $_.Name -eq \"pages\" } | Select-Object FullName)",
+      "Bash(npx --no-install vite build --logLevel=error)",
+      "Bash(npx --no-install prisma validate)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\\\\mobile\" -Directory)",
+      "Bash(dir merchant-dashboard\\\\\\\\src)",
+      "PowerShell(Get-Process node -ErrorAction SilentlyContinue)",
+      "Bash(node -e \"try { require\\('./src/modules/support/support.routes'\\); require\\('./src/modules/admin/admin.routes'\\); console.log\\('OK'\\); } catch\\(e\\) { console.error\\('ERR', e.message\\); process.exit\\(1\\); }\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/i18n/en.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/i18n/ha.json','utf8'\\)\\); console.log\\('JSON ok'\\);\")",
+      "Bash(node -e \"try { require\\('./src/app'\\).createApp; require\\('./src/modules/support/support.routes'\\); require\\('./src/modules/support/support.controller'\\); require\\('./src/modules/support/support.service'\\); require\\('./src/modules/support/support.validator'\\); require\\('./src/modules/admin/admin.routes'\\); console.log\\('OK'\\); } catch\\(e\\) { console.error\\('ERR', e.message\\); process.exit\\(1\\); }\")",
+      "Bash(node --check ../admin-dashboard/src/pages/SupportPage.jsx)",
+      "Bash(node --check ../admin-dashboard/src/pages/DisputesPage.jsx)",
+      "Bash(node --check ../admin-dashboard/src/pages/SupportTicketDetailPage.jsx)",
+      "Bash(node --check ../admin-dashboard/src/pages/DisputeDetailPage.jsx)",
+      "Bash(node --check ../merchant-dashboard/src/pages/SupportPage.jsx)"
     ]
   }
 }

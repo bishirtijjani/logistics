@@ -365,7 +365,7 @@ export default function MarketingPage() {
                     {campaign.status}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button className="p-1 text-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
+                    <button className="p-1 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
                       <Edit className="w-4 h-4" />
                     </button>
                     <button className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
@@ -629,10 +629,10 @@ export default function MarketingPage() {
                     {campaign.status}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button className="p-1 text-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
+                    <button className="p-1 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
                       <Eye className="w-4 h-4" />
                     </button>
-                    <button className="p-1 text-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
+                    <button className="p-1 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
                       <Edit className="w-4 h-4" />
                     </button>
                   </div>
@@ -688,7 +688,7 @@ export default function MarketingPage() {
                   type="text"
                   value={newCampaign.name}
                   onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -698,7 +698,7 @@ export default function MarketingPage() {
                 <select
                   value={newCampaign.type}
                   onChange={(e) => setNewCampaign({ ...newCampaign, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="promotion">Promotion</option>
                   <option value="announcement">Announcement</option>
@@ -713,7 +713,7 @@ export default function MarketingPage() {
                   value={newCampaign.description}
                   onChange={(e) => setNewCampaign({ ...newCampaign, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -725,7 +725,7 @@ export default function MarketingPage() {
                     type="date"
                     value={newCampaign.startDate}
                     onChange={(e) => setNewCampaign({ ...newCampaign, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
@@ -736,7 +736,7 @@ export default function MarketingPage() {
                     type="date"
                     value={newCampaign.endDate}
                     onChange={(e) => setNewCampaign({ ...newCampaign, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
@@ -748,7 +748,7 @@ export default function MarketingPage() {
                   type="number"
                   value={newCampaign.budget}
                   onChange={(e) => setNewCampaign({ ...newCampaign, budget: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
             </div>
@@ -786,7 +786,7 @@ export default function MarketingPage() {
                   type="text"
                   value={newDiscount.code}
                   onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   placeholder="e.g., SAVE20"
                 />
               </div>
@@ -798,7 +798,7 @@ export default function MarketingPage() {
                   <select
                     value={newDiscount.type}
                     onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   >
                     <option value="percentage">Percentage</option>
                     <option value="fixed">Fixed Amount</option>
@@ -812,7 +812,7 @@ export default function MarketingPage() {
                     type="number"
                     value={newDiscount.value}
                     onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                     placeholder={newDiscount.type === 'percentage' ? '20' : '500'}
                   />
                 </div>
@@ -826,7 +826,7 @@ export default function MarketingPage() {
                     type="number"
                     value={newDiscount.minOrder}
                     onChange={(e) => setNewDiscount({ ...newDiscount, minOrder: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
@@ -837,7 +837,7 @@ export default function MarketingPage() {
                     type="number"
                     value={newDiscount.usageLimit}
                     onChange={(e) => setNewDiscount({ ...newDiscount, usageLimit: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
@@ -850,7 +850,7 @@ export default function MarketingPage() {
                     type="date"
                     value={newDiscount.startDate}
                     onChange={(e) => setNewDiscount({ ...newDiscount, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
@@ -861,7 +861,7 @@ export default function MarketingPage() {
                     type="date"
                     value={newDiscount.endDate}
                     onChange={(e) => setNewDiscount({ ...newDiscount, endDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
@@ -900,7 +900,7 @@ export default function MarketingPage() {
                   type="text"
                   value={newLoyalty.name}
                   onChange={(e) => setNewLoyalty({ ...newLoyalty, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -912,7 +912,7 @@ export default function MarketingPage() {
                     type="number"
                     value={newLoyalty.pointsPerNaira}
                     onChange={(e) => setNewLoyalty({ ...newLoyalty, pointsPerNaira: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
@@ -923,7 +923,7 @@ export default function MarketingPage() {
                     type="number"
                     value={newLoyalty.redemptionRate}
                     onChange={(e) => setNewLoyalty({ ...newLoyalty, redemptionRate: e.target.value })}
-                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
               </div>
@@ -935,7 +935,7 @@ export default function MarketingPage() {
                   type="number"
                   value={newLoyalty.welcomeBonus}
                   onChange={(e) => setNewLoyalty({ ...newLoyalty, welcomeBonus: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
             </div>
@@ -973,7 +973,7 @@ export default function MarketingPage() {
                   type="text"
                   value={newEmail.subject}
                   onChange={(e) => setNewEmail({ ...newEmail, subject: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -983,7 +983,7 @@ export default function MarketingPage() {
                 <select
                   value={newEmail.template}
                   onChange={(e) => setNewEmail({ ...newEmail, template: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="promotion">Promotion</option>
                   <option value="announcement">Announcement</option>
@@ -999,7 +999,7 @@ export default function MarketingPage() {
                   value={newEmail.content}
                   onChange={(e) => setNewEmail({ ...newEmail, content: e.target.value })}
                   rows={4}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
               <div>
@@ -1009,7 +1009,7 @@ export default function MarketingPage() {
                 <select
                   value={newEmail.recipientList}
                   onChange={(e) => setNewEmail({ ...newEmail, recipientList: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 >
                   <option value="all">All Customers</option>
                   <option value="active">Active Customers</option>
@@ -1025,7 +1025,7 @@ export default function MarketingPage() {
                   type="datetime-local"
                   value={newEmail.scheduledDate}
                   onChange={(e) => setNewEmail({ ...newEmail, scheduledDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
             </div>

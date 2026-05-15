@@ -309,7 +309,7 @@ export default function ImageUpload({
                 </h3>
                 <button
                   onClick={() => setShowCropModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600"
+                  className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <X className="w-5 h-5" />
                 </button>

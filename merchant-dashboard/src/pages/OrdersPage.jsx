@@ -512,7 +512,7 @@ export default function OrdersPage() {
               
               dispatch(fetchOrders(params))
             }}
-            className="p-2 text-muted hover:bg-surface-muted rounded-lg transition-colors"
+            className="p-2 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
           </button>
@@ -706,7 +706,7 @@ export default function OrdersPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setShowOrderDetails(true)}
-                          className="p-2 text-muted hover:bg-surface-muted rounded-lg transition-colors"
+                          className="p-2 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg transition-colors"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
@@ -777,7 +777,7 @@ export default function OrdersPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-4 border-t border-surface-muted flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-surface-muted dark:border-dark-surface-muted flex items-center justify-between">
             <p className="text-sm text-muted dark:text-dark-muted">
               Showing {orders.length} of {total} orders
             </p>
@@ -785,14 +785,14 @@ export default function OrdersPage() {
               <button
                 disabled={page === 1}
                 onClick={() => dispatch(fetchOrders({ merchantId, status: filter || undefined, page: page - 1 }))}
-                className="px-3 py-1 text-sm border border-surface-muted rounded-lg hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1 text-sm border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
               <button
                 disabled={page * limit >= total}
                 onClick={() => dispatch(fetchOrders({ merchantId, status: filter || undefined, page: page + 1 }))}
-                className="px-3 py-1 text-sm border border-surface-muted rounded-lg hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1 text-sm border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -995,7 +995,7 @@ export default function OrdersPage() {
                 </h2>
                 <button
                   onClick={() => setShowOrderModification(false)}
-                  className="p-2 text-muted hover:bg-surface-muted rounded-lg transition-colors"
+                  className="p-2 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1048,7 +1048,7 @@ export default function OrdersPage() {
                       {item.customItem && (
                         <button
                           onClick={() => handleRemoveItem(index)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

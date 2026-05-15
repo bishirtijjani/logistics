@@ -359,32 +359,32 @@ export default function SettingsPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text mb-1">Email</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Email</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text mb-1">Phone</label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Phone</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text mb-1">Location</label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Location</label>
               <LocationPicker
                 value={{ address: formData.address, lat: formData.lat, lng: formData.lng }}
                 onChange={({ address, lat, lng }) => setFormData({ ...formData, address, lat, lng })}
@@ -393,32 +393,32 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-text mb-1">Opening Time</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Opening Time</label>
                 <input
                   type="time"
                   value={formData.openingTime}
                   onChange={(e) => setFormData({ ...formData, openingTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text mb-1">Closing Time</label>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Closing Time</label>
                 <input
                   type="time"
                   value={formData.closingTime}
                   onChange={(e) => setFormData({ ...formData, closingTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-text mb-1">Description</label>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text resize-none"
               />
             </div>
 
@@ -437,23 +437,23 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'notifications' && (
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
           <form onSubmit={handleNotificationSave} className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Bell className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-text">Notification Preferences</h2>
-                <p className="text-sm text-muted">Configure how you receive notifications</p>
+                <h2 className="text-lg font-semibold text-text dark:text-dark-text">Notification Preferences</h2>
+                <p className="text-sm text-muted dark:text-dark-muted">Configure how you receive notifications</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-text">Email Notifications</p>
-                  <p className="text-sm text-muted">Receive notifications via email</p>
+                  <p className="font-medium text-text dark:text-dark-text">Email Notifications</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Receive notifications via email</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -471,8 +471,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-text">Push Notifications</p>
-                  <p className="text-sm text-muted">Receive push notifications in browser</p>
+                  <p className="font-medium text-text dark:text-dark-text">Push Notifications</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Receive push notifications in browser</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -490,8 +490,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-text">New Order Alerts</p>
-                  <p className="text-sm text-muted">Get notified when new orders arrive</p>
+                  <p className="font-medium text-text dark:text-dark-text">New Order Alerts</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Get notified when new orders arrive</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -509,8 +509,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
                 <div>
-                  <p className="font-medium text-text">Order Status Alerts</p>
-                  <p className="text-sm text-muted">Get notified when order status changes</p>
+                  <p className="font-medium text-text dark:text-dark-text">Order Status Alerts</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">Get notified when order status changes</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -561,7 +561,7 @@ export default function SettingsPage() {
                   type={showPasswords.current ? 'text' : 'password'}
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                 />
                 <button
@@ -584,7 +584,7 @@ export default function SettingsPage() {
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
                     setPasswordStrength(checkPasswordStrength(e.target.value))
                   }}
-                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                   minLength="8"
                 />
@@ -627,7 +627,7 @@ export default function SettingsPage() {
                   type={showPasswords.confirm ? 'text' : 'password'}
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                 />
                 <button
@@ -685,10 +685,10 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted dark:text-dark-muted">
                           {new Date(login.timestamp).toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted dark:text-muted">
+                        <p className="text-xs text-muted dark:text-dark-muted">
                           IP: {login.ipAddress} • {login.location}
                         </p>
-                        <p className="text-xs text-muted dark:text-muted">
+                        <p className="text-xs text-muted dark:text-dark-muted">
                           {login.device} • {login.browser}
                         </p>
                       </div>
@@ -721,7 +721,7 @@ export default function SettingsPage() {
                   <div key={index} className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-lg">
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full ${
-                        device.current ? 'bg-green-500' : 'bg-muted'
+                        device.current ? 'bg-green-500' : 'bg-muted dark:bg-dark-muted'
                       }`} />
                       <div>
                         <p className="font-medium text-text dark:text-dark-text">
@@ -731,7 +731,7 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted dark:text-dark-muted">
                           Last active: {new Date(device.lastActive).toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted dark:text-muted">
+                        <p className="text-xs text-muted dark:text-dark-muted">
                           {device.location} • {device.ipAddress}
                         </p>
                       </div>

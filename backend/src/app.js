@@ -32,6 +32,7 @@ const searchRoutes = require("./modules/search/search.routes");
 const notificationRoutes = require("./modules/notification/notification.routes");
 const addressRoutes = require("./modules/address/address.routes");
 const bannerRoutes = require("./modules/banner/banner.routes");
+const supportRoutes = require("./modules/support/support.routes");
 
 const createApp = () => {
   const app = express();
@@ -81,6 +82,7 @@ const createApp = () => {
   app.use(`${API_PREFIX}/notifications`, notificationRoutes);
   app.use(`${API_PREFIX}/addresses`, addressRoutes);
   app.use(`${API_PREFIX}/banners`, bannerRoutes);
+  app.use(`${API_PREFIX}/support`, supportRoutes);
   app.use(`${API_PREFIX}`, searchRoutes);
 
   // --------------- 404 Handler ---------------

@@ -28,6 +28,11 @@ const authSlice = createSlice({
         state.token = action.payload.token
         localStorage.setItem('accessToken', action.payload.token)
       }
+      // Stash the refresh token so useAuthSession can silently extend the
+      // session via /auth/refresh before the access token expires.
+      if (action.payload.refreshToken) {
+        localStorage.setItem('refreshToken', action.payload.refreshToken)
+      }
       state.isAuthenticated = true
       localStorage.setItem('authUser', JSON.stringify(action.payload.user))
     },
@@ -41,6 +46,7 @@ const authSlice = createSlice({
       state.token = null
       state.isAuthenticated = false
       localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
       localStorage.removeItem('authUser')
     },
   },

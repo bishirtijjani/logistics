@@ -9,6 +9,15 @@ const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
 const {
+  ticketMessageSchema: supportTicketMessageSchema,
+  updateTicketStatusSchema: supportUpdateTicketStatusSchema,
+  assignTicketSchema: supportAssignTicketSchema,
+  ticketListQuerySchema: supportTicketListQuerySchema,
+  disputeMessageSchema: supportDisputeMessageSchema,
+  resolveDisputeSchema: supportResolveDisputeSchema,
+  disputeListQuerySchema: supportDisputeListQuerySchema,
+} = require('../support/support.validator');
+const {
   reviewRiderSchema,
   updateCustomerStatusSchema,
   updateCustomerSchema,
@@ -133,13 +142,18 @@ router.patch('/withdrawals/:withdrawalId/approve', adminController.approveWithdr
 router.patch('/withdrawals/:withdrawalId/reject', adminController.rejectWithdrawal);
 router.get('/withdrawals/history', validate(paginationStatusDateRangeSchema, 'query'), adminController.getWithdrawalHistory);
 
-// Dispute resolution
-router.get('/disputes', validate(paginationStatusSchema, 'query'), adminController.getDisputes);
-router.patch('/disputes/:disputeId/resolve', adminController.resolveDispute);
+// Dispute resolution — backed by modules/support
+router.get('/disputes', validate(supportDisputeListQuerySchema, 'query'), adminController.getDisputes);
+router.get('/disputes/:disputeId', adminController.getDisputeDetail);
+router.patch('/disputes/:disputeId/resolve', validate(supportResolveDisputeSchema), adminController.resolveDispute);
+router.post('/disputes/:disputeId/messages', validate(supportDisputeMessageSchema), adminController.postDisputeMessageAdmin);
 
-// Support management
-router.get('/support/tickets', validate(paginationStatusSchema, 'query'), adminController.getSupportTickets);
-router.patch('/support/tickets/:ticketId/status', adminController.updateTicketStatus);
+// Support management — backed by modules/support
+router.get('/support/tickets', validate(supportTicketListQuerySchema, 'query'), adminController.getSupportTickets);
+router.get('/support/tickets/:ticketId', adminController.getTicketDetail);
+router.patch('/support/tickets/:ticketId/status', validate(supportUpdateTicketStatusSchema), adminController.updateTicketStatus);
+router.patch('/support/tickets/:ticketId/assign', validate(supportAssignTicketSchema), adminController.assignTicket);
+router.post('/support/tickets/:ticketId/messages', validate(supportTicketMessageSchema), adminController.postTicketMessageAdmin);
 
 // Marketing oversight
 router.get('/marketing/campaigns', validate(paginationSchema, 'query'), adminController.getPlatformCampaigns);

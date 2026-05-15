@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchWallet,
@@ -23,6 +24,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { showErrorToast, showSuccessToast } from "../utils/toast.js";
@@ -32,6 +34,7 @@ export default function EarningsPage() {
   const { user } = useSelector((state) => state.auth);
   const merchantId = user?.merchantId;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { wallet, loading, banks, banksLoading } = useSelector(
     (state) => state.earnings,
   );
@@ -170,7 +173,7 @@ export default function EarningsPage() {
         status: "PENDING",
         bankCode: withdrawalForm.bankCode,
         bankName:
-          banks.find((b) => b.code === withdrawalForm.bankCode)?.name ||
+          (Array.isArray(banks) ? banks : []).find((b) => b.code === withdrawalForm.bankCode)?.name ||
           withdrawalForm.bankCode,
         accountNumber: withdrawalForm.accountNumber,
         accountName: withdrawalForm.accountName,
@@ -316,7 +319,7 @@ Thank you for your business!
         id: Date.now(),
         bankCode: withdrawalForm.bankCode,
         bankName:
-          banks.find((b) => (b.code || b.bankCode) === withdrawalForm.bankCode)
+          (Array.isArray(banks) ? banks : []).find((b) => (b.code || b.bankCode) === withdrawalForm.bankCode)
             ?.name || withdrawalForm.bankCode,
         accountNumber: withdrawalForm.accountNumber,
         accountName: withdrawalForm.accountName,
@@ -1584,7 +1587,7 @@ Thank you for your business!
               Refund History
             </button>
             <button
-              onClick={() => setShowDisputes(true)}
+              onClick={() => navigate('/dashboard/support')}
               className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
             >
               <Flag className="w-4 h-4" />
@@ -1680,13 +1683,6 @@ Thank you for your business!
               <Download className="w-4 h-4" />
               Export Refunds (CSV)
             </button>
-            <button
-              onClick={exportDisputesToCSV}
-              className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
-            >
-              <Download className="w-4 h-4" />
-              Export Disputes (CSV)
-            </button>
           </div>
 
           {/* PDF Export Actions */}
@@ -1711,13 +1707,6 @@ Thank you for your business!
             >
               <FileText className="w-4 h-4" />
               Refund Report (PDF)
-            </button>
-            <button
-              onClick={() => exportToPDF("disputes")}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              <FileText className="w-4 h-4" />
-              Dispute Report (PDF)
             </button>
           </div>
 
@@ -1867,7 +1856,7 @@ Thank you for your business!
 
       {/* Enhanced Withdrawal Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 bg-surface-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
@@ -1876,9 +1865,10 @@ Thank you for your business!
                 </h2>
                 <button
                   onClick={() => setShowWithdrawModal(false)}
-                  className="p-2 text-muted hover:text-text dark:hover:text-dark-text"
+                  className="p-2 text-error hover:bg-error/10 rounded-md"
+                  aria-label="Close"
                 >
-                  <AlertCircle className="w-5 h-5" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -2074,7 +2064,7 @@ Thank you for your business!
                   <option value="">
                     {banksLoading ? "Loading banks…" : "Select a bank"}
                   </option>
-                  {banks.map((bank) => (
+                  {(Array.isArray(banks) ? banks : []).map((bank) => (
                     <option
                       key={bank.code || bank.bankCode}
                       value={bank.code || bank.bankCode}
@@ -2170,7 +2160,7 @@ Thank you for your business!
 
       {/* Transaction Details Modal */}
       {showTransactionDetails && selectedTransaction && (
-        <div className="fixed inset-0 bg-surface-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
@@ -2182,9 +2172,10 @@ Thank you for your business!
                     setShowTransactionDetails(false);
                     setSelectedTransaction(null);
                   }}
-                  className="p-2 text-muted hover:text-text dark:hover:text-dark-text"
+                  className="p-2 text-error hover:bg-error/10 rounded-md"
+                  aria-label="Close"
                 >
-                  <AlertCircle className="w-5 h-5" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -2381,7 +2372,7 @@ Thank you for your business!
 
       {/* Withdrawal History Modal */}
       {showWithdrawalHistory && (
-        <div className="fixed inset-0 bg-surface-800 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
@@ -2390,9 +2381,10 @@ Thank you for your business!
                 </h2>
                 <button
                   onClick={() => setShowWithdrawalHistory(false)}
-                  className="p-2 text-muted hover:text-text dark:hover:text-dark-text"
+                  className="p-2 text-error hover:bg-error/10 rounded-md"
+                  aria-label="Close"
                 >
-                  <AlertCircle className="w-5 h-5" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -2400,7 +2392,7 @@ Thank you for your business!
             <div className="p-6">
               {withdrawalHistory.length === 0 ? (
                 <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-muted mx-auto mb-4" />
+                  <FileText className="w-12 h-12 text-muted dark:text-dark-muted mx-auto mb-4" />
                   <p className="text-muted dark:text-dark-muted">
                     No withdrawal history available
                   </p>
@@ -2559,9 +2551,10 @@ Thank you for your business!
               </h3>
               <button
                 onClick={() => setShowRefundModal(false)}
-                className="text-muted hover:text-text dark:hover:text-dark-text"
+                className="p-2 text-error hover:bg-error/10 rounded-md"
+                aria-label="Close"
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -2683,15 +2676,16 @@ Thank you for your business!
               </h3>
               <button
                 onClick={() => setShowRefundHistory(false)}
-                className="text-muted hover:text-text dark:hover:text-dark-text"
+                className="p-2 text-error hover:bg-error/10 rounded-md"
+                aria-label="Close"
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {refunds.length === 0 ? (
               <div className="text-center py-8">
-                <AlertCircle className="w-12 h-12 text-muted mx-auto mb-4" />
+                <AlertCircle className="w-12 h-12 text-muted dark:text-dark-muted mx-auto mb-4" />
                 <p className="text-muted dark:text-dark-muted">
                   No refunds processed yet
                 </p>
@@ -2805,9 +2799,10 @@ Thank you for your business!
               </h3>
               <button
                 onClick={() => setShowDisputes(false)}
-                className="text-muted hover:text-text dark:hover:text-dark-text"
+                className="p-2 text-error hover:bg-error/10 rounded-md"
+                aria-label="Close"
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -2822,7 +2817,7 @@ Thank you for your business!
 
             {disputes.length === 0 ? (
               <div className="text-center py-8">
-                <Flag className="w-12 h-12 text-muted mx-auto mb-4" />
+                <Flag className="w-12 h-12 text-muted dark:text-dark-muted mx-auto mb-4" />
                 <p className="text-muted dark:text-dark-muted">
                   No disputes filed yet
                 </p>
@@ -2915,9 +2910,10 @@ Thank you for your business!
               </h3>
               <button
                 onClick={() => setShowDisputeModal(false)}
-                className="text-muted hover:text-text dark:hover:text-dark-text"
+                className="p-2 text-error hover:bg-error/10 rounded-md"
+                aria-label="Close"
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -3059,9 +3055,10 @@ Thank you for your business!
               </h3>
               <button
                 onClick={() => setShowDisputeDetails(false)}
-                className="text-muted hover:text-text dark:hover:text-dark-text"
+                className="p-2 text-error hover:bg-error/10 rounded-md"
+                aria-label="Close"
               >
-                <XCircle className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -3142,7 +3139,7 @@ Thank you for your business!
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Upload className="w-4 h-4 text-muted" />
+                              <Upload className="w-4 h-4 text-muted dark:text-dark-muted" />
                               <span className="text-sm text-text dark:text-dark-text">
                                 {file.name}
                               </span>
@@ -3434,9 +3431,10 @@ Thank you for your business!
               </h3>
               <button
                 onClick={() => setShowCustomReportModal(false)}
-                className="text-muted hover:text-text dark:hover:text-dark-text"
+                className="p-2 text-error hover:bg-error/10 rounded-md"
+                aria-label="Close"
               >
-                <XCircle className="w-6 h-6" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
@@ -3477,7 +3475,6 @@ Thank you for your business!
                   >
                     <option value="transaction">Transactions</option>
                     <option value="refund">Refunds</option>
-                    <option value="dispute">Disputes</option>
                   </select>
                 </div>
 

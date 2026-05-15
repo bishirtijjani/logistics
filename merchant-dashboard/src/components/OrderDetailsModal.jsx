@@ -224,7 +224,7 @@ export default function OrderDetailsModal({ order, onClose }) {
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X className="w-6 h-6" />
             </button>
@@ -325,7 +325,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                       <select
                         value={priority}
                         onChange={(e) => setPriority(e.target.value)}
-                        className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm"
+                        className="px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface text-gray-900 dark:text-gray-100 rounded text-sm"
                       >
                         <option value="LOW">Low</option>
                         <option value="NORMAL">Normal</option>
@@ -334,13 +334,13 @@ export default function OrderDetailsModal({ order, onClose }) {
                       </select>
                       <button
                         onClick={handleSavePriority}
-                        className="p-1 text-green-600 hover:bg-green-50 rounded"
+                        className="p-1 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
                       >
                         <Save className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setIsEditingPriority(false)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                       >
                         <XCircle className="w-4 h-4" />
                       </button>
@@ -352,7 +352,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                       </span>
                       <button
                         onClick={() => setIsEditingPriority(true)}
-                        className="p-1 text-gray-400 hover:text-gray-600"
+                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                       >
                         <Edit3 className="w-3 h-3" />
                       </button>
@@ -533,7 +533,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                 <textarea
                   value={specialInstructions}
                   onChange={(e) => setSpecialInstructions(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   rows={3}
                   placeholder="Add special instructions for this order..."
                 />
@@ -560,7 +560,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                   </p>
                   <button
                     onClick={() => setIsEditingInstructions(true)}
-                    className="p-1 text-gray-400 hover:text-gray-600"
+                    className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
@@ -579,7 +579,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                 <textarea
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-surface text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   rows={3}
                   placeholder="Add internal notes about this order..."
                 />
@@ -606,7 +606,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                   </p>
                   <button
                     onClick={() => setIsEditingNotes(true)}
-                    className="p-1 text-gray-400 hover:text-gray-600"
+                    className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
@@ -702,7 +702,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                       </div>
                       <button
                         onClick={() => handleDeleteComment(comment.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                         title="Delete comment"
                       >
                         <XCircle className="w-4 h-4" />

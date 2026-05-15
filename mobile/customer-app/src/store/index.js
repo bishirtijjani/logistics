@@ -12,6 +12,7 @@ import notificationsReducer from "./slices/notificationsSlice";
 import addressesReducer from "./slices/addressesSlice";
 import homeReducer from "./slices/homeSlice";
 import cartReducer from "./slices/cartSlice";
+import supportReducer from "./slices/supportSlice";
 
 const combined = combineReducers({
   auth: authReducer,
@@ -26,6 +27,7 @@ const combined = combineReducers({
   addresses: addressesReducer,
   home: homeReducer,
   cart: cartReducer,
+  support: supportReducer,
 });
 
 // Root reducer with forced-logout passthrough. When the silent-refresh

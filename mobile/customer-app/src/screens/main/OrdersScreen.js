@@ -235,14 +235,32 @@ export default function OrdersScreen({ navigation }) {
               <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>{t("orders.rate")}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
-              accessibilityRole="button"
-              accessibilityLabel={t("orders.details")}
-              style={{ backgroundColor: colors.surfaceMuted, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
-            >
-              <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700" }}>{t("orders.details")}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {(item.status === "DELIVERED" || item.status === "SETTLED" || item.status === "CANCELLED") && (
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("CreateDispute", { requestId: item.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("support.reportIssue")}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    paddingHorizontal: 10,
+                    paddingVertical: 8,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
+                accessibilityRole="button"
+                accessibilityLabel={t("orders.details")}
+                style={{ backgroundColor: colors.surfaceMuted, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
+              >
+                <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700" }}>{t("orders.details")}</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </TouchableOpacity>

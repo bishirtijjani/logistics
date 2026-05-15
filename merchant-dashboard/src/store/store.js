@@ -5,6 +5,8 @@ import productsReducer from './slices/productsSlice.js'
 import earningsReducer from './slices/earningsSlice.js'
 import analyticsReducer from './slices/analyticsSlice.js'
 import settingsReducer from './slices/settingsSlice.js'
+import supportTicketsReducer from './slices/supportTicketsSlice.js'
+import disputesReducer from './slices/disputesSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +16,7 @@ export const store = configureStore({
     earnings: earningsReducer,
     analytics: analyticsReducer,
     settings: settingsReducer,
+    supportTickets: supportTicketsReducer,
+    disputes: disputesReducer,
   },
 })

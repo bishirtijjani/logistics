@@ -8,6 +8,8 @@ import MenuPage from './pages/MenuPage.jsx'
 import EarningsPage from './pages/EarningsPage.jsx'
 import AnalyticsPage from './pages/AnalyticsPage.jsx'
 import SupportPage from './pages/SupportPage.jsx'
+import TicketDetailPage from './pages/TicketDetailPage.jsx'
+import DisputeDetailPage from './pages/DisputeDetailPage.jsx'
 import MarketingPage from './pages/MarketingPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import SessionWarningModal from './components/SessionWarningModal.jsx'
@@ -42,6 +44,8 @@ function AppContent() {
             <Route path="earnings" element={<EarningsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="support" element={<SupportPage />} />
+            <Route path="support/tickets/:ticketId" element={<TicketDetailPage />} />
+            <Route path="support/disputes/:disputeId" element={<DisputeDetailPage />} />
             <Route path="marketing" element={<MarketingPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route index element={<Navigate to="orders" replace />} />

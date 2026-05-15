@@ -13,6 +13,7 @@ export const logout = createAsyncThunk(
   'auth/logout',
   async () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
     localStorage.removeItem('merchant_user')
   }
 )
@@ -35,13 +36,13 @@ export const resendVerification = createAsyncThunk(
 
 export const refreshToken = createAsyncThunk(
   'auth/refreshToken',
-  async () => {
-    const currentToken = localStorage.getItem('token')
-    const response = await api.post('/auth/refresh', {}, {
-      headers: {
-        'Authorization': `Bearer ${currentToken}`
-      }
-    })
+  async (_, { rejectWithValue }) => {
+    // Backend's /auth/refresh expects { refreshToken } in the body — not a
+    // Bearer header. Auth-by-header here was wrong and silently failed once
+    // the access token expired.
+    const stored = localStorage.getItem('refreshToken')
+    if (!stored) return rejectWithValue('No refresh token')
+    const response = await api.post('/auth/refresh', { refreshToken: stored })
     return response.data.data
   }
 )
@@ -76,6 +77,9 @@ const authSlice = createSlice({
         state.isLocked = false
         state.lockoutTime = null
         localStorage.setItem('token', action.payload.tokens?.accessToken)
+        if (action.payload.tokens?.refreshToken) {
+          localStorage.setItem('refreshToken', action.payload.tokens.refreshToken)
+        }
         localStorage.setItem('merchant_user', JSON.stringify(action.payload.user))
       })
       .addCase(login.rejected, (state, action) => {
@@ -129,9 +133,16 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(refreshToken.fulfilled, (state, action) => {
-        state.token = action.payload.tokens?.accessToken
-        localStorage.setItem('token', action.payload.tokens?.accessToken)
-        if (action.payload.user) {
+        // Backend rotates the refresh token on every refresh — persist both so
+        // the next /auth/refresh call has the latest valid pair.
+        state.token = action.payload?.accessToken
+        if (action.payload?.accessToken) {
+          localStorage.setItem('token', action.payload.accessToken)
+        }
+        if (action.payload?.refreshToken) {
+          localStorage.setItem('refreshToken', action.payload.refreshToken)
+        }
+        if (action.payload?.user) {
           state.user = action.payload.user
           localStorage.setItem('merchant_user', JSON.stringify(action.payload.user))
         }
@@ -143,6 +154,7 @@ const authSlice = createSlice({
         state.token = null
         state.isAuthenticated = false
         localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
         localStorage.removeItem('merchant_user')
       })
   },

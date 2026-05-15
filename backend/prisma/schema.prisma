@@ -222,6 +222,11 @@ model User {
   requestMessages         RequestMessage[]
   notifications           Notification[]
   savedAddresses          SavedAddress[]
+  tickets                 SupportTicket[]          @relation("UserTickets")
+  assignedTickets         SupportTicket[]          @relation("AssignedTickets")
+  raisedDisputes          Dispute[]                @relation("RaisedDisputes")
+  resolvedDisputes        Dispute[]                @relation("ResolvedDisputes")
+  supportMessages         SupportMessage[]
 
   @@index([phone])
   @@index([email])
@@ -282,8 +287,9 @@ model Transaction {
   updatedAt DateTime @updatedAt
 
   // Relations
-  debitWallet  Wallet? @relation("DebitWallet", fields: [debitWalletId], references: [id])
-  creditWallet Wallet? @relation("CreditWallet", fields: [creditWalletId], references: [id])
+  debitWallet   Wallet?  @relation("DebitWallet", fields: [debitWalletId], references: [id])
+  creditWallet  Wallet?  @relation("CreditWallet", fields: [creditWalletId], references: [id])
+  disputeRefund Dispute? @relation("DisputeRefund")
 
   @@index([debitWalletId])
   @@index([creditWalletId])
@@ -358,9 +364,9 @@ model UtilityPayment {
   providerRef       String?
 
   // Result
-  token            String? /// Electricity token returned (delivered + STKN)
-  beneficiaryName  String? /// Verified meter / IUC owner name
-  transactionId    String? /// Reference to wallet Transaction
+  token           String? /// Electricity token returned (delivered + STKN)
+  beneficiaryName String? /// Verified meter / IUC owner name
+  transactionId   String? /// Reference to wallet Transaction
 
   // Reconciliation (AlRahuz pending → poll)
   pollAttempts Int       @default(0)
@@ -769,8 +775,10 @@ model ProductOptionItem {
   group   ProductOptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   name        String /// "Plantain", "Extra cheese", "Mild"
+  description String? /// Optional flavour-text shown under the item name in the customer cart
   /// Price delta applied on top of the variant price. Defaults to 0 for price-neutral picks.
   priceDelta  Decimal @default(0) @db.Decimal(15, 2)
+  imageUrl    String? /// Cloudinary URL — lets merchants show a picture of the add-on (e.g. an actual photo of the plantain side)
   isDefault   Boolean @default(false)
   isAvailable Boolean @default(true)
   sortOrder   Int     @default(0)
@@ -870,6 +878,7 @@ model Request {
   rating         Rating?
 
   messages RequestMessage[]
+  disputes Dispute[]
 
   @@index([customerId])
   @@index([merchantId])
@@ -1024,14 +1033,14 @@ model NotificationPreferences {
 /// mobile client to deep-link the user to the relevant screen when the row
 /// is tapped.
 model Notification {
-  id        String  @id @default(uuid())
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  type      String /// REQUEST_STATUS | WALLET | REFUND | SYSTEM ...
-  title     String
-  body      String  @db.VarChar(500)
-  data      Json? /// { route?, requestId?, transactionId?, ... }
+  type  String /// REQUEST_STATUS | WALLET | REFUND | SYSTEM ...
+  title String
+  body  String @db.VarChar(500)
+  data  Json? /// { route?, requestId?, transactionId?, ... }
 
   requestId     String?
   transactionId String?
@@ -1050,9 +1059,9 @@ model Notification {
 /// constraint is enforced in the service layer rather than via a partial unique
 /// index so updates don't fight the constraint mid-transaction.
 model SavedAddress {
-  id        String  @id @default(uuid())
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   label     String /// "Home", "Work", or free-form
   address   String /// Human-readable formatted address
@@ -1075,17 +1084,17 @@ model SavedAddress {
 /// audience = visible to all authenticated users. Banners with `startsAt` in
 /// the future or `endsAt` in the past are filtered out of the public feed.
 model Banner {
-  id        String  @id @default(uuid())
-  title     String
-  subtitle  String?
-  imageUrl  String
-  deepLink  String? /// e.g. `/wallet`, `/utility/airtime`, or `customerapp://...`
-  bgColor   String? /// optional accent colour hint for fallback rendering
+  id       String  @id @default(uuid())
+  title    String
+  subtitle String?
+  imageUrl String
+  deepLink String? /// e.g. `/wallet`, `/utility/airtime`, or `customerapp://...`
+  bgColor  String? /// optional accent colour hint for fallback rendering
 
-  startsAt  DateTime?
-  endsAt    DateTime?
-  audience  Json? /// free-form audience predicate
-  priority  Int     @default(0) /// higher = surfaces first
+  startsAt DateTime?
+  endsAt   DateTime?
+  audience Json? /// free-form audience predicate
+  priority Int       @default(0) /// higher = surfaces first
 
   isActive  Boolean @default(true)
   createdBy String? /// admin user id
@@ -1197,4 +1206,152 @@ model BvnVerificationLog {
   @@index([outcome])
   @@index([createdAt])
   @@map("bvn_verification_logs")
+}
+
+// ============================================================
+// SUPPORT — TICKETS, DISPUTES, MESSAGES
+// ============================================================
+
+enum TicketCategory {
+  ACCOUNT
+  PAYMENT
+  ORDER
+  DELIVERY
+  PRODUCT
+  TECHNICAL
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum DisputeCategory {
+  ITEM_NOT_RECEIVED
+  ITEM_DAMAGED
+  WRONG_ITEM
+  PARTIAL_DELIVERY
+  RIDER_BEHAVIOR
+  MERCHANT_BEHAVIOR
+  PAYMENT_ISSUE
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  AWAITING_RESPONSE
+  RESOLVED
+  REJECTED
+}
+
+enum DisputeResolution {
+  FULL_REFUND
+  PARTIAL_REFUND
+  REJECTED
+  RESOLVED_NO_REFUND
+}
+
+/// SupportTicket — generic help/issue thread raised by any user (customer, merchant, rider, admin).
+/// Not tied to a specific Request. For order-specific complaints use Dispute.
+model SupportTicket {
+  id             String         @id @default(uuid())
+  number         Int            @default(autoincrement()) /// Human-readable ticket number
+  userId         String
+  user           User           @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  category       TicketCategory
+  priority       TicketPriority @default(MEDIUM)
+  status         TicketStatus   @default(OPEN)
+  subject        String         @db.VarChar(200)
+  description    String         @db.Text
+  attachmentUrls String[] /// Cloudinary URLs supplied at creation
+  assignedToId   String? /// Admin user id assigned to handle the ticket
+  assignedTo     User?          @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  resolution     String? /// Free-text resolution summary (no refunds for tickets)
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  lastActivityAt DateTime       @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([assignedToId])
+  @@index([lastActivityAt])
+  @@map("support_tickets")
+}
+
+/// Dispute — formal complaint by a customer against a specific Request.
+/// Resolving with FULL_REFUND/PARTIAL_REFUND atomically credits the customer's wallet
+/// and writes a Transaction(type=REFUND) row inside the same prisma.$transaction.
+model Dispute {
+  id                  String             @id @default(uuid())
+  number              Int                @default(autoincrement())
+  requestId           String
+  request             Request            @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  raisedById          String
+  raisedBy            User               @relation("RaisedDisputes", fields: [raisedById], references: [id], onDelete: Cascade)
+  category            DisputeCategory
+  status              DisputeStatus      @default(OPEN)
+  reason              String             @db.VarChar(200)
+  description         String             @db.Text
+  attachmentUrls      String[]
+  resolution          DisputeResolution?
+  resolutionNotes     String?
+  refundAmount        Decimal?           @db.Decimal(15, 2)
+  refundTransactionId String?            @unique
+  refundTransaction   Transaction?       @relation("DisputeRefund", fields: [refundTransactionId], references: [id])
+  resolvedById        String?
+  resolvedBy          User?              @relation("ResolvedDisputes", fields: [resolvedById], references: [id])
+  resolvedAt          DateTime?
+  lastActivityAt      DateTime           @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([requestId])
+  @@index([raisedById])
+  @@index([status])
+  @@index([lastActivityAt])
+  @@map("disputes")
+}
+
+/// SupportMessage — a single message inside either a SupportTicket or a Dispute thread.
+/// Exactly one of ticketId or disputeId is set. `isInternal=true` is admin-only and hidden from
+/// non-admin users when serializing the thread.
+model SupportMessage {
+  id             String         @id @default(uuid())
+  ticketId       String?
+  ticket         SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  disputeId      String?
+  dispute        Dispute?       @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  fromUserId     String
+  fromUser       User           @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+  body           String         @db.VarChar(2000)
+  attachmentUrls String[]
+  isInternal     Boolean        @default(false)
+  readAt         DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([disputeId])
+  @@index([createdAt])
+  @@map("support_messages")
 }

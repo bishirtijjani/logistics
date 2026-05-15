@@ -56,6 +56,31 @@ const ROUTE_MAP = [
     re: /^\/?notifications\/?$/i,
     build: () => ({ name: 'NotificationCenter', params: {} }),
   },
+  // /support/dispute/new/:requestId → CreateDispute (must precede /support/dispute/:id)
+  {
+    re: /^\/?support\/dispute\/new\/([^/?#]+)/i,
+    build: (m) => ({ name: 'CreateDispute', params: { requestId: m[1] } }),
+  },
+  // /support/dispute/:id or /disputes/:id → DisputeDetail
+  {
+    re: /^\/?(?:support\/dispute|disputes?)\/([^/?#]+)/i,
+    build: (m) => ({ name: 'SupportDisputeDetail', params: { disputeId: m[1] } }),
+  },
+  // /support/new → CreateTicket (must precede /support/:id)
+  {
+    re: /^\/?support\/new\/?$/i,
+    build: () => ({ name: 'CreateSupportTicket', params: {} }),
+  },
+  // /support/ticket/:id or /support/:id → TicketDetail
+  {
+    re: /^\/?support\/(?:ticket\/)?([^/?#]+)/i,
+    build: (m) => ({ name: 'SupportTicketDetail', params: { ticketId: m[1] } }),
+  },
+  // /support → My Tickets list
+  {
+    re: /^\/?support\/?$/i,
+    build: () => ({ name: 'MyTickets', params: {} }),
+  },
 ];
 
 const matchRoute = (routePath) => {

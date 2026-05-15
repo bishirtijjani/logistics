@@ -146,7 +146,9 @@ const variantInputSchema = z.object({
 
 const optionItemInputSchema = z.object({
   name: z.string().min(1).max(80),
+  description: z.string().max(200).optional(),
   priceDelta: z.number().default(0),
+  imageUrl: z.string().url().optional(),
   isDefault: z.boolean().default(false),
   isAvailable: z.boolean().default(true),
   sortOrder: z.number().int().min(0).default(0),
@@ -206,7 +208,9 @@ const optionGroupUpdateSchema = z.object({
 
 const optionItemUpdateSchema = z.object({
   name: z.string().min(1).max(80).optional(),
+  description: z.string().max(200).nullable().optional(),
   priceDelta: z.number().optional(),
+  imageUrl: z.string().url().nullable().optional(),
   isDefault: z.boolean().optional(),
   isAvailable: z.boolean().optional(),
   sortOrder: z.number().int().min(0).optional(),

@@ -3,6 +3,7 @@
  */
 
 const adminService = require('./admin.service');
+const supportController = require('../support/support.controller');
 const { ApiResponse } = require('../../utils/api-response');
 
 const getPendingRiders = async (req, res, next) => {
@@ -615,40 +616,51 @@ const getWithdrawalHistory = async (req, res, next) => {
   }
 };
 
-const getDisputes = async (req, res, next) => {
-  try {
-    const { disputes, total, page, limit } = await adminService.getDisputes(req.query);
-    res.json(ApiResponse.paginated('Disputes', disputes, page, limit, total));
-  } catch (error) {
-    next(error);
-  }
+// ============================================================
+// Support tickets + disputes — delegated to the support module.
+// The admin namespace keeps these paths so existing admin-dashboard URLs work.
+// ============================================================
+
+const getDisputes = (req, res, next) => {
+  req.params.id = req.params.disputeId; // path-compat shim
+  return supportController.adminListDisputes(req, res, next);
 };
 
-const resolveDispute = async (req, res, next) => {
-  try {
-    const result = await adminService.resolveDispute(req.params.disputeId, req.body.resolution, req.body.notes);
-    res.json(ApiResponse.success('Dispute resolved', result));
-  } catch (error) {
-    next(error);
-  }
+const resolveDispute = (req, res, next) => {
+  req.params.id = req.params.disputeId;
+  return supportController.adminResolveDispute(req, res, next);
 };
 
-const getSupportTickets = async (req, res, next) => {
-  try {
-    const { tickets, total, page, limit } = await adminService.getSupportTickets(req.query);
-    res.json(ApiResponse.paginated('Support tickets', tickets, page, limit, total));
-  } catch (error) {
-    next(error);
-  }
+const getDisputeDetail = (req, res, next) => {
+  req.params.id = req.params.disputeId;
+  return supportController.getDisputeById(req, res, next);
 };
 
-const updateTicketStatus = async (req, res, next) => {
-  try {
-    const result = await adminService.updateTicketStatus(req.params.ticketId, req.body.status, req.body.notes);
-    res.json(ApiResponse.success('Ticket status updated', result));
-  } catch (error) {
-    next(error);
-  }
+const postDisputeMessageAdmin = (req, res, next) => {
+  req.params.id = req.params.disputeId;
+  return supportController.postDisputeMessage(req, res, next);
+};
+
+const getSupportTickets = (req, res, next) => supportController.adminListTickets(req, res, next);
+
+const updateTicketStatus = (req, res, next) => {
+  req.params.id = req.params.ticketId;
+  return supportController.adminUpdateTicketStatus(req, res, next);
+};
+
+const getTicketDetail = (req, res, next) => {
+  req.params.id = req.params.ticketId;
+  return supportController.getTicketById(req, res, next);
+};
+
+const postTicketMessageAdmin = (req, res, next) => {
+  req.params.id = req.params.ticketId;
+  return supportController.postTicketMessage(req, res, next);
+};
+
+const assignTicket = (req, res, next) => {
+  req.params.id = req.params.ticketId;
+  return supportController.adminAssignTicket(req, res, next);
 };
 
 const getPlatformCampaigns = async (req, res, next) => {
@@ -779,8 +791,13 @@ module.exports = {
   getWithdrawalHistory,
   getDisputes,
   resolveDispute,
+  getDisputeDetail,
+  postDisputeMessageAdmin,
   getSupportTickets,
   updateTicketStatus,
+  getTicketDetail,
+  postTicketMessageAdmin,
+  assignTicket,
   getPlatformCampaigns,
   getDiscountCodes,
   approveDiscountCode,

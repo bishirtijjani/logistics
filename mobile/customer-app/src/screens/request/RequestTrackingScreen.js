@@ -290,6 +290,7 @@ const RequestTrackingScreen = () => {
 
   const canCancelLocally = ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'RIDER_ASSIGNED', 'RIDER_EN_ROUTE'].includes(currentRequest.status);
   const canRate = ['DELIVERED', 'SETTLED'].includes(currentRequest.status) && !currentRequest.rating;
+  const canReportIssue = ['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status);
   const items = currentRequest.items || [];
   const pkg = currentRequest.packageDetails;
 
@@ -717,6 +718,26 @@ const RequestTrackingScreen = () => {
               accessibilityLabel={t('request.tracking.rateOrder')}
             >
               <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>{t('request.tracking.rateOrder')}</Text>
+            </TouchableOpacity>
+          )}
+          {canReportIssue && (
+            <TouchableOpacity
+              style={{
+                paddingVertical: 13,
+                borderRadius: 12,
+                alignItems: 'center',
+                marginBottom: 12,
+                backgroundColor: 'transparent',
+                borderWidth: 1.5,
+                borderColor: colors.border,
+              }}
+              onPress={() => navigation.navigate('CreateDispute', { requestId: currentRequest.id })}
+              accessibilityRole="button"
+              accessibilityLabel={t('support.reportIssue')}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>
+                {t('support.reportIssue')}
+              </Text>
             </TouchableOpacity>
           )}
         </View>

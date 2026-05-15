@@ -58,7 +58,10 @@ export default function OtpVerificationScreen({ route, navigation }) {
       return;
     }
 
-    // Registration flow — verify OTP and activate account
+    // Registration flow — verify OTP and activate account. The backend now
+    // returns tokens for customer signups, so the slice flips `isAuthenticated`
+    // and AppNavigator swaps to the authed stack on its own — no manual
+    // navigation needed here.
     dispatch(clearError());
     const resultAction = await dispatch(verifyOtp({ email, code }));
 
@@ -66,9 +69,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
       Toast.show({
         type: "success",
         text1: t("auth.toast.accountCreated"),
-        text2: t("auth.signIn"),
       });
-      navigation.navigate("Login");
     } else {
       Toast.show({
         type: "error",

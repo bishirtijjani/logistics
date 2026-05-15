@@ -21,6 +21,7 @@ import {
 import api from '../lib/api.js'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 import { Plus, X, Trash2, Edit3, ToggleLeft, ToggleRight, Package } from 'lucide-react'
+import CloudinaryImageUploader from '../components/CloudinaryImageUploader.jsx'
 
 const PACK_UNITS = ['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON']
 const SELECTION_RULES = [
@@ -87,11 +88,11 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
   return (
     <div className="space-y-3">
       {axes.length > 0 && (
-        <div className="space-y-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg p-3">
+        <div className="space-y-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg p-3 bg-surface dark:bg-dark-surface">
           <div className="text-xs font-semibold text-muted dark:text-dark-muted">Axis values</div>
           {axes.map((axis) => (
             <div key={axis}>
-              <div className="text-xs text-muted dark:text-dark-muted mb-1">{axis}</div>
+              <div className="text-xs text-muted dark:text-dark-muted mb-1 capitalize">{axis}</div>
               <input
                 type="text"
                 placeholder={`comma-separated, e.g. ${axis === 'size' ? 'Small, Medium, Large' : axis === 'color' ? 'Black, Red, Blue' : `${axis} values`}`}
@@ -102,7 +103,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
                     [axis]: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
                   })
                 }
-                className="w-full border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text"
+                className={inputCls}
               />
             </div>
           ))}
@@ -124,81 +125,80 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
               : 'No variants yet. Fill axis values above and click "Generate variant matrix".'}
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-xs uppercase text-muted dark:text-dark-muted">
-              <tr>
-                {axes.map((a) => <th key={a} className="text-left px-2 py-1">{a}</th>)}
-                {pack && <th className="text-left px-2 py-1">pack size</th>}
-                {pack && <th className="text-left px-2 py-1">pack unit</th>}
-                <th className="text-left px-2 py-1">price</th>
-                <th className="text-left px-2 py-1">stock</th>
-                <th className="text-left px-2 py-1">avail</th>
-                <th className="px-2 py-1" />
-              </tr>
-            </thead>
-            <tbody>
-              {variants.map((v, idx) => (
-                <tr key={idx} className="border-t border-surface-muted dark:border-dark-surface-muted">
-                  {axes.map((a) => (
-                    <td key={a} className="px-2 py-1 text-text dark:text-dark-text">{v.attributes?.[a] || '—'}</td>
-                  ))}
-                  {pack && (
-                    <td className="px-2 py-1">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={v.packSize ?? ''}
-                        onChange={(e) => patchRow(idx, { packSize: e.target.value ? Number(e.target.value) : undefined })}
-                        className="w-20 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-                      />
-                    </td>
-                  )}
-                  {pack && (
-                    <td className="px-2 py-1">
-                      <select
-                        value={v.packUnit || ''}
-                        onChange={(e) => patchRow(idx, { packUnit: e.target.value || undefined })}
-                        className="border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-                      >
-                        <option value="">—</option>
-                        {(packUnits && packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
-                          <option key={u} value={u}>{u}</option>
-                        ))}
-                      </select>
-                    </td>
-                  )}
-                  <td className="px-2 py-1">
+          <div className="space-y-2">
+            {variants.map((v, idx) => (
+              <div
+                key={idx}
+                className="flex flex-wrap items-center gap-2 p-2 rounded-lg border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface"
+              >
+                <CloudinaryImageUploader
+                  size="sm"
+                  value={v.imageUrl || ''}
+                  onChange={(url) => patchRow(idx, { imageUrl: url || undefined })}
+                />
+                <div className="flex-1 min-w-[140px] text-sm text-text dark:text-dark-text">
+                  {axes.map((a) => v.attributes?.[a]).filter(Boolean).join(' / ') || '—'}
+                </div>
+                {pack && (
+                  <div className="flex items-center gap-1">
+                    <label className="text-xs text-muted dark:text-dark-muted">pack</label>
                     <input
                       type="number"
-                      value={v.price}
-                      onChange={(e) => patchRow(idx, { price: Number(e.target.value) })}
-                      className="w-24 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
+                      step="0.01"
+                      value={v.packSize ?? ''}
+                      onChange={(e) => patchRow(idx, { packSize: e.target.value ? Number(e.target.value) : undefined })}
+                      className={`${smInputCls} w-20`}
                     />
-                  </td>
-                  <td className="px-2 py-1">
-                    <input
-                      type="number"
-                      value={v.stock}
-                      onChange={(e) => patchRow(idx, { stock: Number(e.target.value) })}
-                      className="w-20 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-                    />
-                  </td>
-                  <td className="px-2 py-1">
-                    <input
-                      type="checkbox"
-                      checked={v.isAvailable !== false}
-                      onChange={(e) => patchRow(idx, { isAvailable: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-2 py-1 text-right">
-                    <button type="button" onClick={() => removeRow(idx)} className="text-error">
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <select
+                      value={v.packUnit || ''}
+                      onChange={(e) => patchRow(idx, { packUnit: e.target.value || undefined })}
+                      className={smInputCls}
+                    >
+                      <option value="">—</option>
+                      {(packUnits && packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <label className="text-xs text-muted dark:text-dark-muted">₦</label>
+                  <input
+                    type="number"
+                    value={v.price}
+                    onChange={(e) => patchRow(idx, { price: Number(e.target.value) })}
+                    className={`${smInputCls} w-24`}
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <label className="text-xs text-muted dark:text-dark-muted">stock</label>
+                  <input
+                    type="number"
+                    value={v.stock}
+                    onChange={(e) => patchRow(idx, { stock: Number(e.target.value) })}
+                    className={`${smInputCls} w-20`}
+                  />
+                </div>
+                <label className="flex items-center gap-1 text-xs text-text dark:text-dark-text">
+                  <input
+                    type="checkbox"
+                    checked={v.isAvailable !== false}
+                    onChange={(e) => patchRow(idx, { isAvailable: e.target.checked })}
+                    className="accent-primary"
+                  />
+                  available
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeRow(idx)}
+                  className="ml-auto p-1.5 text-error hover:bg-error/10 rounded"
+                  title="Remove variant"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -225,7 +225,7 @@ function OptionGroupsBuilder({ groups, setGroups }) {
     setGroups(
       groups.map((g, i) =>
         i === groupIdx
-          ? { ...g, items: [...g.items, { name: '', priceDelta: 0, isDefault: false, isAvailable: true, sortOrder: g.items.length }] }
+          ? { ...g, items: [...g.items, { name: '', description: '', priceDelta: 0, imageUrl: '', isDefault: false, isAvailable: true, sortOrder: g.items.length }] }
           : g
       )
     )
@@ -243,82 +243,164 @@ function OptionGroupsBuilder({ groups, setGroups }) {
 
   return (
     <div className="space-y-3">
+      {groups.length === 0 && (
+        <div className="text-xs text-muted dark:text-dark-muted px-1">
+          No groups yet. Add one for choices like sides, spice level, or extras.
+        </div>
+      )}
+
       {groups.map((group, gi) => (
-        <div key={gi} className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-3 space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input
-              type="text"
-              placeholder="Group name (e.g. Sides)"
-              value={group.name}
-              onChange={(e) => patchGroup(gi, { name: e.target.value })}
-              className="w-full border border-surface-muted dark:border-dark-surface-muted rounded px-3 py-2 text-sm"
-            />
-            <select
-              value={group.selectionRule}
-              onChange={(e) => patchGroup(gi, { selectionRule: e.target.value })}
-              className="w-full border border-surface-muted dark:border-dark-surface-muted rounded px-3 py-2 text-sm"
-            >
-              {SELECTION_RULES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-            </select>
+        <div
+          key={gi}
+          className="rounded-xl border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface overflow-hidden"
+        >
+          {/* Group header */}
+          <div className="px-3 py-3 bg-surface-muted/40 dark:bg-dark-surface-muted/40 border-b border-surface-muted dark:border-dark-surface-muted space-y-2">
             <div className="flex items-center gap-2">
-              <label className="text-xs">min</label>
               <input
-                type="number"
-                value={group.minSelect}
-                onChange={(e) => patchGroup(gi, { minSelect: Number(e.target.value) })}
-                className="w-14 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
+                type="text"
+                placeholder="Group name (e.g. Sides, Spice level)"
+                value={group.name}
+                onChange={(e) => patchGroup(gi, { name: e.target.value })}
+                className={`${inputCls} font-medium`}
               />
-              <label className="text-xs">max</label>
-              <input
-                type="number"
-                value={group.maxSelect}
-                onChange={(e) => patchGroup(gi, { maxSelect: Number(e.target.value) })}
-                className="w-14 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-              />
-              <button type="button" onClick={() => removeGroup(gi)} className="ml-auto text-error">
-                <Trash2 size={14} />
+              <button
+                type="button"
+                onClick={() => removeGroup(gi)}
+                className="p-2 text-error hover:bg-error/10 rounded-md"
+                title="Remove group"
+              >
+                <Trash2 size={16} />
               </button>
             </div>
-          </div>
-          <div className="pl-3 space-y-1">
-            {group.items.map((it, ii) => (
-              <div key={ii} className="grid grid-cols-12 gap-2 items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Rule</label>
+                <select
+                  value={group.selectionRule}
+                  onChange={(e) => patchGroup(gi, { selectionRule: e.target.value })}
+                  className={inputCls}
+                >
+                  {SELECTION_RULES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Min picks</label>
                 <input
-                  type="text"
-                  placeholder="Item name (e.g. Plantain)"
-                  value={it.name}
-                  onChange={(e) => patchItem(gi, ii, { name: e.target.value })}
-                  className="col-span-5 border border-surface-muted dark:border-dark-surface-muted rounded px-3 py-1 text-sm"
+                  type="number"
+                  min="0"
+                  value={group.minSelect}
+                  onChange={(e) => patchGroup(gi, { minSelect: Number(e.target.value) })}
+                  className={inputCls}
                 />
-                <div className="col-span-3 flex items-center gap-1">
-                  <span className="text-xs">+₦</span>
-                  <input
-                    type="number"
-                    value={it.priceDelta}
-                    onChange={(e) => patchItem(gi, ii, { priceDelta: Number(e.target.value) })}
-                    className="w-full border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
+              </div>
+              <div>
+                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Max picks</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={group.maxSelect}
+                  onChange={(e) => patchGroup(gi, { maxSelect: Number(e.target.value) })}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="p-3 space-y-2">
+            <div className="text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wide">
+              Items
+            </div>
+            {group.items.length === 0 && (
+              <div className="text-xs text-muted dark:text-dark-muted">
+                Add the choices customers can pick from.
+              </div>
+            )}
+            {group.items.map((it, ii) => (
+              <div
+                key={ii}
+                className="rounded-lg border border-surface-muted dark:border-dark-surface-muted p-2 sm:p-3 bg-surface dark:bg-dark-surface"
+              >
+                <div className="flex gap-3">
+                  <CloudinaryImageUploader
+                    size="sm"
+                    value={it.imageUrl || ''}
+                    onChange={(url) => patchItem(gi, ii, { imageUrl: url })}
                   />
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <input
+                      type="text"
+                      placeholder="Item name (e.g. Plantain)"
+                      value={it.name}
+                      onChange={(e) => patchItem(gi, ii, { name: e.target.value })}
+                      className={inputCls}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Short description (optional)"
+                      value={it.description || ''}
+                      onChange={(e) => patchItem(gi, ii, { description: e.target.value })}
+                      className={inputCls}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(gi, ii)}
+                    className="self-start p-1.5 text-error hover:bg-error/10 rounded"
+                    title="Remove item"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <label className="col-span-2 text-xs flex items-center gap-1">
-                  <input type="checkbox" checked={!!it.isDefault} onChange={(e) => patchItem(gi, ii, { isDefault: e.target.checked })} />
-                  default
-                </label>
-                <label className="col-span-1 text-xs flex items-center gap-1">
-                  <input type="checkbox" checked={it.isAvailable !== false} onChange={(e) => patchItem(gi, ii, { isAvailable: e.target.checked })} />
-                </label>
-                <button type="button" onClick={() => removeItem(gi, ii)} className="col-span-1 text-error">
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex flex-wrap items-center gap-3 mt-2 pl-[3.75rem] sm:pl-[4rem]">
+                  <div className="flex items-center gap-1">
+                    <label className="text-xs text-muted dark:text-dark-muted">+₦</label>
+                    <input
+                      type="number"
+                      value={it.priceDelta}
+                      onChange={(e) => patchItem(gi, ii, { priceDelta: Number(e.target.value) })}
+                      className={`${smInputCls} w-24`}
+                    />
+                  </div>
+                  <label className="text-xs flex items-center gap-1 text-text dark:text-dark-text">
+                    <input
+                      type="checkbox"
+                      checked={!!it.isDefault}
+                      onChange={(e) => patchItem(gi, ii, { isDefault: e.target.checked })}
+                      className="accent-primary"
+                    />
+                    Default pick
+                  </label>
+                  <label className="text-xs flex items-center gap-1 text-text dark:text-dark-text">
+                    <input
+                      type="checkbox"
+                      checked={it.isAvailable !== false}
+                      onChange={(e) => patchItem(gi, ii, { isAvailable: e.target.checked })}
+                      className="accent-primary"
+                    />
+                    Available
+                  </label>
+                </div>
               </div>
             ))}
-            <button type="button" onClick={() => addItem(gi)} className="text-xs text-primary hover:underline">
-              + Add item
+            <button
+              type="button"
+              onClick={() => addItem(gi)}
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              <Plus size={14} /> Add item
             </button>
           </div>
         </div>
       ))}
-      <button type="button" onClick={addGroup} className="text-sm px-3 py-1.5 bg-surface-muted dark:bg-dark-surface-muted rounded-md">
-        + Add option group
+
+      <button
+        type="button"
+        onClick={addGroup}
+        className="w-full sm:w-auto px-4 py-2 border-2 border-dashed border-surface-muted dark:border-dark-surface-muted hover:border-primary dark:hover:border-primary rounded-lg text-sm text-text dark:text-dark-text hover:text-primary dark:hover:text-primary transition-colors flex items-center justify-center gap-2"
+      >
+        <Plus size={16} /> Add option group
       </button>
     </div>
   )
@@ -386,7 +468,7 @@ export default function MenuPage() {
             placeholder="Search products"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm"
+            className="border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text placeholder:text-muted dark:placeholder:text-dark-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
           <button
             onClick={() => setShowCreate(true)}
@@ -500,7 +582,9 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
 // Create modal — inline variants + option groups all at once
 // ---------------------------------------------------------------------------
 
-const inputCls = 'w-full border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text'
+const inputCls = 'w-full border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary/30'
+const smInputCls = 'border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary/30'
+const ghostBtnCls = 'px-3 py-1.5 border border-surface-muted dark:border-dark-surface-muted rounded-md text-sm text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors'
 
 function ProductCreateModal({ categories, onClose, onSubmit }) {
   const [categoryId, setCategoryId] = useState('')
@@ -604,11 +688,18 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-text dark:text-dark-text">New Product</h2>
-          <button type="button" onClick={onClose}><X size={18} /></button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-error hover:bg-error/10 rounded-md"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-muted dark:text-dark-muted">Category *</label>
+          <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Category *</label>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
@@ -629,34 +720,33 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-muted dark:text-dark-muted">Name *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} required />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-muted dark:text-dark-muted">Image URL</label>
-            <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className={inputCls} placeholder="https://…" />
-          </div>
+        <div>
+          <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Name *</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} required />
         </div>
 
         <div>
-          <label className="text-xs font-semibold text-muted dark:text-dark-muted">Description</label>
+          <CloudinaryImageUploader value={imageUrl} onChange={setImageUrl} label="Product image" />
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Description</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} rows={2} />
         </div>
 
         {selectedCategory?.slug === 'pharmacy' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm text-text dark:text-dark-text">
               <input
                 type="checkbox"
                 checked={requiresPrescription}
                 onChange={(e) => setRequiresPrescription(e.target.checked)}
+                className="accent-primary"
               />
               Requires prescription
             </label>
             <div>
-              <label className="text-xs font-semibold text-muted dark:text-dark-muted">Dosage</label>
+              <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Dosage</label>
               <input type="text" value={dosage} onChange={(e) => setDosage(e.target.value)} className={inputCls} placeholder="e.g. Take 1 tablet twice daily" />
             </div>
           </div>
@@ -666,8 +756,13 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-semibold text-text dark:text-dark-text">Variants</label>
             {axes.length > 0 && (
-              <label className="text-xs flex items-center gap-1">
-                <input type="checkbox" checked={singleSku} onChange={(e) => setSingleSku(e.target.checked)} />
+              <label className="text-xs flex items-center gap-1 text-text dark:text-dark-text">
+                <input
+                  type="checkbox"
+                  checked={singleSku}
+                  onChange={(e) => setSingleSku(e.target.checked)}
+                  className="accent-primary"
+                />
                 Single SKU (skip matrix)
               </label>
             )}
@@ -676,21 +771,21 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
           {singleSku ? (
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-xs text-muted dark:text-dark-muted">Price *</label>
+                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Price *</label>
                 <input type="number" value={singlePrice} onChange={(e) => setSinglePrice(e.target.value)} className={inputCls} required />
               </div>
               <div>
-                <label className="text-xs text-muted dark:text-dark-muted">Stock</label>
+                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Stock</label>
                 <input type="number" value={singleStock} onChange={(e) => setSingleStock(e.target.value)} className={inputCls} />
               </div>
               {pack && (
                 <>
                   <div>
-                    <label className="text-xs text-muted dark:text-dark-muted">Pack size</label>
+                    <label className="text-xs text-muted dark:text-dark-muted block mb-1">Pack size</label>
                     <input type="number" step="0.01" value={singlePackSize} onChange={(e) => setSinglePackSize(e.target.value)} className={inputCls} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted dark:text-dark-muted">Pack unit</label>
+                    <label className="text-xs text-muted dark:text-dark-muted block mb-1">Pack unit</label>
                     <select value={singlePackUnit} onChange={(e) => setSinglePackUnit(e.target.value)} className={inputCls}>
                       <option value="">—</option>
                       {(packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
@@ -723,10 +818,14 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
         )}
 
         <div className="flex gap-3 pt-3 border-t border-surface-muted dark:border-dark-surface-muted">
-          <button type="button" onClick={onClose} className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
+          >
             Cancel
           </button>
-          <button type="submit" disabled={saving} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg disabled:opacity-60">
+          <button type="submit" disabled={saving} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 disabled:opacity-60">
             {saving ? 'Saving…' : 'Create product'}
           </button>
         </div>
@@ -790,21 +889,24 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
       <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-4xl max-h-[95vh] overflow-y-auto shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-text dark:text-dark-text">Edit — {product.name}</h2>
-          <button onClick={onClose}><X size={18} /></button>
+          <button
+            onClick={onClose}
+            className="p-2 text-error hover:bg-error/10 rounded-md"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-muted dark:text-dark-muted">Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-muted dark:text-dark-muted">Image URL</label>
-            <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className={inputCls} />
-          </div>
+        <div>
+          <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Name</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className="text-xs font-semibold text-muted dark:text-dark-muted">Description</label>
+          <CloudinaryImageUploader value={imageUrl} onChange={setImageUrl} label="Product image" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Description</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} rows={2} />
         </div>
 
@@ -817,11 +919,12 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
                 type="checkbox"
                 checked={requiresPrescription}
                 onChange={(e) => setRequiresPrescription(e.target.checked)}
+                className="accent-primary"
               />
               Requires prescription
             </label>
             <div>
-              <label className="text-xs font-semibold text-muted dark:text-dark-muted">Dosage</label>
+              <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Dosage</label>
               <input
                 type="text"
                 value={dosage}
@@ -833,7 +936,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
           </div>
         )}
 
-        <button onClick={saveBasics} disabled={saving} className="px-3 py-1.5 bg-primary text-white rounded-md text-sm disabled:opacity-60">
+        <button onClick={saveBasics} disabled={saving} className="px-3 py-1.5 bg-primary text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-60">
           {saving ? 'Saving…' : 'Save basics'}
         </button>
 
@@ -857,7 +960,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
         )}
 
         <div className="pt-3 border-t border-surface-muted dark:border-dark-surface-muted">
-          <button onClick={onClose} className="px-4 py-2 bg-primary text-white rounded-lg">Close</button>
+          <button onClick={onClose} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700">Close</button>
         </div>
       </div>
     </div>
@@ -867,7 +970,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
 function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
   const dispatch = useDispatch()
   const [adding, setAdding] = useState(false)
-  const [draft, setDraft] = useState({ attributes: {}, price: 0, stock: 0, packSize: '', packUnit: '', isAvailable: true })
+  const [draft, setDraft] = useState({ attributes: {}, price: 0, stock: 0, packSize: '', packUnit: '', imageUrl: '', isAvailable: true })
 
   const addVariant = async () => {
     try {
@@ -881,12 +984,13 @@ function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
             stock: Number(draft.stock) || 0,
             ...(pack && draft.packSize ? { packSize: Number(draft.packSize) } : {}),
             ...(pack && draft.packUnit ? { packUnit: draft.packUnit } : {}),
+            ...(draft.imageUrl ? { imageUrl: draft.imageUrl } : {}),
             isAvailable: draft.isAvailable,
           },
         })
       ).unwrap()
       setAdding(false)
-      setDraft({ attributes: {}, price: 0, stock: 0, packSize: '', packUnit: '', isAvailable: true })
+      setDraft({ attributes: {}, price: 0, stock: 0, packSize: '', packUnit: '', imageUrl: '', isAvailable: true })
       showSuccessToast('Variant added')
     } catch (e) {
       showErrorToast(e?.message || 'Failed to add variant')
@@ -913,115 +1017,137 @@ function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
 
   return (
     <div className="space-y-2">
-      <table className="w-full text-sm">
-        <thead className="text-xs uppercase text-muted dark:text-dark-muted">
-          <tr>
-            {axes.map((a) => <th key={a} className="text-left px-2 py-1">{a}</th>)}
-            {pack && <th className="px-2 py-1">pack</th>}
-            <th className="text-left px-2 py-1">price</th>
-            <th className="text-left px-2 py-1">stock</th>
-            <th className="px-2 py-1">avail</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {(product.variants || []).map((v) => (
-            <tr key={v.id} className="border-t border-surface-muted dark:border-dark-surface-muted">
-              {axes.map((a) => <td key={a} className="px-2 py-1">{v.attributes?.[a] || '—'}</td>)}
-              {pack && <td className="px-2 py-1 text-xs">{v.packLabel || '—'}</td>}
-              <td className="px-2 py-1">
-                <input
-                  type="number"
-                  defaultValue={v.price}
-                  onBlur={(e) => {
-                    const next = Number(e.target.value)
-                    if (next !== Number(v.price)) patch(v.id, { price: next })
-                  }}
-                  className="w-24 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-                />
-              </td>
-              <td className="px-2 py-1">
-                <input
-                  type="number"
-                  defaultValue={v.stock}
-                  onBlur={(e) => {
-                    const next = Number(e.target.value)
-                    if (next !== Number(v.stock)) patch(v.id, { stock: next })
-                  }}
-                  className="w-20 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-                />
-              </td>
-              <td className="px-2 py-1 text-center">
-                <input
-                  type="checkbox"
-                  checked={v.isAvailable}
-                  onChange={(e) => patch(v.id, { isAvailable: e.target.checked })}
-                />
-              </td>
-              <td className="px-2 py-1 text-right">
-                <button onClick={() => remove(v.id)} className="text-error">
-                  <Trash2 size={14} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {adding ? (
-        <div className="border border-surface-muted dark:border-dark-surface-muted rounded p-2 space-y-2">
-          {axes.map((a) => (
-            <div key={a} className="flex items-center gap-2">
-              <label className="text-xs w-20">{a}</label>
+      <div className="space-y-2">
+        {(product.variants || []).map((v) => (
+          <div
+            key={v.id}
+            className="flex flex-wrap items-center gap-2 p-2 rounded-lg border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface"
+          >
+            <CloudinaryImageUploader
+              size="sm"
+              value={v.imageUrl || ''}
+              onChange={(url) => patch(v.id, { imageUrl: url || null })}
+            />
+            <div className="flex-1 min-w-[140px] text-sm text-text dark:text-dark-text">
+              {axes.map((a) => v.attributes?.[a]).filter(Boolean).join(' / ') || (v.packLabel || 'default')}
+              {pack && v.packLabel && (
+                <div className="text-xs text-muted dark:text-dark-muted">{v.packLabel}</div>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted dark:text-dark-muted">₦</label>
               <input
-                type="text"
-                value={draft.attributes[a] || ''}
-                onChange={(e) => setDraft({ ...draft, attributes: { ...draft.attributes, [a]: e.target.value } })}
-                className="flex-1 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
+                type="number"
+                defaultValue={v.price}
+                onBlur={(e) => {
+                  const next = Number(e.target.value)
+                  if (next !== Number(v.price)) patch(v.id, { price: next })
+                }}
+                className={`${smInputCls} w-24`}
               />
             </div>
-          ))}
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted dark:text-dark-muted">stock</label>
+              <input
+                type="number"
+                defaultValue={v.stock}
+                onBlur={(e) => {
+                  const next = Number(e.target.value)
+                  if (next !== Number(v.stock)) patch(v.id, { stock: next })
+                }}
+                className={`${smInputCls} w-20`}
+              />
+            </div>
+            <label className="flex items-center gap-1 text-xs text-text dark:text-dark-text">
+              <input
+                type="checkbox"
+                checked={v.isAvailable}
+                onChange={(e) => patch(v.id, { isAvailable: e.target.checked })}
+                className="accent-primary"
+              />
+              available
+            </label>
+            <button
+              onClick={() => remove(v.id)}
+              className="ml-auto p-1.5 text-error hover:bg-error/10 rounded"
+              title="Remove variant"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {adding ? (
+        <div className="border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg p-3 space-y-2">
+          <div className="flex gap-3">
+            <CloudinaryImageUploader
+              size="sm"
+              value={draft.imageUrl}
+              onChange={(url) => setDraft({ ...draft, imageUrl: url })}
+            />
+            <div className="flex-1 space-y-2">
+              {axes.map((a) => (
+                <div key={a} className="flex items-center gap-2">
+                  <label className="text-xs w-20 text-muted dark:text-dark-muted capitalize">{a}</label>
+                  <input
+                    type="text"
+                    value={draft.attributes[a] || ''}
+                    onChange={(e) => setDraft({ ...draft, attributes: { ...draft.attributes, [a]: e.target.value } })}
+                    className={`${smInputCls} flex-1`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
           {pack && (
             <div className="flex items-center gap-2">
+              <label className="text-xs text-muted dark:text-dark-muted">pack</label>
               <input
                 type="number"
                 step="0.01"
-                placeholder="pack size"
+                placeholder="size"
                 value={draft.packSize}
                 onChange={(e) => setDraft({ ...draft, packSize: e.target.value })}
-                className="w-24 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
+                className={`${smInputCls} w-24`}
               />
               <select
                 value={draft.packUnit}
                 onChange={(e) => setDraft({ ...draft, packUnit: e.target.value })}
-                className="border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
+                className={smInputCls}
               >
                 <option value="">—</option>
                 {(packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              placeholder="price"
-              value={draft.price}
-              onChange={(e) => setDraft({ ...draft, price: e.target.value })}
-              className="w-24 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-            />
-            <input
-              type="number"
-              placeholder="stock"
-              value={draft.stock}
-              onChange={(e) => setDraft({ ...draft, stock: e.target.value })}
-              className="w-20 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-            />
-            <button onClick={addVariant} className="ml-auto text-sm px-3 py-1 bg-primary text-white rounded">Add</button>
-            <button onClick={() => setAdding(false)} className="text-sm px-3 py-1 border border-surface-muted dark:border-dark-surface-muted rounded">Cancel</button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted dark:text-dark-muted">₦</label>
+              <input
+                type="number"
+                placeholder="price"
+                value={draft.price}
+                onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                className={`${smInputCls} w-24`}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted dark:text-dark-muted">stock</label>
+              <input
+                type="number"
+                placeholder="stock"
+                value={draft.stock}
+                onChange={(e) => setDraft({ ...draft, stock: e.target.value })}
+                className={`${smInputCls} w-20`}
+              />
+            </div>
+            <button onClick={addVariant} className="ml-auto text-sm px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-700">Add</button>
+            <button onClick={() => setAdding(false)} className={ghostBtnCls}>Cancel</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setAdding(true)} className="text-sm text-primary flex items-center gap-1">
+        <button onClick={() => setAdding(true)} className="text-sm text-primary flex items-center gap-1 hover:underline">
           <Plus size={14} /> Add variant
         </button>
       )}
@@ -1067,43 +1193,60 @@ function OptionGroupsTable({ product, merchantId }) {
         <OptionGroupRow key={g.id} group={g} product={product} merchantId={merchantId} onDelete={() => removeGroup(g.id)} />
       ))}
       {addingGroup ? (
-        <div className="border border-surface-muted dark:border-dark-surface-muted rounded p-3 space-y-2">
-          <input
-            type="text"
-            placeholder="Group name (e.g. Sides)"
-            value={groupDraft.name}
-            onChange={(e) => setGroupDraft({ ...groupDraft, name: e.target.value })}
-            className={inputCls}
-          />
-          <select
-            value={groupDraft.selectionRule}
-            onChange={(e) => setGroupDraft({ ...groupDraft, selectionRule: e.target.value })}
-            className={inputCls}
-          >
-            {SELECTION_RULES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-          </select>
-          <div className="flex items-center gap-2">
-            <label className="text-xs">min</label>
+        <div className="border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-xl p-3 space-y-2">
+          <div>
+            <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Group name</label>
             <input
-              type="number"
-              value={groupDraft.minSelect}
-              onChange={(e) => setGroupDraft({ ...groupDraft, minSelect: Number(e.target.value) })}
-              className="w-16 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
+              type="text"
+              placeholder="e.g. Sides, Spice level"
+              value={groupDraft.name}
+              onChange={(e) => setGroupDraft({ ...groupDraft, name: e.target.value })}
+              className={inputCls}
             />
-            <label className="text-xs">max</label>
-            <input
-              type="number"
-              value={groupDraft.maxSelect}
-              onChange={(e) => setGroupDraft({ ...groupDraft, maxSelect: Number(e.target.value) })}
-              className="w-16 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-            />
-            <button onClick={addGroup} className="ml-auto text-sm px-3 py-1 bg-primary text-white rounded">Add</button>
-            <button onClick={() => setAddingGroup(false)} className="text-sm px-3 py-1 border rounded">Cancel</button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Rule</label>
+              <select
+                value={groupDraft.selectionRule}
+                onChange={(e) => setGroupDraft({ ...groupDraft, selectionRule: e.target.value })}
+                className={inputCls}
+              >
+                {SELECTION_RULES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Min picks</label>
+              <input
+                type="number"
+                min="0"
+                value={groupDraft.minSelect}
+                onChange={(e) => setGroupDraft({ ...groupDraft, minSelect: Number(e.target.value) })}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Max picks</label>
+              <input
+                type="number"
+                min="1"
+                value={groupDraft.maxSelect}
+                onChange={(e) => setGroupDraft({ ...groupDraft, maxSelect: Number(e.target.value) })}
+                className={inputCls}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 justify-end">
+            <button onClick={() => setAddingGroup(false)} className={ghostBtnCls}>Cancel</button>
+            <button onClick={addGroup} className="text-sm px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-700">Add group</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setAddingGroup(true)} className="text-sm text-primary flex items-center gap-1">
-          <Plus size={14} /> Add option group
+        <button
+          onClick={() => setAddingGroup(true)}
+          className="w-full sm:w-auto px-4 py-2 border-2 border-dashed border-surface-muted dark:border-dark-surface-muted hover:border-primary dark:hover:border-primary rounded-lg text-sm text-text dark:text-dark-text hover:text-primary dark:hover:text-primary transition-colors flex items-center justify-center gap-2"
+        >
+          <Plus size={16} /> Add option group
         </button>
       )}
     </div>
@@ -1113,7 +1256,7 @@ function OptionGroupsTable({ product, merchantId }) {
 function OptionGroupRow({ group, product, merchantId, onDelete }) {
   const dispatch = useDispatch()
   const [addingItem, setAddingItem] = useState(false)
-  const [itemDraft, setItemDraft] = useState({ name: '', priceDelta: 0, isDefault: false })
+  const [itemDraft, setItemDraft] = useState({ name: '', description: '', priceDelta: 0, imageUrl: '', isDefault: false })
 
   const addItem = async () => {
     if (!itemDraft.name.trim()) return
@@ -1123,14 +1266,16 @@ function OptionGroupRow({ group, product, merchantId, onDelete }) {
           merchantId, productId: product.id, groupId: group.id,
           item: {
             name: itemDraft.name.trim(),
+            description: itemDraft.description?.trim() || undefined,
             priceDelta: Number(itemDraft.priceDelta) || 0,
+            imageUrl: itemDraft.imageUrl || undefined,
             isDefault: itemDraft.isDefault,
             sortOrder: (group.items || []).length,
           },
         })
       ).unwrap()
       setAddingItem(false)
-      setItemDraft({ name: '', priceDelta: 0, isDefault: false })
+      setItemDraft({ name: '', description: '', priceDelta: 0, imageUrl: '', isDefault: false })
     } catch (e) {
       showErrorToast(e?.message || 'Failed')
     }
@@ -1142,61 +1287,128 @@ function OptionGroupRow({ group, product, merchantId, onDelete }) {
       patch: { isAvailable: !item.isAvailable },
     }))
 
+  const patchItem = (item, patch) =>
+    dispatch(updateOptionItem({
+      merchantId, productId: product.id, groupId: group.id, itemId: item.id,
+      patch,
+    }))
+
   const removeItem = (itemId) => {
     if (!confirm('Delete this item?')) return
     dispatch(deleteOptionItem({ merchantId, productId: product.id, groupId: group.id, itemId }))
   }
 
   return (
-    <div className="border border-surface-muted dark:border-dark-surface-muted rounded-lg p-3 space-y-2">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="font-medium text-text dark:text-dark-text">{group.name}</div>
+    <div className="rounded-xl border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface overflow-hidden">
+      <div className="px-3 py-3 bg-surface-muted/40 dark:bg-dark-surface-muted/40 border-b border-surface-muted dark:border-dark-surface-muted flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="font-medium text-text dark:text-dark-text truncate">{group.name}</div>
           <div className="text-xs text-muted dark:text-dark-muted">
             {SELECTION_RULES.find((r) => r.value === group.selectionRule)?.label} · min {group.minSelect} · max {group.maxSelect}
           </div>
         </div>
-        <button onClick={onDelete} className="text-error"><Trash2 size={14} /></button>
+        <button onClick={onDelete} className="p-2 text-error hover:bg-error/10 rounded-md" title="Delete group">
+          <Trash2 size={16} />
+        </button>
       </div>
-      <div className="space-y-1">
+      <div className="p-3 space-y-2">
         {(group.items || []).map((it) => (
-          <div key={it.id} className="flex items-center gap-2 text-sm">
-            <span className={`flex-1 ${!it.isAvailable ? 'line-through text-muted' : 'text-text dark:text-dark-text'}`}>
-              {it.name} {Number(it.priceDelta) !== 0 && <span className="text-muted">+{moneyFmt(it.priceDelta)}</span>}
-              {it.isDefault && <span className="ml-1 text-xs text-primary">(default)</span>}
-            </span>
-            <button onClick={() => toggleAvail(it)} className="text-xs text-text dark:text-dark-text">
-              {it.isAvailable ? '86 it' : 'Unavail. — Restore'}
-            </button>
-            <button onClick={() => removeItem(it.id)} className="text-error"><Trash2 size={12} /></button>
+          <div
+            key={it.id}
+            className={`rounded-lg border border-surface-muted dark:border-dark-surface-muted p-2 sm:p-3 ${!it.isAvailable ? 'opacity-60' : ''}`}
+          >
+            <div className="flex gap-3 items-start">
+              <CloudinaryImageUploader
+                size="sm"
+                value={it.imageUrl || ''}
+                onChange={(url) => patchItem(it, { imageUrl: url || null })}
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`font-medium truncate ${!it.isAvailable ? 'line-through text-muted dark:text-dark-muted' : 'text-text dark:text-dark-text'}`}>
+                    {it.name}
+                  </span>
+                  {it.isDefault && (
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">default</span>
+                  )}
+                  {Number(it.priceDelta) !== 0 && (
+                    <span className="text-xs text-muted dark:text-dark-muted">+{moneyFmt(it.priceDelta)}</span>
+                  )}
+                </div>
+                {it.description && (
+                  <div className="text-xs text-muted dark:text-dark-muted mt-0.5 truncate">{it.description}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => toggleAvail(it)}
+                  className="text-xs px-2 py-1 rounded border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted"
+                  title={it.isAvailable ? 'Mark unavailable' : 'Restore'}
+                >
+                  {it.isAvailable ? '86 it' : 'Restore'}
+                </button>
+                <button onClick={() => removeItem(it.id)} className="p-1.5 text-error hover:bg-error/10 rounded" title="Delete">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
           </div>
         ))}
+
         {addingItem ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="item name"
-              value={itemDraft.name}
-              onChange={(e) => setItemDraft({ ...itemDraft, name: e.target.value })}
-              className="flex-1 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-            />
-            <input
-              type="number"
-              placeholder="+₦"
-              value={itemDraft.priceDelta}
-              onChange={(e) => setItemDraft({ ...itemDraft, priceDelta: e.target.value })}
-              className="w-20 border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm"
-            />
-            <label className="text-xs flex items-center gap-1">
-              <input type="checkbox" checked={itemDraft.isDefault} onChange={(e) => setItemDraft({ ...itemDraft, isDefault: e.target.checked })} />
-              default
-            </label>
-            <button onClick={addItem} className="text-sm px-2 py-1 bg-primary text-white rounded">Add</button>
-            <button onClick={() => setAddingItem(false)} className="text-sm px-2 py-1 border rounded">×</button>
+          <div className="rounded-lg border border-surface-muted dark:border-dark-surface-muted p-3 space-y-2 bg-surface-muted/40 dark:bg-dark-surface-muted/40">
+            <div className="flex gap-3">
+              <CloudinaryImageUploader
+                size="sm"
+                value={itemDraft.imageUrl}
+                onChange={(url) => setItemDraft({ ...itemDraft, imageUrl: url })}
+              />
+              <div className="flex-1 space-y-1.5">
+                <input
+                  type="text"
+                  placeholder="Item name"
+                  value={itemDraft.name}
+                  onChange={(e) => setItemDraft({ ...itemDraft, name: e.target.value })}
+                  className={inputCls}
+                />
+                <input
+                  type="text"
+                  placeholder="Short description (optional)"
+                  value={itemDraft.description}
+                  onChange={(e) => setItemDraft({ ...itemDraft, description: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1">
+                <label className="text-xs text-muted dark:text-dark-muted">+₦</label>
+                <input
+                  type="number"
+                  value={itemDraft.priceDelta}
+                  onChange={(e) => setItemDraft({ ...itemDraft, priceDelta: e.target.value })}
+                  className={`${smInputCls} w-24`}
+                />
+              </div>
+              <label className="text-xs flex items-center gap-1 text-text dark:text-dark-text">
+                <input
+                  type="checkbox"
+                  checked={itemDraft.isDefault}
+                  onChange={(e) => setItemDraft({ ...itemDraft, isDefault: e.target.checked })}
+                  className="accent-primary"
+                />
+                Default pick
+              </label>
+              <button onClick={() => setAddingItem(false)} className={`${ghostBtnCls} ml-auto`}>Cancel</button>
+              <button onClick={addItem} className="text-sm px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-700">Add item</button>
+            </div>
           </div>
         ) : (
-          <button onClick={() => setAddingItem(true)} className="text-xs text-primary flex items-center gap-1">
-            <Plus size={12} /> Add item
+          <button
+            onClick={() => setAddingItem(true)}
+            className="text-sm text-primary flex items-center gap-1 hover:underline"
+          >
+            <Plus size={14} /> Add item
           </button>
         )}
       </div>
