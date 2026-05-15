@@ -44,6 +44,18 @@ export const updateCustomer = createAsyncThunk(
   }
 )
 
+export const wipeCustomerKyc = createAsyncThunk(
+  'customers/wipeKyc',
+  async ({ customerId, reason }, { rejectWithValue }) => {
+    try {
+      const response = await api.post(`/admin/customers/${customerId}/wipe-kyc`, { reason })
+      return response.data.data
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message)
+    }
+  }
+)
+
 export const fetchCustomerDetail = createAsyncThunk(
   'customers/fetchDetail',
   async (customerId) => {
@@ -147,6 +159,16 @@ const customersSlice = createSlice({
         }
       })
       .addCase(updateCustomer.fulfilled, (state, action) => {
+        const updated = action.payload
+        if (updated?.id) {
+          const i = state.customers.findIndex((u) => u.id === updated.id)
+          if (i !== -1) state.customers[i] = { ...state.customers[i], ...updated }
+          if (state.detail.data?.id === updated.id) {
+            state.detail.data = { ...state.detail.data, ...updated }
+          }
+        }
+      })
+      .addCase(wipeCustomerKyc.fulfilled, (state, action) => {
         const updated = action.payload
         if (updated?.id) {
           const i = state.customers.findIndex((u) => u.id === updated.id)

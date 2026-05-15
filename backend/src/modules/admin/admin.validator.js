@@ -49,6 +49,10 @@ const updateCustomerStatusSchema = z.object({
   reason: z.string().min(1).max(500).optional(),
 });
 
+const wipeCustomerKycSchema = z.object({
+  reason: z.string().min(1, 'Reason is required').max(500),
+});
+
 const updateCustomerSchema = z
   .object({
     firstName: z.string().min(1).max(50).optional(),
@@ -327,6 +331,7 @@ module.exports = {
   reviewRiderSchema,
   updateCustomerStatusSchema,
   updateCustomerSchema,
+  wipeCustomerKycSchema,
   listPendingRidersSchema,
   listAllCustomersSchema,
   paginationSchema,

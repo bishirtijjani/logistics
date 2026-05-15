@@ -63,6 +63,21 @@ const updateCustomer = async (req, res, next) => {
   }
 };
 
+const wipeCustomerKyc = async (req, res, next) => {
+  try {
+    const result = await adminService.wipeCustomerKyc(
+      req.params.customerId,
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Customer KYC wiped', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCustomerById = async (req, res, next) => {
   try {
     const customer = await adminService.getCustomerById(req.params.customerId);
@@ -714,6 +729,7 @@ module.exports = {
   getAllCustomers,
   updateCustomerStatus,
   updateCustomer,
+  wipeCustomerKyc,
   getCustomerById,
   getCustomerRequests,
   getCustomerTransactions,

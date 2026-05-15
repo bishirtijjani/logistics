@@ -9,6 +9,7 @@ import {
   suspendCustomer,
   unsuspendCustomer,
   updateCustomer,
+  wipeCustomerKyc,
   clearCustomerDetail,
 } from '../store/slices/customersSlice'
 import {
@@ -28,6 +29,7 @@ import {
   CheckCircle2,
   XCircle,
   Pencil,
+  Eraser,
 } from 'lucide-react'
 import Pagination from '../components/Pagination'
 
@@ -77,7 +79,10 @@ export default function CustomerDetailPage() {
   const [activeTab, setActiveTab] = useState('requests')
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showWipeKycModal, setShowWipeKycModal] = useState(false)
   const [suspendReason, setSuspendReason] = useState('')
+  const [wipeKycReason, setWipeKycReason] = useState('')
+  const [wipeKycError, setWipeKycError] = useState(null)
   const [actionLoading, setActionLoading] = useState(null)
 
   const customer = detail.data
@@ -105,6 +110,21 @@ export default function CustomerDetailPage() {
     await dispatch(unsuspendCustomer(customerId))
     setActionLoading(null)
     dispatch(fetchCustomerDetail(customerId))
+  }
+
+  const handleWipeKyc = async () => {
+    if (!wipeKycReason.trim()) return
+    setWipeKycError(null)
+    setActionLoading('wipeKyc')
+    const result = await dispatch(wipeCustomerKyc({ customerId, reason: wipeKycReason.trim() }))
+    setActionLoading(null)
+    if (result.meta.requestStatus === 'fulfilled') {
+      setShowWipeKycModal(false)
+      setWipeKycReason('')
+      dispatch(fetchCustomerDetail(customerId))
+    } else {
+      setWipeKycError(result.payload || 'Failed to wipe KYC')
+    }
   }
 
   const handleSaveEdit = async (changes) => {
@@ -166,6 +186,11 @@ export default function CustomerDetailPage() {
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${KYC_COLORS[customer.kycStatus] || 'bg-surface-muted text-muted'}`}>
                   KYC: {customer.kycStatus}
                 </span>
+                {customer.hasBvn && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                    BVN bound
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -177,6 +202,16 @@ export default function CustomerDetailPage() {
               <Pencil size={16} />
               Edit
             </button>
+            {(customer.hasBvn || customer.kycStatus !== 'NONE') && (
+              <button
+                onClick={() => setShowWipeKycModal(true)}
+                className="px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 flex items-center gap-2 text-sm"
+                title="Clear KYC binding so customer can re-verify"
+              >
+                <Eraser size={16} />
+                Wipe KYC
+              </button>
+            )}
             {customer.status === 'SUSPENDED' ? (
               <button
                 onClick={handleUnsuspend}
@@ -279,6 +314,46 @@ export default function CustomerDetailPage() {
           onSave={handleSaveEdit}
           saving={actionLoading === 'edit'}
         />
+      )}
+
+      {showWipeKycModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md">
+            <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-2">Wipe KYC data</h3>
+            <p className="text-sm text-muted dark:text-dark-muted mb-4">
+              This clears the customer's stored BVN binding and resets KYC status to{' '}
+              <span className="font-medium">NONE</span>, so they can verify again from scratch. The
+              BVN verification log is retained for compliance.
+            </p>
+            <textarea
+              value={wipeKycReason}
+              onChange={(e) => setWipeKycReason(e.target.value)}
+              placeholder="Reason (required)..."
+              rows={3}
+              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-3 dark:bg-dark-surface-muted dark:text-dark-text"
+            />
+            {wipeKycError && <p className="text-sm text-error mb-2">{wipeKycError}</p>}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
+              <button
+                onClick={() => {
+                  setShowWipeKycModal(false)
+                  setWipeKycReason('')
+                  setWipeKycError(null)
+                }}
+                className="w-full sm:w-auto px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-text dark:text-dark-text"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleWipeKyc}
+                disabled={!wipeKycReason.trim() || actionLoading === 'wipeKyc'}
+                className="w-full sm:w-auto px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actionLoading === 'wipeKyc' ? 'Wiping...' : 'Wipe KYC'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Suspend Modal */}

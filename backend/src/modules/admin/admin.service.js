@@ -325,6 +325,7 @@ const getCustomerById = async (customerId) => {
       profilePicture: true,
       dateOfBirth: true,
       kycStatus: true,
+      bvnHash: true,
       role: true,
       status: true,
       deletedAt: true,
@@ -356,7 +357,61 @@ const getCustomerById = async (customerId) => {
       : Promise.resolve(0),
   ]);
 
-  return { ...user, counts: { requests: requestCount, addresses: addressCount, transactions: transactionCount } };
+  const { bvnHash, ...safeUser } = user;
+  return {
+    ...safeUser,
+    hasBvn: !!bvnHash,
+    counts: { requests: requestCount, addresses: addressCount, transactions: transactionCount },
+  };
+};
+
+/**
+ * Wipe a customer's KYC binding so they can re-verify from scratch. Clears the
+ * stored bvnHash and resets kycStatus to NONE. The append-only BvnVerificationLog
+ * is intentionally preserved — regulators require the full attempt history.
+ */
+const wipeCustomerKyc = async (customerId, reason, adminUserId, ipAddress, userAgent) => {
+  const user = await prisma.user.findUnique({
+    where: { id: customerId },
+    select: { id: true, role: true, kycStatus: true, bvnHash: true },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+  if (user.role !== 'CUSTOMER') throw AppError.badRequest('Not a customer account');
+  if (!user.bvnHash && user.kycStatus === 'NONE') {
+    throw AppError.badRequest('No KYC data to wipe');
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: customerId },
+    data: { bvnHash: null, kycStatus: 'NONE' },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      kycStatus: true,
+      status: true,
+    },
+  });
+
+  await createAuditLog(
+    adminUserId,
+    'WIPE_CUSTOMER_KYC',
+    'CUSTOMER',
+    customerId,
+    { previousKycStatus: user.kycStatus, hadBvn: !!user.bvnHash, reason },
+    ipAddress,
+    userAgent,
+  );
+
+  logger.info('Customer KYC wiped by admin', { customerId, reason });
+
+  // Drop session caches — old JWTs may carry stale kyc-derived claims, and
+  // the user's verification screen needs a fresh load.
+  invalidateCustomerSockets(customerId);
+
+  return { ...updated, hasBvn: false };
 };
 
 /**
@@ -2317,6 +2372,7 @@ module.exports = {
   getAllCustomers,
   updateCustomerStatus,
   updateCustomer,
+  wipeCustomerKyc,
   getCustomerById,
   getCustomerRequests,
   getCustomerTransactions,

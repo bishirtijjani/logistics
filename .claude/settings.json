@@ -148,7 +148,11 @@
       "Bash(node -c backend/src/modules/admin/admin.validator.js)",
       "Bash(node -c backend/src/modules/admin/admin.service.js)",
       "Bash(node -c backend/src/modules/admin/admin.controller.js)",
-      "Bash(node -c backend/src/modules/admin/admin.routes.js)"
+      "Bash(node -c backend/src/modules/admin/admin.routes.js)",
+      "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.validator.js)",
+      "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.service.js)",
+      "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.controller.js)",
+      "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.routes.js)"
     ]
   }
 }

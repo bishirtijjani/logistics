@@ -12,6 +12,7 @@ const {
   reviewRiderSchema,
   updateCustomerStatusSchema,
   updateCustomerSchema,
+  wipeCustomerKycSchema,
   listPendingRidersSchema,
   transactionOverviewSchema,
   listAllRequestsSchema,
@@ -107,6 +108,7 @@ router.get('/customers/:customerId/transactions', validate(customerTransactionsS
 router.get('/customers/:customerId/addresses', adminController.getCustomerAddresses);
 router.patch('/customers/:customerId/status', validate(updateCustomerStatusSchema), adminController.updateCustomerStatus);
 router.patch('/customers/:customerId', validate(updateCustomerSchema), adminController.updateCustomer);
+router.post('/customers/:customerId/wipe-kyc', validate(wipeCustomerKycSchema), adminController.wipeCustomerKyc);
 
 // Transaction oversight
 router.get('/transactions', validate(transactionOverviewSchema, 'query'), adminController.getTransactions);
