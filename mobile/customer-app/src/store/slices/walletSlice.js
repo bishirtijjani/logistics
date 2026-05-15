@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../../services/api";
 import socketService from "../../services/socket";
 import { newIdempotencyKey } from "../../services/idempotency";
+import { verifyBvn } from "./profileSlice";
 
 // ─── Thunks ─────────────────────────────────────────────────────────────────
 
@@ -241,6 +242,18 @@ const walletSlice = createSlice({
         state.isLocked = d?.isLocked ?? false;
       })
       .addCase(fetchWallet.rejected, (state, action) => { state.isLoading = false; state.error = action.payload; });
+
+    // verifyBvn returns the freshly-provisioned wallet inline. Sync it here so
+    // FundWalletScreen doesn't see a stale `accountNumber: null` after the user
+    // navigates back and bounce them into the spinner+retry "provisioning" view.
+    builder.addCase(verifyBvn.fulfilled, (state, action) => {
+      const w = action.payload?.wallet;
+      if (!w) return;
+      state.accountNumber = w.virtualAccountNumber ?? state.accountNumber;
+      state.bankName = w.virtualAccountBank ?? state.bankName;
+      state.accountName = w.virtualAccountName ?? state.accountName;
+      if (w.balance !== undefined) state.balance = Number(w.balance);
+    });
 
     // Fetch transactions
     builder

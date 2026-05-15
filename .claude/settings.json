@@ -152,7 +152,9 @@
       "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.validator.js)",
       "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.service.js)",
       "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.controller.js)",
-      "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.routes.js)"
+      "Bash(node -c c:/Users/BISHIR-TM/Documents/projects/logistics-app/backend/src/modules/admin/admin.routes.js)",
+      "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/screens/wallet/FundWalletScreen.js\")",
+      "Bash(node --check \"c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/customer-app/src/store/slices/walletSlice.js\")"
     ]
   }
 }

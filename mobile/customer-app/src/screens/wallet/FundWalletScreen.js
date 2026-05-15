@@ -19,18 +19,28 @@ import { fetchProfile } from "../../store/slices/profileSlice";
 export default function FundWalletScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
-  const { wallet, isLoading } = useSelector((state) => state.wallet);
+  const { accountNumber, bankName, isLoading } = useSelector((state) => state.wallet);
   const { profile } = useSelector((state) => state.profile);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [didInitialFetch, setDidInitialFetch] = useState(false);
 
   // Profile is fetched alongside the wallet so kycStatus is fresh — without it
   // we can't tell "user needs to verify" from "verified but provisioning still
-  // pending", and both states need different copy + CTA.
+  // pending", and both states need different copy + CTA. We wait for BOTH to
+  // resolve before deciding what to render, otherwise the brief window where
+  // profile has loaded (kycStatus=VERIFIED) but wallet hasn't (accountNumber=null)
+  // flips showProvisioning true and fires handleRetry on a perfectly-good NUBAN.
   useEffect(() => {
-    dispatch(fetchWallet());
-    dispatch(fetchProfile());
+    let cancelled = false;
+    (async () => {
+      await Promise.all([dispatch(fetchWallet()), dispatch(fetchProfile())]);
+      if (!cancelled) setDidInitialFetch(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [dispatch]);
 
   const onRefresh = async () => {
@@ -57,14 +67,18 @@ export default function FundWalletScreen({ navigation }) {
     { icon: "checkmark-done-outline", title: t("wallet.fund_.stepDoneTitle"), desc: t("wallet.fund_.stepDoneDesc") },
   ];
 
-  const hasAccount = Boolean(wallet?.accountNumber);
+  const hasAccount = Boolean(accountNumber);
   const isVerified = profile?.kycStatus === "VERIFIED";
-  // Three render states:
+  // Three render states (only valid AFTER the initial fetches resolve — see
+  // didInitialFetch). Rendering early shows whichever of wallet/profile loaded
+  // first, which briefly mis-classifies a verified-with-NUBAN user as "still
+  // provisioning" and triggers the retry-loop spinner unnecessarily.
   //   hasAccount             → happy path (account card + fund instructions)
   //   !isVerified            → BVN gate not cleared yet, route to KYC
   //   isVerified && !account → KatPay provisioning still pending (queue retry)
-  const showVerifyCta = !hasAccount && !isVerified;
-  const showProvisioning = !hasAccount && isVerified;
+  const showVerifyCta = didInitialFetch && !hasAccount && !isVerified;
+  const showProvisioning = didInitialFetch && !hasAccount && isVerified;
+  const showInitialLoader = !didInitialFetch && !hasAccount;
 
   // Self-heal: when the user lands here in the stuck state, fire one retry on
   // mount, then poll the wallet for ~30s to pick up the NUBAN. Server enforces
@@ -124,7 +138,11 @@ export default function FundWalletScreen({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        {showVerifyCta ? (
+        {showInitialLoader ? (
+          <View style={{ paddingVertical: 80, alignItems: "center" }}>
+            <ActivityIndicator color={colors.primary} size="large" />
+          </View>
+        ) : showVerifyCta ? (
           <View
             style={{
               backgroundColor: "#FFF7ED",
@@ -271,12 +289,12 @@ export default function FundWalletScreen({ navigation }) {
                       color: colors.white,
                       letterSpacing: 2,
                     }}
-                    accessibilityLabel={`${t("wallet.fund_.accountNumber")} ${wallet.accountNumber}`}
+                    accessibilityLabel={`${t("wallet.fund_.accountNumber")} ${accountNumber}`}
                   >
-                    {isLoading ? <ActivityIndicator color={colors.white} /> : wallet.accountNumber}
+                    {isLoading ? <ActivityIndicator color={colors.white} /> : accountNumber}
                   </Text>
                   <TouchableOpacity
-                    onPress={() => copyToClipboard(wallet.accountNumber)}
+                    onPress={() => copyToClipboard(accountNumber)}
                     accessibilityRole="button"
                     accessibilityLabel={copied ? t("wallet.fund_.copied") : t("wallet.fund_.copy")}
                     style={{
@@ -305,7 +323,7 @@ export default function FundWalletScreen({ navigation }) {
               >
                 <Ionicons name="business" size={20} color={colors.primary} />
                 <Text style={{ marginLeft: 12, fontSize: 15, fontWeight: "600", color: colors.white }}>
-                  {wallet?.bankName || t("wallet.fund_.fallbackBank")}
+                  {bankName || t("wallet.fund_.fallbackBank")}
                 </Text>
               </View>
             </View>
