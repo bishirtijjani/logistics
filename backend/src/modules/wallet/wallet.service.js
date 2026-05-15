@@ -430,9 +430,16 @@ const retryVirtualAccountProvisioning = async (userId) => {
 
   // KatPay requires phoneNumber. We adopt the BVN-verified phone into
   // user.phone at verification time, so it should always be set by here.
-  // If it isn't, the user is from before that fix landed — they need to
-  // re-submit BVN so verification can adopt their bvnPhone.
+  // If it isn't, the user is from before that fix landed — revert their
+  // kycStatus so the BVN screen lets them back in to re-submit. Without
+  // this revert the screen would render the "already verified" success
+  // view and they'd have no way to fix the missing phone.
   if (!user.phone) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { kycStatus: 'NONE' },
+    });
+    logger.warn('Reverted kycStatus to NONE: verified user has no phone on file', { userId });
     throw AppError.badRequest(
       'No phone on file. Please re-submit your BVN to recover your account.',
       { code: 'BVN_PHONE_MISSING' },

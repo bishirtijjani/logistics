@@ -40,10 +40,15 @@ const detailsSchema = z.object({
 
 const RESEND_COOLDOWN = 60;
 
-export default function BvnVerificationScreen({ navigation }) {
+export default function BvnVerificationScreen({ navigation, route }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { profile, isUpdating } = useSelector((state) => state.profile);
+  // Recovery mode: caller (FundWallet) detected the user is verified but has
+  // no NUBAN/phone, and routed here to re-submit. We need to render the form
+  // (not the "Already Verified" success view) because the recovery branch in
+  // verifyBvn requires the same BVN + a bvnPhone to finish provisioning.
+  const isRecovery = Boolean(route?.params?.recovery);
 
   // Two-step KYC flow:
   //   step="details" → user enters BVN/name/phone, taps "Send code" → SMS goes out
@@ -218,10 +223,20 @@ export default function BvnVerificationScreen({ navigation }) {
     }
   };
 
+  // Recovery mode: account was verified but has no phone on file (legacy users
+  // verified before bvnPhone-adoption landed). Either the caller set
+  // route.params.recovery (FundWallet's BVN_PHONE_MISSING handler) or we
+  // detect the same condition from profile state. Force the form view so the
+  // user can re-submit — backend's RECOVERY branch enforces same-BVN.
+  const needsRecovery =
+    isRecovery ||
+    (profile?.kycStatus === "VERIFIED" && !profile?.phone && !verificationResult);
+
   // Render the success view either: (a) right after a successful verification
   // in this session (verificationResult set), or (b) on revisit of an
-  // already-verified account.
-  const isVerified = verificationResult || profile?.kycStatus === "VERIFIED";
+  // already-verified account — but NOT when the account is in recovery mode.
+  const isVerified =
+    verificationResult || (profile?.kycStatus === "VERIFIED" && !needsRecovery);
   if (isVerified) {
     const wallet =
       verificationResult?.wallet || profile?.wallet || null;
@@ -472,6 +487,32 @@ export default function BvnVerificationScreen({ navigation }) {
         >
           {step === "details" ? (
             <>
+              {needsRecovery && (
+                <View
+                  style={{
+                    backgroundColor: "#FEF3C7",
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: "#FCD34D",
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Ionicons name="warning" size={20} color="#B45309" style={{ marginRight: 10, marginTop: 1 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "800", color: "#92400E", marginBottom: 4 }}>
+                      Finish setting up your wallet
+                    </Text>
+                    <Text style={{ fontSize: 12, lineHeight: 18, color: "#92400E" }}>
+                      Your identity is verified, but we still need the phone number linked to your BVN to
+                      create your wallet account. Please re-enter the same BVN you used before, plus your
+                      BVN-linked phone.
+                    </Text>
+                  </View>
+                </View>
+              )}
               {/* Info Banner */}
               <View
                 style={{

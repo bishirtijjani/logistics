@@ -69,15 +69,22 @@ export default function FundWalletScreen({ navigation }) {
   // Self-heal: when the user lands here in the stuck state, fire one retry on
   // mount, then poll the wallet for ~30s to pick up the NUBAN. Server enforces
   // its own 30s throttle so a quick screen re-mount won't spam KatPay.
+  // If the backend reports BVN_PHONE_MISSING the user is verified but has no
+  // phone on file (legacy account verified before bvnPhone was adopted into
+  // User.phone). Route them to the BVN screen in recovery mode to re-submit.
   const handleRetry = async () => {
     if (isRetrying) return;
     setIsRetrying(true);
     try {
-      await dispatch(retryProvisioning());
+      const res = await dispatch(retryProvisioning());
+      if (retryProvisioning.rejected.match(res) && res.payload?.code === "BVN_PHONE_MISSING") {
+        navigation.replace("BvnVerification", { recovery: true });
+        return;
+      }
       for (let i = 0; i < 6; i += 1) {
         await new Promise((r) => setTimeout(r, 5000));
-        const res = await dispatch(fetchWallet());
-        if (res?.payload?.data?.accountNumber || res?.payload?.accountNumber) break;
+        const w = await dispatch(fetchWallet());
+        if (w?.payload?.data?.accountNumber || w?.payload?.accountNumber) break;
       }
     } finally {
       setIsRetrying(false);

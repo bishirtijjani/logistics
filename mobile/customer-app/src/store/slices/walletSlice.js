@@ -24,7 +24,9 @@ export const retryProvisioning = createAsyncThunk(
       const response = await api.post("/wallet/retry-provisioning");
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      // Preserve the server-issued error code (e.g. BVN_PHONE_MISSING) so
+      // callers can branch on it without parsing the message string.
+      return rejectWithValue({ message: error.message, code: error.code });
     }
   },
 );

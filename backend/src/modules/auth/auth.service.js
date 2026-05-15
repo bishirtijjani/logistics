@@ -755,6 +755,20 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     //   throw AppError.badRequest("BVN verification failed");
     // }
 
+    // If the user has a stored bvnHash, this is a recovery from a state
+    // we reverted (e.g. retry-provisioning found no phone and reset
+    // kycStatus to NONE). Lock them to the same BVN so a session takeover
+    // can't be used to silently swap identities mid-recovery.
+    if (user.bvnHash) {
+      const matches = await bcrypt.compare(bvn, user.bvnHash);
+      if (!matches) {
+        await logAttempt('FAILED', 'BVN does not match stored hash (re-entry after revert)');
+        throw AppError.badRequest('BVN does not match the previously verified value', {
+          code: 'BVN_MISMATCH',
+        });
+      }
+    }
+
     // The BVN-verified phone becomes user.phone. Hard requirement: every
     // verified account must have a phone (KatPay needs it; ops needs it).
     // If another account already owns this phone, refuse verification — we
