@@ -73,11 +73,13 @@ const reviewRider = async (riderId, decision) => {
 };
 
 /**
- * List all customers with optional search.
+ * List all customers with optional search + status/kyc filters.
  */
-const getAllCustomers = async ({ page = 1, limit = 20, search }) => {
+const getAllCustomers = async ({ page = 1, limit = 20, search, status, kycStatus }) => {
   const where = {
     role: 'CUSTOMER',
+    ...(status && { status }),
+    ...(kycStatus && { kycStatus }),
     ...(search && {
       OR: [
         { firstName: { contains: search, mode: 'insensitive' } },
@@ -102,6 +104,7 @@ const getAllCustomers = async ({ page = 1, limit = 20, search }) => {
         phone: true,
         role: true,
         status: true,
+        kycStatus: true,
         createdAt: true,
       },
     }),
@@ -112,45 +115,195 @@ const getAllCustomers = async ({ page = 1, limit = 20, search }) => {
 };
 
 /**
- * Suspend or activate a customer. Refuses to act on non-CUSTOMER users —
- * merchants/riders have their own status endpoints.
+ * Invalidate the socket-auth cache for a user, and force-disconnect any of
+ * their currently-open sockets when their access has been revoked. The user
+ * sits in the `user:{userId}` room; we ask every connection in that room to
+ * terminate so the next reconnect re-runs the handshake auth check.
  */
-const updateCustomerStatus = async (customerId, status) => {
-  const user = await prisma.user.findUnique({ where: { id: customerId } });
-  if (!user) throw AppError.notFound('Customer not found');
-  if (user.role !== 'CUSTOMER') throw AppError.badRequest('Not a customer account');
-
-  const userId = customerId; // alias used by the socket-auth invalidation below
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data: { status },
-  });
-
-  if (status === 'SUSPENDED') {
-    await prisma.wallet.updateMany({
-      where: { userId },
-      data: { isLocked: true },
-    });
-  }
-
-  logger.info('Customer status updated', { customerId, status });
-
-  // Drop the socket-auth cache so the user's existing socket connections are
-  // refused on their next reconnect (within seconds via Socket.IO retry).
+const invalidateCustomerSockets = (userId, { forceDisconnect = false } = {}) => {
   try {
     const { invalidateUserAuthCache, getIO } = require('../../sockets');
     invalidateUserAuthCache(userId);
-    // Also force-disconnect any currently-open socket from this user — they
-    // are in the `user:{userId}` room, so we ask every connection in that
-    // room to terminate. They'll attempt to reconnect and be rejected at
-    // handshake by the auth middleware.
-    if (status === 'SUSPENDED' || status === 'DEACTIVATED') {
+    if (forceDisconnect) {
       try {
         const io = getIO();
         io.in(`user:${userId}`).disconnectSockets();
       } catch (_) {}
     }
   } catch (_) {}
+};
+
+/**
+ * Suspend, deactivate, or reactivate a customer. Refuses to act on non-CUSTOMER
+ * users — merchants/riders have their own status endpoints. Locks the wallet
+ * on suspension/deactivation and unlocks it on reactivation.
+ */
+const updateCustomerStatus = async (customerId, status, reason, adminUserId, ipAddress, userAgent) => {
+  const user = await prisma.user.findUnique({
+    where: { id: customerId },
+    select: { id: true, role: true, status: true, firstName: true, lastName: true, email: true },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+  if (user.role !== 'CUSTOMER') throw AppError.badRequest('Not a customer account');
+  if (user.status === status) throw AppError.badRequest(`Customer is already ${status}`);
+
+  const userId = customerId;
+  const revoking = status === 'SUSPENDED' || status === 'DEACTIVATED';
+  const reactivating = status === 'ACTIVE' && (user.status === 'SUSPENDED' || user.status === 'DEACTIVATED');
+
+  const [updated] = await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { status } }),
+    ...(revoking
+      ? [prisma.wallet.updateMany({ where: { userId }, data: { isLocked: true } })]
+      : reactivating
+        ? [prisma.wallet.updateMany({ where: { userId }, data: { isLocked: false } })]
+        : []),
+  ]);
+
+  await createAuditLog(
+    adminUserId,
+    'UPDATE_CUSTOMER_STATUS',
+    'CUSTOMER',
+    userId,
+    {
+      from: user.status,
+      to: status,
+      reason: reason || null,
+      walletAction: revoking ? 'LOCKED' : reactivating ? 'UNLOCKED' : null,
+    },
+    ipAddress,
+    userAgent,
+  );
+
+  logger.info('Customer status updated', { customerId, from: user.status, to: status, reason });
+
+  invalidateCustomerSockets(userId, { forceDisconnect: revoking });
+
+  return updated;
+};
+
+/**
+ * Granular customer edit — any subset of profile fields, KYC status, account
+ * status, and wallet lock. Records a diff in the audit log so each field
+ * change is independently traceable. Mirrors the merchant-profile update
+ * pattern but is field-level granular.
+ */
+const updateCustomer = async (customerId, data, adminUserId, ipAddress, userAgent) => {
+  const user = await prisma.user.findUnique({
+    where: { id: customerId },
+    select: {
+      id: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      dateOfBirth: true,
+      kycStatus: true,
+      status: true,
+      wallet: { select: { id: true, isLocked: true } },
+    },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+  if (user.role !== 'CUSTOMER') throw AppError.badRequest('Not a customer account');
+
+  const { reason, walletLocked, ...rest } = data;
+
+  const profileFields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'kycStatus', 'status'];
+  const updateData = {};
+  const changes = {};
+
+  for (const key of profileFields) {
+    if (rest[key] === undefined) continue;
+    const before = user[key];
+    const after = rest[key];
+    const beforeISO = before instanceof Date ? before.toISOString() : before;
+    const afterISO = after instanceof Date ? after.toISOString() : after;
+    if (beforeISO !== afterISO) {
+      updateData[key] = after;
+      changes[key] = { from: beforeISO ?? null, to: afterISO ?? null };
+    }
+  }
+
+  // Status transitions trigger wallet side-effects unless the caller explicitly
+  // sets walletLocked, in which case the caller's choice wins (lets admins
+  // unlock a wallet for an unsuspended-but-still-frozen account, or force-lock
+  // an ACTIVE customer's wallet without changing status).
+  let walletAction = null;
+  if (updateData.status) {
+    const revoking = updateData.status === 'SUSPENDED' || updateData.status === 'DEACTIVATED';
+    const reactivating =
+      updateData.status === 'ACTIVE' && (user.status === 'SUSPENDED' || user.status === 'DEACTIVATED');
+    if (walletLocked === undefined) {
+      if (revoking) walletAction = 'LOCK';
+      else if (reactivating) walletAction = 'UNLOCK';
+    }
+  }
+  if (walletLocked !== undefined && user.wallet && walletLocked !== user.wallet.isLocked) {
+    walletAction = walletLocked ? 'LOCK' : 'UNLOCK';
+    changes.walletLocked = { from: user.wallet.isLocked, to: walletLocked };
+  }
+
+  if (Object.keys(changes).length === 0) {
+    throw AppError.badRequest('No changes detected');
+  }
+
+  let updated;
+  try {
+    const ops = [
+      prisma.user.update({
+        where: { id: customerId },
+        data: updateData,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          dateOfBirth: true,
+          kycStatus: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+    ];
+    if (walletAction && user.wallet) {
+      ops.push(
+        prisma.wallet.updateMany({
+          where: { userId: customerId },
+          data: { isLocked: walletAction === 'LOCK' },
+        }),
+      );
+    }
+    [updated] = await prisma.$transaction(ops);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      const target = Array.isArray(err.meta?.target) ? err.meta.target.join(', ') : err.meta?.target;
+      throw AppError.conflict(`Field already in use: ${target || 'unique constraint'}`);
+    }
+    throw err;
+  }
+
+  await createAuditLog(
+    adminUserId,
+    'UPDATE_CUSTOMER',
+    'CUSTOMER',
+    customerId,
+    { changes, reason: reason || null },
+    ipAddress,
+    userAgent,
+  );
+
+  logger.info('Customer updated by admin', { customerId, fields: Object.keys(changes), reason });
+
+  // Revoke active sessions when access-relevant fields change.
+  const accessChanged =
+    'status' in changes || 'email' in changes || 'phone' in changes || changes.walletLocked;
+  if (accessChanged) {
+    const forceDisconnect =
+      changes.status?.to === 'SUSPENDED' || changes.status?.to === 'DEACTIVATED';
+    invalidateCustomerSockets(customerId, { forceDisconnect });
+  }
 
   return updated;
 };
@@ -2163,6 +2316,7 @@ module.exports = {
   reviewRider,
   getAllCustomers,
   updateCustomerStatus,
+  updateCustomer,
   getCustomerById,
   getCustomerRequests,
   getCustomerTransactions,

@@ -46,7 +46,24 @@ const reviewRiderSchema = z.object({
 
 const updateCustomerStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']),
+  reason: z.string().min(1).max(500).optional(),
 });
+
+const updateCustomerSchema = z
+  .object({
+    firstName: z.string().min(1).max(50).optional(),
+    lastName: z.string().min(1).max(50).optional(),
+    email: z.string().email().max(120).optional(),
+    phone: z.string().min(7).max(20).optional(),
+    dateOfBirth: z.coerce.date().optional().nullable(),
+    kycStatus: z.enum(['NONE', 'PENDING', 'VERIFIED', 'FAILED']).optional(),
+    status: z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED', 'PENDING']).optional(),
+    walletLocked: z.boolean().optional(),
+    reason: z.string().min(1).max(500).optional(),
+  })
+  .refine((data) => Object.keys(data).some((k) => k !== 'reason' && data[k] !== undefined), {
+    message: 'At least one field must be provided',
+  });
 
 const listPendingRidersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -101,6 +118,8 @@ const listAllCustomersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().optional(),
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED', 'PENDING']).optional(),
+  kycStatus: z.enum(['NONE', 'PENDING', 'VERIFIED', 'FAILED']).optional(),
 });
 
 const customerRequestsSchema = z.object({
@@ -307,6 +326,7 @@ const updatePlatformSettingsSchema = z.object({
 module.exports = {
   reviewRiderSchema,
   updateCustomerStatusSchema,
+  updateCustomerSchema,
   listPendingRidersSchema,
   listAllCustomersSchema,
   paginationSchema,

@@ -3,11 +3,13 @@ import api from '../../lib/api'
 
 export const fetchAllCustomers = createAsyncThunk(
   'customers/fetchAll',
-  async ({ page, limit, search }) => {
+  async ({ page, limit, search, status, kycStatus }) => {
     const params = new URLSearchParams({
       page: page || 1,
       limit: limit || 20,
       ...(search && { search }),
+      ...(status && { status }),
+      ...(kycStatus && { kycStatus }),
     })
     const response = await api.get(`/admin/customers?${params}`)
     return response.data
@@ -27,6 +29,18 @@ export const unsuspendCustomer = createAsyncThunk(
   async (userId) => {
     const response = await api.patch(`/admin/customers/${userId}/status`, { status: 'ACTIVE' })
     return response.data.data
+  }
+)
+
+export const updateCustomer = createAsyncThunk(
+  'customers/update',
+  async ({ customerId, changes }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(`/admin/customers/${customerId}`, changes)
+      return response.data.data
+    } catch (err) {
+      return rejectWithValue(err.response?.data?.message || err.message)
+    }
   }
 )
 
@@ -129,6 +143,16 @@ const customersSlice = createSlice({
           if (i !== -1) state.customers[i] = updated
           if (state.detail.data?.id === updated.id) {
             state.detail.data = { ...state.detail.data, status: updated.status }
+          }
+        }
+      })
+      .addCase(updateCustomer.fulfilled, (state, action) => {
+        const updated = action.payload
+        if (updated?.id) {
+          const i = state.customers.findIndex((u) => u.id === updated.id)
+          if (i !== -1) state.customers[i] = { ...state.customers[i], ...updated }
+          if (state.detail.data?.id === updated.id) {
+            state.detail.data = { ...state.detail.data, ...updated }
           }
         }
       })

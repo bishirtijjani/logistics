@@ -144,7 +144,11 @@
       "Bash(git checkout *)",
       "Bash(node --check scripts/reprovision-missing-nubans.js)",
       "Bash(node --check src/modules/wallet/wallet.routes.js)",
-      "Bash(admin-dashboard/node_modules/.bin/esbuild --loader:.js=jsx mobile/customer-app/src/screens/profile/BvnVerificationScreen.js mobile/customer-app/src/screens/wallet/FundWalletScreen.js)"
+      "Bash(admin-dashboard/node_modules/.bin/esbuild --loader:.js=jsx mobile/customer-app/src/screens/profile/BvnVerificationScreen.js mobile/customer-app/src/screens/wallet/FundWalletScreen.js)",
+      "Bash(node -c backend/src/modules/admin/admin.validator.js)",
+      "Bash(node -c backend/src/modules/admin/admin.service.js)",
+      "Bash(node -c backend/src/modules/admin/admin.controller.js)",
+      "Bash(node -c backend/src/modules/admin/admin.routes.js)"
     ]
   }
 }

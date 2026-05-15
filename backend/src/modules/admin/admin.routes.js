@@ -11,6 +11,7 @@ const { authorize } = require('../../middlewares/role.middleware');
 const {
   reviewRiderSchema,
   updateCustomerStatusSchema,
+  updateCustomerSchema,
   listPendingRidersSchema,
   transactionOverviewSchema,
   listAllRequestsSchema,
@@ -105,6 +106,7 @@ router.get('/customers/:customerId/requests', validate(customerRequestsSchema, '
 router.get('/customers/:customerId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getCustomerTransactions);
 router.get('/customers/:customerId/addresses', adminController.getCustomerAddresses);
 router.patch('/customers/:customerId/status', validate(updateCustomerStatusSchema), adminController.updateCustomerStatus);
+router.patch('/customers/:customerId', validate(updateCustomerSchema), adminController.updateCustomer);
 
 // Transaction oversight
 router.get('/transactions', validate(transactionOverviewSchema, 'query'), adminController.getTransactions);

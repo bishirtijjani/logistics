@@ -15,10 +15,17 @@ const STATUS_COLORS = {
   DEACTIVATED: 'bg-surface-muted text-muted',
 }
 
+const KYC_COLORS = {
+  NONE: 'bg-surface-muted text-muted',
+  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  VERIFIED: 'bg-success/10 text-success',
+  FAILED: 'bg-error/10 text-error',
+}
+
 export default function CustomersPage() {
   const dispatch = useDispatch()
   const { customers, total, page, loading } = useSelector((state) => state.customers)
-  const { filters, updateFilter } = useFilters({ search: '' })
+  const { filters, updateFilter } = useFilters({ search: '', status: '', kycStatus: '' })
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [suspendReason, setSuspendReason] = useState('')
@@ -29,8 +36,16 @@ export default function CustomersPage() {
   const debouncedSearch = useDebounce(filters.search, 500)
 
   useEffect(() => {
-    dispatch(fetchAllCustomers({ page: 1, limit: pageSize, search: debouncedSearch }))
-  }, [dispatch, debouncedSearch, pageSize])
+    dispatch(
+      fetchAllCustomers({
+        page: 1,
+        limit: pageSize,
+        search: debouncedSearch,
+        status: filters.status || undefined,
+        kycStatus: filters.kycStatus || undefined,
+      }),
+    )
+  }, [dispatch, debouncedSearch, pageSize, filters.status, filters.kycStatus])
 
   const handleFilterChange = (key, value) => {
     updateFilter(key, value)
@@ -76,9 +91,10 @@ export default function CustomersPage() {
       email: c.email,
       phone: c.phone,
       status: c.status,
+      kycStatus: c.kycStatus,
       createdAt: c.createdAt,
     }))
-    exportToCSV(csvData, 'customers', ['id', 'firstName', 'lastName', 'email', 'phone', 'status', 'createdAt'])
+    exportToCSV(csvData, 'customers', ['id', 'firstName', 'lastName', 'email', 'phone', 'status', 'kycStatus', 'createdAt'])
   }
 
   const handleSelectAll = (checked) => {
@@ -92,9 +108,7 @@ export default function CustomersPage() {
   const handleBulkSuspend = async () => {
     if (!suspendReason.trim()) return
     setActionLoading('bulkSuspend')
-    for (const userId of selectedIds) {
-      await dispatch(suspendCustomer({ userId, reason: suspendReason }))
-    }
+    await Promise.all(selectedIds.map((userId) => dispatch(suspendCustomer({ userId, reason: suspendReason }))))
     setActionLoading(null)
     setShowBulkSuspendModal(false)
     setSuspendReason('')
@@ -104,9 +118,7 @@ export default function CustomersPage() {
 
   const handleBulkUnsuspend = async () => {
     setActionLoading('bulkUnsuspend')
-    for (const userId of selectedIds) {
-      await dispatch(unsuspendCustomer(userId))
-    }
+    await Promise.all(selectedIds.map((userId) => dispatch(unsuspendCustomer(userId))))
     setActionLoading(null)
     setSelectedIds([])
     dispatch(fetchAllCustomers({ page, limit: pageSize, ...filters }))
@@ -128,6 +140,28 @@ export default function CustomersPage() {
               className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
             />
           </div>
+          <select
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+          >
+            <option value="">All statuses</option>
+            <option value="ACTIVE">Active</option>
+            <option value="SUSPENDED">Suspended</option>
+            <option value="DEACTIVATED">Deactivated</option>
+            <option value="PENDING">Pending</option>
+          </select>
+          <select
+            value={filters.kycStatus}
+            onChange={(e) => handleFilterChange('kycStatus', e.target.value)}
+            className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+          >
+            <option value="">All KYC</option>
+            <option value="NONE">No KYC</option>
+            <option value="PENDING">KYC Pending</option>
+            <option value="VERIFIED">Verified</option>
+            <option value="FAILED">Failed</option>
+          </select>
           <div className="flex flex-wrap gap-2 lg:ml-auto">
             {selectedIds.length > 0 && (
               <>
@@ -184,6 +218,7 @@ export default function CustomersPage() {
                   <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Customer</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Contact</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">KYC</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Joined</th>
                   <th className="px-6 py-4 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase tracking-wider">Actions</th>
                 </tr>
@@ -225,6 +260,11 @@ export default function CustomersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[customer.status] || 'bg-surface-muted text-muted'}`}>
                         {customer.status || 'ACTIVE'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${KYC_COLORS[customer.kycStatus] || 'bg-surface-muted text-muted'}`}>
+                        {customer.kycStatus || 'NONE'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">{new Date(customer.createdAt).toLocaleDateString()}</td>

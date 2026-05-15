@@ -8,6 +8,7 @@ import {
   fetchCustomerAddresses,
   suspendCustomer,
   unsuspendCustomer,
+  updateCustomer,
   clearCustomerDetail,
 } from '../store/slices/customersSlice'
 import {
@@ -20,11 +21,13 @@ import {
   Shield,
   Wallet,
   Lock,
+  Unlock,
   MapPin,
   Package,
   Receipt,
   CheckCircle2,
   XCircle,
+  Pencil,
 } from 'lucide-react'
 import Pagination from '../components/Pagination'
 
@@ -73,6 +76,7 @@ export default function CustomerDetailPage() {
   const { detail, requests, transactions, addresses } = useSelector((state) => state.customers)
   const [activeTab, setActiveTab] = useState('requests')
   const [showSuspendModal, setShowSuspendModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [suspendReason, setSuspendReason] = useState('')
   const [actionLoading, setActionLoading] = useState(null)
 
@@ -101,6 +105,18 @@ export default function CustomerDetailPage() {
     await dispatch(unsuspendCustomer(customerId))
     setActionLoading(null)
     dispatch(fetchCustomerDetail(customerId))
+  }
+
+  const handleSaveEdit = async (changes) => {
+    setActionLoading('edit')
+    const result = await dispatch(updateCustomer({ customerId, changes }))
+    setActionLoading(null)
+    if (result.meta.requestStatus === 'fulfilled') {
+      setShowEditModal(false)
+      dispatch(fetchCustomerDetail(customerId))
+      return { ok: true }
+    }
+    return { ok: false, error: result.payload || 'Update failed' }
   }
 
   if (detail.loading && !customer) {
@@ -153,7 +169,14 @@ export default function CustomerDetailPage() {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2 text-sm"
+            >
+              <Pencil size={16} />
+              Edit
+            </button>
             {customer.status === 'SUSPENDED' ? (
               <button
                 onClick={handleUnsuspend}
@@ -248,6 +271,15 @@ export default function CustomerDetailPage() {
           {activeTab === 'addresses' && <AddressesTab state={addresses} />}
         </div>
       </div>
+
+      {showEditModal && (
+        <EditCustomerModal
+          customer={customer}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleSaveEdit}
+          saving={actionLoading === 'edit'}
+        />
+      )}
 
       {/* Suspend Modal */}
       {showSuspendModal && (
@@ -422,6 +454,191 @@ function TransactionsTab({ state, onPageChange }) {
         />
       )}
     </>
+  )
+}
+
+const SENSITIVE_FIELDS = ['status', 'kycStatus', 'walletLocked', 'email', 'phone']
+
+function EditCustomerModal({ customer, onClose, onSave, saving }) {
+  const initial = {
+    firstName: customer.firstName || '',
+    lastName: customer.lastName || '',
+    email: customer.email || '',
+    phone: customer.phone || '',
+    dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.slice(0, 10) : '',
+    kycStatus: customer.kycStatus || 'NONE',
+    status: customer.status || 'ACTIVE',
+    walletLocked: !!customer.wallet?.isLocked,
+  }
+  const [form, setForm] = useState(initial)
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState(null)
+
+  const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }))
+
+  const diff = Object.keys(initial).reduce((acc, key) => {
+    if (form[key] !== initial[key]) acc[key] = form[key]
+    return acc
+  }, {})
+  const dirty = Object.keys(diff).length > 0
+  const needsReason = Object.keys(diff).some((k) => SENSITIVE_FIELDS.includes(k))
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    if (!dirty) return
+    if (needsReason && !reason.trim()) {
+      setError('A reason is required for status, KYC, wallet, email, or phone changes.')
+      return
+    }
+    const changes = { ...diff }
+    if (changes.dateOfBirth === '') changes.dateOfBirth = null
+    if (reason.trim()) changes.reason = reason.trim()
+    const result = await onSave(changes)
+    if (!result?.ok) setError(result?.error || 'Update failed')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Edit Customer</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="First name">
+              <input
+                type="text"
+                value={form.firstName}
+                onChange={(e) => setField('firstName', e.target.value)}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
+            </Field>
+            <Field label="Last name">
+              <input
+                type="text"
+                value={form.lastName}
+                onChange={(e) => setField('lastName', e.target.value)}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
+            </Field>
+            <Field label="Email">
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setField('email', e.target.value)}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
+            </Field>
+            <Field label="Phone">
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setField('phone', e.target.value)}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
+            </Field>
+            <Field label="Date of birth">
+              <input
+                type="date"
+                value={form.dateOfBirth}
+                onChange={(e) => setField('dateOfBirth', e.target.value)}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
+            </Field>
+            <Field label="Account status">
+              <select
+                value={form.status}
+                onChange={(e) => setField('status', e.target.value)}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="DEACTIVATED">Deactivated</option>
+                <option value="PENDING">Pending</option>
+              </select>
+            </Field>
+            <Field label="KYC status">
+              <select
+                value={form.kycStatus}
+                onChange={(e) => setField('kycStatus', e.target.value)}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              >
+                <option value="NONE">None</option>
+                <option value="PENDING">Pending</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="FAILED">Failed</option>
+              </select>
+            </Field>
+            {customer.wallet && (
+              <Field label="Wallet">
+                <label className="flex items-center gap-2 px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted rounded-lg cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.walletLocked}
+                    onChange={(e) => setField('walletLocked', e.target.checked)}
+                    className="w-4 h-4 rounded text-primary focus:ring-primary"
+                  />
+                  {form.walletLocked ? (
+                    <span className="flex items-center gap-1 text-sm text-orange-600">
+                      <Lock size={14} /> Locked
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-sm text-text dark:text-dark-text">
+                      <Unlock size={14} /> Unlocked
+                    </span>
+                  )}
+                </label>
+              </Field>
+            )}
+          </div>
+
+          {needsReason && (
+            <Field label={`Reason${needsReason ? ' (required)' : ''}`}>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Why is this change being made?"
+                rows={2}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
+            </Field>
+          )}
+
+          {error && <p className="text-sm text-error">{error}</p>}
+
+          {dirty && (
+            <div className="text-xs text-muted dark:text-dark-muted">
+              Changing: {Object.keys(diff).join(', ')}
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-text dark:text-dark-text"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!dirty || saving}
+              className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-muted dark:text-dark-muted mb-1">{label}</span>
+      {children}
+    </label>
   )
 }
 

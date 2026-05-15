@@ -34,8 +34,30 @@ const getAllCustomers = async (req, res, next) => {
 
 const updateCustomerStatus = async (req, res, next) => {
   try {
-    const result = await adminService.updateCustomerStatus(req.params.customerId, req.body.status);
+    const result = await adminService.updateCustomerStatus(
+      req.params.customerId,
+      req.body.status,
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
     res.json(ApiResponse.success('Customer status updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateCustomer = async (req, res, next) => {
+  try {
+    const result = await adminService.updateCustomer(
+      req.params.customerId,
+      req.body,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Customer updated', result));
   } catch (error) {
     next(error);
   }
@@ -691,6 +713,7 @@ module.exports = {
   reviewRider,
   getAllCustomers,
   updateCustomerStatus,
+  updateCustomer,
   getCustomerById,
   getCustomerRequests,
   getCustomerTransactions,
