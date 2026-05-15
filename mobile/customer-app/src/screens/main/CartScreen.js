@@ -14,8 +14,8 @@
  * the last line.
  */
 
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, Alert, ActivityIndicator } from "react-native";
+import React, { useCallback, useState } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, Alert, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -27,7 +27,7 @@ import { colors } from "../../theme";
 import EmptyState from "../../components/EmptyState";
 import { substitutionLabel } from "../../lib/requestStatus";
 import { computeCartTotal } from "../../lib/cart";
-import { clearCart, removeLine, selectCart } from "../../store/slices/cartSlice";
+import { clearCart, hydrateCartFromStorage, removeLine, selectCart } from "../../store/slices/cartSlice";
 import api from "../../services/api";
 
 const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
@@ -38,6 +38,16 @@ export default function CartScreen() {
   const { t } = useTranslation();
   const cart = useSelector(selectCart);
   const [editingLineId, setEditingLineId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await dispatch(hydrateCartFromStorage());
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
 
   const lines = cart.lines;
   const merchant = cart.merchant;
@@ -131,7 +141,17 @@ export default function CartScreen() {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
         {renderHeader()}
-        <View style={{ flex: 1, justifyContent: "center" }}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+        >
           <EmptyState
             icon="bag-handle-outline"
             title={t("cart.emptyTitle")}
@@ -140,7 +160,7 @@ export default function CartScreen() {
             onCta={goBrowse}
             fill={false}
           />
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -149,7 +169,17 @@ export default function CartScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
       {renderHeader()}
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
         {lines.map((line) => (
           <View key={line.lineId} style={styles.card}>
             {line.imageUrl ? (

@@ -40,6 +40,11 @@ const createApp = () => {
   // --------------- Security & Parsing ---------------
   app.use(helmet());
   app.use(cors());
+  // Webhook payloads need the RAW body for HMAC signature verification.
+  // This must be mounted BEFORE express.json() so the raw bytes aren't
+  // consumed and re-parsed into an object (which would yield "[object Object]"
+  // when stringified for the signature check and always fail with 401).
+  app.use("/api/webhooks", express.raw({ type: "*/*" }));
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true }));
 

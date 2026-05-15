@@ -8,6 +8,7 @@ import {
   StatusBar,
   Modal,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -166,9 +167,26 @@ export default function HomeScreen({ navigation }) {
   const dispatch = useDispatch();
   const [showBalance, setShowBalance] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [searchVisible, setSearchVisible] = useState(false);
   const { activeRequest, banners, recentActivity } = useSelector((s) => s.home);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        dispatch(fetchWallet()),
+        dispatch(fetchUnreadCount()),
+        dispatch(fetchActiveRequest()),
+        dispatch(fetchBanners()),
+        dispatch(fetchRecentActivity()),
+        dispatch(fetchCategories()),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
 
   // One-time per-mount hydrations (cheap settings / cache reads).
   useEffect(() => {
@@ -236,6 +254,14 @@ export default function HomeScreen({ navigation }) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#EA580C"
+            colors={["#EA580C"]}
+          />
+        }
       >
         {/* Header — search bar takes the row, bell + profile on the right.
             The location chip is gone; address is asked when actually needed

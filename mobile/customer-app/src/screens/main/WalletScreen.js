@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   StatusBar,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,6 +40,19 @@ export default function WalletScreen({ navigation }) {
   const { balance, accountNumber, bankName, accountName, transactions, isLoading } =
     useSelector((state) => state.wallet);
   const [showBalance, setShowBalance] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        dispatch(fetchWallet()),
+        dispatch(fetchTransactions({ page: 1, limit: 5 })),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
 
   // Locale-aware short date used in the transaction list.
   const formatDate = useMemo(() => {
@@ -68,7 +82,18 @@ export default function WalletScreen({ navigation }) {
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <View style={{ height: 4, backgroundColor: colors.primary }} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 48 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
         {/* Header */}
         <View style={{ paddingHorizontal: 20, paddingTop: 22, paddingBottom: 8 }}>
           <Text
