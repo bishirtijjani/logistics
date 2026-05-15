@@ -179,6 +179,10 @@
     "viewWallet": "Duba",
     "sectionServices": "Me kake bukata?",
     "sectionBills": "Lissafi & Bukatu",
+    "billsHero": {
+      "tag": "Sake caji",
+      "blurb": "Caji kowace hanyar sadarwa nan take"
+    },
     "sectionRecent": "Ayyuka kwanan nan",
     "seeAll": "Duba duka",
     "loadingServices": "Ana loda ayyuka…",

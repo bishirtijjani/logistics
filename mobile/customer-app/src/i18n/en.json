@@ -175,6 +175,10 @@
     "viewWallet": "View",
     "sectionServices": "What do you need?",
     "sectionBills": "Bills & Utilities",
+    "billsHero": {
+      "tag": "Top up",
+      "blurb": "Recharge any network instantly"
+    },
     "sectionRecent": "Recent activity",
     "seeAll": "See all",
     "loadingServices": "Loading services…",

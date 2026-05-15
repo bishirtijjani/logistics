@@ -219,8 +219,74 @@ const verifyOtp = async (email, code) => {
 
   const pending = JSON.parse(pendingRaw);
 
-  // Create user + wallet atomically
+  // Merchant signups carry an extra `merchant` payload — provision the
+  // merchant profile + merchantWallet inside the same transaction so a
+  // partial failure leaves nothing behind.
+  const isMerchant = pending.role === 'MERCHANT' && pending.merchant;
+
   const user = await prisma.$transaction(async (tx) => {
+    // Re-check uniqueness inside the tx in case another caller raced us
+    // between merchantRegister/register and this verification.
+    const emailTaken = await tx.user.findUnique({ where: { email: pending.email } });
+    if (emailTaken) throw AppError.conflict('Email already registered', { code: 'EMAIL_TAKEN' });
+    if (pending.phone) {
+      const phoneTaken = await tx.user.findUnique({ where: { phone: pending.phone } });
+      if (phoneTaken) throw AppError.conflict('Phone number already registered', { code: 'PHONE_TAKEN' });
+    }
+
+    if (isMerchant) {
+      const m = pending.merchant;
+      const pinHash = await bcrypt.hash('000000', SALT_ROUNDS); // Default merchant PIN
+
+      const created = await tx.user.create({
+        data: {
+          email: pending.email,
+          phone: pending.phone,
+          firstName: pending.firstName,
+          lastName: pending.lastName,
+          passwordHash: pending.passwordHash,
+          transactionPin: pinHash,
+          role: 'MERCHANT',
+          status: 'ACTIVE',
+          wallet: { create: { balance: 0 } },
+          merchant: {
+            create: {
+              categoryId: m.categoryId,
+              name: m.businessName,
+              description: `${m.categoryName || ''} business`.trim(),
+              phone: m.businessPhone,
+              email: m.businessEmail,
+              // Location is collected in the dashboard's onboarding wizard
+              // after first login. Prisma still requires these columns, so
+              // seed placeholders. Admin approval gates customer visibility
+              // until real coords replace these.
+              address: m.businessAddress || 'Pending — set in onboarding',
+              lat: typeof m.lat === 'number' ? m.lat : 0,
+              lng: typeof m.lng === 'number' ? m.lng : 0,
+              openingTime: m.openingTime,
+              closingTime: m.closingTime,
+              status: 'PENDING_APPROVAL',
+              averageRating: 0,
+              isOpen: false,
+              isActive: true,
+            },
+          },
+        },
+        include: { merchant: true },
+      });
+
+      await tx.merchantWallet.create({
+        data: {
+          merchantId: created.merchant.id,
+          availableBalance: 0,
+          pendingBalance: 0,
+          totalEarnings: 0,
+        },
+      });
+
+      return created;
+    }
+
     const newUser = await tx.user.create({
       data: {
         email: pending.email,
@@ -1182,96 +1248,59 @@ const merchantRegister = async ({
   openingTime,
   closingTime,
 }) => {
-  // Validate category exists and is active before any user/merchant rows are created
+  // Validate category exists and is active before stashing pending data
   const category = await prisma.merchantCategory.findUnique({ where: { id: categoryId } });
   if (!category) throw AppError.badRequest('Category not found');
   if (!category.isActive) throw AppError.badRequest('Category is no longer accepting merchants');
 
-  // Check if user already exists
+  // Only block if a verified user already owns this email/phone. Users who
+  // abandon a previous attempt can retry — the pending Redis entry is keyed
+  // by email and gets overwritten.
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     throw AppError.conflict("Email already registered", { code: "EMAIL_TAKEN" });
   }
 
-  // Check if phone already exists
   const phoneExists = await prisma.user.findUnique({ where: { phone } });
   if (phoneExists) {
-    throw AppError.conflict("Phone number already registered");
+    throw AppError.conflict("Phone number already registered", { code: "PHONE_TAKEN" });
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-  const pinHash = await bcrypt.hash("000000", SALT_ROUNDS); // Default PIN for merchants
 
-  // Create user with merchant role and merchant profile
-  const user = await prisma.user.create({
-    data: {
-      email,
-      phone,
-      firstName,
-      lastName,
-      passwordHash,
-      transactionPin: pinHash,
-      role: 'MERCHANT',
-      status: 'PENDING', // Pending email verification
-      wallet: {
-        create: {
-          balance: 0,
-        },
-      },
-      merchant: {
-        create: {
-          categoryId,
-          name: businessName,
-          description: `${category.name} business`,
-          phone: businessPhone,
-          email: businessEmail,
-          // Location is collected in the dashboard's onboarding wizard after
-          // first login; Prisma schema still requires these columns, so we
-          // seed safe placeholders. Admin approval gates customer visibility
-          // until coords are replaced with a real pin.
-          address: businessAddress || 'Pending — set in onboarding',
-          lat: typeof lat === 'number' ? lat : 0,
-          lng: typeof lng === 'number' ? lng : 0,
-          openingTime,
-          closingTime,
-          status: 'PENDING_APPROVAL', // Merchant needs admin approval
-          averageRating: 0,
-          isOpen: false,
-          isActive: true,
-        },
-      },
-    },
-    include: {
-      merchant: { include: { category: true } },
+  // Stash full registration payload in Redis. The user/merchant/wallet rows
+  // are only created once the email OTP is verified (see verifyOtp).
+  const pendingKey = `${REDIS_KEYS.PENDING_REG}${email}`;
+  const pendingData = JSON.stringify({
+    email,
+    firstName,
+    lastName,
+    phone,
+    passwordHash,
+    role: 'MERCHANT',
+    merchant: {
+      categoryId,
+      categoryName: category.name,
+      businessName,
+      businessPhone,
+      businessEmail,
+      businessAddress: businessAddress || null,
+      lat: typeof lat === 'number' ? lat : null,
+      lng: typeof lng === 'number' ? lng : null,
+      openingTime,
+      closingTime,
     },
   });
+  await redis.set(pendingKey, pendingData, "EX", REDIS_TTL.PENDING_REG);
 
-  // Create merchant wallet
-  await prisma.merchantWallet.create({
-    data: {
-      merchantId: user.merchant.id,
-      availableBalance: 0,
-      pendingBalance: 0,
-      totalEarnings: 0,
-    },
-  });
-
-  // Generate OTP for email verification
   const code = await generateOtp(email);
 
-  logger.info("Merchant registered successfully", { 
-    userId: user.id, 
-    email, 
-    businessName,
-    merchantId: user.merchant.id 
-  });
+  logger.info("Pending merchant registration stored in Redis", { email, businessName });
 
-  return { 
-    email, 
-    userId: user.id,
-    merchantId: user.merchant.id,
+  return {
+    email,
     businessName,
-    devOtp: code, // Include OTP in dev mode for testing
+    devOtp: code,
   };
 };
 

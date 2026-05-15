@@ -7,7 +7,9 @@ import {
   ScrollView,
   StatusBar,
   Modal,
+  Platform,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector, useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -75,6 +77,27 @@ const tintBackground = (hex) => {
   if (/^#[0-9a-fA-F]{6}$/.test(hex)) return `${hex}14`;
   return "#F3F4F6";
 };
+
+// Per-category accent palette for the service tile grid. Cards themselves
+// stay white; this color drives the gradient icon chip + the tile's tinted
+// shadow so each tile reads as its own thing instead of monolithic orange.
+// Keyed by slug for dynamic categories (restaurant/grocery/pharmacy) and by
+// id for the two static tiles (SHOPS/PACKAGE).
+const TILE_ACCENT = {
+  restaurant: "#EA580C",
+  grocery:    "#65A30D",
+  pharmacy:   "#0D9488",
+  SHOPS:      "#4F46E5",
+  PACKAGE:    "#09090b",
+};
+
+const accentFor = (item) => TILE_ACCENT[item.slug || item.id] || item.color || "#EA580C";
+
+// Suffix a hex color with an alpha byte ("#EA580C" + "B3" → "#EA580CB3").
+// Used to build the second stop of the chip's gradient + the specular
+// highlight; falls back to the input when the color isn't a clean 6-hex.
+const withAlpha = (hex, alpha) =>
+  /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}${alpha}` : hex;
 
 // Icon resolution is shared with ShopsScreen via `lib/categoryIcons.js`.
 
@@ -465,30 +488,25 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           ) : null}
+          {/* Wolt-modern service grid: white squircle card per tile, with a
+              per-category gradient icon chip and a soft layered shadow.
+              `marginHorizontal: -6` + per-cell `paddingHorizontal: 6` creates
+              even gutters between the 3-per-row tiles without growing the
+              section's horizontal padding. */}
           <View
             style={{
               flexDirection: "row",
               flexWrap: "wrap",
-              rowGap: 24,
+              marginHorizontal: -6,
+              rowGap: 12,
             }}
           >
-            {tiles.map((item, idx) => {
+            {tiles.map((item) => {
               const Icon = resolveIcon(item);
-              // Irregular pebble shapes — four asymmetric radius presets cycled
-              // by index so adjacent tiles never share the same silhouette.
-              const blobShapes = [
-                { borderTopLeftRadius: 46, borderTopRightRadius: 30, borderBottomRightRadius: 44, borderBottomLeftRadius: 34 },
-                { borderTopLeftRadius: 30, borderTopRightRadius: 48, borderBottomRightRadius: 32, borderBottomLeftRadius: 46 },
-                { borderTopLeftRadius: 40, borderTopRightRadius: 44, borderBottomRightRadius: 28, borderBottomLeftRadius: 48 },
-                { borderTopLeftRadius: 48, borderTopRightRadius: 34, borderBottomRightRadius: 46, borderBottomLeftRadius: 28 },
-              ];
-              const blob = blobShapes[idx % blobShapes.length];
-              // Static tiles (PACKAGE, SHOPS) carry a translation key; dynamic
-              // category tiles use the admin-supplied `name` directly.
+              const accent = accentFor(item);
               const displayName = item.nameKey ? t(item.nameKey) : item.name;
               const handlePress = () => {
                 if (item.isPackage) {
-                  // Package: direct courier flow, no merchant.
                   navigation.navigate("CreateRequest", {
                     requestType: "PACKAGE",
                     hasMerchant: false,
@@ -496,11 +514,9 @@ export default function HomeScreen({ navigation }) {
                   return;
                 }
                 if (item.isShops) {
-                  // Shops: aggregator that opens the long-tail category list.
                   navigation.navigate("Shops");
                   return;
                 }
-                // Any merchant category: browse merchants filtered by category.
                 navigation.navigate("MerchantBrowse", {
                   categorySlug: item.slug,
                   categoryName: item.name,
@@ -509,51 +525,82 @@ export default function HomeScreen({ navigation }) {
                 });
               };
               return (
-                <TouchableOpacity
+                <View
                   key={item.id}
-                  onPress={handlePress}
-                  accessibilityRole="button"
-                  accessibilityLabel={displayName}
-                  accessibilityState={{ disabled: !!item.comingSoon }}
-                  // 33.33% gives 3 tiles per row; the 4th + 5th wrap onto a
-                  // second row, left-aligned beneath the first two tiles.
-                  style={{ width: "33.33%", alignItems: "center" }}
+                  style={{ width: "33.333%", paddingHorizontal: 6 }}
                 >
-                  {/* Pebble-shaped tile — solid burnt orange with a near-black
-                      hairline border. Icons are white for contrast. */}
-                  <View
+                  <TouchableOpacity
+                    onPress={handlePress}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={displayName}
+                    accessibilityState={{ disabled: !!item.comingSoon }}
                     style={{
-                      width: 78,
-                      height: 78,
-                      backgroundColor: "#EA580C",
+                      backgroundColor: "#fff",
+                      borderRadius: 22,
+                      paddingVertical: 16,
+                      paddingHorizontal: 8,
                       alignItems: "center",
-                      justifyContent: "center",
-                      marginBottom: 10,
-                      borderWidth: 1.5,
-                      borderColor: "#09090b",
-                      shadowColor: "#EA580C",
-                      shadowOpacity: 0.32,
-                      shadowOffset: { width: 0, height: 8 },
-                      shadowRadius: 14,
-                      elevation: 5,
-                      ...blob,
+                      borderWidth: 1,
+                      borderColor: "#F1F1F2",
+                      shadowColor: "#09090b",
+                      shadowOpacity: 0.06,
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowRadius: 16,
+                      elevation: 3,
+                      ...(Platform.OS === "ios" && { borderCurve: "continuous" }),
                     }}
                   >
-                    <Icon name={item.icon} size={34} color="#FFFFFF" />
-                  </View>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      fontWeight: "700",
-                      color: "#09090b",
-                      textAlign: "center",
-                      opacity: item.comingSoon ? 0.6 : 1,
-                      letterSpacing: -0.2,
-                    }}
-                  >
-                    {displayName}
-                  </Text>
-                </TouchableOpacity>
+                    {/* Gradient icon chip with a 1px specular highlight at
+                        the top edge — gives the chip a subtle injection-
+                        molded look instead of reading as a flat fill. */}
+                    <View
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: 16,
+                        overflow: "hidden",
+                        marginBottom: 10,
+                      }}
+                    >
+                      <LinearGradient
+                        colors={[accent, withAlpha(accent, "B3")]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={{
+                          flex: 1,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Icon name={item.icon} size={26} color="#FFFFFF" />
+                      </LinearGradient>
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 1,
+                          backgroundColor: "rgba(255,255,255,0.45)",
+                        }}
+                      />
+                    </View>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "700",
+                        color: "#09090b",
+                        textAlign: "center",
+                        letterSpacing: -0.2,
+                        opacity: item.comingSoon ? 0.6 : 1,
+                      }}
+                    >
+                      {displayName}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -589,58 +636,228 @@ export default function HomeScreen({ navigation }) {
               }}
             />
           </View>
-          <View
-            style={{ flexDirection: "row", justifyContent: "space-between" }}
-          >
-            {vtuServices.map((item) => {
-              const Icon = resolveIcon(item);
-              const label = t(`utility.${item.key}`);
-              const handlePress = () => {
-                if (item.screen) {
-                  navigation.navigate(item.screen);
-                } else if (item.key === "transfer") {
-                  Toast.show({
-                    type: "info",
-                    text1: t("common.comingSoon"),
-                    text2: t("utility.transferComingSoon"),
-                  });
-                }
-              };
-              return (
+          {/* Bento hero layout: Airtime (the most-used VTU in Nigeria)
+              promotes to a wide featured card with a tagline + arrow CTA.
+              The remaining three sit below in a 3-col Wolt-modern grid,
+              visually rhyming with the Services section above. */}
+          {(() => {
+            const [hero, ...rest] = vtuServices;
+            const HeroIcon = resolveIcon(hero);
+            const heroLabel = t(`utility.${hero.key}`);
+            const handlePress = (item) => {
+              if (item.screen) {
+                navigation.navigate(item.screen);
+              } else if (item.key === "transfer") {
+                Toast.show({
+                  type: "info",
+                  text1: t("common.comingSoon"),
+                  text2: t("utility.transferComingSoon"),
+                });
+              }
+            };
+            return (
+              <>
                 <TouchableOpacity
-                  key={item.id}
-                  onPress={handlePress}
+                  onPress={() => handlePress(hero)}
+                  activeOpacity={0.9}
                   accessibilityRole="button"
-                  accessibilityLabel={label}
-                  style={{ width: "23%", alignItems: "center" }}
+                  accessibilityLabel={heroLabel}
+                  style={{
+                    backgroundColor: "#fff",
+                    borderRadius: 24,
+                    padding: 18,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: "#F1F1F2",
+                    shadowColor: hero.color,
+                    shadowOpacity: 0.14,
+                    shadowOffset: { width: 0, height: 10 },
+                    shadowRadius: 20,
+                    elevation: 4,
+                    marginBottom: 12,
+                    overflow: "hidden",
+                  }}
                 >
+                  {/* Faint color wash bleeding from the icon side — gives
+                      the hero card a soft branded glow without overpowering
+                      the white surface. */}
+                  <LinearGradient
+                    colors={[withAlpha(hero.color, "1A"), "transparent"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0.8 }}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                    }}
+                  />
                   <View
                     style={{
                       width: 64,
                       height: 64,
-                      backgroundColor: "#09090b",
-                      borderRadius: 20,
+                      borderRadius: 18,
+                      overflow: "hidden",
+                      marginRight: 14,
+                    }}
+                  >
+                    <LinearGradient
+                      colors={[hero.color, withAlpha(hero.color, "B3")]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <HeroIcon name={hero.icon} size={30} color="#fff" />
+                    </LinearGradient>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        fontWeight: "800",
+                        color: hero.color,
+                        letterSpacing: 1.4,
+                        textTransform: "uppercase",
+                        marginBottom: 2,
+                      }}
+                    >
+                      {t("home.billsHero.tag")}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: 18,
+                        fontWeight: "900",
+                        color: "#09090b",
+                        letterSpacing: -0.5,
+                      }}
+                    >
+                      {heroLabel}
+                    </Text>
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}
+                    >
+                      {t("home.billsHero.blurb")}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 17,
+                      backgroundColor: hero.color,
                       alignItems: "center",
                       justifyContent: "center",
-                      marginBottom: 10,
+                      marginLeft: 8,
                     }}
                   >
-                    <Icon name={item.icon} size={26} color={item.color} />
+                    <Ionicons name="arrow-forward" size={16} color="#fff" />
                   </View>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      fontWeight: "700",
-                      color: "#09090b",
-                      textAlign: "center",
-                    }}
-                  >
-                    {label}
-                  </Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
+
+                {/* Rest — 3-col Wolt-modern grid */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    marginHorizontal: -6,
+                    rowGap: 12,
+                  }}
+                >
+                  {rest.map((item) => {
+                    const Icon = resolveIcon(item);
+                    const label = t(`utility.${item.key}`);
+                    return (
+                      <View
+                        key={item.id}
+                        style={{ width: "33.333%", paddingHorizontal: 6 }}
+                      >
+                        <TouchableOpacity
+                          onPress={() => handlePress(item)}
+                          activeOpacity={0.85}
+                          accessibilityRole="button"
+                          accessibilityLabel={label}
+                          style={{
+                            backgroundColor: "#fff",
+                            borderRadius: 22,
+                            paddingVertical: 16,
+                            paddingHorizontal: 8,
+                            alignItems: "center",
+                            borderWidth: 1,
+                            borderColor: "#F1F1F2",
+                            shadowColor: "#09090b",
+                            shadowOpacity: 0.06,
+                            shadowOffset: { width: 0, height: 6 },
+                            shadowRadius: 16,
+                            elevation: 3,
+                            ...(Platform.OS === "ios" && {
+                              borderCurve: "continuous",
+                            }),
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: 52,
+                              height: 52,
+                              borderRadius: 16,
+                              overflow: "hidden",
+                              marginBottom: 10,
+                            }}
+                          >
+                            <LinearGradient
+                              colors={[item.color, withAlpha(item.color, "B3")]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 1 }}
+                              style={{
+                                flex: 1,
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Icon
+                                name={item.icon}
+                                size={26}
+                                color="#FFFFFF"
+                              />
+                            </LinearGradient>
+                            <View
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                height: 1,
+                                backgroundColor: "rgba(255,255,255,0.45)",
+                              }}
+                            />
+                          </View>
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              fontSize: 12,
+                              fontWeight: "700",
+                              color: "#09090b",
+                              textAlign: "center",
+                              letterSpacing: -0.2,
+                            }}
+                          >
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            );
+          })()}
         </View>
 
         {/* Promo Banner — admin-managed via /api/banners.
