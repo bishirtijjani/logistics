@@ -5,8 +5,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Keyboard,
-  TouchableWithoutFeedback,
+  Platform,
+  ScrollView,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
@@ -65,12 +65,21 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      behavior="padding"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1, backgroundColor: colors.background }}
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 56 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingHorizontal: 24,
+          paddingTop: 56,
+          paddingBottom: 24,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={{ marginBottom: 32 }}
@@ -169,8 +178,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </TouchableWithoutFeedback>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

@@ -335,6 +335,7 @@ export default function CreateRequestScreen() {
         isVisible={pinVisible}
         onClose={() => setPinVisible(false)}
         onConfirm={submitWithPin}
+        onSetupPin={() => navigation.navigate('SetPin')}
         title={t('request.pin.confirmTitle')}
         subtitle={quote ? t('request.pin.confirmSub', { amount: money(quote.total) }) : t('request.pin.confirmFallback')}
       />

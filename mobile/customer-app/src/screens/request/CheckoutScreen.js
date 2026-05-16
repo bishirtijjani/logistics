@@ -529,6 +529,7 @@ export default function CheckoutScreen() {
         isVisible={pinVisible}
         onClose={() => setPinVisible(false)}
         onConfirm={submitWithPin}
+        onSetupPin={() => navigation.navigate('SetPin')}
         title={t('request.checkout.confirmPaymentTitle')}
         subtitle={quote
           ? t('request.checkout.confirmPaymentSub', { amount: money(quote.total) })

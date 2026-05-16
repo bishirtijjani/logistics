@@ -6,8 +6,7 @@ import {
   ActivityIndicator,
   ScrollView,
   KeyboardAvoidingView,
-  Keyboard,
-  TouchableWithoutFeedback,
+  Platform,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { useDispatch, useSelector } from "react-redux";
@@ -85,18 +84,16 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      behavior="padding"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          style={{ flex: 1, backgroundColor: colors.background }}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 52 }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets
-        >
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 52 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
           <View style={{ marginBottom: 32 }}>
             <Text
               accessibilityRole="header"
@@ -253,8 +250,7 @@ export default function RegisterScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

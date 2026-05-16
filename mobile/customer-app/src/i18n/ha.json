@@ -351,7 +351,9 @@
       "bankPickerTitle": "Zaɓi banki",
       "bankSearchPh": "Bincika banki...",
       "withdrawFailed": "Cire kuɗi ya kasa",
-      "incorrectPin": "PIN ba daidai ba"
+      "incorrectPin": "PIN ba daidai ba",
+      "pinNotSetTitle": "Saita PIN ɗinka na mu'amalla",
+      "pinNotSetHint": "Kana buƙatar PIN mai lambobi shida don tabbatar da cirewa."
     },
     "fundTitle": "Ƙara Walat",
     "fundSubtitle": "Ƙara ma'auni a walat ɗinka.",
@@ -376,6 +378,8 @@
       "minTransfer": "Mafi ƙarancin canja wuri shine {{amount}}",
       "transferFailed": "Canja wuri ya kasa",
       "incorrectPin": "PIN ba daidai ba",
+      "pinNotSetTitle": "Saita PIN ɗinka na mu'amalla",
+      "pinNotSetHint": "Kana buƙatar PIN mai lambobi shida don tabbatar da canja wuri.",
       "saveBeneficiaryTitle": "Ajiye mai karɓa?",
       "saveBeneficiaryBody": "Ajiye {{name}} don saurin canja wuri?",
       "skip": "Tsallake",

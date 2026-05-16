@@ -418,7 +418,17 @@ export default function AppNavigator() {
       onReady={onNavReady}
       onStateChange={onNavStateChange}
     >
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          // Opaque per-screen container so native-stack slide transitions
+          // don't reveal the previous screen through the incoming one. The
+          // navigation theme's `background` is intentionally transparent for
+          // BackgroundPattern (see theme/navigationTheme.js); this overrides
+          // that on the screen content layer only.
+          contentStyle: { backgroundColor: tokens.bg.canvas },
+        }}
+      >
         {isAuthenticated ? (
           // Main App
           <>

@@ -49,8 +49,12 @@ const handlePrismaError = (error) => {
 const errorHandler = (err, req, res, _next) => {
   let error = err;
 
-  // Handle Prisma errors
-  if (error.code && error.code.startsWith('P')) {
+  // Handle Prisma errors. Prisma codes follow the strict `P\d{4}` shape
+  // (P2002, P2025, …) — a loose `startsWith('P')` accidentally captures our
+  // own AppError codes like PIN_NOT_SET / PHONE_TAKEN / PRESCRIPTION_REQUIRED
+  // and reroutes them through handlePrismaError, where they fall into the
+  // default branch and surface to clients as a generic 500 INTERNAL_ERROR.
+  if (error.code && /^P\d{4}$/.test(error.code)) {
     error = handlePrismaError(error);
   }
 

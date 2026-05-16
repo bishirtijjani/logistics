@@ -132,9 +132,21 @@ export default function SendMoneyScreen({ navigation, route }) {
             ],
           );
         }
+      } else if (res.payload?.code === "PIN_NOT_SET") {
+        // No transaction PIN on file yet — bounce back to the form and route
+        // to SetPin so the user can complete setup before retrying the send.
+        setStep("form");
+        setPin("");
+        setPinError("");
+        Toast.show({
+          type: "info",
+          text1: res.payload?.message || t("wallet.send_.pinNotSetTitle"),
+          text2: t("wallet.send_.pinNotSetHint"),
+        });
+        navigation.navigate("SetPin");
       } else {
         shake();
-        const msg = res.payload || t("wallet.send_.transferFailed");
+        const msg = res.payload?.message || res.payload || t("wallet.send_.transferFailed");
         if (typeof msg === "string" && (msg.includes("locked") || msg.includes("attempt"))) {
           setPinError(msg);
         } else {

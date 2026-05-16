@@ -51,9 +51,11 @@ export default function PinBottomSheet({
   title = "Enter PIN",
   subtitle = "Please enter your 6-digit transaction PIN",
   onForgotPin,
+  onSetupPin,
 }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
+  const [needsSetup, setNeedsSetup] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [lockedUntil, setLockedUntil] = useState(null); // epoch ms
   const [now, setNow] = useState(Date.now());
@@ -87,6 +89,7 @@ export default function PinBottomSheet({
     if (isVisible) {
       setPin("");
       setError("");
+      setNeedsSetup(false);
       Animated.timing(slideAnimation, {
         toValue: 0,
         duration: 300,
@@ -153,7 +156,13 @@ export default function PinBottomSheet({
       setPin("");
       shake();
 
-      if (info.status === 423 && info.lockedUntil) {
+      if (err?.code === "PIN_NOT_SET") {
+        // The user has no transaction PIN yet — keypad is useless. Swap the
+        // sheet into a "set up your PIN" state with a CTA that closes the
+        // sheet and hands control back to the caller via `onSetupPin`.
+        setNeedsSetup(true);
+        setError(err.message || "Set your transaction PIN to continue.");
+      } else if (info.status === 423 && info.lockedUntil) {
         await applyLock(info.lockedUntil);
         setError(err.message || "PIN locked.");
       } else if (info.status === 401 && info.attemptsRemaining !== null) {
@@ -167,7 +176,7 @@ export default function PinBottomSheet({
   };
 
   const handleKeyPress = (key) => {
-    if (isLocked || submitting) return;
+    if (isLocked || submitting || needsSetup) return;
 
     if (key === "backspace") {
       setPin((prev) => prev.slice(0, -1));
@@ -212,7 +221,7 @@ export default function PinBottomSheet({
         {keys.map((row, rowIndex) => (
           <View key={rowIndex} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
             {row.map((key) => {
-              const disabled = (isLocked && key !== "forgot") || submitting;
+              const disabled = (isLocked && key !== "forgot") || submitting || needsSetup;
               return (
                 <TouchableOpacity
                   key={key}
@@ -271,8 +280,37 @@ export default function PinBottomSheet({
 
           {renderLockBanner()}
 
-          {/* Error (only when not displaying the lock banner) */}
-          {!isLocked && error ? (
+          {/* Setup prompt — shown when the server reports no PIN is set yet.
+              Replaces the silent "incorrect PIN" failure with a clear path to
+              the SetPin screen. The keypad is disabled (handleKeyPress + the
+              `disabled` flag below) while this is visible. */}
+          {needsSetup ? (
+            <View style={{ borderRadius: 12, padding: 14, marginBottom: 16, backgroundColor: colors.primary + "12", borderWidth: 1, borderColor: colors.primary + "33" }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+                <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '800', color: colors.text, flex: 1 }}>
+                  Set up your transaction PIN
+                </Text>
+              </View>
+              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 12 }}>
+                {error || "You need a 6-digit PIN to authorize this. It only takes a moment."}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  onClose?.();
+                  onSetupPin?.();
+                }}
+                style={{ backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                accessibilityRole="button"
+                accessibilityLabel="Set up PIN"
+              >
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Set up PIN</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {/* Error (only when not displaying the lock banner or setup prompt) */}
+          {!isLocked && !needsSetup && error ? (
             <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: colors.error + "15" }}>
                 <Ionicons name="alert-circle" size={16} color={colors.error} />

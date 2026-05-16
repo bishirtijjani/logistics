@@ -143,9 +143,23 @@ export default function WithdrawScreen({ navigation, route }) {
             accountName,
           }));
         }
+      } else if (res.payload?.code === "PIN_NOT_SET") {
+        // User hasn't set a transaction PIN yet — bounce them back to the
+        // form step and route to SetPin so the keypad isn't left in a dead
+        // state. Toast explains what happened in case the navigation feels
+        // abrupt.
+        setStep("form");
+        setPin("");
+        setPinError("");
+        Toast.show({
+          type: "info",
+          text1: res.payload?.message || t("wallet.withdraw_.pinNotSetTitle"),
+          text2: t("wallet.withdraw_.pinNotSetHint"),
+        });
+        navigation.navigate("SetPin");
       } else {
         shake();
-        const msg = res.payload || t("wallet.withdraw_.withdrawFailed");
+        const msg = res.payload?.message || res.payload || t("wallet.withdraw_.withdrawFailed");
         setPinError(typeof msg === "string" && (msg.includes("locked") || msg.includes("attempt")) ? msg : t("wallet.withdraw_.incorrectPin"));
         setPin("");
       }

@@ -77,11 +77,13 @@ export const lookupBankAccount = createAsyncThunk(
 );
 
 // PIN-bearing thunks must preserve the api error's status/data so PinBottomSheet
-// can detect 423 lockouts via `.unwrap()`.
+// can detect 423 lockouts via `.unwrap()`, and the stable error `code` so
+// callers can branch on PIN_NOT_SET to route the user to the SetPin screen.
 const pinErrorPayload = (error) => ({
   message: error?.message || 'Request failed',
   status: error?.status ?? null,
   data: error?.data ?? null,
+  code: error?.code ?? null,
 });
 
 export const sendMoney = createAsyncThunk(

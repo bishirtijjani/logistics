@@ -347,7 +347,9 @@
       "bankPickerTitle": "Select Bank",
       "bankSearchPh": "Search bank...",
       "withdrawFailed": "Withdrawal failed",
-      "incorrectPin": "Incorrect PIN"
+      "incorrectPin": "Incorrect PIN",
+      "pinNotSetTitle": "Set up your transaction PIN",
+      "pinNotSetHint": "You need a 6-digit PIN to authorize withdrawals."
     },
     "fundTitle": "Fund Wallet",
     "fundSubtitle": "Top up your balance.",
@@ -372,6 +374,8 @@
       "minTransfer": "Minimum transfer is {{amount}}",
       "transferFailed": "Transfer failed",
       "incorrectPin": "Incorrect PIN",
+      "pinNotSetTitle": "Set up your transaction PIN",
+      "pinNotSetHint": "You need a 6-digit PIN to authorize transfers.",
       "saveBeneficiaryTitle": "Save Beneficiary?",
       "saveBeneficiaryBody": "Save {{name}} for quick transfers?",
       "skip": "Skip",
