@@ -18,6 +18,7 @@ const {
 } = require('../../utils/constants');
 const alrahuzService = require('../../services/alrahuz.service');
 const { addUtilityJob } = require('../../queues');
+const { UTILITY_JOBS } = require('../../queues/jobs');
 
 const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, meterNumber, plan, reference }) => {
   return prisma.$transaction(async (tx) => {
@@ -152,7 +153,7 @@ const buyAirtime = async (userId, { phone, networkId, amount }) => {
     reference,
   });
 
-  await addUtilityJob('PROCESS_AIRTIME', {
+  await addUtilityJob(UTILITY_JOBS.PROCESS_AIRTIME, {
     paymentId: payment.id,
     userId,
     reference,
@@ -181,7 +182,7 @@ const buyData = async (userId, { phone, planId }) => {
     reference,
   });
 
-  await addUtilityJob('PROCESS_DATA', {
+  await addUtilityJob(UTILITY_JOBS.PROCESS_DATA, {
     paymentId: payment.id,
     userId,
     reference,
@@ -211,7 +212,7 @@ const buyCable = async (userId, { smartCardNumber, planId }) => {
     reference,
   });
 
-  await addUtilityJob('PROCESS_CABLE', {
+  await addUtilityJob(UTILITY_JOBS.PROCESS_CABLE, {
     paymentId: payment.id,
     userId,
     reference,
@@ -266,7 +267,7 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     payment.beneficiaryName = beneficiaryName;
   }
 
-  await addUtilityJob('PROCESS_ELECTRICITY', {
+  await addUtilityJob(UTILITY_JOBS.PROCESS_ELECTRICITY, {
     paymentId: payment.id,
     userId,
     reference,

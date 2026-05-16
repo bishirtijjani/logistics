@@ -42,7 +42,12 @@ const startUtilityWorker = () => {
         case UTILITY_JOBS.PROCESS_ELECTRICITY: return processElectricity(job.data);
         case UTILITY_JOBS.POLL_PENDING:        return processPoll(job.data);
         case UTILITY_JOBS.REFUND_FAILED:       return processRefund(job.data);
-        default: logger.warn(`Unknown utility job: ${job.name}`);
+        // Throw on unknown — BullMQ will mark the job as failed and surface
+        // it in the failed-jobs list. Returning silently here would leak the
+        // payment as PENDING forever (the customer's wallet was already
+        // debited at enqueue time). If you see this in logs, the enqueue
+        // call site is passing a stale/wrong job name.
+        default: throw new Error(`Unknown utility job name: ${job.name}`);
       }
     },
     { connection: redis, concurrency: 5 }
