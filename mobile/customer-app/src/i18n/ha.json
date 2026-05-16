@@ -28,6 +28,11 @@
     "currency": "₦",
     "perKm": "/km"
   },
+  "pinGuard": {
+    "title": "Saita PIN ɗinka na mu'amalla",
+    "body": "Kana buƙatar PIN mai lambobi shida don tabbatar da wannan. Ba zai ɗauki lokaci ba.",
+    "cta": "Saita PIN"
+  },
   "a11y": {
     "back": "Koma baya",
     "close": "Rufe",

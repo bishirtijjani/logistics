@@ -25,6 +25,7 @@ import {
 import { colors } from "../../theme";
 import Toast from "react-native-toast-message";
 import { usePlatformSetting } from "../../services/settings";
+import { usePinGuard } from "../../lib/usePinGuard";
 
 const PIN_LENGTH = 6;
 
@@ -35,6 +36,7 @@ export default function WithdrawScreen({ navigation, route }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { balance, banks, isWithdrawing, beneficiaries } = useSelector((s) => s.wallet);
+  const requirePin = usePinGuard();
 
   const minWithdraw = Number(usePlatformSetting("wallet.minWithdraw", 500));
   const maxWithdraw = Number(usePlatformSetting("wallet.maxWithdraw", 500000));
@@ -102,6 +104,7 @@ export default function WithdrawScreen({ navigation, route }) {
     if (!amt || amt < minWithdraw) { Toast.show({ type: "error", text1: t("wallet.withdraw_.minWithdraw", { amount: formatNaira(minWithdraw) }) }); return; }
     if (amt > maxWithdraw) { Toast.show({ type: "error", text1: t("wallet.withdraw_.maxWithdraw", { amount: formatNaira(maxWithdraw) }) }); return; }
     if (amt > balance) { Toast.show({ type: "error", text1: t("errors.INSUFFICIENT_BALANCE") }); return; }
+    if (!requirePin()) return;
     setStep("pin");
     setPin("");
     setPinError("");

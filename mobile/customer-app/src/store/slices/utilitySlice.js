@@ -4,12 +4,14 @@ import { newIdempotencyKey } from "../../services/idempotency";
 
 const idemHeaders = () => ({ headers: { "Idempotency-Key": newIdempotencyKey() } });
 
-// Preserve { status, data } from the api client error so callers using
-// `.unwrap()` (e.g. PinBottomSheet) can detect 423/429 lockouts.
+// Preserve { status, data, code } from the api client error so callers using
+// `.unwrap()` (e.g. PinBottomSheet) can detect 423/429 lockouts AND branch on
+// the stable error `code` (e.g. PIN_NOT_SET → route to SetPin).
 const toRejectionPayload = (error, fallbackMessage) => ({
   message: error?.message || fallbackMessage,
   status: error?.status ?? null,
   data: error?.data ?? null,
+  code: error?.code ?? null,
 });
 
 export const fetchPlans = createAsyncThunk(

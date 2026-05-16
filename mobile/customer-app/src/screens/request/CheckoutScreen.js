@@ -28,6 +28,7 @@ import { fetchWallet } from '../../store/slices/walletSlice';
 import { clearCart, selectCart } from '../../store/slices/cartSlice';
 import { toServerItems } from '../../lib/cart';
 import PinBottomSheet from '../../components/PinBottomSheet';
+import { usePinGuard } from '../../lib/usePinGuard';
 import { substitutionLabel } from '../../lib/requestStatus';
 
 const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
@@ -51,6 +52,7 @@ export default function CheckoutScreen() {
   const pickupName = merchantSnapshot?.name;
   const { balance } = useSelector((s) => s.wallet);
   const { isCreating } = useSelector((s) => s.request);
+  const requirePin = usePinGuard();
 
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [quote, setQuote] = useState(null);
@@ -266,6 +268,7 @@ export default function CheckoutScreen() {
         text2: t('request.toast.insufficientBalanceSub', { need: money(quote.total), have: money(balance) }),
       });
     }
+    if (!requirePin()) return;
     setPinVisible(true);
   };
 

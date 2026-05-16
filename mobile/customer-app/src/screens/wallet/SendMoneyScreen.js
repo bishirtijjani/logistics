@@ -19,6 +19,7 @@ import { colors } from "../../theme";
 import Toast from "react-native-toast-message";
 import api from "../../services/api";
 import { usePlatformSetting } from "../../services/settings";
+import { usePinGuard } from "../../lib/usePinGuard";
 
 const PIN_LENGTH = 6;
 
@@ -28,6 +29,7 @@ export default function SendMoneyScreen({ navigation, route }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { balance, isSending, beneficiaries } = useSelector((s) => s.wallet);
+  const requirePin = usePinGuard();
 
   const minTransfer = Number(usePlatformSetting("wallet.minTransfer", 50));
   const quickChipsSetting = usePlatformSetting("wallet.transferQuickAmounts", null);
@@ -86,6 +88,7 @@ export default function SendMoneyScreen({ navigation, route }) {
       Toast.show({ type: "error", text1: t("errors.INSUFFICIENT_BALANCE") });
       return;
     }
+    if (!requirePin()) return;
     setStep("pin");
     setPin("");
     setPinError("");

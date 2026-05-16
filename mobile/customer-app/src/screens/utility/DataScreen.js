@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
+import { usePinGuard } from "../../lib/usePinGuard";
 import { buyData, fetchPlans, fetchRecentRecipients } from "../../store/slices/utilitySlice";
 import { detectNetworkFromPhone } from "../../services/networkDetect";
 
@@ -19,6 +20,7 @@ export default function DataScreen({ navigation }) {
   const { t } = useTranslation();
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, recentRecipients } = useSelector((state) => state.utility);
+  const requirePin = usePinGuard();
 
   // Airtime networks are used as the network list for data too
   const networks = plans["AIRTIME"] || [];
@@ -85,6 +87,7 @@ export default function DataScreen({ navigation }) {
     if (!selectedPlan) { setError(t("utility.dataScreen.errSelectPlan")); return; }
     if (Number(selectedPlan.sellingPrice) > Number(balance)) { setError(t("utility.dataScreen.errInsufficientBalance")); return; }
     setError("");
+    if (!requirePin()) return;
     setShowPinSheet(true);
   };
 

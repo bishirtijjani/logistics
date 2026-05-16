@@ -80,6 +80,7 @@ export const createRequest = createAsyncThunk(
         message: error?.message || 'Failed to create request',
         status: error?.status ?? null,
         data: error?.data ?? null,
+        code: error?.code ?? null,
       });
     }
   }

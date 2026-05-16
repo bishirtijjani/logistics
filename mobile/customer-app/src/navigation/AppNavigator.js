@@ -10,6 +10,7 @@ import socketService from "../services/socket";
 import { subscribeToWalletSocket } from "../store/slices/walletSlice";
 import { fetchPublicSettings } from "../store/slices/settingsSlice";
 import { hydrateCartFromStorage } from "../store/slices/cartSlice";
+import { fetchProfile } from "../store/slices/profileSlice";
 import {
   fetchUnreadCount,
   notificationReceived,
@@ -258,6 +259,10 @@ export default function AppNavigator() {
       const unsubWallet = dispatch(subscribeToWalletSocket());
       const unsubNotif = subscribeSocketToStore(dispatch, { notificationReceived });
       dispatch(fetchUnreadCount());
+      // Hydrate the profile so flags like `hasPinSet` are available before
+      // the user can hit a PIN-gated screen — keeps usePinGuard's pre-check
+      // from falling through to the server backstop on the first transaction.
+      dispatch(fetchProfile());
       return () => {
         if (typeof unsubWallet === 'function') unsubWallet();
         if (typeof unsubNotif === 'function') unsubNotif();

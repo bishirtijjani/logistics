@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
+import { usePinGuard } from "../../lib/usePinGuard";
 import { payElectricity, fetchPlans, validateMeter, clearValidation } from "../../store/slices/utilitySlice";
 import { usePlatformSetting } from "../../services/settings";
 
@@ -18,6 +19,7 @@ export default function ElectricityScreen({ navigation }) {
   const { t } = useTranslation();
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, isValidating, validationResult } = useSelector((state) => state.utility);
+  const requirePin = usePinGuard();
 
   const minAmount = Number(usePlatformSetting("utility.minElectricityAmount", 500));
   const quickAmountsSetting = usePlatformSetting("utility.electricityQuickAmounts", null);
@@ -69,6 +71,7 @@ export default function ElectricityScreen({ navigation }) {
     if (!amount || Number(amount) < minAmount) { setError(t("utility.electricityScreen.errMinAmount", { amount: naira(minAmount) })); return; }
     if (Number(amount) > Number(balance)) { setError(t("utility.electricityScreen.errInsufficientBalance")); return; }
     setError("");
+    if (!requirePin()) return;
     setShowPinSheet(true);
   };
 

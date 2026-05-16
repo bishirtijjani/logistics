@@ -27,6 +27,7 @@ import { colors } from '../../theme';
 import { createRequest } from '../../store/slices/requestSlice';
 import { fetchWallet } from '../../store/slices/walletSlice';
 import PinBottomSheet from '../../components/PinBottomSheet';
+import { usePinGuard } from '../../lib/usePinGuard';
 
 const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
@@ -164,8 +165,11 @@ export default function CreateRequestScreen() {
     return true;
   };
 
+  const requirePin = usePinGuard();
+
   const openPin = () => {
     if (!validateForm()) return;
+    if (!requirePin()) return;
     setPinVisible(true);
   };
 

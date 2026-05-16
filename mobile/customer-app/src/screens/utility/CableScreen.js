@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
+import { usePinGuard } from "../../lib/usePinGuard";
 import { buyCable, fetchPlans, validateIuc, clearValidation } from "../../store/slices/utilitySlice";
 
 // providerNetworkId: GOTV=1, DSTV=2, STARTIME=3
@@ -24,6 +25,7 @@ export default function CableScreen({ navigation }) {
   const { t } = useTranslation();
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, isValidating, validationResult } = useSelector((state) => state.utility);
+  const requirePin = usePinGuard();
 
   const [selectedProvider, setSelectedProvider] = useState(PROVIDERS[0]);
   const [smartCard, setSmartCard] = useState("");
@@ -59,6 +61,7 @@ export default function CableScreen({ navigation }) {
     if (!selectedPlan) { setError(t("utility.cableScreen.errSelectPackage")); return; }
     if (Number(selectedPlan.sellingPrice) > Number(balance)) { setError(t("errors.INSUFFICIENT_BALANCE")); return; }
     setError("");
+    if (!requirePin()) return;
     setShowPinSheet(true);
   };
 

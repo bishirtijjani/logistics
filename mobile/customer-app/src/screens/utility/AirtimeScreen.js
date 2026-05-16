@@ -13,6 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
+import { usePinGuard } from "../../lib/usePinGuard";
 import { buyAirtime, fetchPlans, fetchRecentRecipients } from "../../store/slices/utilitySlice";
 import { usePlatformSetting } from "../../services/settings";
 import { detectNetworkFromPhone } from "../../services/networkDetect";
@@ -27,6 +28,7 @@ export default function AirtimeScreen({ navigation }) {
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, recentRecipients } = useSelector((state) => state.utility);
 
+  const requirePin = usePinGuard();
   const minAmount = Number(usePlatformSetting("utility.minAirtimeAmount", 50));
   const quickAmountsSetting = usePlatformSetting("utility.airtimeQuickAmounts", null);
   const QUICK_AMOUNTS = Array.isArray(quickAmountsSetting) && quickAmountsSetting.length > 0
@@ -90,6 +92,7 @@ export default function AirtimeScreen({ navigation }) {
     if (!amount || Number(amount) < minAmount) { setError(t("utility.airtimeScreen.errMinAmount", { amount: naira(minAmount) })); return; }
     if (Number(amount) > Number(balance)) { setError(t("utility.airtimeScreen.errInsufficientBalance")); return; }
     setError("");
+    if (!requirePin()) return;
     setShowPinSheet(true);
   };
 

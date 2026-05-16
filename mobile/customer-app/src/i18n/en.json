@@ -24,6 +24,11 @@
     "currency": "₦",
     "perKm": "/km"
   },
+  "pinGuard": {
+    "title": "Set up your transaction PIN",
+    "body": "You need a 6-digit transaction PIN to authorize this. It only takes a moment.",
+    "cta": "Set up PIN"
+  },
   "a11y": {
     "back": "Go back",
     "close": "Close",
