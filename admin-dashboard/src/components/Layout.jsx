@@ -24,6 +24,7 @@ import {
   Megaphone,
   Shield,
   Wifi,
+  Network,
   Tags
 } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
@@ -46,6 +47,7 @@ const navItems = [
   { path: '/rider-operations', icon: Bike, label: 'Rider Ops' },
   { path: '/safety', icon: Shield, label: 'Safety' },
   { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans' },
+  { path: '/vtu-networks', icon: Network, label: 'VTU Networks' },
   { path: '/customers', icon: Users, label: 'Customers' },
   { path: '/audit-logs', icon: FileText, label: 'Audit Logs' },
   { path: '/transactions', icon: Receipt, label: 'Transactions' },

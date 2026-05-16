@@ -4,8 +4,10 @@
 
 const { prisma } = require('../../config/database');
 const { Prisma } = require('@prisma/client');
+const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
+const { REDIS_KEYS } = require('../../utils/constants');
 const katpayService = require('../../services/katpay.service');
 const emailService = require('../../services/email.service');
 const { createAuditLog } = require('../../utils/audit');
@@ -2318,6 +2320,10 @@ module.exports = {
   updateVtuPlan,
   deleteVtuPlan,
   bulkCreateVtuPlans,
+  listVtuNetworks,
+  createVtuNetwork,
+  updateVtuNetwork,
+  deleteVtuNetwork,
 };
 
 // ─── VTU Plan Management ──────────────────────────────────────────────────────
@@ -2360,4 +2366,142 @@ async function deleteVtuPlan(id) {
 
 async function bulkCreateVtuPlans(plans) {
   return prisma.vtuPlan.createMany({ data: plans, skipDuplicates: true });
+}
+
+// ─── VTU Network Management ───────────────────────────────────────────────────
+// Networks (and discos / cable names — same shape, different `type`) are the
+// catalogue admins edit when a provider renumbers IDs. Edits sweep all
+// VtuPlan rows that reference the old (type, providerNetworkId) pair.
+
+const _invalidateVtuCaches = async () => {
+  // The utility-service cache keys for networks are derived from `type` so we
+  // wipe by scan; cheap because the set is tiny (under a dozen keys).
+  try {
+    const patterns = [
+      `${REDIS_KEYS.VTU_NETWORKS}*`,
+      REDIS_KEYS.VTU_DISCOS,
+      `${REDIS_KEYS.VTU_DATA_PLANS}*`,
+    ];
+    for (const pattern of patterns) {
+      if (pattern.endsWith('*')) {
+        const keys = await redis.keys(pattern);
+        if (keys.length) await redis.del(...keys);
+      } else {
+        await redis.del(pattern);
+      }
+    }
+  } catch (err) {
+    logger.warn('VTU cache invalidation failed', { error: err.message });
+  }
+};
+
+async function listVtuNetworks({ type, isActive } = {}) {
+  const where = {
+    ...(type && { type }),
+    ...(isActive !== undefined && {
+      isActive: isActive === 'true' || isActive === true,
+    }),
+  };
+  return prisma.vtuNetwork.findMany({
+    where,
+    orderBy: [{ type: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+  });
+}
+
+async function createVtuNetwork(data) {
+  const payload = {
+    type: data.type,
+    providerNetworkId: Number(data.providerNetworkId),
+    name: String(data.name).trim(),
+    isActive: data.isActive !== false,
+    sortOrder: Number(data.sortOrder || 0),
+  };
+  if (!payload.type) throw AppError.badRequest('type is required');
+  if (!Number.isFinite(payload.providerNetworkId)) throw AppError.badRequest('providerNetworkId must be a number');
+  if (!payload.name) throw AppError.badRequest('name is required');
+
+  let network;
+  try {
+    network = await prisma.vtuNetwork.create({ data: payload });
+  } catch (err) {
+    if (err.code === 'P2002') {
+      throw AppError.badRequest(`A network with provider ID ${payload.providerNetworkId} already exists for ${payload.type}`);
+    }
+    throw err;
+  }
+  await _invalidateVtuCaches();
+  return network;
+}
+
+async function updateVtuNetwork(id, data) {
+  const existing = await prisma.vtuNetwork.findUnique({ where: { id } });
+  if (!existing) throw AppError.notFound('Network not found');
+
+  const next = {
+    ...(data.name !== undefined && { name: String(data.name).trim() }),
+    ...(data.providerNetworkId !== undefined && {
+      providerNetworkId: Number(data.providerNetworkId),
+    }),
+    ...(data.isActive !== undefined && { isActive: !!data.isActive }),
+    ...(data.sortOrder !== undefined && { sortOrder: Number(data.sortOrder) }),
+  };
+
+  // Detect whether the sweep is needed. Type is intentionally immutable — a
+  // network is fundamentally one of AIRTIME/DATA/CABLE/ELECTRICITY; deleting
+  // and recreating is the safer path if admin truly needs to change it.
+  const idChanged = next.providerNetworkId !== undefined && next.providerNetworkId !== existing.providerNetworkId;
+  const nameChanged = next.name !== undefined && next.name !== existing.name;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    if (idChanged) {
+      // Guard against collision with another network row.
+      const collision = await tx.vtuNetwork.findFirst({
+        where: {
+          type: existing.type,
+          providerNetworkId: next.providerNetworkId,
+          NOT: { id },
+        },
+      });
+      if (collision) {
+        throw AppError.badRequest(`Provider ID ${next.providerNetworkId} is already used by "${collision.name}"`);
+      }
+    }
+
+    const network = await tx.vtuNetwork.update({ where: { id }, data: next });
+
+    if (idChanged || nameChanged) {
+      await tx.vtuPlan.updateMany({
+        where: {
+          type: existing.type,
+          providerNetworkId: existing.providerNetworkId,
+        },
+        data: {
+          ...(idChanged && { providerNetworkId: next.providerNetworkId }),
+          ...(nameChanged && { networkName: next.name }),
+        },
+      });
+    }
+
+    return network;
+  });
+
+  await _invalidateVtuCaches();
+  return updated;
+}
+
+async function deleteVtuNetwork(id) {
+  const existing = await prisma.vtuNetwork.findUnique({ where: { id } });
+  if (!existing) throw AppError.notFound('Network not found');
+
+  const planCount = await prisma.vtuPlan.count({
+    where: { type: existing.type, providerNetworkId: existing.providerNetworkId },
+  });
+  if (planCount > 0) {
+    throw AppError.badRequest(
+      `Cannot delete: ${planCount} plan${planCount === 1 ? '' : 's'} still reference this network. Delete or reassign them first.`,
+    );
+  }
+
+  await prisma.vtuNetwork.delete({ where: { id } });
+  await _invalidateVtuCaches();
 }

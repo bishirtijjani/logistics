@@ -22,7 +22,8 @@ const getDataPlans = async (req, res, next) => {
 
 const getNetworks = async (req, res, next) => {
   try {
-    res.json(ApiResponse.success('Networks fetched', utilityService.getNetworks()));
+    const networks = await utilityService.getNetworks(req.query);
+    res.json(ApiResponse.success('Networks fetched', networks));
   } catch (error) {
     next(error);
   }
@@ -39,7 +40,7 @@ const getDiscos = async (req, res, next) => {
 
 const detectNetwork = async (req, res, next) => {
   try {
-    const result = utilityService.detectNetwork(req.body);
+    const result = await utilityService.detectNetwork(req.body);
     res.json(ApiResponse.success('Network detected', result));
   } catch (error) {
     next(error);

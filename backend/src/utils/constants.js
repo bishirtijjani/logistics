@@ -22,6 +22,7 @@ const REDIS_KEYS = {
   // Phase 7 — utility/VTU
   VTU_DATA_PLANS: "vtu:data-plans:", // vtu:data-plans:{networkId|all} — 1h cache
   VTU_DISCOS: "vtu:discos", // 1h cache of DISCO list
+  VTU_NETWORKS: "vtu:networks:", // vtu:networks:{type|all} — 1h cache of network catalogue
 };
 
 // Redis TTLs (in seconds)
@@ -39,6 +40,7 @@ const REDIS_TTL = {
   // Phase 7 — utility/VTU
   VTU_DATA_PLANS: 3600, // 1 hour — data plans rarely change
   VTU_DISCOS: 3600, // 1 hour
+  VTU_NETWORKS: 3600, // 1 hour — admin-edited but read-heavy
 };
 
 // Phase 7 — Nigerian network prefixes for client/server auto-detect.

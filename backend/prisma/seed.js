@@ -587,6 +587,51 @@ async function main() {
   }
   console.log(`✅ System wallets seeded`);
 
+  // ─── VTU Networks (admin-managed catalogue of provider IDs) ────────────────
+  // Networks/cable-names/discos live here so admin can edit provider IDs from
+  // the dashboard without a deploy. VtuPlan rows reference these by
+  // (type, providerNetworkId) pair — kept in sync via sweep on network edit.
+  const vtuNetworks = [
+    // ── AIRTIME networks ──
+    { type: 'AIRTIME', providerNetworkId: 1, name: 'MTN',     sortOrder: 1 },
+    { type: 'AIRTIME', providerNetworkId: 2, name: 'GLO',     sortOrder: 2 },
+    { type: 'AIRTIME', providerNetworkId: 3, name: '9MOBILE', sortOrder: 3 },
+    { type: 'AIRTIME', providerNetworkId: 4, name: 'AIRTEL',  sortOrder: 4 },
+    { type: 'AIRTIME', providerNetworkId: 5, name: 'SMILE',   sortOrder: 5 },
+
+    // ── DATA networks (mirror AIRTIME — same provider IDs) ──
+    { type: 'DATA', providerNetworkId: 1, name: 'MTN',     sortOrder: 1 },
+    { type: 'DATA', providerNetworkId: 2, name: 'GLO',     sortOrder: 2 },
+    { type: 'DATA', providerNetworkId: 3, name: '9MOBILE', sortOrder: 3 },
+    { type: 'DATA', providerNetworkId: 4, name: 'AIRTEL',  sortOrder: 4 },
+
+    // ── CABLE names ──
+    { type: 'CABLE', providerNetworkId: 1, name: 'GOTV',     sortOrder: 1 },
+    { type: 'CABLE', providerNetworkId: 2, name: 'DSTV',     sortOrder: 2 },
+    { type: 'CABLE', providerNetworkId: 3, name: 'STARTIME', sortOrder: 3 },
+
+    // ── ELECTRICITY discos ──
+    { type: 'ELECTRICITY', providerNetworkId: 1,  name: 'Ikeja',  sortOrder: 1 },
+    { type: 'ELECTRICITY', providerNetworkId: 2,  name: 'Eko',    sortOrder: 2 },
+    { type: 'ELECTRICITY', providerNetworkId: 3,  name: 'Abuja',  sortOrder: 3 },
+    { type: 'ELECTRICITY', providerNetworkId: 4,  name: 'Kano',   sortOrder: 4 },
+    { type: 'ELECTRICITY', providerNetworkId: 5,  name: 'Enugu',  sortOrder: 5 },
+    { type: 'ELECTRICITY', providerNetworkId: 6,  name: 'PHC',    sortOrder: 6 },
+    { type: 'ELECTRICITY', providerNetworkId: 7,  name: 'Ibadan', sortOrder: 7 },
+    { type: 'ELECTRICITY', providerNetworkId: 8,  name: 'Kaduna', sortOrder: 8 },
+    { type: 'ELECTRICITY', providerNetworkId: 9,  name: 'Jos',    sortOrder: 9 },
+    { type: 'ELECTRICITY', providerNetworkId: 10, name: 'Benin',  sortOrder: 10 },
+    { type: 'ELECTRICITY', providerNetworkId: 11, name: 'Yola',   sortOrder: 11 },
+  ];
+  for (const n of vtuNetworks) {
+    await prisma.vtuNetwork.upsert({
+      where: { type_providerNetworkId: { type: n.type, providerNetworkId: n.providerNetworkId } },
+      update: { name: n.name, sortOrder: n.sortOrder, isActive: true },
+      create: { ...n, isActive: true },
+    });
+  }
+  console.log(`✅ VTU networks seeded (${vtuNetworks.length})`);
+
   // ─── VTU Plans (AlRahuz IDs from pricing doc) ───────────────────────────────
   // Clear old plans so wrong IDs from a previous seed don't persist
   await prisma.vtuPlan.deleteMany({});

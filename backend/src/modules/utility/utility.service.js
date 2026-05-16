@@ -11,7 +11,6 @@ const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const {
-  NETWORKS,
   REDIS_KEYS,
   REDIS_TTL,
   detectNetworkFromPhone,
@@ -112,26 +111,44 @@ const getPlans = async ({ type, networkId, isActive = true }) => {
   return plans;
 };
 
-const getNetworks = () => NETWORKS;
+// Default to AIRTIME for back-compat — the existing customer `GET /utility/networks`
+// endpoint historically returned only mobile networks.
+const getNetworks = async ({ type = 'AIRTIME' } = {}) => {
+  const key = `${REDIS_KEYS.VTU_NETWORKS}${type}`;
+  const hit = await _readCache(key);
+  if (hit) return hit;
+  const rows = await prisma.vtuNetwork.findMany({
+    where: { type, isActive: true },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    select: { providerNetworkId: true, name: true },
+  });
+  const list = rows.map((n) => ({ id: n.providerNetworkId, name: n.name }));
+  await _writeCache(key, list, REDIS_TTL.VTU_NETWORKS);
+  return list;
+};
 
-const detectNetwork = ({ phone }) => {
-  const result = detectNetworkFromPhone(phone);
-  if (!result) throw AppError.badRequest('Could not detect network from phone number');
-  return result;
+const detectNetwork = async ({ phone }) => {
+  const match = detectNetworkFromPhone(phone);
+  if (!match) throw AppError.badRequest('Could not detect network from phone number');
+  // Resolve the live providerNetworkId from the admin-managed catalogue so a
+  // provider renumber (e.g. MTN 1 → 100) doesn't require a code change.
+  const row = await prisma.vtuNetwork.findFirst({
+    where: { type: 'AIRTIME', name: match.name, isActive: true },
+    select: { providerNetworkId: true },
+  });
+  if (!row) throw AppError.badRequest(`Network "${match.name}" is not configured`);
+  return { name: match.name, id: row.providerNetworkId, prefix: match.prefix };
 };
 
 const getDiscos = async () => {
   const hit = await _readCache(REDIS_KEYS.VTU_DISCOS);
   if (hit) return hit;
-  const discos = await prisma.vtuPlan.findMany({
+  const rows = await prisma.vtuNetwork.findMany({
     where: { type: 'ELECTRICITY', isActive: true },
-    distinct: ['providerNetworkId'],
-    select: { providerNetworkId: true, networkName: true },
-    orderBy: { networkName: 'asc' },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    select: { providerNetworkId: true, name: true },
   });
-  const list = discos
-    .filter((d) => d.providerNetworkId != null)
-    .map((d) => ({ id: d.providerNetworkId, name: d.networkName }));
+  const list = rows.map((d) => ({ id: d.providerNetworkId, name: d.name }));
   await _writeCache(REDIS_KEYS.VTU_DISCOS, list, REDIS_TTL.VTU_DISCOS);
   return list;
 };

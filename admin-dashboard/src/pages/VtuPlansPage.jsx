@@ -18,32 +18,8 @@ const TABS = [
   { key: 'ELECTRICITY', label: 'Electricity', icon: Zap },
 ]
 
-const NETWORKS_BY_TYPE = {
-  AIRTIME: [
-    { id: 1, name: 'MTN' },
-    { id: 2, name: 'GLO' },
-    { id: 3, name: '9MOBILE' },
-    { id: 4, name: 'AIRTEL' },
-    { id: 5, name: 'SMILE' },
-  ],
-  DATA: [
-    { id: 1, name: 'MTN' },
-    { id: 2, name: 'GLO' },
-    { id: 3, name: '9MOBILE' },
-    { id: 4, name: 'AIRTEL' },
-  ],
-  CABLE: [
-    { id: 1, name: 'GOTV' },
-    { id: 2, name: 'DSTV' },
-    { id: 3, name: 'STARTIME' },
-  ],
-  ELECTRICITY: [
-    { id: 1,  name: 'Ikeja' },  { id: 2, name: 'Eko' },     { id: 3, name: 'Abuja' },
-    { id: 4,  name: 'Kano' },   { id: 5, name: 'Enugu' },   { id: 6, name: 'PHC' },
-    { id: 7,  name: 'Ibadan' }, { id: 8, name: 'Kaduna' },  { id: 9, name: 'Jos' },
-    { id: 10, name: 'Benin' },  { id: 11, name: 'Yola' },
-  ],
-}
+// Network catalogue lives in the DB and is admin-editable on /vtu-networks.
+// This page just consumes it for dropdowns/buttons.
 
 const DATA_PLAN_TYPES = ['SME', 'GIFTING', 'CORPORATE', 'AWOOF', 'DIRECT']
 const PAGE_SIZES = [25, 50, 100]
@@ -115,6 +91,26 @@ export default function VtuPlansPage() {
   const [sheet, setSheet] = useState(null)               // { mode, plan? } | null
   const [confirm, setConfirm] = useState(null)           // { title, message, tone, onConfirm } | null
   const [bulkPriceOpen, setBulkPriceOpen] = useState(false)
+
+  // Network catalogue from /admin/vtu-networks, grouped by type.
+  const [networksByType, setNetworksByType] = useState({
+    AIRTIME: [], DATA: [], CABLE: [], ELECTRICITY: [],
+  })
+
+  useEffect(() => {
+    let cancelled = false
+    api.get('/admin/vtu-networks').then((res) => {
+      if (cancelled) return
+      const grouped = { AIRTIME: [], DATA: [], CABLE: [], ELECTRICITY: [] }
+      for (const n of res.data.data || []) {
+        if (!n.isActive) continue
+        if (!grouped[n.type]) grouped[n.type] = []
+        grouped[n.type].push({ id: n.providerNetworkId, name: n.name })
+      }
+      setNetworksByType(grouped)
+    }).catch(() => toast.error('Failed to load networks'))
+    return () => { cancelled = true }
+  }, [])
 
   // ── fetch ───────────────────────────────────────────────────────────────
   const fetchPlans = useCallback(async () => {
@@ -280,7 +276,7 @@ export default function VtuPlansPage() {
   const onSheetSaved = () => { closeSheet(); fetchPlans() }
 
   const currentTab = TABS.find((t) => t.key === tab)
-  const networks = NETWORKS_BY_TYPE[tab] || []
+  const networks = networksByType[tab] || []
 
   return (
     <div className="max-w-[1400px] mx-auto">
@@ -467,6 +463,7 @@ export default function VtuPlansPage() {
           mode={sheet.mode}
           tab={tab}
           initial={sheet.plan}
+          networksByType={networksByType}
           onClose={closeSheet}
           onSaved={onSheetSaved}
         />
@@ -868,7 +865,7 @@ function DataMatrix({ plans, networks, onEditCell, onAddEmpty, onInlinePrice }) 
 // Side sheet (form)
 // ────────────────────────────────────────────────────────────────────────────
 
-function PlanSheet({ mode, tab, initial, onClose, onSaved }) {
+function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
   const isEdit = mode === 'edit'
   const startType = initial?.type || tab
 
@@ -889,7 +886,7 @@ function PlanSheet({ mode, tab, initial, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
 
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }))
-  const networks = NETWORKS_BY_TYPE[form.type] || []
+  const networks = networksByType?.[form.type] || []
 
   // Auto-populate name for DATA when fields are present (only on create + when name is empty)
   useEffect(() => {

@@ -381,13 +381,15 @@ model UtilityPayment {
   @@map("utility_payments")
 }
 
-/// Admin-managed VTU plan catalogue. Admin sets AlRahuz IDs + selling prices.
+/// Admin-managed VTU plan catalogue. Admin sets provider IDs + selling prices.
+/// `providerNetworkId` + `networkName` are kept in sync with the parent
+/// VtuNetwork row via a server-side sweep when the network is edited.
 model VtuPlan {
   id                String      @id @default(uuid())
   type              VtuPlanType
-  providerNetworkId Int? /// AlRahuz network/cable provider ID
-  networkName       String? /// "MTN", "GOTV" etc.
-  providerPlanId    Int? /// AlRahuz plan ID (data/cable plans)
+  providerNetworkId Int? /// Provider's network/cable/disco ID
+  networkName       String? /// "MTN", "GOTV" etc. (denormalized)
+  providerPlanId    Int? /// Provider's plan ID (data/cable plans)
   name              String /// Display name e.g. "1GB - 30 Days"
   dataSize          String? /// "1GB" for data plans
   validity          String? /// "30 Days"
@@ -402,6 +404,25 @@ model VtuPlan {
   @@index([type, isActive])
   @@index([providerNetworkId, type])
   @@map("vtu_plans")
+}
+
+/// Provider-agnostic catalogue of networks/cable names/discos. Admin edits
+/// these from the dashboard so a provider ID change does not require a deploy.
+/// Switching VTU providers = swap the alrahuz adapter + admin re-enters the
+/// new provider's IDs here.
+model VtuNetwork {
+  id                String      @id @default(uuid())
+  type              VtuPlanType
+  providerNetworkId Int /// The integer the provider expects in its API
+  name              String /// Display name e.g. "MTN", "DSTV", "Ikeja"
+  isActive          Boolean     @default(true)
+  sortOrder         Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@unique([type, providerNetworkId])
+  @@index([type, isActive])
+  @@map("vtu_networks")
 }
 
 /// Post-delivery rating from customer to rider (and optionally merchant).

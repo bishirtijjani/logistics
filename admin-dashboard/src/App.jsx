@@ -30,6 +30,7 @@ import RiderOperationsPage from './pages/RiderOperationsPage'
 import SafetyPage from './pages/SafetyPage'
 import MerchantAnalyticsPage from './pages/MerchantAnalyticsPage'
 import VtuPlansPage from './pages/VtuPlansPage'
+import VtuNetworksPage from './pages/VtuNetworksPage'
 import CategoriesPage from './pages/CategoriesPage'
 
 function ProtectedRoute({ children }) {
@@ -99,6 +100,7 @@ function App() {
           <Route path="rider-operations" element={<RiderOperationsPage />} />
           <Route path="safety" element={<SafetyPage />} />
           <Route path="vtu-plans" element={<VtuPlansPage />} />
+          <Route path="vtu-networks" element={<VtuNetworksPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

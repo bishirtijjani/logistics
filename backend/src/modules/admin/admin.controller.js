@@ -811,6 +811,10 @@ module.exports = {
   updateVtuPlan,
   deleteVtuPlan,
   bulkCreateVtuPlans,
+  getVtuNetworks,
+  createVtuNetwork,
+  updateVtuNetwork,
+  deleteVtuNetwork,
 };
 
 // ─── VTU Plan Controllers ─────────────────────────────────────────────────────
@@ -847,5 +851,35 @@ async function bulkCreateVtuPlans(req, res, next) {
   try {
     const result = await adminService.bulkCreateVtuPlans(req.body.plans);
     res.status(201).json(ApiResponse.success('VTU plans imported', result));
+  } catch (error) { next(error); }
+}
+
+// ─── VTU Network Controllers ──────────────────────────────────────────────────
+
+async function getVtuNetworks(req, res, next) {
+  try {
+    const networks = await adminService.listVtuNetworks(req.query);
+    res.json(ApiResponse.success('Networks fetched', networks));
+  } catch (error) { next(error); }
+}
+
+async function createVtuNetwork(req, res, next) {
+  try {
+    const network = await adminService.createVtuNetwork(req.body);
+    res.status(201).json(ApiResponse.success('Network created', network));
+  } catch (error) { next(error); }
+}
+
+async function updateVtuNetwork(req, res, next) {
+  try {
+    const network = await adminService.updateVtuNetwork(req.params.networkId, req.body);
+    res.json(ApiResponse.success('Network updated', network));
+  } catch (error) { next(error); }
+}
+
+async function deleteVtuNetwork(req, res, next) {
+  try {
+    await adminService.deleteVtuNetwork(req.params.networkId);
+    res.json(ApiResponse.success('Network deleted'));
   } catch (error) { next(error); }
 }

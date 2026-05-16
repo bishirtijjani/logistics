@@ -176,4 +176,10 @@ router.post('/vtu-plans/bulk', adminController.bulkCreateVtuPlans);
 router.put('/vtu-plans/:planId', adminController.updateVtuPlan);
 router.delete('/vtu-plans/:planId', adminController.deleteVtuPlan);
 
+// VTU network/disco/cable-name catalogue (provider IDs admin can edit)
+router.get('/vtu-networks', adminController.getVtuNetworks);
+router.post('/vtu-networks', adminController.createVtuNetwork);
+router.put('/vtu-networks/:networkId', adminController.updateVtuNetwork);
+router.delete('/vtu-networks/:networkId', adminController.deleteVtuNetwork);
+
 module.exports = router;

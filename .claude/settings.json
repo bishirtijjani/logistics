@@ -174,7 +174,15 @@
       "Bash(node --check ../admin-dashboard/src/pages/DisputesPage.jsx)",
       "Bash(node --check ../admin-dashboard/src/pages/SupportTicketDetailPage.jsx)",
       "Bash(node --check ../admin-dashboard/src/pages/DisputeDetailPage.jsx)",
-      "Bash(node --check ../merchant-dashboard/src/pages/SupportPage.jsx)"
+      "Bash(node --check ../merchant-dashboard/src/pages/SupportPage.jsx)",
+      "Bash(Get-ChildItem -Recurse -Depth 2)",
+      "Bash(Select-Object -Property FullName)",
+      "Bash(ConvertTo-Csv -NoTypeInformation)",
+      "Bash(Out-String)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\\\\backend\" -Directory)",
+      "Bash(xargs basename -a)",
+      "PowerShell(Get-Process | Where-Object { $_.ProcessName -match 'node|prisma' } | Select-Object ProcessName, Id, StartTime, MainWindowTitle)",
+      "PowerShell(\\(Get-Command psql -ErrorAction SilentlyContinue\\).Source)"
     ]
   }
 }
