@@ -50,9 +50,11 @@ export default function VtuNetworksPage() {
 
   const toggleActive = async (network) => {
     const prev = networks
-    setNetworks((arr) => arr.map((n) => (n.id === network.id ? { ...n, isActive: !n.isActive } : n)))
+    const next = !network.isActive
+    setNetworks((arr) => arr.map((n) => (n.id === network.id ? { ...n, isActive: next } : n)))
     try {
-      await api.put(`/admin/vtu-networks/${network.id}`, { isActive: !network.isActive })
+      await api.put(`/admin/vtu-networks/${network.id}`, { isActive: next })
+      toast.success(`${network.name} ${next ? 'activated' : 'deactivated'}`)
     } catch (e) {
       setNetworks(prev)
       toast.error(e.response?.data?.message || 'Update failed')

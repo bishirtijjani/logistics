@@ -24,7 +24,7 @@
 
 The VTU Logistics platform has three mature surfaces — Customer mobile app, Merchant dashboard, Admin dashboard — and one missing leg: the **Rider mobile app**. Today the rider-app directory holds only a default Expo template (`App.js` with "Open up App.js to start working on your app"), no `src/`, no navigation, no services. Meanwhile the backend is already production-shaped for riders: `rider.routes.js` exposes the full HTTP surface, the BullMQ `BROADCAST_TO_RIDERS` worker fans `rider:job:new` events out to expanding radius rings (5 → 10 → 15 km), the admin's `RiderOperationsPage` polls `/api/admin/riders/realtime` every 10 s waiting for positions, and the merchant's `OrderDetailsModal` reserves UI slots for a rider's name, plate, ETA, and live location. None of these signals have a client emitting or consuming on the rider side. The rider app is the **last leg of the unified Request lifecycle** (`RIDER_ASSIGNED → DELIVERED → SETTLED`) and the only thing standing between the platform and an end-to-end logistics MVP.
 
-The app this roadmap describes is an **operations app for approved riders**: receive job offers in real time, run a delivery with map navigation and live customer/merchant tracking, capture proof of delivery, see earnings hit the wallet, and pull money out to a Nigerian bank — all on Android and iOS, with English and Hausa, biometric-gated, PIN-protected for money moves, idempotent under retries, and built on the same Expo 54 / React Native 0.81 / RTK / nativewind stack the customer app already runs on. **Every architectural, design, and tooling decision mirrors the customer app exactly** for cohesiveness — same dep versions, same theme tokens, same navigation patterns, same services (`api.js`, `socket.js`, `biometric.js`, `idempotency.js`, `notifications.js`, `notificationsBus.js`, `settings.js`). The rider app diverges from customer **only where its job requires it**: continuous background location with an Android foreground service, full-screen offer overlay that supersedes other navigation, camera + signature capture for proof of delivery, and offer-arrival haptics + ringtone.
+The app this roadmap describes is an **operations app for approved riders**: receive job offers in real time, run a delivery with map navigation and live customer/merchant tracking, capture proof of delivery, see earnings hit the wallet, and pull money out to a Nigerian bank — all on Android and iOS, with English and Hausa, biometric-gated, PIN-protected for money moves, idempotent under retries, and built on the same Expo 54 / React Native 0.81 / RTK / nativewind stack the customer app already runs on. **Every architectural, design, and tooling decision mirrors the customer app exactly** for cohesiveness — same dep versions, same theme tokens, same navigation patterns, same services (`api.js`, `socket.js`, `biometric.js`, `idempotency.js`, `notifications.js`, `notificationsBus.js`, `settings.js`), and the same dev workflow (Expo Go for development, EAS standalone for production). The rider app diverges from customer **only where its job requires it**: full-screen offer overlay that supersedes other navigation, foreground GPS streaming while ONLINE (screen-on during shifts; background streaming is parked for V2 — see §2.7), camera + signature capture for proof of delivery, and offer-arrival haptics + ringtone.
 
 The MVP target is the smallest scope that lets a rider be onboarded, take a real customer order through the entire unified Request lifecycle, get paid, and withdraw. POD ships in MVP. Auto-payouts, surge pricing, fleet portal, voice masking, batched orders, scheduled availability windows, and rider tiers are all explicitly deferred to V2.
 
@@ -46,9 +46,8 @@ The MVP target is the smallest scope that lets a rider be onboarded, take a real
 | **KYC** | Know-Your-Customer: NIN entry + ID document upload + vehicle photo upload. | Prisma `Rider.ninNumber / idDocumentUrl / vehiclePhotoUrl` |
 | **Settlement** | The worker run on `DELIVERED → SETTLED` that credits the rider's wallet with `Request.riderEarning`. | BullMQ `SETTLE_REQUEST` job |
 | **Withdrawal** | Rider's wallet-to-bank move. PIN-protected, idempotent, async via KatPay payout. | `POST /api/wallet/withdraw` |
-| **Force-Offline kill switch** | Admin / system event that flips a rider's local state to OFFLINE and unregisters the location task. | `notification:new` with `type=SYSTEM_FORCE_OFFLINE` (Phase 2 BE work) |
+| **Force-Offline kill switch** | Admin / system event that flips a rider's local state to OFFLINE and stops the location subscription. | `notification:new` with `type=SYSTEM_FORCE_OFFLINE` (Phase 2 BE work) |
 | **OTA** | Over-the-air JS bundle update via `expo-updates`. | EAS channels per profile |
-| **Custom dev client** | EAS-built dev binary that includes native modules Expo Go cannot. Mandatory for this app. | `eas.json` `development` profile, `developmentClient: true` |
 
 ---
 
@@ -67,7 +66,7 @@ Top jobs to be done:
 Drives weekday evenings and weekends around campus. Battery and data sensitivity are higher than Aisha's because the phone is also his personal device.
 
 Top jobs to be done:
-- Go offline cleanly when he stops for the day — no lingering background location.
+- Go offline cleanly when he stops for the day — no lingering location subscription.
 - See whether tonight is busy enough to be worth coming online for (peek at recent earnings).
 - Refuse offers that are too far without being penalized harshly.
 
@@ -129,7 +128,7 @@ The following are explicitly **out of scope** for v1. They are listed in §Phase
 
 | Layer | Library | Version | Purpose |
 |---|---|---|---|
-| Runtime | `expo` | `~54.0.33` | Managed workflow + custom dev client |
+| Runtime | `expo` | `~54.0.33` | Managed workflow; dev in Expo Go, ship via EAS standalone |
 | Runtime | `react-native` | `0.81.5` | RN platform |
 | Runtime | `react` | `19.1.0` | React |
 | State | `@reduxjs/toolkit` | `^2.11.2` | Redux + thunks + RTK slices |
@@ -138,7 +137,7 @@ The following are explicitly **out of scope** for v1. They are listed in §Phase
 | Realtime | `socket.io-client` | `^4.8.3` | Sockets |
 | Maps | `react-native-maps` | `1.20.1` | MapView, Marker, Polyline |
 | Location | `expo-location` | `~19.0.8` | GPS + reverse geocode |
-| Notif | `expo-notifications` | `~0.32.17` | FCM + local channels + Android foreground service notif |
+| Notif | `expo-notifications` | `~0.32.17` | Local channels + Expo push (FCM swap happens at production-build time) |
 | Auth | `expo-local-authentication` | `~17.0.8` | Face ID / fingerprint |
 | Storage | `expo-secure-store` | `~15.0.8` | Tokens, PIN lockout deadline, bio flag |
 | Updates | `expo-updates` | `~29.0.16` | OTA |
@@ -170,26 +169,32 @@ The following are explicitly **out of scope** for v1. They are listed in §Phase
 
 #### 2.1.2 Rider-only additions
 
+All additions below are Expo-Go-compatible so the rider app's dev workflow matches customer-app's (Expo Go for development, EAS standalone build for production).
+
 | Library | Purpose | Why customer doesn't need it |
 |---|---|---|
-| `expo-task-manager` | Background location task `RIDER_LOCATION_TRACK` | Customer never streams its own location continuously |
 | `expo-camera` | POD photo capture | Customer has no need to capture proof of delivery |
+| `expo-image-manipulator` | Compress POD photo to ≤ 1 MB before upload | Same |
 | `expo-media-library` | Optional save POD photo to gallery (off by default) | Same |
 | `expo-haptics` | Offer-arrival haptic burst | Customer has no offer flow |
 | `expo-av` | Offer-arrival ringtone | Same |
-| `expo-battery` | Throttle GPS cadence below 20 % | Same |
+| `expo-battery` | Throttle foreground GPS cadence below 20 % | Same |
 | `expo-network` | Detect Wi-Fi vs cellular for upload gating | Same |
-| `react-native-signature-canvas` | Signature pad for high-value POD | Same |
-| `react-native-svg` | Earnings dashboard charts | Customer has no earnings dashboard (uses inline transaction list) |
+| `react-native-signature-canvas` | Signature pad for high-value POD (webview-based, Expo-Go-friendly) | Same |
+| `react-native-svg` | Earnings dashboard charts + offer countdown ring | Customer has no earnings dashboard |
+| `react-native-webview` | Required peer of signature canvas | Same |
 
-#### 2.1.3 Build profile mandate
+#### 2.1.3 Build profiles
 
-- **Expo Go is not supported.** Background location, foreground service, and signature canvas all require native code unavailable in Expo Go. Every developer and every QA tester runs the EAS-built **custom dev client**.
-- `eas.json` defines three profiles:
-  - `development` → `developmentClient: true`, internal distribution, debug build, `EXPO_PUBLIC_API_URL=http://10.0.2.2:3000/api` (Android emulator default) or LAN IP for physical device.
+Identical workflow to customer-app: Expo Go for development, EAS standalone for shipping.
+
+- `eas.json` defines two profiles (mirrors `mobile/customer-app/eas.json`):
   - `preview` → internal distribution APK, `EXPO_PUBLIC_API_URL=https://logistics.codeket.com/api`.
-  - `production` → app-bundle, Play Store / TestFlight target, `EXPO_PUBLIC_API_URL=https://logistics.codeket.com/api`.
-- OTA channel binding: `development=development`, `preview=staging`, `production=production`.
+  - `production` → app-bundle, Play Store / TestFlight target.
+- **No `developmentClient: true` profile.** Developers run the JS bundle through Expo Go against `npx expo start`. No custom dev-client builds.
+- OTA channel binding: `preview=staging`, `production=production`.
+
+> **Constraint that follows from this workflow:** the rider app does not stream GPS in the background. Location is foreground-only. See §2.7 and Phase 2 for the UX implications. Background location + foreground service are parked in Phase 9 / V2.
 
 ### 2.2 Folder Structure
 
@@ -198,10 +203,10 @@ mobile/rider-app/
 ├── App.js                          # Mounts SafeAreaProvider, NavigationContainer, Provider, ThemeProvider, ErrorBoundary, Toast
 ├── app.json                        # Expo config (permissions, plugins, scheme=riderapp, pkg id=com.codeket.logistics.rider)
 ├── babel.config.js                 # nativewind/babel
-├── eas.json                        # development / preview / production profiles
+├── eas.json                        # preview / production profiles (mirrors customer-app)
 ├── eslint.config.js                # Mirrored from customer-app (incl. starts-with-/ rule for axios paths)
 ├── global.css                      # @tailwind base/components/utilities
-├── index.js                        # registerRootComponent + locationTask registration on cold-load
+├── index.js                        # registerRootComponent (gesture-handler import + Expo entry)
 ├── metro.config.js                 # withNativeWind
 ├── tailwind.config.js              # Same tokens as customer-app (#EA580C primary)
 ├── package.json                    # Identical shared versions to customer-app + rider-only adds
@@ -309,8 +314,7 @@ mobile/rider-app/
     │   ├── notificationsBus.js      # Ported verbatim
     │   ├── settings.js              # Ported verbatim
     │   ├── networkDetect.js         # Ported verbatim
-    │   ├── locationTask.js          # NEW — TaskManager task registration
-    │   ├── foregroundService.js     # NEW — ongoing notification while ONLINE
+    │   ├── locationStream.js        # NEW — foreground watchPositionAsync subscription
     │   ├── geofence.js              # NEW — 75 m / 150 m fallback fence
     │   ├── cloudinary.js            # NEW — signed upload client for POD + KYC docs
     │   ├── mapsNav.js               # NEW — Google Maps / Waze / Apple Maps deep-link builder
@@ -550,39 +554,43 @@ App  ─────► │  (creates Request,         │
    TripCockpit mounted
 ```
 
-#### (b) Location Streaming
+#### (b) Location Streaming (foreground-only)
 
 ```
-Rider tap "Go Online"
+Rider tap "Go Online" (app foregrounded)
    │
    ▼
 PATCH /api/rider/availability {ONLINE}
    │
    ▼
-foregroundService.start()
-   │ shows persistent notification "You're online"
-   ▼
-TaskManager.startLocationUpdatesAsync(RIDER_LOCATION_TRACK,
-   { accuracy: Balanced/High, distanceInterval: 15-30m,
-     timeInterval: 15000 (idle) | 3000 (on-delivery),
-     foregroundService: { notificationTitle, notificationBody } })
+useKeepAwake() activates → screen stays on
    │
-   ▼ every tick
+   ▼
+Location.watchPositionAsync(
+   { accuracy: Balanced/High,
+     distanceInterval: 10-30m,
+     timeInterval: 15000 (idle) | 3000 (on-delivery) })
+   │
+   ▼ every fix
    ├── socket.emit('rider:location:update', { lat, lng, requestId })   ← preferred
-   └── if socket disconnected, batch into POST /api/rider/location
+   └── if socket disconnected, ring-buffer + drain via batched POST /api/rider/location
 
    Server:
      ├── writes Redis rider:location:{id} (TTL 30s)
      ├── updates Rider.lastLat/lastLng/lastLocationAt
      └── if requestId, broadcasts request:rider:location to request:{id} room
 
-Battery hooks:
-   - expo-battery < 20% → throttle to 30s cadence
-   - on background > 2min while idle → throttle further
-   - on rider:availability:changed → ensures task reconciliation
+Pause/resume hooks (AppState):
+   - background  → suspend watchPositionAsync; presence TTLs out after 30s
+   - active again → resume subscription, reconcile availability
+
+Battery hooks (expo-battery):
+   - < 20% → throttle to 30s cadence; one-time toast at 20%
+   - < 10% → throttle to 60s cadence
 
 Stop conditions:
    - User toggles OFFLINE
+   - 90s of continuous background while ONLINE-idle → auto-flip OFFLINE
    - notification:new type=SYSTEM_FORCE_OFFLINE received
    - 4-hour hard cap (auto-prompt rider to re-confirm)
 ```
@@ -666,27 +674,41 @@ Stop conditions:
    - ID document URI: `cacheDirectory`; deleted after successful Cloudinary upload + server-side ACK.
    - Idempotency keys for in-flight mutations: SecureStore until the request resolves (success or terminal failure), so a kill+restart sends the same key on retry.
 
-### 2.7 Background Execution Strategy
+### 2.7 Location Strategy (foreground-only)
 
-**Android.** The app uses `expo-task-manager.startLocationUpdatesAsync` with `foregroundService: { notificationTitle, notificationBody, notificationColor }` to keep a foreground service alive while the rider is ONLINE. Android 14+ (SDK 34+) requires the `FOREGROUND_SERVICE_LOCATION` permission *and* a declared foreground-service type per service; `app.json` configures both via the `expo-location` plugin (`isAndroidForegroundServiceEnabled: true`, `isAndroidBackgroundLocationEnabled: true`). The persistent notification is a feature, not a bug — it gives the rider an always-visible signal that GPS is streaming.
+The rider app uses **foreground-only** GPS streaming. There is no background location task, no foreground service, no `UIBackgroundModes: location`. The dev and ship workflow matches customer-app's exactly: Expo Go for development, EAS standalone for production.
 
-**Battery exemption.** Aggressive OEMs (Xiaomi, Tecno, Oppo, Realme) routinely kill foreground services. The app surfaces a one-tap "Improve battery reliability" CTA in `SecuritySettingsScreen` and the `HomeTabScreen` warning banner that uses `expo-intent-launcher` to deep-link the user to their device's battery-optimization-exemption settings.
+**How it works.** While the rider has the app foregrounded and is `ONLINE`, the app subscribes to `expo-location.watchPositionAsync` with cadence:
+- 15 s while ONLINE-idle (no active trip).
+- 3 s while `ON_DELIVERY`.
+- 30 s when battery is below 20 % (via `expo-battery`).
 
-**iOS.** `UIBackgroundModes: [location, fetch, remote-notification]` in `app.json`. `allowsBackgroundLocationUpdates` is only set to true while on an active delivery (`ON_DELIVERY`); while idle ONLINE, background location is disabled and the app uses significant-location-changes mode plus periodic foreground checks when the app is opened. This trades P95 staleness for battery on iOS and is documented in the §Battery & Data Budget below.
+Each fix is emitted via socket `rider:location:update` (and falls back to batched `POST /api/rider/location` if the socket is disconnected).
 
-**Expo Go is not supported.** The custom dev client is mandatory.
+**UX constraint — rider keeps the app open.** The home screen sets `expo-keep-awake` (or the equivalent screen-wake hint on Android via the `keepScreenOn` flag while ONLINE) so the device screen does not sleep while a delivery is active. The rider docks their phone on the bike, screen on, app foregrounded. The persistent "You're online" banner is in-app, not an OS notification.
+
+**Behaviour when the app is backgrounded or locked while ONLINE.**
+- Location streaming pauses; the server's `rider:availability:{riderId}` Redis key TTLs out (30 s) and the matcher stops considering this rider for new offers.
+- An active in-flight delivery does NOT cancel. The trip continues; the customer-side map shows the last known position, stale. When the rider foregrounds the app, fixes resume.
+- A push notification arriving for a new offer (rider currently idle) will still wake the device and route the rider into `JobOfferScreen` on tap — push notifications are not affected by foreground-only location.
+
+**When the rider explicitly toggles OFFLINE** (or backgrounds the app for > 90 seconds): the client emits `rider:availability:changed { OFFLINE }` and disconnects the socket. Going back to ONLINE requires the rider to tap the toggle again.
+
+**Background streaming is parked in Phase 9 / V2.** When the platform graduates from "rider keeps phone screen on" to "rider can pocket the phone", we'll add `expo-task-manager` + foreground service + `UIBackgroundModes` and switch the dev loop to a custom dev client. The data model, matching algorithm, and socket contract are designed so this swap is purely additive — no breaking changes.
 
 ### 2.8 Battery & Data Budget
+
+All states assume the app is **foregrounded with the screen on** — the rider's working posture for v1.
 
 | State | GPS cadence | Socket activity | Data/hr (estimate) | Battery/hr (estimate) |
 |---|---|---|---|---|
 | OFFLINE | none | disconnected | ~0 MB | ~0 % |
-| ONLINE — idle (no offer) | 15 s | ping + occasional offer | ≤ 3 MB | ≤ 4 % |
+| ONLINE — idle (no offer) | 15 s | ping + occasional offer | ≤ 3 MB | ≤ 6 % |
 | ONLINE — offered (60 s window) | 15 s | offer event in/out | adds < 50 KB | adds < 0.5 % |
-| ON_DELIVERY | 3 s | location stream + chat | ≤ 12 MB | ≤ 10 % |
-| Low-battery throttle (< 20 %) | 30 s | location stream | ≤ 6 MB | ≤ 6 % |
+| ON_DELIVERY | 3 s | location stream + chat | ≤ 12 MB | ≤ 12 % |
+| Low-battery throttle (< 20 %) | 30 s | location stream | ≤ 6 MB | ≤ 8 % |
 
-8-hour shift estimate: ~50–80 MB cellular data + 40–60 % battery on a mid-range Android with the foreground service running. Riders are expected to keep a power bank — the persistent notification mentions this in its body copy on Android.
+8-hour shift estimate (foreground, screen-on the whole time): ~50–80 MB cellular data + 60–90 % battery on a mid-range Android. A power bank or a bike-mount charger is required equipment for full-shift riders — surfaced in the in-app "Getting started" tips during onboarding.
 
 ---
 
@@ -696,7 +718,7 @@ Stop conditions:
 
 ### 0.1 Goals
 
-Replace the bare Expo template currently sitting in `mobile/rider-app/` with a project structure that is **byte-for-byte aligned** with `mobile/customer-app/` for every shared concern, plus the rider-only deps and configuration. The end state is a build that compiles, opens to a Login screen, hydrates auth, applies the biometric gate, connects to the socket, and registers a placeholder background location task — none of the features yet, but every piece of shared infrastructure is in place so subsequent phases just wire screens into existing services.
+Replace the bare Expo template currently sitting in `mobile/rider-app/` with a project structure that is **byte-for-byte aligned** with `mobile/customer-app/` for every shared concern, plus the Expo-Go-compatible rider-only additions. The end state is a build that runs in Expo Go, opens to a Login screen, hydrates auth, applies the biometric gate, and connects to the socket — none of the features yet, but every piece of shared infrastructure is in place so subsequent phases just wire screens into existing services.
 
 ### 0.2 Tasks
 
@@ -717,17 +739,17 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
   - `expo.extra.eas.projectId` cleared (will be regenerated by `eas init`).
 - Copy `mobile/customer-app/tailwind.config.js` verbatim (preserves the `#EA580C` primary, the category palette, the same content globs).
 - Copy `mobile/customer-app/babel.config.js`, `mobile/customer-app/metro.config.js`, `mobile/customer-app/global.css`, `mobile/customer-app/eslint.config.js` verbatim.
-- Create `mobile/rider-app/eas.json` with `development` (developmentClient: true, internal), `preview` (internal APK, staging API URL), `production` (app-bundle, prod API URL). Mirror the customer's `eas.json` shape; only env URLs differ.
+- Create `mobile/rider-app/eas.json` with `preview` (internal APK, staging API URL) and `production` (app-bundle, prod API URL). Mirrors `mobile/customer-app/eas.json` exactly. No development profile — dev uses Expo Go.
 
-**RA — Step 0c: add rider-only dependencies**
-- `expo-task-manager`, `expo-camera`, `expo-media-library`, `expo-haptics`, `expo-av`, `expo-battery`, `expo-network`, `react-native-signature-canvas`, `react-native-svg`, `expo-intent-launcher`, `@sentry/react-native`.
+**RA — Step 0c: add rider-only dependencies (all Expo-Go-compatible)**
+- `expo-camera`, `expo-image-manipulator`, `expo-media-library`, `expo-haptics`, `expo-av`, `expo-battery`, `expo-network`, `react-native-signature-canvas`, `react-native-svg`, `react-native-webview`.
 - Add the corresponding Expo plugin entries to `app.json` `plugins` array:
-  - `["expo-location", { "isAndroidBackgroundLocationEnabled": true, "isAndroidForegroundServiceEnabled": true, "locationAlwaysAndWhenInUsePermission": "VTU Rider needs your location while on duty to receive job offers and let customers track deliveries.", "locationWhenInUsePermission": "VTU Rider needs your location to deliver jobs to you near you." }]`.
-  - `["expo-camera", { "cameraPermission": "VTU Rider needs the camera to capture proof of delivery." }]`.
-  - `["expo-media-library", { "photosPermission": "Optionally save proof-of-delivery photos to your gallery." }]`.
-  - `["expo-notifications", { "color": "#EA580C", "icon": "./assets/notification-icon.png" }]`.
-- Add Android `permissions`: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`, `CAMERA`, `READ_MEDIA_IMAGES`, `VIBRATE`, `WAKE_LOCK`.
-- Add iOS `infoPlist`: `NSLocationAlwaysAndWhenInUseUsageDescription`, `NSLocationWhenInUseUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryAddUsageDescription`, `NSFaceIDUsageDescription`, `UIBackgroundModes: ["location", "fetch", "remote-notification"]`.
+  - `["expo-location", { "locationWhenInUsePermission": "VTU Rider needs your location to deliver jobs near you." }]` — **foreground only**, no background flags.
+  - `["expo-camera", { "cameraPermission": "VTU Rider needs the camera to capture proof of delivery and identity documents." }]`.
+  - `["expo-media-library", { "photosPermission": "...", "savePhotosPermission": "...", "isAccessMediaLocationEnabled": false }]`.
+  - `["expo-notifications", { "color": "#EA580C" }]`.
+- Add Android `permissions`: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `POST_NOTIFICATIONS`, `CAMERA`, `READ_MEDIA_IMAGES`, `VIBRATE`. **No** background-location, **no** foreground-service permissions.
+- Add iOS `infoPlist`: `NSLocationWhenInUseUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryAddUsageDescription`, `NSFaceIDUsageDescription`. **No** `NSLocationAlwaysAndWhenInUseUsageDescription`, **no** `UIBackgroundModes`.
 
 **RA — Step 0d: port shared infrastructure**
 - Create `src/` with the structure documented in §2.2.
@@ -762,29 +784,26 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
 
 ### 0.3 Acceptance Criteria
 
-- ✅ `mobile/rider-app/package.json` lists exact-same versions as `mobile/customer-app/package.json` for every shared dep + the rider-only additions in §0.2 Step 0c.
-- ✅ `npx expo prebuild --clean` succeeds locally for Android and iOS.
-- ✅ `eas build --profile development --platform android` produces an installable dev client.
-- ✅ App opens on a real device, hydrates auth (finds no token → shows Login skeleton), and connects the socket on Login.
-- ✅ Background location plugin is registered and `TaskManager.isTaskDefined('RIDER_LOCATION_TRACK')` returns true on cold start.
-- ✅ Toggling a stub "Go Online" button in `HomeTabScreen` requests `ACCESS_BACKGROUND_LOCATION` (Android) / "Always" (iOS) and shows the foreground service notification.
-- ✅ Sentry receives a deliberate test error from the ErrorBoundary fallback in dev.
+- ✅ `mobile/rider-app/package.json` lists exact-same versions as `mobile/customer-app/package.json` for every shared dep + the Expo-Go-compatible additions in §0.2 Step 0c.
+- ✅ `npx expo start` launches Metro; opening Expo Go on a device + scanning the QR code renders the Login screen with brand colors.
+- ✅ App opens on a real device, hydrates auth (finds no token → shows Login skeleton).
 - ✅ Tailwind classes resolve — a `bg-primary-500` element renders `#EA580C`.
+- ✅ ErrorBoundary catches a deliberate test error and shows the fallback screen.
 
 ### 0.4 Risks
 
-- **Custom dev client adoption.** The team has only worked with Expo Go on rider-app so far. The first dev client build can take 20–30 min on EAS. Mitigation: keep `developmentClient: true` builds cached; document the install steps in `README.md`.
-- **Background location plugin version drift.** `expo-location` upgrades sometimes flip the plugin config schema. Mitigation: pin `expo-location` to the same version the customer-app uses; do not upgrade until customer-app upgrades.
+- **`expo-location` plugin version drift.** Plugin config schema can change between minor versions. Mitigation: pin `expo-location` to the same version the customer-app uses; do not upgrade until customer-app upgrades.
 - **`newArchEnabled: true`.** The customer-app has the new RN architecture enabled. Some less-popular libs (`react-native-signature-canvas`) may need Fabric/TurboModule shims; verify at scaffold time and fall back to `newArchEnabled: false` if a library blocks the build (document the decision if so).
+- **Foreground-only constraint.** If a rider locks their screen, location updates stop. Document this in onboarding tips and provide an in-app "keep screen on" toggle (uses `expo-keep-awake` while ONLINE).
 
 ### 0.5 Demo Script
 
 1. `git pull && cd mobile/rider-app && npm install`.
-2. `eas build --profile development --platform android`.
-3. Install resulting APK on a physical Android device.
-4. Open app → Login screen renders with the brand colors.
-5. Tap a debug "Go Online" stub → Android permission dialog requests background location → foreground notification appears with "You're online" text.
-6. Tap a debug "Force error" stub → Sentry test event lands in the dashboard within 60 s.
+2. `npx expo start`.
+3. Open Expo Go on a physical Android device, scan the QR code.
+4. App boots → Login screen renders with brand colors.
+5. Tap a debug "Force error" stub → ErrorBoundary fallback screen appears with a "Restart App" button.
+6. Toggle theme via in-app `ThemeSheet` → UI flips light ↔ dark instantly.
 
 ---
 
@@ -801,17 +820,36 @@ A brand-new device can install the rider app, register a user, complete the mult
 **BE**
 - Verify `POST /api/rider/register` accepts the payload described in `rider.validator.js` (`riderRegistrationSchema`) and returns the created Rider row plus the user's updated `role`. Patch validator to allow optional vehicle color if missing.
 - 🔒 **BLK-PushOnApproval.** Extend admin approve / reject handlers in `admin.service.js` to call `notify.service.pushAndSocket(riderUserId, { type: 'RIDER_APPROVED' | 'RIDER_REJECTED', title, body, data: { route: '/main' | '/onboarding/rejected', reason? } })`. Document — until shipped, RA falls back to polling.
-- Ensure `POST /api/auth/upload-signature` accepts `kind: "rider_id" | "rider_vehicle"` and signs Cloudinary uploads with the appropriate folder + tags.
+- Ensure `POST /api/auth/upload-signature` accepts `kind: "rider_id" | "rider_driver_license" | "rider_vehicle_registration" | "rider_insurance" | "rider_vehicle_photo"` and signs Cloudinary uploads into per-kind folders with retention tags.
 - Ensure `POST /api/auth/kyc/verify-bvn` works for `role=RIDER` (current customer-only KYC path may need a role guard relaxation). If keeping NIN-only per current schema, route the rider's NIN through a different flow — verify before implementation.
+- Extend `riderRegistrationSchema` (`rider.validator.js`) to accept the three new document fields described in DB.
+- Extend `rider.service.registerRider` + `admin.service` rider-detail responses to surface the new document URLs and expiries.
 
 **DB**
-- No schema changes for v1 rider KYC (NIN-only, existing fields cover it). Document explicitly that BVN is **not** required for riders per current schema.
+- 🔒 **BLK-RiderKycExpansion.** Extend the `Rider` model with the documents a legitimate Nigerian commercial-rider account must hold. The platform's KYC depth as-shipped (NIN + ID slip + vehicle photo only) is too thin for legal exposure once a real-world incident occurs. Add to `prisma/schema.prisma`:
+  - `driverLicenseNumber String?`
+  - `driverLicenseUrl String?`
+  - `driverLicenseExpiresAt DateTime?`
+  - `vehicleRegistrationUrl String?` (vehicle particulars / proof-of-ownership)
+  - `vehicleRegistrationExpiresAt DateTime?`
+  - `insuranceCertificateUrl String?` (third-party motor insurance at minimum)
+  - `insuranceExpiresAt DateTime?`
+  - `idDocExpiresAt DateTime?` (was tracked under BLK-DocExpiry — folded in here)
+  - `vehiclePhotoExpiresAt DateTime?` (vehicle photos refreshed yearly)
+- Migration name: `expand_rider_kyc_documents`. Backfill: existing approved riders get `NULL` expiries and a 30-day grace banner ("Please upload your driver's licence and insurance to keep working") with a hard cut-off after grace. Document the rollout sequence in the migration comment.
+- Note: **this BLK supersedes the prior BLK-DocExpiry** — its scope is rolled into here.
 
 **RA**
 - `features/auth/LoginScreen.js`, `RegisterScreen.js`, `OtpVerifyScreen.js`, `ForgotPasswordScreen.js`, `ResetPasswordScreen.js`: port verbatim from customer-app, swap copy for "Become a rider" affordances on the Login screen footer.
 - `features/onboarding/BecomeRiderPersonalStep.js`: full name (read-only, from user profile), DOB date picker, address (autocomplete via `/api/maps/autocomplete`).
 - `features/onboarding/BecomeRiderVehicleStep.js`: `vehicleType` segmented control with MOTORCYCLE / BICYCLE / CAR / VAN icons (matches Prisma enum), `plateNumber` masked input (Nigerian plate format `ABC123XY`), optional `vehicleColor`.
-- `features/onboarding/BecomeRiderDocumentsStep.js`: 11-digit NIN input with Luhn-like client validation, two upload tiles for `idDocumentUrl` (front of NIN slip or driver's license) and `vehiclePhotoUrl` (clear shot of vehicle + plate). Uses `cloudinary.js` to fetch a signed URL then multipart-upload; persists `cloudinaryUrl` to `onboardingSlice.draft`.
+- `features/onboarding/BecomeRiderDocumentsStep.js`: split into a sub-stepper so the rider isn't faced with one wall of uploads:
+  1. **Identity** — 11-digit NIN input with client-side checksum + `idDocumentUrl` upload (NIN slip or national-ID card).
+  2. **Driver's licence** — license number, expiry date (date-picker; client rejects already-expired), `driverLicenseUrl` upload (front of FRSC card or e-licence printout).
+  3. **Vehicle particulars** — expiry date + `vehicleRegistrationUrl` upload (proof-of-ownership / vehicle-licence document).
+  4. **Insurance** — third-party motor insurance certificate: expiry date + `insuranceCertificateUrl` upload.
+  5. **Vehicle photo** — clear shot of vehicle with plate visible → `vehiclePhotoUrl`.
+  Uses `cloudinary.js` to fetch a signed URL then multipart-upload for each tile; persists each `cloudinaryUrl` + expiry into `onboardingSlice.draft.documents`. Each sub-step independently saves on Continue so a kill-and-restart never re-uploads.
 - `features/onboarding/BecomeRiderReviewSubmitStep.js`: read-only summary; "Submit" calls `POST /api/rider/register` with the full payload and an `Idempotency-Key`. On success, clear draft, navigate to `PendingApprovalScreen`.
 - `features/onboarding/PendingApprovalScreen.js`:
   - Polls `GET /api/rider/profile` on mount and every time the app foregrounds (uses `AppState` listener; no aggressive polling while backgrounded).
@@ -859,81 +897,82 @@ A brand-new device can install the rider app, register a user, complete the mult
 
 ---
 
-## Phase 2 — Availability, Presence, Location Streaming
+## Phase 2 — Availability, Presence, Foreground Location Streaming
 
 > **Status: ◻ Not Started. Depends on: Phase 1.**
 
 ### 2.1 Goals
 
-The Home tab presents a single, prominent ONLINE / OFFLINE toggle. Going ONLINE flips server availability, starts the foreground location task, shows the persistent Android notification, and within 15 s the rider's marker appears on `admin-dashboard/RiderOperationsPage`. Going OFFLINE shuts everything down cleanly. The app survives kill+restart while ONLINE on Android (foreground service); on iOS it gracefully degrades to significant-change mode while idle but resumes 3 s cadence the moment a delivery starts.
+The Home tab presents a single, prominent ONLINE / OFFLINE toggle. Going ONLINE flips server availability, starts an in-app foreground GPS stream, keeps the screen awake, and within 15 s the rider's marker appears on `admin-dashboard/RiderOperationsPage`. Going OFFLINE shuts everything down cleanly.
+
+**Working assumption (set in §2.7):** the rider keeps the app foregrounded with the screen on during shifts. When the app is backgrounded or the screen sleeps, GPS streaming pauses and the matcher stops considering this rider for new offers; an in-flight trip does not cancel but its live tracking goes stale until the rider foregrounds the app again. Background streaming + foreground-service notification are parked for Phase 9 / V2.
 
 ### 2.2 Tasks
 
 **BE**
-- Verify `PATCH /api/rider/availability` updates `Rider.availability` and writes Redis `rider:availability:{riderId}` with TTL 30 s. Add a heartbeat refresh: the location handler should re-extend that TTL on every `rider:location:update` so an actively-streaming rider never drops out of the searcher.
-- Verify `POST /api/rider/location` accepts batched uploads `{ updates: [{ lat, lng, requestId?, capturedAt }, ...] }` for offline-queue drain; if not, add the array form alongside the existing single-record form.
+- Verify `PATCH /api/rider/availability` updates `Rider.availability` and writes Redis `rider:availability:{riderId}` with TTL 30 s. The location handler must re-extend that TTL on every `rider:location:update` so an actively-streaming rider doesn't drop out of the searcher.
+- Verify `POST /api/rider/location` accepts batched uploads `{ updates: [{ lat, lng, requestId?, capturedAt }, ...] }` for socket-disconnected drain.
 - 🔒 **BLK-AvailabilityForceOffline.** Wire an admin route (e.g. `POST /api/admin/riders/:riderId/force-offline`) that pushes `notification:new` with `type=SYSTEM_FORCE_OFFLINE` and writes `Rider.availability = OFFLINE`.
+- Server-side: when the rider's presence TTL expires (no fix for 30 s), the matcher silently skips them. No client-side action required for the expiry — that's already in the architecture.
 
 **DB** — no work this phase.
 
 **RA**
-- `components/AvailabilityToggle.js`: large pill with two states. ONLINE state has a green dot + brand-tinted background; OFFLINE is neutral.
-- `features/availability/HomeTabScreen.js`: shows the toggle, a `LocationServicesEnabledBanner` (warns if location permission is `whileInUse` rather than `always`, or if foreground service notif was dismissed by the user), an `EarningsTodaySnapshot` strip (today's deliveries count + ₦ earned), and a "Performance" entry into Phase 7's `PerformanceScreen`.
-- `services/foregroundService.js`:
-  - `start({ title, body })` → registers + starts `expo-notifications` ongoing notification (Android) with a unique channel `rider-online`. On iOS, the service is silent — no persistent notification.
-  - `stop()` → dismisses the notification.
-- `services/locationTask.js`:
-  - Defines `RIDER_LOCATION_TRACK` via `TaskManager.defineTask`. Inside the task: dedupe (drop fixes within 8 m or 2 s of the previous), enrich with `requestId` from `tripSlice` if present, emit via socket if connected, else enqueue to AsyncStorage for later drain via `POST /api/rider/location` batched.
-  - `startTracking({ onDelivery })` → calls `Location.startLocationUpdatesAsync(RIDER_LOCATION_TRACK, { accuracy: onDelivery ? Highest : Balanced, timeInterval: onDelivery ? 3000 : 15000, distanceInterval: onDelivery ? 10 : 30, foregroundService: { notificationTitle, notificationBody, notificationColor: '#EA580C' }, pausesUpdatesAutomatically: false })`.
-  - `stopTracking()` → unregister + drain any enqueued batch.
-  - Battery hooks via `expo-battery`: throttle to 30 s cadence below 20 %, 60 s below 10 %, surface a toast at 10 %.
+- `components/AvailabilityToggle.js`: large pill with two states. ONLINE state has a green dot + brand-tinted background; OFFLINE is neutral. Pressing ONLINE walks through the permission/online checklist below.
+- `features/availability/HomeTabScreen.js`: shows the toggle, an "Earnings today" snapshot, a "Performance" deep link, and a clear in-app banner while ONLINE: **"You're online — keep this screen visible to receive jobs."** Mounts `expo-keep-awake` (`useKeepAwake`) so the OS does not sleep the screen while ONLINE.
+- `services/locationStream.js` (foreground, in-process — replaces the previous `locationTask.js`):
+  - `start({ onDelivery })` → calls `Location.watchPositionAsync({ accuracy: onDelivery ? Highest : Balanced, distanceInterval: onDelivery ? 10 : 30, timeInterval: onDelivery ? 3000 : 15000 })`. The subscription's callback enriches with `requestId` from `tripSlice` and emits via socket; if the socket is disconnected, enqueues to an in-memory ring buffer drained via batched `POST /api/rider/location` on reconnect (capped at 50 fixes — older fixes dropped).
+  - `stop()` → removes the subscription, flushes the ring buffer.
+  - `setMode(onDelivery)` → restarts the subscription with new cadence when the trip transitions to/from `ON_DELIVERY`.
+  - Battery hooks via `expo-battery`: throttle to 30 s cadence below 20 %, 60 s below 10 %, surface a one-time toast at 20 %.
+  - **Pause/resume on AppState**: when the app backgrounds, the subscription is suspended; when it foregrounds, it resumes. No persistent service.
 - `store/slices/riderSlice.js`:
-  - `{ availability: 'ONLINE'|'OFFLINE'|'ON_DELIVERY', isStreaming, lastFix: { lat, lng, accuracy, at }, performance: {…} }`.
+  - State: `{ availability, isStreaming, lastFix, performance, … }`.
   - Async thunks: `goOnline`, `goOffline`, `setOnDelivery`, `reconcileFromServer`.
   - On `goOnline`:
-    1. Request `Location.requestForegroundPermissionsAsync`. If denied → fail with a recoverable error and route to `locationPermissionRecoveryScreen`.
-    2. Request `Location.requestBackgroundPermissionsAsync` (Android `ACCESS_BACKGROUND_LOCATION` / iOS "Always"). If "while using" only is granted, allow ONLINE but warn the rider that the app must stay foregrounded.
-    3. `PATCH /api/rider/availability { availability: 'ONLINE' }`.
-    4. Start `foregroundService.start(...)` and `locationTask.startTracking({ onDelivery: false })`.
-    5. Socket emit `rider:availability:changed { availability: 'ONLINE' }` (server reconcile path).
-  - On `goOffline`: reverse, drain any pending location batch, then PATCH OFFLINE.
+    1. Request `Location.requestForegroundPermissionsAsync`. If denied → toast + route to `locationPermissionRecoveryScreen`.
+    2. `PATCH /api/rider/availability { availability: 'ONLINE' }`.
+    3. Start `locationStream.start({ onDelivery: false })`.
+    4. Socket emit `rider:availability:changed { availability: 'ONLINE' }` for server reconcile.
+  - On `goOffline`: reverse — stop stream, PATCH OFFLINE, emit availability change.
 - `services/socket.js`: add a listener for `notification:new` with `data.type === 'SYSTEM_FORCE_OFFLINE'` → dispatch `riderSlice.goOffline({ reason: 'force-offline' })`. Surface a non-dismissible toast.
 - App lifecycle reconciliation in `AppNavigator.js`:
-  - On socket `connect`, re-emit `rider:availability:changed` with the local availability so the server reconciles after a reboot.
-  - On `AppState` change `active → background`: if currently ON_DELIVERY, keep streaming. If ONLINE but idle, do not stop streaming (foreground service handles it on Android).
-  - On `AppState` change `background → active`: re-emit `rider:availability:changed` and call `riderSlice.reconcileFromServer()`.
-- 4-hour ONLINE cap: after 4 h, prompt rider "Still online?" with Confirm / Go Offline. Mitigates riders who forget they're online.
+  - On socket `connect`, re-emit `rider:availability:changed` with local availability so the server reconciles after a reboot.
+  - On `AppState` change `active → background`: pause the location subscription. Start a 90 s timer; if the app is still backgrounded after 90 s while ONLINE-idle, auto-flip to OFFLINE (PATCH + emit). An active trip stays alive — only the stream pauses.
+  - On `AppState` change `background → active`: resume the location subscription and call `riderSlice.reconcileFromServer()`.
+- 4-hour ONLINE cap: after 4 h, prompt rider "Still online?" with Confirm / Go Offline.
 
 **RT**
-- `services/socket.js` server-side: when receiving `rider:availability:changed`, ensure idempotency (don't re-broadcast if value didn't change) and refresh `rider:availability:{riderId}` TTL.
+- `services/socket.js` server-side: when receiving `rider:availability:changed`, dedupe (don't re-broadcast if value didn't change) and refresh `rider:availability:{riderId}` TTL.
 
 ### 2.3 Acceptance Criteria
 
-- ✅ Toggling ONLINE on a real Android device: persistent notification appears within 2 s; the rider's marker appears on `admin-dashboard/RiderOperationsPage` within 15 s.
-- ✅ Walking 100 m while ONLINE: marker on admin dashboard updates within 15 s (Balanced accuracy, 15 s cadence).
-- ✅ Walking 100 m while ON_DELIVERY: marker updates within 5 s (High accuracy, 3 s cadence).
-- ✅ Killing the rider app while ONLINE on Android: the foreground service notification persists; `admin-dashboard` continues seeing fixes.
-- ✅ Toggling OFFLINE: notification clears within 2 s; admin dashboard removes the marker on its next 10 s poll.
-- ✅ Backgrounding the app for 65 s with no trip: rider stays ONLINE; socket reconnects on foreground without intervention.
+- ✅ Toggling ONLINE on a real Android device with the app foregrounded: the rider's marker appears on `admin-dashboard/RiderOperationsPage` within 15 s.
+- ✅ Walking 100 m while ONLINE-idle (foregrounded): marker on admin dashboard updates within 15 s.
+- ✅ Walking 100 m while ON_DELIVERY (foregrounded): marker updates within 5 s.
+- ✅ Backgrounding the app while ONLINE-idle: stream pauses; after 90 s the client auto-flips to OFFLINE and the admin marker disappears on its next poll.
+- ✅ Backgrounding the app DURING an active trip (`ON_DELIVERY`): availability flips to OFFLINE locally **but the trip is not cancelled**; the customer-side map shows the rider's last position as stale. Foregrounding the app resumes the stream within 3 s.
+- ✅ Locking the device screen while ONLINE: with the app foregrounded and `useKeepAwake` mounted, the screen stays on; stream continues.
+- ✅ Toggling OFFLINE: admin dashboard removes the marker on its next 10 s poll.
 - ✅ Admin force-offline action: rider's app flips to OFFLINE within 3 s and shows the `SYSTEM_FORCE_OFFLINE` toast.
-- ✅ Battery < 20 %: cadence drops to 30 s; a one-time toast informs the rider.
-- ✅ Permission downgrade (rider revokes background permission from system settings while app is running): app surfaces the `LocationServicesEnabledBanner` on next foreground.
+- ✅ Battery < 20 %: cadence drops to 30 s; one-time toast informs the rider.
+- ✅ Permission downgrade (rider revokes location permission while app is running): app surfaces the `LocationServicesEnabledBanner` on next foreground and stops the stream.
 
 ### 2.4 Risks
 
-- **Aggressive OEMs killing the foreground service.** Mitigation: add a one-tap "Improve reliability" CTA that deep-links to the device's battery-optimization-exemption page via `expo-intent-launcher`. Document the per-OEM steps in `README.md` and the in-app `LegalScreen` FAQ section.
-- **iOS background-location idle drain.** Mitigation: while ONLINE-idle, use `Location.startLocationUpdatesAsync` with `activityType: Other` and `pausesUpdatesAutomatically: true`; promote to "always-on" only when `ON_DELIVERY`.
-- **Socket disconnect during a stream window.** Mitigation: `locationTask.js` falls back to enqueuing batches to AsyncStorage when the socket is disconnected, drained via batched `POST /api/rider/location` on reconnect. Idempotency-Key per batch.
+- **Rider screen-off mid-shift.** The most likely real-world failure mode: rider locks the phone, GPS stops, offers don't arrive. Mitigation: `useKeepAwake` keeps the screen on while ONLINE; the in-app banner reminds them; onboarding tip explains. If a rider repeatedly goes screen-off, surface a notification next time they open the app.
+- **Power draw with screen always on.** Mitigation: phone-mount + charger is documented as required equipment for full-shift riders; in-app low-battery banner at 30 %, 20 %, 10 %.
+- **Socket disconnect during a stream window.** Mitigation: `locationStream.js` ring-buffers fixes when the socket is disconnected and drains via batched `POST /api/rider/location` on reconnect. Idempotency-Key per batch.
 - **Rider toggles ONLINE in airplane mode.** Mitigation: the toggle requires a successful PATCH first; on network failure show the error and revert to OFFLINE.
 
 ### 2.5 Demo Script
 
-1. Login as approved rider on a real Android device. Open admin dashboard in another window.
-2. Tap ONLINE → permission dialog → grant background location → persistent notification appears.
-3. Walk a block. Watch the marker update on admin RiderOperationsPage.
-4. Kill the app from the recent-apps tray. Marker keeps moving as you walk (foreground service alive).
-5. Open the app again → status reconciled, no flicker.
-6. From admin, click "Force offline" → app flips to OFFLINE within 3 s.
+1. Login as approved rider on a real device (Expo Go is fine). Open admin dashboard in another window.
+2. Tap ONLINE → permission dialog → grant location → in-app "You're online" banner appears; screen stays awake.
+3. Walk a block, screen on, app foregrounded. Watch the marker update on admin `RiderOperationsPage`.
+4. Background the app → wait 90 s → return to admin dashboard: marker is gone; the rider's app shows "Offline".
+5. Tap ONLINE again → marker reappears.
+6. From admin, click "Force offline" → rider's app flips to OFFLINE within 3 s.
 
 ---
 
@@ -1079,7 +1118,7 @@ After accepting, the rider runs the entire delivery from a single cockpit screen
 - ✅ Tap → opens POD sheet (Phase 5 stub at this milestone — completes after Phase 5 lands).
 - ✅ Call CTA opens dialer with customer's number.
 - ✅ Chat CTA opens thread; sending a message persists; customer app receives `notification:new` and the message in their tracking screen.
-- ✅ Force-close app mid-trip on Android: re-open within 30 s; cockpit re-hydrates from server via `tripSlice.hydrateFromServer(requestId)`; foreground service still streaming.
+- ✅ Force-close app mid-trip on Android: re-open within 30 s; cockpit re-hydrates from server via `tripSlice.hydrateFromServer(requestId)`. (GPS pauses while the app is killed; resumes the moment the cockpit re-mounts.)
 - ✅ Network loss between RIDER_EN_ROUTE and PICKED_UP: local state advances optimistically; on reconnect, queued PATCH retries with original Idempotency-Key; admin dashboard sees the transition.
 - ✅ Admin force-cancels mid-trip: `request:cancelled` arrives; cockpit shows a non-dismissible "Trip cancelled by admin" sheet with the reason; rider returns to Home; availability flips back to ONLINE.
 
@@ -1286,9 +1325,11 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 - `features/profile/EditProfileScreen.js`: name, profile photo (via `expo-image-picker`).
 - `features/profile/VehicleInfoScreen.js`: read-only after approval. A "Request change" CTA opens a pre-filled support ticket of type `VEHICLE_CHANGE` (admin must approve out-of-band before the rider can re-upload).
 - `features/profile/KycStatusScreen.js`:
-  - Shows NIN-verified state, ID document thumbnail + expiry date, vehicle photo thumbnail + expiry date.
-  - "Re-upload" CTA per document — opens Cloudinary signed upload → `POST /api/rider/documents`.
-  - Shows expiry-warning banner when within 14 days; deep-linked from `DOC_EXPIRING_SOON` notification.
+  - Five document tiles, each with thumbnail + expiry chip (where applicable) + status (Valid / Expiring soon / Expired / Missing): NIN slip, driver's licence, vehicle registration, insurance certificate, vehicle photo.
+  - NIN tile shows verified state (no expiry).
+  - Each non-NIN tile has a "Re-upload" CTA → Cloudinary signed upload → `POST /api/rider/documents` with the doc kind.
+  - Expiry-warning banner when any doc is within 14 days of expiry; hard banner with "Re-upload to keep working" when any doc has expired.
+  - Deep-linked from `DOC_EXPIRING_SOON` notification and the 30-day grace banner that fires for accounts migrated under BLK-RiderKycExpansion's backfill.
 - `features/profile/PerformanceScreen.js`:
   - Cards for each metric (acceptance, cancellation, on-time, rating).
   - Rating bar chart showing 5★/4★/3★/2★/1★ breakdown.
@@ -1403,7 +1444,7 @@ The app is ready for the store. Every screen has loading / empty / error / offli
 | 1 | Happy path delivery | Approved rider, online, customer request available | Accept → travel to pickup → confirm pickup → travel to dropoff → POD photo → DELIVERED | Wallet credited; admin + merchant + customer reflect status updates |
 | 2 | Offer expires | Rider receives offer | Wait 60 s without action | Sheet dismisses; offer_expired emitted; acceptance-rate stat decrements |
 | 3 | Accept after race lost | Two riders, same offer | Both tap Accept within 200 ms of each other | One gets 200; other gets 409 OFFER_TAKEN; correct toasts on each |
-| 4 | Mid-trip force-close | Active trip on RIDER_EN_ROUTE | Force-stop app from Android Settings | On reopen, foreground service was alive; cockpit re-hydrates from server |
+| 4 | Mid-trip force-close | Active trip on RIDER_EN_ROUTE | Force-stop app from Android Settings; relaunch within 30 s | Cockpit re-hydrates from server; GPS resumes from foreground watchPositionAsync |
 | 5 | Network loss between statuses | Active trip; toggle airplane mode | PATCH RIDER_EN_ROUTE during loss | Local state advances; on reconnect, queued PATCH retries with same key |
 | 6 | POD photo upload fails | Active trip at dropoff | Simulate 3 consecutive Cloudinary 5xx | Three retries with backoff; on final failure, "Try again" CTA; trip stays IN_TRANSIT |
 | 7 | OTP mismatch on high-value | ₦80 000 request at dropoff | Enter wrong OTP twice | 422 POD_OTP_MISMATCH both times; third correct attempt → DELIVERED |
@@ -1414,8 +1455,8 @@ The app is ready for the store. Every screen has loading / empty / error / offli
 | 12 | Force-offline | ONLINE rider | Admin invokes force-offline | Rider's app flips OFFLINE within 3 s; persistent notif clears |
 | 13 | Doc expiry warning | Rider with id-doc expiring in 12 days | Cron fires DOC_EXPIRING_SOON | Notification arrives; tap → KycStatusScreen with re-upload CTA |
 | 14 | Battery throttle | Battery falls below 20 % during shift | Continue working | Cadence drops to 30 s; toast shown once; stream continues |
-| 15 | Permission revoke | ONLINE rider | Revoke background-location from system settings | LocationServicesEnabledBanner appears; toggling helps recover |
-| 16 | OEM kill (Tecno) | ONLINE on aggressive OEM | Leave phone idle 1 h | Foreground service survives because rider tapped "Improve reliability" earlier; admin sees fixes |
+| 15 | Permission revoke | ONLINE rider | Revoke location from system settings | LocationServicesEnabledBanner appears; stream stops cleanly; toggling re-prompts permission |
+| 16 | Screen-off mid-shift | ONLINE rider | Press power button to sleep screen for 30 s | `useKeepAwake` prevents OS sleep while ONLINE; stream uninterrupted |
 | 17 | Hausa parity | Switch language to Hausa | Walk through every primary screen | All strings translated; no English fallback visible |
 
 **RA — i18n**
@@ -1463,7 +1504,7 @@ The app is ready for the store. Every screen has loading / empty / error / offli
 
 - **OEM-specific killer behavior** continues to surprise. Mitigation: include the "Improve reliability" CTA prominently; track OEM-specific session length in analytics.
 - **Hausa translation drift** as new strings land in later patches. Mitigation: pre-commit hook flags new `t(...)` keys missing from `ha.json`.
-- **Store review rejection** for background location use. Mitigation: clear in-app rationale screen during onboarding; privacy policy explicitly explains data use; Play Store "prominent disclosure" copy approved.
+- **Store review rejection** for location permission misuse. Mitigation: foreground-only declaration is straightforward to defend; clear in-app rationale screen during onboarding; privacy policy explains data use. Re-evaluate if v2 adds background location.
 
 ### 8.5 Demo Script
 
@@ -1480,6 +1521,7 @@ The app is ready for the store. Every screen has loading / empty / error / offli
 
 The following are explicitly post-v1 and tracked here so they don't sneak into earlier phases.
 
+- **Background location streaming + foreground service.** The biggest known UX limitation of v1: the rider must keep the app foregrounded with the screen on during a shift (see §2.7). When the platform graduates from "screen-on" to "pocket the phone", we add `expo-task-manager` + Android foreground service + iOS `UIBackgroundModes: ["location"]`, switch the dev workflow to a custom EAS dev client, and add the `ACCESS_BACKGROUND_LOCATION` / `FOREGROUND_SERVICE_LOCATION` / `NSLocationAlwaysAndWhenInUseUsageDescription` declarations. The data model, matching algorithm, and socket contract are unchanged — this is purely additive on the client.
 - **Auto-payouts on schedule.** Daily / weekly cron settles into the rider's preferred bank without manual withdraw. Requires a payout scheduling table + cron + KYC tier rules.
 - **Surge / incentive engine.** Dynamic per-request bonuses based on demand, distance, weather, time-of-day. Requires a pricing strategy service backed by historical data.
 - **Rider tiers & zones.** Bronze / Silver / Gold with different priority in the matcher. Per-zone specialisation (e.g. only certain riders can carry pharmacy).
@@ -1553,16 +1595,11 @@ Rider-specific addition: any surface that is part of an **active trip** uses a b
 | Permission | Android | iOS | When requested | Required for | Fallback UX |
 |---|---|---|---|---|---|
 | Fine location | `ACCESS_FINE_LOCATION` | `NSLocationWhenInUseUsageDescription` | First time tapping "Go Online" | Phase 2 streaming | Hard block — cannot go online without it |
-| Background location | `ACCESS_BACKGROUND_LOCATION` | `NSLocationAlwaysAndWhenInUseUsageDescription` | Right after fine-location grant on "Go Online" | Streaming while app backgrounded | Allow ONLINE but warn rider must keep app foregrounded |
-| Foreground service location | `FOREGROUND_SERVICE_LOCATION` | n/a | App install (manifest declaration) | Android 14+ foreground service | Build-time only |
-| Foreground service | `FOREGROUND_SERVICE` | n/a | App install | Persistent ONLINE notif on Android | Build-time only |
 | Notifications | `POST_NOTIFICATIONS` (Android 13+) | UNAuthorization | First successful login | All push & offer wake | Soft block — degrade to in-app socket only; surface "Enable notifications" CTA on Home |
 | Camera | `CAMERA` | `NSCameraUsageDescription` | First POD capture | Phase 5 | Hard block at dropoff — must enable to deliver |
 | Photo library write (optional) | `READ_MEDIA_IMAGES` / `WRITE_EXTERNAL_STORAGE` | `NSPhotoLibraryAddUsageDescription` | Toggling "Save POD to gallery" in settings | Optional save | Skip silently if denied |
 | Biometric | uses-feature `USE_BIOMETRIC` | `NSFaceIDUsageDescription` | First enable in onboarding or settings | App-shell unlock | Allow PIN-only |
-| Battery exemption | not a permission | n/a | After first ONLINE session on aggressive OEM | Foreground service reliability | "Improve reliability" CTA deep-links to system settings |
 | Vibration | `VIBRATE` | n/a (no permission needed) | install | Offer haptics | n/a |
-| Wake lock | `WAKE_LOCK` | n/a | install | Keep CPU awake during offer countdown | n/a |
 
 ### 5.2 Testing Strategy
 
@@ -1586,7 +1623,7 @@ The matrix in §8.2 above is the source of truth. Each row is checked on:
 - Both English and Hausa locales.
 
 **E2E (Maestro)**
-Maestro YAML flows in `.maestro/` run in CI against EAS preview builds via Maestro Cloud. Chosen over Detox for: declarative YAML (vs. JS+`await`), single flow runs Android + iOS unmodified, works on Expo managed with a custom dev client (which we already require), Maestro Studio records flows by tapping through the app. **Written in this phase**, not earlier, per the cross-phase test policy. When the customer app's Phase 10 lands, both apps should be on Maestro for cohesiveness.
+Maestro YAML flows in `.maestro/` run in CI against EAS preview builds via Maestro Cloud. Chosen over Detox for: declarative YAML (vs. JS+`await`), single flow runs Android + iOS unmodified, works on Expo managed against EAS preview/production builds (no dev-client required in dev — Expo Go covers that), Maestro Studio records flows by tapping through the app. **Written in this phase**, not earlier, per the cross-phase test policy. When the customer app's Phase 10 lands, both apps should be on Maestro for cohesiveness.
 
 ### 5.3 Observability
 
@@ -1636,7 +1673,7 @@ Sentry tags: `role=RIDER`, `riderId`, `appVersion`, `osVersion`, `deviceModel`.
 | **BLK-POD** | Add `Request.podPhotoUrl / podSignatureUrl / podDeliveryOtp / podCapturedAt`; `POST /api/requests/:id/pod-otp/generate`; settings `delivery.requirePodPhoto`, `delivery.requireSignature`, `delivery.podOtpThresholdNgn`. | Dispute defense; high-value verification | Phase 5 (MVP gate) | M |
 | BLK-PushOnApproval | Send FCM push + `notification:new` (type `RIDER_APPROVED` / `RIDER_REJECTED`) when admin approves / rejects a rider. | Reduce post-application limbo | Phase 1 (degrades to polling) | S |
 | BLK-PerformanceEndpoint | `GET /api/rider/performance` returning acceptance / cancellation / on-time / rating breakdown / streak. | Rider transparency + self-correction | Phase 7 | M |
-| BLK-DocExpiry | Add `idDocExpiresAt`, `vehicleDocExpiresAt` to `Rider`; cron pushes `DOC_EXPIRING_SOON` 14 days out; `POST /api/rider/documents` for re-upload. | Compliance + reduce admin queue | Phase 7 | S |
+| **BLK-RiderKycExpansion** | Expand `Rider` KYC depth: add `driverLicenseNumber/Url/ExpiresAt`, `vehicleRegistrationUrl/ExpiresAt`, `insuranceCertificateUrl/ExpiresAt`, `idDocExpiresAt`, `vehiclePhotoExpiresAt`. Migration `expand_rider_kyc_documents` with 30-day grace backfill. `POST /api/rider/documents` accepts the new kinds. Cron pushes `DOC_EXPIRING_SOON` 14 days out. **Supersedes the prior BLK-DocExpiry.** | Legal exposure: current KYC depth (NIN slip + vehicle photo) is too thin for commercial rider liability after a real-world incident | Phase 1 (onboarding) + Phase 7 (re-upload) | M |
 | BLK-Beneficiaries | Confirm `GET/POST/DELETE /api/wallet/beneficiaries` allow RIDER. | Speed up repeat withdrawals | Phase 6 | XS |
 | BLK-SupportAutoTicket | System-generated ticket type `CUSTOMER_UNREACHABLE` after 3 failed call attempts. | Dispatch escalation | Phase 4 (fallback: manual ticket) | S |
 | BLK-AddressCorrection | `POST /api/requests/:id/address-correction { stage, note, lat, lng }`. | Field-truth corrections | Phase 4 (fallback: support ticket) | S |
@@ -1652,7 +1689,7 @@ Sentry tags: `role=RIDER`, `riderId`, `appVersion`, `osVersion`, `deviceModel`.
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Android OEM aggressively kills foreground service | High | High | "Improve reliability" deep link; watchdog re-start on app-open; track per-OEM session length |
+| Rider locks screen mid-shift | High | High | `useKeepAwake` while ONLINE; in-app banner; onboarding tip; auto-flip OFFLINE after 90s background |
 | GPS drift / urban canyon | Medium | Medium | 150 m fallback geofence; manual Arrived button always present |
 | Ring expiry race conditions | Low | High | HTTP authoritative; 409/410 handled explicitly; Idempotency-Key safe under retry |
 | Escrow / dispute fraud | Medium | High | POD captured in MVP; dispute flow with admin override; Cloudinary tag for retention |
@@ -1726,7 +1763,7 @@ After the rider app is built (post-Phase 8 sign-off), validate end-to-end agains
 13. **Merchant dashboard** shows the rider in `OrderDetailsModal` proof tab.
 14. **Notification center** in the rider app lists the offer notification + the earnings notification.
 15. **Force OFFLINE** from admin → rider app flips OFFLINE within 3 s; persistent notif clears.
-16. **Re-online; kill app; re-open** → foreground service kept streaming on Android; cockpit absent (no active trip); availability ONLINE.
+16. **Re-online; background app for 90s; foreground app** → app auto-flipped OFFLINE during background; tapping ONLINE restarts the stream; admin dashboard sees the marker reappear.
 
 If all 16 steps pass on physical Android and iOS, the rider app is end-to-end production ready.
 

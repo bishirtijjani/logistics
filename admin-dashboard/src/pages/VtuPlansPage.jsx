@@ -156,20 +156,32 @@ export default function VtuPlansPage() {
   // ── mutations (with optimistic update + toast undo) ─────────────────────
   const applyPatch = (id, patch) => setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)))
 
-  const updatePlan = async (id, patch, { silent } = {}) => {
+  const updatePlan = async (id, patch) => {
     const prev = plans.find((p) => p.id === id)
     applyPatch(id, patch)
     try {
       const res = await api.put(`/admin/vtu-plans/${id}`, patch)
       applyPatch(id, res.data.data || patch)
-      if (!silent) toast.success('Saved')
+      toast.success('Saved')
     } catch (e) {
       if (prev) applyPatch(id, prev)
       toast.error(e.response?.data?.message || 'Save failed')
     }
   }
 
-  const toggleActive = (plan) => updatePlan(plan.id, { isActive: !plan.isActive }, { silent: true })
+  const toggleActive = async (plan) => {
+    const next = !plan.isActive
+    const prev = plans.find((p) => p.id === plan.id)
+    applyPatch(plan.id, { isActive: next })
+    try {
+      const res = await api.put(`/admin/vtu-plans/${plan.id}`, { isActive: next })
+      applyPatch(plan.id, res.data.data || { isActive: next })
+      toast.success(`${plan.name} ${next ? 'activated' : 'deactivated'}`)
+    } catch (e) {
+      if (prev) applyPatch(plan.id, prev)
+      toast.error(e.response?.data?.message || 'Save failed')
+    }
+  }
 
   const inlineSetPrice = async (plan, newPrice) => {
     const value = Number(newPrice)
