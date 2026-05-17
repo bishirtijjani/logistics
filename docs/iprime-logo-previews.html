@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>iPrime — Logo Lockup Previews</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Roboto', -apple-system, system-ui, sans-serif;
+    background: #F3F4F6;
+    color: #09090b;
+    padding: 48px 24px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page-header {
+    max-width: 1080px;
+    margin: 0 auto 48px;
+    text-align: center;
+  }
+  .page-header .eyebrow {
+    font-size: 12px;
+    letter-spacing: 6px;
+    color: #EA580C;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .page-header h1 {
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #09090b;
+    margin-bottom: 8px;
+  }
+  .page-header p {
+    font-size: 15px;
+    color: #6B7280;
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  .grid {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .card {
+    background: #FFFFFF;
+    border-radius: 22px;
+    box-shadow: 0 1px 2px rgba(9,9,11,0.04), 0 12px 32px rgba(9,9,11,0.06);
+    overflow: hidden;
+    border: 1px solid #E5E7EB;
+  }
+  .card-stage {
+    padding: 80px 40px;
+    background: #FAFAFA;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .card-stage.dark {
+    background: #09090b;
+  }
+  .card-meta {
+    padding: 24px 32px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .card-meta .label {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #6B7280;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .card-meta h2 {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+  }
+  .card-meta p {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #6B7280;
+    line-height: 1.5;
+    max-width: 520px;
+  }
+  .pick {
+    flex-shrink: 0;
+    background: #EA580C;
+    color: #FFFFFF;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ─── Logo: A — Wordmark only ─── */
+  .logo-a {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 900;
+    font-size: 120px;
+    letter-spacing: -4px;
+    color: #09090b;
+    line-height: 1;
+  }
+
+  /* ─── Logo: B — Orange dot accent ─── */
+  .logo-b {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 900;
+    font-size: 120px;
+    letter-spacing: -4px;
+    color: #09090b;
+    line-height: 1;
+    display: inline-flex;
+    align-items: flex-end;
+  }
+  .logo-b .i-stem {
+    position: relative;
+    display: inline-block;
+    width: 0.32em;
+  }
+  .logo-b .i-stem::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.22em;
+    height: 0.72em;
+    background: #09090b;
+    border-radius: 2px;
+  }
+  .logo-b .i-stem::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.22em;
+    height: 0.22em;
+    background: #EA580C;
+    border-radius: 50%;
+  }
+
+  /* ─── Logo: C — Icon + wordmark ─── */
+  .logo-c {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .logo-c .icon {
+    width: 112px;
+    height: 112px;
+    border-radius: 26px;
+    background: #EA580C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 28px rgba(234,88,12,0.32);
+  }
+  .logo-c .icon span {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 900;
+    font-size: 78px;
+    color: #FFFFFF;
+    line-height: 1;
+    letter-spacing: -3px;
+    transform: translateY(2px);
+  }
+  .logo-c .wordmark {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 900;
+    font-size: 100px;
+    letter-spacing: -3.5px;
+    color: #09090b;
+    line-height: 1;
+  }
+
+  /* dark stage variants */
+  .dark .logo-a,
+  .dark .logo-b,
+  .dark .logo-c .wordmark { color: #FAFAFA; }
+  .dark .logo-b .i-stem::before { background: #FAFAFA; }
+
+  /* footer compare strip */
+  .compare-strip {
+    max-width: 1080px;
+    margin: 56px auto 0;
+    background: #FFFFFF;
+    border-radius: 22px;
+    border: 1px solid #E5E7EB;
+    padding: 32px 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    align-items: center;
+    justify-items: center;
+  }
+  .compare-strip .mini {
+    text-align: center;
+  }
+  .compare-strip .mini .name {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #6B7280;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 14px;
+  }
+  .compare-strip .mini-logo {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 900;
+    font-size: 36px;
+    letter-spacing: -1px;
+    color: #09090b;
+    line-height: 1;
+  }
+  .mini-b .i-stem {
+    position: relative;
+    display: inline-block;
+    width: 0.32em;
+  }
+  .mini-b .i-stem::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.22em;
+    height: 0.72em;
+    background: #09090b;
+    border-radius: 1px;
+  }
+  .mini-b .i-stem::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0.22em;
+    height: 0.22em;
+    background: #EA580C;
+    border-radius: 50%;
+  }
+  .mini-c { display: inline-flex; align-items: center; gap: 8px; }
+  .mini-c .icon {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: #EA580C; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(234,88,12,0.32);
+  }
+  .mini-c .icon span {
+    color: #fff; font-weight: 900; font-size: 24px; line-height: 1;
+    transform: translateY(1px);
+  }
+</style>
+</head>
+<body>
+
+  <header class="page-header">
+    <div class="eyebrow">iPrime · Brand Identity</div>
+    <h1>Logo Lockup — Pick your direction</h1>
+    <p>Three lockups built in Roboto Extra Bold. Each is shown on both light and dark stages so you can judge how the mark holds up across surfaces.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- OPTION A -->
+    <div class="card">
+      <div class="card-stage">
+        <div class="logo-a">iPrime</div>
+      </div>
+      <div class="card-stage dark">
+        <div class="logo-a">iPrime</div>
+      </div>
+      <div class="card-meta">
+        <div>
+          <div class="label">Option A</div>
+          <h2>Wordmark only</h2>
+          <p>The purest read — Roboto Extra Bold, tight tracking, no ornament. Most premium, most flexible, ages the best. Strongest for press, partnerships, and editorial placements.</p>
+        </div>
+        <div class="pick">Most Premium</div>
+      </div>
+    </div>
+
+    <!-- OPTION B -->
+    <div class="card">
+      <div class="card-stage">
+        <div class="logo-b">
+          <span class="i-stem" aria-hidden="true"></span>Prime
+        </div>
+      </div>
+      <div class="card-stage dark">
+        <div class="logo-b">
+          <span class="i-stem" aria-hidden="true"></span>Prime
+        </div>
+      </div>
+      <div class="card-meta">
+        <div>
+          <div class="label">Option B</div>
+          <h2>Wordmark + orange dot</h2>
+          <p>A signature detail — the tittle on the 'i' is replaced with the brand orange. Subtle on first read, instantly recognisable on second. Adds a memorable hook without adding weight.</p>
+        </div>
+        <div class="pick">Best Hook</div>
+      </div>
+    </div>
+
+    <!-- OPTION C -->
+    <div class="card">
+      <div class="card-stage">
+        <div class="logo-c">
+          <div class="icon"><span>i</span></div>
+          <div class="wordmark">iPrime</div>
+        </div>
+      </div>
+      <div class="card-stage dark">
+        <div class="logo-c">
+          <div class="icon"><span>i</span></div>
+          <div class="wordmark">iPrime</div>
+        </div>
+      </div>
+      <div class="card-meta">
+        <div>
+          <div class="label">Option C</div>
+          <h2>Icon + wordmark</h2>
+          <p>Adds a square brand tile that works as an app icon, favicon, social avatar, and badge. Standalone icon scales down cleanly where the wordmark can't.</p>
+        </div>
+        <div class="pick">Most Versatile</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Side-by-side compare strip at small size -->
+  <div class="compare-strip">
+    <div class="mini">
+      <div class="mini-logo">iPrime</div>
+      <div class="name">Option A</div>
+    </div>
+    <div class="mini">
+      <div class="mini-logo mini-b">
+        <span class="i-stem" aria-hidden="true"></span>Prime
+      </div>
+      <div class="name">Option B</div>
+    </div>
+    <div class="mini">
+      <div class="mini-logo mini-c">
+        <span class="icon"><span>i</span></span>
+        <span>iPrime</span>
+      </div>
+      <div class="name">Option C</div>
+    </div>
+  </div>
+
+</body>
+</html>
