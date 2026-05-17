@@ -1553,7 +1553,7 @@ const getPlatformSettings = async () => {
   // In a real implementation, these would be fetched from a settings table or environment variables
   // For now, return default settings
   return {
-    platformName: 'VTU Logistics',
+    platformName: 'iPrime',
     defaultCurrency: 'NGN',
     timezone: 'Africa/Lagos',
     defaultMerchantCommission: 15,

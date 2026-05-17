@@ -51,7 +51,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-secondary">VTU Logistics</h1>
+          <h1
+            className="text-3xl font-bold text-secondary"
+            style={{ fontFamily: "Roboto, sans-serif" }}
+          >iPrime</h1>
           <p className="text-muted mt-2">Admin Dashboard</p>
         </div>
 

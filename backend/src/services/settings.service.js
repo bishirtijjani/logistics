@@ -107,6 +107,11 @@ const PUBLIC_KEYS = [
   'utility.electricityQuickAmounts',
   'utility.minAirtimeAmount',
   'utility.airtimeQuickAmounts',
+  // Airtime-to-cash — what % of airtime value the customer receives in wallet.
+  // Stored as a decimal string ("0.75" = customer gets ₦750 per ₦1000 of airtime).
+  // Provider (airtimetocash.com) pays us 80% baseline; the spread is platform margin.
+  'airtimeToCash.payoutRate',
+  'airtimeToCash.quickAmounts',
   'auth.pinMaxAttempts',
   'auth.pinLockoutMinutes',
   'delivery.baseFare',

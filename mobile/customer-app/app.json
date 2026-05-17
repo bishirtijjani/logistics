@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "customer-app",
+    "name": "iPrime",
     "slug": "vtu-customer-app",
     "owner": "vtu-logistics",
     "scheme": "customerapp",
@@ -26,7 +26,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#EA580C"
       },
       "package": "com.codeket.logistics.customer",
       "edgeToEdgeEnabled": true,

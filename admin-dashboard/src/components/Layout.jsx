@@ -82,7 +82,10 @@ export default function Layout() {
 
       <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface dark:bg-dark-surface border-r border-surface-muted dark:border-dark-surface-muted flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
-          <h1 className="text-xl font-bold text-text dark:text-dark-text">VTU Logistics</h1>
+          <h1
+            className="text-xl font-bold text-text dark:text-dark-text"
+            style={{ fontFamily: "Roboto, sans-serif" }}
+          >iPrime</h1>
           <p className="text-sm text-muted dark:text-dark-muted mt-1">Admin Dashboard</p>
         </div>
         

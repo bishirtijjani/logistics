@@ -11,7 +11,7 @@ import Footer from "./components/Footer";
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "VTU Logistics",
+  name: "iPrime",
   url: "https://vtulogistics.com",
   logo: "https://vtulogistics.com/favicon.ico",
   description:

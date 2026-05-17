@@ -1,45 +1,51 @@
-import React from "react";
-import { View, Text } from "react-native";
-import { useSelector } from "react-redux";
+import React, { useCallback } from "react";
+import { Modal, StatusBar, Platform } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 import { useTheme } from "../theme";
+import JobOfferScreen from "../features/offers/JobOfferScreen";
+import { offerDismissed } from "../store/slices/offersSlice";
 
 /**
- * Phase 0 placeholder. Full-screen offer sheet lives here in Phase 3.
- * Mounted at the navigator root so an incoming offer can supersede any other
- * screen. Renders nothing while `offers.activeOfferId` is null.
+ * Root-level offer overlay. Renders a full-screen Modal hosting the
+ * `JobOfferScreen` whenever `offers.activeOfferId` is set.
+ *
+ * Back-gesture policy:
+ *   - While `status === 'showing'` or `'accepting'`, the Android back press is
+ *     swallowed — riders can't fat-finger their way out of a live offer.
+ *   - On any terminal state (`taken`, `expired`, `error`, `accepted`), back
+ *     dismisses the sheet so the rider isn't trapped looking at a "Try again"
+ *     button they no longer want.
  */
 export default function OfferOverlayNavigator() {
+  const dispatch = useDispatch();
   const activeOfferId = useSelector((s) => s.offers?.activeOfferId);
-  const { tokens } = useTheme();
+  const status = useSelector((s) => s.offers?.status);
+  const { tokens, isDark } = useTheme();
 
-  if (!activeOfferId) return null;
+  const onRequestClose = useCallback(() => {
+    if (!activeOfferId) return;
+    const isTerminal = status === "taken" || status === "expired" || status === "error" || status === "accepted";
+    if (isTerminal) {
+      dispatch(offerDismissed({ requestId: activeOfferId, outcome: status }));
+    }
+    // While 'showing' or 'accepting' the back press is intentionally swallowed.
+  }, [activeOfferId, status, dispatch]);
 
   return (
-    <View
-      pointerEvents="auto"
-      style={{
-        position: "absolute",
-        inset: 0,
-        backgroundColor: tokens.overlay.scrim,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+    <Modal
+      visible={!!activeOfferId}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      statusBarTranslucent
+      onRequestClose={onRequestClose}
     >
-      <View
-        style={{
-          backgroundColor: tokens.bg.surface,
-          padding: 24,
-          borderRadius: 16,
-          minWidth: 280,
-        }}
-      >
-        <Text style={{ fontSize: 18, fontWeight: "700", color: tokens.text.primary }}>
-          Offer
-        </Text>
-        <Text style={{ color: tokens.text.muted, marginTop: 8 }}>
-          Job offer UI lands in Phase 3.
-        </Text>
-      </View>
-    </View>
+      {Platform.OS === "android" ? (
+        <StatusBar
+          barStyle={isDark ? "light-content" : "dark-content"}
+          backgroundColor={tokens.bg.canvas}
+        />
+      ) : null}
+      {activeOfferId ? <JobOfferScreen /> : null}
+    </Modal>
   );
 }

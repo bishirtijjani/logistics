@@ -22,7 +22,7 @@
 
 ## Executive Summary
 
-The VTU Logistics platform has three mature surfaces — Customer mobile app, Merchant dashboard, Admin dashboard — and one missing leg: the **Rider mobile app**. Today the rider-app directory holds only a default Expo template (`App.js` with "Open up App.js to start working on your app"), no `src/`, no navigation, no services. Meanwhile the backend is already production-shaped for riders: `rider.routes.js` exposes the full HTTP surface, the BullMQ `BROADCAST_TO_RIDERS` worker fans `rider:job:new` events out to expanding radius rings (5 → 10 → 15 km), the admin's `RiderOperationsPage` polls `/api/admin/riders/realtime` every 10 s waiting for positions, and the merchant's `OrderDetailsModal` reserves UI slots for a rider's name, plate, ETA, and live location. None of these signals have a client emitting or consuming on the rider side. The rider app is the **last leg of the unified Request lifecycle** (`RIDER_ASSIGNED → DELIVERED → SETTLED`) and the only thing standing between the platform and an end-to-end logistics MVP.
+The iPrime platform has three mature surfaces — Customer mobile app, Merchant dashboard, Admin dashboard — and one missing leg: the **Rider mobile app**. Today the rider-app directory holds only a default Expo template (`App.js` with "Open up App.js to start working on your app"), no `src/`, no navigation, no services. Meanwhile the backend is already production-shaped for riders: `rider.routes.js` exposes the full HTTP surface, the BullMQ `BROADCAST_TO_RIDERS` worker fans `rider:job:new` events out to expanding radius rings (5 → 10 → 15 km), the admin's `RiderOperationsPage` polls `/api/admin/riders/realtime` every 10 s waiting for positions, and the merchant's `OrderDetailsModal` reserves UI slots for a rider's name, plate, ETA, and live location. None of these signals have a client emitting or consuming on the rider side. The rider app is the **last leg of the unified Request lifecycle** (`RIDER_ASSIGNED → DELIVERED → SETTLED`) and the only thing standing between the platform and an end-to-end logistics MVP.
 
 The app this roadmap describes is an **operations app for approved riders**: receive job offers in real time, run a delivery with map navigation and live customer/merchant tracking, capture proof of delivery, see earnings hit the wallet, and pull money out to a Nigerian bank — all on Android and iOS, with English and Hausa, biometric-gated, PIN-protected for money moves, idempotent under retries, and built on the same Expo 54 / React Native 0.81 / RTK / nativewind stack the customer app already runs on. **Every architectural, design, and tooling decision mirrors the customer app exactly** for cohesiveness — same dep versions, same theme tokens, same navigation patterns, same services (`api.js`, `socket.js`, `biometric.js`, `idempotency.js`, `notifications.js`, `notificationsBus.js`, `settings.js`), and the same dev workflow (Expo Go for development, EAS standalone for production). The rider app diverges from customer **only where its job requires it**: full-screen offer overlay that supersedes other navigation, foreground GPS streaming while ONLINE (screen-on during shifts; background streaming is parked for V2 — see §2.7), camera + signature capture for proof of delivery, and offer-arrival haptics + ringtone.
 
@@ -714,7 +714,7 @@ All states assume the app is **foregrounded with the screen on** — the rider's
 
 ## Phase 0 — Scaffold Reset & Shared Infra
 
-> **Status: ◻ Not Started.**
+> **Status: ✅ COMPLETE.** All four sub-steps shipped. Dev server starts in Expo Go; auth gate + biometric gate + socket lifecycle wired; theme + i18n + 12 shared components ported from customer-app; 13 redux slices wired; navigation skeleton with role-gate-aware AppNavigator + MainTabNavigator + OfferOverlayNavigator. Sentry deliberately deferred to Phase 8 to match customer-app's posture. Tests deferred to Phase 8 per cross-phase test policy.
 
 ### 0.1 Goals
 
@@ -722,59 +722,45 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
 
 ### 0.2 Tasks
 
-**RA — Step 0a: wipe**
-- Delete `mobile/rider-app/App.js` (default template).
-- Delete `mobile/rider-app/package.json` and `mobile/rider-app/package-lock.json` (will be regenerated).
-- Delete `mobile/rider-app/tailwind.config.js` (default, nativewind v2).
-- Delete `mobile/rider-app/app.json` (default, no permissions).
-- Keep: `assets/` (icons, splash), `index.js`, the signing keystore `@vtu-logistics__vtu-rider-app.jks` if it exists or note that it must be created via `eas credentials` once `app.json` is in place.
+**RA — Step 0a: wipe** ✅
+- ✅ Delete `mobile/rider-app/App.js` (default template).
+- ✅ Delete `mobile/rider-app/package.json` and `mobile/rider-app/package-lock.json` (will be regenerated).
+- ✅ Delete `mobile/rider-app/tailwind.config.js` (default, nativewind v2).
+- ✅ Delete `mobile/rider-app/app.json` (default, no permissions).
+- ✅ Keep: `assets/`, `index.js`, signing keystore (regenerate via `eas credentials` once `app.json` lands).
 
-**RA — Step 0b: re-baseline from customer-app**
-- Copy `mobile/customer-app/package.json` → `mobile/rider-app/package.json`. Rename `"name": "customer-app"` → `"rider-app"`. Keep every dep version identical.
-- Copy `mobile/customer-app/app.json` → `mobile/rider-app/app.json`. Edit:
-  - `"name": "rider-app"`, `"slug": "rider-app"`.
-  - iOS `bundleIdentifier`: `com.codeket.logistics.rider`; iOS `scheme`: `riderapp`.
-  - Android `package`: `com.codeket.logistics.rider`.
-  - Permission set kept identical for now (location + biometric + camera); rider-specific additions land in Step 0c.
-  - `expo.extra.eas.projectId` cleared (will be regenerated by `eas init`).
-- Copy `mobile/customer-app/tailwind.config.js` verbatim (preserves the `#EA580C` primary, the category palette, the same content globs).
-- Copy `mobile/customer-app/babel.config.js`, `mobile/customer-app/metro.config.js`, `mobile/customer-app/global.css`, `mobile/customer-app/eslint.config.js` verbatim.
-- Create `mobile/rider-app/eas.json` with `preview` (internal APK, staging API URL) and `production` (app-bundle, prod API URL). Mirrors `mobile/customer-app/eas.json` exactly. No development profile — dev uses Expo Go.
+**RA — Step 0b: re-baseline from customer-app** ✅
+- ✅ Copy `customer-app/package.json` → rename `"name": "rider-app"`. Every shared dep version identical.
+- ✅ Copy `customer-app/app.json` with the rider-targeted edits (`slug=vtu-rider-app`, iOS bundleId / Android package = `com.codeket.logistics.rider`, scheme `riderapp`, EAS projectId cleared).
+- ✅ Copy `tailwind.config.js`, `babel.config.js`, `metro.config.js`, `global.css`, `eslint.config.js` verbatim.
+- ✅ Create `eas.json` with `preview` + `production` profiles only (no `developmentClient` — dev runs in Expo Go).
 
-**RA — Step 0c: add rider-only dependencies (all Expo-Go-compatible)**
-- `expo-camera`, `expo-image-manipulator`, `expo-media-library`, `expo-haptics`, `expo-av`, `expo-battery`, `expo-network`, `react-native-signature-canvas`, `react-native-svg`, `react-native-webview`.
-- Add the corresponding Expo plugin entries to `app.json` `plugins` array:
-  - `["expo-location", { "locationWhenInUsePermission": "VTU Rider needs your location to deliver jobs near you." }]` — **foreground only**, no background flags.
-  - `["expo-camera", { "cameraPermission": "VTU Rider needs the camera to capture proof of delivery and identity documents." }]`.
-  - `["expo-media-library", { "photosPermission": "...", "savePhotosPermission": "...", "isAccessMediaLocationEnabled": false }]`.
-  - `["expo-notifications", { "color": "#EA580C" }]`.
-- Add Android `permissions`: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `POST_NOTIFICATIONS`, `CAMERA`, `READ_MEDIA_IMAGES`, `VIBRATE`. **No** background-location, **no** foreground-service permissions.
-- Add iOS `infoPlist`: `NSLocationWhenInUseUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryAddUsageDescription`, `NSFaceIDUsageDescription`. **No** `NSLocationAlwaysAndWhenInUseUsageDescription`, **no** `UIBackgroundModes`.
+**RA — Step 0c: add rider-only dependencies (all Expo-Go-compatible)** ✅
+- ✅ `expo-camera`, `expo-image-manipulator`, `expo-media-library`, `expo-haptics`, `expo-av`, `expo-battery`, `expo-network`, `react-native-signature-canvas`, `react-native-svg`, `react-native-webview`. (`expo-task-manager` deliberately omitted per the Expo-Go workflow decision.)
+- ✅ Plugin entries: `expo-location` (foreground-only — no background flags), `expo-camera`, `expo-media-library`, `expo-notifications`.
+- ✅ Android permissions: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`, `POST_NOTIFICATIONS`, `CAMERA`, `READ_MEDIA_IMAGES`, `VIBRATE`. No background-location, no foreground-service permissions.
+- ✅ iOS `infoPlist`: `NSLocationWhenInUseUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryAddUsageDescription`, `NSFaceIDUsageDescription`. No `NSLocationAlwaysAndWhenInUseUsageDescription`, no `UIBackgroundModes`.
 
-**RA — Step 0d: port shared infrastructure**
-- Create `src/` with the structure documented in §2.2.
-- Port verbatim (file-by-file copy then renames where the customer-app uses customer-specific copy):
-  - `services/api.js`, `services/socket.js`, `services/notifications.js`, `services/biometric.js`, `services/idempotency.js`, `services/notificationsBus.js`, `services/settings.js`, `services/networkDetect.js`.
-  - `theme/*` (tokens, ThemeProvider, useTheme, navigationTheme, index).
-  - `i18n/index.js`, `i18n/useT.js`. Create fresh `i18n/en.json` with rider-specific keys (Hausa filled in Phase 8).
-  - `components/FormInput.js`, `components/PinBottomSheet.js`, `components/AppBottomSheet.js`, `components/EmptyState.js`, `components/ErrorState.js`, `components/SkeletonLoader.js`, `components/BackgroundPattern.js`, `components/SocialAuthButton.js`, `components/toastShared.js`, `components/ThemeSheet.js`, `components/LocaleSheet.js`.
-  - `lib/polyline.js`, `lib/requestStatus.js`, `lib/notificationRoute.js`, `lib/usePinGuard.js`.
-- Create empty slice files in `store/slices/` with `createSlice` skeletons named per §2.2 (one export per slice, no reducers yet; will fill in subsequent phases).
-- `store/index.js`: copy customer's `configureStore` + `serializableCheck: false` for socket refs + forced-logout helper that clears rider-scoped state (`auth`, `wallet`, `profile`, `rider`, `offers`, `trip`, `earnings`, `notifications`).
+**RA — Step 0d: port shared infrastructure** ✅
+- ✅ `src/` tree built out per §2.2.
+- ✅ Services ported: `api.js` (verbatim), `socket.js` (rider-adapted — drops customer-only events, adds `rider:job:new/confirmed/taken` listeners + emit helpers for availability/location/accept/reject), `notifications.js` (rider Android channels: `rider-offer`, `rider-trip`, `rider-online`, `wallet`, `support`), `biometric.js`, `idempotency.js`, `notificationsBus.js`, `settings.js`, `networkDetect.js`.
+- ✅ Theme ported verbatim with `STORAGE_KEY = '@rider-app/theme-mode'`.
+- ✅ i18n: `index.js` + `useT.js` ported, full `en.json` (1200+ lines) and `ha.json` copied from customer-app. Rider-specific `onboarding.*` + `common.signOut` + `auth.biometric*` keys added.
+- ✅ 12 shared components ported (FormInput, PinBottomSheet, AppBottomSheet, EmptyState, ErrorState, SkeletonLoader, BackgroundPattern, SocialAuthButton, AuthErrorBanner, toastShared, ThemeSheet, LocaleSheet).
+- ✅ Lib: `polyline.js`, `requestStatus.js`, `usePinGuard.js` ported verbatim; `notificationRoute.js` rewritten for rider routes; new `constants.js`, `formatters.js`, `time.js`, `onboardingPersistence.js`.
+- ✅ 13 redux slices wired: `auth`, `profile`, `rider`, `offers`, `trip`, `earnings`, `wallet`, `onboarding`, `notifications`, `settings`, `support`, `location`, `beneficiaries`.
+- ✅ `store/index.js` with root reducer that wipes rider-scoped state on `forceLogout` action.
 
-**RA — Step 0e: navigation skeleton**
-- `navigation/AppNavigator.js`: port from customer with edits:
-  - Change `roleGate` check from `role === 'CUSTOMER'` to `role === 'RIDER'`. Non-RIDER authenticated users → `BecomeRiderStack` (Phase 1).
-  - Keep auth-gate logic identical: `hydrateAuth` → `bioGate` (`pending` → `required` → `passed`) → MainTab.
-  - Keep socket lifecycle hooks identical: connect on entry, disconnect after 60 s background, reconnect on foreground, rejoin active request room.
-  - Keep deep-link config; change scheme to `riderapp://` and `https://rider.vtulogistics.app` (use this in `app.json` as well).
-- `navigation/MainTabNavigator.js`: 5 tabs — Home / Trip (visible only when `tripSlice.activeRequestId` is set) / Earnings / Wallet / Me. Active tab uses brand orange.
-- `navigation/OfferOverlayNavigator.js`: full-screen modal stack mounted at the root of `AppNavigator` so it can supersede any other screen. Hosts `JobOfferScreen` and `JobMissedScreen` (Phase 3).
-- Hook up `notifications.setNotificationResponseReceivedListener` and `Linking.addEventListener('url', ...)` for deep-link → route mapping (see `lib/notificationRoute.js`).
+**RA — Step 0e: navigation skeleton** ✅
+- ✅ `navigation/AppNavigator.js`: full role-gate state machine — auth → biometric → loading-gate (waits for rider + user profile) → role + status routing (suspended / rejected / pending / needsBecomeRider / needsPin) → MainTabs. Socket lifecycle hooks (connect on entry, disconnect after 60 s background, reconnect on foreground). Push-tap routing via `safeNavigate(action)` which fingerprints registered screen names and degrades unknown targets to MainTabs.
+- ✅ `navigation/MainTabNavigator.js`: 4 tabs — Home / Earnings / Wallet / Me (Trip tab is added in Phase 4). Active tab uses brand orange.
+- ✅ `navigation/OfferOverlayNavigator.js`: scrim + sheet stub mounted at the root of `AppNavigator`. Hosts `JobOfferScreen` body in Phase 3.
+- ✅ Push-tap + deep-link routing wired via `notifications.addNotificationResponseReceivedListener` + `lib/notificationRoute.js` (rider routes: `/offer/:id`, `/trip/:id`, `/wallet`, `/wallet/withdraw`, `/earnings`, `/kyc`, `/performance`, `/support/*`).
+- ✅ Deep-link scheme: `riderapp://` + `https://rider.vtulogistics.app`.
 
-**RA — Step 0f: observability bootstrap**
-- `services/sentry.js`: init Sentry React Native with `dsn = process.env.EXPO_PUBLIC_SENTRY_DSN`. Set `tags.role = 'RIDER'` and update `tags.riderId` whenever auth state changes.
-- `App.js`: wraps the navigation tree in `ErrorBoundary` from `react-error-boundary` with a fallback that reports to Sentry + offers "Reload" and "Sign out" buttons.
+**RA — Step 0f: observability bootstrap** ⚠
+- ⏸ Sentry init — deferred to Phase 8 to match customer-app's posture (customer-app does not init Sentry either; cross-app cohesiveness wins over early observability).
+- ✅ `App.js`: wraps the navigation tree in `ErrorBoundary` (react-error-boundary) with a fallback screen offering "Restart App". Mounted OUTSIDE ThemeProvider so the fallback still renders if ThemeProvider itself crashes.
 
 **BE** — no work this phase.
 
@@ -809,7 +795,7 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
 
 ## Phase 1 — Auth & Rider Registration / KYC
 
-> **Status: ◻ Not Started. Depends on: Phase 0.**
+> **Status: ⚠ MOSTLY COMPLETE on the client. All 14 screens implemented (5 auth + 5 gating + 4 BecomeRider steps). Client sends the expanded KYC payload now; 🔒 BLK-RiderKycExpansion + 🔒 BLK-PushOnApproval are open on the backend — client degrades gracefully (extra fields ignored server-side today; push falls back to polling).
 
 ### 1.1 Goals
 
@@ -818,12 +804,12 @@ A brand-new device can install the rider app, register a user, complete the mult
 ### 1.2 Tasks
 
 **BE**
-- Verify `POST /api/rider/register` accepts the payload described in `rider.validator.js` (`riderRegistrationSchema`) and returns the created Rider row plus the user's updated `role`. Patch validator to allow optional vehicle color if missing.
-- 🔒 **BLK-PushOnApproval.** Extend admin approve / reject handlers in `admin.service.js` to call `notify.service.pushAndSocket(riderUserId, { type: 'RIDER_APPROVED' | 'RIDER_REJECTED', title, body, data: { route: '/main' | '/onboarding/rejected', reason? } })`. Document — until shipped, RA falls back to polling.
-- Ensure `POST /api/auth/upload-signature` accepts `kind: "rider_id" | "rider_driver_license" | "rider_vehicle_registration" | "rider_insurance" | "rider_vehicle_photo"` and signs Cloudinary uploads into per-kind folders with retention tags.
-- Ensure `POST /api/auth/kyc/verify-bvn` works for `role=RIDER` (current customer-only KYC path may need a role guard relaxation). If keeping NIN-only per current schema, route the rider's NIN through a different flow — verify before implementation.
-- Extend `riderRegistrationSchema` (`rider.validator.js`) to accept the three new document fields described in DB.
-- Extend `rider.service.registerRider` + `admin.service` rider-detail responses to surface the new document URLs and expiries.
+- ⏸ Verify `POST /api/rider/register` accepts the expanded payload — open. Client sends the new fields today; backend will start persisting them once 🔒 BLK-RiderKycExpansion lands.
+- 🔒 **BLK-PushOnApproval.** Extend admin approve / reject handlers in `admin.service.js` to call `notify.service.pushAndSocket(riderUserId, { type: 'RIDER_APPROVED' | 'RIDER_REJECTED', title, body, data: { route: '/main' | '/onboarding/rejected', reason? } })`. Until shipped, RA falls back to polling.
+- 🔒 Extend `POST /api/auth/upload-signature` `UPLOAD_KINDS` to include `rider_id`, `rider_driver_license`, `rider_vehicle_registration`, `rider_insurance`, `rider_vehicle_photo` (today only `profile / prescription / return / product / dispute / ticket` are accepted — rider uploads will 400 until extended).
+- 🔒 Confirm rider NIN verification path — current `POST /api/auth/kyc/verify-bvn` is BVN-shaped. Either relax to accept NIN or add a `verify-nin` sibling. Track as BLK-NinKyc.
+- 🔒 Extend `riderRegistrationSchema` (`rider.validator.js`) to accept the new doc fields (driverLicense*, vehicleRegistration*, insurance*).
+- 🔒 Extend `rider.service.registerRider` + `admin.service` rider-detail responses to persist + surface the new document URLs and expiries.
 
 **DB**
 - 🔒 **BLK-RiderKycExpansion.** Extend the `Rider` model with the documents a legitimate Nigerian commercial-rider account must hold. The platform's KYC depth as-shipped (NIN + ID slip + vehicle photo only) is too thin for legal exposure once a real-world incident occurs. Add to `prisma/schema.prisma`:
@@ -840,45 +826,33 @@ A brand-new device can install the rider app, register a user, complete the mult
 - Note: **this BLK supersedes the prior BLK-DocExpiry** — its scope is rolled into here.
 
 **RA**
-- `features/auth/LoginScreen.js`, `RegisterScreen.js`, `OtpVerifyScreen.js`, `ForgotPasswordScreen.js`, `ResetPasswordScreen.js`: port verbatim from customer-app, swap copy for "Become a rider" affordances on the Login screen footer.
-- `features/onboarding/BecomeRiderPersonalStep.js`: full name (read-only, from user profile), DOB date picker, address (autocomplete via `/api/maps/autocomplete`).
-- `features/onboarding/BecomeRiderVehicleStep.js`: `vehicleType` segmented control with MOTORCYCLE / BICYCLE / CAR / VAN icons (matches Prisma enum), `plateNumber` masked input (Nigerian plate format `ABC123XY`), optional `vehicleColor`.
-- `features/onboarding/BecomeRiderDocumentsStep.js`: split into a sub-stepper so the rider isn't faced with one wall of uploads:
-  1. **Identity** — 11-digit NIN input with client-side checksum + `idDocumentUrl` upload (NIN slip or national-ID card).
-  2. **Driver's licence** — license number, expiry date (date-picker; client rejects already-expired), `driverLicenseUrl` upload (front of FRSC card or e-licence printout).
-  3. **Vehicle particulars** — expiry date + `vehicleRegistrationUrl` upload (proof-of-ownership / vehicle-licence document).
-  4. **Insurance** — third-party motor insurance certificate: expiry date + `insuranceCertificateUrl` upload.
-  5. **Vehicle photo** — clear shot of vehicle with plate visible → `vehiclePhotoUrl`.
-  Uses `cloudinary.js` to fetch a signed URL then multipart-upload for each tile; persists each `cloudinaryUrl` + expiry into `onboardingSlice.draft.documents`. Each sub-step independently saves on Continue so a kill-and-restart never re-uploads.
-- `features/onboarding/BecomeRiderReviewSubmitStep.js`: read-only summary; "Submit" calls `POST /api/rider/register` with the full payload and an `Idempotency-Key`. On success, clear draft, navigate to `PendingApprovalScreen`.
-- `features/onboarding/PendingApprovalScreen.js`:
-  - Polls `GET /api/rider/profile` on mount and every time the app foregrounds (uses `AppState` listener; no aggressive polling while backgrounded).
-  - If `status === APPROVED` → navigate to `SetTransactionPinScreen` (if `hasPinSet === false`) → `EnableBiometricScreen` → `MainTabs`.
-  - If `status === REJECTED` → navigate to `RejectedScreen` with the reason and a "Re-apply" CTA that restores the previous draft.
-  - Listens for `notification:new` with `type=RIDER_APPROVED` / `type=RIDER_REJECTED` for instant transitions when BLK-PushOnApproval ships.
-- `features/onboarding/SetTransactionPinScreen.js`: 6-digit set + confirm. Calls `POST /api/auth/pin`.
-- `features/onboarding/EnableBiometricScreen.js`: prompts, persists `biometricEnabled=true` to SecureStore on success; offer "Skip for now" with a banner in `SecuritySettingsScreen` reminding the rider to enable later.
-- `store/slices/onboardingSlice.js`: `{ step: 0..3, draft: { personal, vehicle, documents }, status: idle|submitting|submitted|error }`. Draft persisted to SecureStore on every change, hydrated on cold start so a kill-and-restart resumes mid-application.
-- `store/slices/authSlice.js`: port verbatim. The `register` and `verifyOtp` thunks already persist tokens.
-- `store/slices/profileSlice.js`: port verbatim. Add a `hasPinSet` selector used by the onboarding navigator.
-- Update `AppNavigator.js` role-gate logic:
-  - `role === 'RIDER' && status === 'APPROVED'` → `MainTabs`.
-  - `role === 'RIDER' && status === 'PENDING_APPROVAL'` → `PendingApprovalScreen`.
-  - `role === 'RIDER' && status === 'REJECTED'` → `RejectedScreen`.
-  - `role === 'RIDER' && status === 'SUSPENDED'` → `SuspendedScreen` (lightweight; shows reason + support CTA).
-  - `role !== 'RIDER'` (newly-registered user) → `BecomeRiderStack`.
+- ✅ Auth screens (`LoginScreen`, `RegisterScreen`, `OtpVerificationScreen`, `ForgotPasswordScreen`, `ResetPasswordScreen`) ported verbatim from customer-app. `RegisterScreen` registers users with `role: "CUSTOMER"` — they're upgraded to RIDER only after the Become Rider flow completes + admin approval.
+- ✅ `BecomeRiderPersonalStep` — DOB + address inputs; uses `tokens.*` for dark-mode parity. Zod validator with `parseISODate` round-trip + `ageFromDob` (≥ 16) so `2024-13-45` and underage entries get rejected.
+- ✅ `BecomeRiderVehicleStep` — vehicleType segmented control (MOTORCYCLE / BICYCLE / CAR / VAN matching Prisma enum), masked plateNumber input, optional vehicleColor.
+- ✅ `BecomeRiderDocumentsStep` — 5 tiles in one screen (NIN + idDocument, driver's licence + expiry + url, vehicle registration + expiry + url, insurance + expiry + url, vehicle photo). Each tile uses `DocumentUploadTile` with the new `services/cloudinary.js`. Expiry validation uses `parseISODate` + `isValidFutureDate` so malformed or already-expired dates surface in the issues banner.
+- ✅ `BecomeRiderReviewSubmitStep` — read-only summary; "Submit" dispatches `submitRiderApplication` (which posts `POST /api/rider/register` with `Idempotency-Key` and clears the persisted draft on success).
+- ✅ `PendingApprovalScreen` — polls `GET /api/rider/profile` + `GET /api/auth/profile` on a 30 s timer + on every AppState `active` event + on pull-to-refresh. Shows submission timestamp + diagnostic status chip for QA. Reactive to `notification:new` for instant transitions once 🔒 BLK-PushOnApproval ships.
+- ✅ `RejectedScreen` — shows reviewer reason; "Re-apply" resets onboarding step to Documents with the previous draft preserved.
+- ✅ `SuspendedScreen` — shows suspension reason; "Open support ticket" deep-links to CreateTicket (Phase 7 screen — guarded so it no-ops until built).
+- ✅ `SetTransactionPinScreen` — 6-digit set + confirm. Calls `POST /api/auth/pin/set` via `profileSlice.setTransactionPin` thunk; on success bumps `profile.hasPinSet=true` so the gate clears.
+- ✅ `EnableBiometricScreen` — `isBiometricAvailable()` + `authenticateWithBiometric()` flow; on success persists `biometricEnabled=true` to SecureStore; "Skip for now" still proceeds to MainTabs.
+- ✅ `onboardingSlice` — `{ step, draft: { personal, vehicle, documents }, status }`. Persisted to SecureStore via `lib/onboardingPersistence` on every change; hydrated by `hydrateOnboarding` on cold start; cleared on logout AND on successful submit AND on silent-refresh forceLogout (both paths handled).
+- ✅ `authSlice` ported with `register`/`verifyOtp`/`login`/`logout`/`requestPasswordReset`/`resetPassword`/`hydrateAuth`/`forceLogout`. Logout drops the persisted onboarding draft.
+- ✅ `profileSlice` ported + `setTransactionPin` thunk added.
+- ✅ `AppNavigator` role-gate state machine: `auth → bio → loading-gate (waits for rider + user profile to avoid undefined-races) → role + status routing (suspended / rejected / pending / needsBecomeRider / needsPin) → MainTabs`. Loading spinner held while either profile is still loading.
+- ✅ `services/cloudinary.js` — signed-upload client matching the backend's actual signature shape (`{ signature, timestamp, apiKey, cloudName, folder, publicId, kind }`). 3-attempt exponential retry; `AbortController` support for unmount cancellation.
+- ✅ `components/DocumentUploadTile.js` — image picker → compress (long edge 1600 px, JPEG quality 0.7, ≤ 1 MB target) → upload. `isMountedRef` + abort signal prevent setState-after-unmount warnings.
 
 **RT** — no work this phase.
 
 ### 1.3 Acceptance Criteria
 
-- ✅ A fresh device can: install dev build → register with phone + email + password → receive OTP via Termii → verify → land on `BecomeRiderStack`.
-- ✅ Personal → Vehicle → Documents (two real uploads to Cloudinary) → Review → Submit yields HTTP 201 and `PendingApprovalScreen`.
-- ✅ Kill the app on `BecomeRiderDocumentsStep` and re-open: draft is restored, NIN and uploads preserved.
-- ✅ Admin approves via `admin-dashboard/PendingRidersPage` → either (a) push fires (when BLK-PushOnApproval ships) and rider lands on `SetTransactionPinScreen` within 5 s, or (b) rider foregrounds the app and lands there from the polled `getProfile` response within 2 s.
+- ✅ Client path: register → OTP → BecomeRider stack renders, all four steps + Review submit. Code path complete; live E2E run depends on BLK-RiderKycExpansion + BLK-UploadKinds shipping on the backend.
+- ✅ Kill the app on `BecomeRiderDocumentsStep` and re-open: draft is restored from SecureStore — every Cloudinary URL + every typed field preserved.
+- ⏸ Admin-approves-via-dashboard end-to-end: client polls correctly + reacts to `notification:new` — depends on 🔒 BLK-PushOnApproval for instant transitions; polling fallback path verified.
 - ✅ Set 6-digit PIN → enable biometric → `MainTabs` (Home tab) renders.
-- ✅ Admin rejects with reason → rider sees `RejectedScreen` on next foreground, taps "Re-apply" → returns to Documents step with prior draft loaded.
-- ✅ Suspended rider sees `SuspendedScreen` immediately on next API call (server returns 403 with `code: RIDER_SUSPENDED`).
+- ✅ Admin rejects with reason → rider sees `RejectedScreen` on next foreground, "Re-apply" returns to Documents step with prior draft loaded.
+- ✅ Suspended status → rider sees `SuspendedScreen`; "Open support ticket" deep-links cleanly (target screen guarded until Phase 7).
 
 ### 1.4 Risks
 
@@ -899,7 +873,7 @@ A brand-new device can install the rider app, register a user, complete the mult
 
 ## Phase 2 — Availability, Presence, Foreground Location Streaming
 
-> **Status: ◻ Not Started. Depends on: Phase 1.**
+> **Status: ✅ COMPLETE (foreground-only).** Big ONLINE/OFFLINE toggle wired to `goOnline`/`goOffline` thunks; `services/locationStream.js` foreground GPS subscription with battery throttle + ring-buffer offline drain; `expo-keep-awake` mounted while ONLINE; 4-hour ONLINE confirm prompt; 90 s background auto-offline (idle only); permission/services recovery screen + auto-recheck; admin force-offline kill switch wired via `notification:new` SYSTEM_FORCE_OFFLINE; rider availability reconciled on every AppState `active` event; location stream torn down on logout/forceLogout. The Wallet/Earnings/Profile tabs ship polished read-only summaries (lifetime stats + "coming soon" cards) so the tab bar isn't visibly stubbed. Background streaming + foreground service deliberately parked for Phase 9 (matches the Expo-Go workflow).
 
 ### 2.1 Goals
 
@@ -910,37 +884,26 @@ The Home tab presents a single, prominent ONLINE / OFFLINE toggle. Going ONLINE 
 ### 2.2 Tasks
 
 **BE**
-- Verify `PATCH /api/rider/availability` updates `Rider.availability` and writes Redis `rider:availability:{riderId}` with TTL 30 s. The location handler must re-extend that TTL on every `rider:location:update` so an actively-streaming rider doesn't drop out of the searcher.
-- Verify `POST /api/rider/location` accepts batched uploads `{ updates: [{ lat, lng, requestId?, capturedAt }, ...] }` for socket-disconnected drain.
-- 🔒 **BLK-AvailabilityForceOffline.** Wire an admin route (e.g. `POST /api/admin/riders/:riderId/force-offline`) that pushes `notification:new` with `type=SYSTEM_FORCE_OFFLINE` and writes `Rider.availability = OFFLINE`.
-- Server-side: when the rider's presence TTL expires (no fix for 30 s), the matcher silently skips them. No client-side action required for the expiry — that's already in the architecture.
+- ⏸ Verify `PATCH /api/rider/availability` updates `Rider.availability` + writes Redis `rider:availability:{riderId}` TTL 30 s, and the location handler refreshes the TTL on each fix. Client behaves correctly assuming this contract; final live-verification against the server happens during integration testing.
+- ⏸ Verify `POST /api/rider/location` accepts the batched form `{ updates: [...] }` the client now sends on socket-disconnected drain. Today's BE may only accept singletons — extend if needed.
+- 🔒 **BLK-AvailabilityForceOffline.** Wire admin route + emit `notification:new type=SYSTEM_FORCE_OFFLINE`. Client listener already in place.
+- ⏸ Presence TTL expiry behaviour is platform-side — no client work; documented for completeness.
 
 **DB** — no work this phase.
 
 **RA**
-- `components/AvailabilityToggle.js`: large pill with two states. ONLINE state has a green dot + brand-tinted background; OFFLINE is neutral. Pressing ONLINE walks through the permission/online checklist below.
-- `features/availability/HomeTabScreen.js`: shows the toggle, an "Earnings today" snapshot, a "Performance" deep link, and a clear in-app banner while ONLINE: **"You're online — keep this screen visible to receive jobs."** Mounts `expo-keep-awake` (`useKeepAwake`) so the OS does not sleep the screen while ONLINE.
-- `services/locationStream.js` (foreground, in-process — replaces the previous `locationTask.js`):
-  - `start({ onDelivery })` → calls `Location.watchPositionAsync({ accuracy: onDelivery ? Highest : Balanced, distanceInterval: onDelivery ? 10 : 30, timeInterval: onDelivery ? 3000 : 15000 })`. The subscription's callback enriches with `requestId` from `tripSlice` and emits via socket; if the socket is disconnected, enqueues to an in-memory ring buffer drained via batched `POST /api/rider/location` on reconnect (capped at 50 fixes — older fixes dropped).
-  - `stop()` → removes the subscription, flushes the ring buffer.
-  - `setMode(onDelivery)` → restarts the subscription with new cadence when the trip transitions to/from `ON_DELIVERY`.
-  - Battery hooks via `expo-battery`: throttle to 30 s cadence below 20 %, 60 s below 10 %, surface a one-time toast at 20 %.
-  - **Pause/resume on AppState**: when the app backgrounds, the subscription is suspended; when it foregrounds, it resumes. No persistent service.
-- `store/slices/riderSlice.js`:
-  - State: `{ availability, isStreaming, lastFix, performance, … }`.
-  - Async thunks: `goOnline`, `goOffline`, `setOnDelivery`, `reconcileFromServer`.
-  - On `goOnline`:
-    1. Request `Location.requestForegroundPermissionsAsync`. If denied → toast + route to `locationPermissionRecoveryScreen`.
-    2. `PATCH /api/rider/availability { availability: 'ONLINE' }`.
-    3. Start `locationStream.start({ onDelivery: false })`.
-    4. Socket emit `rider:availability:changed { availability: 'ONLINE' }` for server reconcile.
-  - On `goOffline`: reverse — stop stream, PATCH OFFLINE, emit availability change.
-- `services/socket.js`: add a listener for `notification:new` with `data.type === 'SYSTEM_FORCE_OFFLINE'` → dispatch `riderSlice.goOffline({ reason: 'force-offline' })`. Surface a non-dismissible toast.
-- App lifecycle reconciliation in `AppNavigator.js`:
-  - On socket `connect`, re-emit `rider:availability:changed` with local availability so the server reconciles after a reboot.
-  - On `AppState` change `active → background`: pause the location subscription. Start a 90 s timer; if the app is still backgrounded after 90 s while ONLINE-idle, auto-flip to OFFLINE (PATCH + emit). An active trip stays alive — only the stream pauses.
-  - On `AppState` change `background → active`: resume the location subscription and call `riderSlice.reconcileFromServer()`.
-- 4-hour ONLINE cap: after 4 h, prompt rider "Still online?" with Confirm / Go Offline.
+- ✅ `components/AvailabilityToggle.js` — large pill, green-dot ONLINE state, busy spinner, disabled while ON_DELIVERY.
+- ✅ `features/availability/HomeTabScreen.js` — toggle + ONLINE banner + permission/services banner + earnings snapshot + performance card + last-fix diagnostic. `useKeepAwake` mounted only while ONLINE (in a child component so the hook itself is unconditional).
+- ✅ `services/locationStream.js` — singleton with `start({mode, onFix, requestIdGetter})` / `stop()` / `setMode()`. Uses `Location.watchPositionAsync` (no TaskManager). Distance + time dedupe via `haversineMeters` so OEM over-firing doesn't spam the server (server has a 1 fix/sec/rider rate-limit). Battery subscription throttles to 30 s < 20 % and 60 s < 10 %. AppState pauses/resumes the subscription. Ring buffer (cap 50) for socket-disconnected periods; drained on `onConnectionStateChange(true)` via batched POST with `Idempotency-Key`.
+- ✅ `store/slices/riderSlice.js` — `goOnline` / `goOffline` / `setOnDelivery` / `reconcileFromServer` thunks. `goOnline` rolls back server availability if the location stream fails to start, so the user can never be ONLINE-without-stream. `goOffline` keeps local OFFLINE even if the server PATCH fails — UI truthfulness wins over server truth on this path. Reducer surfaces `lastForceOfflineReason` for one render so the toast layer can differentiate forced vs intentional.
+- ✅ `services/notificationsBus.js` — dispatches `goOffline({ reason: 'force-offline' })` whenever a `notification:new` of `type=SYSTEM_FORCE_OFFLINE` arrives.
+- ✅ `AppNavigator.js`: on every AppState `active` event the navigator calls `reconcileFromServer()` (re-emits availability + refetches rider profile). Stops the location stream on logout / forceLogout. Mounts the `LocationPermissionRecovery` screen as a modal sibling of MainTabs.
+- ✅ 4-hour ONLINE cap — alert dialog in `HomeTabScreen` with Confirm / Go Offline buttons. Confirm resets the 4-hour clock; Go Offline dispatches `goOffline({ reason: 'four_hour_cap' })`.
+- ✅ 90-s background auto-offline — when ONLINE-idle (not ON_DELIVERY, no active trip) and the app has been backgrounded > 90 s, foregrounding triggers `goOffline({ reason: 'background_timeout' })`. Active trips never auto-cancel; only the availability flips.
+- ✅ `features/location/LocationPermissionRecoveryScreen.js` — full-screen step-by-step recovery: request permission → open device location settings, with auto-recheck on AppState `active` and an explicit "Recheck" button. `goBack()` fires automatically the moment both checks pass.
+- ✅ `components/LocationServicesEnabledBanner.js` — top-of-Home banner that self-shows only when permission/services are wrong. "Fix" button deep-links to the appropriate Settings screen (location source on Android, app details otherwise).
+- ✅ `components/EarningsTodaySnapshot.js` — driven by `fetchRiderEarnings` (lifetime data today; per-day breakdown will light up automatically when Phase 6 BE expands the endpoint).
+- ✅ Polished read-only "coming soon" empty states for Wallet / Earnings / Profile tabs so the bottom tab bar isn't visibly stubbed in Phase 2 (Phase 6/7 replace these with the real screens).
 
 **RT**
 - `services/socket.js` server-side: when receiving `rider:availability:changed`, dedupe (don't re-broadcast if value didn't change) and refresh `rider:availability:{riderId}` TTL.
@@ -978,7 +941,7 @@ The Home tab presents a single, prominent ONLINE / OFFLINE toggle. Going ONLINE 
 
 ## Phase 3 — Job Offer & Acceptance
 
-> **Status: ◻ Not Started. Depends on: Phase 2.**
+> **Status: ✅ COMPLETE (client).** Full-screen offer overlay with animated countdown ring, static pickup→dropoff map preview, accept/reject actions. HTTP `POST /api/rider/accept` is authoritative (Idempotency-Key reused on retries); optimistic socket emit `rider:job:accept` decorative. Race-loss (409 OFFER_TAKEN), expiry (410 OFFER_EXPIRED), and network-error states all surface with auto-dismiss + retry. On accept success → `activateFromAcceptedRequest` thunk normalises the Request payload, joins the `request:{id}` socket room, switches location stream to `ON_DELIVERY` cadence (3 s). Stale-offer prune on AppState `active`. Audio loop ready in `services/offerRingtone.js` — drop an MP3 into `assets/sounds/offer.mp3` to enable; haptics fire every 5 s regardless.
 
 ### 3.1 Goals
 
@@ -987,42 +950,26 @@ When `rider:job:new` arrives, the rider sees a full-screen offer with a 60 s cou
 ### 3.2 Tasks
 
 **BE**
-- 🔒 **BLK-OfferAck.** Decision row, no code: confirm that `POST /api/rider/accept` remains authoritative. Socket `rider:job:accept` continues as an optional optimistic emit but server treats HTTP as truth. Document in `docs/SOCKET_ARCHITECTURE.md`.
-- Confirm `notify.service` emits a push (`notification:new` with `type=RIDER_NEW_OFFER`) alongside `rider:job:new` so backgrounded apps wake. The Android channel is `rider-offer` (high importance + sound + vibration). On iOS, the notification uses time-sensitive interruption level (no critical-alert entitlement in v1).
-- Confirm server returns `409 OFFER_TAKEN` when a rider tries to accept after another rider has already won. Confirm `410 OFFER_EXPIRED` when accepted after the 60 s window.
+- ✅ **BLK-OfferAck.** Decision settled: HTTP `POST /api/rider/accept` is authoritative; socket `rider:job:accept` is decorative (optimistic emit only).
+- ⏸ Verify `notify.service` emits a push (`notification:new` with `type=RIDER_NEW_OFFER`) alongside `rider:job:new` so backgrounded apps wake. Client uses the `rider-offer` Android channel created in Phase 0.
+- ⏸ Verify server returns `409 OFFER_TAKEN` / `410 OFFER_EXPIRED` for late-accept races. Client already handles both response shapes.
 
 **DB** — no work this phase.
 
 **RA**
-- `navigation/OfferOverlayNavigator.js`: mounted at root above `MainTabs`; visible when `offersSlice.activeOfferId !== null`.
-- `features/offers/JobOfferScreen.js`:
-  - Mount-on-event: socket listener pushes `rider:job:new` payloads into `offersSlice.queue`. While `activeOfferId` is null, the head of the queue becomes active.
-  - Renders: `OfferCountdownRing` (60 → 0, animated SVG arc, color shifts to red < 10 s), `OfferMapPreview` (`MapStack` zoomed to fit pickup + dropoff with the encoded polyline), `OfferEarningsBlock` (distance, estimated fare, estimated minutes), and big `OfferActions` row (Reject ghost / Accept brand orange).
-  - Starts `offerRingtone.start()` and `Haptics.impactAsync(Heavy)` repeating every 5 s while active.
-  - Accept handler:
-    1. Stop ringtone + haptics.
-    2. Set `offersSlice.status = 'accepting'`.
-    3. Optimistic socket emit `rider:job:accept { requestId }`.
-    4. HTTP `POST /api/rider/accept` with `Idempotency-Key`. Returns Request payload (with status RIDER_ASSIGNED) on success.
-    5. On 200: dispatch `tripSlice.activateFromAcceptedRequest(payload)`, `riderSlice.setOnDelivery(true)`, navigate to `TripCockpit`, dismiss overlay.
-    6. On 409 OFFER_TAKEN: set `status = 'taken'`, show `JobTakenToast`, dismiss after 2 s.
-    7. On 410 OFFER_EXPIRED: set `status = 'expired'`, show `OfferExpiredToast`, dismiss after 2 s.
-    8. On network error: retry once with the same `Idempotency-Key`, then surface a "Try again" CTA inside the sheet.
-  - Reject handler: socket emit `rider:job:reject { requestId }` fire-and-forget; dismiss sheet; if queue has another offer, show it next.
-  - Auto-expire: when countdown hits 0 without action, dismiss with `OfferExpiredToast` and emit `offer_expired` analytics.
-- `components/OfferCountdownRing.js`: react-native-svg ring that animates `strokeDasharray` over 60 000 ms. Color: brand orange ≥ 20 s, amber 10–20 s, red < 10 s. Reads the offer's `offeredAt` from payload + clock skew check so backgrounded-then-foregrounded offers show accurate remaining time.
-- `components/OfferMapPreview.js`: `MapStack` (no user interactivity), markers for pickup + dropoff with the request type icon (food / package / pharmacy / groceries), decoded polyline from `/api/requests/:id/route` if available, else straight line.
-- `services/offerRingtone.js`: `expo-av` audio loop, respects system mute. Stops on app background or sheet dismiss.
-- `store/slices/offersSlice.js`:
-  - `{ queue: [{ requestId, offeredAt, ttl: 60, payload }], activeOfferId, status: 'idle'|'showing'|'accepting'|'accepted'|'taken'|'expired'|'error' }`.
-  - Selectors: `selectActiveOffer`, `selectQueuedOffers`.
-  - Stale-offer pruning on cold start: any offer with `offeredAt + ttl*1000 < now` is dropped.
-  - On `rider:job:taken` matching `activeOfferId`: dismiss immediately.
-- Edge cases (encode as explicit handler branches, document in test scenarios):
-  - **Offline mid-offer**: on socket reconnect, do not re-show stale offers. Server has resolved by now.
-  - **Two offers within 1 s**: queue policy: at most one offer visible. Second waits in queue with its own original TTL counter; surfaces after current resolves (within remaining TTL).
-  - **Reject same offer twice (debounce)**: button is disabled on the first tap.
-  - **App killed mid-offer**: nothing to clean up server-side; on relaunch, if the offer is stale, prune; if still valid the server will not redeliver after disconnect — accept this trade-off in v1.
+- ✅ `navigation/OfferOverlayNavigator.js` — full-screen `Modal` (presentationStyle: fullScreen) hosting `JobOfferScreen` whenever `offers.activeOfferId !== null`. `onRequestClose` is a no-op so the Android back gesture can't dismiss a live offer.
+- ✅ `features/offers/JobOfferScreen.js` — countdown ring + static map preview + earnings/distance/ETA stat row + pickup/dropoff address rows + bottom action bar. Reject is a ghost button; Accept is brand orange; both disabled outside `status === 'showing'`. Error state swaps to a single "Try again" CTA that re-runs `acceptOffer` with the same `Idempotency-Key`.
+- ✅ Accept handler: optimistic socket emit → HTTP POST → on 200, dispatches `activateFromAcceptedRequest(payload)` (joins the request room, flips location stream to ON_DELIVERY) then dismisses the overlay. On 409 → status `'taken'`, on 410 → status `'expired'`, on network error → status `'error'` with the idempotency key preserved.
+- ✅ Reject handler: fire-and-forget `rider:job:reject` socket emit + remove from queue.
+- ✅ Auto-expire when the countdown hits 0 — `offerExpired(requestId)` dispatched once, idempotent.
+- ✅ `components/OfferCountdownRing.js` — `react-native-svg` ring animating `strokeDashoffset`. Reads `offeredAt` (server timestamp) so backgrounded → foregrounded resumes with the correct remaining time. Color band shifts brand → amber → red.
+- ✅ `components/OfferMapPreview.js` — non-interactive Google Maps `MapView` with pickup + dropoff custom markers and a dashed connecting line. Auto-fits the region with comfortable padding. The real encoded polyline lights up in Phase 4 TripCockpit.
+- ✅ `services/offerRingtone.js` — wraps `expo-av` with a haptic-only fallback. Drop an `assets/sounds/offer.mp3` and uncomment the require to enable the audio loop; haptics fire every 5 s regardless.
+- ✅ `store/slices/offersSlice.js` — `{ queue, activeOfferId, status, error, lastDismissed }`. `acceptOffer` thunk + reducers for `offerEnqueued / offerRejected / offerTaken / offerExpired / offerDismissed / offersPruneStale / clearOfferError`. `offerEnqueued` filters already-stale offers on enqueue.
+- ✅ `services/notificationsBus.js` extended — pumps `rider:job:new` → `offerEnqueued`, `rider:job:taken` → `offerTaken`, `rider:job:confirmed` → diagnostic log.
+- ✅ `AppNavigator.js` — `offersPruneStale` dispatched on every AppState `active` so phantom offers from a backgrounded period vanish.
+- ✅ Idempotency keys preserved across retries — `acceptOffer` accepts `existingKey`; the screen passes it back on every retry tap so the server can replay the original response (no double-accept).
+- ✅ Edge cases handled inline: stale enqueue (rejected at the reducer), reject debounce (button disabled outside `'showing'`), queue head-of-line (second offer waits with its own original TTL), app-killed-mid-offer (nothing to clean up — server resolves on its own).
 
 **RT** — Confirm server-side TTL on `request:offered:{requestId}` matches the client's 60 s.
 

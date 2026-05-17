@@ -344,8 +344,11 @@ export default function RegistrationPage() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-primary rounded-2xl mb-4 shadow-lg">
             <Store className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-text dark:text-dark-text mb-2">
-            Join VTU Logistics
+          <h1
+            className="text-4xl font-bold text-text dark:text-dark-text mb-2"
+            style={{ fontFamily: "Roboto, sans-serif" }}
+          >
+            Join iPrime
           </h1>
           <p className="text-muted dark:text-dark-muted">
             Start delivering your products to customers in Katsina

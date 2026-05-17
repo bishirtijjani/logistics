@@ -171,7 +171,7 @@ export default function MarketingPage() {
 
   const mockLoyaltyProgram = {
     id: 1,
-    name: 'VTU Rewards',
+    name: 'iPrime Rewards',
     pointsPerNaira: 1,
     redemptionRate: 100,
     welcomeBonus: 50,

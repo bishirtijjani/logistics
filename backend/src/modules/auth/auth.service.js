@@ -769,7 +769,7 @@ const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
   try {
     await termiiService.sendSms(
       bvnPhone,
-      `Your ${config.APP_NAME || 'VTU Logistics'} identity verification code is ${code}. It expires in 10 minutes.`,
+      `Your ${config.APP_NAME || 'iPrime'} identity verification code is ${code}. It expires in 10 minutes.`,
     );
   } catch (err) {
     logger.warn('KYC phone OTP SMS failed', { userId, error: err.message });
@@ -1005,7 +1005,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
       termiiService
         .sendSms(
           user.phone,
-          `Welcome to ${config.APP_NAME || 'VTU Logistics'}! Your wallet is now active${virtualAccount ? ` — fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
+          `Welcome to ${config.APP_NAME || 'iPrime'}! Your wallet is now active${virtualAccount ? ` — fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
         )
         .catch((err) => logger.warn('KYC welcome SMS failed', { userId, error: err.message }));
     }
@@ -1428,7 +1428,7 @@ const confirmPhoneChange = async (userId, { newPhone, otp }) => {
     termiiService
       .sendSms(
         oldPhone,
-        `Security notice: the phone number on your ${config.APP_NAME || 'VTU Logistics'} account was changed to ${maskedNew}. If this wasn't you, contact support immediately.`,
+        `Security notice: the phone number on your ${config.APP_NAME || 'iPrime'} account was changed to ${maskedNew}. If this wasn't you, contact support immediately.`,
       )
       .catch((err) => logger.warn('Old-phone change-notice SMS failed', { userId, error: err.message }));
   }

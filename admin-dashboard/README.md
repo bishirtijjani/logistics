@@ -1,6 +1,6 @@
-# VTU Logistics Admin Dashboard
+# iPrime Admin Dashboard
 
-Admin dashboard for managing the VTU Logistics platform.
+Admin dashboard for managing the iPrime platform.
 
 ## Features
 
@@ -222,4 +222,4 @@ The build output will be in the `dist/` directory and can be deployed to any sta
 
 ## License
 
-Proprietary - VTU Logistics
+Proprietary - iPrime

@@ -6,7 +6,7 @@ import { Plus, Minus } from "lucide-react";
 
 const faqs = [
   {
-    q: "Where does VTU Logistics operate?",
+    q: "Where does iPrime operate?",
     a: "We're built for Katsina State first. Wallet, airtime, data, and electricity payments work nationwide — deliveries are rolling out city-by-city across the state.",
   },
   {

@@ -182,7 +182,16 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\BISHIR-TM\\\\Documents\\\\projects\\\\logistics-app\\\\backend\" -Directory)",
       "Bash(xargs basename -a)",
       "PowerShell(Get-Process | Where-Object { $_.ProcessName -match 'node|prisma' } | Select-Object ProcessName, Id, StartTime, MainWindowTitle)",
-      "PowerShell(\\(Get-Command psql -ErrorAction SilentlyContinue\\).Source)"
+      "PowerShell(\\(Get-Command psql -ErrorAction SilentlyContinue\\).Source)",
+      "Bash(node --check src/services/cloudinary.js)",
+      "Bash(node --check src/services/socket.js)",
+      "Bash(node --check src/lib/time.js)",
+      "Bash(node --check src/lib/onboardingPersistence.js)",
+      "Bash(node --check src/navigation/AppNavigator.js)",
+      "Bash(node -e \"require\\('c:/Users/BISHIR-TM/Documents/projects/logistics-app/mobile/rider-app/src/i18n/en.json'\\); console.log\\('en.json parses OK'\\)\")",
+      "Bash(wait %1)",
+      "WebFetch(domain:automation.airtimetocash.com)",
+      "WebFetch(domain:airtimepay.com)"
     ]
   }
 }

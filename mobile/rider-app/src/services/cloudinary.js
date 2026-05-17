@@ -1,0 +1,103 @@
+/**
+ * Cloudinary signed-upload client.
+ *
+ * Flow:
+ *   1. POST /api/auth/upload-signature { kind }
+ *      → { signature, timestamp, apiKey, cloudName, folder, publicId, kind }
+ *      (see backend `getCloudinaryUploadSignature` in auth.service.js).
+ *   2. Construct Cloudinary upload URL from cloudName.
+ *   3. multipart POST to Cloudinary with file + signed params.
+ *   4. Caller persists `secure_url` to the relevant slice.
+ *
+ * Backend dependency (BLK-RiderKycExpansion):
+ *   The backend's UPLOAD_KINDS currently accepts: profile / prescription /
+ *   return / product / dispute / ticket. The rider app needs additional kinds:
+ *   rider_id / rider_driver_license / rider_vehicle_registration /
+ *   rider_insurance / rider_vehicle_photo / pod. Extend UPLOAD_KINDS in
+ *   `backend/src/modules/auth/auth.service.js` to include these.
+ */
+
+import api from "./api";
+import { newIdempotencyKey } from "./idempotency";
+
+const RETRY_DELAYS_MS = [1_000, 3_000, 9_000];
+
+/**
+ * Upload a local image to Cloudinary via the backend-issued signed upload.
+ *
+ * @param {object} opts
+ * @param {string} opts.kind     - upload kind handled by backend `/auth/upload-signature`
+ * @param {string} opts.localUri - file:// URI for the image
+ * @param {string} [opts.mimeType="image/jpeg"]
+ * @param {AbortSignal} [opts.signal] - optional cancel signal
+ * @returns {Promise<{ secureUrl: string, publicId: string }>}
+ */
+export async function uploadToCloudinary({ kind, localUri, mimeType = "image/jpeg", signal }) {
+  if (!kind) throw new Error("upload kind is required");
+  if (!localUri) throw new Error("local URI is required");
+
+  let lastError;
+  for (let attempt = 0; attempt < RETRY_DELAYS_MS.length + 1; attempt++) {
+    if (signal?.aborted) throw new Error("upload aborted");
+
+    try {
+      // 1. Fresh signature per attempt — server caps timestamp skew, so a
+      //    signature that idles too long fails. Refresh is cheap.
+      const signResp = await api.post(
+        "/auth/upload-signature",
+        { kind },
+        { headers: { "Idempotency-Key": newIdempotencyKey() } },
+      );
+      const sig = signResp?.data || signResp;
+      if (!sig?.signature || !sig?.timestamp || !sig?.apiKey || !sig?.cloudName) {
+        throw new Error("Malformed upload-signature response");
+      }
+      if (!sig?.folder || !sig?.publicId) {
+        throw new Error("Upload signature missing folder or publicId");
+      }
+
+      // 2. Cloudinary upload endpoint for this cloud.
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`;
+
+      // 3. Multipart form. Fields MUST match what the backend hashed into the
+      //    signature (folder, public_id, timestamp); anything else here is
+      //    metadata Cloudinary ignores for signing.
+      const form = new FormData();
+      form.append("file", {
+        uri: localUri,
+        name: `${sig.publicId}.jpg`,
+        type: mimeType,
+      });
+      form.append("api_key", String(sig.apiKey));
+      form.append("timestamp", String(sig.timestamp));
+      form.append("signature", String(sig.signature));
+      form.append("folder", String(sig.folder));
+      form.append("public_id", String(sig.publicId));
+
+      // 4. Use fetch directly — axios + RN can mishandle FormData boundaries on
+      //    some Android builds.
+      const cloudinaryResp = await fetch(uploadUrl, {
+        method: "POST",
+        body: form,
+        signal,
+      });
+      if (!cloudinaryResp.ok) {
+        const text = await cloudinaryResp.text();
+        throw new Error(`Cloudinary ${cloudinaryResp.status}: ${text}`);
+      }
+      const json = await cloudinaryResp.json();
+      if (!json?.secure_url) throw new Error("Cloudinary returned no secure_url");
+
+      return { secureUrl: json.secure_url, publicId: json.public_id };
+    } catch (err) {
+      if (signal?.aborted) throw err;
+      lastError = err;
+      if (attempt < RETRY_DELAYS_MS.length) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}

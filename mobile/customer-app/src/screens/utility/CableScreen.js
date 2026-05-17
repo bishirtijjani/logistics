@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { usePinGuard } from "../../lib/usePinGuard";
@@ -32,7 +33,14 @@ export default function CableScreen({ navigation }) {
   const [smartCardValidated, setSmartCardValidated] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showPinSheet, setShowPinSheet] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const showErr = (field, msg) => {
+    setFieldErrors({ [field]: msg });
+    Toast.show({ type: "error", text1: msg });
+  };
+  const clearField = (field) =>
+    setFieldErrors((e) => (e[field] ? { ...e, [field]: undefined } : e));
 
   const plansKey = `CABLE-${selectedProvider.id}`;
   const cablePlans = plans[plansKey] || [];
@@ -45,22 +53,22 @@ export default function CableScreen({ navigation }) {
   }, [selectedProvider.id]); // eslint-disable-line
 
   const handleValidateIuc = async () => {
-    if (!smartCard.trim()) { setError(t("utility.cableScreen.errSmartCard")); return; }
-    setError("");
+    if (!smartCard.trim()) { showErr("smartCard", t("utility.cableScreen.errSmartCard")); return; }
+    clearField("smartCard");
     try {
       await dispatch(validateIuc({ smartCardNumber: smartCard.trim(), cableNameId: selectedProvider.id })).unwrap();
       setSmartCardValidated(true);
     } catch {
-      setError(t("utility.cableScreen.verifyFailed"));
+      showErr("smartCard", t("utility.cableScreen.verifyFailed"));
       setSmartCardValidated(false);
     }
   };
 
   const handlePurchase = () => {
-    if (!smartCardValidated) { setError(t("utility.cableScreen.errVerifyFirst")); return; }
-    if (!selectedPlan) { setError(t("utility.cableScreen.errSelectPackage")); return; }
-    if (Number(selectedPlan.sellingPrice) > Number(balance)) { setError(t("errors.INSUFFICIENT_BALANCE")); return; }
-    setError("");
+    if (!smartCardValidated) { showErr("smartCard", t("utility.cableScreen.errVerifyFirst")); return; }
+    if (!selectedPlan) { showErr("plan", t("utility.cableScreen.errSelectPackage")); return; }
+    if (Number(selectedPlan.sellingPrice) > Number(balance)) { showErr("plan", t("errors.INSUFFICIENT_BALANCE")); return; }
+    setFieldErrors({});
     if (!requirePin()) return;
     setShowPinSheet(true);
   };
@@ -91,14 +99,7 @@ export default function CableScreen({ navigation }) {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
-        {error ? (
-          <View accessibilityLiveRegion="polite" style={{ backgroundColor: colors.error + "15", borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="alert-circle" size={20} color={colors.error} style={{ marginRight: 8 }} />
-            <Text style={{ flex: 1, fontSize: 13, color: colors.error, fontWeight: "500" }}>{error}</Text>
-          </View>
-        ) : null}
-
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}>
         {/* Provider Selection */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.cableScreen.selectProvider")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 20 }}>
@@ -128,11 +129,11 @@ export default function CableScreen({ navigation }) {
         {/* Smart Card */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.cableScreen.smartCardLabel")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: smartCardValidated ? colors.success || "#22C55E" : colors.border, paddingHorizontal: 16, marginRight: 8 }}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.smartCard ? colors.error : (smartCardValidated ? colors.success || "#22C55E" : colors.border), paddingHorizontal: 16, marginRight: 8 }}>
             <Ionicons name="tv-outline" size={20} color={colors.textMuted} />
             <TextInput
               value={smartCard}
-              onChangeText={(text) => { setSmartCard(text); setSmartCardValidated(false); dispatch(clearValidation()); setError(""); }}
+              onChangeText={(text) => { setSmartCard(text); setSmartCardValidated(false); dispatch(clearValidation()); clearField("smartCard"); }}
               placeholder={t("utility.cableScreen.smartCardPh")}
               accessibilityLabel={t("utility.cableScreen.smartCardLabel")}
               placeholderTextColor={colors.textLight}
@@ -152,6 +153,9 @@ export default function CableScreen({ navigation }) {
             {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{t("utility.cableScreen.verify")}</Text>}
           </TouchableOpacity>
         </View>
+        {fieldErrors.smartCard ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 12, paddingLeft: 4 }}>{fieldErrors.smartCard}</Text>
+        ) : null}
 
         {validationResult && (
           <View style={{ backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, marginBottom: 20 }}>
@@ -166,11 +170,11 @@ export default function CableScreen({ navigation }) {
         {isLoading ? (
           <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} accessibilityLabel={t("common.loading")} />
         ) : (
-          <View style={{ marginBottom: 20 }}>
+          <View style={{ marginBottom: fieldErrors.plan ? 4 : 20 }}>
             {cablePlans.map((plan) => (
               <TouchableOpacity
                 key={plan.id}
-                onPress={() => setSelectedPlan(plan)}
+                onPress={() => { setSelectedPlan(plan); clearField("plan"); }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: selectedPlan?.id === plan.id }}
                 accessibilityLabel={`${plan.name}. ${naira(plan.sellingPrice)}`}
@@ -191,6 +195,9 @@ export default function CableScreen({ navigation }) {
             {!cablePlans.length && <Text style={{ color: colors.textMuted, textAlign: "center", marginVertical: 20 }}>{t("utility.cableScreen.noPackages")}</Text>}
           </View>
         )}
+        {fieldErrors.plan ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.plan}</Text>
+        ) : null}
       </ScrollView>
 
       <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: colors.border }}>

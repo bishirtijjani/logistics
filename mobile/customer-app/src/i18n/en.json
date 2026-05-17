@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "VTU Logistics",
+    "appName": "iPrime",
     "ok": "OK",
     "cancel": "Cancel",
     "save": "Save",
@@ -300,7 +300,7 @@
       "balanceBefore": "Balance before",
       "balanceAfter": "Balance after",
       "date": "Date",
-      "footer": "VTU Logistics — Official Receipt",
+      "footer": "iPrime — Official Receipt",
       "copyRef": "Copy Ref",
       "share": "Share",
       "shareDialogTitle": "Transaction Receipt",
@@ -993,7 +993,7 @@
   },
   "about": {
     "title": "About",
-    "appName": "VTU Logistics",
+    "appName": "iPrime",
     "tagline": "Bold logistics for Katsina and beyond.",
     "version": "Version {{version}}",
     "build": "Build {{build}}",
@@ -1019,7 +1019,7 @@
     "emailLabel": "Email Support",
     "emailValue": "support@vtulogistics.com",
     "phoneLabel": "Phone Support",
-    "phoneValue": "0800-VTU-HELP",
+    "phoneValue": "0800-IPRIME",
     "phone": "Call support",
     "email": "Email support",
     "whatsapp": "Message on WhatsApp",

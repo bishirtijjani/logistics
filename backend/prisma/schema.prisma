@@ -1,5 +1,5 @@
 // ============================================================
-// VTU & LOGISTICS PLATFORM — PRISMA SCHEMA
+// iPRIME — PRISMA SCHEMA
 // Single Source of Truth for all data models
 // ============================================================
 
@@ -81,6 +81,7 @@ enum TransactionType {
   DELIVERY_PAYMENT // legacy; unused after Phase 2
   DELIVERY_EARNING // legacy; unused after Phase 2
   UTILITY_PAYMENT
+  AIRTIME_TO_CASH // Customer sells airtime → wallet credit
   REFUND
   ESCROW_HOLD
   ESCROW_RELEASE
@@ -139,6 +140,22 @@ enum UtilityStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+enum AirtimeToCashStatus {
+  AWAITING_OTP // /initiate called — OTP sent to sender
+  OTP_VERIFIED // /verify succeeded — sessionId stored, awaiting /submit
+  PROCESSING // /submit called — provider transferAirtime in flight
+  COMPLETED // Provider code 2000 — wallet credited
+  FAILED // Provider 3xxx/5030 or local validation failure
+  NEEDS_RECONCILIATION // Provider code 4000 — no query API; admin resolves manually
+}
+
+enum AirtimeNetwork {
+  MTN
+  AIRTEL
+  GLO
+  NINEMOBILE // Maps to provider's "9MOBILE" code (Prisma enum can't start with a digit)
 }
 
 enum PaymentProvider {
@@ -379,6 +396,45 @@ model UtilityPayment {
   @@index([type, status])
   @@index([createdAt])
   @@map("utility_payments")
+}
+
+/// Airtime-to-cash transaction (customer sells airtime → wallet credit).
+/// Provider: airtimetocash.com (Automation API).
+/// Flow: AWAITING_OTP → OTP_VERIFIED → PROCESSING → COMPLETED / FAILED / NEEDS_RECONCILIATION.
+model AirtimeToCashTransaction {
+  id     String              @id @default(uuid())
+  userId String
+  status AirtimeToCashStatus @default(AWAITING_OTP)
+
+  // Sender details — the customer's SIM that holds the airtime.
+  network     AirtimeNetwork
+  senderPhone String /// Normalized 11-digit (e.g. 08061234573)
+
+  // Economics
+  airtimeAmount Decimal @db.Decimal(15, 2) /// Amount of airtime being sold
+  payoutAmount  Decimal @db.Decimal(15, 2) /// Amount credited to wallet (airtimeAmount × payoutRate)
+  payoutRate    Decimal @db.Decimal(5, 4) /// Snapshot of the rate at submit-time (e.g. 0.7500)
+
+  // Provider tracking — `reference` is sent on transfer, must be unique 10–40 chars.
+  reference         String  @unique
+  providerSessionId String? /// Returned by /verify-otp; required for /transfer-airtime
+  providerCode      Int? /// Last provider response code (2000, 4000, 3000, etc.)
+  providerMessage   String? /// Raw provider message for debugging / admin reconciliation
+  automationCharges String? /// Whatever the provider reported (e.g. "₦2")
+
+  // Wallet credit linkage (set once COMPLETED)
+  transactionId String? /// FK to Transaction.reference
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  verifiedAt  DateTime? /// When OTP was verified
+  submittedAt DateTime? /// When /submit was called
+  resolvedAt  DateTime? /// When status reached a terminal state (COMPLETED / FAILED / NEEDS_RECONCILIATION)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("airtime_to_cash_transactions")
 }
 
 /// Admin-managed VTU plan catalogue. Admin sets provider IDs + selling prices.

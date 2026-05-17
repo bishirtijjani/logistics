@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "rider-app",
+    "name": "iPrime Rider",
     "slug": "vtu-rider-app",
     "owner": "vtu-logistics",
     "scheme": "riderapp",
@@ -18,8 +18,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.codeket.logistics.rider",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "VTU Rider needs your location to deliver jobs near you.",
-        "NSCameraUsageDescription": "VTU Rider needs the camera to capture proof of delivery and identity documents.",
+        "NSLocationWhenInUseUsageDescription": "iPrime Rider needs your location to deliver jobs near you.",
+        "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
         "NSPhotoLibraryAddUsageDescription": "Optionally save proof-of-delivery photos to your gallery.",
         "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions."
       },
@@ -30,7 +30,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#EA580C"
       },
       "package": "com.codeket.logistics.rider",
       "edgeToEdgeEnabled": true,
@@ -57,14 +57,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "VTU Rider needs your location to deliver jobs near you."
+          "locationWhenInUsePermission": "iPrime Rider needs your location to deliver jobs near you."
         }
       ],
       "expo-localization",
       [
         "expo-camera",
         {
-          "cameraPermission": "VTU Rider needs the camera to capture proof of delivery and identity documents."
+          "cameraPermission": "iPrime Rider needs the camera to capture proof of delivery and identity documents."
         }
       ],
       [

@@ -114,8 +114,11 @@ export default function Footer() {
               <span className="w-10 h-10 bg-accent flex items-center justify-center text-white rounded-xl shadow-md shadow-accent/30">
                 <Truck size={20} strokeWidth={2.5} />
               </span>
-              <span className="text-lg font-extrabold tracking-tight text-white">
-                VTU<span className="text-accent">Logistics</span>
+              <span
+                className="text-lg font-bold tracking-tight text-white"
+                style={{ fontFamily: "var(--font-roboto)" }}
+              >
+                iPrime
               </span>
             </a>
             <p className="text-sm text-white/50 font-medium leading-relaxed max-w-xs mb-6">
@@ -159,7 +162,7 @@ export default function Footer() {
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8">
           <div className="text-xs text-white/40 font-semibold">
-            © {new Date().getFullYear()} VTU Logistics. Built in Katsina,
+            © {new Date().getFullYear()} iPrime. Built in Katsina,
             Nigeria.
           </div>
           <div className="text-xs text-white/40 font-semibold flex items-center">

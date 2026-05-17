@@ -78,7 +78,7 @@ export default function AboutScreen({ navigation }) {
         <Text
           style={{
             fontSize: 24,
-            fontWeight: "900",
+            fontFamily: "Roboto_700Bold",
             color: colors.text,
             marginBottom: 4,
           }}

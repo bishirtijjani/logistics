@@ -7,7 +7,6 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -85,30 +84,25 @@ export default function ProfilePhotoScreen({ navigation }) {
     const match = /\.(.+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : 'image/jpeg';
     
-    // Append file
+    // Append file — keep full file:// URI; RN's FormData needs it to resolve the file.
     formData.append('file', {
-      uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+      uri,
       name: filename,
       type,
     });
-    
-    // Append Cloudinary params
-    formData.append('api_key', signatureData.apiKey);
-    formData.append('timestamp', signatureData.timestamp);
-    formData.append('signature', signatureData.signature);
-    formData.append('folder', signatureData.folder);
-    formData.append('public_id', signatureData.publicId);
 
-    // Upload to Cloudinary
+    formData.append('api_key', String(signatureData.apiKey));
+    formData.append('timestamp', String(signatureData.timestamp));
+    formData.append('signature', String(signatureData.signature));
+    formData.append('folder', String(signatureData.folder));
+    formData.append('public_id', String(signatureData.publicId));
+
+    // Don't set Content-Type manually — fetch must add the multipart boundary.
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/image/upload`,
       {
         method: 'POST',
         body: formData,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data',
-        },
       }
     );
 

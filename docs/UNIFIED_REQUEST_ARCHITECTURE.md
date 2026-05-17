@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document represents a fundamental architectural pivot for the VTU Logistics Platform. The current system treats food ordering, package delivery, utilities, and wallet as separate products. This document proposes a **unified request-centric architecture** where everything revolves around a single concept: **a request that is created, processed by a merchant, fulfilled by a rider, and settled financially**.
+This document represents a fundamental architectural pivot for the iPrime platform. The current system treats food ordering, package delivery, utilities, and wallet as separate products. This document proposes a **unified request-centric architecture** where everything revolves around a single concept: **a request that is created, processed by a merchant, fulfilled by a rider, and settled financially**.
 
 **Food is just the first type of request, not a special case.**
 

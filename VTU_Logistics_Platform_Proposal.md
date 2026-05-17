@@ -1,4 +1,4 @@
-# VTU & Logistics Platform
+# iPrime
 ## Development Proposal & Project Scope
 
 *A complete mobile super-app for Katsina State*
@@ -16,7 +16,7 @@
 
 ## 1. What We Are Building
 
-This proposal covers the design, development, and deployment of VTU & Logistics Platform — a mobile super-app for Android and iOS targeting users across Katsina State. The platform brings three essential services together under a single app, eliminating the need for residents to use multiple separate applications.
+This proposal covers the design, development, and deployment of iPrime — a mobile super-app for Android and iOS targeting users across Katsina State. The platform brings three essential services together under a single app, eliminating the need for residents to use multiple separate applications.
 
 | Module | What It Does | Powered By |
 |---|---|---|

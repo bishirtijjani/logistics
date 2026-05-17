@@ -14,7 +14,7 @@ const steps = [
     Icon: Smartphone,
     label: "Step 01",
     title: "Order in the app",
-    desc: "Open VTU Logistics, pick what you need — a meal, groceries, a package pickup, or a utility recharge — and pay from your wallet.",
+    desc: "Open iPrime, pick what you need — a meal, groceries, a package pickup, or a utility recharge — and pay from your wallet.",
   },
   {
     Icon: ShoppingBag,

@@ -19,7 +19,7 @@ const pillars = [
     icon: Wallet,
     title: "Digital Wallet",
     blurb:
-      "Fund your wallet from any Nigerian bank, send money to anyone on VTU Logistics in seconds, and withdraw back to your account anytime.",
+      "Fund your wallet from any Nigerian bank, send money to anyone on iPrime in seconds, and withdraw back to your account anytime.",
     bullets: [
       { Icon: Banknote, label: "Virtual bank account on signup" },
       { Icon: ShieldCheck, label: "Transaction PIN authorization" },
@@ -61,7 +61,7 @@ export default function Features() {
             <span className="text-accent">one tap away.</span>
           </h2>
           <p className="ui-sub mx-auto">
-            We built VTU Logistics as a true super-app — your wallet, your bill
+            We built iPrime as a true super-app — your wallet, your bill
             payments, and your daily deliveries all share the same login,
             balance, and tracking history.
           </p>

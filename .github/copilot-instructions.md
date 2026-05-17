@@ -7,6 +7,6 @@
 
 ## Project Context
 
-- This is a VTU & logistics platform (Node.js backend + React Native mobile apps)
+- This is iPrime, a VTU & logistics platform (Node.js backend + React Native mobile apps)
 - Follow all rules defined in `CONVENTIONS.md` — treat it as law
 - Use Nigerian Naira (₦) when showing currency examples

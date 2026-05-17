@@ -186,7 +186,8 @@ export default function UtilityHistoryScreen({ navigation }) {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12 }}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 12, alignItems: "center" }}
         accessibilityRole="tablist"
       >
         {FILTERS.map((f) => {

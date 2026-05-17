@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as SecureStore from "expo-secure-store";
 import api from "../../services/api";
 import { registerPushToken } from "../../services/notifications";
+import { clearOnboardingDraft } from "../../lib/onboardingPersistence";
 
 /**
  * Check SecureStore for existing tokens on app startup.
@@ -83,6 +84,9 @@ export const logout = createAsyncThunk(
     } finally {
       await SecureStore.deleteItemAsync("accessToken");
       await SecureStore.deleteItemAsync("refreshToken");
+      // Drop the persisted onboarding draft — a different user signing in on
+      // the same device must not inherit an in-progress KYC application.
+      try { await clearOnboardingDraft(); } catch (_) {}
     }
   },
 );

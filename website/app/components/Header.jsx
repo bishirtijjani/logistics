@@ -36,8 +36,11 @@ export default function Header() {
             <div className="w-9 h-9 bg-accent flex items-center justify-center text-white rounded-xl shadow-sm">
               <Truck size={18} strokeWidth={2.5} />
             </div>
-            <div className="text-[1.15rem] font-extrabold tracking-tight text-[--color-text-primary] hidden md:block">
-              VTU<span className="text-accent">Logistics</span>
+            <div
+              className="text-[1.15rem] font-bold tracking-tight text-[--color-text-primary] hidden md:block"
+              style={{ fontFamily: "var(--font-roboto)" }}
+            >
+              iPrime
             </div>
           </a>
 

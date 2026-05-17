@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { usePinGuard } from "../../lib/usePinGuard";
@@ -36,7 +37,14 @@ export default function ElectricityScreen({ navigation }) {
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [showPinSheet, setShowPinSheet] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const showErr = (field, msg) => {
+    setFieldErrors({ [field]: msg });
+    Toast.show({ type: "error", text1: msg });
+  };
+  const clearField = (field) =>
+    setFieldErrors((e) => (e[field] ? { ...e, [field]: undefined } : e));
 
   useEffect(() => { dispatch(fetchPlans({ type: "ELECTRICITY" })); }, [dispatch]);
 
@@ -45,14 +53,14 @@ export default function ElectricityScreen({ navigation }) {
   }, [discos]); // eslint-disable-line
 
   const handleValidateMeter = async () => {
-    if (!meterNumber.trim() || meterNumber.length < 11) { setError(t("utility.electricityScreen.errMeter")); return; }
-    if (!selectedDisco) { setError(t("utility.electricityScreen.errSelectDisco")); return; }
-    setError("");
+    if (!meterNumber.trim() || meterNumber.length < 11) { showErr("meter", t("utility.electricityScreen.errMeter")); return; }
+    if (!selectedDisco) { showErr("disco", t("utility.electricityScreen.errSelectDisco")); return; }
+    clearField("meter");
     try {
       await dispatch(validateMeter({ meterNumber: meterNumber.trim(), discoId: selectedDisco.providerNetworkId, meterType })).unwrap();
       setMeterValidated(true);
     } catch {
-      setError(t("utility.electricityScreen.verifyFailed"));
+      showErr("meter", t("utility.electricityScreen.verifyFailed"));
       setMeterValidated(false);
     }
   };
@@ -65,12 +73,12 @@ export default function ElectricityScreen({ navigation }) {
   };
 
   const handlePurchase = () => {
-    if (!selectedDisco) { setError(t("utility.electricityScreen.errSelectDisco")); return; }
-    if (!meterValidated) { setError(t("utility.electricityScreen.errVerifyFirst")); return; }
-    if (!phone.trim() || phone.length < 10) { setError(t("utility.airtimeScreen.errInvalidPhone")); return; }
-    if (!amount || Number(amount) < minAmount) { setError(t("utility.electricityScreen.errMinAmount", { amount: naira(minAmount) })); return; }
-    if (Number(amount) > Number(balance)) { setError(t("utility.electricityScreen.errInsufficientBalance")); return; }
-    setError("");
+    if (!selectedDisco) { showErr("disco", t("utility.electricityScreen.errSelectDisco")); return; }
+    if (!meterValidated) { showErr("meter", t("utility.electricityScreen.errVerifyFirst")); return; }
+    if (!phone.trim() || phone.length < 10) { showErr("phone", t("utility.airtimeScreen.errInvalidPhone")); return; }
+    if (!amount || Number(amount) < minAmount) { showErr("amount", t("utility.electricityScreen.errMinAmount", { amount: naira(minAmount) })); return; }
+    if (Number(amount) > Number(balance)) { showErr("amount", t("utility.electricityScreen.errInsufficientBalance")); return; }
+    setFieldErrors({});
     if (!requirePin()) return;
     setShowPinSheet(true);
   };
@@ -114,26 +122,19 @@ export default function ElectricityScreen({ navigation }) {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
-        {error ? (
-          <View accessibilityLiveRegion="polite" style={{ backgroundColor: colors.error + "15", borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="alert-circle" size={20} color={colors.error} style={{ marginRight: 8 }} />
-            <Text style={{ flex: 1, fontSize: 13, color: colors.error, fontWeight: "500" }}>{error}</Text>
-          </View>
-        ) : null}
-
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}>
         {/* Disco Selection */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.electricityScreen.selectDisco")}</Text>
         {isLoading && !discos.length ? (
           <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} accessibilityLabel={t("common.loading")} />
         ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 20 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: fieldErrors.disco ? 4 : 20 }}>
             {discos.map((d) => {
               const selected = selectedDisco?.id === d.id;
               return (
                 <TouchableOpacity
                   key={d.id}
-                  onPress={() => { setSelectedDisco(d); setMeterValidated(false); dispatch(clearValidation()); setError(""); }}
+                  onPress={() => { setSelectedDisco(d); setMeterValidated(false); dispatch(clearValidation()); clearField("disco"); }}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                   accessibilityLabel={d.networkName}
@@ -150,6 +151,9 @@ export default function ElectricityScreen({ navigation }) {
             })}
           </View>
         )}
+        {fieldErrors.disco ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.disco}</Text>
+        ) : null}
 
         {/* Meter Type */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.electricityScreen.meterType")}</Text>
@@ -180,11 +184,11 @@ export default function ElectricityScreen({ navigation }) {
         {/* Meter Number */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.electricityScreen.meterLabel")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: meterValidated ? "#22C55E" : colors.border, paddingHorizontal: 16, marginRight: 8 }}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.meter ? colors.error : (meterValidated ? "#22C55E" : colors.border), paddingHorizontal: 16, marginRight: 8 }}>
             <Ionicons name="flash-outline" size={20} color={colors.textMuted} />
             <TextInput
               value={meterNumber}
-              onChangeText={(text) => { setMeterNumber(text.replace(/[^0-9]/g, "")); setMeterValidated(false); dispatch(clearValidation()); setError(""); }}
+              onChangeText={(text) => { setMeterNumber(text.replace(/[^0-9]/g, "")); setMeterValidated(false); dispatch(clearValidation()); clearField("meter"); }}
               onBlur={handleMeterBlur}
               placeholder={t("utility.electricityScreen.meterPh")}
               accessibilityLabel={t("utility.electricityScreen.meterLabel")}
@@ -205,6 +209,9 @@ export default function ElectricityScreen({ navigation }) {
             {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{t("utility.electricityScreen.verify")}</Text>}
           </TouchableOpacity>
         </View>
+        {fieldErrors.meter ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.meter}</Text>
+        ) : null}
 
         {validationResult && (
           <View style={{ backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, marginBottom: 16 }}>
@@ -215,11 +222,11 @@ export default function ElectricityScreen({ navigation }) {
 
         {/* Phone */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.phoneLabel")}</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 20 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.phone ? colors.error : colors.border, paddingHorizontal: 16, marginBottom: fieldErrors.phone ? 4 : 20 }}>
           <Ionicons name="call-outline" size={20} color={colors.textMuted} />
           <TextInput
             value={phone}
-            onChangeText={(text) => { setPhone(text.replace(/[^0-9]/g, "")); setError(""); }}
+            onChangeText={(text) => { setPhone(text.replace(/[^0-9]/g, "")); clearField("phone"); }}
             placeholder="080XXXXXXXX"
             accessibilityLabel={t("utility.airtimeScreen.phoneLabel")}
             placeholderTextColor={colors.textLight}
@@ -228,13 +235,16 @@ export default function ElectricityScreen({ navigation }) {
             style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.text, paddingVertical: 16, marginLeft: 12 }}
           />
         </View>
+        {fieldErrors.phone ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.phone}</Text>
+        ) : null}
 
         {/* Amount */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.electricityScreen.amountLabel")}</Text>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 12 }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.amount ? colors.error : colors.border, paddingHorizontal: 16, marginBottom: fieldErrors.amount ? 4 : 12 }}>
           <TextInput
             value={amount}
-            onChangeText={(text) => { setAmount(text.replace(/[^0-9]/g, "")); setError(""); }}
+            onChangeText={(text) => { setAmount(text.replace(/[^0-9]/g, "")); clearField("amount"); }}
             placeholder={t("utility.electricityScreen.amountPh")}
             accessibilityLabel={t("utility.electricityScreen.amountLabel")}
             placeholderTextColor={colors.textLight}
@@ -242,6 +252,9 @@ export default function ElectricityScreen({ navigation }) {
             style={{ fontSize: 24, fontWeight: "700", color: colors.text, paddingVertical: 16 }}
           />
         </View>
+        {fieldErrors.amount ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.amount}</Text>
+        ) : null}
         <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8, paddingLeft: 4 }}>
           {t("utility.electricityScreen.minHint", { amount: naira(minAmount) })}
         </Text>

@@ -66,13 +66,13 @@ export default function About() {
             transition={{ duration: 0.6 }}
             className="order-1 lg:order-2"
           >
-            <span className="ui-eyebrow">About VTU Logistics</span>
+            <span className="ui-eyebrow">About iPrime</span>
             <h2 className="ui-title mb-6">
               Built in Katsina, <br />
               <span className="text-accent">for Katsina.</span>
             </h2>
             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-5">
-              VTU Logistics is a homegrown mobile super-app for the people of
+              iPrime is a homegrown mobile super-app for the people of
               Katsina State — combining the wallet, utilities, and delivery
               services we use every day into one secure place.
             </p>

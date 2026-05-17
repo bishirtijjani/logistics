@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('platform')
   const [saving, setSaving] = useState(false)
   const [platformForm, setPlatformForm] = useState({
-    platformName: 'VTU Logistics',
+    platformName: 'iPrime',
     defaultCurrency: 'NGN',
     timezone: 'Africa/Lagos',
     defaultMerchantCommission: 15,
@@ -36,7 +36,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (platformSettings) {
       setPlatformForm({
-        platformName: platformSettings.platformName || 'VTU Logistics',
+        platformName: platformSettings.platformName || 'iPrime',
         defaultCurrency: platformSettings.defaultCurrency || 'NGN',
         timezone: platformSettings.timezone || 'Africa/Lagos',
         defaultMerchantCommission: platformSettings.defaultMerchantCommission || 15,

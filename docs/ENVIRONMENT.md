@@ -12,7 +12,7 @@ All variables required to run the backend. Copy `.env.example` to `.env` and fil
 |---|---|---|---|
 | `NODE_ENV` | Yes | `development` | Environment: `development`, `staging`, `production` |
 | `PORT` | Yes | `3000` | HTTP server port |
-| `APP_NAME` | No | `VTU-Logistics` | Application name (used in logs) |
+| `APP_NAME` | No | `iPrime` | Application name (used in logs) |
 
 ## Database (PostgreSQL)
 
@@ -88,7 +88,7 @@ Transactional email for merchant approvals, withdrawal receipts, etc.
 |---|---|---|
 | `SMTP_USER` | Yes | SMTP account email address |
 | `SMTP_PASS` | Yes | SMTP account password or app password |
-| `SMTP_FROM_NAME` | No | Display name for outgoing emails (default: `VTU Logistics`) |
+| `SMTP_FROM_NAME` | No | Display name for outgoing emails (default: `iPrime`) |
 
 ## Cloudinary (Image Uploads)
 

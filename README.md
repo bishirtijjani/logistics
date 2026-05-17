@@ -1,4 +1,4 @@
-# VTU & Logistics Platform
+# iPrime
 
 A mobile super-app for Android and iOS targeting users across Katsina State, Nigeria. The platform brings together digital wallet services, utility bill payments, and delivery logistics under a single app.
 

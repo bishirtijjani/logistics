@@ -15,7 +15,7 @@ const envSchema = z.object({
   // Application
   NODE_ENV: z.enum(['development', 'staging', 'production']).default('development'),
   PORT: z.coerce.number().default(3000),
-  APP_NAME: z.string().default('VTU-Logistics'),
+  APP_NAME: z.string().default('iPrime'),
 
   // Database
   DATABASE_URL: z.string().url(),
@@ -33,6 +33,9 @@ const envSchema = z.object({
 
   // AlRahuz Data — Nigerian VTU provider
   ALRAHUZ_TOKEN: isDev ? z.string().default('') : z.string().min(1),
+
+  // AirtimeToCash Automation — customer sells airtime → wallet credit
+  AIRTIMETOCASH_TOKEN: isDev ? z.string().default('') : z.string().min(1),
 
   // Google Maps — required in production, optional in dev
   GOOGLE_MAPS_API_KEY: isDev ? z.string().default('') : z.string().min(1),
@@ -65,7 +68,7 @@ const envSchema = z.object({
   // Email (SMTP)
   SMTP_USER: z.string().email(),
   SMTP_PASS: z.string().min(1),
-  SMTP_FROM_NAME: z.string().default('VTU Logistics'),
+  SMTP_FROM_NAME: z.string().default('iPrime'),
 
   // KatPay — required in production, optional in dev
   KATPAY_BASE_URL: z.string().default('https://api.katpay.co'),

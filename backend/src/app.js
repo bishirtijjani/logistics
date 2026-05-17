@@ -20,6 +20,7 @@ const { logger } = require("./utils/logger");
 const authRoutes = require("./modules/auth/auth.routes");
 const walletRoutes = require("./modules/wallet/wallet.routes");
 const utilityRoutes = require("./modules/utility/utility.routes");
+const airtimeToCashRoutes = require("./modules/airtimeToCash/airtimeToCash.routes");
 const riderRoutes = require("./modules/rider/rider.routes");
 const adminRoutes = require("./modules/admin/admin.routes");
 const webhookRoutes = require("./modules/webhook/webhook.routes");
@@ -76,6 +77,7 @@ const createApp = () => {
   app.use(`${API_PREFIX}/auth`, authRoutes);
   app.use(`${API_PREFIX}/wallet`, walletRoutes);
   app.use(`${API_PREFIX}/utilities`, utilityRoutes);
+  app.use(`${API_PREFIX}/airtime-to-cash`, airtimeToCashRoutes);
   app.use(`${API_PREFIX}/rider`, riderRoutes);
   app.use(`${API_PREFIX}/admin`, adminRoutes);
   app.use(`${API_PREFIX}/webhooks`, webhookRoutes);

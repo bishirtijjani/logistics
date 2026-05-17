@@ -34,7 +34,9 @@ const configureAndroidChannels = async () => {
     sound: 'default',
     vibrationPattern: [0, 400, 200, 400, 200, 400],
     lightColor: '#EA580C',
-    bypassDnd: false,
+    // Pierce Do Not Disturb on Android — offers are time-critical (60 s window).
+    // Riders who don't want this can disable the channel from system settings.
+    bypassDnd: true,
   });
   await Notifications.setNotificationChannelAsync('rider-trip', {
     name: 'Active trip',

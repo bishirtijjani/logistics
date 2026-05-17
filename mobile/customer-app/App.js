@@ -8,6 +8,7 @@ import {
   LogBox,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useFonts, Roboto_700Bold } from "@expo-google-fonts/roboto";
 import "./global.css";
 // Phase 9 — initialize i18n before any screen mounts so the device locale (or
 // previously persisted user choice) is the language seen on first paint.
@@ -94,6 +95,11 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 }
 
 export default function App() {
+  // Load the brand-logo font in the background. We don't block first paint on
+  // it — the only consumer is AboutScreen, which the user navigates to long
+  // after the font is cached.
+  useFonts({ Roboto_700Bold });
+
   // Socket lifecycle is now managed by AppNavigator (gated on auth + biometric),
   // so the previous unconditional connect-on-mount here is no longer needed.
   //

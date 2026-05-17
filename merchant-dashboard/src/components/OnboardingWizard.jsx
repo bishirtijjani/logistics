@@ -185,7 +185,7 @@ export default function OnboardingWizard({ open, onClose }) {
   }
 
   const handleComplete = () => {
-    showSuccessToast('Welcome to VTU Logistics! Your dashboard is ready.')
+    showSuccessToast('Welcome to iPrime! Your dashboard is ready.')
     onClose?.()
   }
 

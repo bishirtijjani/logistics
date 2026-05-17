@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -8,16 +8,23 @@ const inter = Inter({
   display: "swap",
 });
 
+const roboto = Roboto({
+  variable: "--font-roboto",
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  display: "swap",
+});
+
 export const metadata = {
   metadataBase: new URL("https://vtulogistics.com"),
   title: {
-    default: "VTU Logistics — Wallet, Utilities & Delivery in Katsina",
-    template: "%s · VTU Logistics",
+    default: "iPrime — Wallet, Utilities & Delivery in Katsina",
+    template: "%s · iPrime",
   },
   description:
-    "VTU Logistics is the wallet, utilities, and delivery super-app for Katsina State. Send money, pay bills, order food, groceries, pharmacy and courier — all in one app.",
+    "iPrime is the wallet, utilities, and delivery super-app for Katsina State. Send money, pay bills, order food, groceries, pharmacy and courier — all in one app.",
   keywords: [
-    "VTU Logistics",
+    "iPrime",
     "Katsina delivery",
     "Nigeria wallet app",
     "airtime data Nigeria",
@@ -27,22 +34,22 @@ export const metadata = {
     "courier Katsina",
     "super-app Nigeria",
   ],
-  authors: [{ name: "VTU Logistics" }],
-  creator: "VTU Logistics",
-  publisher: "VTU Logistics",
+  authors: [{ name: "iPrime" }],
+  creator: "iPrime",
+  publisher: "iPrime",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "en_NG",
     url: "https://vtulogistics.com",
-    title: "VTU Logistics — Wallet, Utilities & Delivery in Katsina",
+    title: "iPrime — Wallet, Utilities & Delivery in Katsina",
     description:
       "One app for your wallet, airtime, electricity, and door-to-door delivery across Katsina State.",
-    siteName: "VTU Logistics",
+    siteName: "iPrime",
   },
   twitter: {
     card: "summary_large_image",
-    title: "VTU Logistics — Wallet, Utilities & Delivery in Katsina",
+    title: "iPrime — Wallet, Utilities & Delivery in Katsina",
     description:
       "One app for your wallet, airtime, electricity, and door-to-door delivery across Katsina State.",
   },
@@ -69,7 +76,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${roboto.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-white text-[--color-text-primary]">
         {children}
       </body>

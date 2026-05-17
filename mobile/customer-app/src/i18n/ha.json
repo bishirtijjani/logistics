@@ -4,7 +4,7 @@
     "_note": "All translations are a working draft. Every key needs review by a native Hausa speaker before launch. Track progress in mobile/customer-app/src/i18n/HAUSA_REVIEW.md."
   },
   "common": {
-    "appName": "VTU Logistics",
+    "appName": "iPrime",
     "ok": "To",
     "cancel": "Soke",
     "save": "Ajiye",
@@ -304,7 +304,7 @@
       "balanceBefore": "Ma'auni kafin",
       "balanceAfter": "Ma'auni bayan",
       "date": "Kwanan wata",
-      "footer": "VTU Logistics — Rasit na hukuma",
+      "footer": "iPrime — Rasit na hukuma",
       "copyRef": "Kwafi lamba",
       "share": "Raba",
       "shareDialogTitle": "Rasit na mu'amalla",
@@ -997,7 +997,7 @@
   },
   "about": {
     "title": "Game da",
-    "appName": "VTU Logistics",
+    "appName": "iPrime",
     "tagline": "Sabis na hanya don Katsina da bayanta.",
     "version": "Sigar {{version}}",
     "build": "Build {{build}}",
@@ -1023,7 +1023,7 @@
     "emailLabel": "Imel na tallafi",
     "emailValue": "support@vtulogistics.com",
     "phoneLabel": "Wayar tallafi",
-    "phoneValue": "0800-VTU-HELP",
+    "phoneValue": "0800-IPRIME",
     "phone": "Kira tallafi",
     "email": "Aika imel zuwa tallafi",
     "whatsapp": "Aika saƙo a WhatsApp",

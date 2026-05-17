@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 import { colors } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { usePinGuard } from "../../lib/usePinGuard";
@@ -43,9 +44,16 @@ export default function AirtimeScreen({ navigation }) {
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
   const [showPinSheet, setShowPinSheet] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const detectTimer = useRef(null);
+
+  const showErr = (field, msg) => {
+    setFieldErrors({ [field]: msg });
+    Toast.show({ type: "error", text1: msg });
+  };
+  const clearField = (field) =>
+    setFieldErrors((e) => (e[field] ? { ...e, [field]: undefined } : e));
 
   useEffect(() => {
     dispatch(fetchPlans({ type: "AIRTIME" }));
@@ -77,7 +85,7 @@ export default function AirtimeScreen({ navigation }) {
   const handlePhoneChange = (text) => {
     const cleaned = text.replace(/[^0-9]/g, "");
     setPhone(cleaned);
-    setError("");
+    clearField("phone");
     if (cleaned.length < 4) setNetworkAutoSelected(false);
   };
 
@@ -87,11 +95,11 @@ export default function AirtimeScreen({ navigation }) {
   };
 
   const handlePurchase = () => {
-    if (!selectedNetwork) { setError(t("utility.airtimeScreen.errSelectNetwork")); return; }
-    if (!phone.trim() || phone.length < 10) { setError(t("utility.airtimeScreen.errInvalidPhone")); return; }
-    if (!amount || Number(amount) < minAmount) { setError(t("utility.airtimeScreen.errMinAmount", { amount: naira(minAmount) })); return; }
-    if (Number(amount) > Number(balance)) { setError(t("utility.airtimeScreen.errInsufficientBalance")); return; }
-    setError("");
+    if (!selectedNetwork) { showErr("network", t("utility.airtimeScreen.errSelectNetwork")); return; }
+    if (!phone.trim() || phone.length < 10) { showErr("phone", t("utility.airtimeScreen.errInvalidPhone")); return; }
+    if (!amount || Number(amount) < minAmount) { showErr("amount", t("utility.airtimeScreen.errMinAmount", { amount: naira(minAmount) })); return; }
+    if (Number(amount) > Number(balance)) { showErr("amount", t("utility.airtimeScreen.errInsufficientBalance")); return; }
+    setFieldErrors({});
     if (!requirePin()) return;
     setShowPinSheet(true);
   };
@@ -125,14 +133,7 @@ export default function AirtimeScreen({ navigation }) {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
-        {error ? (
-          <View style={{ backgroundColor: colors.error + "15", borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="alert-circle" size={20} color={colors.error} style={{ marginRight: 8 }} />
-            <Text style={{ flex: 1, fontSize: 13, color: colors.error, fontWeight: "500" }}>{error}</Text>
-          </View>
-        ) : null}
-
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}>
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>
           {t("utility.airtimeScreen.selectNetwork")}{" "}
           {networkAutoSelected ? <Text style={{ color: colors.primary }}>{t("utility.airtimeScreen.autoDetected")}</Text> : null}
@@ -140,11 +141,11 @@ export default function AirtimeScreen({ navigation }) {
         {isLoading && !networks.length ? (
           <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} />
         ) : (
-          <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 20 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: fieldErrors.network ? 4 : 20 }}>
             {networks.map((n) => (
               <TouchableOpacity
                 key={n.id}
-                onPress={() => { setSelectedNetwork(n); setNetworkAutoSelected(false); }}
+                onPress={() => { setSelectedNetwork(n); setNetworkAutoSelected(false); clearField("network"); }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: selectedNetwork?.id === n.id }}
                 accessibilityLabel={n.networkName}
@@ -164,6 +165,9 @@ export default function AirtimeScreen({ navigation }) {
             ))}
           </View>
         )}
+        {fieldErrors.network ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.network}</Text>
+        ) : null}
 
         {recents.length > 0 ? (
           <View style={{ marginBottom: 16 }}>
@@ -192,7 +196,7 @@ export default function AirtimeScreen({ navigation }) {
         ) : null}
 
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.phoneLabel")}</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 20 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.phone ? colors.error : colors.border, paddingHorizontal: 16, marginBottom: fieldErrors.phone ? 4 : 20 }}>
           <Ionicons name="call-outline" size={20} color={colors.textMuted} />
           <TextInput
             value={phone}
@@ -205,12 +209,15 @@ export default function AirtimeScreen({ navigation }) {
             style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.text, paddingVertical: 16, marginLeft: 12 }}
           />
         </View>
+        {fieldErrors.phone ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.phone}</Text>
+        ) : null}
 
         <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.amountLabel")}</Text>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: colors.border, paddingHorizontal: 16, marginBottom: 12 }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.amount ? colors.error : colors.border, paddingHorizontal: 16, marginBottom: fieldErrors.amount ? 4 : 12 }}>
           <TextInput
             value={amount}
-            onChangeText={(text) => { setAmount(text.replace(/[^0-9]/g, "")); setError(""); }}
+            onChangeText={(text) => { setAmount(text.replace(/[^0-9]/g, "")); clearField("amount"); }}
             placeholder={t("utility.airtimeScreen.amountPh")}
             accessibilityLabel={t("utility.airtimeScreen.amountLabel")}
             placeholderTextColor={colors.textLight}
@@ -218,6 +225,9 @@ export default function AirtimeScreen({ navigation }) {
             style={{ fontSize: 24, fontWeight: "700", color: colors.text, paddingVertical: 16 }}
           />
         </View>
+        {fieldErrors.amount ? (
+          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.amount}</Text>
+        ) : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
           {QUICK_AMOUNTS.map((value) => {
             const selected = Number(amount) === value;

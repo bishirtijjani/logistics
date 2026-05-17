@@ -25,6 +25,38 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000';
 export const BASE_URL = `${API_BASE}/api`;
 export const SOCKET_URL = API_BASE;
 
+/**
+ * Server-clock skew tracking.
+ *
+ * Captured opportunistically from the `Date` response header on every API
+ * call — no extra round trips. Consumers use `serverNow()` to get a clock
+ * value that matches the server's wall time, regardless of how wrong the
+ * device clock is. Used by `OfferCountdownRing` so a rider with a 30 s-off
+ * phone clock still sees the right remaining time on offers.
+ *
+ * Skew is `serverNow - clientNow` in milliseconds.
+ */
+let _serverSkewMs = 0;
+
+export function getServerSkewMs() {
+  return _serverSkewMs;
+}
+
+export function serverNow() {
+  return Date.now() + _serverSkewMs;
+}
+
+function maybeUpdateSkewFromHeader(headers) {
+  try {
+    const dateHeader = headers?.date || headers?.Date;
+    if (!dateHeader) return;
+    const serverMs = Date.parse(dateHeader);
+    if (Number.isNaN(serverMs)) return;
+    // EMA-ish smoothing — single sample is good enough for our purpose.
+    _serverSkewMs = serverMs - Date.now();
+  } catch (_) {}
+}
+
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
@@ -88,6 +120,12 @@ const forceLogout = async ({ showToast = true } = {}) => {
   try {
     await SecureStore.deleteItemAsync('accessToken');
     await SecureStore.deleteItemAsync('refreshToken');
+    // Best-effort: also drop the rider onboarding draft so a re-signed-in user
+    // doesn't inherit the previous one. Lazy require avoids a circular import
+    // (lib/onboardingPersistence is pure and doesn't import api, but the
+    // require keeps the dep graph obviously DAG even after future refactors).
+    const { clearOnboardingDraft } = require('../lib/onboardingPersistence');
+    await clearOnboardingDraft();
   } catch (_) {}
   if (showToast) {
     Toast.show({
@@ -102,8 +140,12 @@ const forceLogout = async ({ showToast = true } = {}) => {
 };
 
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    maybeUpdateSkewFromHeader(response.headers);
+    return response.data;
+  },
   async (error) => {
+    maybeUpdateSkewFromHeader(error?.response?.headers);
     const original = error.config;
     const status = error.response?.status ?? null;
     const requestUrl = original?.url || '';

@@ -68,7 +68,7 @@ const sendOtpEmail = async (email, otp) => {
               <!-- Header -->
               <tr>
                 <td style="padding:32px 32px 0;text-align:center;">
-                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">VTU Logistics</h1>
+                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">iPrime</h1>
                   <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">Katsina State</p>
                 </td>
               </tr>
@@ -88,7 +88,7 @@ const sendOtpEmail = async (email, otp) => {
                 <td style="padding:0 32px 32px;text-align:center;">
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
                   <p style="margin:0;font-size:12px;color:#9ca3af;">
-                    &copy; ${new Date().getFullYear()} VTU Logistics Platform. All rights reserved.
+                    &copy; ${new Date().getFullYear()} iPrime. All rights reserved.
                   </p>
                 </td>
               </tr>
@@ -102,7 +102,7 @@ const sendOtpEmail = async (email, otp) => {
 
   return sendEmail({
     to: email,
-    subject: `${otp} — Your VTU Logistics verification code`,
+    subject: `${otp} — Your iPrime verification code`,
     html,
     text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
   });
@@ -126,7 +126,7 @@ const sendWelcomeEmail = async (email, firstName) => {
             <table width="100%" style="max-width:480px;background-color:#ffffff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
               <tr>
                 <td style="padding:32px 32px 0;text-align:center;">
-                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">Welcome to VTU Logistics!</h1>
+                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">Welcome to iPrime!</h1>
                 </td>
               </tr>
               <tr>
@@ -148,7 +148,7 @@ const sendWelcomeEmail = async (email, firstName) => {
                 <td style="padding:0 32px 32px;text-align:center;">
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
                   <p style="margin:0;font-size:12px;color:#9ca3af;">
-                    &copy; ${new Date().getFullYear()} VTU Logistics Platform
+                    &copy; ${new Date().getFullYear()} iPrime
                   </p>
                 </td>
               </tr>
@@ -162,9 +162,9 @@ const sendWelcomeEmail = async (email, firstName) => {
 
   return sendEmail({
     to: email,
-    subject: `Welcome to VTU Logistics, ${firstName}!`,
+    subject: `Welcome to iPrime, ${firstName}!`,
     html,
-    text: `Hi ${firstName}, welcome to VTU Logistics! Your account is ready.`,
+    text: `Hi ${firstName}, welcome to iPrime! Your account is ready.`,
   });
 };
 
@@ -205,7 +205,7 @@ const sendPasswordResetEmail = async (email, otp) => {
                 <td style="padding:0 32px 32px;text-align:center;">
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
                   <p style="margin:0;font-size:12px;color:#9ca3af;">
-                    &copy; ${new Date().getFullYear()} VTU Logistics Platform
+                    &copy; ${new Date().getFullYear()} iPrime
                   </p>
                 </td>
               </tr>
@@ -243,7 +243,7 @@ const emailBase = (content) => `
         <table width="100%" style="max-width:520px;background-color:#ffffff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
           <tr>
             <td style="background:linear-gradient(135deg,#EA580C,#C2410C);padding:28px 32px;border-radius:16px 16px 0 0;">
-              <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">VTU Logistics</h1>
+              <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">iPrime</h1>
               <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">Merchant Notification</p>
             </td>
           </tr>
@@ -254,7 +254,7 @@ const emailBase = (content) => `
           </tr>
           <tr>
             <td style="padding:0 32px 28px;text-align:center;border-top:1px solid #f3f4f6;">
-              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} VTU Logistics Platform. All rights reserved.</p>
+              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} iPrime. All rights reserved.</p>
               <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@vtulogistics.com" style="color:#EA580C;text-decoration:none;">support@vtulogistics.com</a></p>
             </td>
           </tr>
@@ -283,7 +283,7 @@ const sendMerchantApprovedEmail = async (email, merchantName) => {
     <h2 style="margin:0 0 8px;font-size:22px;color:#10b981;font-weight:700;">Application Approved!</h2>
     <p style="margin:0 0 16px;font-size:16px;color:#374151;">Congratulations, <strong>${merchantName}</strong>!</p>
     <p style="margin:0 0 20px;font-size:15px;color:#6b7280;line-height:1.6;">
-      Your merchant application on VTU Logistics has been <strong style="color:#10b981;">approved</strong>.
+      Your merchant application on iPrime has been <strong style="color:#10b981;">approved</strong>.
       You can now log in to your merchant dashboard and start listing your products.
     </p>
     <div style="background:#f0fdf4;border-radius:10px;padding:20px;margin:20px 0;">
@@ -302,7 +302,7 @@ const sendMerchantApprovedEmail = async (email, merchantName) => {
 
   return sendEmail({
     to: email,
-    subject: `Your VTU Logistics merchant application is approved — ${merchantName}`,
+    subject: `Your iPrime merchant application is approved — ${merchantName}`,
     html,
     text: `Congratulations! Your merchant application for ${merchantName} has been approved. Log in to your dashboard to get started.`,
   });
@@ -335,7 +335,7 @@ const sendMerchantRejectedEmail = async (email, merchantName, reason) => {
 
   return sendEmail({
     to: email,
-    subject: `Update on your VTU Logistics merchant application`,
+    subject: `Update on your iPrime merchant application`,
     html,
     text: `Dear ${merchantName}, your merchant application was not approved. Reason: ${reason}. Please contact support@vtulogistics.com for more information.`,
   });
@@ -363,7 +363,7 @@ const sendMerchantSuspendedEmail = async (email, merchantName, reason) => {
 
   return sendEmail({
     to: email,
-    subject: `Important: Your VTU Logistics merchant account has been suspended`,
+    subject: `Important: Your iPrime merchant account has been suspended`,
     html,
     text: `Dear ${merchantName}, your merchant account has been suspended. Reason: ${reason}. Contact support@vtulogistics.com to appeal.`,
   });
@@ -392,7 +392,7 @@ const sendMerchantUnsuspendedEmail = async (email, merchantName) => {
 
   return sendEmail({
     to: email,
-    subject: `Your VTU Logistics merchant account has been restored — ${merchantName}`,
+    subject: `Your iPrime merchant account has been restored — ${merchantName}`,
     html,
     text: `Dear ${merchantName}, your merchant account suspension has been lifted. You can now log in and resume operations.`,
   });
@@ -423,7 +423,7 @@ const sendWithdrawalApprovedEmail = async (email, merchantName, amount, referenc
 
   return sendEmail({
     to: email,
-    subject: `Withdrawal of ${formattedAmount} approved — VTU Logistics`,
+    subject: `Withdrawal of ${formattedAmount} approved — iPrime`,
     html,
     text: `Dear ${merchantName}, your withdrawal of ${formattedAmount} has been approved. Reference: ${reference}.`,
   });
@@ -455,7 +455,7 @@ const sendWithdrawalRejectedEmail = async (email, merchantName, amount, reason) 
 
   return sendEmail({
     to: email,
-    subject: `Withdrawal request could not be processed — VTU Logistics`,
+    subject: `Withdrawal request could not be processed — iPrime`,
     html,
     text: `Dear ${merchantName}, your withdrawal of ${formattedAmount} could not be processed. Reason: ${reason}. The funds have been returned to your wallet.`,
   });
@@ -487,7 +487,7 @@ const sendCommissionChangedEmail = async (email, merchantName, previousRate, new
 
   return sendEmail({
     to: email,
-    subject: `Your VTU Logistics commission rate has been updated to ${newRate}%`,
+    subject: `Your iPrime commission rate has been updated to ${newRate}%`,
     html,
     text: `Dear ${merchantName}, your commission rate has changed from ${previousRate}% to ${newRate}%. This takes effect immediately.`,
   });

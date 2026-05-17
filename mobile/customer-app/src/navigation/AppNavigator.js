@@ -236,7 +236,7 @@ export default function AppNavigator() {
         return;
       }
       setBioGate("required");
-      const ok = await authenticateWithBiometric("Unlock VTU Logistics");
+      const ok = await authenticateWithBiometric("Unlock iPrime");
       if (cancelled) return;
       setBioGate(ok ? "passed" : "required");
     })();
@@ -246,7 +246,7 @@ export default function AppNavigator() {
   }, [isHydrating, isAuthenticated]);
 
   const retryBiometric = async () => {
-    const ok = await authenticateWithBiometric("Unlock VTU Logistics");
+    const ok = await authenticateWithBiometric("Unlock iPrime");
     if (ok) setBioGate("passed");
   };
 
