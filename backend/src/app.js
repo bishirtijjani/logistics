@@ -16,7 +16,29 @@ const { errorHandler } = require("./middlewares/error.middleware");
 const { generalLimiter } = require("./middlewares/rate-limit.middleware");
 const { requestId: requestIdMiddleware } = require("./middlewares/request-id.middleware");
 const { logger } = require("./utils/logger");
+const { config } = require("./config");
 const sentry = require("./utils/sentry");
+
+// Build the CORS options once at module load. In dev the configured value
+// defaults to '*' so we pass that through; in staging/prod we parse the
+// comma-separated allowlist and reject everything else.
+const buildCorsOptions = () => {
+  const raw = (config.CORS_ALLOWED_ORIGINS || "").trim();
+  if (raw === "*" || raw === "") {
+    return { origin: true, credentials: true };
+  }
+  const allowList = raw.split(",").map((o) => o.trim()).filter(Boolean);
+  return {
+    origin(origin, callback) {
+      // Non-browser callers (curl, mobile apps, server-to-server) send no
+      // Origin header — allow those through; CORS only matters for browsers.
+      if (!origin) return callback(null, true);
+      if (allowList.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS: origin "${origin}" not in allowlist`));
+    },
+    credentials: true,
+  };
+};
 
 // Route imports
 const authRoutes = require("./modules/auth/auth.routes");
@@ -51,7 +73,7 @@ const createApp = () => {
 
   // --------------- Security & Parsing ---------------
   app.use(helmet());
-  app.use(cors());
+  app.use(cors(buildCorsOptions()));
   // Webhook payloads need the RAW body for HMAC signature verification.
   // This must be mounted BEFORE express.json() so the raw bytes aren't
   // consumed and re-parsed into an object (which would yield "[object Object]"

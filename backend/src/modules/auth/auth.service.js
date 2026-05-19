@@ -1141,6 +1141,9 @@ const UPLOAD_KINDS = {
   // be investigated by listing the folder. Scope is `request` (not `user`).
   pod: { root: "pod", prefix: "pod", scope: "request" },
   pod_signature: { root: "pod", prefix: "sig", scope: "request" },
+  // Phase 7 — rider re-uploadable KYC documents. Stored under
+  // `vtu-logistics/rider-docs/{userId}/...`. Role-gated to RIDER below.
+  rider_doc: { root: "rider-docs", prefix: "doc", scope: "rider" },
 };
 
 /**
@@ -1197,6 +1200,14 @@ const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", 
       );
     }
     folderScopeId = scopeId;
+  }
+  // Phase 7 — rider_doc is RIDER-only (admins also allowed for forensic
+  // re-uploads from the admin dashboard if we ever need that). Folder is
+  // user-scoped so multiple docs share a single tree per rider.
+  if (spec.scope === "rider") {
+    if (userRole !== "RIDER" && userRole !== "ADMIN") {
+      throw AppError.forbidden("Only riders can upload KYC documents");
+    }
   }
 
   const crypto = require("crypto");

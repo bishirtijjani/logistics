@@ -24,9 +24,24 @@ const acceptJobSchema = z.object({
   orderId: z.string().uuid(),
 });
 
+// Phase 7 — document re-upload + offer decline.
+const reuploadDocumentSchema = z.object({
+  kind: z.enum(['ID_DOC', 'DRIVER_LICENCE', 'VEHICLE_PHOTO', 'VEHICLE_REG', 'INSURANCE']),
+  url: z.string().url().max(1024),
+  // Optional for VEHICLE_PHOTO (no expiry); the service enforces presence
+  // for kinds that require one.
+  expiresAt: z.string().datetime().optional(),
+});
+
+const declineOfferSchema = z.object({
+  requestId: z.string().uuid(),
+});
+
 module.exports = {
   riderRegistrationSchema,
   updateAvailabilitySchema,
   updateLocationSchema,
   acceptJobSchema,
+  reuploadDocumentSchema,
+  declineOfferSchema,
 };

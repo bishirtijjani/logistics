@@ -195,6 +195,32 @@ const acceptJob = async (userId, requestId) => {
       data: { availability: 'ON_DELIVERY' },
     });
 
+    // Phase 7 — flip this rider's offer log row to ACCEPTED, and any other
+    // riders who were offered to TAKEN, so performance metrics can compute
+    // acceptance rate correctly. Upsert handles the rare path where a rider
+    // accepts via deep-link without ever having received an OFFERED row
+    // (e.g. admin reassignment, or pre-offer accept on a public package).
+    const now = new Date();
+    await tx.riderOfferLog.upsert({
+      where: { riderId_requestId: { riderId: rider.id, requestId } },
+      create: {
+        riderId: rider.id,
+        requestId,
+        outcome: 'ACCEPTED',
+        ringAttempt: request.searchAttempts || 0,
+        respondedAt: now,
+      },
+      update: { outcome: 'ACCEPTED', respondedAt: now },
+    });
+    await tx.riderOfferLog.updateMany({
+      where: {
+        requestId,
+        riderId: { not: rider.id },
+        outcome: 'OFFERED',
+      },
+      data: { outcome: 'TAKEN', respondedAt: now },
+    });
+
     return updated;
   });
 
@@ -391,6 +417,278 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
 };
 
 // ============================================================
+// Phase 7 — Performance metrics
+// ============================================================
+
+const PERFORMANCE_WINDOW_DAYS = 30;
+const ON_TIME_TOLERANCE = 1.2; // delivered within 1.2× of estimatedMinutes counts as on-time
+
+/**
+ * Compute the rider's trailing-30-day performance metrics:
+ *   - acceptanceRate    : ACCEPTED / (ACCEPTED + DECLINED + EXPIRED)
+ *   - cancellationRate  : rider-initiated cancellations / total trips claimed
+ *   - onTimeRate        : on-time deliveries / delivered count
+ *   - rating { average, count, breakdown }
+ *   - currentStreakDays : consecutive trailing days with ≥1 delivery
+ *   - totalDeliveries   : authoritative count from Rider.totalDeliveries
+ *
+ * Computed live from `RiderOfferLog`, `Request`, and `Rating`. We can swap
+ * in a materialized table (`RiderMetricsDaily`) later if read load grows;
+ * the response shape is stable so the client doesn't have to change.
+ */
+const getPerformance = async (userId) => {
+  const rider = await prisma.rider.findUnique({ where: { userId } });
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  const now = new Date();
+  const windowStart = new Date(now);
+  windowStart.setDate(windowStart.getDate() - PERFORMANCE_WINDOW_DAYS);
+  windowStart.setHours(0, 0, 0, 0);
+
+  // Run everything in parallel — these queries are independent.
+  const [offerCounts, claimedCount, riderCancelCount, deliveredRows, ratingAgg, ratingBreakdown, recentDeliveryDays] =
+    await Promise.all([
+      // (1) Offer outcomes for acceptance rate. Group by outcome.
+      prisma.riderOfferLog.groupBy({
+        by: ['outcome'],
+        where: { riderId: rider.id, offeredAt: { gte: windowStart } },
+        _count: { _all: true },
+      }),
+      // (2) Total requests claimed (assigned) in the window.
+      prisma.request.count({
+        where: { riderId: rider.id, riderAssignedAt: { gte: windowStart } },
+      }),
+      // (3) Rider-initiated cancellations in the window.
+      prisma.request.count({
+        where: {
+          riderId: rider.id,
+          status: 'CANCELLED',
+          cancelledBy: 'rider',
+          cancelledAt: { gte: windowStart },
+        },
+      }),
+      // (4) Delivered rows for on-time computation.
+      prisma.request.findMany({
+        where: {
+          riderId: rider.id,
+          status: { in: ['DELIVERED', 'SETTLED'] },
+          deliveredAt: { gte: windowStart, not: null },
+        },
+        select: {
+          riderAssignedAt: true,
+          deliveredAt: true,
+          estimatedMinutes: true,
+        },
+      }),
+      // (5) Average rating + count (across all time — rider.averageRating is
+      //     authoritative once the worker writes it, but we recompute here
+      //     to defend against drift).
+      prisma.rating.aggregate({
+        where: { riderId: rider.id, riderScore: { not: null } },
+        _avg: { riderScore: true },
+        _count: { riderScore: true },
+      }),
+      // (6) Rating breakdown 5..1.
+      prisma.rating.groupBy({
+        by: ['riderScore'],
+        where: { riderId: rider.id, riderScore: { not: null } },
+        _count: { _all: true },
+      }),
+      // (7) For current streak: distinct days with ≥1 delivery, trailing 60 days.
+      prisma.$queryRaw`
+        SELECT DISTINCT DATE_TRUNC('day', "deliveredAt")::date AS day
+        FROM "requests"
+        WHERE "riderId" = ${rider.id}
+          AND "deliveredAt" IS NOT NULL
+          AND "deliveredAt" >= ${new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000)}
+        ORDER BY day DESC
+      `,
+    ]);
+
+  // Acceptance rate — ACCEPTED / (ACCEPTED + DECLINED + EXPIRED). TAKEN
+  // doesn't count against the rider (another rider claimed it before they
+  // could respond).
+  const byOutcome = Object.fromEntries(
+    offerCounts.map((o) => [o.outcome, o._count._all]),
+  );
+  const accepted = byOutcome.ACCEPTED || 0;
+  const declined = byOutcome.DECLINED || 0;
+  const expired = byOutcome.EXPIRED || 0;
+  const denom = accepted + declined + expired;
+  const acceptanceRate = denom > 0 ? Math.round((accepted / denom) * 1000) / 10 : null;
+
+  // Cancellation rate — rider-initiated cancellations / total claimed jobs.
+  const cancellationRate =
+    claimedCount > 0 ? Math.round((riderCancelCount / claimedCount) * 1000) / 10 : null;
+
+  // On-time rate.
+  let onTimeRate = null;
+  if (deliveredRows.length > 0) {
+    const withEstimates = deliveredRows.filter(
+      (r) => r.estimatedMinutes != null && r.riderAssignedAt && r.deliveredAt,
+    );
+    if (withEstimates.length > 0) {
+      const onTime = withEstimates.filter((r) => {
+        const elapsedMin = (new Date(r.deliveredAt) - new Date(r.riderAssignedAt)) / 60000;
+        return elapsedMin <= r.estimatedMinutes * ON_TIME_TOLERANCE;
+      }).length;
+      onTimeRate = Math.round((onTime / withEstimates.length) * 1000) / 10;
+    }
+  }
+
+  // Rating breakdown — bucket 5/4/3/2/1.
+  const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  for (const row of ratingBreakdown) {
+    if (row.riderScore != null && breakdown[row.riderScore] !== undefined) {
+      breakdown[row.riderScore] = row._count._all;
+    }
+  }
+
+  // Current streak — consecutive trailing days ending today (or yesterday).
+  const dayStrings = recentDeliveryDays.map((r) =>
+    r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day).slice(0, 10),
+  );
+  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    .toISOString().slice(0, 10);
+  const yesterdayStr = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    .toISOString().slice(0, 10);
+  let streak = 0;
+  if (dayStrings[0] === todayStr || dayStrings[0] === yesterdayStr) {
+    // Walk backwards from the most recent delivery day; count consecutive.
+    let cursor = new Date(dayStrings[0]);
+    for (const ds of dayStrings) {
+      if (ds === cursor.toISOString().slice(0, 10)) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  return {
+    windowDays: PERFORMANCE_WINDOW_DAYS,
+    acceptanceRate,
+    cancellationRate,
+    onTimeRate,
+    totalDeliveries: rider.totalDeliveries || 0,
+    currentStreakDays: streak,
+    rating: {
+      average: ratingAgg._avg.riderScore != null
+        ? Math.round(ratingAgg._avg.riderScore * 10) / 10
+        : rider.averageRating || 0,
+      count: ratingAgg._count.riderScore || 0,
+      breakdown,
+    },
+    // Surface counts so the UI can show "X offers in 30 days" etc.
+    counts: {
+      offersAccepted: accepted,
+      offersDeclined: declined,
+      offersExpired: expired,
+      jobsClaimed: claimedCount,
+      jobsCancelledByRider: riderCancelCount,
+      deliveriesInWindow: deliveredRows.length,
+    },
+  };
+};
+
+// ============================================================
+// Phase 7 — Document re-upload
+// ============================================================
+
+/// Whitelisted document kinds the rider can re-upload from the KYC screen.
+/// `kind` maps to the column on `Rider` that holds the Cloudinary URL.
+const DOC_KIND_COLUMN = {
+  ID_DOC:         { url: 'idDocumentUrl',  expiry: 'idDocExpiresAt' },
+  DRIVER_LICENCE: { url: 'driverLicenceUrl', expiry: 'driverLicenceExpiresAt' },
+  VEHICLE_PHOTO:  { url: 'vehiclePhotoUrl', expiry: null }, // photo has no expiry
+  VEHICLE_REG:    { url: 'vehicleRegUrl',  expiry: 'vehicleRegExpiresAt' },
+  INSURANCE:      { url: 'insuranceDocUrl', expiry: 'insuranceExpiresAt' },
+};
+
+/**
+ * Re-upload a rider document. Validates the URL came from our Cloudinary
+ * cloud (defense-in-depth, mirroring support attachment validation) and
+ * writes both the URL and the new expiry. The earliest of vehicleReg /
+ * insurance expiry is mirrored into `vehicleDocExpiresAt` so the cron
+ * worker has one column to query instead of UNION-ing two.
+ */
+const reuploadDocument = async (userId, { kind, url, expiresAt }) => {
+  const config = require('../../config').config;
+  const rider = await prisma.rider.findUnique({ where: { userId } });
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  const mapping = DOC_KIND_COLUMN[kind];
+  if (!mapping) {
+    throw AppError.badRequest('Unsupported document kind', { code: 'INVALID_DOC_KIND' });
+  }
+
+  // URL must come from our Cloudinary cloud.
+  const cloudName = (config.CLOUDINARY_CLOUD_NAME || '').trim();
+  if (cloudName) {
+    const expectedPrefix = `https://res.cloudinary.com/${cloudName}/`;
+    if (typeof url !== 'string' || !url.startsWith(expectedPrefix)) {
+      throw AppError.badRequest('Invalid document URL — upload via the in-app flow.', {
+        code: 'INVALID_DOC_URL',
+      });
+    }
+  }
+
+  // Expiry must be in the future (if provided). Vehicle photos legitimately
+  // omit expiry.
+  let parsedExpiry = null;
+  if (mapping.expiry) {
+    if (!expiresAt) {
+      throw AppError.badRequest('Document expiry is required for this document type', {
+        code: 'EXPIRY_REQUIRED',
+      });
+    }
+    parsedExpiry = new Date(expiresAt);
+    if (Number.isNaN(parsedExpiry.getTime())) {
+      throw AppError.badRequest('Invalid expiry date', { code: 'INVALID_EXPIRY' });
+    }
+    if (parsedExpiry.getTime() < Date.now()) {
+      throw AppError.badRequest('Expiry date must be in the future', { code: 'EXPIRY_PAST' });
+    }
+  }
+
+  const data = { [mapping.url]: url };
+  if (mapping.expiry) data[mapping.expiry] = parsedExpiry;
+  // Reset the throttle marker so a re-upload that pushes the rider out of
+  // the 14-day window stops emitting expiry pushes.
+  data.lastDocExpiryNoticeAt = null;
+
+  const updated = await prisma.rider.update({
+    where: { id: rider.id },
+    data,
+  });
+
+  // Recompute vehicleDocExpiresAt = min(vehicleRegExpiresAt, insuranceExpiresAt).
+  if (kind === 'VEHICLE_REG' || kind === 'INSURANCE') {
+    const reg = updated.vehicleRegExpiresAt ? new Date(updated.vehicleRegExpiresAt).getTime() : null;
+    const ins = updated.insuranceExpiresAt ? new Date(updated.insuranceExpiresAt).getTime() : null;
+    let earliest = null;
+    if (reg && ins) earliest = new Date(Math.min(reg, ins));
+    else if (reg) earliest = new Date(reg);
+    else if (ins) earliest = new Date(ins);
+    await prisma.rider.update({
+      where: { id: rider.id },
+      data: { vehicleDocExpiresAt: earliest },
+    });
+  }
+
+  logger.info('rider.document.reuploaded', {
+    riderId: rider.id, kind, hasExpiry: !!parsedExpiry,
+  });
+
+  return {
+    kind,
+    url,
+    expiresAt: parsedExpiry,
+  };
+};
+
+// ============================================================
 // Admin Rider Management Functions
 // ============================================================
 
@@ -551,6 +849,9 @@ module.exports = {
   updateLocation,
   acceptJob,
   getEarnings,
+  // Phase 7
+  getPerformance,
+  reuploadDocument,
   // Admin functions
   getAllRiders,
   getRiderDetails,

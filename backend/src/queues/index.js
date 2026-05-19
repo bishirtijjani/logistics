@@ -7,18 +7,20 @@
 
 const { Queue } = require('bullmq');
 const { redis } = require('../config/redis');
-const { QUEUES, DEFAULT_JOB_OPTIONS, PAYMENT_JOBS } = require('./jobs');
+const { QUEUES, DEFAULT_JOB_OPTIONS, PAYMENT_JOBS, RIDER_JOBS } = require('./jobs');
 const { logger } = require('../utils/logger');
 const { startPaymentWorker } = require('./workers/payment.worker');
 const { startNotificationWorker } = require('./workers/notification.worker');
 const { startUtilityWorker } = require('./workers/utility.worker');
 const { startRequestWorker } = require('./workers/request.worker');
+const { startRiderWorker } = require('./workers/rider.worker');
 
 // Queue instances — import these in services to add jobs
 const paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
 const notificationQueue = new Queue(QUEUES.NOTIFICATION, { connection: redis });
 const utilityQueue = new Queue(QUEUES.UTILITY, { connection: redis });
 const requestQueue = new Queue(QUEUES.REQUEST, { connection: redis });
+const riderQueue = new Queue(QUEUES.RIDER, { connection: redis });
 
 /**
  * Initialize all queues and start workers.
@@ -28,6 +30,7 @@ const initializeQueues = () => {
   startNotificationWorker();
   startUtilityWorker();
   startRequestWorker();
+  startRiderWorker();
 
   scheduleRecurringJobs();
 
@@ -64,6 +67,18 @@ const scheduleRecurringJobs = async () => {
         removeOnFail: { count: 90 },
       },
     );
+    // Phase 7 — daily doc-expiry scan. Runs at 04:00 so it lands after the
+    // reconciliation/idempotency cleanups but well before the morning rush.
+    await riderQueue.add(
+      RIDER_JOBS.CHECK_DOC_EXPIRY,
+      {},
+      {
+        jobId: 'cron:check-rider-doc-expiry',
+        repeat: { pattern: '0 4 * * *' }, // 04:00 daily
+        removeOnComplete: { count: 14 },
+        removeOnFail: { count: 30 },
+      },
+    );
     logger.info('Recurring jobs scheduled');
   } catch (err) {
     logger.error('Failed to schedule recurring jobs', { error: err.message });
@@ -92,6 +107,7 @@ module.exports = {
   notificationQueue,
   utilityQueue,
   requestQueue,
+  riderQueue,
   addUtilityJob,
   schedulePollPending,
 };

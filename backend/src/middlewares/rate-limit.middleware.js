@@ -87,6 +87,41 @@ const mapsLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id || req.ip,
 });
 
+/**
+ * Request creation — 30 new orders per hour per authenticated user.
+ *
+ * Single biggest abuse vector: a compromised account or buggy client
+ * dispatching hundreds of orders in a loop, locking up rider matching and
+ * burning the escrow ledger. Per-user keying (not per-IP) is intentional:
+ * IPs are shared on mobile networks and Wi-Fi, but a hijacked session is
+ * scoped to one userId.
+ */
+const requestCreationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: ApiResponse.error(
+    'You\'ve placed too many orders this hour. Please wait a few minutes and try again.',
+  ),
+  keyGenerator: (req) => req.user?.id || req.ip,
+});
+
+/**
+ * Quote endpoint — 120 quotes per hour per user. Quotes are cheap (no
+ * escrow, no DB writes for the request itself), but each one calls Google
+ * Maps for distance. Higher than create because the create flow re-quotes
+ * on refresh + on address change.
+ */
+const quoteLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: ApiResponse.error('Too many quote requests. Please slow down.'),
+  keyGenerator: (req) => req.user?.id || req.ip,
+});
+
 module.exports = {
   authLimiter,
   otpLimiter,
@@ -94,4 +129,6 @@ module.exports = {
   generalLimiter,
   registrationLimiter,
   mapsLimiter,
+  requestCreationLimiter,
+  quoteLimiter,
 };

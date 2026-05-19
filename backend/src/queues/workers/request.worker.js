@@ -55,6 +55,23 @@ const notifyJobTaken = async (io, requestId, takenByRiderId = null) => {
   } catch (err) {
     logger.warn('notifyJobTaken failed', { requestId, error: err.message });
   }
+
+  // Phase 7 — settle the persistent offer log so any still-OFFERED rows
+  // for this request transition to TAKEN (another rider got it). The
+  // accepting rider's own row is set to ACCEPTED inside acceptJob's
+  // transaction, so we exclude that rider here.
+  try {
+    await prisma.riderOfferLog.updateMany({
+      where: {
+        requestId,
+        outcome: 'OFFERED',
+        ...(takenByRiderId && { riderId: { not: takenByRiderId } }),
+      },
+      data: { outcome: 'TAKEN', respondedAt: new Date() },
+    });
+  } catch (err) {
+    logger.warn('Failed to settle rider offer logs', { requestId, error: err.message });
+  }
 };
 
 /**
@@ -137,6 +154,33 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
       await redis.expire(offeredKey(requestId), 1800);
     } catch (err) {
       logger.warn('Failed to record offer set', { requestId, error: err.message });
+    }
+
+    // Phase 7 — persist an OFFERED row per candidate rider so the rider's
+    // performance screen can compute acceptance rate. Skip riders that
+    // already have a row for this request (re-ring with overlap) to avoid
+    // resetting an EXPIRED/DECLINED outcome.
+    try {
+      const candidateIds = candidates.map((c) => c.riderId);
+      const existing = await prisma.riderOfferLog.findMany({
+        where: { requestId, riderId: { in: candidateIds } },
+        select: { riderId: true },
+      });
+      const existingSet = new Set(existing.map((e) => e.riderId));
+      const newRows = candidates
+        .filter((c) => !existingSet.has(c.riderId))
+        .map((c) => ({
+          riderId: c.riderId,
+          requestId,
+          outcome: 'OFFERED',
+          ringAttempt: attempt,
+          distanceKm: Math.round(c.distanceKm * 10) / 10,
+        }));
+      if (newRows.length > 0) {
+        await prisma.riderOfferLog.createMany({ data: newRows, skipDuplicates: true });
+      }
+    } catch (err) {
+      logger.warn('Failed to persist rider offer logs', { requestId, error: err.message });
     }
   }
 
@@ -692,6 +736,17 @@ const autoCancelUnmatched = async (job) => {
 
   // Also tell any riders we previously offered this request that it's gone.
   await notifyJobTaken(io, requestId, null);
+
+  // Phase 7 — flip any still-OFFERED rows for this request to EXPIRED so
+  // performance metrics treat the no-response correctly.
+  try {
+    await prisma.riderOfferLog.updateMany({
+      where: { requestId, outcome: 'OFFERED' },
+      data: { outcome: 'EXPIRED', respondedAt: new Date() },
+    });
+  } catch (err) {
+    logger.warn('Failed to expire rider offer logs', { requestId, error: err.message });
+  }
 
   // Notification Center row + push for the customer (consistent with the
   // customer-initiated cancel path).

@@ -1,0 +1,445 @@
+/**
+ * KycStatusScreen — five document tiles + re-upload flow.
+ *
+ * Each tile renders the current state (Valid / Expiring soon / Expired /
+ * Missing) and offers a "Re-upload" CTA. The picker → Cloudinary upload →
+ * `POST /api/rider/documents` chain lives in `reuploadRiderDocument`
+ * (profileSlice). NIN is verified at onboarding and has no expiry.
+ *
+ * The 30-day grace banner for accounts migrated under BLK-RiderKycExpansion
+ * is surfaced here whenever any tracked doc enters the warning window.
+ */
+
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Modal,
+  TextInput,
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
+import { useNavigation } from "@react-navigation/native";
+import { useDispatch, useSelector } from "react-redux";
+import Toast from "react-native-toast-message";
+import { useTheme } from "../../theme";
+import { uploadToCloudinary } from "../../services/cloudinary";
+import { pickImage } from "../support/supportUploads";
+import { reuploadRiderDocument } from "../../store/slices/profileSlice";
+import { fetchRiderProfile } from "../../store/slices/riderSlice";
+
+const WARN_WINDOW_DAYS = 14;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Static description of every doc tile. `urlField` and `expiryField` point
+ * at the column on the Rider record. `kind` is the value sent to the
+ * `/rider/documents` API.
+ */
+const DOC_TILES = [
+  {
+    kind: "ID_DOC",
+    icon: "person-outline",
+    title: "National ID / NIN slip",
+    urlField: "idDocumentUrl",
+    expiryField: "idDocExpiresAt",
+    requireExpiry: true,
+  },
+  {
+    kind: "DRIVER_LICENCE",
+    icon: "card-outline",
+    title: "Driver's licence",
+    urlField: "driverLicenceUrl",
+    expiryField: "driverLicenceExpiresAt",
+    requireExpiry: true,
+  },
+  {
+    kind: "VEHICLE_REG",
+    icon: "document-outline",
+    title: "Vehicle registration",
+    urlField: "vehicleRegUrl",
+    expiryField: "vehicleRegExpiresAt",
+    requireExpiry: true,
+  },
+  {
+    kind: "INSURANCE",
+    icon: "shield-checkmark-outline",
+    title: "Insurance certificate",
+    urlField: "insuranceDocUrl",
+    expiryField: "insuranceExpiresAt",
+    requireExpiry: true,
+  },
+  {
+    kind: "VEHICLE_PHOTO",
+    icon: "image-outline",
+    title: "Vehicle photo",
+    urlField: "vehiclePhotoUrl",
+    expiryField: null,
+    requireExpiry: false,
+  },
+];
+
+function classify(expiry) {
+  if (!expiry) return "missing";
+  const t = new Date(expiry).getTime();
+  if (Number.isNaN(t)) return "missing";
+  const delta = t - Date.now();
+  if (delta < 0) return "expired";
+  if (delta <= WARN_WINDOW_DAYS * DAY_MS) return "expiring";
+  return "valid";
+}
+
+function chipColor(state, tokens) {
+  switch (state) {
+    case "valid": return { bg: tokens.status.successSoft, text: tokens.status.successStrong, label: "Valid" };
+    case "expiring": return { bg: tokens.status.warningSoft, text: tokens.status.warningStrong, label: "Expiring soon" };
+    case "expired": return { bg: tokens.status.errorSoft, text: tokens.status.errorStrong, label: "Expired" };
+    case "missing":
+    default:
+      return { bg: tokens.bg.surfaceMuted, text: tokens.text.muted, label: "Missing" };
+  }
+}
+
+export default function KycStatusScreen() {
+  const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const rider = useSelector((s) => s.rider?.rider) || {};
+
+  const [activeTile, setActiveTile] = useState(null); // the tile being re-uploaded
+  const [submitting, setSubmitting] = useState(false);
+  const [expiryInput, setExpiryInput] = useState("");
+  const [pickedUri, setPickedUri] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const tiles = useMemo(
+    () =>
+      DOC_TILES.map((d) => {
+        const expiry = d.expiryField ? rider[d.expiryField] : null;
+        const url = rider[d.urlField] || null;
+        return {
+          ...d,
+          state: classify(d.expiryField ? expiry : url ? "valid-no-expiry" : null),
+          // For VEHICLE_PHOTO (no expiry), classify on URL presence:
+          url,
+          expiry,
+        };
+      }).map((d) => {
+        if (!d.expiryField) {
+          // No-expiry tile: classify by URL presence only.
+          return { ...d, state: d.url ? "valid" : "missing" };
+        }
+        return d;
+      }),
+    [rider],
+  );
+
+  const anyExpiring = tiles.some((d) => d.state === "expiring");
+  const anyExpired = tiles.some((d) => d.state === "expired");
+
+  const openSheet = (tile) => {
+    setActiveTile(tile);
+    setExpiryInput(tile.expiry ? new Date(tile.expiry).toISOString().slice(0, 10) : "");
+    setPickedUri(null);
+  };
+
+  const closeSheet = () => {
+    if (submitting || uploading) return;
+    setActiveTile(null);
+    setExpiryInput("");
+    setPickedUri(null);
+  };
+
+  const handlePick = (source) => async () => {
+    const uri = await pickImage(source);
+    if (uri) setPickedUri(uri);
+  };
+
+  const handleSubmit = async () => {
+    if (!activeTile || !pickedUri) {
+      Toast.show({ type: "error", text1: t("kyc.pickPhotoFirst", "Pick a photo to upload first.") });
+      return;
+    }
+    if (activeTile.requireExpiry && !/^\d{4}-\d{2}-\d{2}$/.test(expiryInput)) {
+      Toast.show({ type: "error", text1: t("kyc.expiryRequired", "Enter the expiry in YYYY-MM-DD.") });
+      return;
+    }
+    if (activeTile.requireExpiry) {
+      const ts = new Date(expiryInput).getTime();
+      if (Number.isNaN(ts) || ts <= Date.now()) {
+        Toast.show({ type: "error", text1: t("kyc.expiryFuture", "Expiry must be a future date.") });
+        return;
+      }
+    }
+    setSubmitting(true);
+    setUploading(true);
+    try {
+      const { secureUrl } = await uploadToCloudinary({
+        kind: "rider_doc",
+        localUri: pickedUri,
+      });
+      setUploading(false);
+      await dispatch(
+        reuploadRiderDocument({
+          kind: activeTile.kind,
+          url: secureUrl,
+          expiresAt: activeTile.requireExpiry ? new Date(expiryInput).toISOString() : undefined,
+        }),
+      ).unwrap();
+      Toast.show({ type: "success", text1: t("kyc.uploaded", "Document updated") });
+      await dispatch(fetchRiderProfile());
+      closeSheet();
+    } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: t("kyc.uploadFailed", "Upload failed"),
+        text2: err?.message,
+      });
+    } finally {
+      setSubmitting(false);
+      setUploading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <View
+        style={{
+          flexDirection: "row", alignItems: "center",
+          paddingHorizontal: 14, paddingVertical: 12,
+          backgroundColor: tokens.bg.surface,
+          borderBottomWidth: 1, borderBottomColor: tokens.border.default,
+        }}
+      >
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={{ padding: 4 }}>
+          <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
+        </TouchableOpacity>
+        <Text accessibilityRole="header" style={{ marginLeft: 10, fontSize: 17, fontWeight: "800", color: tokens.text.primary }}>
+          {t("kyc.title", "KYC documents")}
+        </Text>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        {anyExpired ? (
+          <View
+            style={{
+              backgroundColor: tokens.status.errorSoft,
+              borderColor: tokens.status.errorSoftBorder, borderWidth: 1,
+              borderRadius: 12, padding: 12, marginBottom: 14,
+              flexDirection: "row", alignItems: "flex-start",
+            }}
+          >
+            <Ionicons name="alert-circle" size={18} color={tokens.status.errorStrong} />
+            <Text style={{ flex: 1, marginLeft: 8, fontSize: 12, color: tokens.text.primary, lineHeight: 18 }}>
+              {t("kyc.expiredBanner", "One or more documents have expired. Re-upload to keep working.")}
+            </Text>
+          </View>
+        ) : anyExpiring ? (
+          <View
+            style={{
+              backgroundColor: tokens.status.warningSoft,
+              borderRadius: 12, padding: 12, marginBottom: 14,
+              flexDirection: "row", alignItems: "flex-start",
+            }}
+          >
+            <Ionicons name="time-outline" size={18} color={tokens.status.warningStrong} />
+            <Text style={{ flex: 1, marginLeft: 8, fontSize: 12, color: tokens.text.primary, lineHeight: 18 }}>
+              {t("kyc.expiringBanner", "Some documents expire within 14 days. Re-upload soon to avoid interruptions.")}
+            </Text>
+          </View>
+        ) : null}
+
+        {tiles.map((tile) => {
+          const chip = chipColor(tile.state, tokens);
+          return (
+            <View
+              key={tile.kind}
+              style={{
+                backgroundColor: tokens.bg.surface,
+                borderRadius: 14, padding: 14, marginBottom: 12,
+                borderWidth: 1, borderColor: tokens.border.default,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={{
+                    width: 40, height: 40, borderRadius: 20,
+                    backgroundColor: tokens.bg.surfaceMuted,
+                    alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name={tile.icon} size={20} color={tokens.text.primary} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>
+                    {tile.title}
+                  </Text>
+                  {tile.expiry ? (
+                    <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                      {t("kyc.expires", "Expires")}: {new Date(tile.expiry).toLocaleDateString()}
+                    </Text>
+                  ) : !tile.expiryField && tile.url ? (
+                    <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                      {t("kyc.onFile", "On file")}
+                    </Text>
+                  ) : (
+                    <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                      {t("kyc.notUploaded", "Not uploaded yet")}
+                    </Text>
+                  )}
+                </View>
+                <View
+                  style={{
+                    backgroundColor: chip.bg,
+                    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: chip.text }}>
+                    {chip.label}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => openSheet(tile)}
+                accessibilityRole="button"
+                style={{
+                  marginTop: 12,
+                  paddingVertical: 10, borderRadius: 10,
+                  backgroundColor: tile.state === "missing" || tile.state === "expired"
+                    ? tokens.brand.default
+                    : tokens.bg.surfaceMuted,
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13, fontWeight: "700",
+                    color: tile.state === "missing" || tile.state === "expired"
+                      ? tokens.text.onBrand
+                      : tokens.text.primary,
+                  }}
+                >
+                  {tile.url
+                    ? t("kyc.reupload", "Re-upload")
+                    : t("kyc.upload", "Upload")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      <Modal
+        visible={!!activeTile}
+        animationType="slide"
+        transparent
+        onRequestClose={closeSheet}
+      >
+        <View style={{ flex: 1, backgroundColor: tokens.overlay.scrim, justifyContent: "flex-end" }}>
+          <View
+            style={{
+              backgroundColor: tokens.bg.surface,
+              borderTopLeftRadius: 18, borderTopRightRadius: 18,
+              padding: 20, paddingBottom: 32,
+            }}
+          >
+            <Text style={{ fontSize: 17, fontWeight: "800", color: tokens.text.primary, marginBottom: 6 }}>
+              {activeTile?.url
+                ? t("kyc.reuploadTitle", "Re-upload {{name}}", { name: activeTile?.title })
+                : t("kyc.uploadTitle", "Upload {{name}}", { name: activeTile?.title })}
+            </Text>
+            <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 16 }}>
+              {t("kyc.uploadHint", "Clear, well-lit photo. PDFs aren't supported on mobile right now.")}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(t("support.attachPhoto", "Attach a photo"), undefined, [
+                  { text: t("photo.camera", "Camera"), onPress: handlePick("camera") },
+                  { text: t("photo.library", "Photo Library"), onPress: handlePick("gallery") },
+                  { text: t("photo.cancel", "Cancel"), style: "cancel" },
+                ])
+              }
+              disabled={uploading || submitting}
+              style={{
+                backgroundColor: pickedUri ? tokens.status.successSoft : tokens.bg.surfaceMuted,
+                paddingVertical: 14, borderRadius: 12, alignItems: "center", marginBottom: 14,
+                flexDirection: "row", justifyContent: "center", gap: 8,
+              }}
+            >
+              <Ionicons
+                name={pickedUri ? "checkmark-circle" : "camera-outline"}
+                size={20}
+                color={pickedUri ? tokens.status.successStrong : tokens.text.primary}
+              />
+              <Text style={{ fontWeight: "700", color: pickedUri ? tokens.status.successStrong : tokens.text.primary }}>
+                {pickedUri ? t("kyc.photoPicked", "Photo selected") : t("kyc.pickPhoto", "Pick a photo")}
+              </Text>
+            </TouchableOpacity>
+
+            {activeTile?.requireExpiry ? (
+              <>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6 }}>
+                  {t("kyc.expiryLabel", "Expiry date (YYYY-MM-DD)")}
+                </Text>
+                <TextInput
+                  value={expiryInput}
+                  onChangeText={setExpiryInput}
+                  placeholder="2027-12-31"
+                  placeholderTextColor={tokens.text.placeholder}
+                  keyboardType="numbers-and-punctuation"
+                  style={{
+                    backgroundColor: tokens.bg.surfaceMuted,
+                    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
+                    fontSize: 14, color: tokens.text.primary,
+                    marginBottom: 14,
+                  }}
+                />
+              </>
+            ) : null}
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={closeSheet}
+                disabled={submitting}
+                style={{
+                  flex: 1, paddingVertical: 14, borderRadius: 12,
+                  alignItems: "center",
+                  backgroundColor: tokens.bg.surfaceMuted,
+                }}
+              >
+                <Text style={{ color: tokens.text.primary, fontWeight: "700" }}>
+                  {t("common.cancel", "Cancel")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={submitting || !pickedUri}
+                style={{
+                  flex: 1, paddingVertical: 14, borderRadius: 12,
+                  alignItems: "center",
+                  backgroundColor: tokens.brand.default,
+                  opacity: submitting || !pickedUri ? 0.6 : 1,
+                }}
+              >
+                {submitting ? (
+                  <ActivityIndicator color={tokens.text.onBrand} />
+                ) : (
+                  <Text style={{ color: tokens.text.onBrand, fontWeight: "800" }}>
+                    {t("kyc.submit", "Submit")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}

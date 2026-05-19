@@ -39,7 +39,10 @@ router.patch('/tickets/:id/close', supportController.closeTicket);
 // Disputes
 // ============================================================
 
-router.post('/disputes', authorize('CUSTOMER'), idempotency, validate(createDisputeSchema), supportController.createDispute);
+// CUSTOMER or RIDER may file a dispute. Service enforces tighter rules
+// (customer must own the order; rider must be the assigned rider on a
+// DELIVERED request).
+router.post('/disputes', authorize('CUSTOMER', 'RIDER'), idempotency, validate(createDisputeSchema), supportController.createDispute);
 router.get('/disputes', validate(disputeListQuerySchema, 'query'), supportController.listDisputes);
 router.get('/disputes/:id', supportController.getDisputeById);
 router.post('/disputes/:id/messages', validate(disputeMessageSchema), supportController.postDisputeMessage);

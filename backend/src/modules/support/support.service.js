@@ -418,7 +418,7 @@ const adminAssignTicket = async (ticketId, assignedToId, adminUserId, ipAddress,
 
 const DISPUTE_WINDOW_DAYS = 7;
 
-const createDispute = async (userId, data) => {
+const createDispute = async (userId, data, viewerRole = 'CUSTOMER') => {
   validateCloudinaryUrls(data.attachmentUrls);
 
   const request = await prisma.request.findUnique({
@@ -427,18 +427,31 @@ const createDispute = async (userId, data) => {
       id: true,
       customerId: true,
       merchantId: true,
+      riderId: true,
       status: true,
       deliveredAt: true,
       createdAt: true,
       total: true,
       merchant: { select: { id: true, userId: true, name: true } },
+      rider: { select: { id: true, userId: true } },
     },
   });
 
   if (!request) throw AppError.notFound('Request not found');
-  if (request.customerId !== userId) {
-    throw AppError.forbidden('You can only dispute your own orders');
+
+  // Authz: customer must own the order; rider must be the assigned rider.
+  if (viewerRole === 'CUSTOMER') {
+    if (request.customerId !== userId) {
+      throw AppError.forbidden('You can only dispute your own orders');
+    }
+  } else if (viewerRole === 'RIDER') {
+    if (!request.rider || request.rider.userId !== userId) {
+      throw AppError.forbidden('You can only dispute orders you delivered');
+    }
+  } else {
+    throw AppError.forbidden('Only customers and riders may raise disputes');
   }
+
   if (!['DELIVERED', 'SETTLED'].includes(request.status)) {
     throw AppError.badRequest('Disputes can only be raised after an order has been delivered.', {
       code: 'DISPUTE_NOT_ELIGIBLE',
@@ -478,10 +491,18 @@ const createDispute = async (userId, data) => {
     select: DISPUTE_THREAD_SELECT,
   });
 
-  // Notify all admins, plus the merchant user (if any).
+  // Notify all admins, plus the merchant user (if any), plus the OTHER party.
   const adminIds = await getAdminUserIds();
   const recipients = [...adminIds];
   if (request.merchant?.userId) recipients.push(request.merchant.userId);
+  // If the customer raised it, also notify the rider (if any). If the rider
+  // raised it, notify the customer.
+  if (viewerRole === 'CUSTOMER' && request.rider?.userId) {
+    recipients.push(request.rider.userId);
+  }
+  if (viewerRole === 'RIDER' && request.customerId) {
+    recipients.push(request.customerId);
+  }
 
   await Promise.all(
     recipients.map((recipientId) =>
@@ -520,7 +541,12 @@ const listDisputes = async (viewerId, viewerRole, { status, category, page = 1, 
   if (viewerRole === 'ADMIN') {
     // no scope filter
   } else if (viewerRole === 'CUSTOMER') {
-    where.raisedById = viewerId;
+    // Customer sees disputes they raised AND disputes raised against orders
+    // they own (e.g. by a rider) so they're never blindsided.
+    where.OR = [
+      { raisedById: viewerId },
+      { request: { customerId: viewerId } },
+    ];
   } else if (viewerRole === 'MERCHANT') {
     // Disputes on requests fulfilled by this merchant user.
     const merchant = await prisma.merchant.findFirst({
@@ -529,6 +555,17 @@ const listDisputes = async (viewerId, viewerRole, { status, category, page = 1, 
     });
     if (!merchant) return { disputes: [], total: 0, page, limit };
     where.request = { merchantId: merchant.id };
+  } else if (viewerRole === 'RIDER') {
+    // Rider sees disputes they raised AND disputes on requests they delivered.
+    const rider = await prisma.rider.findUnique({
+      where: { userId: viewerId },
+      select: { id: true },
+    });
+    if (!rider) return { disputes: [], total: 0, page, limit };
+    where.OR = [
+      { raisedById: viewerId },
+      { request: { riderId: rider.id } },
+    ];
   } else {
     return { disputes: [], total: 0, page, limit };
   }
@@ -557,6 +594,11 @@ const assertDisputeAccess = async (dispute, viewerId, viewerRole) => {
   if (viewerRole === 'ADMIN') return true;
   if (dispute.raisedById === viewerId) return true;
   if (viewerRole === 'MERCHANT' && dispute.request?.merchant?.userId === viewerId) return true;
+  // The customer always sees disputes on their own orders (even those a
+  // rider raised against them).
+  if (viewerRole === 'CUSTOMER' && dispute.request?.customerId === viewerId) return true;
+  // The rider assigned to the request sees disputes on it.
+  if (viewerRole === 'RIDER' && dispute.request?.rider?.userId === viewerId) return true;
   throw AppError.forbidden('You do not have access to this dispute');
 };
 
@@ -594,7 +636,13 @@ const postDisputeMessage = async (disputeId, fromUserId, fromUserRole, data) => 
       id: true,
       status: true,
       raisedById: true,
-      request: { select: { customerId: true, merchant: { select: { userId: true } } } },
+      request: {
+        select: {
+          customerId: true,
+          merchant: { select: { userId: true } },
+          rider: { select: { userId: true } },
+        },
+      },
     },
   });
   if (!dispute) throw AppError.notFound('Dispute not found');
@@ -633,14 +681,18 @@ const postDisputeMessage = async (disputeId, fromUserId, fromUserRole, data) => 
   ]);
 
   if (!isInternal) {
-    // Notify the OTHER parties.
-    const customerId = dispute.raisedById;
+    // Notify every party on this dispute except the sender.
+    const raisedById = dispute.raisedById;
+    const orderCustomerId = dispute.request?.customerId || null;
     const merchantUserId = dispute.request?.merchant?.userId || null;
+    const riderUserId = dispute.request?.rider?.userId || null;
     const adminIds = await getAdminUserIds();
 
     const recipients = new Set();
-    if (fromUserId !== customerId) recipients.add(customerId);
+    if (raisedById && fromUserId !== raisedById) recipients.add(raisedById);
+    if (orderCustomerId && fromUserId !== orderCustomerId) recipients.add(orderCustomerId);
     if (merchantUserId && fromUserId !== merchantUserId) recipients.add(merchantUserId);
+    if (riderUserId && fromUserId !== riderUserId) recipients.add(riderUserId);
     if (!isAdmin) adminIds.forEach((id) => recipients.add(id));
 
     await Promise.all(
@@ -816,6 +868,17 @@ const adminResolveDispute = async (
   // Notify the merchant of the outcome too.
   if (dispute.request.merchant?.userId) {
     await notifyService.pushAndSocket(dispute.request.merchant.userId, {
+      type: 'SUPPORT',
+      title: 'Dispute closed',
+      body: `Dispute #${result.dispute.number} resolved: ${resolution.replace(/_/g, ' ').toLowerCase()}.`,
+      data: { route: `/disputes/${disputeId}`, kind: 'dispute', disputeId },
+    });
+  }
+  // Notify the rider involved (if any) — they may have raised the dispute
+  // or been the target of one.
+  if (result.dispute.request?.rider?.userId &&
+      result.dispute.request.rider.userId !== dispute.raisedById) {
+    await notifyService.pushAndSocket(result.dispute.request.rider.userId, {
       type: 'SUPPORT',
       title: 'Dispute closed',
       body: `Dispute #${result.dispute.number} resolved: ${resolution.replace(/_/g, ' ').toLowerCase()}.`,

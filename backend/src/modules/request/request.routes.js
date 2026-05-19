@@ -9,6 +9,7 @@ const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
 const { idempotency } = require('../../middlewares/idempotency.middleware');
+const { requestCreationLimiter, quoteLimiter } = require('../../middlewares/rate-limit.middleware');
 const {
   createRequestSchema,
   updateStatusSchema,
@@ -33,7 +34,7 @@ router.use(authenticate);
 // ============================================================
 
 // Server-truth quote — POST same shape as createRequest, returns pricing + validUntil
-router.post('/quote', validate(quoteRequestSchema), requestController.getQuote);
+router.post('/quote', quoteLimiter, validate(quoteRequestSchema), requestController.getQuote);
 
 // List requests (customers see theirs, riders see theirs, merchants see theirs)
 router.get('/', validate(listRequestsSchema, 'query'), requestController.getRequests);
@@ -60,8 +61,8 @@ router.post('/:requestId/messages', idempotency, validate(postMessageSchema), re
 // Customer endpoints
 // ============================================================
 
-// Create a new request (any type)
-router.post('/', authorize('CUSTOMER'), idempotency, validate(createRequestSchema), requestController.createRequest);
+// Create a new request (any type) — 30/hour per user cap (Phase 10 abuse mitigation)
+router.post('/', authorize('CUSTOMER'), requestCreationLimiter, idempotency, validate(createRequestSchema), requestController.createRequest);
 
 // Cancellation quote — preview the fee/refund before the customer confirms.
 router.get('/:requestId/cancel-quote', authorize('CUSTOMER'), requestController.getCancellationQuote);

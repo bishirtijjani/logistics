@@ -332,6 +332,19 @@ model Rider {
   idDocumentUrl   String? /// Uploaded government ID
   vehiclePhotoUrl String? /// Uploaded vehicle photo
 
+  // Phase 7 — expiry tracking + supplementary documents for KYC Status screen.
+  idDocExpiresAt          DateTime? /// Expiry on the uploaded ID doc (national-ID slips usually have one)
+  driverLicenceUrl        String?
+  driverLicenceExpiresAt  DateTime?
+  vehicleRegUrl           String?
+  vehicleRegExpiresAt     DateTime?
+  vehicleDocExpiresAt     DateTime? /// Generic vehicle-doc expiry — earliest of vehicleReg/insurance for sort
+  insuranceDocUrl         String?
+  insuranceExpiresAt      DateTime?
+  /// Throttle marker for the nightly DOC_EXPIRING_SOON push so a rider isn't
+  /// spammed every 24h once a doc enters the 14-day window.
+  lastDocExpiryNoticeAt   DateTime?
+
   // Status
   status       RiderStatus       @default(PENDING_APPROVAL)
   availability RiderAvailability @default(OFFLINE)
@@ -352,14 +365,46 @@ model Rider {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   requests        Request[]
-  ratingsReceived Rating[]  @relation("RiderRatings")
+  ratingsReceived Rating[]         @relation("RiderRatings")
+  offerLogs       RiderOfferLog[]
 
   @@index([userId])
   @@index([status, availability])
   @@index([lastLat, lastLng])
+  @@index([idDocExpiresAt])
+  @@index([vehicleDocExpiresAt])
   @@map("riders")
+}
+
+/// RiderOfferLog — one row per offer the dispatcher emits to a rider.
+/// Powers acceptance/decline rate metrics on the rider performance screen.
+enum RiderOfferOutcome {
+  OFFERED  /// Initial state when emitRing pushed the offer.
+  ACCEPTED /// Rider claimed the job.
+  DECLINED /// Rider tapped decline in the offer sheet.
+  EXPIRED  /// Ring timeout elapsed with no response.
+  TAKEN    /// Another rider claimed the job before this one could.
+}
+
+model RiderOfferLog {
+  id          String            @id @default(uuid())
+  riderId     String
+  requestId   String
+  outcome     RiderOfferOutcome @default(OFFERED)
+  ringAttempt Int               @default(0)
+  distanceKm  Float?
+  offeredAt   DateTime          @default(now())
+  respondedAt DateTime?
+
+  rider   Rider   @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([riderId, requestId])
+  @@index([riderId, offeredAt(sort: Desc)])
+  @@index([requestId])
+  @@map("rider_offer_logs")
 }
 
 /// Utility bill payment — airtime, data, electricity.
@@ -968,8 +1013,9 @@ model Request {
   packageDetails PackageDetail? // For package delivery
   rating         Rating?
 
-  messages RequestMessage[]
-  disputes Dispute[]
+  messages   RequestMessage[]
+  disputes   Dispute[]
+  offerLogs  RiderOfferLog[]
 
   @@index([customerId])
   @@index([merchantId])

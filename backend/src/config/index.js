@@ -65,9 +65,11 @@ const envSchema = z.object({
     .transform((v) => v === 'true')
     .default('false'),
 
-  // Email (SMTP)
-  SMTP_USER: z.string().email(),
-  SMTP_PASS: z.string().min(1),
+  // Email (SMTP) — required in production, optional in dev so a fresh clone
+  // boots even before transactional mail is wired up. Outbound mail attempts
+  // fail at request time with a clear error rather than blocking startup.
+  SMTP_USER: isDev ? z.string().optional().default('') : z.string().email(),
+  SMTP_PASS: isDev ? z.string().optional().default('') : z.string().min(1),
   SMTP_FROM_NAME: z.string().default('iPrime'),
 
   // KatPay — required in production, optional in dev
@@ -91,6 +93,16 @@ const envSchema = z.object({
   SENTRY_ENVIRONMENT: z.string().optional().default(''),
   SENTRY_RELEASE: z.string().optional().default(''),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+
+  // CORS — comma-separated list of allowed Origins. In dev this defaults to
+  // '*' so Expo / web dashboards on any local port keep working. In staging
+  // and production it MUST be an explicit list; setting '*' there is a hard
+  // misconfiguration (browsers don't even honor it with credentials).
+  //
+  // Example: CORS_ALLOWED_ORIGINS=https://app.iprime.ng,https://admin.iprime.ng
+  CORS_ALLOWED_ORIGINS: isDev
+    ? z.string().optional().default('*')
+    : z.string().min(1, 'CORS_ALLOWED_ORIGINS must be set in non-dev'),
 });
 
 let config;

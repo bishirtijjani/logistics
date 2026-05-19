@@ -50,6 +50,46 @@ const acceptJob = async (req, res, next) => {
   }
 };
 
+const getPerformance = async (req, res, next) => {
+  try {
+    const performance = await riderService.getPerformance(req.user.id);
+    res.json(ApiResponse.success('Rider performance', performance));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const reuploadDocument = async (req, res, next) => {
+  try {
+    const result = await riderService.reuploadDocument(req.user.id, req.body);
+    res.json(ApiResponse.success('Document re-uploaded', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const declineOffer = async (req, res, next) => {
+  try {
+    const { prisma } = require('../../config/database');
+    const rider = await prisma.rider.findUnique({ where: { userId: req.user.id } });
+    if (!rider) return next({ status: 404, message: 'Rider not found' });
+    // Idempotent: if a row exists, flip OFFERED → DECLINED; otherwise create one.
+    await prisma.riderOfferLog.upsert({
+      where: { riderId_requestId: { riderId: rider.id, requestId: req.body.requestId } },
+      create: {
+        riderId: rider.id,
+        requestId: req.body.requestId,
+        outcome: 'DECLINED',
+        respondedAt: new Date(),
+      },
+      update: { outcome: 'DECLINED', respondedAt: new Date() },
+    });
+    res.json(ApiResponse.success('Offer declined', { requestId: req.body.requestId }));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getEarnings = async (req, res, next) => {
   try {
     // Phase 6 — paginated `recent` rows. `page`/`limit` are optional query
@@ -139,6 +179,9 @@ module.exports = {
   updateLocation,
   acceptJob,
   getEarnings,
+  getPerformance,
+  reuploadDocument,
+  declineOffer,
   // Admin controllers
   getAllRiders,
   getRiderDetails,

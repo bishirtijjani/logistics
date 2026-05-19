@@ -113,7 +113,7 @@ const adminAssignTicket = async (req, res, next) => {
 
 const createDispute = async (req, res, next) => {
   try {
-    const dispute = await supportService.createDispute(req.user.id, req.body);
+    const dispute = await supportService.createDispute(req.user.id, req.body, req.user.role);
     res.status(201).json(ApiResponse.success('Dispute filed', dispute));
   } catch (err) {
     next(err);

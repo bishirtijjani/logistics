@@ -58,6 +58,27 @@ import BeneficiariesScreen from "../features/wallet/BeneficiariesScreen";
 import TransactionsScreen from "../features/wallet/TransactionsScreen";
 import TransactionDetailScreen from "../features/wallet/TransactionDetailScreen";
 
+// Phase 7
+import NotificationsCenterScreen from "../features/notifications/NotificationsCenterScreen";
+import EditProfileScreen from "../features/profile/EditProfileScreen";
+import ProfilePhotoScreen from "../features/profile/ProfilePhotoScreen";
+import VehicleInfoScreen from "../features/profile/VehicleInfoScreen";
+import KycStatusScreen from "../features/profile/KycStatusScreen";
+import PerformanceScreen from "../features/profile/PerformanceScreen";
+import SecuritySettingsScreen from "../features/settings/SecuritySettingsScreen";
+import SessionsScreen from "../features/settings/SessionsScreen";
+import ChangePinScreen from "../features/settings/ChangePinScreen";
+import PhoneChangeScreen from "../features/settings/PhoneChangeScreen";
+import BiometricSettingsScreen from "../features/settings/BiometricSettingsScreen";
+import LanguageScreen from "../features/settings/LanguageScreen";
+import ThemeScreen from "../features/settings/ThemeScreen";
+import LegalScreen from "../features/settings/LegalScreen";
+import SupportHomeScreen from "../features/support/SupportHomeScreen";
+import CreateTicketScreen from "../features/support/CreateTicketScreen";
+import TicketDetailScreen from "../features/support/TicketDetailScreen";
+import CreateDisputeScreen from "../features/support/CreateDisputeScreen";
+import DisputeDetailScreen from "../features/support/DisputeDetailScreen";
+
 import MainTabNavigator from "./MainTabNavigator";
 import OfferOverlayNavigator from "./OfferOverlayNavigator";
 
@@ -464,6 +485,26 @@ export default function AppNavigator() {
               component={LocationPermissionRecoveryScreen}
               options={{ presentation: "modal" }}
             />
+            {/* Phase 7 — profile / settings / support / notifications */}
+            <Stack.Screen name="NotificationsCenter" component={NotificationsCenterScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="ProfilePhoto" component={ProfilePhotoScreen} />
+            <Stack.Screen name="VehicleInfo" component={VehicleInfoScreen} />
+            <Stack.Screen name="KycStatus" component={KycStatusScreen} />
+            <Stack.Screen name="Performance" component={PerformanceScreen} />
+            <Stack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
+            <Stack.Screen name="Sessions" component={SessionsScreen} />
+            <Stack.Screen name="ChangePin" component={ChangePinScreen} />
+            <Stack.Screen name="PhoneChange" component={PhoneChangeScreen} />
+            <Stack.Screen name="BiometricSettings" component={BiometricSettingsScreen} />
+            <Stack.Screen name="Language" component={LanguageScreen} />
+            <Stack.Screen name="Theme" component={ThemeScreen} />
+            <Stack.Screen name="Legal" component={LegalScreen} />
+            <Stack.Screen name="SupportHome" component={SupportHomeScreen} />
+            <Stack.Screen name="CreateTicket" component={CreateTicketScreen} />
+            <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
+            <Stack.Screen name="CreateDispute" component={CreateDisputeScreen} />
+            <Stack.Screen name="DisputeDetail" component={DisputeDetailScreen} />
           </Stack.Group>
         )}
       </Stack.Navigator>

@@ -13,6 +13,7 @@ const QUEUES = {
   NOTIFICATION: 'notification-queue',
   UTILITY: 'utility-queue',
   REQUEST: 'request-queue',
+  RIDER: 'rider-queue',
 };
 
 // --- Job types per queue ---
@@ -60,6 +61,11 @@ const POLL_CONFIG = {
   MAX_ATTEMPTS: 10,    // ~5 minute window (10 × 30 s)
 };
 
+const RIDER_JOBS = {
+  /** Nightly: scan rider docs and push DOC_EXPIRING_SOON if within 14 days. */
+  CHECK_DOC_EXPIRY: 'check-doc-expiry',
+};
+
 const REQUEST_JOBS = {
   /** Kick off rider matching for a request — emits ring 0 and schedules the
    *  next ring check via CHECK_RING_PROGRESS. Returns immediately, freeing
@@ -98,6 +104,7 @@ module.exports = {
   NOTIFICATION_JOBS,
   UTILITY_JOBS,
   REQUEST_JOBS,
+  RIDER_JOBS,
   DEFAULT_JOB_OPTIONS,
   POLL_CONFIG,
 };

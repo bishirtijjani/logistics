@@ -12,6 +12,8 @@ const {
   updateAvailabilitySchema,
   updateLocationSchema,
   acceptJobSchema,
+  reuploadDocumentSchema,
+  declineOfferSchema,
 } = require('./rider.validator');
 
 const router = Router();
@@ -27,6 +29,21 @@ router.patch('/availability', authorize('RIDER'), validate(updateAvailabilitySch
 router.post('/location', authorize('RIDER'), validate(updateLocationSchema), riderController.updateLocation);
 router.post('/accept', authorize('RIDER'), validate(acceptJobSchema), riderController.acceptJob);
 router.get('/earnings', authorize('RIDER'), riderController.getEarnings);
+
+// Phase 7 — performance metrics + document re-upload + offer decline.
+router.get('/performance', authorize('RIDER'), riderController.getPerformance);
+router.post(
+  '/documents',
+  authorize('RIDER'),
+  validate(reuploadDocumentSchema),
+  riderController.reuploadDocument,
+);
+router.post(
+  '/decline',
+  authorize('RIDER'),
+  validate(declineOfferSchema),
+  riderController.declineOffer,
+);
 
 // Admin routes
 router.get('/admin/all', authorize('ADMIN'), riderController.getAllRiders);

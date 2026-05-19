@@ -18,7 +18,7 @@
  */
 
 import socketService from "./socket";
-import { goOffline } from "../store/slices/riderSlice";
+import { goOffline, fetchRiderProfile } from "../store/slices/riderSlice";
 import { offerEnqueued, offerTaken } from "../store/slices/offersSlice";
 import {
   tripStatusReceivedFromSocket,
@@ -27,8 +27,19 @@ import {
 } from "../store/slices/tripSlice";
 import { socketBalanceUpdated, socketFundingReceived } from "../store/slices/walletSlice";
 import { earningCreditedFromSocket } from "../store/slices/earningsSlice";
+import { fetchProfile } from "../store/slices/profileSlice";
 
 const SYSTEM_FORCE_OFFLINE = "SYSTEM_FORCE_OFFLINE";
+
+// Notification types that should trigger a refresh of the rider profile so
+// the navigation gates (PendingApproval / Rejected / Suspended → Main) flip
+// immediately on the rider's screen rather than waiting for a re-launch.
+const PROFILE_REFRESH_TYPES = new Set([
+  "RIDER_APPROVED",
+  "RIDER_REJECTED",
+  "RIDER_SUSPENDED",
+  "RIDER_REACTIVATED",
+]);
 
 let lastUnsubscribers = [];
 
@@ -38,7 +49,8 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
   }
   lastUnsubscribers = [];
 
-  // notification:new — generic notifications + the force-offline kill switch.
+  // notification:new — generic notifications + the force-offline kill switch
+  // + Phase 7 rider lifecycle events that need to refresh the profile gate.
   lastUnsubscribers.push(
     socketService.onNotificationNew((data) => {
       if (!data) return;
@@ -46,6 +58,11 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
       const type = data?.type || data?.data?.type;
       if (type === SYSTEM_FORCE_OFFLINE) {
         dispatch(goOffline({ reason: "force-offline" }));
+      } else if (PROFILE_REFRESH_TYPES.has(type)) {
+        // Rider status changed server-side (approved / rejected / suspended).
+        // Refresh both rider + user profile so the navigation gate flips.
+        dispatch(fetchRiderProfile()).catch?.(() => {});
+        dispatch(fetchProfile()).catch?.(() => {});
       }
     }),
   );
