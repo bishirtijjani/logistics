@@ -75,13 +75,13 @@ def make_adaptive_icon(size: int = 1024) -> Image.Image:
 
 
 def make_splash_icon(size: int = 1024) -> Image.Image:
-    """Splash centerpiece: orange iPrime wordmark on transparent.
+    """Splash centerpiece: white iPrime wordmark on transparent.
 
-    Splash backgroundColor stays white (app.json) so the orange mark reads cleanly
-    on first launch without clashing with the status bar.
+    Composites against app.json's splash.backgroundColor (#EA580C) for a solid
+    orange brand splash with white wordmark — matches the iOS icon treatment.
     """
     img = Image.new("RGBA", (size, size), TRANSPARENT)
-    draw_centered(img, WORDMARK, ORANGE, FONT_PATH, width_ratio=0.7)
+    draw_centered(img, WORDMARK, WHITE, FONT_PATH, width_ratio=0.7)
     return img
 
 
