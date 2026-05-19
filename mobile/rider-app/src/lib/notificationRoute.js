@@ -33,13 +33,26 @@ const ROUTE_MAP = [
     re: /^\/?wallet\/withdraw\/?$/i,
     build: () => ({ name: 'Withdraw', params: {} }),
   },
+  // Specific /wallet/transactions/:txId route — opens TransactionDetail.
   {
-    re: /^\/?wallet\/transactions(?:\/([^/?#]+))?/i,
-    build: (m) => ({ name: 'Transactions', params: m[1] ? { highlightRef: m[1] } : {} }),
+    re: /^\/?wallet\/transactions\/([^/?#]+)/i,
+    build: (m) => ({ name: 'TransactionDetail', params: { transactionId: m[1] } }),
+  },
+  {
+    re: /^\/?wallet\/transactions\/?$/i,
+    build: () => ({ name: 'Transactions', params: {} }),
+  },
+  {
+    re: /^\/?wallet\/beneficiaries\/?$/i,
+    build: () => ({ name: 'Beneficiaries', params: {} }),
   },
   {
     re: /^\/?wallet\/?$/i,
     build: () => ({ name: 'MainTabs', params: { screen: 'WalletTab' } }),
+  },
+  {
+    re: /^\/?earnings\/breakdown\/?$/i,
+    build: () => ({ name: 'EarningsBreakdown', params: {} }),
   },
   {
     re: /^\/?earnings\/?$/i,

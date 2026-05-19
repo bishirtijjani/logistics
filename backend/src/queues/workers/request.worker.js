@@ -376,9 +376,21 @@ const settleRequest = async (job) => {
       });
 
       // Notify rider of earnings — live balance nudge + Notification Center row + push.
+      // Include reference + createdAt + requestId so the rider client can
+      // dedupe the socket-pushed bump against a fetched canonical row,
+      // preventing the same earning being counted twice if a dashboard
+      // fetch and this settlement land in overlapping windows.
       notifyService.balanceUpdated(request.rider.user.id, {
         balance: Number(riderWallet.balance) + riderEarning,
-        transaction: { type: 'RIDER_EARNING', amount: riderEarning, description: `Delivery earning` },
+        transaction: {
+          reference: `${reference}-RIDER`,
+          type: 'RIDER_EARNING',
+          status: 'COMPLETED',
+          amount: riderEarning,
+          description: `Delivery earning`,
+          requestId,
+          createdAt: new Date().toISOString(),
+        },
       });
       notifyService.onWalletEvent(request.rider.user.id, {
         kind: 'RIDER_EARNING',
@@ -736,6 +748,16 @@ const startRequestWorker = () => {
   
   worker.on('failed', (job, err) => {
     logger.error('Request job failed', { id: job?.id, name: job?.name, error: err.message });
+    // Forward to Sentry so failed background jobs aren't invisible to ops.
+    // Includes the job name + id so we can group errors by handler and find
+    // the corresponding BullMQ row when reproducing.
+    const { captureError } = require('../../utils/sentry');
+    captureError(err, {
+      queue: 'request-queue',
+      jobName: job?.name,
+      jobId: job?.id,
+      requestId: job?.data?.requestId,
+    });
   });
   
   logger.info('Request worker started');

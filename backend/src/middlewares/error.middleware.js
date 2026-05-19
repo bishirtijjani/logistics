@@ -85,22 +85,28 @@ const errorHandler = (err, req, res, _next) => {
   // status-derived code (e.g. UNAUTHORIZED for 401) when none was set.
   const code = error.code || (statusCode >= 500 ? 'INTERNAL_ERROR' : 'UNKNOWN_ERROR');
 
-  // Log all errors; full stack for unexpected ones
+  // Log all errors; full stack for unexpected ones. requestId joins the log
+  // line to the X-Request-Id header sent back to the client + the Sentry
+  // event captured upstream of this middleware.
   if (!isOperational) {
     logger.error('UNEXPECTED ERROR', {
+      requestId: req.requestId,
       code,
       message: error.message,
       stack: error.stack,
       url: req.originalUrl,
       method: req.method,
       ip: req.ip,
+      userId: req.user?.id || null,
     });
   } else {
     logger.warn('Operational error', {
+      requestId: req.requestId,
       code,
       message: error.message,
       statusCode,
       url: req.originalUrl,
+      userId: req.user?.id || null,
     });
   }
 

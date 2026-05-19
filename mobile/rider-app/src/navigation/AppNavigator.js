@@ -15,6 +15,7 @@ import { hydrateAuth, logout, forceLogout } from "../store/slices/authSlice";
 import { fetchPublicSettings } from "../store/slices/settingsSlice";
 import { fetchProfile } from "../store/slices/profileSlice";
 import { fetchRiderProfile, reconcileFromServer, setLastFix, setStreaming } from "../store/slices/riderSlice";
+import { fetchWallet } from "../store/slices/walletSlice";
 import { hydrateOnboarding } from "../store/slices/onboardingSlice";
 import { notificationReceived } from "../store/slices/notificationsSlice";
 import { offersPruneStale } from "../store/slices/offersSlice";
@@ -50,6 +51,12 @@ import BecomeRiderReviewSubmitStep from "../features/onboarding/BecomeRiderRevie
 import LocationPermissionRecoveryScreen from "../features/location/LocationPermissionRecoveryScreen";
 
 import TripCockpitScreen from "../features/trip/TripCockpitScreen";
+
+import EarningsBreakdownScreen from "../features/earnings/EarningsBreakdownScreen";
+import WithdrawScreen from "../features/wallet/WithdrawScreen";
+import BeneficiariesScreen from "../features/wallet/BeneficiariesScreen";
+import TransactionsScreen from "../features/wallet/TransactionsScreen";
+import TransactionDetailScreen from "../features/wallet/TransactionDetailScreen";
 
 import MainTabNavigator from "./MainTabNavigator";
 import OfferOverlayNavigator from "./OfferOverlayNavigator";
@@ -155,6 +162,10 @@ export default function AppNavigator() {
   useEffect(() => {
     if (!isAuthenticated || bioGate !== "passed") return;
     dispatch(fetchProfile());
+    // Wallet boot — pulls balance + NUBAN so the Wallet tab is populated by
+    // the time the rider taps it. Subsequent socket updates flow via the
+    // notificationsBus.
+    dispatch(fetchWallet()).catch?.(() => {});
     dispatch(fetchRiderProfile())
       .then(async (action) => {
         const profile = action?.payload || null;
@@ -443,6 +454,11 @@ export default function AppNavigator() {
               component={TripCockpitScreen}
               options={{ headerShown: false }}
             />
+            <Stack.Screen name="EarningsBreakdown" component={EarningsBreakdownScreen} />
+            <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+            <Stack.Screen name="Beneficiaries" component={BeneficiariesScreen} />
+            <Stack.Screen name="Transactions" component={TransactionsScreen} />
+            <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
             <Stack.Screen
               name="LocationPermissionRecovery"
               component={LocationPermissionRecoveryScreen}

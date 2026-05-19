@@ -105,10 +105,30 @@ export default function EarningsBreakdownScreen() {
 
   const renderItem = ({ item }) => {
     const isFocusDay = focusDate && ymdLocal(item.settledAt) === focusDate;
+    // Tapping a row opens the underlying RIDER_EARNING transaction receipt
+    // (rather than the live cockpit, which is for active trips only). The
+    // transaction id IS the synthetic earning row's id from the server.
+    const onPress = () => {
+      if (item.id) {
+        navigation.navigate("TransactionDetail", {
+          transactionId: item.id,
+          fallback: {
+            id: item.id,
+            reference: item.reference || null,
+            type: "RIDER_EARNING",
+            amount: item.amount,
+            description: item.description,
+            createdAt: item.settledAt,
+            status: "COMPLETED",
+            metadata: { requestId: item.requestId || null },
+          },
+        });
+      }
+    };
     return (
       <TouchableOpacity
-        onPress={() => item.requestId && navigation.navigate("TripCockpit", { requestId: item.requestId })}
-        disabled={!item.requestId}
+        onPress={onPress}
+        disabled={!item.id}
         accessibilityRole="button"
         accessibilityLabel={t("earnings.rowAria", "{{amount}} earned, {{customer}}", {
           amount: formatNaira(item.amount),

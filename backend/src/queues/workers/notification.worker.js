@@ -45,6 +45,12 @@ const startNotificationWorker = () => {
       jobId: job.id,
       error: error.message,
     });
+    const { captureError } = require('../../utils/sentry');
+    captureError(error, {
+      queue: 'notification-queue',
+      jobName: job?.name,
+      jobId: job?.id,
+    });
   });
 
   return worker;

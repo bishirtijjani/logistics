@@ -60,6 +60,13 @@ const startPaymentWorker = () => {
       error: error.message,
       attemptsMade: job.attemptsMade,
     });
+    const { captureError } = require('../../utils/sentry');
+    captureError(error, {
+      queue: 'payment-queue',
+      jobName: job?.name,
+      jobId: job?.id,
+      attemptsMade: job?.attemptsMade,
+    });
   });
 
   return worker;

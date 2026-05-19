@@ -59,6 +59,13 @@ const startUtilityWorker = () => {
       error: error.message,
       attemptsMade: job.attemptsMade,
     });
+    const { captureError } = require('../../utils/sentry');
+    captureError(error, {
+      queue: 'utility-queue',
+      jobName: job?.name,
+      jobId: job?.id,
+      attemptsMade: job?.attemptsMade,
+    });
   });
 
   return worker;

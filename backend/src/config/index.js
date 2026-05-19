@@ -81,6 +81,16 @@ const envSchema = z.object({
   DELIVERY_BASE_FARE: z.coerce.number().default(200),
   DELIVERY_PER_KM_RATE: z.coerce.number().default(100),
   DELIVERY_PLATFORM_FEE_PERCENT: z.coerce.number().default(10),
+
+  // Sentry — DSN is optional everywhere; when absent the SDK no-ops, so
+  // dev + CI never need an account. Set SENTRY_DSN in staging/production.
+  // The release tag (commit SHA, build id) lets Sentry group errors per
+  // deploy; SENTRY_ENVIRONMENT distinguishes staging from production
+  // when both point at the same project.
+  SENTRY_DSN: z.string().optional().default(''),
+  SENTRY_ENVIRONMENT: z.string().optional().default(''),
+  SENTRY_RELEASE: z.string().optional().default(''),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
 });
 
 let config;

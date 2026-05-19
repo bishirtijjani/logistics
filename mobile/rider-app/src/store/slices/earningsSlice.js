@@ -61,6 +61,9 @@ const initialState = {
   page: 1,
   hasMore: false,
   averageRating: 0,
+  // Bounded log of recently-processed socket-bump references so the same
+  // earning never gets counted twice when the socket race overlaps a fetch.
+  seenSocketReferences: [],
   isLoading: false,
   isLoadingMore: false,
   error: null,
@@ -76,12 +79,36 @@ const slice = createSlice({
      * transaction on every settlement. We bump today's + allTime tallies
      * AND prepend a synthetic row to the breakdown list so the dashboard
      * reflects the new earning before the next fetch.
+     *
+     * Dedup by `reference` — the same earning can arrive via both the
+     * socket bump AND a near-simultaneous fetch reconciliation; without
+     * dedup the tallies would over-count by one when the fetch returns
+     * canonical numbers that already include this earning. The settle
+     * worker sends `reference` on the socket payload; the server's recent
+     * list also keys rows by id, so we use either as the dedup key.
      */
     earningCreditedFromSocket: (state, action) => {
       const tx = action.payload || {};
       if (tx.type !== "RIDER_EARNING") return;
       const amount = Number(tx.amount || 0);
       if (amount <= 0) return;
+      const dedupKey = tx.reference || tx.id || null;
+      if (dedupKey && state.seenSocketReferences.includes(dedupKey)) return;
+      // Also dedupe against already-fetched canonical rows. The server's
+      // recent list keys by tx id; if reference is exposed there too (it
+      // is — `select: { reference: true }`), we can match.
+      if (dedupKey) {
+        const alreadyFetched = state.allIds.some((id) => {
+          const row = state.byId[id];
+          return row && (row.reference === dedupKey || row.id === dedupKey);
+        });
+        if (alreadyFetched) {
+          // Record so we never reprocess, but don't bump tallies.
+          state.seenSocketReferences.push(dedupKey);
+          if (state.seenSocketReferences.length > 50) state.seenSocketReferences.shift();
+          return;
+        }
+      }
 
       state.summary.today.amount += amount;
       state.summary.today.count += 1;
@@ -103,18 +130,25 @@ const slice = createSlice({
       }
 
       // Optimistic row for the breakdown list. Server reconciles on next
-      // fetch; we de-dupe by id on the next merge.
+      // fetch; we de-dupe by reference/id on the next merge.
       const synthId = tx.id || tx.reference || `rider-earning-${Date.now()}`;
       if (!state.byId[synthId]) {
         state.byId[synthId] = {
           id: synthId,
+          reference: tx.reference || null,
           amount,
-          settledAt: tx.settledAt || new Date().toISOString(),
+          settledAt: tx.settledAt || tx.createdAt || new Date().toISOString(),
           requestId: tx.requestId || tx.metadata?.requestId || null,
           description: tx.description || null,
           _optimistic: true,
         };
         state.allIds.unshift(synthId);
+      }
+
+      if (dedupKey) {
+        state.seenSocketReferences.push(dedupKey);
+        // Cap the recent-seen log so it doesn't grow unboundedly.
+        if (state.seenSocketReferences.length > 50) state.seenSocketReferences.shift();
       }
     },
     resetEarnings: () => initialState,

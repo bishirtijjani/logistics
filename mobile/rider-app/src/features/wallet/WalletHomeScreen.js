@@ -1,98 +1,285 @@
-import React from "react";
-import { View, Text, ScrollView } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  Clipboard,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 import { useTheme } from "../../theme";
+import { useT } from "../../i18n/useT";
 import { formatNaira } from "../../lib/formatters";
+import { fetchWallet, retryProvisioning } from "../../store/slices/walletSlice";
+
+const PROVISIONING_POLL_MS = 30_000;
 
 /**
- * Wallet tab — real wallet UI (NUBAN banner, transactions, Withdraw flow)
- * lands in Phase 6. Phase 2 ships a polished read-only summary so the tab
- * doesn't look broken when the rider taps it.
+ * Wallet home — balance, virtual NUBAN, quick actions. On balance change
+ * (socket-driven), the big number pops with a brief scale animation so the
+ * rider feels each settlement.
+ *
+ * If the rider's virtual account hasn't been provisioned yet, we show a
+ * provisioning-pending state with a 30 s auto-retry — same UX as customer-app.
  */
 export default function WalletHomeScreen() {
   const { tokens } = useTheme();
-  const rider = useSelector((s) => s.rider?.rider);
-  const lifetimeEarnings = Number(rider?.totalEarnings ?? 0);
+  const { t } = useT();
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
+
+  const balance = useSelector((s) => s.wallet?.balance) || 0;
+  const accountNumber = useSelector((s) => s.wallet?.accountNumber);
+  const bankName = useSelector((s) => s.wallet?.bankName);
+  const accountName = useSelector((s) => s.wallet?.accountName);
+  const isLocked = useSelector((s) => s.wallet?.isLocked);
+  const isLoading = useSelector((s) => s.wallet?.isLoading);
+  const provisioningInFlight = useSelector((s) => s.wallet?.provisioningInFlight);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const popAnim = useRef(new Animated.Value(1)).current;
+  const lastBalanceRef = useRef(balance);
+
+  useEffect(() => {
+    dispatch(fetchWallet());
+  }, [dispatch]);
+
+  // Pop animation on balance increase (settlement, funding, refund).
+  useEffect(() => {
+    if (balance > lastBalanceRef.current) {
+      Animated.sequence([
+        Animated.spring(popAnim, { toValue: 1.08, useNativeDriver: true, friction: 4 }),
+        Animated.spring(popAnim, { toValue: 1, useNativeDriver: true, friction: 5 }),
+      ]).start();
+    }
+    lastBalanceRef.current = balance;
+  }, [balance, popAnim]);
+
+  // If NUBAN isn't provisioned, retry on a timer until it is.
+  useEffect(() => {
+    if (accountNumber) return undefined;
+    const id = setInterval(() => {
+      dispatch(retryProvisioning());
+    }, PROVISIONING_POLL_MS);
+    return () => clearInterval(id);
+  }, [accountNumber, dispatch]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try { await dispatch(fetchWallet()).unwrap?.().catch(() => {}); }
+    finally { setRefreshing(false); }
+  }, [dispatch]);
+
+  const copyAccountNumber = () => {
+    if (!accountNumber) return;
+    try {
+      Clipboard.setString(accountNumber);
+      Toast.show({
+        type: "success",
+        text1: t("wallet.copied", "Account number copied"),
+        text2: accountNumber,
+      });
+    } catch (_) {}
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 20, paddingBottom: 32 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.default} />}
+      >
         <Text
           accessibilityRole="header"
           style={{
-            fontSize: 26,
-            fontWeight: "800",
-            color: tokens.text.primary,
-            marginBottom: 18,
-            letterSpacing: -0.5,
+            fontSize: 26, fontWeight: "800", color: tokens.text.primary,
+            letterSpacing: -0.5, marginBottom: 16,
           }}
         >
-          Wallet
+          {t("wallet.title", "Wallet")}
         </Text>
 
+        {/* Balance card */}
         <View
           style={{
-            backgroundColor: tokens.bg.elevated,
-            borderRadius: 18,
-            padding: 20,
-            marginBottom: 16,
+            backgroundColor: tokens.brand.default,
+            borderRadius: 18, padding: 22, marginBottom: 16,
           }}
         >
-          <Text style={{ fontSize: 12, color: tokens.text.onElevated, opacity: 0.7, marginBottom: 6 }}>
-            Lifetime earnings
+          <Text style={{ fontSize: 12, color: tokens.text.onBrand, opacity: 0.85, letterSpacing: 0.5, fontWeight: "700" }}>
+            {t("wallet.availableBalance", "AVAILABLE BALANCE")}
           </Text>
-          <Text
+          <Animated.Text
+            accessibilityLiveRegion="polite"
             style={{
-              fontSize: 30,
-              fontWeight: "900",
-              color: tokens.text.onElevated,
-              letterSpacing: -1,
+              fontSize: 38, fontWeight: "900", color: tokens.text.onBrand,
+              letterSpacing: -1, marginTop: 8,
+              transform: [{ scale: popAnim }],
             }}
           >
-            {formatNaira(lifetimeEarnings)}
-          </Text>
+            {formatNaira(balance)}
+          </Animated.Text>
+          {isLocked ? (
+            <View
+              style={{
+                marginTop: 10, alignSelf: "flex-start",
+                backgroundColor: "rgba(255,255,255,0.18)",
+                paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+                flexDirection: "row", alignItems: "center",
+              }}
+            >
+              <Ionicons name="lock-closed" size={12} color={tokens.text.onBrand} />
+              <Text style={{ marginLeft: 6, fontSize: 11, fontWeight: "700", color: tokens.text.onBrand }}>
+                {t("wallet.locked", "Wallet locked — contact support")}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Virtual account */}
+        {accountNumber ? (
+          <TouchableOpacity
+            onPress={copyAccountNumber}
+            accessibilityRole="button"
+            accessibilityLabel={t("wallet.copyAria", "Copy account number {{number}}", { number: accountNumber })}
+            style={{
+              backgroundColor: tokens.bg.surface,
+              borderRadius: 14, padding: 16, marginBottom: 16,
+              borderWidth: 1, borderColor: tokens.border.default,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+              <Ionicons name="card-outline" size={16} color={tokens.brand.default} />
+              <Text style={{ marginLeft: 6, fontSize: 12, fontWeight: "700", color: tokens.text.muted, letterSpacing: 0.5 }}>
+                {t("wallet.fundByTransfer", "FUND BY BANK TRANSFER")}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 22, fontWeight: "800", color: tokens.text.primary, letterSpacing: 2 }}>
+              {accountNumber}
+            </Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
+              <Text style={{ fontSize: 13, color: tokens.text.muted }}>
+                {bankName || "—"}{accountName ? ` · ${accountName}` : ""}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons name="copy-outline" size={14} color={tokens.brand.default} />
+                <Text style={{ marginLeft: 4, fontSize: 12, color: tokens.brand.default, fontWeight: "700" }}>
+                  {t("wallet.tapToCopy", "Tap to copy")}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <View
+            style={{
+              backgroundColor: tokens.bg.surface,
+              borderRadius: 14, padding: 16, marginBottom: 16,
+              borderWidth: 1, borderColor: tokens.status.warningSoft,
+              flexDirection: "row", alignItems: "center",
+            }}
+          >
+            <Ionicons name="time-outline" size={22} color={tokens.status.warningStrong} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: "800", color: tokens.text.primary }}>
+                {t("wallet.provisioningTitle", "Setting up your account")}
+              </Text>
+              <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                {t("wallet.provisioningSub", "Your virtual account is being created. This usually takes under a minute.")}
+              </Text>
+            </View>
+            {provisioningInFlight ? (
+              <ActivityIndicator size="small" color={tokens.brand.default} />
+            ) : (
+              <TouchableOpacity
+                onPress={() => dispatch(retryProvisioning())}
+                accessibilityRole="button"
+                accessibilityLabel={t("wallet.retry", "Retry")}
+                hitSlop={6}
+              >
+                <Ionicons name="refresh" size={20} color={tokens.brand.default} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+          <ActionTile
+            tokens={tokens}
+            icon="arrow-down"
+            label={t("wallet.withdraw", "Withdraw")}
+            onPress={() => navigation.navigate("Withdraw")}
+          />
+          <ActionTile
+            tokens={tokens}
+            icon="receipt-outline"
+            label={t("wallet.transactions", "Transactions")}
+            onPress={() => navigation.navigate("Transactions")}
+          />
+          <ActionTile
+            tokens={tokens}
+            icon="people-outline"
+            label={t("wallet.beneficiariesCta", "Beneficiaries")}
+            onPress={() => navigation.navigate("Beneficiaries")}
+          />
         </View>
 
         <View
           style={{
-            backgroundColor: tokens.bg.surface,
-            borderWidth: 1,
-            borderColor: tokens.border.default,
-            borderRadius: 16,
-            padding: 20,
-            alignItems: "center",
+            backgroundColor: tokens.brand.soft,
+            borderRadius: 12, padding: 12,
+            borderWidth: 1, borderColor: tokens.brand.softBorder,
+            flexDirection: "row", alignItems: "flex-start",
           }}
         >
-          <View
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: tokens.brand.soft,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 12,
-            }}
-          >
-            <Ionicons name="wallet-outline" size={26} color={tokens.brand.default} />
-          </View>
-          <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary, marginBottom: 6 }}>
-            Withdrawals coming soon
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              color: tokens.text.muted,
-              textAlign: "center",
-              lineHeight: 18,
-            }}
-          >
-            Your earnings accrue here on every settled delivery. Bank withdrawals open up shortly.
+          <Ionicons name="information-circle" size={18} color={tokens.brand.strong} style={{ marginTop: 1 }} />
+          <Text style={{ marginLeft: 8, flex: 1, fontSize: 12, color: tokens.text.primary, lineHeight: 17 }}>
+            {t("wallet.tip", "Every completed delivery credits this wallet within a minute. Withdraw any time above the platform minimum.")}
           </Text>
         </View>
+
+        {isLoading && !refreshing ? (
+          <View style={{ alignItems: "center", marginTop: 16 }}>
+            <ActivityIndicator color={tokens.brand.default} />
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function ActionTile({ tokens, icon, label, onPress }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={{
+        flex: 1,
+        backgroundColor: tokens.bg.surface,
+        borderRadius: 14, padding: 14,
+        borderWidth: 1, borderColor: tokens.border.default,
+        alignItems: "center",
+      }}
+    >
+      <View
+        style={{
+          width: 36, height: 36, borderRadius: 18,
+          backgroundColor: tokens.brand.soft,
+          alignItems: "center", justifyContent: "center",
+          marginBottom: 6,
+        }}
+      >
+        <Ionicons name={icon} size={18} color={tokens.brand.strong} />
+      </View>
+      <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.primary, textAlign: "center" }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }

@@ -378,6 +378,31 @@ const getBeneficiaries = async (userId) => {
 };
 
 const addBeneficiary = async (userId, { name, phone, bankCode, accountNumber, accountName }) => {
+  // Idempotent: if the user already has a row for this bank+account (or
+  // phone), return the existing one instead of throwing P2002. This
+  // matches the rider-app's "save as beneficiary" UX where every
+  // successful withdraw may auto-save the same account. Phase 6.
+  if (bankCode && accountNumber) {
+    const existing = await prisma.savedBeneficiary.findUnique({
+      where: {
+        userId_accountNumber_bankCode: { userId, accountNumber, bankCode },
+      },
+    });
+    if (existing) {
+      // Refresh display name / account name if it changed.
+      const updates = {};
+      if (accountName && existing.accountName !== accountName) updates.accountName = accountName;
+      if (name && existing.name !== name) updates.name = name;
+      if (Object.keys(updates).length === 0) return existing;
+      return prisma.savedBeneficiary.update({ where: { id: existing.id }, data: updates });
+    }
+  }
+  if (phone) {
+    const existing = await prisma.savedBeneficiary.findUnique({
+      where: { userId_phone: { userId, phone } },
+    });
+    if (existing) return existing;
+  }
   return prisma.savedBeneficiary.create({
     data: { userId, name, phone, bankCode, accountNumber, accountName },
   });

@@ -318,7 +318,20 @@ const slice = createSlice({
         if (page === 1) {
           state.transactions = list;
         } else {
-          state.transactions = [...state.transactions, ...list];
+          // Dedupe by id / reference — socket may have prepended an
+          // optimistic row whose canonical version arrives in a later
+          // pagination page, and we don't want both visible.
+          const seen = new Set();
+          for (const t of state.transactions) {
+            if (t.id) seen.add(`id:${t.id}`);
+            if (t.reference) seen.add(`ref:${t.reference}`);
+          }
+          const additions = list.filter((t) => {
+            if (t.id && seen.has(`id:${t.id}`)) return false;
+            if (t.reference && seen.has(`ref:${t.reference}`)) return false;
+            return true;
+          });
+          state.transactions = [...state.transactions, ...additions];
         }
         state.total = pagination?.total ?? action.payload?.total ?? 0;
       })

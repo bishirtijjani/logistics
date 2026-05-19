@@ -25,6 +25,12 @@ import { forceLogout as forceLogoutAction } from "./src/store/slices/authSlice";
 import { ThemeProvider, useTheme } from "./src/theme";
 import BackgroundPattern from "./src/components/BackgroundPattern";
 import { useToastConfig } from "./src/components/toastShared";
+// Phase 10 — Sentry boot. Safe to call before the SDK package is installed;
+// no-ops cleanly when `@sentry/react-native` is missing or EXPO_PUBLIC_SENTRY_DSN
+// is unset. Once both are in place this starts capturing automatically.
+import { initSentry, captureError as captureSentryError } from "./src/services/sentry";
+
+initSentry();
 
 // Phase 5 — register the silent-refresh fallback so the api.js interceptor
 // can flip the auth state out from anywhere in the tree when the refresh
@@ -109,7 +115,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onError={(error, info) => {
+            // Forward React render-tree crashes to Sentry. No-ops when
+            // Sentry isn't configured; uses console.warn instead.
+            captureSentryError(error, { source: 'ReactErrorBoundary', componentStack: info?.componentStack });
+          }}
+        >
           <ThemeProvider>
             <Provider store={store}>
               <ThemedRoot>

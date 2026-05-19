@@ -4,6 +4,7 @@ import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Toast from 'react-native-toast-message';
 import i18n from '../i18n';
+import { captureError as captureSentryError } from './sentry';
 
 /**
  * Translate a server error envelope to the user's locale.
@@ -215,6 +216,20 @@ api.interceptors.response.use(
       const secs = parseInt(retryAfter, 10);
       if (!Number.isNaN(secs)) err.retryAfterSeconds = secs;
     }
+    // Forward server-side 5xx + true network failures to Sentry. Skip 4xx
+    // operational errors (validation, insufficient balance, etc.) — they're
+    // expected and would drown out real signal in the dashboard.
+    const requestIdHeader = error.response?.headers?.['x-request-id'];
+    if (isNetworkError || (status && status >= 500)) {
+      captureSentryError(err, {
+        source: 'apiInterceptor',
+        url: requestUrl,
+        method: original?.method,
+        status,
+        requestId: requestIdHeader,
+      });
+    }
+    if (requestIdHeader) err.requestId = requestIdHeader;
     return Promise.reject(err);
   }
 );

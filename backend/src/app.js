@@ -14,7 +14,9 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const { errorHandler } = require("./middlewares/error.middleware");
 const { generalLimiter } = require("./middlewares/rate-limit.middleware");
+const { requestId: requestIdMiddleware } = require("./middlewares/request-id.middleware");
 const { logger } = require("./utils/logger");
+const sentry = require("./utils/sentry");
 
 // Route imports
 const authRoutes = require("./modules/auth/auth.routes");
@@ -38,6 +40,15 @@ const supportRoutes = require("./modules/support/support.routes");
 const createApp = () => {
   const app = express();
 
+  // --------------- Observability (must be FIRST) ---------------
+  // Sentry handlers must run before everything else so each request gets a
+  // transaction; the request-id middleware runs right after so request logs
+  // and Sentry events share the same correlation id.
+  sentry.initSentry();
+  app.use(sentry.requestHandler());
+  app.use(sentry.tracingHandler());
+  app.use(requestIdMiddleware);
+
   // --------------- Security & Parsing ---------------
   app.use(helmet());
   app.use(cors());
@@ -55,8 +66,11 @@ const createApp = () => {
   app.use(generalLimiter);
 
   // --------------- Request Logging ---------------
+  // Custom morgan token to include the request-id so every access log line
+  // can be joined back to an application log or Sentry event.
+  morgan.token("reqid", (req) => req.requestId || "-");
   app.use(
-    morgan("short", {
+    morgan(":method :url :status :res[content-length] - :response-time ms reqid=:reqid", {
       stream: { write: (message) => logger.info(message.trim()) },
     }),
   );
@@ -101,7 +115,11 @@ const createApp = () => {
     });
   });
 
-  // --------------- Global Error Handler ---------------
+  // --------------- Error Capture ---------------
+  // Sentry's handler captures 5xx + non-operational errors then passes
+  // control to our own error handler which formats the response. Order
+  // matters: Sentry MUST run before errorHandler.
+  app.use(sentry.errorHandler());
   app.use(errorHandler);
 
   return app;
