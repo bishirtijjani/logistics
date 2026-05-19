@@ -1135,9 +1135,24 @@ const UPLOAD_KINDS = {
   product: { root: "products", prefix: "prod" },
   dispute: { root: "disputes", prefix: "ev" },
   ticket: { root: "tickets", prefix: "att" },
+  // Phase 5 — Proof of Delivery assets. Stored under
+  // `vtu-logistics/pod/{requestId}/...` so retention/lifecycle rules can be
+  // scoped per delivery rather than per uploading user, and so disputes can
+  // be investigated by listing the folder. Scope is `request` (not `user`).
+  pod: { root: "pod", prefix: "pod", scope: "request" },
+  pod_signature: { root: "pod", prefix: "sig", scope: "request" },
 };
 
-const getCloudinaryUploadSignature = (userId, kind = "profile") => {
+/**
+ * Issue a Cloudinary upload signature.
+ *
+ * `kind` controls folder layout + scope:
+ *   - User-scoped kinds (default): `vtu-logistics/<root>/<userId>/...`
+ *   - Request-scoped kinds (POD): `vtu-logistics/<root>/<requestId>/...`
+ *     — caller MUST pass `scopeId = requestId` and the server verifies the
+ *       user is the assigned rider on that request (or admin).
+ */
+const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", scopeId = null) => {
   const cloudName = config.CLOUDINARY_CLOUD_NAME;
   const apiKey = config.CLOUDINARY_API_KEY;
   const apiSecret = config.CLOUDINARY_API_SECRET;
@@ -1151,9 +1166,42 @@ const getCloudinaryUploadSignature = (userId, kind = "profile") => {
     throw AppError.badRequest(`Unsupported upload kind: ${kind}`);
   }
 
+  // Request-scoped kinds: validate the caller has permission to upload for
+  // this request. Without this, any authenticated user could mint signatures
+  // into another rider's POD folder.
+  let folderScopeId = userId;
+  if (spec.scope === "request") {
+    if (!scopeId) {
+      throw AppError.badRequest(`Upload kind "${kind}" requires a requestId`, { code: "REQUEST_ID_REQUIRED" });
+    }
+    const request = await prisma.request.findUnique({
+      where: { id: scopeId },
+      select: { id: true, status: true, rider: { select: { userId: true } } },
+    });
+    if (!request) throw AppError.notFound("Request not found");
+    const isAdmin = userRole === "ADMIN";
+    const isAssignedRider = request.rider?.userId === userId;
+    if (!isAdmin && !isAssignedRider) {
+      throw AppError.forbidden("Not your trip");
+    }
+    // POD is captured before the DELIVERED PATCH lands, so the upload window
+    // is strictly PICKED_UP and IN_TRANSIT. Once the trip transitions to
+    // DELIVERED, SETTLED, or CANCELLED, the rider has no FSM path back to
+    // amend POD — uploads at that point would just orphan in Cloudinary.
+    // Admins bypass for forensic re-uploads (e.g. disputed deliveries).
+    const OPEN_STATUSES = ["PICKED_UP", "IN_TRANSIT"];
+    if (!isAdmin && !OPEN_STATUSES.includes(request.status)) {
+      throw AppError.badRequest(
+        "POD can only be uploaded while the trip is between pickup and delivery.",
+        { code: "POD_WINDOW_CLOSED" },
+      );
+    }
+    folderScopeId = scopeId;
+  }
+
   const crypto = require("crypto");
   const timestamp = Math.round(new Date().getTime() / 1000);
-  const folder = `vtu-logistics/${spec.root}/${userId}`;
+  const folder = `vtu-logistics/${spec.root}/${folderScopeId}`;
   // Prescription / return docs add a short nonce so two uploads in the same
   // second don't collide on publicId. Profiles keep the legacy shape.
   const publicId = kind === "profile"
@@ -1164,10 +1212,10 @@ const getCloudinaryUploadSignature = (userId, kind = "profile") => {
   const signature = crypto.createHash("sha1").update(signatureString).digest("hex");
 
   // Compliance audit trail: every signature issuance is captured in the
-  // application log. Pharmacy / returns moderation can reconcile from this
-  // when investigating a specific upload.
+  // application log. Pharmacy / returns / POD moderation can reconcile from
+  // this when investigating a specific upload.
   logger.info("cloudinary.upload_signature.issued", {
-    userId, kind, folder, publicId, timestamp,
+    userId, userRole, kind, folder, publicId, timestamp, scopeId: spec.scope === "request" ? scopeId : null,
   });
 
   return {

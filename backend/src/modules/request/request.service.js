@@ -6,6 +6,7 @@
  */
 
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
@@ -496,7 +497,18 @@ const createRequest = async (customerId, requestData) => {
 // Update Request Status
 // ============================================================
 
-const updateStatus = async (requestId, newStatus, userId, role, reason) => {
+const updateStatus = async (requestId, newStatus, userId, role, payload = {}) => {
+  // Backward-compat: older callers passed `reason` as a bare 5th positional
+  // string. Normalise so both call shapes work.
+  const normalised = typeof payload === 'string'
+    ? { reason: payload }
+    : (payload || {});
+  const reason = normalised.reason;
+  // Phase 5 POD payload — only consumed when transitioning to DELIVERED.
+  const podPhotoUrl = normalised.podPhotoUrl || null;
+  const podSignatureUrl = normalised.podSignatureUrl || null;
+  const podDeliveryOtpPlain = normalised.podDeliveryOtp || null;
+
   const request = await prisma.request.findUnique({
     where: { id: requestId },
     include: {
@@ -505,16 +517,17 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
       rider: { select: { id: true, userId: true } },
     },
   });
-  
+
   if (!request) throw AppError.notFound('Request not found');
-  
+
   // Enforce valid transitions
   if (!canTransitionStatus(request.status, newStatus)) {
     throw AppError.badRequest(
-      `Invalid status transition: ${request.status} → ${newStatus}`
+      `Invalid status transition: ${request.status} → ${newStatus}`,
+      { code: 'INVALID_TRANSITION' },
     );
   }
-  
+
   // Role-based authorization
   if (role === 'CUSTOMER' && newStatus !== 'CANCELLED') {
     throw AppError.forbidden('Customers can only cancel requests');
@@ -537,9 +550,91 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
       throw AppError.forbidden('Not your assigned order');
     }
   }
-  
+
   const updateData = { status: newStatus };
-  
+
+  // ── Phase 5: POD validation on DELIVERED ────────────────────────────────
+  // Server is authoritative — the client's settings cache may be stale.
+  if (newStatus === 'DELIVERED') {
+    const [requirePhotoSetting, requireSignatureSetting, otpThresholdSetting] = await Promise.all([
+      getSetting('delivery.requirePodPhoto', true),
+      getSetting('delivery.requireSignature', false),
+      getSetting('delivery.podOtpThresholdNgn', 50000),
+    ]);
+    // `value` is stored as JSON and could land as a real boolean, the strings
+    // "true"/"false", or a 0/1 from a legacy admin import. Treat anything
+    // that isn't a clear `true`/"true"/1 as false.
+    const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1';
+    const requirePhoto = truthy(requirePhotoSetting);
+    const requireSignature = truthy(requireSignatureSetting);
+    const otpThreshold = Number(otpThresholdSetting) || 0;
+    const orderTotal = Number(request.total || 0);
+
+    // Validate Cloudinary URL belongs to our cloud — same defense the
+    // prescriptionUrl uses on create. Skipped in dev when Cloudinary is unset.
+    const cloudName = (config.CLOUDINARY_CLOUD_NAME || '').trim();
+    const expectedPrefix = cloudName ? `https://res.cloudinary.com/${cloudName}/` : null;
+    const assertCloudinary = (url, code) => {
+      if (!cloudName) return;
+      if (!url || !url.startsWith(expectedPrefix)) {
+        throw AppError.badRequest('Invalid POD URL — upload via the in-app flow.', { code });
+      }
+    };
+
+    if (requirePhoto) {
+      if (!podPhotoUrl) {
+        throw AppError.badRequest('A doorstep photo is required to complete delivery.', {
+          code: 'POD_PHOTO_REQUIRED',
+        });
+      }
+      assertCloudinary(podPhotoUrl, 'POD_PHOTO_INVALID');
+      updateData.podPhotoUrl = podPhotoUrl;
+    } else if (podPhotoUrl) {
+      // Setting may be off but the client opted to send anyway — accept it.
+      assertCloudinary(podPhotoUrl, 'POD_PHOTO_INVALID');
+      updateData.podPhotoUrl = podPhotoUrl;
+    }
+
+    if (requireSignature) {
+      if (!podSignatureUrl) {
+        throw AppError.badRequest('A recipient signature is required to complete delivery.', {
+          code: 'POD_SIGNATURE_REQUIRED',
+        });
+      }
+      assertCloudinary(podSignatureUrl, 'POD_SIGNATURE_INVALID');
+      updateData.podSignatureUrl = podSignatureUrl;
+    } else if (podSignatureUrl) {
+      assertCloudinary(podSignatureUrl, 'POD_SIGNATURE_INVALID');
+      updateData.podSignatureUrl = podSignatureUrl;
+    }
+
+    if (otpThreshold > 0 && orderTotal >= otpThreshold) {
+      if (!podDeliveryOtpPlain) {
+        throw AppError.badRequest(
+          'This order needs a customer OTP. Tap "Send code to customer" first.',
+          { code: 'POD_OTP_REQUIRED' },
+        );
+      }
+      if (!request.podDeliveryOtp) {
+        // Rider attempted OTP without us having generated one — they likely
+        // skipped the "Send code" CTA. Surface a specific code so the client
+        // re-opens the OTP sheet with the generate button.
+        throw AppError.badRequest(
+          'No code has been issued for this delivery yet. Tap "Send code to customer".',
+          { code: 'POD_OTP_NOT_ISSUED' },
+        );
+      }
+      const matches = await bcrypt.compare(podDeliveryOtpPlain, request.podDeliveryOtp);
+      if (!matches) {
+        throw AppError.badRequest('That code doesn\'t match. Ask the customer to read it again.', {
+          code: 'POD_OTP_MISMATCH',
+        });
+      }
+    }
+
+    updateData.podCapturedAt = new Date();
+  }
+
   // Set lifecycle timestamps
   switch (newStatus) {
     case 'ACCEPTED':
@@ -599,9 +694,19 @@ const updateStatus = async (requestId, newStatus, userId, role, reason) => {
 
   logger.info('Request status updated', { requestId, from: request.status, to: newStatus });
 
-  // Emit socket event for status change
+  // Emit socket event for status change. On DELIVERED we also attach the POD
+  // URLs so the customer's tracking screen flips to the "Proof of delivery"
+  // card in the same tick — without it, the customer would see DELIVERED but
+  // no photo until the next manual refetch.
   const io = getIO();
-  emitStatusChanged(io, requestId, newStatus);
+  const statusMeta = newStatus === 'DELIVERED'
+    ? {
+        podPhotoUrl: updated.podPhotoUrl || null,
+        podSignatureUrl: updated.podSignatureUrl || null,
+        podCapturedAt: updated.podCapturedAt || null,
+      }
+    : undefined;
+  emitStatusChanged(io, requestId, newStatus, statusMeta);
 
   // Emit specific events based on status. `updated.rider` is null when the
   // request has no rider yet — guard before touching nested user fields.
@@ -1321,7 +1426,7 @@ const listMessages = async (requestId, userId, role, { before, limit }) => {
 };
 
 const postMessage = async (requestId, userId, role, body) => {
-  await assertMessageParticipant(requestId, userId, role);
+  const request = await assertMessageParticipant(requestId, userId, role);
 
   const message = await prisma.requestMessage.create({
     data: { requestId, fromUserId: userId, body: body.trim() },
@@ -1336,7 +1441,349 @@ const postMessage = async (requestId, userId, role, body) => {
     message,
   });
 
+  // BLK-ChatNotifRouting — push the other parties so a backgrounded app
+  // wakes. We route per-recipient role:
+  //   - CUSTOMER → /request/:id (customer-app's tracking screen)
+  //   - RIDER    → /trip/:id    (rider-app's TripCockpit)
+  //   - MERCHANT → /orders/:id  (merchant dashboard's order detail)
+  // Recipients with unknown / missing roles still receive the notification
+  // (route fallback in each client's notificationRoute lib picks a sensible
+  // landing screen from `requestId`), so a stale role lookup never silently
+  // drops a message.
+  const sender = message.fromUser;
+  const senderName = `${sender?.firstName || ''} ${sender?.lastName || ''}`.trim() || 'New message';
+  const recipients = [];
+  if (request.customerId && request.customerId !== userId) {
+    recipients.push({ userId: request.customerId, route: `/request/${requestId}` });
+  }
+  if (request.rider?.user?.id && request.rider.user.id !== userId) {
+    recipients.push({ userId: request.rider.user.id, route: `/trip/${requestId}` });
+  }
+  if (request.merchant?.userId && request.merchant.userId !== userId) {
+    recipients.push({ userId: request.merchant.userId, route: `/orders/${requestId}` });
+  }
+  const preview = message.body.length > 80 ? `${message.body.slice(0, 80)}…` : message.body;
+  await Promise.all(
+    recipients.map(({ userId: rid, route }) =>
+      notifyService.pushAndSocket(rid, {
+        type: 'REQUEST_MESSAGE',
+        title: senderName,
+        body: preview,
+        data: { route, requestId, kind: 'message' },
+        requestId,
+      }).catch((err) => logger.warn('postMessage notify failed', { rid, error: err.message })),
+    ),
+  );
+
   return message;
+};
+
+// ============================================================
+// Rider-initiated cancellation — Phase 4.
+//
+// Only allowed while the rider is actively handling the request
+// (RIDER_ASSIGNED, RIDER_EN_ROUTE, PICKED_UP). PIN-protected, fully refunds
+// the customer via the REFUND_REQUEST worker. The rider is not charged.
+// Emits `request:cancelled` + customer push.
+// ============================================================
+
+const RIDER_CANCELLABLE_STATUSES = new Set([
+  'RIDER_ASSIGNED',
+  'RIDER_EN_ROUTE',
+  'PICKED_UP',
+]);
+
+const riderCancelRequest = async (requestId, userId, { reason, note, pin }) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: {
+      id: true, status: true, customerId: true,
+      rider: { select: { id: true, userId: true } },
+    },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+
+  if (!request.rider || request.rider.userId !== userId) {
+    throw AppError.forbidden('Not your assigned trip');
+  }
+  if (!RIDER_CANCELLABLE_STATUSES.has(request.status)) {
+    throw AppError.badRequest(
+      `Cannot cancel a trip in status ${request.status}. Contact support if you need to escalate.`,
+      { code: 'RIDER_CANCEL_NOT_ALLOWED' },
+    );
+  }
+
+  // PIN check — same guard money-moves use, so a stolen phone can't kill
+  // an active delivery from the lock-screen quick action.
+  await verifyTransactionPin(userId, pin);
+
+  const reasonDescription = note ? `${reason}: ${note}` : reason;
+
+  // Atomic: flip the Request → CANCELLED + reset the rider's server-side
+  // availability so the matcher considers them again. If we did these
+  // separately and the second update failed, the rider would be stuck at
+  // ON_DELIVERY forever despite having no active trip.
+  await prisma.$transaction(async (tx) => {
+    await tx.request.update({
+      where: { id: requestId },
+      data: {
+        status: 'CANCELLED',
+        cancelledAt: new Date(),
+        cancelledBy: 'rider',
+        cancellationReason: reasonDescription,
+        // No fee — rider cancellations are operational, not punitive.
+        cancellationFee: 0,
+      },
+    });
+    // Roll back rider availability from ON_DELIVERY → ONLINE so the dispatcher
+    // can offer them work again. The Redis presence key gets refreshed by the
+    // next location fix.
+    if (request.rider?.id) {
+      await tx.rider.update({
+        where: { id: request.rider.id },
+        data: { availability: 'ONLINE' },
+      });
+    }
+  });
+
+  // Emit socket event so the customer's tracking screen flips immediately.
+  const io = getIO();
+  emitCancelled(io, requestId, request.customerId, reasonDescription, {
+    cancelledBy: 'rider',
+    cancellationFee: 0,
+  });
+
+  // Refund worker — same path as customer cancel / admin force-cancel.
+  await requestQueue.add(REQUEST_JOBS.REFUND_REQUEST, { requestId }, { delay: 500 });
+
+  // Push the customer so they aren't surprised.
+  await notifyService.pushAndSocket(request.customerId, {
+    type: 'REQUEST_STATUS',
+    title: 'Delivery cancelled',
+    body: 'Your rider cancelled — your wallet will be refunded shortly.',
+    data: { route: `/request/${requestId}`, status: 'CANCELLED' },
+    requestId,
+  }).catch((err) => logger.warn('riderCancel customer notify failed', { error: err.message }));
+
+  logger.info('rider.cancel', { requestId, riderUserId: userId, reason });
+
+  return { requestId, status: 'CANCELLED', cancelledBy: 'rider', reason };
+};
+
+// ============================================================
+// Phase 5 — Proof of Delivery OTP generation.
+//
+// Generates a 6-digit OTP, bcrypts it onto Request.podDeliveryOtp, and
+// pushes it to the customer via the unified notification pipeline (push +
+// socket + Notification Center). Rate-limited per-request via Redis so the
+// rider can't spam the customer with codes. The customer reads the code
+// to the rider at the doorstep; the rider enters it on the DeliveryOtpInput
+// sheet; the DELIVERED PATCH validates with bcrypt.compare.
+// ============================================================
+
+const POD_OTP_GENERATABLE_STATUSES = new Set([
+  'PICKED_UP',
+  'IN_TRANSIT',
+]);
+const POD_OTP_REGEN_WINDOW_MS = 10 * 60 * 1000;
+const POD_OTP_REGEN_MAX = 3;
+
+const generatePodOtp = async (requestId, riderUserId) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: {
+      id: true, status: true, total: true, customerId: true,
+      rider: { select: { id: true, userId: true } },
+    },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+  if (!request.rider || request.rider.userId !== riderUserId) {
+    throw AppError.forbidden('Not your trip');
+  }
+  if (!POD_OTP_GENERATABLE_STATUSES.has(request.status)) {
+    throw AppError.badRequest(
+      'OTP can only be issued between pickup and delivery.',
+      { code: 'POD_OTP_NOT_YET' },
+    );
+  }
+  // Only worth issuing OTP when the order clears the threshold setting.
+  const threshold = Number(await getSetting('delivery.podOtpThresholdNgn', 50000));
+  if (threshold > 0 && Number(request.total || 0) < threshold) {
+    throw AppError.badRequest(
+      'This order does not require an OTP.',
+      { code: 'POD_OTP_NOT_REQUIRED' },
+    );
+  }
+
+  // Rate-limit: max 3 generations per 10-minute window per request. Redis
+  // INCR with EX guarantees correct count across processes / pods.
+  const rateKey = `pod:otp:rate:${requestId}`;
+  try {
+    const count = await redis.incr(rateKey);
+    if (count === 1) {
+      await redis.expire(rateKey, Math.ceil(POD_OTP_REGEN_WINDOW_MS / 1000));
+    }
+    if (count > POD_OTP_REGEN_MAX) {
+      const ttl = await redis.ttl(rateKey);
+      throw AppError.tooManyRequests(
+        'Too many OTP requests. Please ask the customer to wait a few minutes.',
+        { code: 'POD_OTP_RATE_LIMITED', retryAfterSeconds: ttl > 0 ? ttl : 60 },
+      );
+    }
+  } catch (err) {
+    if (err?.code === 'POD_OTP_RATE_LIMITED') throw err;
+    logger.warn('pod.otp rate-limit check failed (allowing through)', { error: err.message });
+  }
+
+  // 6-digit OTP. Math.random is fine for a short-lived doorstep code, but
+  // we use crypto.randomInt for parity with the rest of the codebase that
+  // treats codes as security-sensitive.
+  const cryptoMod = require('crypto');
+  const otp = String(cryptoMod.randomInt(0, 1_000_000)).padStart(6, '0');
+  const hash = await bcrypt.hash(otp, 10);
+
+  await prisma.request.update({
+    where: { id: requestId },
+    data: { podDeliveryOtp: hash },
+  });
+
+  // Push to customer — visible in the in-app banner + tray. `data.otp` is
+  // included so the customer-app can render the code right in the banner
+  // without an extra fetch. SMS is deliberately omitted in v1 (cost) —
+  // notifyService handles the push+socket+Notification Center triple.
+  await notifyService.pushAndSocket(request.customerId, {
+    type: 'POD_OTP_GENERATED',
+    title: 'Share this code with your rider',
+    body: `Your delivery code is ${otp}. Read it to the rider on arrival.`,
+    data: {
+      route: `/request/${requestId}`,
+      kind: 'pod_otp',
+      otp,
+    },
+    requestId,
+  }).catch((err) => logger.warn('pod.otp push failed', { requestId, error: err.message }));
+
+  logger.info('pod.otp.generated', { requestId, riderUserId });
+
+  return { issued: true };
+};
+
+// ============================================================
+// Address correction — Phase 4 (BLK-AddressCorrection).
+//
+// Rider supplies a corrected location + note for a wrong pickup/dropoff
+// address. We persist an AuditLog row so dispatch can audit and reach out
+// to the customer/merchant; we also emit `request:address:correction` and
+// push the merchant (when this is a pickup correction) so they can act.
+// Does NOT change the request's flow or status — it's an out-of-band signal.
+// ============================================================
+
+const ADDRESS_CORRECTION_OPEN_STATUSES = new Set([
+  'RIDER_ASSIGNED',
+  'RIDER_EN_ROUTE',
+  'PICKED_UP',
+  'IN_TRANSIT',
+]);
+
+const recordAddressCorrection = async (
+  requestId,
+  riderUserId,
+  { stage, note, lat, lng, ipAddress, userAgent },
+) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: {
+      id: true, customerId: true, merchantId: true, status: true,
+      pickupAddress: true, dropoffAddress: true,
+      pickupLat: true, pickupLng: true, dropoffLat: true, dropoffLng: true,
+      rider: { select: { id: true, userId: true } },
+      merchant: { select: { id: true, userId: true } },
+    },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+  if (!request.rider || request.rider.userId !== riderUserId) {
+    throw AppError.forbidden('Not your assigned trip');
+  }
+  if (!ADDRESS_CORRECTION_OPEN_STATUSES.has(request.status)) {
+    // Trip already terminal — corrections are operational signals for an
+    // in-flight delivery. After settlement/cancellation the right channel
+    // is a support ticket, not a correction.
+    throw AppError.badRequest(
+      'This trip is closed. Open a support ticket instead.',
+      { code: 'ADDRESS_CORRECTION_TRIP_CLOSED' },
+    );
+  }
+  // Stage must be relevant to where the rider currently is — accepting a
+  // dropoff correction while still RIDER_ASSIGNED/RIDER_EN_ROUTE is fine
+  // (rider previewed the dropoff), and a pickup correction post-pickup is
+  // historical but still useful for dispatch. We only block obvious nonsense:
+  // a pickup correction when the rider is already in transit toward dropoff
+  // is too late to act on — they should file a support ticket instead.
+  if (stage === 'pickup' && request.status === 'IN_TRANSIT') {
+    throw AppError.badRequest(
+      'You\'ve already passed pickup. Open a support ticket to escalate.',
+      { code: 'ADDRESS_CORRECTION_PICKUP_PASSED' },
+    );
+  }
+
+  const details = {
+    requestId,
+    stage,
+    note,
+    correctedLat: typeof lat === 'number' ? lat : null,
+    correctedLng: typeof lng === 'number' ? lng : null,
+    originalAddress: stage === 'pickup' ? request.pickupAddress : request.dropoffAddress,
+    originalLat: stage === 'pickup' ? request.pickupLat : request.dropoffLat,
+    originalLng: stage === 'pickup' ? request.pickupLng : request.dropoffLng,
+    raisedAtStatus: request.status,
+  };
+
+  await prisma.auditLog.create({
+    data: {
+      adminUserId: riderUserId,
+      action: 'RIDER_ADDRESS_CORRECTION',
+      entityType: 'REQUEST',
+      entityId: requestId,
+      details,
+      ipAddress: ipAddress || null,
+      userAgent: userAgent || null,
+    },
+  });
+
+  const io = getIO();
+  io.to(getRequestRoom(requestId)).emit(REQUEST.ADDRESS_CORRECTION, {
+    requestId,
+    stage,
+    note,
+    lat: details.correctedLat,
+    lng: details.correctedLng,
+    timestamp: Date.now(),
+  });
+
+  // Push merchant (pickup corrections) or customer (dropoff corrections).
+  const targetUserId = stage === 'pickup'
+    ? (request.merchant?.userId || null)
+    : (request.customerId || null);
+  if (targetUserId) {
+    const title = stage === 'pickup'
+      ? 'Rider flagged the pickup address'
+      : 'Rider flagged the dropoff address';
+    await notifyService.pushAndSocket(targetUserId, {
+      type: 'REQUEST_STATUS',
+      title,
+      body: note.length > 80 ? `${note.slice(0, 80)}…` : note,
+      data: {
+        route: stage === 'pickup' ? `/merchant/orders/${requestId}` : `/request/${requestId}`,
+        kind: 'address-correction',
+        stage,
+      },
+      requestId,
+    }).catch((err) => logger.warn('addressCorrection notify failed', { error: err.message }));
+  }
+
+  logger.info('rider.address-correction', { requestId, stage, raisedAtStatus: request.status });
+
+  return { requestId, stage, note, lat: details.correctedLat, lng: details.correctedLng };
 };
 
 module.exports = {
@@ -1355,6 +1802,11 @@ module.exports = {
   getActiveRequest,
   listMessages,
   postMessage,
+  // Phase 4 — rider trip cockpit
+  riderCancelRequest,
+  recordAddressCorrection,
+  // Phase 5 — POD
+  generatePodOtp,
   // Admin functions
   getAllRequestsAdmin,
   reassignRider,

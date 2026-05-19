@@ -930,6 +930,20 @@ model Request {
   /// of which physical prescription the order was fulfilled against.
   prescriptionUrl String?
 
+  /// Phase 5 — Proof of Delivery. Captured by the rider at DELIVERED time and
+  /// gated by platform settings (`delivery.requirePodPhoto`,
+  /// `delivery.requireSignature`, `delivery.podOtpThresholdNgn`).
+  ///   - `podPhotoUrl`        — Cloudinary URL of the doorstep photo.
+  ///   - `podSignatureUrl`    — Cloudinary URL of the recipient's signature (opt-in).
+  ///   - `podDeliveryOtp`     — bcrypt hash of the 6-digit OTP the customer
+  ///                             shared with the rider; only set when the
+  ///                             order's total clears the threshold setting.
+  ///   - `podCapturedAt`      — wall-clock the rider hit "Complete delivery".
+  podPhotoUrl     String?
+  podSignatureUrl String?
+  podDeliveryOtp  String?
+  podCapturedAt   DateTime?
+
   // Cancellation
   cancelledAt        DateTime?
   cancelledBy        String? // customer, merchant, rider, system

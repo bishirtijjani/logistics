@@ -114,7 +114,20 @@ const createRequestSchema = z.object({
 const updateStatusSchema = z.object({
   status: z.enum(REQUEST_STATUSES),
   reason: z.string().optional(),
+  // Phase 5 — Proof of Delivery payload, supplied on DELIVERED transition
+  // when the platform requires it. Validated in `request.service.updateStatus`
+  // against `delivery.requirePodPhoto`, `delivery.requireSignature`, and
+  // `delivery.podOtpThresholdNgn`. URLs are server-verified against the
+  // Cloudinary cloud configured for this environment.
+  podPhotoUrl: z.string().url().max(1024).optional(),
+  podSignatureUrl: z.string().url().max(1024).optional(),
+  podDeliveryOtp: z.string().regex(/^\d{6}$/, 'OTP must be 6 digits').optional(),
 });
+
+// Phase 5 — body shape for `POST /api/requests/:id/pod-otp/generate`.
+// The endpoint takes no request body, but we declare a schema for the
+// idempotency middleware's body-hash to be deterministic.
+const podOtpGenerateSchema = z.object({}).passthrough();
 
 // ============================================================
 // List Requests Schema
@@ -197,6 +210,40 @@ const listMessagesSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
+// ============================================================
+// Rider-initiated cancellation — Phase 4.
+// Riders cancel for operational reasons (customer unreachable, wrong address,
+// vehicle issue). No fee is charged to the rider; the customer is fully
+// refunded. PIN-protected, idempotent.
+// ============================================================
+
+const RIDER_CANCEL_REASONS = [
+  'CUSTOMER_NOT_REACHABLE',
+  'WRONG_ADDRESS',
+  'VEHICLE_ISSUE',
+  'OTHER',
+];
+
+const riderCancelSchema = z.object({
+  reason: z.enum(RIDER_CANCEL_REASONS),
+  note: z.string().trim().max(500).optional(),
+  pin: z.string().length(6),
+});
+
+// ============================================================
+// Address correction — Phase 4 (BLK-AddressCorrection).
+// Rider flags a stage's address as wrong and supplies a corrected location
+// + note. Persists as an AuditLog row and notifies merchant + admin so
+// dispatch can act on it without changing the trip flow.
+// ============================================================
+
+const addressCorrectionSchema = z.object({
+  stage: z.enum(['pickup', 'dropoff']),
+  note: z.string().trim().min(3, 'Tell us what the issue is').max(500),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
+});
+
 module.exports = {
   createRequestSchema,
   updateStatusSchema,
@@ -206,7 +253,11 @@ module.exports = {
   quoteRequestSchema,
   postMessageSchema,
   listMessagesSchema,
+  riderCancelSchema,
+  addressCorrectionSchema,
+  podOtpGenerateSchema,
   REQUEST_TYPES,
   REQUEST_STATUSES,
   SUBSTITUTION_PREFERENCES,
+  RIDER_CANCEL_REASONS,
 };

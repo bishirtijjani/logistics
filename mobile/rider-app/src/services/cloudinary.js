@@ -2,19 +2,17 @@
  * Cloudinary signed-upload client.
  *
  * Flow:
- *   1. POST /api/auth/upload-signature { kind }
+ *   1. POST /api/auth/upload-signature { kind, requestId? }
  *      → { signature, timestamp, apiKey, cloudName, folder, publicId, kind }
  *      (see backend `getCloudinaryUploadSignature` in auth.service.js).
  *   2. Construct Cloudinary upload URL from cloudName.
  *   3. multipart POST to Cloudinary with file + signed params.
  *   4. Caller persists `secure_url` to the relevant slice.
  *
- * Backend dependency (BLK-RiderKycExpansion):
- *   The backend's UPLOAD_KINDS currently accepts: profile / prescription /
- *   return / product / dispute / ticket. The rider app needs additional kinds:
- *   rider_id / rider_driver_license / rider_vehicle_registration /
- *   rider_insurance / rider_vehicle_photo / pod. Extend UPLOAD_KINDS in
- *   `backend/src/modules/auth/auth.service.js` to include these.
+ * Backend kind support:
+ *   profile / prescription / return / product / dispute / ticket / pod /
+ *   pod_signature. POD kinds require `scopeId = requestId` and the rider
+ *   must be assigned to that request while it's PICKED_UP or IN_TRANSIT.
  */
 
 import api from "./api";
@@ -26,13 +24,14 @@ const RETRY_DELAYS_MS = [1_000, 3_000, 9_000];
  * Upload a local image to Cloudinary via the backend-issued signed upload.
  *
  * @param {object} opts
- * @param {string} opts.kind     - upload kind handled by backend `/auth/upload-signature`
- * @param {string} opts.localUri - file:// URI for the image
+ * @param {string} opts.kind        - upload kind handled by backend `/auth/upload-signature`
+ * @param {string} opts.localUri    - file:// URI for the image
+ * @param {string} [opts.requestId] - required for request-scoped kinds (pod, pod_signature)
  * @param {string} [opts.mimeType="image/jpeg"]
  * @param {AbortSignal} [opts.signal] - optional cancel signal
  * @returns {Promise<{ secureUrl: string, publicId: string }>}
  */
-export async function uploadToCloudinary({ kind, localUri, mimeType = "image/jpeg", signal }) {
+export async function uploadToCloudinary({ kind, localUri, requestId, mimeType = "image/jpeg", signal }) {
   if (!kind) throw new Error("upload kind is required");
   if (!localUri) throw new Error("local URI is required");
 
@@ -42,10 +41,12 @@ export async function uploadToCloudinary({ kind, localUri, mimeType = "image/jpe
 
     try {
       // 1. Fresh signature per attempt — server caps timestamp skew, so a
-      //    signature that idles too long fails. Refresh is cheap.
+      //    signature that idles too long fails. Refresh is cheap. POD kinds
+      //    pass the requestId so the server can verify the rider's assignment.
+      const signBody = requestId ? { kind, requestId } : { kind };
       const signResp = await api.post(
         "/auth/upload-signature",
-        { kind },
+        signBody,
         { headers: { "Idempotency-Key": newIdempotencyKey() } },
       );
       const sig = signResp?.data || signResp;
@@ -100,4 +101,30 @@ export async function uploadToCloudinary({ kind, localUri, mimeType = "image/jpe
     }
   }
   throw lastError;
+}
+
+/**
+ * Phase 5 — Proof of Delivery upload convenience wrapper.
+ *
+ * `assetKind`:
+ *   - "photo"     → backend kind `pod`
+ *   - "signature" → backend kind `pod_signature`
+ *
+ * Both kinds are request-scoped on the backend: signing requires the
+ * caller to be the assigned rider on the request, and the request must be
+ * between PICKED_UP and DELIVERED.
+ *
+ * @param {object} opts
+ * @param {"photo"|"signature"} opts.assetKind
+ * @param {string} opts.localUri
+ * @param {string} opts.requestId
+ * @param {AbortSignal} [opts.signal]
+ * @returns {Promise<{ secureUrl: string, publicId: string }>}
+ */
+export function uploadPodAsset({ assetKind, localUri, requestId, signal }) {
+  if (!requestId) throw new Error("uploadPodAsset requires a requestId");
+  const kind = assetKind === "signature" ? "pod_signature" : "pod";
+  // Signatures are PNG (transparent background); photos are JPEG.
+  const mimeType = assetKind === "signature" ? "image/png" : "image/jpeg";
+  return uploadToCloudinary({ kind, localUri, requestId, mimeType, signal });
 }

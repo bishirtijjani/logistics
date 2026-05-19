@@ -3,13 +3,15 @@
  * when the user is authenticated.
  *
  * Wiring:
- *   - `notification:new` → notificationsSlice.notificationReceived(...)
- *   - `notification:new` with `data.type === 'SYSTEM_FORCE_OFFLINE'` →
- *     riderSlice.goOffline({ reason: 'force-offline' })
- *   - `rider:job:new` → offersSlice.offerEnqueued(payload)
- *   - `rider:job:taken` → offersSlice.offerTaken({ requestId })
- *   - `rider:job:confirmed` → diagnostic only; the HTTP accept response is
- *     the canonical activation path. Logged for observability.
+ *   - `notification:new`                   → notificationsSlice.notificationReceived(...)
+ *   - `notification:new` (SYSTEM_FORCE_OFFLINE) → riderSlice.goOffline({ reason: 'force-offline' })
+ *   - `rider:job:new`                      → offersSlice.offerEnqueued(payload)
+ *   - `rider:job:taken`                    → offersSlice.offerTaken({ requestId })
+ *   - `rider:job:confirmed`                → diagnostic only.
+ *   - `request:status:changed`             → tripSlice.tripStatusReceivedFromSocket(...)
+ *   - `request:cancelled`                  → tripSlice.tripCancelledFromSocket(...)
+ *   - `request:completed`                  → tripSlice.tripStatusReceivedFromSocket(SETTLED)
+ *   - `request:message:new`                → tripSlice.tripMessageReceived(...)
  *
  * Returns an unsubscribe function. Calling the bridge again replaces the
  * previous subscriptions (idempotent on auth-state changes).
@@ -18,13 +20,19 @@
 import socketService from "./socket";
 import { goOffline } from "../store/slices/riderSlice";
 import { offerEnqueued, offerTaken } from "../store/slices/offersSlice";
+import {
+  tripStatusReceivedFromSocket,
+  tripCancelledFromSocket,
+  tripMessageReceived,
+} from "../store/slices/tripSlice";
+import { socketBalanceUpdated, socketFundingReceived } from "../store/slices/walletSlice";
+import { earningCreditedFromSocket } from "../store/slices/earningsSlice";
 
 const SYSTEM_FORCE_OFFLINE = "SYSTEM_FORCE_OFFLINE";
 
 let lastUnsubscribers = [];
 
 export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
-  // Tear down any previous subscriptions before installing new ones.
   for (const u of lastUnsubscribers) {
     try { u(); } catch (_) {}
   }
@@ -60,13 +68,71 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
   );
 
   // rider:job:confirmed — server confirmation that this rider won the race.
-  // Decorative: the HTTP accept already activated the trip; we just log for
-  // observability if confirms ever drift from HTTP outcomes.
   lastUnsubscribers.push(
     socketService.onRiderJobConfirmed((data) => {
       if (data?.requestId && __DEV__) {
         console.log("[notificationsBus] job confirmed:", data.requestId);
       }
+    }),
+  );
+
+  // ── Trip lifecycle ─────────────────────────────────────────────────────
+  // request:status:changed — server-pushed FSM transitions.
+  lastUnsubscribers.push(
+    socketService.onRequestStatusChanged((data) => {
+      if (!data?.requestId || !data?.status) return;
+      dispatch(tripStatusReceivedFromSocket(data));
+    }),
+  );
+
+  // request:cancelled — admin force-cancel, customer pre-pickup cancel, etc.
+  lastUnsubscribers.push(
+    socketService.onRequestCancelled((data) => {
+      if (!data?.requestId) return;
+      dispatch(tripCancelledFromSocket(data));
+    }),
+  );
+
+  // request:completed — server signals SETTLED. The status reducer treats
+  // this as a status-changed event so the cockpit flips to the "Delivered"
+  // confirmation card.
+  lastUnsubscribers.push(
+    socketService.onRequestCompleted((data) => {
+      if (!data?.requestId) return;
+      dispatch(tripStatusReceivedFromSocket({
+        requestId: data.requestId,
+        status: data.status || "SETTLED",
+      }));
+    }),
+  );
+
+  // request:message:new — chat updates for the active trip.
+  lastUnsubscribers.push(
+    socketService.onRequestMessageNew((data) => {
+      if (!data?.requestId || !data?.message) return;
+      dispatch(tripMessageReceived(data));
+    }),
+  );
+
+  // ── Phase 6 — wallet + earnings real-time. ────────────────────────────
+  // The settlement worker emits `wallet:balance:updated` with the credited
+  // transaction; we pipe that into BOTH walletSlice (for balance + recent
+  // tx list) AND earningsSlice (for dashboard tallies + chart). Funding
+  // events only go to walletSlice.
+  lastUnsubscribers.push(
+    socketService.onWalletBalanceUpdated((data) => {
+      if (!data) return;
+      dispatch(socketBalanceUpdated(data));
+      const tx = data.transaction;
+      if (tx && tx.type === "RIDER_EARNING") {
+        dispatch(earningCreditedFromSocket(tx));
+      }
+    }),
+  );
+  lastUnsubscribers.push(
+    socketService.onWalletFundingReceived((data) => {
+      if (!data) return;
+      dispatch(socketFundingReceived(data));
     }),
   );
 

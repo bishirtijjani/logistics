@@ -87,6 +87,10 @@ const REQUEST = {
 
   // Server → Request room: new in-app message
   MESSAGE_NEW: 'request:message:new',
+
+  // Server → Request room + merchant + admin: rider flagged a wrong address
+  // and supplied a correction (BLK-AddressCorrection, Phase 4).
+  ADDRESS_CORRECTION: 'request:address:correction',
 };
 
 // --- Merchant catalogue events (Phase 2: 86-propagation) ---

@@ -47,8 +47,18 @@ const registerRider = async (userId, riderData) => {
 };
 
 /**
- * Get rider profile with earnings.
+ * Get rider profile with earnings. The optional `activeRequest` field carries
+ * the rider's currently-active delivery (status in the active set) — the
+ * mobile app reads this on boot to re-hydrate the trip cockpit after a
+ * force-close, so the rider never loses their place in the FSM.
  */
+const RIDER_ACTIVE_TRIP_STATUSES = [
+  'RIDER_ASSIGNED',
+  'RIDER_EN_ROUTE',
+  'PICKED_UP',
+  'IN_TRANSIT',
+];
+
 const getProfile = async (userId) => {
   const rider = await prisma.rider.findUnique({
     where: { userId },
@@ -67,7 +77,22 @@ const getProfile = async (userId) => {
 
   if (!rider) throw AppError.notFound('Rider profile not found');
 
-  return rider;
+  // Find an active trip — at most one per rider thanks to the FSM.
+  const activeRequest = await prisma.request.findFirst({
+    where: {
+      riderId: rider.id,
+      status: { in: RIDER_ACTIVE_TRIP_STATUSES },
+    },
+    orderBy: { riderAssignedAt: 'desc' },
+    include: {
+      customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
+      merchant: { select: { id: true, name: true, phone: true, userId: true } },
+      items: true,
+      packageDetails: true,
+    },
+  });
+
+  return { ...rider, activeRequest: activeRequest || null };
 };
 
 /**
@@ -199,53 +224,169 @@ const acceptJob = async (userId, requestId) => {
 /**
  * Get rider earnings summary.
  */
-const getEarnings = async (userId) => {
+/**
+ * Phase 6 — full earnings dashboard payload. Single endpoint returns the
+ * three things the dashboard renders:
+ *   1. `summary` — today / week / month / allTime `{ count, amount }` tallies.
+ *   2. `daily`   — trailing-30-day series for the 7-day bar chart + drill-in.
+ *   3. `recent`  — paginated list of recent settlements with the request
+ *                  context the breakdown screen renders per row.
+ *
+ * Aggregation is keyed off `Transaction` rows of type=RIDER_EARNING joined
+ * back to the originating Request via metadata.requestId. The rider's
+ * `totalEarnings`/`totalDeliveries` columns are authoritative for allTime
+ * (they're written by the settlement worker), avoiding a giant aggregate
+ * scan as the rider's history grows.
+ */
+const RECENT_LIMIT_DEFAULT = 20;
+
+const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = {}) => {
   const rider = await prisma.rider.findUnique({ where: { userId } });
   if (!rider) throw AppError.notFound('Rider not found');
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  const walletId = wallet?.id || null;
 
-  const weekStart = new Date(today);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-
-  const [todayEarnings, weekEarnings] = await Promise.all([
-    prisma.transaction.aggregate({
-      where: {
-        creditWalletId: (await prisma.wallet.findUnique({ where: { userId } }))?.id,
-        type: 'RIDER_EARNING',
-        status: 'COMPLETED',
-        createdAt: { gte: today },
+  // No wallet? Rider hasn't been provisioned yet — return zeros so the
+  // client renders cleanly rather than 404-ing.
+  if (!walletId) {
+    return {
+      summary: {
+        today: { amount: 0, count: 0 },
+        week: { amount: 0, count: 0 },
+        month: { amount: 0, count: 0 },
+        allTime: { amount: Number(rider.totalEarnings) || 0, count: rider.totalDeliveries || 0 },
       },
+      daily: [],
+      recent: [],
+      pagination: { page, limit, total: 0, hasMore: false },
+      averageRating: rider.averageRating || 0,
+    };
+  }
+
+  const now = new Date();
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+  const thirtyDaysAgo = new Date(todayStart);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // inclusive 30-day window
+
+  const baseWhere = {
+    creditWalletId: walletId,
+    type: 'RIDER_EARNING',
+    status: 'COMPLETED',
+  };
+
+  const [today, week, month, dailyRows, recent, total] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: { ...baseWhere, createdAt: { gte: todayStart } },
       _sum: { amount: true },
       _count: true,
     }),
     prisma.transaction.aggregate({
-      where: {
-        creditWalletId: (await prisma.wallet.findUnique({ where: { userId } }))?.id,
-        type: 'RIDER_EARNING',
-        status: 'COMPLETED',
-        createdAt: { gte: weekStart },
-      },
+      where: { ...baseWhere, createdAt: { gte: weekStart } },
       _sum: { amount: true },
       _count: true,
     }),
+    prisma.transaction.aggregate({
+      where: { ...baseWhere, createdAt: { gte: monthStart } },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    // Per-day series for the chart. Prisma doesn't have a native bucket-by-day
+    // operator on Postgres without raw SQL, so we use $queryRaw. DATE_TRUNC
+    // floors each row to its day; results are sparse — the client fills in
+    // missing days with zeros.
+    prisma.$queryRaw`
+      SELECT DATE_TRUNC('day', "createdAt")::date AS day,
+             SUM("amount")::float AS amount,
+             COUNT(*)::int AS count
+      FROM "transactions"
+      WHERE "creditWalletId" = ${walletId}
+        AND "type" = 'RIDER_EARNING'
+        AND "status" = 'COMPLETED'
+        AND "createdAt" >= ${thirtyDaysAgo}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `,
+    prisma.transaction.findMany({
+      where: baseWhere,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true, reference: true, amount: true, createdAt: true,
+        description: true, metadata: true, balanceAfter: true,
+      },
+    }),
+    prisma.transaction.count({ where: baseWhere }),
   ]);
 
+  // Hydrate recent rows with the originating Request's display fields.
+  // Settlement worker stores `metadata.requestId` on every RIDER_EARNING tx,
+  // so we pluck those, batch-load requests, then merge.
+  const requestIds = recent
+    .map((tx) => (tx.metadata && typeof tx.metadata === 'object' && tx.metadata.requestId) || null)
+    .filter(Boolean);
+  let requestMap = new Map();
+  if (requestIds.length > 0) {
+    const requests = await prisma.request.findMany({
+      where: { id: { in: requestIds } },
+      select: {
+        id: true, deliveredAt: true, settledAt: true, distanceKm: true,
+        estimatedMinutes: true, dropoffAddress: true,
+        customer: { select: { firstName: true, lastName: true } },
+      },
+    });
+    requestMap = new Map(requests.map((r) => [r.id, r]));
+  }
+
+  const recentHydrated = recent.map((tx) => {
+    const reqId = tx.metadata?.requestId || null;
+    const req = reqId ? requestMap.get(reqId) : null;
+    return {
+      id: tx.id,
+      reference: tx.reference,
+      requestId: reqId,
+      amount: Number(tx.amount),
+      balanceAfter: tx.balanceAfter != null ? Number(tx.balanceAfter) : null,
+      settledAt: tx.createdAt,
+      deliveredAt: req?.deliveredAt || null,
+      requestSettledAt: req?.settledAt || null,
+      distanceKm: req?.distanceKm || null,
+      durationMin: req?.estimatedMinutes || null,
+      dropoffAddress: req?.dropoffAddress || null,
+      customerName: req?.customer
+        ? `${req.customer.firstName || ''} ${req.customer.lastName || ''}`.trim()
+        : null,
+      description: tx.description || null,
+    };
+  });
+
   return {
-    today: {
-      earnings: todayEarnings._sum.amount || 0,
-      deliveries: todayEarnings._count,
+    summary: {
+      today:   { amount: Number(today._sum.amount  || 0), count: today._count   || 0 },
+      week:    { amount: Number(week._sum.amount   || 0), count: week._count    || 0 },
+      month:   { amount: Number(month._sum.amount  || 0), count: month._count   || 0 },
+      allTime: {
+        amount: Number(rider.totalEarnings) || 0,
+        count: rider.totalDeliveries || 0,
+      },
     },
-    thisWeek: {
-      earnings: weekEarnings._sum.amount || 0,
-      deliveries: weekEarnings._count,
+    daily: dailyRows.map((r) => ({
+      // r.day is a Date (Postgres date). Stringify yyyy-MM-dd for client.
+      date: r.day instanceof Date
+        ? r.day.toISOString().slice(0, 10)
+        : String(r.day).slice(0, 10),
+      amount: Number(r.amount || 0),
+      count: Number(r.count || 0),
+    })),
+    recent: recentHydrated,
+    pagination: {
+      page, limit, total,
+      hasMore: page * limit < total,
     },
-    allTime: {
-      earnings: rider.totalEarnings,
-      deliveries: rider.totalDeliveries,
-    },
-    averageRating: rider.averageRating,
+    averageRating: rider.averageRating || 0,
   };
 };
 

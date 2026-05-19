@@ -490,7 +490,7 @@ const rejectMerchantOrder = async (merchantId, userId, role, requestId, reason) 
   await assertMerchantOwnsRequest(merchantId, userId, role, requestId);
   // CANCELLED also triggers REFUND_REQUEST via the request worker, ensuring
   // the customer's escrow is released without a separate code path here.
-  const updated = await requestService.updateStatus(requestId, 'CANCELLED', userId, 'MERCHANT', reason);
+  const updated = await requestService.updateStatus(requestId, 'CANCELLED', userId, 'MERCHANT', { reason });
   logger.info('Merchant order rejected', { merchantId, requestId, reason });
   return updated;
 };

@@ -272,8 +272,11 @@
   },
   "tabs": {
     "home": "Home",
-    "orders": "Orders",
+    "trip": "Trip",
+    "earnings": "Earnings",
     "wallet": "Wallet",
+    "me": "Me",
+    "orders": "Orders",
     "profile": "Profile",
     "cart": "Cart"
   },
@@ -1264,5 +1267,223 @@
     "noRequestSelected": "No order selected. Open the order and tap 'Report an issue'.",
     "outcome": "Outcome",
     "refundedToWallet": "credited to your wallet"
+  },
+  "trip": {
+    "noActive": "No active trip.",
+    "loading": "Loading trip…",
+    "openChat": "Open chat",
+    "chatTitle": "Trip chat",
+    "closeChat": "Close chat",
+    "noMessages": "No messages yet. Say hi.",
+    "messagePlaceholder": "Write a message…",
+    "sendMessage": "Send message",
+    "sendFailed": "Send failed",
+    "sendFailedFallback": "Couldn't send message",
+    "stage": {
+      "RIDER_ASSIGNED": "Heading to pickup",
+      "RIDER_EN_ROUTE": "En route to pickup",
+      "PICKED_UP": "Picked up",
+      "IN_TRANSIT": "In transit",
+      "DELIVERED": "Delivered",
+      "SETTLED": "Settled"
+    },
+    "action": {
+      "onMyWayPickup": "I'm on my way to pickup",
+      "arrivedPickup": "I've arrived at pickup",
+      "confirmPickup": "Confirm pickup",
+      "onMyWayDropoff": "I'm on my way to dropoff",
+      "arrivedDropoff": "I've arrived at dropoff",
+      "complete": "Complete delivery",
+      "settling": "Settling…"
+    },
+    "pickup": {
+      "label": "PICKUP",
+      "fallback": "Pickup location",
+      "items": "ITEMS",
+      "package": "PACKAGE",
+      "wrongTitle": "Wrong pickup address?",
+      "wrongAria": "Wrong pickup address"
+    },
+    "dropoff": {
+      "label": "DROPOFF",
+      "fallback": "Dropoff location",
+      "wrongTitle": "Wrong dropoff address?",
+      "wrongAria": "Wrong dropoff address"
+    },
+    "stat": {
+      "distance": "Distance",
+      "est": "Est.",
+      "youEarn": "You earn"
+    },
+    "cta": {
+      "maps": "Maps",
+      "mapsAria": "Open in Maps",
+      "mapsDropoffAria": "Open dropoff in Maps",
+      "contact": "Contact",
+      "contactPickupAria": "Contact merchant or sender",
+      "contactDropoffAria": "Contact customer or recipient"
+    },
+    "contact": {
+      "title": "Contact {{name}}",
+      "fallbackName": "party",
+      "noPhone": "No phone number on file — try chat.",
+      "call": "Call",
+      "callSub": "Opens your phone dialer",
+      "callAriaPrefix": "Call",
+      "tried": "Tried {{count}}×",
+      "chat": "Chat",
+      "chatSub": "Message inside the app",
+      "chatAria": "Open chat thread",
+      "unreachable": "Can't reach them? Open a support ticket",
+      "unreachableAria": "Report customer unreachable to support",
+      "close": "Close",
+      "noPhoneToast": "No phone on file"
+    },
+    "cancel": {
+      "title": "Cancel this trip?",
+      "subtitle": "The customer is refunded. Cancellations affect your acceptance score.",
+      "reason": {
+        "CUSTOMER_NOT_REACHABLE": "Customer not reachable",
+        "WRONG_ADDRESS": "Wrong address",
+        "VEHICLE_ISSUE": "Vehicle issue",
+        "OTHER": "Other reason"
+      },
+      "noteLabel": "TELL US WHY",
+      "notePlaceholder": "Be specific so support can follow up",
+      "keep": "Keep trip",
+      "confirm": "Cancel trip",
+      "pinTitle": "Authorize cancellation",
+      "pinSubtitle": "Enter your 6-digit PIN to confirm",
+      "successTitle": "Trip cancelled",
+      "successSub": "Customer will be refunded.",
+      "failed": "Couldn't cancel trip",
+      "continueAria": "Continue to PIN"
+    },
+    "wrong": {
+      "title": "Wrong {{stage}} address?",
+      "stagePickup": "pickup",
+      "stageDropoff": "dropoff",
+      "subtitle": "Tell dispatch what's wrong. They'll follow up — your trip stays in flight.",
+      "placeholder": "e.g. The address is one block north — gate is by the green mosque",
+      "attach": "Attach my current location",
+      "attachAria": "Include my current location as the correction",
+      "waitingGps": "Waiting on GPS — go online to capture a fix.",
+      "send": "Send",
+      "sendAria": "Send correction",
+      "notNow": "Not now",
+      "notNowAria": "Cancel",
+      "sentTitle": "Sent to dispatch",
+      "sentSub": "We'll follow up with the right party.",
+      "failed": "Couldn't send",
+      "failedFallback": "Try again in a moment.",
+      "noteAria": "Address correction note"
+    },
+    "cancelled": {
+      "title": "Trip cancelled",
+      "fallback": "This trip was cancelled.",
+      "by": "by {{actor}}",
+      "back": "Back to Home",
+      "backAria": "Back to Home"
+    },
+    "delivered": {
+      "title": "Delivered!",
+      "sub": "Earnings will land in your wallet within a minute.",
+      "subSettled": "Credited to your wallet.",
+      "successToastTitle": "Delivered!",
+      "successToastSub": "Earnings will land in your wallet shortly.",
+      "podRequiredTitle": "Proof of delivery required",
+      "podRequiredSub": "POD capture lands in the next release."
+    },
+    "geofence": {
+      "arrivedPickupTitle": "Arrived at pickup",
+      "arrivedPickupSub": "Tap Confirm pickup when you have the order.",
+      "arrivedDropoffTitle": "Arrived at dropoff",
+      "arrivedDropoffSub": "Tap Complete delivery to finish."
+    },
+    "support": {
+      "notifiedTitle": "Support notified",
+      "notifiedSub": "We'll be in touch shortly.",
+      "notifyFailed": "Couldn't notify support",
+      "notifyFailedFallback": "Try again."
+    },
+    "offline": {
+      "title": "You're offline",
+      "sub": "We'll retry as soon as the connection is back.",
+      "banner": "Connection issue — we'll retry your update."
+    },
+    "timeline": {
+      "assigned": "Assigned",
+      "toPickup": "To pickup",
+      "pickedUp": "Picked up",
+      "toDropoff": "To dropoff",
+      "delivered": "Delivered"
+    },
+    "cancelLink": "Cancel trip",
+    "cancelLinkAria": "Cancel trip",
+    "recenterAria": "Recenter on me"
+  },
+  "pod": {
+    "submitFailed": "Couldn't complete the delivery",
+    "submitTryAgain": "Try again.",
+    "capture": {
+      "title": "Proof of delivery",
+      "hint": "Frame the package at the doorstep.",
+      "shutter": "Take photo",
+      "close": "Close",
+      "retake": "Retake",
+      "retakeAria": "Retake photo",
+      "continue": "Continue",
+      "continueAria": "Upload and continue",
+      "uploading": "Uploading…",
+      "uploadFailed": "Upload failed",
+      "uploadFailedFallback": "Upload failed — try again.",
+      "failed": "Couldn't take the photo",
+      "failedFallback": "Try again.",
+      "previewAria": "Captured doorstep photo",
+      "permTitle": "Camera permission needed",
+      "permBody": "The doorstep photo proves the delivery happened. Grant camera access to continue.",
+      "permBlockedBody": "Camera access is off for this app. Enable it in Settings to continue.",
+      "permGrant": "Grant access",
+      "permOpenSettings": "Open Settings",
+      "permCancel": "Cancel"
+    },
+    "signature": {
+      "title": "Recipient signature",
+      "hint": "Ask the recipient to sign with their finger.",
+      "clear": "Clear",
+      "clearAria": "Clear signature",
+      "done": "Done",
+      "doneAria": "Save signature",
+      "close": "Close",
+      "empty": "No signature drawn",
+      "emptySub": "Have them sign first, then tap Done.",
+      "failed": "Couldn't save signature",
+      "failedFallback": "Try again.",
+      "uploadFailed": "Upload failed",
+      "uploadFailedFallback": "Upload failed — try again."
+    },
+    "otp": {
+      "title": "Customer's delivery code",
+      "subtitle": "Ask the customer for the 6-digit code their app shows.",
+      "send": "Send code to customer",
+      "sendAria": "Send code to customer",
+      "resend": "Resend code ({{count}}/3)",
+      "resendAria": "Resend code",
+      "sentTitle": "Code sent",
+      "sentSub": "Ask the customer to read the 6-digit code.",
+      "sendFailed": "Couldn't send the code",
+      "tryAgain": "Try again.",
+      "rateLimitedTitle": "Slow down",
+      "rateLimitedSub": "Try again in {{minutes}} min.",
+      "notRequiredTitle": "No code needed",
+      "notRequiredSub": "This order doesn't require an OTP.",
+      "inputLabel": "ENTER CODE",
+      "inputAria": "Delivery code input",
+      "mismatch": "That code doesn't match. Ask the customer to read it again.",
+      "notIssued": "No code issued yet — tap Send code first.",
+      "notNow": "Not now",
+      "submit": "Complete delivery",
+      "submitAria": "Submit code and complete delivery"
+    }
   }
 }

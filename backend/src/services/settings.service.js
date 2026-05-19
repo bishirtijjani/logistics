@@ -118,6 +118,13 @@ const PUBLIC_KEYS = [
   'delivery.perKmRate',
   'delivery.platformFeePercent',
   'delivery.cancellationFee',
+  // Phase 5 — POD gates the rider client reads at "Complete delivery" time
+  // so it knows which sheets to mount (photo / signature / OTP). Server is
+  // still authoritative; client uses these to avoid mounting sheets the
+  // server would never gate on.
+  'delivery.requirePodPhoto',
+  'delivery.requireSignature',
+  'delivery.podOtpThresholdNgn',
   'merchant.platformFeePercent',
 ];
 

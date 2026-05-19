@@ -18,6 +18,9 @@ const {
   quoteRequestSchema,
   postMessageSchema,
   listMessagesSchema,
+  riderCancelSchema,
+  addressCorrectionSchema,
+  podOtpGenerateSchema,
 } = require('./request.validator');
 
 const router = Router();
@@ -48,9 +51,10 @@ router.get('/:requestId', requestController.getRequestById);
 // Cached in Redis for 30s to keep Maps quota in check.
 router.get('/:requestId/route', requestController.getRoute);
 
-// In-app messaging — list + post (rider/customer/merchant, all in the request)
+// In-app messaging — list + post (rider/customer/merchant, all in the request).
+// Idempotent post so a flaky network retry can't double-send the same message.
 router.get('/:requestId/messages', validate(listMessagesSchema, 'query'), requestController.listMessages);
-router.post('/:requestId/messages', validate(postMessageSchema), requestController.postMessage);
+router.post('/:requestId/messages', idempotency, validate(postMessageSchema), requestController.postMessage);
 
 // ============================================================
 // Customer endpoints
@@ -72,15 +76,56 @@ router.post('/:requestId/rate', authorize('CUSTOMER'), validate(rateRequestSchem
 // Merchant endpoints
 // ============================================================
 
-// Update request status (merchant: ACCEPTED, PROCESSING, READY_FOR_PICKUP)
-router.patch('/:requestId/status', authorize('MERCHANT', 'RIDER', 'ADMIN'), validate(updateStatusSchema), requestController.updateStatus);
+// Update request status (merchant: ACCEPTED, PROCESSING, READY_FOR_PICKUP;
+// rider: RIDER_EN_ROUTE, PICKED_UP, IN_TRANSIT, DELIVERED). Idempotency-Key
+// support lets the rider client retry a transition over a flaky network
+// without driving the FSM forward twice.
+router.patch(
+  '/:requestId/status',
+  authorize('MERCHANT', 'RIDER', 'ADMIN'),
+  idempotency,
+  validate(updateStatusSchema),
+  requestController.updateStatus,
+);
 
 // ============================================================
-// Rider endpoints
+// Rider endpoints — Phase 4
 // ============================================================
 
-// Update request status (rider: RIDER_EN_ROUTE, PICKED_UP, IN_TRANSIT, DELIVERED)
-// Note: This is handled by the same endpoint above with role authorization
+// Update request status (rider: RIDER_EN_ROUTE, PICKED_UP, IN_TRANSIT, DELIVERED).
+// Handled by the shared PATCH /:requestId/status above (role-gated to rider statuses).
+
+// Rider-initiated cancellation (operational reasons). PIN-protected, idempotent.
+router.post(
+  '/:requestId/rider-cancel',
+  authorize('RIDER'),
+  idempotency,
+  validate(riderCancelSchema),
+  requestController.riderCancelRequest,
+);
+
+// Address correction — rider supplies a corrected location + note when the
+// pickup/dropoff is wrong. Audit-logged, notifies merchant/customer. Does
+// NOT change the trip flow.
+router.post(
+  '/:requestId/address-correction',
+  authorize('RIDER'),
+  idempotency,
+  validate(addressCorrectionSchema),
+  requestController.recordAddressCorrection,
+);
+
+// Phase 5 — Proof of Delivery OTP. Rider asks the server to mint a 6-digit
+// code, which the customer sees in their tracking screen and reads to the
+// rider on arrival. Idempotent + rate-limited so the rider can't spam the
+// customer (max 3 codes per request per 10 minutes).
+router.post(
+  '/:requestId/pod-otp/generate',
+  authorize('RIDER'),
+  idempotency,
+  validate(podOtpGenerateSchema),
+  requestController.generatePodOtp,
+);
 
 // ============================================================
 // Admin endpoints

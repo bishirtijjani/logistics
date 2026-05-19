@@ -386,6 +386,48 @@ export default function RequestsPage() {
                 </div>
               )}
 
+              {/* Phase 5 — POD card. Visible once the rider has captured at
+                  least one POD artefact (photo / signature). Investigators
+                  click through to the Cloudinary asset for the full-res view. */}
+              {(selectedRequest.podPhotoUrl || selectedRequest.podSignatureUrl) ? (
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
+                  <h3 className="font-semibold text-text dark:text-dark-text mb-3">Proof of Delivery</h3>
+                  {selectedRequest.podCapturedAt ? (
+                    <p className="text-xs text-muted dark:text-dark-muted mb-3">
+                      Captured {new Date(selectedRequest.podCapturedAt).toLocaleString()}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-3">
+                    {selectedRequest.podPhotoUrl ? (
+                      <a
+                        href={selectedRequest.podPhotoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-32 rounded-lg overflow-hidden border border-surface-muted dark:border-dark-surface-muted"
+                        title="Open doorstep photo"
+                      >
+                        <img src={selectedRequest.podPhotoUrl} alt="Doorstep" className="w-full aspect-[4/3] object-cover" loading="lazy" />
+                        <span className="block px-2 py-1 text-xs text-muted dark:text-dark-muted">Photo</span>
+                      </a>
+                    ) : null}
+                    {selectedRequest.podSignatureUrl ? (
+                      <a
+                        href={selectedRequest.podSignatureUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-32 rounded-lg overflow-hidden border border-surface-muted dark:border-dark-surface-muted"
+                        title="Open signature"
+                      >
+                        <div className="w-full aspect-[4/3] bg-white flex items-center justify-center">
+                          <img src={selectedRequest.podSignatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" loading="lazy" />
+                        </div>
+                        <span className="block px-2 py-1 text-xs text-muted dark:text-dark-muted">Signature</span>
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4">
                 <h3 className="font-semibold text-text dark:text-dark-text mb-3">Financial Breakdown</h3>
                 <div className="space-y-2 text-sm">

@@ -423,7 +423,17 @@ const settleRequest = async (job) => {
       });
     }
 
-    return { merchantEarning, riderEarning, platformEarning };
+    // Phase 4 — release the rider back into the pool. The acceptJob path
+    // flips them to ON_DELIVERY; without this they'd stay ON_DELIVERY until
+    // the next manual toggle, and the matcher would skip them.
+    if (request.rider) {
+      await tx.rider.update({
+        where: { id: request.riderId },
+        data: { availability: 'ONLINE' },
+      });
+    }
+
+    return { merchantEarning, riderEarning, platformEarning, riderUserId: request.rider?.userId || null };
   });
 
   logger.info('Request settled', { requestId, ...result });
@@ -449,9 +459,10 @@ const refundRequest = async (job) => {
       include: {
         customer: { include: { wallet: true } },
         items: true,
+        rider: { select: { id: true, availability: true } },
       },
     });
-    
+
     if (!request) throw new Error('Request not found');
     if (request.status !== 'CANCELLED') throw new Error('Request not in CANCELLED state');
 
@@ -466,6 +477,18 @@ const refundRequest = async (job) => {
         existingRefund: request.refundTransactionId,
       });
       return { refundAmount: 0, alreadyRefunded: true };
+    }
+
+    // Phase 4 — release the rider back into the matcher pool. Rider's own
+    // cancel already handles this inline, but admin force-cancel and
+    // customer-cancel paths don't; doing it here covers all three.
+    // Only flip ON_DELIVERY → ONLINE — don't disturb a rider who explicitly
+    // went OFFLINE after the cancellation.
+    if (request.rider?.id && request.rider.availability === 'ON_DELIVERY') {
+      await tx.rider.update({
+        where: { id: request.rider.id },
+        data: { availability: 'ONLINE' },
+      });
     }
 
     const customerPaid = Number(request.customerPaid);
@@ -718,4 +741,10 @@ const startRequestWorker = () => {
   logger.info('Request worker started');
 };
 
-module.exports = { startRequestWorker };
+module.exports = {
+  startRequestWorker,
+  // Internal handlers exposed for unit tests of the auto-cancel + refund
+  // contract. Not part of the public worker surface; do not import these
+  // outside of tests.
+  __test: { refundRequest, autoCancelUnmatched },
+};

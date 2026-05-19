@@ -151,6 +151,12 @@ const pushAndSocket = async (userId, payload) => {
             requestId: requestId || '',
             transactionId: transactionId || '',
             notificationId: row?.id || '',
+            // Phase 5 — short codes the recipient app needs at tap time
+            // (e.g. POD_OTP_GENERATED carries the 6-digit code so the
+            // tracking screen can render it from the cold-start payload
+            // without a second round-trip).
+            ...(data.otp ? { otp: String(data.otp) } : {}),
+            ...(data.kind ? { kind: String(data.kind) } : {}),
           },
         })
         .then(async (result) => {

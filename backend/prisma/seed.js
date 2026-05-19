@@ -533,6 +533,14 @@ async function main() {
     { key: 'delivery.platformFeePercent', value: 10, description: 'Platform fee % on delivery subtotal' },
     { key: 'delivery.riderEarningPercent', value: 80, description: 'Rider earns this % of delivery fee' },
     { key: 'delivery.cancellationFee', value: 200, description: 'Fee charged for cancelling after rider assigned' },
+    // Phase 5 — Proof of Delivery gates. requirePodPhoto defaults to true so
+    // every delivery in production has a doorstep photo on file. Signature is
+    // opt-in (default false); admins can flip it on per environment. OTP gate
+    // protects orders above ₦50k by requiring a 6-digit code shared by the
+    // customer to the rider; below the threshold, OTP is skipped entirely.
+    { key: 'delivery.requirePodPhoto', value: true, description: 'Require photo POD for DELIVERED transition' },
+    { key: 'delivery.requireSignature', value: false, description: 'Require recipient signature for DELIVERED transition (opt-in)' },
+    { key: 'delivery.podOtpThresholdNgn', value: 50000, description: 'Order total at/above which a customer OTP is required for DELIVERED' },
     { key: 'merchant.platformFeePercent', value: 15, description: 'Platform fee % deducted from merchant item subtotal' },
     { key: 'delivery.broadcastRadiusRings', value: [5, 10, 15], description: 'Rider search radius rings in km' },
     { key: 'delivery.broadcastRingTimeoutSec', value: 60, description: 'Seconds to wait per ring before expanding' },

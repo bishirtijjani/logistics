@@ -52,7 +52,14 @@ const acceptJob = async (req, res, next) => {
 
 const getEarnings = async (req, res, next) => {
   try {
-    const earnings = await riderService.getEarnings(req.user.id);
+    // Phase 6 — paginated `recent` rows. `page`/`limit` are optional query
+    // params; the dashboard hits with defaults, the breakdown screen passes
+    // page=N for infinite scroll.
+    const rawPage = parseInt(req.query.page, 10);
+    const rawLimit = parseInt(req.query.limit, 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 100 ? rawLimit : 20;
+    const earnings = await riderService.getEarnings(req.user.id, { page, limit });
     res.json(ApiResponse.success('Earnings summary', earnings));
   } catch (error) {
     next(error);

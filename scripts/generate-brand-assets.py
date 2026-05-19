@@ -21,7 +21,7 @@ FONT_PATH = (
 ORANGE = (234, 88, 12, 255)        # #EA580C — already used for notifications + website themeColor
 WHITE = (255, 255, 255, 255)
 TRANSPARENT = (0, 0, 0, 0)
-WORDMARK = "iPrime"
+WORDMARK = "iPrime"   # Full lettermark — used on every surface (icon, splash, favicon).
 
 
 def fit_font(text: str, font_path: Path, max_w: int, max_h: int) -> ImageFont.FreeTypeFont:
@@ -55,19 +55,19 @@ def draw_centered(img: Image.Image, text: str, color, font_path: Path, width_rat
 
 
 def make_icon(size: int = 1024) -> Image.Image:
-    """App icon: solid orange canvas, white iPrime wordmark. No transparency (iOS rejects it)."""
+    """App icon: solid orange canvas, white "iPrime" wordmark. No transparency (iOS rejects it)."""
     img = Image.new("RGBA", (size, size), ORANGE)
     draw_centered(img, WORDMARK, WHITE, FONT_PATH, width_ratio=0.72)
     return img.convert("RGB")  # iOS icons must be opaque RGB
 
 
 def make_adaptive_icon(size: int = 1024) -> Image.Image:
-    """Android adaptive icon foreground: white iPrime wordmark on transparent.
+    """Android adaptive icon foreground: white "iPrime" wordmark on transparent.
 
     The 432/1024 ≈ 0.42 inner region is the documented Android safe area; everything
     outside may be cropped to a circle/squircle by the launcher, so we keep the mark
     well inside it. The orange background is supplied by app.json's
-    android.adaptiveIcon.backgroundColor (now set to #EA580C).
+    android.adaptiveIcon.backgroundColor (#EA580C).
     """
     img = Image.new("RGBA", (size, size), TRANSPARENT)
     draw_centered(img, WORDMARK, WHITE, FONT_PATH, width_ratio=0.36)

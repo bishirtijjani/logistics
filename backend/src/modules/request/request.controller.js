@@ -78,18 +78,18 @@ const getRequestById = async (req, res, next) => {
 const updateStatus = async (req, res, next) => {
   try {
     const { requestId } = req.params;
-    const { status, reason } = req.body;
+    const { status, reason, podPhotoUrl, podSignatureUrl, podDeliveryOtp } = req.body;
     const userId = req.user.id;
     const role = req.user.role;
-    
+
     const request = await requestService.updateStatus(
       requestId,
       status,
       userId,
       role,
-      reason
+      { reason, podPhotoUrl, podSignatureUrl, podDeliveryOtp },
     );
-    
+
     res.json(
       ApiResponse.success('Request status updated', request)
     );
@@ -187,6 +187,61 @@ const postMessage = async (req, res, next) => {
     const { body } = req.body;
     const message = await requestService.postMessage(requestId, req.user.id, req.user.role, body);
     res.status(201).json(ApiResponse.success('Message posted', message));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Rider-initiated cancellation — Phase 4
+// ============================================================
+
+const riderCancelRequest = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const { reason, note, pin } = req.body;
+    const userId = req.user.id;
+
+    const result = await requestService.riderCancelRequest(requestId, userId, { reason, note, pin });
+
+    res.json(ApiResponse.success('Trip cancelled', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Phase 5 — Proof of Delivery OTP generation
+// ============================================================
+
+const generatePodOtp = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const userId = req.user.id;
+    const result = await requestService.generatePodOtp(requestId, userId);
+    res.status(201).json(ApiResponse.success('Delivery code sent to customer', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
+// Address correction — Phase 4
+// ============================================================
+
+const recordAddressCorrection = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const { stage, note, lat, lng } = req.body;
+    const userId = req.user.id;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || null;
+    const userAgent = req.headers['user-agent'] || null;
+
+    const result = await requestService.recordAddressCorrection(requestId, userId, {
+      stage, note, lat, lng, ipAddress, userAgent,
+    });
+
+    res.status(201).json(ApiResponse.success('Address correction recorded', result));
   } catch (error) {
     next(error);
   }
@@ -356,6 +411,11 @@ module.exports = {
   listMessages,
   postMessage,
   rateRequest,
+  // Phase 4 — rider trip cockpit
+  riderCancelRequest,
+  recordAddressCorrection,
+  // Phase 5 — POD
+  generatePodOtp,
   // Admin controllers
   getAllRequestsAdmin,
   reassignRider,

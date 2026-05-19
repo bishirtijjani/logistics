@@ -306,9 +306,16 @@ const updateNotificationPreferences = async (req, res, next) => {
 const getUploadSignature = async (req, res, next) => {
   try {
     // `kind` defaults to "profile" so existing callers (web/mobile profile
-    // upload) keep working unchanged. Phase 8 adds "prescription".
+    // upload) keep working unchanged. Phase 8 added "prescription"; Phase 5
+    // adds "pod" + "pod_signature" (request-scoped, requires `requestId`).
     const kind = (req.body?.kind || req.query?.kind || "profile").toLowerCase();
-    const signature = authService.getCloudinaryUploadSignature(req.user.id, kind);
+    const scopeId = req.body?.requestId || req.query?.requestId || null;
+    const signature = await authService.getCloudinaryUploadSignature(
+      req.user.id,
+      req.user.role,
+      kind,
+      scopeId,
+    );
     res.status(200).json(ApiResponse.success("Upload signature", signature));
   } catch (error) {
     next(error);

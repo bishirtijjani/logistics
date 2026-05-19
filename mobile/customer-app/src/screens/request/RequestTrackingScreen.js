@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Image,
   Linking,
   Modal,
   FlatList,
@@ -93,6 +94,23 @@ const RequestTrackingScreen = () => {
     currentRequest, isLoading,
     route: activeRoute, matchingStatus, riderEta, messages,
   } = useSelector((state) => state.request);
+
+  // Phase 5 — POD OTP banner. The rider taps "Send code" → the customer
+  // gets a `notification:new` with `type=POD_OTP_GENERATED` carrying
+  // `data.otp`. We surface the latest such notification for THIS request
+  // as a prominent banner so the customer can read the code aloud at the
+  // doorstep. Cleared automatically once the trip is DELIVERED.
+  const podOtpFromNotifications = useSelector((state) => {
+    const list = state.notifications?.list || [];
+    for (const n of list) {
+      if (n.type !== 'POD_OTP_GENERATED') continue;
+      if (n.requestId && n.requestId !== requestId) continue;
+      if (n.data?.requestId && n.data.requestId !== requestId) continue;
+      const otp = n.data?.otp || n.otp;
+      if (otp) return String(otp);
+    }
+    return null;
+  });
 
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelQuote, setCancelQuote] = useState(null);
@@ -488,6 +506,69 @@ const RequestTrackingScreen = () => {
             </View>
           </View>
         )}
+
+        {/* Phase 5 — POD OTP banner. Shown while the rider is between pickup
+            and delivery and an OTP has been issued. Customer reads the code
+            aloud to the rider at the doorstep. Hidden once DELIVERED. */}
+        {podOtpFromNotifications && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status) ? (
+          <View
+            style={{
+              marginBottom: 24, padding: 14, borderRadius: 14,
+              backgroundColor: '#EFF6FF', borderWidth: 2, borderColor: '#BFDBFE',
+            }}
+            accessibilityLiveRegion="polite"
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Ionicons name="key-outline" size={20} color="#1D4ED8" />
+              <Text style={{ marginLeft: 8, fontWeight: '800', color: '#1E3A8A', fontSize: 14 }}>
+                {t('request.tracking.podOtpTitle')}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 13, color: '#1E3A8A', marginBottom: 10 }}>
+              {t('request.tracking.podOtpBody')}
+            </Text>
+            <View
+              style={{
+                alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8,
+                borderRadius: 10, backgroundColor: '#1D4ED8',
+              }}
+            >
+              <Text
+                accessibilityLabel={t('request.tracking.podOtpCodeAria', { code: podOtpFromNotifications.split('').join(' ') })}
+                style={{ fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: 6 }}
+              >
+                {podOtpFromNotifications}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Phase 5 — POD photo card (post-delivery). Shows the rider's
+            doorstep proof so the customer can verify. */}
+        {currentRequest.podPhotoUrl && ['DELIVERED', 'SETTLED'].includes(currentRequest.status) ? (
+          <View style={{ marginBottom: 24, padding: 12, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Ionicons name="camera-outline" size={18} color={colors.success} />
+              <Text style={{ marginLeft: 8, fontWeight: '700', color: colors.text }}>
+                {t('request.tracking.podPhotoTitle')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(currentRequest.podPhotoUrl).catch(() => Toast.show({ type: 'error', text1: t('request.tracking.unableToOpen') }))}
+              accessibilityRole="button"
+              accessibilityLabel={t('request.tracking.podPhotoAria')}
+              style={{ borderRadius: 10, overflow: 'hidden' }}
+            >
+              <View style={{ width: '100%', aspectRatio: 4 / 3, backgroundColor: '#f3f4f6' }}>
+                <Image
+                  source={{ uri: currentRequest.podPhotoUrl }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Phase 8 — prescription attached banner. Persisted on the Request
             row and visible to the customer for the lifetime of the order. */}

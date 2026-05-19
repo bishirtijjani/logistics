@@ -379,6 +379,45 @@ export default function RidersPage() {
                               <p className="text-text dark:text-dark-text">{new Date(delivery.completedAt).toLocaleDateString()}</p>
                             </div>
                           </div>
+                          {/* Phase 5 — POD strip. Surfaces the doorstep
+                              photo + signature for completed deliveries so
+                              admin can spot-check or investigate disputes. */}
+                          {(delivery.podPhotoUrl || delivery.podSignatureUrl) ? (
+                            <div className="mt-3 pt-3 border-t border-border dark:border-dark-border">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wide">Proof of delivery</span>
+                                {delivery.podCapturedAt ? (
+                                  <span className="text-xs text-muted dark:text-dark-muted">
+                                    {new Date(delivery.podCapturedAt).toLocaleString()}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="flex gap-2">
+                                {delivery.podPhotoUrl ? (
+                                  <a
+                                    href={delivery.podPhotoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-24 h-18 rounded overflow-hidden border border-border dark:border-dark-border bg-white"
+                                    title="Open doorstep photo"
+                                  >
+                                    <img src={delivery.podPhotoUrl} alt="POD" className="w-full h-full object-cover" loading="lazy" />
+                                  </a>
+                                ) : null}
+                                {delivery.podSignatureUrl ? (
+                                  <a
+                                    href={delivery.podSignatureUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-24 h-18 rounded overflow-hidden border border-border dark:border-dark-border bg-white flex items-center justify-center"
+                                    title="Open signature"
+                                  >
+                                    <img src={delivery.podSignatureUrl} alt="Signature" className="max-w-full max-h-full object-contain" loading="lazy" />
+                                  </a>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </div>

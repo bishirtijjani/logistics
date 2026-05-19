@@ -135,6 +135,11 @@ class SocketService {
 
     this.socket.on("request:message:new", (data) => this.emit("requestMessageNew", data));
 
+    // Phase 4 — address correction events. Carries `{ requestId, stage, note,
+    // lat, lng }`. Merchant + admin act on these; the rider sees a faint
+    // ack toast so they know dispatch saw it.
+    this.socket.on("request:address:correction", (data) => this.emit("requestAddressCorrection", data));
+
     // --- Generic notifications ---
     this.socket.on("notification:new", (data) => {
       if (this._currentRouteName !== "NotificationsCenter") {
@@ -197,6 +202,7 @@ class SocketService {
   onRequestCompleted(cb)          { return this.on("requestCompleted", cb); }
   onRequestCancelled(cb)          { return this.on("requestCancelled", cb); }
   onRequestMessageNew(cb)         { return this.on("requestMessageNew", cb); }
+  onRequestAddressCorrection(cb)  { return this.on("requestAddressCorrection", cb); }
   onNotificationNew(cb)           { return this.on("notificationNew", cb); }
   onWalletBalanceUpdated(cb)      { return this.on("walletBalanceUpdated", cb); }
   onWalletTransferReceived(cb)    { return this.on("walletTransferReceived", cb); }

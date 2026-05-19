@@ -405,6 +405,61 @@ export default function OrderDetailsModal({ order, onClose }) {
             </div>
           </div>
 
+          {/* Phase 5 — Proof of Delivery card. Renders after the rider hits
+              DELIVERED. Shows the doorstep photo + optional signature so the
+              merchant can verify the order was completed correctly. */}
+          {(order.podPhotoUrl || order.podSignatureUrl) && ['DELIVERED', 'SETTLED'].includes(order.status) ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-800 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                <p className="font-semibold text-emerald-900 dark:text-emerald-200">Proof of delivery</p>
+                {order.podCapturedAt ? (
+                  <span className="ml-auto text-xs text-emerald-700 dark:text-emerald-400">
+                    {format(new Date(order.podCapturedAt), 'd MMM yyyy, HH:mm')}
+                  </span>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {order.podPhotoUrl ? (
+                  <a
+                    href={order.podPhotoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group"
+                  >
+                    <div className="aspect-[4/3] overflow-hidden rounded-lg border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-900">
+                      <img
+                        src={order.podPhotoUrl}
+                        alt="Doorstep photo"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-300">Doorstep photo — tap to view</p>
+                  </a>
+                ) : null}
+                {order.podSignatureUrl ? (
+                  <a
+                    href={order.podSignatureUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group"
+                  >
+                    <div className="aspect-[4/3] overflow-hidden rounded-lg border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-900 flex items-center justify-center">
+                      <img
+                        src={order.podSignatureUrl}
+                        alt="Recipient signature"
+                        className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-300">Recipient signature</p>
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {/* Phase 8 — prescription attachment card. Only renders for pharmacy
               orders where the customer uploaded a prescription at checkout. */}
           {order.prescriptionUrl ? (

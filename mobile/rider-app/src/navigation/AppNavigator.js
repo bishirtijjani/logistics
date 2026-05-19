@@ -14,10 +14,11 @@ import * as Notifications from "expo-notifications";
 import { hydrateAuth, logout, forceLogout } from "../store/slices/authSlice";
 import { fetchPublicSettings } from "../store/slices/settingsSlice";
 import { fetchProfile } from "../store/slices/profileSlice";
-import { fetchRiderProfile, reconcileFromServer } from "../store/slices/riderSlice";
+import { fetchRiderProfile, reconcileFromServer, setLastFix, setStreaming } from "../store/slices/riderSlice";
 import { hydrateOnboarding } from "../store/slices/onboardingSlice";
 import { notificationReceived } from "../store/slices/notificationsSlice";
 import { offersPruneStale } from "../store/slices/offersSlice";
+import { activateFromAcceptedRequest, hydrateFromServer } from "../store/slices/tripSlice";
 import socketService from "../services/socket";
 import locationStream from "../services/locationStream";
 import { registerForceLogout } from "../services/api";
@@ -48,6 +49,8 @@ import BecomeRiderDocumentsStep from "../features/onboarding/BecomeRiderDocument
 import BecomeRiderReviewSubmitStep from "../features/onboarding/BecomeRiderReviewSubmitStep";
 import LocationPermissionRecoveryScreen from "../features/location/LocationPermissionRecoveryScreen";
 
+import TripCockpitScreen from "../features/trip/TripCockpitScreen";
+
 import MainTabNavigator from "./MainTabNavigator";
 import OfferOverlayNavigator from "./OfferOverlayNavigator";
 
@@ -73,11 +76,13 @@ const NAV_LINKING = {
       MainTabs: {
         screens: {
           HomeTab: "home",
+          TripTab: "trip-tab",
           EarningsTab: "earnings",
           WalletTab: "wallet",
           MeTab: "me",
         },
       },
+      TripCockpit: "trip/:requestId",
     },
   },
 };
@@ -143,10 +148,37 @@ export default function AppNavigator() {
   }, [isAuthenticated, isHydrating]);
 
   // Once authed + bio passed: load profile + rider profile + connect socket.
+  // After the rider profile lands, rehydrate an in-flight trip if there is
+  // one — and resume the location stream so the customer's tracking screen
+  // stops going stale. Covers force-close / cold-start so the rider picks
+  // up exactly where they left off.
   useEffect(() => {
     if (!isAuthenticated || bioGate !== "passed") return;
     dispatch(fetchProfile());
-    dispatch(fetchRiderProfile()).catch?.(() => {});
+    dispatch(fetchRiderProfile())
+      .then(async (action) => {
+        const profile = action?.payload || null;
+        const active = profile?.activeRequest;
+        if (!active?.id) return;
+        // Hydrate trip state first (joins the socket room + sets cadence).
+        dispatch(activateFromAcceptedRequest(active));
+        dispatch(hydrateFromServer(active.id));
+        // If the server thinks the rider is on a trip, resume the foreground
+        // GPS stream. The locationStream is mode-aware so re-calling start
+        // when already running is a no-op.
+        try {
+          const res = await locationStream.start({
+            mode: "on_delivery",
+            onFix: (fix) => dispatch(setLastFix(fix)),
+            requestIdGetter: () => active.id,
+          });
+          if (res?.ok) dispatch(setStreaming(true));
+        } catch (_) {
+          // Permission/services failures bubble up via the existing
+          // LocationServicesEnabledBanner on the Home tab.
+        }
+      })
+      .catch(() => {});
     socketService.connect();
     const unsub = subscribeSocketToStore(dispatch, { notificationReceived });
     return () => {
@@ -406,6 +438,11 @@ export default function AppNavigator() {
         ) : (
           <Stack.Group>
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+            <Stack.Screen
+              name="TripCockpit"
+              component={TripCockpitScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="LocationPermissionRecovery"
               component={LocationPermissionRecoveryScreen}
