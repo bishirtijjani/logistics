@@ -150,7 +150,7 @@ export default function UtilityHistoryScreen({ navigation }) {
             {recipient} • {formatDate(item.createdAt)}
           </Text>
           {item.token ? (
-            <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "700", marginTop: 4 }}>
+            <Text style={{ fontSize: 12, color: colors.primaryStrong, fontWeight: "700", marginTop: 4 }}>
               {t("utility.result.tokenLabel")}: {item.token}
             </Text>
           ) : null}

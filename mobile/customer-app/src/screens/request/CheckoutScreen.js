@@ -463,7 +463,7 @@ export default function CheckoutScreen() {
                 <Text style={{ color: colors.textMuted, fontSize: 12 }} numberOfLines={1}>{selectedAddress.address}</Text>
               </>
             ) : (
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('request.pickAddress')}</Text>
+              <Text style={{ color: colors.primaryStrong, fontWeight: '600' }}>{t('request.pickAddress')}</Text>
             )}
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
@@ -564,7 +564,7 @@ const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
         accessibilityLabel={t('request.checkout.refresh')}
         accessibilityState={{ disabled: refreshing, busy: refreshing }}
       >
-        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryStrong }}>
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </Text>
       </TouchableOpacity>

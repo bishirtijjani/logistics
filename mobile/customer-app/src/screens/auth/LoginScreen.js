@@ -170,7 +170,7 @@ export default function LoginScreen({ navigation }) {
             accessibilityRole="link"
             accessibilityLabel={t("auth.forgotPassword")}
           >
-            <Text style={{ color: colors.primary, fontSize: 14, fontWeight: "600" }}>
+            <Text style={{ color: colors.primaryStrong, fontSize: 14, fontWeight: "600" }}>
               {t("auth.forgotPassword")}
             </Text>
           </TouchableOpacity>

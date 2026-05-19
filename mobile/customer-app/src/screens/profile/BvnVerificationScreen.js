@@ -666,7 +666,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
                 <Text
                   style={{
                     fontSize: 12,
-                    color: colors.textLight,
+                    color: colors.textMuted,
                     flex: 1,
                     lineHeight: 18,
                   }}
@@ -769,7 +769,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
                   accessibilityLabel="Edit phone number"
                   disabled={isUpdating}
                 >
-                  <Text style={{ fontSize: 13, color: colors.primary, fontWeight: "700" }}>
+                  <Text style={{ fontSize: 13, color: colors.primaryStrong, fontWeight: "700" }}>
                     Wrong number? Edit
                   </Text>
                 </TouchableOpacity>

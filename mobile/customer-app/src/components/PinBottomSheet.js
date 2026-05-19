@@ -232,7 +232,7 @@ export default function PinBottomSheet({
                   {key === "backspace" ? (
                     <Ionicons name="backspace-outline" size={24} color={colors.text} />
                   ) : key === "forgot" ? (
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>Forgot?</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primaryStrong }}>Forgot?</Text>
                   ) : (
                     <Text style={{ fontSize: 24, fontWeight: '600', color: colors.text }}>{key}</Text>
                   )}

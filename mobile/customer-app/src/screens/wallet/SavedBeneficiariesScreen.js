@@ -157,7 +157,7 @@ export default function SavedBeneficiariesScreen({ navigation }) {
                   ) : (
                     <>
                       <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{item.accountNumber}</Text>
-                      <Text style={{ fontSize: 11, color: colors.primary, marginTop: 1 }}>{item.bankCode}</Text>
+                      <Text style={{ fontSize: 11, color: colors.primaryStrong, marginTop: 1 }}>{item.bankCode}</Text>
                     </>
                   )}
                 </View>

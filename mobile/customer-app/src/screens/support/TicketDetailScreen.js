@@ -117,6 +117,8 @@ export default function TicketDetailScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
             style={{
               width: 40,
               height: 40,
@@ -136,6 +138,7 @@ export default function TicketDetailScreen() {
             <Text
               style={{ fontSize: 16, fontWeight: "800", color: colors.text }}
               numberOfLines={1}
+              accessibilityRole="header"
             >
               {ticketDetail.subject}
             </Text>
@@ -178,7 +181,12 @@ export default function TicketDetailScreen() {
               }}
             >
               {ticketDetail.attachmentUrls.map((url, i) => (
-                <TouchableOpacity key={i} onPress={() => Linking.openURL(url).catch(() => {})}>
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => Linking.openURL(url).catch(() => {})}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={t("support.thread.attachmentA11y")}
+                >
                   <Image
                     source={{ uri: url }}
                     style={{ width: 64, height: 64, borderRadius: 8 }}
@@ -221,6 +229,9 @@ export default function TicketDetailScreen() {
         <TouchableOpacity
           onPress={handleClose}
           disabled={closing}
+          accessibilityRole="button"
+          accessibilityLabel={t("support.closeTicket")}
+          accessibilityState={{ disabled: closing, busy: closing }}
           style={{
             paddingVertical: 10,
             alignItems: "center",
@@ -228,8 +239,8 @@ export default function TicketDetailScreen() {
             borderTopColor: colors.border,
           }}
         >
-          <Text style={{ color: colors.error, fontSize: 13, fontWeight: "600" }}>
-            {closing ? "..." : t("support.closeTicket")}
+          <Text style={{ color: colors.errorStrong, fontSize: 13, fontWeight: "600" }}>
+            {closing ? "…" : t("support.closeTicket")}
           </Text>
         </TouchableOpacity>
       )}

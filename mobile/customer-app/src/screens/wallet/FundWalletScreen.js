@@ -228,7 +228,7 @@ export default function FundWalletScreen({ navigation }) {
                 opacity: isRetrying ? 0.5 : 1,
               }}
             >
-              <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+              <Text style={{ color: colors.primaryStrong, fontWeight: "700", fontSize: 13 }}>
                 {isRetrying ? "Retrying..." : "Retry now"}
               </Text>
             </TouchableOpacity>

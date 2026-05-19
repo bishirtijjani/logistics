@@ -91,6 +91,8 @@ export default function DisputeDetailScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
             style={{
               width: 40,
               height: 40,
@@ -110,6 +112,7 @@ export default function DisputeDetailScreen() {
             <Text
               style={{ fontSize: 16, fontWeight: "800", color: colors.text }}
               numberOfLines={1}
+              accessibilityRole="header"
             >
               {disputeDetail.reason}
             </Text>
@@ -152,7 +155,12 @@ export default function DisputeDetailScreen() {
               }}
             >
               {disputeDetail.attachmentUrls.map((url, i) => (
-                <TouchableOpacity key={i} onPress={() => Linking.openURL(url).catch(() => {})}>
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => Linking.openURL(url).catch(() => {})}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={t("support.thread.attachmentA11y")}
+                >
                   <Image
                     source={{ uri: url }}
                     style={{ width: 64, height: 64, borderRadius: 8 }}

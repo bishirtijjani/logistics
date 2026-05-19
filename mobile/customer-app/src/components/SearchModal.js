@@ -138,7 +138,7 @@ export default function SearchModal({ visible, onClose, onNavigate }) {
           ) : null}
         </View>
         {priceFrom != null && priceFrom > 0 && (
-          <Text style={{ marginLeft: 12, fontSize: 13, fontWeight: "800", color: colors.primary }}>
+          <Text style={{ marginLeft: 12, fontSize: 13, fontWeight: "800", color: colors.primaryStrong }}>
             ₦{priceFrom.toLocaleString("en-NG")}
           </Text>
         )}

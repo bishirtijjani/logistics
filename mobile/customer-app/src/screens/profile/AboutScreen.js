@@ -158,7 +158,7 @@ export default function AboutScreen({ navigation }) {
       <Text
         style={{
           textAlign: "center",
-          color: colors.textLight,
+          color: colors.textMuted,
           fontSize: 12,
           paddingBottom: 24,
         }}

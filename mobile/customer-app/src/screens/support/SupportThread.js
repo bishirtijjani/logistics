@@ -12,21 +12,27 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
 
 const initials = (u) =>
   `${u?.firstName?.[0] || ""}${u?.lastName?.[0] || ""}`.toUpperCase() || "?";
 
-const roleLabel = (role) => {
-  if (role === "ADMIN") return "Support";
-  if (role === "MERCHANT") return "Merchant";
-  if (role === "RIDER") return "Rider";
-  return "You";
+const roleLabelKey = (role) => {
+  if (role === "ADMIN") return "support.thread.roleSupport";
+  if (role === "MERCHANT") return "support.thread.roleMerchant";
+  if (role === "RIDER") return "support.thread.roleRider";
+  return "support.thread.you";
 };
 
 function MessageBubble({ message, currentUserId }) {
+  const { t } = useTranslation();
   const isMine = message.fromUserId === currentUserId;
   const isInternal = message.isInternal;
+  const senderName = isMine
+    ? t("support.thread.you")
+    : `${message.fromUser?.firstName || ""} ${message.fromUser?.lastName || ""}`.trim() || t(roleLabelKey(message.fromUser?.role));
+  const roleText = t(roleLabelKey(message.fromUser?.role));
   return (
     <View
       style={{
@@ -63,15 +69,18 @@ function MessageBubble({ message, currentUserId }) {
             marginBottom: 3,
           }}
         >
-          <Text style={{ fontSize: 11, color: colors.textMuted, fontWeight: "600" }}>
-            {isMine ? "You" : `${message.fromUser?.firstName || ""} ${message.fromUser?.lastName || ""}`}
+          <Text
+            style={{ fontSize: 11, color: colors.textMuted, fontWeight: "600" }}
+            accessibilityRole="text"
+          >
+            {senderName}
           </Text>
-          <Text style={{ fontSize: 10, color: colors.textLight, marginLeft: 6 }}>
-            · {roleLabel(message.fromUser?.role)}
+          <Text style={{ fontSize: 10, color: colors.textMuted, marginLeft: 6 }}>
+            · {roleText}
           </Text>
           {isInternal && (
             <Text style={{ fontSize: 10, color: "#92400E", marginLeft: 6 }}>
-              · INTERNAL
+              · {t("support.thread.internalTag")}
             </Text>
           )}
         </View>
@@ -105,6 +114,8 @@ function MessageBubble({ message, currentUserId }) {
               <TouchableOpacity
                 key={i}
                 onPress={() => Linking.openURL(url).catch(() => {})}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={t("support.thread.attachmentA11y")}
                 style={{
                   width: 60,
                   height: 60,
@@ -118,7 +129,7 @@ function MessageBubble({ message, currentUserId }) {
             ))}
           </View>
         )}
-        <Text style={{ fontSize: 10, color: colors.textLight, marginTop: 3 }}>
+        <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 3 }}>
           {new Date(message.createdAt).toLocaleString()}
         </Text>
       </View>
@@ -132,10 +143,12 @@ export default function SupportThread({
   canPost = true,
   posting = false,
   onSubmit,
-  placeholder = "Type a message...",
+  placeholder,
 }) {
+  const { t } = useTranslation();
   const [body, setBody] = useState("");
   const listRef = useRef(null);
+  const resolvedPlaceholder = placeholder || t("support.thread.messagePh");
 
   useEffect(() => {
     if (listRef.current && messages.length > 0) {
@@ -165,7 +178,7 @@ export default function SupportThread({
         ListEmptyComponent={
           <View style={{ padding: 32, alignItems: "center" }}>
             <Text style={{ fontSize: 13, color: colors.textMuted }}>
-              No messages yet. Start the conversation.
+              {t("support.thread.noMessages")}
             </Text>
           </View>
         }
@@ -191,10 +204,11 @@ export default function SupportThread({
             <TextInput
               value={body}
               onChangeText={setBody}
-              placeholder={placeholder}
+              placeholder={resolvedPlaceholder}
               placeholderTextColor={colors.textMuted}
               multiline
               maxLength={2000}
+              accessibilityLabel={resolvedPlaceholder}
               style={{
                 flex: 1,
                 minHeight: 40,
@@ -210,6 +224,9 @@ export default function SupportThread({
             <TouchableOpacity
               onPress={submit}
               disabled={posting || !body.trim()}
+              accessibilityRole="button"
+              accessibilityLabel={t("support.thread.sendA11y")}
+              accessibilityState={{ disabled: posting || !body.trim(), busy: posting }}
               style={{
                 width: 40,
                 height: 40,

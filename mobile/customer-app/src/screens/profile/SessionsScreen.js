@@ -159,7 +159,7 @@ export default function SessionsScreen({ navigation }) {
                     </Text>
                     {item.isCurrent && (
                       <View style={{ marginLeft: 8, backgroundColor: colors.primary + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ fontSize: 10, fontWeight: "700", color: colors.primary }}>THIS DEVICE</Text>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: colors.primaryStrong }}>THIS DEVICE</Text>
                       </View>
                     )}
                   </View>

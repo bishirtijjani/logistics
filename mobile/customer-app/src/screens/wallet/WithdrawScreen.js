@@ -320,7 +320,7 @@ export default function WithdrawScreen({ navigation, route }) {
                   >
                     <Text style={{ fontSize: 13, fontWeight: "800", color: colors.text }} numberOfLines={1}>{b.accountName || b.name}</Text>
                     <Text style={{ fontSize: 11, color: colors.textMuted }}>{b.accountNumber}</Text>
-                    <Text style={{ fontSize: 10, color: colors.primary }}>{b.bankCode}</Text>
+                    <Text style={{ fontSize: 10, color: colors.primaryStrong }}>{b.bankCode}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>

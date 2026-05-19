@@ -373,7 +373,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         <Text
           style={{
             fontSize: 12,
-            color: colors.textLight,
+            color: colors.textMuted,
             textAlign: "center",
             marginTop: 20,
             marginHorizontal: 20,

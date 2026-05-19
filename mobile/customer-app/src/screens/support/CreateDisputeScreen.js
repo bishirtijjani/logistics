@@ -104,6 +104,8 @@ export default function CreateDisputeScreen() {
         >
           <TouchableOpacity
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
             style={{
               width: 40,
               height: 40,
@@ -117,7 +119,7 @@ export default function CreateDisputeScreen() {
           </TouchableOpacity>
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <Ionicons name="information-circle-outline" size={48} color={colors.textLight} />
+          <Ionicons name="information-circle-outline" size={48} color={colors.textMuted} />
           <Text
             style={{
               color: colors.textMuted,
@@ -148,6 +150,8 @@ export default function CreateDisputeScreen() {
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.back")}
           style={{
             width: 40,
             height: 40,
@@ -160,7 +164,10 @@ export default function CreateDisputeScreen() {
         >
           <Ionicons name="arrow-back" size={20} color={colors.text} />
         </TouchableOpacity>
-        <Text style={{ fontSize: 20, fontWeight: "900", color: colors.text }}>
+        <Text
+          style={{ fontSize: 20, fontWeight: "900", color: colors.text }}
+          accessibilityRole="header"
+        >
           {t("support.reportIssue")}
         </Text>
       </View>
@@ -194,6 +201,9 @@ export default function CreateDisputeScreen() {
               <TouchableOpacity
                 key={c.value}
                 onPress={() => setCategory(c.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={c.label}
                 style={{
                   paddingHorizontal: 12,
                   paddingVertical: 8,
@@ -220,6 +230,7 @@ export default function CreateDisputeScreen() {
           maxLength={200}
           placeholder={t("support.reasonPlaceholder")}
           placeholderTextColor={colors.textMuted}
+          accessibilityLabel={t("support.reason")}
           style={{
             backgroundColor: colors.surface,
             borderWidth: 1,
@@ -243,6 +254,7 @@ export default function CreateDisputeScreen() {
           maxLength={5000}
           placeholder={t("support.disputeDescriptionPlaceholder")}
           placeholderTextColor={colors.textMuted}
+          accessibilityLabel={t("support.description")}
           style={{
             backgroundColor: colors.surface,
             borderWidth: 1,
@@ -270,6 +282,8 @@ export default function CreateDisputeScreen() {
               <Image source={{ uri: url }} style={{ width: 72, height: 72, borderRadius: 10 }} />
               <TouchableOpacity
                 onPress={() => removeAttachment(url)}
+                accessibilityRole="button"
+                accessibilityLabel={t("a11y.removePhoto")}
                 style={{
                   position: "absolute",
                   top: 2,
@@ -296,6 +310,9 @@ export default function CreateDisputeScreen() {
                 ])
               }
               disabled={uploading}
+              accessibilityRole="button"
+              accessibilityLabel={t("a11y.attachPhoto")}
+              accessibilityState={{ disabled: uploading, busy: uploading }}
               style={{
                 width: 72,
                 height: 72,
@@ -320,6 +337,9 @@ export default function CreateDisputeScreen() {
         <TouchableOpacity
           onPress={submit}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel={t("support.fileDispute")}
+          accessibilityState={{ disabled: submitting, busy: submitting }}
           style={{
             backgroundColor: colors.primary,
             borderRadius: 14,

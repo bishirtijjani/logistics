@@ -53,7 +53,15 @@
     "openChat": "Buɗe taɗi",
     "sendMessage": "Aika saƙo",
     "unreadCount_one": "Sanarwa {{count}} da ba a karanta ba",
-    "unreadCount_other": "Sanarwowi {{count}} da ba a karanta ba"
+    "unreadCount_other": "Sanarwowi {{count}} da ba a karanta ba",
+    "loading": "Ana lodawa",
+    "retry": "Sake gwadawa",
+    "attachPhoto": "Haɗa hoto",
+    "removePhoto": "Cire hoto",
+    "newTicket": "Sabon tikitin tallafi",
+    "newDispute": "Aika gardama",
+    "openTicket": "Buɗe tikiti {{number}}",
+    "openDispute": "Buɗe gardama {{number}}"
   },
   "states": {
     "loading": "Ana lodawa…",
@@ -845,7 +853,12 @@
     "useCurrent": "Yi amfani da wurina na yanzu",
     "savedHeader": "An ajiye",
     "permissionRequired": "Ana bukatar izinin wuri",
-    "permissionHint": "Yarda da damar don mu nuna zaɓuɓɓuka kusa da kai."
+    "permissionHint": "Yarda da damar don mu nuna zaɓuɓɓuka kusa da kai.",
+    "movePin": "Motsa taswira don zaɓar wuri",
+    "confirmA11y": "Tabbatar da wurin da aka zaɓa",
+    "useGpsA11y": "Yi amfani da wurina na yanzu",
+    "clearSearchA11y": "Share bincike",
+    "selectResultA11y": "Zaɓi {{name}}"
   },
   "addresses": {
     "title": "Adireshin da aka ajiye",
@@ -1177,6 +1190,17 @@
     "disputeFailed": "An kasa aika gardama",
     "noRequestSelected": "Babu odar da aka zaba. Buɗe odar sannan ka taɓa 'Bayar da rahoton matsala'.",
     "outcome": "Sakamako",
-    "refundedToWallet": "an mayar wa walat ɗinka"
+    "refundedToWallet": "an mayar wa walat ɗinka",
+    "thread": {
+      "you": "Kai",
+      "roleSupport": "Tallafi",
+      "roleMerchant": "Mai shago",
+      "roleRider": "Mai keke",
+      "internalTag": "CIKIN GIDA",
+      "messagePh": "Rubuta saƙo…",
+      "noMessages": "Babu saƙonni har yanzu. Fara hira.",
+      "sendA11y": "Aika saƙo",
+      "attachmentA11y": "Buɗe abin haɗi"
+    }
   }
 }

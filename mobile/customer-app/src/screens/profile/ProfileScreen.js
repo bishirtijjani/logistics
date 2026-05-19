@@ -560,7 +560,7 @@ export default function ProfileScreen({ navigation }) {
         <Text
           style={{
             textAlign: "center",
-            color: colors.textLight,
+            color: colors.textMuted,
             fontSize: 12,
             marginTop: 12,
           }}

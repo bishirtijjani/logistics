@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StatusBar,
   FlatList,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +16,9 @@ import {
   fetchMyTickets,
   fetchMyDisputes,
 } from "../../store/slices/supportSlice";
+import SkeletonLoader from "../../components/SkeletonLoader";
+import EmptyState from "../../components/EmptyState";
+import ErrorState from "../../components/ErrorState";
 
 const ticketStatusColor = (status) => {
   switch (status) {
@@ -48,8 +50,10 @@ export default function MyTicketsScreen() {
   const {
     tickets,
     ticketsLoading,
+    ticketsError,
     disputes,
     disputesLoading,
+    disputesError,
   } = useSelector((s) => s.support);
 
   useEffect(() => {
@@ -65,6 +69,8 @@ export default function MyTicketsScreen() {
   const renderTicket = ({ item }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate("SupportTicketDetail", { ticketId: item.id })}
+      accessibilityRole="button"
+      accessibilityLabel={t("a11y.openTicket", { number: item.number })}
       style={{
         backgroundColor: colors.surface,
         borderWidth: 1,
@@ -92,6 +98,8 @@ export default function MyTicketsScreen() {
   const renderDispute = ({ item }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate("SupportDisputeDetail", { disputeId: item.id })}
+      accessibilityRole="button"
+      accessibilityLabel={t("a11y.openDispute", { number: item.number })}
       style={{
         backgroundColor: colors.surface,
         borderWidth: 1,
@@ -102,7 +110,9 @@ export default function MyTicketsScreen() {
       }}
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-        <Text style={{ fontSize: 11, color: colors.textMuted }}>Dispute #{item.number}</Text>
+        <Text style={{ fontSize: 11, color: colors.textMuted }}>
+          {t("support.disputeNumber")} #{item.number}
+        </Text>
         <Text style={{ fontSize: 11, fontWeight: "700", color: disputeStatusColor(item.status) }}>
           {item.status.replace(/_/g, " ")}
         </Text>
@@ -116,7 +126,7 @@ export default function MyTicketsScreen() {
       </Text>
       {item.refundAmount && (
         <Text style={{ fontSize: 12, color: "#059669", marginTop: 4, fontWeight: "600" }}>
-          ₦{Number(item.refundAmount).toLocaleString("en-NG")} refunded
+          ₦{Number(item.refundAmount).toLocaleString("en-NG")} {t("support.refundedToWallet")}
         </Text>
       )}
     </TouchableOpacity>
@@ -124,6 +134,7 @@ export default function MyTicketsScreen() {
 
   const list = activeTab === "tickets" ? tickets : disputes;
   const loading = activeTab === "tickets" ? ticketsLoading : disputesLoading;
+  const error = activeTab === "tickets" ? ticketsError : disputesError;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
@@ -142,6 +153,8 @@ export default function MyTicketsScreen() {
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.back")}
             style={{
               width: 40,
               height: 40,
@@ -154,11 +167,19 @@ export default function MyTicketsScreen() {
           >
             <Ionicons name="arrow-back" size={20} color={colors.text} />
           </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: "900", color: colors.text }}>
+          <Text
+            style={{ fontSize: 20, fontWeight: "900", color: colors.text }}
+            accessibilityRole="header"
+          >
             {t("support.myTickets")}
           </Text>
         </View>
-        <TouchableOpacity onPress={refresh} style={{ padding: 8 }}>
+        <TouchableOpacity
+          onPress={refresh}
+          style={{ padding: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={t("a11y.retry")}
+        >
           <Ionicons name="refresh" size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
@@ -179,6 +200,9 @@ export default function MyTicketsScreen() {
             <TouchableOpacity
               key={tab.id}
               onPress={() => setActiveTab(tab.id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={tab.label}
               style={{
                 flex: 1,
                 paddingVertical: 10,
@@ -191,7 +215,7 @@ export default function MyTicketsScreen() {
                 style={{
                   fontSize: 14,
                   fontWeight: "700",
-                  color: isActive ? colors.primary : colors.textMuted,
+                  color: isActive ? colors.primaryStrong : colors.textMuted,
                 }}
               >
                 {tab.label} {tab.count > 0 ? `(${tab.count})` : ""}
@@ -205,6 +229,8 @@ export default function MyTicketsScreen() {
         <View style={{ paddingHorizontal: 20, marginBottom: 10 }}>
           <TouchableOpacity
             onPress={() => navigation.navigate("CreateSupportTicket")}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.newTicket")}
             style={{
               backgroundColor: colors.primary,
               borderRadius: 12,
@@ -223,17 +249,28 @@ export default function MyTicketsScreen() {
         </View>
       )}
 
-      {loading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} />
+      {loading && list.length === 0 ? (
+        <View style={{ paddingHorizontal: 20 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonLoader.OrderRow key={i} />
+          ))}
         </View>
+      ) : error && list.length === 0 ? (
+        <ErrorState
+          message={typeof error === "string" ? error : error?.message}
+          onRetry={refresh}
+        />
       ) : list.length === 0 ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <Ionicons name="document-text-outline" size={48} color={colors.textLight} />
-          <Text style={{ fontSize: 14, color: colors.textMuted, marginTop: 12, textAlign: "center" }}>
-            {activeTab === "tickets" ? t("support.noTickets") : t("support.noDisputes")}
-          </Text>
-        </View>
+        <EmptyState
+          icon="document-text-outline"
+          title={activeTab === "tickets" ? t("support.noTickets") : t("support.noDisputes")}
+          ctaLabel={activeTab === "tickets" ? t("support.createTicket") : undefined}
+          onCta={
+            activeTab === "tickets"
+              ? () => navigation.navigate("CreateSupportTicket")
+              : undefined
+          }
+        />
       ) : (
         <FlatList
           data={list}
@@ -241,6 +278,8 @@ export default function MyTicketsScreen() {
           renderItem={activeTab === "tickets" ? renderTicket : renderDispute}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
           showsVerticalScrollIndicator={false}
+          refreshing={loading}
+          onRefresh={refresh}
         />
       )}
     </SafeAreaView>

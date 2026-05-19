@@ -369,7 +369,7 @@ const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
         accessibilityLabel={t('request.checkout.refresh')}
         accessibilityState={{ disabled: refreshing }}
       >
-        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryStrong }}>
           {refreshing ? t('request.checkout.refreshing') : t('request.checkout.refresh')}
         </Text>
       </TouchableOpacity>

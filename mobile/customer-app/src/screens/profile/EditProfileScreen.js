@@ -190,7 +190,7 @@ export default function EditProfileScreen({ navigation }) {
             <Text
               style={{
                 fontSize: 11,
-                color: colors.textLight,
+                color: colors.textMuted,
                 marginTop: 4,
                 marginLeft: 4,
               }}

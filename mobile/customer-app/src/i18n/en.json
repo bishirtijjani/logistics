@@ -49,7 +49,15 @@
     "openChat": "Open chat",
     "sendMessage": "Send message",
     "unreadCount_one": "{{count}} unread notification",
-    "unreadCount_other": "{{count}} unread notifications"
+    "unreadCount_other": "{{count}} unread notifications",
+    "loading": "Loading",
+    "retry": "Try again",
+    "attachPhoto": "Attach a photo",
+    "removePhoto": "Remove photo",
+    "newTicket": "New support ticket",
+    "newDispute": "File a dispute",
+    "openTicket": "Open ticket {{number}}",
+    "openDispute": "Open dispute {{number}}"
   },
   "states": {
     "loading": "Loading…",
@@ -526,6 +534,11 @@
       "rxAttachedTitle": "Prescription attached",
       "rxAttachedHint": "Tap to view the prescription you uploaded.",
       "rxAttachedSub": "Shared with the pharmacy to fulfill this order.",
+      "podOtpTitle": "Read this code to your rider",
+      "podOtpBody": "Your rider will ask for this 6-digit code at the doorstep to confirm the delivery.",
+      "podOtpCodeAria": "Delivery code: {{code}}",
+      "podPhotoTitle": "Proof of delivery",
+      "podPhotoAria": "Open delivery photo full screen",
       "view": "View",
       "unableToOpen": "Unable to open",
       "package": "Package",
@@ -841,7 +854,12 @@
     "useCurrent": "Use my current location",
     "savedHeader": "Saved",
     "permissionRequired": "Location permission required",
-    "permissionHint": "Allow access so we can show options near you."
+    "permissionHint": "Allow access so we can show options near you.",
+    "movePin": "Move the map to select a location",
+    "confirmA11y": "Confirm selected location",
+    "useGpsA11y": "Use my current location",
+    "clearSearchA11y": "Clear search",
+    "selectResultA11y": "Select {{name}}"
   },
   "addresses": {
     "title": "Saved Addresses",
@@ -1173,6 +1191,17 @@
     "disputeFailed": "Couldn't file dispute",
     "noRequestSelected": "No order selected. Open the order and tap 'Report an issue'.",
     "outcome": "Outcome",
-    "refundedToWallet": "credited to your wallet"
+    "refundedToWallet": "credited to your wallet",
+    "thread": {
+      "you": "You",
+      "roleSupport": "Support",
+      "roleMerchant": "Merchant",
+      "roleRider": "Rider",
+      "internalTag": "INTERNAL",
+      "messagePh": "Type a message…",
+      "noMessages": "No messages yet. Start the conversation.",
+      "sendA11y": "Send message",
+      "attachmentA11y": "Open attachment"
+    }
   }
 }

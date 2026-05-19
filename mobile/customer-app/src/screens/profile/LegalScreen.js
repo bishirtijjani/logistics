@@ -138,7 +138,7 @@ export default function LegalScreen({ navigation }) {
         <Text
           style={{
             fontSize: 12,
-            color: colors.textLight,
+            color: colors.textMuted,
             textAlign: "center",
             marginTop: 24,
             marginHorizontal: 20,
