@@ -59,7 +59,7 @@ export default function LocationPermissionRecoveryScreen({ navigation }) {
     try {
       if (Platform.OS === "android") {
         await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS, {
-          data: "package:com.codeket.logistics.rider",
+          data: "package:ng.iprime.rider",
         });
       } else {
         await Linking.openSettings();

@@ -53,7 +53,7 @@ export default function LocationServicesEnabledBanner() {
           await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.LOCATION_SOURCE_SETTINGS);
         } else {
           await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS, {
-            data: "package:com.codeket.logistics.rider",
+            data: "package:ng.iprime.rider",
           });
         }
       } else {

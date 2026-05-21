@@ -447,7 +447,7 @@ Sockets and pushes are first-class and deterministic. The app feels alive; users
   - Tap → `lib/notificationRoute.routeToScreen` translates `data.route` (e.g. `/request/:id`, `/wallet`, `/wallet/transactions/:ref`, `/utility/airtime`) into `navigation.navigate(name, params)`. Tab names match `MainTabNavigator` (HomeTab/OrdersTab/WalletTab/ProfileTab) so `MainTabs → screen` navigation actually works.
 - ✅ **Bell icon on HomeScreen** with unread badge driven by `state.notifications.unreadCount`. Auto-refreshes via socket; cold-loaded via `fetchUnreadCount()` on mount.
 - ✅ **Deep linking** in `AppNavigator`:
-  - `NavigationContainer` configured with `linking={NAV_LINKING}` mapping `customerapp://request/:id`, `customerapp://wallet`, `customerapp://orders`, `customerapp://notifications`, `customerapp://utility/*`, plus `https://customer.vtulogistics.app/*` universal-link prefix.
+  - `NavigationContainer` configured with `linking={NAV_LINKING}` mapping `iprime://request/:id`, `iprime://wallet`, `iprime://orders`, `iprime://notifications`, `iprime://utility/*`, plus `https://customer.iprime.ng/*` universal-link prefix. (Renamed from `customerapp://` + `customer.vtulogistics.app` in Phase 10 #5.0; legacy `customerapp://` URLs still parse for back-compat.)
   - Cold-start: `Linking.getInitialURL()` + `Notifications.getLastNotificationResponseAsync()` capture pre-mount taps; replayed on `NavigationContainer.onReady` if it arrived before nav was wired.
   - In-app foreground/background push tap: `Notifications.addNotificationResponseReceivedListener` → `routeToScreen` → `navigationRef.navigate`.
 - ✅ **Background push handler**: server pushes carry `data.route` + `data.requestId` + `data.transactionId` + `data.notificationId`; foreground delivery still toasts (suppressed when the user is already on the Notification Center to avoid noise); background tap deep-links to the right screen.
@@ -530,7 +530,7 @@ Customer can find, pick, and re-use what they need fast. Home is alive with acti
   - Search bar opens `<SearchModal />` (`components/SearchModal.js`) with 300 ms debounce hitting `/api/search`; appends `lat/lng/radius=15` when the user's geo is known. Merchant taps → `MerchantMenu`; product taps also → `MerchantMenu` (search returns a partial product with only one variant and no option groups — passing it to ProductDetail would crash, so we route to the menu and the user can re-tap the full product card).
   - **Active Request Banner** above the tile grid, rendered when `state.home.activeRequest` is set. Self-updates from `request:status:changed` / `request:rider:assigned` / `request:cancelled` / `request:completed` socket events forwarded into `home.activeRequestFromSocket`. Drops the banner automatically on DELIVERED/SETTLED/CANCELLED.
   - **Recent Activity** — last 5 across requests + wallet transactions interleaved by date; tap routes to RequestTracking / TransactionHistory.
-  - **Dynamic Promo Banner** — first eligible banner from `/api/banners` rendered; section hidden entirely when no banners are eligible (per spec). Deep-link supports `customerapp://...`, `/request/:id`, `/wallet`, `/orders`, `/utility/*`.
+  - **Dynamic Promo Banner** — first eligible banner from `/api/banners` rendered; section hidden entirely when no banners are eligible (per spec). Deep-link supports `iprime://...` (and legacy `customerapp://...`), `/request/:id`, `/wallet`, `/orders`, `/utility/*`.
   - Category-driven tile grid was already shipped before Phase 6 (kept as-is).
 - ✅ **SavedAddressesScreen** rebuilt from textarea to full CRUD list:
   - List with label + address + default badge; "Make default" + "Delete" inline actions; edit pencil opens LocationPicker → label/default modal.
@@ -580,7 +580,7 @@ The user requested a third-pass audit. Twelve more issues surfaced; all resolved
 - **Admin Banners CRUD page** lives in the admin workstream (separate roadmap).
 - **PostGIS** isn't enabled; the bounding-box+Haversine nearby filter is good for V1 Katsina-scale traffic. Swapping to `ST_DWithin` is mechanical.
 - **`CREATE EXTENSION pg_trgm`** requires SUPERUSER (or `rds_superuser` on managed PG). Ops must run the Phase 6 migration as a privileged user.
-- **`Banner.deepLink` resolution** is intentionally local to HomeScreen — generic `Linking.openURL` handles `customerapp://` and `https://` URLs (resolved via the Phase 5 NAV_LINKING config); the in-app path branches cover `/request/:id`, `/wallet`, `/orders`, `/utility/*`. Adding a new path requires a HomeScreen edit; if banner deep-link surface grows, factor the path resolver into `lib/notificationRoute.js` (which already handles the same conventions for push taps).
+- **`Banner.deepLink` resolution** is intentionally local to HomeScreen — generic `Linking.openURL` handles `iprime://` (plus legacy `customerapp://`) and `https://` URLs (resolved via the Phase 5 NAV_LINKING config); the in-app path branches cover `/request/:id`, `/wallet`, `/orders`, `/utility/*`. Adding a new path requires a HomeScreen edit; if banner deep-link surface grows, factor the path resolver into `lib/notificationRoute.js` (which already handles the same conventions for push taps).
 - **`SavedAddress.placeId`** is recorded but never produced by LocationPicker — column is dead weight until LocationPicker surfaces `placeId` (a small follow-up).
 
 ---

@@ -97,8 +97,12 @@ function collectScreenNames(state) {
   return out;
 }
 
+// Deep-link prefixes — paired with the `iprime` scheme in app.json. The
+// scheme is shared with the customer app (each binary registers its own
+// handler on-device); we keep them apart on universal links via separate
+// hostnames (rider.iprime.ng here, customer.iprime.ng in the customer app).
 const NAV_LINKING = {
-  prefixes: ["riderapp://", "https://rider.vtulogistics.app"],
+  prefixes: ["iprime://", "https://rider.iprime.ng"],
   config: {
     screens: {
       MainTabs: {

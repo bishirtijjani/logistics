@@ -3,7 +3,7 @@
     "name": "iPrime Rider",
     "slug": "vtu-rider-app",
     "owner": "vtu-logistics",
-    "scheme": "riderapp",
+    "scheme": "iprime",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.codeket.logistics.rider",
+      "bundleIdentifier": "ng.iprime.rider",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "iPrime Rider needs your location to deliver jobs near you.",
         "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
@@ -32,7 +32,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#EA580C"
       },
-      "package": "com.codeket.logistics.rider",
+      "package": "ng.iprime.rider",
       "edgeToEdgeEnabled": true,
       "config": {
         "googleMaps": {

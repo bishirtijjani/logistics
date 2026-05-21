@@ -129,7 +129,9 @@ export const routeToScreen = (n) => {
 };
 
 /**
- * Parse a deep-link URL like `riderapp://offer/abc-123` into the same action shape.
+ * Parse a deep-link URL like `iprime://offer/abc-123` into the same action
+ * shape. The scheme-agnostic regex below still accepts legacy `riderapp://`
+ * URLs so notifications pushed before the v1 rename keep working.
  */
 export const parseDeepLink = (url) => {
   if (!url) return null;

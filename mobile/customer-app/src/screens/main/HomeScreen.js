@@ -1199,8 +1199,14 @@ function PromoBanner({ banner, navigation }) {
   const { t } = useTranslation();
   const handleTap = () => {
     if (!banner.deepLink) return;
-    // Local schemes like `/wallet`, `/orders`, `customerapp://request/abc`.
-    if (banner.deepLink.startsWith("customerapp://") || banner.deepLink.startsWith("http")) {
+    // Local schemes like `/wallet`, `/orders`, `iprime://request/abc`. The
+    // legacy `customerapp://` prefix is still accepted here so a banner
+    // pushed before the v1 rename keeps routing correctly.
+    if (
+      banner.deepLink.startsWith("iprime://") ||
+      banner.deepLink.startsWith("customerapp://") ||
+      banner.deepLink.startsWith("http")
+    ) {
       // Defer to NavigationContainer's deep-link handler via Linking.openURL.
       try {
         const { Linking } = require("react-native");

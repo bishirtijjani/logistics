@@ -201,7 +201,7 @@ Identical workflow to customer-app: Expo Go for development, EAS standalone for 
 ```
 mobile/rider-app/
 ├── App.js                          # Mounts SafeAreaProvider, NavigationContainer, Provider, ThemeProvider, ErrorBoundary, Toast
-├── app.json                        # Expo config (permissions, plugins, scheme=riderapp, pkg id=com.codeket.logistics.rider)
+├── app.json                        # Expo config (permissions, plugins, scheme=iprime, pkg id=ng.iprime.rider)
 ├── babel.config.js                 # nativewind/babel
 ├── eas.json                        # preview / production profiles (mirrors customer-app)
 ├── eslint.config.js                # Mirrored from customer-app (incl. starts-with-/ rule for axios paths)
@@ -731,7 +731,7 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
 
 **RA — Step 0b: re-baseline from customer-app** ✅
 - ✅ Copy `customer-app/package.json` → rename `"name": "rider-app"`. Every shared dep version identical.
-- ✅ Copy `customer-app/app.json` with the rider-targeted edits (`slug=vtu-rider-app`, iOS bundleId / Android package = `com.codeket.logistics.rider`, scheme `riderapp`, EAS projectId cleared).
+- ✅ Copy `customer-app/app.json` with the rider-targeted edits (`slug=vtu-rider-app`, iOS bundleId / Android package = `ng.iprime.rider`, scheme `iprime`, EAS projectId cleared). [Note: renamed pre-launch from the original `com.codeket.logistics.rider` / `riderapp` during Phase 10 #5.0.]
 - ✅ Copy `tailwind.config.js`, `babel.config.js`, `metro.config.js`, `global.css`, `eslint.config.js` verbatim.
 - ✅ Create `eas.json` with `preview` + `production` profiles only (no `developmentClient` — dev runs in Expo Go).
 
@@ -756,7 +756,7 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
 - ✅ `navigation/MainTabNavigator.js`: 4 tabs — Home / Earnings / Wallet / Me (Trip tab is added in Phase 4). Active tab uses brand orange.
 - ✅ `navigation/OfferOverlayNavigator.js`: scrim + sheet stub mounted at the root of `AppNavigator`. Hosts `JobOfferScreen` body in Phase 3.
 - ✅ Push-tap + deep-link routing wired via `notifications.addNotificationResponseReceivedListener` + `lib/notificationRoute.js` (rider routes: `/offer/:id`, `/trip/:id`, `/wallet`, `/wallet/withdraw`, `/earnings`, `/kyc`, `/performance`, `/support/*`).
-- ✅ Deep-link scheme: `riderapp://` + `https://rider.vtulogistics.app`.
+- ✅ Deep-link scheme: `iprime://` + `https://rider.iprime.ng`. (Renamed pre-launch from `riderapp://` / `rider.vtulogistics.app` during Phase 10 #5.0; legacy URLs still parse for back-compat.)
 
 **RA — Step 0f: observability bootstrap** ⚠
 - ⏸ Sentry init — deferred to Phase 8 to match customer-app's posture (customer-app does not init Sentry either; cross-app cohesiveness wins over early observability).
@@ -1247,7 +1247,41 @@ Every settled delivery shows up in the rider's earnings within 60 s. The rider c
 
 ## Phase 7 — Notifications, Ratings, Profile, Support
 
-> **Status: ◻ Not Started. Depends on: Phases 1–6.**
+> **Status: ✅ COMPLETE. Depends on: Phases 1–6.**
+>
+> **What shipped (2026-05-20):**
+> - **Backend**
+>   - New migration `20260519100000_rider_doc_expiry_and_documents`: adds `idDocExpiresAt`, `driverLicenceUrl/ExpiresAt`, `vehicleRegUrl/ExpiresAt`, `vehicleDocExpiresAt`, `insuranceDocUrl/ExpiresAt`, `lastDocExpiryNoticeAt` on `Rider`; creates `RiderOfferLog` table + `RiderOfferOutcome` enum.
+>   - `RiderOfferLog` writes wired into the dispatch broadcaster (`emitRing`, persists OFFERED rows per candidate), `acceptJob` (flips to ACCEPTED + others to TAKEN inside the txn), `notifyJobTaken` (TAKEN), and `autoCancelUnmatched` (EXPIRED).
+>   - `rider.service.getPerformance(userId)` — trailing-30-day acceptance / cancellation / on-time / rating breakdown + streak. 7 parallel queries; cancellation rate divides by claimed jobs; on-time tolerates 1.2× of `estimatedMinutes`; streak walks consecutive UTC days from most-recent delivery.
+>   - `rider.service.reuploadDocument({ kind, url, expiresAt })` — whitelisted kinds (ID_DOC, DRIVER_LICENCE, VEHICLE_PHOTO, VEHICLE_REG, INSURANCE), Cloudinary-URL prefix check, future-expiry check, auto-mirrors `min(vehicleReg, insurance)` into `vehicleDocExpiresAt`, clears throttle marker on re-upload.
+>   - `POST /api/rider/performance`, `POST /api/rider/documents`, `POST /api/rider/decline` (rider-initiated offer decline) — controllers + zod validators + RIDER-gated routes.
+>   - `updateRiderStatus` now pushes `RIDER_APPROVED` / `RIDER_REJECTED` / `RIDER_SUSPENDED` / `RIDER_REACTIVATED` so the rider's profile gate flips without a re-launch.
+>   - `auth.service.UPLOAD_KINDS.rider_doc` — RIDER+ADMIN only, user-scoped Cloudinary folder.
+>   - `support.service` opened to RIDER role: `createDispute` accepts RIDER raisers (must be the assigned rider on a DELIVERED/SETTLED request); `listDisputes` returns disputes raised by OR involving the rider; `assertDisputeAccess` honours rider/customer counterparty visibility; `postDisputeMessage` notifies the rider counterparty; `adminResolveDispute` notifies the rider when they aren't the raiser.
+>   - New `rider-queue` + `rider.worker.js` with `CHECK_DOC_EXPIRY` cron @ 04:00 daily — scans APPROVED riders whose docs are within 14 days of expiry or already expired, throttled by `lastDocExpiryNoticeAt` (7-day re-fire), pushes `DOC_EXPIRING_SOON` / `DOC_EXPIRED` with `route: '/kyc'`.
+> - **Mobile (rider app)** — 19 new screens, 1 rebuilt:
+>   - `features/notifications/NotificationsCenterScreen.js` — paginated list, pull-to-refresh, infinite scroll, mark-read on tap, mark-all CTA, deep-linked nav.
+>   - `features/profile/ProfileHomeScreen.js` (rebuilt) — identity card with avatar tap-to-edit, rating + delivery chips, sections (Account / Money / Security / Preferences / Support) linking to every sub-screen.
+>   - `features/profile/EditProfileScreen.js` — first/last name + DOB + address; email locked.
+>   - `features/profile/ProfilePhotoScreen.js` — camera/library pick → Cloudinary (kind=profile) → `PUT /auth/profile/picture`.
+>   - `features/profile/VehicleInfoScreen.js` — read-only vehicle summary; "Request change" pre-fills a support ticket.
+>   - `features/profile/KycStatusScreen.js` — 5 doc tiles (Valid / Expiring soon / Expired / Missing), expiry banner, re-upload sheet with date entry + Cloudinary upload + server persist; auto-refreshes rider profile after success.
+>   - `features/profile/PerformanceScreen.js` — rating panel with 5-star breakdown bars; 4 metric cards (acceptance, cancellation, on-time, streak); each card carries an "X offers in 30 days" sub-line; pull-to-refresh.
+>   - `features/settings/SessionsScreen.js`, `ChangePinScreen.js`, `PhoneChangeScreen.js`, `BiometricSettingsScreen.js`, `LanguageScreen.js`, `ThemeScreen.js`, `LegalScreen.js`, `SecuritySettingsScreen.js` — full settings suite.
+>   - `features/support/SupportHomeScreen.js`, `CreateTicketScreen.js`, `TicketDetailScreen.js`, `CreateDisputeScreen.js`, `DisputeDetailScreen.js`, `SupportThread.js`, `supportUploads.js` — full support stack with attachment upload via the existing Cloudinary helper (kind=ticket/dispute).
+>   - `features/wallet/TransactionDetailScreen.js` extended — RIDER_EARNING receipts now show a "Report an issue with this delivery" CTA that opens `CreateDispute` with the originating `requestId`.
+> - **State + wiring**
+>   - `store/slices/supportSlice.js` extended: `fetchTickets/Detail`, `createTicket/FromTrip`, `postTicketMessage`, `closeTicket`, `fetchDisputes/Detail`, `createDispute`, `postDisputeMessage`, plus `clearTicketDetail`/`clearDisputeDetail`.
+>   - `store/slices/profileSlice.js` extended: `updateProfile`, `updateProfilePicture`, `deleteAccount`, `fetchNotificationPreferences/update`, `fetchPerformance`, `reuploadRiderDocument`.
+>   - `services/notificationsBus.js`: dispatches `fetchRiderProfile` + `fetchProfile` on RIDER_APPROVED/REJECTED/SUSPENDED/REACTIVATED so the navigation gate flips immediately.
+>   - `navigation/AppNavigator.js`: 19 new stack screens registered (NotificationsCenter, EditProfile, ProfilePhoto, VehicleInfo, KycStatus, Performance, SecuritySettings, Sessions, ChangePin, PhoneChange, BiometricSettings, Language, Theme, Legal, SupportHome, CreateTicket, TicketDetail, CreateDispute, DisputeDetail).
+>   - `lib/notificationRoute.js`: `/kyc`, `/performance`, `/notifications`, `/support`, `/support/dispute/*` already wired during Phase 6; verified.
+>   - `i18n/en.json` + `ha.json`: added `profile.*`, `vehicleInfo.*`, `kyc.*`, `performance.*` blocks; existing `support.*`, `changePin.*`, `phoneChange.*`, `sessions.*`, `security.*`, `legal.*`, `notificationCenter.*` keys reused.
+> - **Verification**
+>   - All 38 touched files (28 frontend + 12 backend; 1 frontend file double-listed) parse clean via Babel/Node.
+>   - `prisma validate` ✓ — schema syntactically valid; migration is purely additive (forward-only safe).
+>   - i18n `JSON.parse` ✓ for both en + ha.
 
 ### 7.1 Goals
 
@@ -1350,12 +1384,12 @@ The app is ready for the store. Every screen has loading / empty / error / offli
 - Verify every `api.<verb>` path starts with `/` (ESLint rule enforces; CI fails otherwise).
 
 **RA — Deep-link coverage**
-- `riderapp://offer/:id` → `JobOfferScreen` if offer is still valid in `offersSlice.queue`; else show `JobMissedScreen`.
-- `riderapp://trip/:id` → `TripCockpitScreen` if the rider is the assigned rider.
-- `riderapp://earnings` → `EarningsDashboardScreen`.
-- `riderapp://wallet` → `WalletHomeScreen`; `riderapp://wallet/withdraw` → `WithdrawScreen`.
-- `riderapp://support/:ticketId` → `TicketDetailScreen`.
-- Universal links: `https://rider.vtulogistics.app/*` mapped equivalently.
+- `iprime://offer/:id` → `JobOfferScreen` if offer is still valid in `offersSlice.queue`; else show `JobMissedScreen`.
+- `iprime://trip/:id` → `TripCockpitScreen` if the rider is the assigned rider.
+- `iprime://earnings` → `EarningsDashboardScreen`.
+- `iprime://wallet` → `WalletHomeScreen`; `iprime://wallet/withdraw` → `WithdrawScreen`.
+- `iprime://support/:ticketId` → `TicketDetailScreen`.
+- Universal links: `https://rider.iprime.ng/*` mapped equivalently. Legacy `riderapp://` URLs still parse for back-compat (pre-Phase-10 notifications).
 
 **RA — Accessibility**
 - Tap targets ≥ 44 px.

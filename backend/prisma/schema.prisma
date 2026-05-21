@@ -333,17 +333,17 @@ model Rider {
   vehiclePhotoUrl String? /// Uploaded vehicle photo
 
   // Phase 7 — expiry tracking + supplementary documents for KYC Status screen.
-  idDocExpiresAt          DateTime? /// Expiry on the uploaded ID doc (national-ID slips usually have one)
-  driverLicenceUrl        String?
-  driverLicenceExpiresAt  DateTime?
-  vehicleRegUrl           String?
-  vehicleRegExpiresAt     DateTime?
-  vehicleDocExpiresAt     DateTime? /// Generic vehicle-doc expiry — earliest of vehicleReg/insurance for sort
-  insuranceDocUrl         String?
-  insuranceExpiresAt      DateTime?
+  idDocExpiresAt         DateTime? /// Expiry on the uploaded ID doc (national-ID slips usually have one)
+  driverLicenceUrl       String?
+  driverLicenceExpiresAt DateTime?
+  vehicleRegUrl          String?
+  vehicleRegExpiresAt    DateTime?
+  vehicleDocExpiresAt    DateTime? /// Generic vehicle-doc expiry — earliest of vehicleReg/insurance for sort
+  insuranceDocUrl        String?
+  insuranceExpiresAt     DateTime?
   /// Throttle marker for the nightly DOC_EXPIRING_SOON push so a rider isn't
   /// spammed every 24h once a doc enters the 14-day window.
-  lastDocExpiryNoticeAt   DateTime?
+  lastDocExpiryNoticeAt  DateTime?
 
   // Status
   status       RiderStatus       @default(PENDING_APPROVAL)
@@ -365,9 +365,9 @@ model Rider {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   requests        Request[]
-  ratingsReceived Rating[]         @relation("RiderRatings")
+  ratingsReceived Rating[]        @relation("RiderRatings")
   offerLogs       RiderOfferLog[]
 
   @@index([userId])
@@ -381,11 +381,11 @@ model Rider {
 /// RiderOfferLog — one row per offer the dispatcher emits to a rider.
 /// Powers acceptance/decline rate metrics on the rider performance screen.
 enum RiderOfferOutcome {
-  OFFERED  /// Initial state when emitRing pushed the offer.
+  OFFERED /// Initial state when emitRing pushed the offer.
   ACCEPTED /// Rider claimed the job.
   DECLINED /// Rider tapped decline in the offer sheet.
-  EXPIRED  /// Ring timeout elapsed with no response.
-  TAKEN    /// Another rider claimed the job before this one could.
+  EXPIRED /// Ring timeout elapsed with no response.
+  TAKEN /// Another rider claimed the job before this one could.
 }
 
 model RiderOfferLog {
@@ -1013,9 +1013,9 @@ model Request {
   packageDetails PackageDetail? // For package delivery
   rating         Rating?
 
-  messages   RequestMessage[]
-  disputes   Dispute[]
-  offerLogs  RiderOfferLog[]
+  messages  RequestMessage[]
+  disputes  Dispute[]
+  offerLogs RiderOfferLog[]
 
   @@index([customerId])
   @@index([merchantId])
@@ -1225,7 +1225,7 @@ model Banner {
   title    String
   subtitle String?
   imageUrl String
-  deepLink String? /// e.g. `/wallet`, `/utility/airtime`, or `customerapp://...`
+  deepLink String? /// e.g. `/wallet`, `/utility/airtime`, or `iprime://...`
   bgColor  String? /// optional accent colour hint for fallback rendering
 
   startsAt DateTime?

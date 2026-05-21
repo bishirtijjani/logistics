@@ -119,14 +119,16 @@ export const routeToScreen = (n) => {
 };
 
 /**
- * Parse a deep-link URL like `customerapp://request/abc-123` into the same
- * action shape. Returns null if the URL doesn't carry a known path.
+ * Parse a deep-link URL like `iprime://request/abc-123` into the same action
+ * shape. Returns null if the URL doesn't carry a known path. The scheme-
+ * agnostic regex below means legacy `customerapp://…` URLs (pre-rename) still
+ * parse correctly if a stale notification lands.
  */
 export const parseDeepLink = (url) => {
   if (!url) return null;
   try {
     // expo's Linking.parse returns { hostname, path, queryParams }.
-    // We accept both `customerapp://request/123` and `https://.../request/123`
+    // We accept both `iprime://request/123` and `https://.../request/123`
     // by string-slicing the part after the scheme/host.
     const stripped = url.replace(/^[a-z][a-z0-9+.-]*:\/\/(?:[^/]+)?/i, '');
     return matchRoute(stripped);

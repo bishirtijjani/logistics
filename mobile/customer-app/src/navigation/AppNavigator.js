@@ -98,7 +98,7 @@ import ShopsScreen from "../screens/main/ShopsScreen";
 
 const Stack = createNativeStackNavigator();
 
-// react-navigation deep-link config — pairs with `customerapp` scheme in app.json.
+// react-navigation deep-link config — pairs with the `iprime` scheme in app.json.
 // The route paths mirror the conventions in services/notify.service.js so the
 // server can produce a `data.route` like "/request/abc" and either:
 //   - in-app: notificationRoute.routeToScreen handles dispatch via navigation.navigate
@@ -109,8 +109,13 @@ const Stack = createNativeStackNavigator();
 // { screen: 'Wallet' })` would silently fail. notificationRoute.js builds
 // the same screen names. Profile moved off the tab bar and into a top-level
 // stack screen reachable from the home avatar.
+//
+// Note on scheme: `iprime://` is shared with the rider app — each binary
+// registers it on its own device. Universal-link domains (https://) are split
+// per role to keep cross-app handoff unambiguous: customer.iprime.ng here,
+// rider.iprime.ng in the rider app.
 const NAV_LINKING = {
-  prefixes: ["customerapp://", "https://customer.vtulogistics.app"],
+  prefixes: ["iprime://", "https://customer.iprime.ng"],
   config: {
     screens: {
       MainTabs: {
