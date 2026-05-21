@@ -14,16 +14,21 @@ import { colors } from "../../theme";
 
 export default function LegalScreen({ navigation }) {
   const { t } = useTranslation();
+  // Public legal docs are hosted on the marketing site (see /website in this
+  // repo, route /legal/[slug]). The URLs are referenced from the App Store
+  // privacy questionnaire and the Play Console data-safety form, so they
+  // must stay stable across releases — coordinate a migration if the
+  // marketing domain ever changes.
   const items = [
     {
       icon: "document-text-outline",
       label: t("legal.terms"),
-      url: "https://yourapp.com/terms",
+      url: "https://vtulogistics.com/legal/terms",
     },
     {
       icon: "shield-outline",
       label: t("legal.privacy"),
-      url: "https://yourapp.com/privacy",
+      url: "https://vtulogistics.com/legal/privacy",
     },
   ];
 
