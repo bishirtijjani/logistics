@@ -28,11 +28,43 @@ The current `ha.json` is a working draft produced for unblocking Phase 9 develop
 - [ ] `rate` — rating screen.
 - [ ] `errors` — every error code's user-facing message. **Most important section** — these are what users see when things go wrong; clarity matters more than poetry.
 
-## Open questions for the reviewer
+## Decisions applied in the Phase 10 #4.3 polish pass
 
-1. **Honorific form** — current draft uses masculine "ka" / "ka..." throughout. Should we switch to plural-neutral "ku" / "ku..." everywhere for the Katsina audience?
-2. **Loanwords** — kept English: PIN, OTP, Wallet, Cart, Menu, Airtime, Data, Smart Card, Email. Confirm or replace.
-3. **Currency** — kept "₦" symbol. Should we ever write "naira" in words for accessibility?
-4. **Greeting** — "Sannu" used as casual greeting. "Barka da rana" / "barka da yamma" would be more time-aware but harder to drive from app state. Confirm "Sannu" is fine.
-5. **"Rider"** — translated as "mai keke" (motorcycle person). Confirm or pick a broader term.
-6. **"Prescription"** — translated as "takardar shaida" (literally "certificate"). The clearer pharmacy term may be "takardar likita" (doctor's note). Reviewer to pick.
+The original open questions have been resolved as follows. The native
+reviewer should still validate the wording — these decisions only fix the
+structural ambiguities; line-by-line word choice is still draft.
+
+1. ✅ **Honorific form** — switched from masculine-singular "ka" / "kai" /
+   "kana" / "kake" / "maka" / "naka" / "kanka" / "ɗinka" / etc. to
+   plural-neutral "ku" / "kuna" / "kuke" / "muku" / "naku" / "kanku" /
+   "ɗinku". More inclusive for a mass-market app. The idiom "kai tsaye"
+   ("live" / "in real time") was protected. 136 strings touched. Script
+   that performed the change is at `scripts/hausa-polish.js`.
+2. ✅ **Loanwords kept** — PIN, OTP, Wallet, Cart, Menu, Airtime, Data,
+   Smart Card, Email remain in English. These are the colloquial usage
+   even in monolingual Hausa speech.
+3. ✅ **Currency stays as "₦"** — universally recognized; spelling out
+   "naira" loses line space and adds friction. Use the symbol.
+4. ✅ **Greeting stays as "Sannu"** — appropriate casual register for a
+   service app. Time-of-day variants ("Barka da rana", "Barka da yamma")
+   would need state plumbing that isn't worth the complexity for V1.
+5. ✅ **"Rider"** — changed from "mai keke" (motorcycle person) to the
+   English loanword **"rider"**. Vehicle-neutral; future-proofs car /
+   bicycle deliveries. Common in Nigerian English even within Hausa speech.
+6. ✅ **"Prescription"** — changed from "takardar shaida" (certificate)
+   to "takardar likita" (doctor's prescription). Standard pharmacy term.
+
+## What the native reviewer still needs to do
+
+- Line-by-line tone check — the LLM draft can produce grammatically valid
+  but flat or unnatural copy. A native ear catches this.
+- Verify the "ku" pluralization didn't break any verb conjugations in
+  context (the script handles the common cases — kana/kake/maka — but
+  uncommon constructions may still read awkwardly).
+- Confirm regional vocabulary choices (e.g. "lantarki" vs "wuta" for
+  electricity; "kuɗi" vs "naira" in body text).
+- Sign off on error messages — these are what users see when things go
+  wrong, so clarity matters more than poetry.
+
+When done, delete `_meta._draft` from `ha.json` to mark the file as
+review-complete.
