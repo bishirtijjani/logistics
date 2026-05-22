@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_URL } from '../lib/api'
 import { useDispatch, useSelector } from 'react-redux'
 import { X, ArrowRight, ArrowLeft, Check, Store, Package, Clock, Settings, Sparkles, MapPin } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
@@ -123,7 +124,7 @@ export default function OnboardingWizard({ open, onClose }) {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/merchants/${merchantId}/products`, {
+      const response = await fetch(`${API_URL}/merchants/${merchantId}/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +158,7 @@ export default function OnboardingWizard({ open, onClose }) {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/merchants/${merchantId}`, {
+      const response = await fetch(`${API_URL}/merchants/${merchantId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -481,43 +481,43 @@ All events use the `request:` namespace and work for any request type.
 ### Core Request Endpoints
 
 ```
-POST   /api/requests                    # Create any type of request
-GET    /api/requests                    # List my requests (customer/rider/merchant)
-GET    /api/requests/:id               # Get request details
-PATCH  /api/requests/:id/status        # Update status (merchant/rider)
-DELETE /api/requests/:id               # Cancel (customer, before pickup)
+POST   /requests                    # Create any type of request
+GET    /requests                    # List my requests (customer/rider/merchant)
+GET    /requests/:id               # Get request details
+PATCH  /requests/:id/status        # Update status (merchant/rider)
+DELETE /requests/:id               # Cancel (customer, before pickup)
 
-POST   /api/requests/:id/rate           # Rate completed request
+POST   /requests/:id/rate           # Rate completed request
 
-GET    /api/merchants                   # List merchants (filter by type, location)
-GET    /api/merchants/:id               # Get merchant details
-GET    /api/merchants/:id/products      # Get merchant's catalog
-GET    /api/merchants/:id/requests      # Get merchant's orders (merchant dashboard)
-PATCH  /api/merchants/:id/status        # Update merchant status (open/closed)
+GET    /merchants                   # List merchants (filter by type, location)
+GET    /merchants/:id               # Get merchant details
+GET    /merchants/:id/products      # Get merchant's catalog
+GET    /merchants/:id/requests      # Get merchant's orders (merchant dashboard)
+PATCH  /merchants/:id/status        # Update merchant status (open/closed)
 
-POST   /api/merchant-wallet/withdraw   # Request payout
+POST   /merchant-wallet/withdraw   # Request payout
 
-GET    /api/search?q=burger&lat=13.0&lng=7.6&type=food
-GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
+GET    /search?q=burger&lat=13.0&lng=7.6&type=food
+GET    /nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 ```
 
 ### Merchant Endpoints
 
 ```
-GET    /api/merchants                   # List merchants (filter by type, location)
-GET    /api/merchants/:id               # Get merchant details
-GET    /api/merchants/:id/products      # Get merchant's catalog
-GET    /api/merchants/:id/requests      # Get merchant's orders (merchant dashboard)
-PATCH  /api/merchants/:id/status        # Update merchant status (open/closed)
+GET    /merchants                   # List merchants (filter by type, location)
+GET    /merchants/:id               # Get merchant details
+GET    /merchants/:id/products      # Get merchant's catalog
+GET    /merchants/:id/requests      # Get merchant's orders (merchant dashboard)
+PATCH  /merchants/:id/status        # Update merchant status (open/closed)
 
-POST   /api/merchant-wallet/withdraw   # Request payout
+POST   /merchant-wallet/withdraw   # Request payout
 ```
 
 ### Discovery/Search Endpoints
 
 ```
-GET    /api/search?q=burger&lat=13.0&lng=7.6&type=food
-GET    /api/nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
+GET    /search?q=burger&lat=13.0&lng=7.6&type=food
+GET    /nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 ```
 
 ---

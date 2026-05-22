@@ -22,7 +22,7 @@ const FOREGROUND_POLL_MS = 30_000;
 /**
  * Pending Approval gating screen.
  *
- *   - Polls `GET /api/rider/profile` every 30 s while screen is foregrounded.
+ *   - Polls `GET /rider/profile` every 30 s while screen is foregrounded.
  *   - Refetches on every AppState `active` event so a backgrounded → foregrounded
  *     app sees the new status without waiting for the timer.
  *   - When BLK-PushOnApproval ships, `notification:new` with type=RIDER_APPROVED

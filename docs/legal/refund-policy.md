@@ -56,7 +56,7 @@ entry confirming the reversal.
 | Order cancelled by you before a rider is assigned | Wallet | Instant |
 
 If you don't see the refund within the window above, contact us at
-**contact@mhprime.ng** with the transaction ID — we'll investigate the
+**contact@iprime.ng** with the transaction ID — we'll investigate the
 same business day.
 
 ---
@@ -76,7 +76,7 @@ request.
 | Unauthorised transaction on your wallet | 24 hours | Confirmation that you didn't approve it, and any details (time, device) |
 
 To raise one of these, open the order in the customer app and tap
-**"Get help with this order"**, or email **contact@mhprime.ng** with the
+**"Get help with this order"**, or email **contact@iprime.ng** with the
 transaction ID. Once approved, the refund hits your wallet within 60
 seconds.
 
@@ -148,7 +148,7 @@ If you funded your wallet by card or bank transfer and want to dispute
 that funding through your bank, you're entitled to do so under your
 bank's rules — this policy does not remove that right. However:
 
-- Raising a chargeback before contacting **contact@mhprime.ng** delays
+- Raising a chargeback before contacting **contact@iprime.ng** delays
   resolution by weeks. We can almost always refund a legitimate complaint
   in-app within 24 hours.
 - Chargebacks that turn out to be fraudulent (i.e. you received the value
@@ -162,7 +162,7 @@ bank's rules — this policy does not remove that right. However:
 If you're not happy with how a refund was handled:
 
 1. Reply to the original support thread asking for an escalation.
-2. If still unresolved, email **contact@mhprime.ng** with the transaction ID
+2. If still unresolved, email **contact@iprime.ng** with the transaction ID
    and a summary. A senior team member responds within 3 business days.
 3. If you remain unsatisfied, you have the right to refer the matter to
    the **Central Bank of Nigeria Consumer Protection Department** (for
@@ -185,6 +185,6 @@ change.
 
 | Channel | Address |
 |---|---|
-| General refund queries | **contact@mhprime.ng** |
-| Escalated disputes | **contact@mhprime.ng** |
+| General refund queries | **contact@iprime.ng** |
+| Escalated disputes | **contact@iprime.ng** |
 | In-app | Profile → Help → "Refund a transaction" |

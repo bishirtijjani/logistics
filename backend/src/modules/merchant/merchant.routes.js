@@ -1,5 +1,5 @@
 /**
- * Merchant routes — /api/merchants
+ * Merchant routes — /merchants
  * Merchant management endpoints
  */
 

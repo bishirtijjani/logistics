@@ -98,7 +98,7 @@ export default function BillPaymentPartnersPage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="mailto:partnerships@vtulogistics.com?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
+                  href="mailto:partnerships@iprime.ng?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
                   className="ui-btn ui-btn-primary"
                 >
                   Email the partnerships team
@@ -247,10 +247,10 @@ export default function BillPaymentPartnersPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:partnerships@vtulogistics.com?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
+                    href="mailto:partnerships@iprime.ng?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
                     className="ui-btn ui-btn-primary"
                   >
-                    partnerships@vtulogistics.com
+                    partnerships@iprime.ng
                     <ArrowRight size={16} strokeWidth={2.5} />
                   </a>
                   <Link href="/partners/banking" className="ui-btn ui-btn-ghost">

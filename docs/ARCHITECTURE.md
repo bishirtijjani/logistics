@@ -12,7 +12,7 @@ graph TB
     end
 
     subgraph Backend
-        API["Express API Server<br/>/api/*"]
+        API["Express API Server<br/>/*"]
         WS["Socket.io Server<br/>(Real-Time)"]
         BQ["BullMQ Workers<br/>(Background Jobs)"]
     end
@@ -155,11 +155,11 @@ sequenceDiagram
     S->>S: Verify JWT, join merchant:{merchantId}
 
     Note over C,R: 2. Request Created (Food)
-    C->>S: REST: POST /api/requests { type: FOOD }
+    C->>S: REST: POST /requests { type: FOOD }
     S->>M: request:created (via merchant:{merchantId} room)
 
     Note over C,R: 3. Merchant Accepts
-    M->>S: REST: PATCH /api/requests/:id/status { status: ACCEPTED }
+    M->>S: REST: PATCH /requests/:id/status { status: ACCEPTED }
     S->>C: request:merchant:accepted
 
     Note over C,R: 4. Rider Assigned

@@ -1,6 +1,6 @@
 /**
  * NotificationsCenterScreen — in-app feed of every notification the backend
- * has pushed to this rider. Reads from `/api/notifications`, live-updates
+ * has pushed to this rider. Reads from `/notifications`, live-updates
  * via the `notification:new` socket event (wired in `notificationsBus`),
  * and deep-links to the relevant screen on tap.
  */

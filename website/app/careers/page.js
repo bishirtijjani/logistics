@@ -186,10 +186,10 @@ export default function CareersPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:careers@vtulogistics.com?subject=iPrime%20Careers%20%E2%80%94%20application"
+                    href="mailto:careers@iprime.ng?subject=iPrime%20Careers%20%E2%80%94%20application"
                     className="ui-btn ui-btn-primary"
                   >
-                    Email careers@vtulogistics.com
+                    Email careers@iprime.ng
                     <Send size={16} strokeWidth={2.5} />
                   </a>
                   <Link href="/#contact" className="ui-btn ui-btn-ghost">

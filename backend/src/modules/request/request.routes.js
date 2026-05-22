@@ -1,5 +1,5 @@
 /**
- * Request routes — /api/requests
+ * Request routes — /requests
  * Unified request endpoints for all request types (FOOD, GROCERY, PHARMACY, PACKAGE)
  */
 

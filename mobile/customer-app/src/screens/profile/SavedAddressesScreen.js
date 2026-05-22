@@ -2,7 +2,7 @@
  * SavedAddressesScreen — Phase 6 CRUD list.
  *
  * Replaces the legacy single-textarea "Primary Address" editor with a real
- * address book backed by `/api/addresses`. Used as the picker source from:
+ * address book backed by `/addresses`. Used as the picker source from:
  *   - CreateRequestScreen (PACKAGE pickup + dropoff)
  *   - CheckoutScreen (MERCHANT_ORDER dropoff)
  *

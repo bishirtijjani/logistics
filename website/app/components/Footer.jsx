@@ -80,8 +80,8 @@ const columns = [
   {
     title: "Partners",
     links: [
-      { name: "For merchants", href: "/#contact" },
-      { name: "For riders", href: "/#contact" },
+      { name: "For merchants", href: "/merchants" },
+      { name: "For riders", href: "/riders" },
       { name: "Bill payment partners", href: "/partners/bill-payment" },
       { name: "Bank partners", href: "/partners/banking" },
     ],

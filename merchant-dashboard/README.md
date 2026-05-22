@@ -77,7 +77,7 @@ src/
 
 ## API Endpoints
 
-The dashboard communicates with the backend at `/api/merchants/merchant/:merchantId/`:
+The dashboard communicates with the backend at `/merchants/merchant/:merchantId/`:
 
 - `GET /profile` - Get merchant profile
 - `PATCH /profile` - Update merchant profile

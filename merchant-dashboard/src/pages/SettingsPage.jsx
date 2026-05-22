@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_URL } from '../lib/api'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchSettings, updateSettings } from '../store/slices/settingsSlice.js'
 import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone } from 'lucide-react'
@@ -120,7 +121,7 @@ export default function SettingsPage() {
   const fetchLoginHistory = async () => {
     setLoadingHistory(true)
     try {
-      const response = await fetch(`/api/merchants/${merchantId}/login-history`, {
+      const response = await fetch(`${API_URL}/merchants/${merchantId}/login-history`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -139,7 +140,7 @@ export default function SettingsPage() {
 
   const fetchDevices = async () => {
     try {
-      const response = await fetch(`/api/merchants/${merchantId}/devices`, {
+      const response = await fetch(`${API_URL}/merchants/${merchantId}/devices`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -156,7 +157,7 @@ export default function SettingsPage() {
 
   const removeDevice = async (deviceId) => {
     try {
-      const response = await fetch(`/api/merchants/${merchantId}/devices/${deviceId}`, {
+      const response = await fetch(`${API_URL}/merchants/${merchantId}/devices/${deviceId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -229,7 +230,7 @@ export default function SettingsPage() {
 
     try {
       // Call password change API
-      const response = await fetch(`/api/merchants/${merchantId}/change-password`, {
+      const response = await fetch(`${API_URL}/merchants/${merchantId}/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -137,7 +137,7 @@ SELECT * FROM pg_locks WHERE granted = false;
 - Customers report "I funded my wallet but the balance didn't update"
 
 **Diagnose**
-1. Tail webhook logs: `tail -f logs/combined.log | grep '/api/webhooks'`
+1. Tail webhook logs: `tail -f logs/combined.log | grep '/webhooks'`
 2. Check KatPay dashboard → webhook delivery log → look for 5xx/4xx from us
 3. Confirm webhook secret env var matches what KatPay has on file:
    `echo $KATPAY_WEBHOOK_SECRET | sha256sum` against the KatPay dashboard footer

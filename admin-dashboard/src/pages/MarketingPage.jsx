@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { Megaphone, Check, X, RefreshCw, Tag } from 'lucide-react'
 
 export default function MarketingPage() {
@@ -12,7 +13,7 @@ export default function MarketingPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/admin/marketing/campaigns', {
+      const response = await fetch(`${API_URL}/admin/marketing/campaigns`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()
@@ -29,7 +30,7 @@ export default function MarketingPage() {
     try {
       const token = localStorage.getItem('token')
       const status = discountFilter === 'ALL' ? '' : discountFilter
-      const response = await fetch(`/api/admin/marketing/discounts?status=${status}`, {
+      const response = await fetch(`${API_URL}/admin/marketing/discounts?status=${status}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()
@@ -44,7 +45,7 @@ export default function MarketingPage() {
   const handleApproveDiscount = async (discountId) => {
     try {
       const token = localStorage.getItem('token')
-      await fetch(`/api/admin/marketing/discounts/${discountId}/approve`, {
+      await fetch(`${API_URL}/admin/marketing/discounts/${discountId}/approve`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -60,7 +61,7 @@ export default function MarketingPage() {
     
     try {
       const token = localStorage.getItem('token')
-      await fetch(`/api/admin/marketing/discounts/${discountId}/reject`, {
+      await fetch(`${API_URL}/admin/marketing/discounts/${discountId}/reject`, {
         method: 'PATCH',
         headers: { 
           Authorization: `Bearer ${token}`,

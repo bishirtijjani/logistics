@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { DollarSign, ShoppingCart, Users, MapPin, TrendingUp, Clock, Activity, RefreshCw, Store } from 'lucide-react'
 
 export default function AnalyticsPage() {
@@ -18,19 +19,19 @@ export default function AnalyticsPage() {
     try {
       const token = localStorage.getItem('token')
       const [revenue, orders, customers, geographic, realtime] = await Promise.all([
-        fetch(`/api/admin/analytics/revenue?range=${dateRange}`, {
+        fetch(`${API_URL}/admin/analytics/revenue?range=${dateRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json()),
-        fetch(`/api/admin/analytics/orders?range=${dateRange}`, {
+        fetch(`${API_URL}/admin/analytics/orders?range=${dateRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json()),
-        fetch(`/api/admin/analytics/customers?range=${dateRange}`, {
+        fetch(`${API_URL}/admin/analytics/customers?range=${dateRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json()),
-        fetch(`/api/admin/analytics/geographic?range=${dateRange}`, {
+        fetch(`${API_URL}/admin/analytics/geographic?range=${dateRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json()),
-        fetch('/api/admin/analytics/realtime', {
+        fetch(`${API_URL}/admin/analytics/realtime`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json())
       ])

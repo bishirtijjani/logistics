@@ -14,7 +14,7 @@
  *   - Each fix is enriched with `requestId` (from the trip slice) and emitted
  *     via socket `rider:location:update`. If the socket is disconnected the
  *     fix is pushed onto an in-memory ring buffer (cap 50 — oldest dropped)
- *     and drained via batched `POST /api/rider/location` on reconnect.
+ *     and drained via batched `POST /rider/location` on reconnect.
  *   - Server's location rate-limit is 1 fix/sec/rider — we comply by never
  *     scheduling tighter than 3 s and by deduping on a min-distance.
  */
@@ -262,7 +262,7 @@ class LocationStream {
 
   /**
    * Drain buffered fixes to the backend in a single batched POST.
-   * Backend endpoint: `POST /api/rider/location` accepts either a single
+   * Backend endpoint: `POST /rider/location` accepts either a single
    * `{lat,lng,requestId?}` body or `{ updates: [...] }` (the rider client
    * uses the array form when draining — BE may need the array form added
    * if it currently only accepts singletons).

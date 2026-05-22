@@ -18,7 +18,7 @@ const audiences = [
     title: "Plug into Katsina's hungriest customers.",
     blurb:
       "Get listed, accept orders from your phone, settle to your bank daily. We push every order to a nearby rider for you.",
-    cta: { label: "List your business", href: "#contact" },
+    cta: { label: "List your business", href: "/merchants" },
     image: "/images/audience-merchant.png",
     fallback: "bg-emerald-600",
     kenburns: "ken-burns-b",
@@ -29,7 +29,7 @@ const audiences = [
     title: "Become A Rider. Get paid same-day.",
     blurb:
       "Accept jobs near you, deliver, settle. Earnings reflect instantly in your iPrime wallet — withdraw anytime.",
-    cta: { label: "Apply to ride", href: "#contact" },
+    cta: { label: "Apply to ride", href: "/riders" },
     image: "/images/audience-rider.png",
     fallback: "bg-zinc-800",
     kenburns: "ken-burns-c",

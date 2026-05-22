@@ -16,7 +16,7 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  metadataBase: new URL("https://vtulogistics.com"),
+  metadataBase: new URL("https://iprime.ng"),
   title: {
     default: "iPrime — Delivery, Wallet & Bills for Katsina",
     template: "%s · iPrime",
@@ -41,7 +41,7 @@ export const metadata = {
   openGraph: {
     type: "website",
     locale: "en_NG",
-    url: "https://vtulogistics.com",
+    url: "https://iprime.ng",
     title: "iPrime — Delivery, Wallet & Bills for Katsina",
     description:
       "Door-to-door delivery across Katsina State — food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",

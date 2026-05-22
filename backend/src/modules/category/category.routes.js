@@ -1,5 +1,5 @@
 /**
- * Public category routes — /api/categories
+ * Public category routes — /categories
  * No auth required: every client (customer, merchant signup, public listings)
  * needs to read the active categories list.
  */

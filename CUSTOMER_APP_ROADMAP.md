@@ -31,7 +31,7 @@ Eliminate the structural drift that is causing every downstream phase to do doub
 **BE**
 - ✅ Settings service `services/settings.service.js` — in-memory cache + Redis pub/sub invalidation; `getSetting` / `getSettings` / `getPublicSettings` all implemented.
 - ✅ Replace hardcoded fees — `request.service.js` uses `getSetting()` for all fee categories (delivery base/per-km/platform%, merchant item platform%); `config.*` only as fallback default. Utility service has no fees (prices from `VtuPlan` table); no separate checkout service.
-- ✅ Idempotency middleware on `POST /api/requests` — applied at `request.routes.js:44`. Also applied to all POST `/utilities/*` routes (`utility.routes.js:24-27`).
+- ✅ Idempotency middleware on `POST /requests` — applied at `request.routes.js:44`. Also applied to all POST `/utilities/*` routes (`utility.routes.js:24-27`).
 - ✅ `utils/status.js` with unified `STATUS`, `TRANSITIONS`, `canTransition`, `assertTransition`, `toUnified` — implemented. Dead `delivery.validator.js` removed (module deleted).
 - ✅ Standardize API client base path audit — every mobile `api.<verb>(...)` call uses a path starting with `/`. ESLint rule in `mobile/customer-app/eslint.config.js` enforces this for both string and template-literal paths.
 
@@ -47,8 +47,8 @@ Eliminate the structural drift that is causing every downstream phase to do doub
 
 ### 0.3 Acceptance Criteria
 - ✅ No string `500` or `100` fee literals in mobile code — settings-driven across all wallet/utility screens.
-- ✅ `/api/settings/public` returns seeded defaults.
-- ✅ Idempotent `POST /api/requests` — middleware applied at route layer.
+- ✅ `/settings/public` returns seeded defaults.
+- ✅ Idempotent `POST /requests` — middleware applied at route layer.
 - ✅ All `api.get/post/patch/delete` paths begin with `/` — ESLint rule enforces it.
 - ⏸ Tests `idempotency.spec.js` / `settings.spec.js` — deferred to Phase 10 per cross-phase test policy.
 
@@ -171,7 +171,7 @@ In the same window, land the **unified product model** so every category that co
 - ✅ `merchant.service`: variant CRUD nested under product (`POST /merchants/.../products/:pid/variants`, `PATCH/DELETE /variants/:vid`) — `merchant.routes.js:123-125`. Product list responses embed variants ordered by price asc, so the lowest-priced available variant is `variants[0]` for card display.
 - ✅ `request.service.createRequest` accepts `items: [{ productId, variantId?, quantity, selectedOptions?, specialInstructions? }]`. Validator rejects multi-variant products without `variantId`; single-variant auto-resolves server-side (`resolveLineItems`, `request.service.js:65-94`).
 - ✅ Stock decrement on resolved `variantId`, with auto-flip to `isAvailable=false` when stock hits zero (`request.service.js:293-302`).
-- ✅ Search/discovery skeleton at `/api/search` and `/api/nearby` — accept `q`, `type`, `category`, `lat`, `lng`, `radius`. Bounding-box geo filter; returns `category.attributeSchema` on each merchant for facet UI. Full UX in Phase 6.
+- ✅ Search/discovery skeleton at `/search` and `/nearby` — accept `q`, `type`, `category`, `lat`, `lng`, `radius`. Bounding-box geo filter; returns `category.attributeSchema` on each merchant for facet UI. Full UX in Phase 6.
 - ✅ Admin attribute-schema endpoint: `PATCH /admin/categories/:categoryId/attribute-schema` with Zod validation (`admin.routes.js:82`).
 
 **Admin dashboard**
@@ -321,7 +321,7 @@ The logistics flow becomes the differentiator the proposal promises: predictable
 ### 4.2 Tasks
 
 **BE**
-- ✅ **Quote endpoint** `POST /api/requests/quote` returns server-truth pricing + a signed `quoteToken` (HMAC-SHA256 over a payload of `{type, merchantId, geo, subtotal, deliveryFee, platformFee, tax, total, distanceKm, estimatedMinutes, exp}`). `validUntil` = 5 min. `POST /api/requests` requires `quoteToken`; server verifies the signature, checks `exp`, and re-asserts the locked numbers match a fresh `estimateRequest()`. Mismatch or expiry → 400 with re-quote hint. (`utils/quote-token.js`, `request.controller.getQuote`, `request.service.createRequest`).
+- ✅ **Quote endpoint** `POST /requests/quote` returns server-truth pricing + a signed `quoteToken` (HMAC-SHA256 over a payload of `{type, merchantId, geo, subtotal, deliveryFee, platformFee, tax, total, distanceKm, estimatedMinutes, exp}`). `validUntil` = 5 min. `POST /requests` requires `quoteToken`; server verifies the signature, checks `exp`, and re-asserts the locked numbers match a fresh `estimateRequest()`. Mismatch or expiry → 400 with re-quote hint. (`utils/quote-token.js`, `request.controller.getQuote`, `request.service.createRequest`).
 - ✅ **Expanding-radius rider matching** in `request.worker.broadcastToRiders`:
   - Reads `delivery.broadcastRadiusRings` (default `[5,10,15]`), `delivery.broadcastRingTimeoutSec` (60).
   - Per ring: `GEOSEARCH riders:geo BYRADIUS … COUNT 10 ASC WITHCOORD WITHDIST` → emits `rider:job:new` to each rider's `user:{id}` room with the per-rider distance and ring radius.
@@ -334,12 +334,12 @@ The logistics flow becomes the differentiator the proposal promises: predictable
   - `REQUESTED` → free.
   - `ACCEPTED | PROCESSING | READY_FOR_PICKUP | RIDER_ASSIGNED | RIDER_EN_ROUTE` → `delivery.cancellationFee` (PlatformSetting).
   - `PICKED_UP+` → 403 from `customerCancelRequest`; admin force-cancel still works.
-  - New endpoint `GET /api/requests/:id/cancel-quote` for the customer to preview the fee + net refund before confirming. `DELETE /:id` writes `Request.cancellationFee`; `refundRequest` debits it from the escrow refund and credits `PLATFORM_EARNINGS` (closes the escrow loop).
-- ✅ **Directions on tracking** — `GET /api/requests/:id/route` proxies `mapsService.getDirections` from the rider's Redis-cached position to the next checkpoint (pickup if not picked up, else dropoff). Cached in Redis 30 s keyed by `requestId + checkpoint + 4dp position bucket` so a moving rider invalidates naturally. Authorised to participants only (customer / rider / merchant / admin).
+  - New endpoint `GET /requests/:id/cancel-quote` for the customer to preview the fee + net refund before confirming. `DELETE /:id` writes `Request.cancellationFee`; `refundRequest` debits it from the escrow refund and credits `PLATFORM_EARNINGS` (closes the escrow loop).
+- ✅ **Directions on tracking** — `GET /requests/:id/route` proxies `mapsService.getDirections` from the rider's Redis-cached position to the next checkpoint (pickup if not picked up, else dropoff). Cached in Redis 30 s keyed by `requestId + checkpoint + 4dp position bucket` so a moving rider invalidates naturally. Authorised to participants only (customer / rider / merchant / admin).
 - ✅ **Live ETA**: backend pushes `request:rider:eta` to the request room on every rider position update where `>=30s` has elapsed AND the rider moved `>100 m` since the last push. ETA recomputed via `getDirections`; failure paths logged-and-skipped (no UI churn).
 - ✅ **PackageDetail** captured on creation: `senderName, senderPhone, recipientName, recipientPhone, instructions` — all wired through `request.validator`, persisted in the transaction, surfaced on `RequestTrackingScreen` with call buttons that dial the recipient/sender (so the rider can call the recipient without leaking the customer's number unless the customer IS the recipient).
 - ✅ **In-app messaging**: `RequestMessage` model + migration; `POST /:id/messages`, `GET /:id/messages` (cursor-paginated). Server emits `request:message:new` to the request room. Participant check matches customer / rider's userId / merchant's userId / admin.
-- ✅ **Maps autocomplete & place details**: `/api/maps/*` now guarded by `router.use(authenticate, mapsLimiter)` — `mapsLimiter` is 60 req/min per authenticated user. Spec called for `/maps/places/:placeId`; we kept the existing `?placeId=…` query form (same backend cost; client already uses it).
+- ✅ **Maps autocomplete & place details**: `/maps/*` now guarded by `router.use(authenticate, mapsLimiter)` — `mapsLimiter` is 60 req/min per authenticated user. Spec called for `/maps/places/:placeId`; we kept the existing `?placeId=…` query form (same backend cost; client already uses it).
 
 **DB**
 - ✅ `RequestMessage` table — migration `20260511090000_phase4_request_messages_index/migration.sql`.
@@ -380,7 +380,7 @@ The logistics flow becomes the differentiator the proposal promises: predictable
 - ✅ Tracking screen polyline drawn from real Directions API output; route refreshed every 30 s (and cached server-side for 30 s).
 - ✅ Live ETA chip updates as rider moves >100 m.
 - ✅ Cancellation policy: free at `REQUESTED`, fee at active states, 403 at `PICKED_UP+`; fee deducted from refund and credited to `PLATFORM_EARNINGS` in a single transaction.
-- ✅ `/api/maps/*` requires auth + per-user 60 req/min limit.
+- ✅ `/maps/*` requires auth + per-user 60 req/min limit.
 
 ### 4.4 Risks (mitigations now in place)
 - **Maps quota**: route cache 30 s per request × position bucket; ETA push gated by 30 s + 100 m; per-user `mapsLimiter` on autocomplete/place-details.
@@ -423,13 +423,13 @@ Sockets and pushes are first-class and deterministic. The app feels alive; users
   - `onWalletEvent(userId, { kind, amount, transactionId?, route?, description? })` — FUNDING / TRANSFER_RECEIVED / TRANSFER_SENT / WITHDRAWAL / REFUND / RIDER_EARNING templates.
 - ✅ **`Notification` table** (`schema.prisma` + migration `20260511110000_phase5_notifications`):
   `(id, userId, type, title, body VARCHAR(500), data JSONB?, requestId?, transactionId?, readAt?, createdAt)`. FK CASCADE on user delete. Composite indexes on `(userId, createdAt)` and `(userId, readAt)`.
-- ✅ **`/api/notifications` endpoints** (`modules/notification/`):
+- ✅ **`/notifications` endpoints** (`modules/notification/`):
   - `GET /notifications?page&limit&unread` — paginated feed, `meta.unreadCount` piggy-backed on the envelope.
   - `GET /notifications/unread-count` — badge sync.
   - `PATCH /notifications/:id/read` — owner-scoped, idempotent on already-read.
   - `PATCH /notifications/read-all` — bulk mark-read.
 - ✅ **Ad-hoc emits rerouted**: every customer-facing push/socket — request lifecycle (`updateStatus`, worker auto-cancel), wallet (P2P sender + recipient, funding webhook, withdrawal-initiated, withdrawal-completed, withdrawal-refund), refund worker, rider-earning settlement — funnels through `pushAndSocket` / `onWalletEvent`. Legacy silent `notifyService.balanceUpdated` is kept for live balance-only nudges that don't warrant a feed row.
-- ✅ **Expo Push vs FCM resolved**: `notification.service.js` now detects `ExponentPushToken[...]` and routes those through Expo's `https://exp.host/--/api/v2/push/send`. Non-Expo tokens go through `firebase-admin`. Classifies failures as `OK | RETRYABLE | INVALID_TOKEN`; permanent-failure codes include both token-death (`registration-token-not-registered`, `invalid-registration-token`, `invalid-argument`, Expo's `DeviceNotRegistered`) AND server-config-fatal codes (`mismatched-credential`, `sender-id-mismatch`, `third-party-auth-error`) so a misconfig doesn't trigger an infinite retry storm.
+- ✅ **Expo Push vs FCM resolved**: `notification.service.js` now detects `ExponentPushToken[...]` and routes those through Expo's `https://exp.host/--/v2/push/send`. Non-Expo tokens go through `firebase-admin`. Classifies failures as `OK | RETRYABLE | INVALID_TOKEN`; permanent-failure codes include both token-death (`registration-token-not-registered`, `invalid-registration-token`, `invalid-argument`, Expo's `DeviceNotRegistered`) AND server-config-fatal codes (`mismatched-credential`, `sender-id-mismatch`, `third-party-auth-error`) so a misconfig doesn't trigger an infinite retry storm.
 - ✅ **FCM dead-letter**: on `INVALID_TOKEN`, `pushAndSocket` clears `User.fcmToken` via `updateMany({ where: { id, fcmToken } })` so we don't clobber a token the user refreshed mid-flight. Next app open re-registers via `POST /auth/fcm-token`.
 - ✅ **Socket auth tightened**: `sockets/index.js` handshake now does a DB lookup and rejects when `User.status ∈ {SUSPENDED, DEACTIVATED}` or `deletedAt` is set, in addition to the JWT verify.
 
@@ -519,18 +519,18 @@ Customer can find, pick, and re-use what they need fast. Home is alive with acti
 - ✅ Partial unique index `saved_addresses(userId) WHERE isDefault=true` so the single-default invariant is enforced at the DB layer (not just the service).
 
 **BE**
-- ✅ `GET /api/search?q=&type=&category=&lat=&lng=&radius=` returns unified `{results: [{kind:'merchant'|'product', ...}], query, category}`. Backed by `similarity()` from `pg_trgm` for ranking; `prisma.$queryRaw + Prisma.sql` for the conditional bbox fragment. Skeleton's `isApproved: true` bug was fixed — now correctly filters on `isActive=true AND adminActiveOverride=true` to match the canonical customer-visible filter in `merchant.service.getMerchants`.
-- ✅ `GET /api/nearby?type=&category=&lat=&lng=&radius=` — bounding-box pre-filter then in-memory Haversine sort within `radiusKm`. PostGIS substitution is a Phase 10 follow-up when dataset grows.
-- ✅ `GET /api/banners` — `modules/banner/`; returns banners passing time-window AND audience predicates (`{kyc, minRequests, categorySlug}`). Audience evaluation is batched into a single user-profile lookup so 20 candidate banners cost 1–3 DB reads, not 60.
-- ✅ Saved-address CRUD: `GET/POST/PATCH/DELETE /api/addresses`, `POST /api/addresses/:id/default`. `modules/address/`. Service enforces "at most one default" via DB partial unique index + transactional updateMany-then-create. `remove()` runs inside `prisma.$transaction` so the orphan-default promotion is atomic.
-- ✅ `GET /api/requests/active` — single query against the Phase 4 `(customerId, status)` composite index. Registered BEFORE `/:requestId` so Express resolves it correctly.
+- ✅ `GET /search?q=&type=&category=&lat=&lng=&radius=` returns unified `{results: [{kind:'merchant'|'product', ...}], query, category}`. Backed by `similarity()` from `pg_trgm` for ranking; `prisma.$queryRaw + Prisma.sql` for the conditional bbox fragment. Skeleton's `isApproved: true` bug was fixed — now correctly filters on `isActive=true AND adminActiveOverride=true` to match the canonical customer-visible filter in `merchant.service.getMerchants`.
+- ✅ `GET /nearby?type=&category=&lat=&lng=&radius=` — bounding-box pre-filter then in-memory Haversine sort within `radiusKm`. PostGIS substitution is a Phase 10 follow-up when dataset grows.
+- ✅ `GET /banners` — `modules/banner/`; returns banners passing time-window AND audience predicates (`{kyc, minRequests, categorySlug}`). Audience evaluation is batched into a single user-profile lookup so 20 candidate banners cost 1–3 DB reads, not 60.
+- ✅ Saved-address CRUD: `GET/POST/PATCH/DELETE /addresses`, `POST /addresses/:id/default`. `modules/address/`. Service enforces "at most one default" via DB partial unique index + transactional updateMany-then-create. `remove()` runs inside `prisma.$transaction` so the orphan-default promotion is atomic.
+- ✅ `GET /requests/active` — single query against the Phase 4 `(customerId, status)` composite index. Registered BEFORE `/:requestId` so Express resolves it correctly.
 
 **MO**
 - ✅ **HomeScreen** overhaul:
-  - Search bar opens `<SearchModal />` (`components/SearchModal.js`) with 300 ms debounce hitting `/api/search`; appends `lat/lng/radius=15` when the user's geo is known. Merchant taps → `MerchantMenu`; product taps also → `MerchantMenu` (search returns a partial product with only one variant and no option groups — passing it to ProductDetail would crash, so we route to the menu and the user can re-tap the full product card).
+  - Search bar opens `<SearchModal />` (`components/SearchModal.js`) with 300 ms debounce hitting `/search`; appends `lat/lng/radius=15` when the user's geo is known. Merchant taps → `MerchantMenu`; product taps also → `MerchantMenu` (search returns a partial product with only one variant and no option groups — passing it to ProductDetail would crash, so we route to the menu and the user can re-tap the full product card).
   - **Active Request Banner** above the tile grid, rendered when `state.home.activeRequest` is set. Self-updates from `request:status:changed` / `request:rider:assigned` / `request:cancelled` / `request:completed` socket events forwarded into `home.activeRequestFromSocket`. Drops the banner automatically on DELIVERED/SETTLED/CANCELLED.
   - **Recent Activity** — last 5 across requests + wallet transactions interleaved by date; tap routes to RequestTracking / TransactionHistory.
-  - **Dynamic Promo Banner** — first eligible banner from `/api/banners` rendered; section hidden entirely when no banners are eligible (per spec). Deep-link supports `iprime://...` (and legacy `customerapp://...`), `/request/:id`, `/wallet`, `/orders`, `/utility/*`.
+  - **Dynamic Promo Banner** — first eligible banner from `/banners` rendered; section hidden entirely when no banners are eligible (per spec). Deep-link supports `iprime://...` (and legacy `customerapp://...`), `/request/:id`, `/wallet`, `/orders`, `/utility/*`.
   - Category-driven tile grid was already shipped before Phase 6 (kept as-is).
 - ✅ **SavedAddressesScreen** rebuilt from textarea to full CRUD list:
   - List with label + address + default badge; "Make default" + "Delete" inline actions; edit pencil opens LocationPicker → label/default modal.
@@ -543,7 +543,7 @@ Customer can find, pick, and re-use what they need fast. Home is alive with acti
 - ✅ Searching from Home returns matching merchants and products fuzzy-ranked by trigram similarity, scoped to a 15 km radius around the user's location.
 - ✅ Placing a request and navigating away — Home shows the active banner that updates from REQUESTED → RIDER_ASSIGNED → … live via socket without a refetch.
 - ✅ Adding a "Home" address once defaults future deliveries to it (server enforces the single-default invariant; mobile presents the default-flagged address first).
-- ✅ Banners served from `/api/banners` appear immediately; admin write path is a separate workstream.
+- ✅ Banners served from `/banners` appear immediately; admin write path is a separate workstream.
 
 ### 6.4 Production-hardening fixes (post-audit)
 
@@ -647,7 +647,7 @@ Self-audit caught 7 issues that have all been resolved:
 - ✅ **`refundPayment` idempotency.** Reads the row inside the transaction and short-circuits if status is already `REFUNDED`, so a polling-window-exhausted refund cannot race with a later "definitive failure" callback to double-credit.
 
 ### 7.5 Known limits / things to verify with AlRahuz
-- **`queryTransaction` endpoint path.** Implemented as `GET /api/transactions/{id}/`. If AlRahuz uses a different path (their docs are inconsistent across reseller tiers), polls will 404 → treated as `pending` → still auto-refunds after the 5-min window, but you lose real-time settlement updates. Confirm the path against the live account and patch [alrahuz.service.js:115](backend/src/services/alrahuz.service.js#L115) if needed.
+- **`queryTransaction` endpoint path.** Implemented as `GET /transactions/{id}/`. If AlRahuz uses a different path (their docs are inconsistent across reseller tiers), polls will 404 → treated as `pending` → still auto-refunds after the 5-min window, but you lose real-time settlement updates. Confirm the path against the live account and patch [alrahuz.service.js:115](backend/src/services/alrahuz.service.js#L115) if needed.
 - **Pending status string.** Treating `pending` / `processing` / `queued` as not-yet-terminal. Anything else (e.g. `in_progress`, `submitted`) currently falls into the failure branch → instant refund. Run one live transaction per service type at launch and grep `logger.info('AlRahuz airtime')` / `data` / `cable` / `electricity` to confirm the real status strings; widen `isPending()` if AlRahuz uses a different vocabulary.
 - **Token screen uses deprecated `Clipboard` from `react-native`.** Same pattern the existing `BvnVerificationScreen` uses. RN logs a runtime warning but the copy works. Migrate the whole app to `expo-clipboard` in a follow-up; not phase-blocking.
 - **Network prefix table duplicated.** Lives in both [backend/src/utils/constants.js](backend/src/utils/constants.js) and [mobile/customer-app/src/services/networkDetect.js](mobile/customer-app/src/services/networkDetect.js). NCC numbering plan changes maybe once a year — when it does, update both. Worth pulling into a shared lib once we have one.
@@ -688,7 +688,7 @@ Open Pharmacy and Grocery to customers. Reuse the unified Request infrastructure
 - ✅ Merchant dashboard `OrderDetailsModal` renders: a top-level "Prescription attached" card with a deep-link to the Cloudinary URL when present, per-line substitution chip (`Substitutes OK` / `Call before swapping` / `No substitutes`), `Rx required` chip per line product, and proper option-group breakdown (replaces the legacy `modifiers` join).
 
 **MO**
-- ✅ HomeScreen Pharmacy & Grocery tiles activated. Pure data-driven via `/api/categories` — admin can add or hide categories without an app release.
+- ✅ HomeScreen Pharmacy & Grocery tiles activated. Pure data-driven via `/categories` — admin can add or hide categories without an app release.
 - ✅ `ProductDetailScreen` renders type-specific UX:
   - Pharmacy: amber prescription banner when `product.requiresPrescription`.
   - Grocery: substitution preference radio group (`Pick a substitute` / `Contact me first` / `Do not substitute`), defaulted to `MERCHANT_PICK` on first add. Detection is `category.slug.startsWith('grocery')`, which picks up the unified `grocery` slug today and any future `grocery-*` admin category automatically.
@@ -734,9 +734,9 @@ Open the platform to any merchant category beyond food/pharmacy/grocery — clot
 
 **BE**
 - New `modules/returns/`:
-  - `POST /api/requests/:id/returns` — customer initiates within `retail.returnWindowDays`. Validates request is `SETTLED`, item belongs to request, window open.
-  - `GET /api/returns?role=customer|merchant` — list.
-  - `PATCH /api/returns/:id/approve` (merchant), `/reject`, `/picked-up` (rider via reverse-package flow), `/refund` (system).
+  - `POST /requests/:id/returns` — customer initiates within `retail.returnWindowDays`. Validates request is `SETTLED`, item belongs to request, window open.
+  - `GET /returns?role=customer|merchant` — list.
+  - `PATCH /returns/:id/approve` (merchant), `/reject`, `/picked-up` (rider via reverse-package flow), `/refund` (system).
   - Approval triggers a `PACKAGE` Request in reverse (customer → merchant) using existing rider matching. Pickup fee paid per `retail.returnPickupPayer`.
   - Refund on `REFUNDED` debits merchant wallet, credits customer wallet — single Prisma transaction, emits sockets.
 
@@ -819,12 +819,12 @@ Ship to stores. Confidence in production. Fix what monitoring reveals.
 ### 10.2 Tasks
 
 **BE**
-- **Tests (end-loaded)**: money-path tests from Phase 3, 4, and 7 already merged. Now backfill the rest: `/auth` (signup, login, PIN, sessions, phone change), `/api/requests` non-money paths (creation validation, status transitions, listing/filtering), `/notifications`, `/addresses`, `/search`, `/maps`. Target ~60% service coverage in aggregate (the money paths are already higher). Use `supertest` + Prisma test container. Skip ≥75% coverage targets — diminishing returns on UI-adjacent services.
+- **Tests (end-loaded)**: money-path tests from Phase 3, 4, and 7 already merged. Now backfill the rest: `/auth` (signup, login, PIN, sessions, phone change), `/requests` non-money paths (creation validation, status transitions, listing/filtering), `/notifications`, `/addresses`, `/search`, `/maps`. Target ~60% service coverage in aggregate (the money paths are already higher). Use `supertest` + Prisma test container. Skip ≥75% coverage targets — diminishing returns on UI-adjacent services.
 - **Load test** the matching pipeline at 100 concurrent active requests; tune Redis geo lookups.
 - **Observability**: Sentry on backend, structured logs (`pino`), traces via OpenTelemetry. Dashboards for: request matching latency, escrow balance over time, webhook success rate, FCM delivery rate, active socket count.
 - **Reconciliation worker** runs nightly; alerts to admin email if discrepancy >₦100.
 - **Backups**: daily Postgres snapshot retained 30 days; Redis snapshot every 6 h.
-- **Rate limiting**: per-user limits on creation endpoints (`POST /api/requests`: 30/hour), per-IP global limits, abuse heuristics.
+- **Rate limiting**: per-user limits on creation endpoints (`POST /requests`: 30/hour), per-IP global limits, abuse heuristics.
 - **Security review**: `npm audit`, OWASP top 10 sweep, input validation audit, CSRF safety on web endpoints if any, secret rotation runbook.
 
 **MO**

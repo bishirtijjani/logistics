@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { MapPin, RefreshCw, Activity, TrendingUp } from 'lucide-react'
 
 export default function RiderOperationsPage() {
@@ -11,7 +12,7 @@ export default function RiderOperationsPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/admin/riders/performance', {
+      const response = await fetch(`${API_URL}/admin/riders/performance`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()
@@ -27,7 +28,7 @@ export default function RiderOperationsPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/admin/riders/realtime', {
+      const response = await fetch(`${API_URL}/admin/riders/realtime`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()

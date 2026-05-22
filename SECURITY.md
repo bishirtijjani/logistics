@@ -80,8 +80,8 @@ Tracked as a recurring audit item — re-run after each `firebase-admin` minor b
 | PIN verification | 3 / 5 min | userId or IP |
 | Registration | 3 / 1 hr | IP |
 | Maps API | 60 / 1 min | userId or IP |
-| **POST /api/requests** (Phase 10) | **30 / 1 hr** | userId |
-| **POST /api/requests/quote** (Phase 10) | **120 / 1 hr** | userId |
+| **POST /requests** (Phase 10) | **30 / 1 hr** | userId |
+| **POST /requests/quote** (Phase 10) | **120 / 1 hr** | userId |
 
 ---
 

@@ -2,7 +2,7 @@
  * Live integration test: admin category CRUD + audit log + soft/hard delete.
  *
  * Pre-condition: backend running on port 3000 with seeded admin
- * (admin@vtulogistics.com / admin123456) and the merchant_categories
+ * (admin@iprime.ng / admin123456) and the merchant_categories
  * table is in its post-migration state (3 default categories, Restaurant
  * has merchants assigned).
  *
@@ -15,7 +15,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://127.0.0.1:3000';
-const ADMIN_EMAIL = 'admin@vtulogistics.com';
+const ADMIN_EMAIL = 'admin@iprime.ng';
 const ADMIN_PASSWORD = 'admin123456';
 
 let token;

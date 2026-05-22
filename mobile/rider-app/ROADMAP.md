@@ -22,7 +22,7 @@
 
 ## Executive Summary
 
-The iPrime platform has three mature surfaces — Customer mobile app, Merchant dashboard, Admin dashboard — and one missing leg: the **Rider mobile app**. Today the rider-app directory holds only a default Expo template (`App.js` with "Open up App.js to start working on your app"), no `src/`, no navigation, no services. Meanwhile the backend is already production-shaped for riders: `rider.routes.js` exposes the full HTTP surface, the BullMQ `BROADCAST_TO_RIDERS` worker fans `rider:job:new` events out to expanding radius rings (5 → 10 → 15 km), the admin's `RiderOperationsPage` polls `/api/admin/riders/realtime` every 10 s waiting for positions, and the merchant's `OrderDetailsModal` reserves UI slots for a rider's name, plate, ETA, and live location. None of these signals have a client emitting or consuming on the rider side. The rider app is the **last leg of the unified Request lifecycle** (`RIDER_ASSIGNED → DELIVERED → SETTLED`) and the only thing standing between the platform and an end-to-end logistics MVP.
+The iPrime platform has three mature surfaces — Customer mobile app, Merchant dashboard, Admin dashboard — and one missing leg: the **Rider mobile app**. Today the rider-app directory holds only a default Expo template (`App.js` with "Open up App.js to start working on your app"), no `src/`, no navigation, no services. Meanwhile the backend is already production-shaped for riders: `rider.routes.js` exposes the full HTTP surface, the BullMQ `BROADCAST_TO_RIDERS` worker fans `rider:job:new` events out to expanding radius rings (5 → 10 → 15 km), the admin's `RiderOperationsPage` polls `/admin/riders/realtime` every 10 s waiting for positions, and the merchant's `OrderDetailsModal` reserves UI slots for a rider's name, plate, ETA, and live location. None of these signals have a client emitting or consuming on the rider side. The rider app is the **last leg of the unified Request lifecycle** (`RIDER_ASSIGNED → DELIVERED → SETTLED`) and the only thing standing between the platform and an end-to-end logistics MVP.
 
 The app this roadmap describes is an **operations app for approved riders**: receive job offers in real time, run a delivery with map navigation and live customer/merchant tracking, capture proof of delivery, see earnings hit the wallet, and pull money out to a Nigerian bank — all on Android and iOS, with English and Hausa, biometric-gated, PIN-protected for money moves, idempotent under retries, and built on the same Expo 54 / React Native 0.81 / RTK / nativewind stack the customer app already runs on. **Every architectural, design, and tooling decision mirrors the customer app exactly** for cohesiveness — same dep versions, same theme tokens, same navigation patterns, same services (`api.js`, `socket.js`, `biometric.js`, `idempotency.js`, `notifications.js`, `notificationsBus.js`, `settings.js`), and the same dev workflow (Expo Go for development, EAS standalone for production). The rider app diverges from customer **only where its job requires it**: full-screen offer overlay that supersedes other navigation, foreground GPS streaming while ONLINE (screen-on during shifts; background streaming is parked for V2 — see §2.7), camera + signature capture for proof of delivery, and offer-arrival haptics + ringtone.
 
@@ -45,7 +45,7 @@ The MVP target is the smallest scope that lets a rider be onboarded, take a real
 | **KatPay** | PSP for virtual accounts, P2P transfers, withdrawals. | Backend `services/katpay.service.js` |
 | **KYC** | Know-Your-Customer: NIN entry + ID document upload + vehicle photo upload. | Prisma `Rider.ninNumber / idDocumentUrl / vehiclePhotoUrl` |
 | **Settlement** | The worker run on `DELIVERED → SETTLED` that credits the rider's wallet with `Request.riderEarning`. | BullMQ `SETTLE_REQUEST` job |
-| **Withdrawal** | Rider's wallet-to-bank move. PIN-protected, idempotent, async via KatPay payout. | `POST /api/wallet/withdraw` |
+| **Withdrawal** | Rider's wallet-to-bank move. PIN-protected, idempotent, async via KatPay payout. | `POST /wallet/withdraw` |
 | **Force-Offline kill switch** | Admin / system event that flips a rider's local state to OFFLINE and stops the location subscription. | `notification:new` with `type=SYSTEM_FORCE_OFFLINE` (Phase 2 BE work) |
 | **OTA** | Over-the-air JS bundle update via `expo-updates`. | EAS channels per profile |
 
@@ -87,7 +87,7 @@ Owns three bikes, employs riders, wants consolidated earnings, document expiry t
 
 | KPI | Definition | v1 Target | Source of Truth |
 |---|---|---|---|
-| Offer acceptance rate | accepts / (accepts + rejects + expires) per rider | ≥ 55 % | `GET /api/rider/performance` (Phase 7) |
+| Offer acceptance rate | accepts / (accepts + rejects + expires) per rider | ≥ 55 % | `GET /rider/performance` (Phase 7) |
 | Median time-to-accept | ms from `rider:job:new` to HTTP `/rider/accept` 200 | < 8 000 ms | Analytics `offer_accepted_ms` |
 | Avg pickup time after accept | min from accept to `PICKED_UP` status | < 12 min | Computed from Request timestamps |
 | On-time delivery rate | `DELIVERED` within 1.25× quoted `estimatedMinutes` | ≥ 80 % | Computed from `Request.estimatedMinutes` vs `deliveredAt` |
@@ -232,7 +232,7 @@ mobile/rider-app/
     │   ├── EtaBanner.js            # NEW
     │   ├── PickupCard.js / DropoffCard.js
     │   ├── ContactPartiesSheet.js  # NEW — call CTAs + chat thread
-    │   ├── ChatThread.js           # NEW — in-app messages reusing /api/requests/:id/messages
+    │   ├── ChatThread.js           # NEW — in-app messages reusing /requests/:id/messages
     │   ├── PodCaptureSheet.js      # NEW — camera + retake
     │   ├── SignaturePadSheet.js    # NEW
     │   ├── DeliveryOtpInputSheet.js# NEW
@@ -412,64 +412,64 @@ mobile/rider-app/
 
 | Method | Path | Auth | Purpose | Idempotent? |
 |---|---|---|---|---|
-| `POST` | `/api/auth/register` | none | Create user account | No |
-| `POST` | `/api/auth/login` | none | Login (email/phone + password) | No |
-| `POST` | `/api/auth/otp/send` | none | Send OTP | No |
-| `POST` | `/api/auth/otp/verify` | none | Verify OTP | No |
-| `POST` | `/api/auth/refresh` | none | Rotate access token | Implicit |
-| `POST` | `/api/auth/password/forgot` | none | Request reset | No |
-| `POST` | `/api/auth/password/reset` | none | Reset password | No |
-| `POST` | `/api/auth/pin` | bearer | Set 6-digit PIN | No |
-| `POST` | `/api/auth/pin/change` | bearer | Change PIN | No |
-| `POST` | `/api/auth/fcm-token` | bearer | Register FCM token | No |
-| `GET` | `/api/auth/profile` | bearer | Get user profile | n/a |
-| `PATCH` | `/api/auth/profile` | bearer | Update profile fields | No |
-| `PUT` | `/api/auth/profile/picture` | bearer | Upload profile picture | No |
-| `POST` | `/api/auth/kyc/verify-bvn` | bearer | KYC (BVN/NIN verification path) | No |
-| `POST` | `/api/auth/upload-signature` | bearer | Get Cloudinary upload signature for KYC + POD | No |
-| `POST` | `/api/auth/logout` | bearer | Revoke current session | No |
-| `GET` | `/api/auth/sessions` | bearer | List sessions | n/a |
-| `DELETE` | `/api/auth/sessions/:id` | bearer | Revoke a session | No |
-| `DELETE` | `/api/auth/sessions/others` | bearer | Revoke all but current | No |
-| `POST` | `/api/rider/register` | bearer | Submit rider application | No |
-| `GET` | `/api/rider/profile` | RIDER | Get rider profile + status + perf snapshot | n/a |
-| `PATCH` | `/api/rider/availability` | RIDER | Toggle ONLINE/OFFLINE | Yes (last-write-wins) |
-| `POST` | `/api/rider/location` | RIDER | Batched GPS upload (fallback to socket) | Yes |
-| `POST` | `/api/rider/accept` | RIDER | **Authoritative** offer accept | Idempotency-Key |
-| `GET` | `/api/rider/earnings` | RIDER | Earnings summary + per-request rows | n/a |
-| `GET` | `/api/rider/performance` | RIDER | Acceptance / cancel / on-time / rating aggregates | n/a (BLK-PerformanceEndpoint) |
-| `GET` | `/api/requests` | any | List requests (rider sees accepted + assigned) | n/a |
-| `GET` | `/api/requests/:id` | any | Request detail | n/a |
-| `GET` | `/api/requests/:id/route` | any | Encoded polyline + ETA | n/a |
-| `GET` | `/api/requests/:id/messages` | any | List in-app messages | n/a |
-| `POST` | `/api/requests/:id/messages` | any | Post chat message | Idempotency-Key |
-| `PATCH` | `/api/requests/:id/status` | RIDER | RIDER_EN_ROUTE → PICKED_UP → IN_TRANSIT → DELIVERED | Idempotency-Key |
-| `POST` | `/api/requests/:id/pod-otp/generate` | RIDER | Trigger customer OTP for high-value POD (BLK-POD) | No |
-| `GET` | `/api/wallet` | bearer | Balance + virtual account | n/a |
-| `POST` | `/api/wallet/retry-provisioning` | bearer | Retry KatPay account creation | Yes |
-| `POST` | `/api/wallet/withdraw` | RIDER+PIN | Bank withdrawal | Idempotency-Key |
-| `GET` | `/api/wallet/transactions` | bearer | Tx history | n/a |
-| `GET` | `/api/wallet/transactions/:id/receipt` | bearer | Receipt detail | n/a |
-| `GET` | `/api/wallet/banks` | none | Bank list | n/a |
-| `POST` | `/api/wallet/banks/lookup` | bearer | Resolve account name | No |
-| `GET` | `/api/wallet/beneficiaries` | bearer | Saved banks | n/a (BLK-Beneficiaries verify) |
-| `POST` | `/api/wallet/beneficiaries` | bearer | Add saved bank | No |
-| `DELETE` | `/api/wallet/beneficiaries/:id` | bearer | Delete saved bank | No |
-| `GET` | `/api/notifications` | bearer | Notification center | n/a |
-| `PATCH` | `/api/notifications/:id/read` | bearer | Mark read | No |
-| `GET` | `/api/auth/notification-preferences` | bearer | Get preferences | n/a |
-| `PATCH` | `/api/auth/notification-preferences` | bearer | Update preferences | No |
-| `POST` | `/api/support/tickets` | bearer | Create ticket | Idempotency-Key |
-| `GET` | `/api/support/tickets` | bearer | List tickets | n/a |
-| `GET` | `/api/support/tickets/:id` | bearer | Detail | n/a |
-| `POST` | `/api/support/tickets/:id/messages` | bearer | Post message | Idempotency-Key |
-| `POST` | `/api/support/disputes` | bearer | File dispute on a request | Idempotency-Key |
-| `GET` | `/api/support/disputes` | bearer | List disputes | n/a |
-| `GET` | `/api/support/disputes/:id` | bearer | Detail | n/a |
-| `POST` | `/api/support/disputes/:id/messages` | bearer | Post message | Idempotency-Key |
-| `POST` | `/api/maps/reverse-geocode` | bearer | Reverse-geocode lat/lng to address | n/a |
-| `GET` | `/api/maps/autocomplete` | bearer | Address autocomplete | n/a |
-| `GET` | `/api/settings/public` | none | Public platform settings (fees, limits, PIN rules) | n/a |
+| `POST` | `/auth/register` | none | Create user account | No |
+| `POST` | `/auth/login` | none | Login (email/phone + password) | No |
+| `POST` | `/auth/otp/send` | none | Send OTP | No |
+| `POST` | `/auth/otp/verify` | none | Verify OTP | No |
+| `POST` | `/auth/refresh` | none | Rotate access token | Implicit |
+| `POST` | `/auth/password/forgot` | none | Request reset | No |
+| `POST` | `/auth/password/reset` | none | Reset password | No |
+| `POST` | `/auth/pin` | bearer | Set 6-digit PIN | No |
+| `POST` | `/auth/pin/change` | bearer | Change PIN | No |
+| `POST` | `/auth/fcm-token` | bearer | Register FCM token | No |
+| `GET` | `/auth/profile` | bearer | Get user profile | n/a |
+| `PATCH` | `/auth/profile` | bearer | Update profile fields | No |
+| `PUT` | `/auth/profile/picture` | bearer | Upload profile picture | No |
+| `POST` | `/auth/kyc/verify-bvn` | bearer | KYC (BVN/NIN verification path) | No |
+| `POST` | `/auth/upload-signature` | bearer | Get Cloudinary upload signature for KYC + POD | No |
+| `POST` | `/auth/logout` | bearer | Revoke current session | No |
+| `GET` | `/auth/sessions` | bearer | List sessions | n/a |
+| `DELETE` | `/auth/sessions/:id` | bearer | Revoke a session | No |
+| `DELETE` | `/auth/sessions/others` | bearer | Revoke all but current | No |
+| `POST` | `/rider/register` | bearer | Submit rider application | No |
+| `GET` | `/rider/profile` | RIDER | Get rider profile + status + perf snapshot | n/a |
+| `PATCH` | `/rider/availability` | RIDER | Toggle ONLINE/OFFLINE | Yes (last-write-wins) |
+| `POST` | `/rider/location` | RIDER | Batched GPS upload (fallback to socket) | Yes |
+| `POST` | `/rider/accept` | RIDER | **Authoritative** offer accept | Idempotency-Key |
+| `GET` | `/rider/earnings` | RIDER | Earnings summary + per-request rows | n/a |
+| `GET` | `/rider/performance` | RIDER | Acceptance / cancel / on-time / rating aggregates | n/a (BLK-PerformanceEndpoint) |
+| `GET` | `/requests` | any | List requests (rider sees accepted + assigned) | n/a |
+| `GET` | `/requests/:id` | any | Request detail | n/a |
+| `GET` | `/requests/:id/route` | any | Encoded polyline + ETA | n/a |
+| `GET` | `/requests/:id/messages` | any | List in-app messages | n/a |
+| `POST` | `/requests/:id/messages` | any | Post chat message | Idempotency-Key |
+| `PATCH` | `/requests/:id/status` | RIDER | RIDER_EN_ROUTE → PICKED_UP → IN_TRANSIT → DELIVERED | Idempotency-Key |
+| `POST` | `/requests/:id/pod-otp/generate` | RIDER | Trigger customer OTP for high-value POD (BLK-POD) | No |
+| `GET` | `/wallet` | bearer | Balance + virtual account | n/a |
+| `POST` | `/wallet/retry-provisioning` | bearer | Retry KatPay account creation | Yes |
+| `POST` | `/wallet/withdraw` | RIDER+PIN | Bank withdrawal | Idempotency-Key |
+| `GET` | `/wallet/transactions` | bearer | Tx history | n/a |
+| `GET` | `/wallet/transactions/:id/receipt` | bearer | Receipt detail | n/a |
+| `GET` | `/wallet/banks` | none | Bank list | n/a |
+| `POST` | `/wallet/banks/lookup` | bearer | Resolve account name | No |
+| `GET` | `/wallet/beneficiaries` | bearer | Saved banks | n/a (BLK-Beneficiaries verify) |
+| `POST` | `/wallet/beneficiaries` | bearer | Add saved bank | No |
+| `DELETE` | `/wallet/beneficiaries/:id` | bearer | Delete saved bank | No |
+| `GET` | `/notifications` | bearer | Notification center | n/a |
+| `PATCH` | `/notifications/:id/read` | bearer | Mark read | No |
+| `GET` | `/auth/notification-preferences` | bearer | Get preferences | n/a |
+| `PATCH` | `/auth/notification-preferences` | bearer | Update preferences | No |
+| `POST` | `/support/tickets` | bearer | Create ticket | Idempotency-Key |
+| `GET` | `/support/tickets` | bearer | List tickets | n/a |
+| `GET` | `/support/tickets/:id` | bearer | Detail | n/a |
+| `POST` | `/support/tickets/:id/messages` | bearer | Post message | Idempotency-Key |
+| `POST` | `/support/disputes` | bearer | File dispute on a request | Idempotency-Key |
+| `GET` | `/support/disputes` | bearer | List disputes | n/a |
+| `GET` | `/support/disputes/:id` | bearer | Detail | n/a |
+| `POST` | `/support/disputes/:id/messages` | bearer | Post message | Idempotency-Key |
+| `POST` | `/maps/reverse-geocode` | bearer | Reverse-geocode lat/lng to address | n/a |
+| `GET` | `/maps/autocomplete` | bearer | Address autocomplete | n/a |
+| `GET` | `/settings/public` | none | Public platform settings (fees, limits, PIN rules) | n/a |
 
 #### Socket events the rider client emits
 
@@ -505,7 +505,7 @@ Note: Legacy `delivery:*` events still exist in the backend for backward compati
 
 ```
             ┌────────────────────────────┐
-Customer    │ POST /api/requests         │
+Customer    │ POST /requests         │
 App  ─────► │  (creates Request,         │
             │   status REQUESTED)        │
             └─────────────┬──────────────┘
@@ -537,7 +537,7 @@ App  ─────► │  (creates Request,         │
             │ Optimistic socket          │
             │ rider:job:accept           │
             │ + HTTP POST                │
-            │ /api/rider/accept          │
+            │ /rider/accept          │
             │ (Idempotency-Key)          │
             └─────────────┬──────────────┘
                           │
@@ -560,7 +560,7 @@ App  ─────► │  (creates Request,         │
 Rider tap "Go Online" (app foregrounded)
    │
    ▼
-PATCH /api/rider/availability {ONLINE}
+PATCH /rider/availability {ONLINE}
    │
    ▼
 useKeepAwake() activates → screen stays on
@@ -573,7 +573,7 @@ Location.watchPositionAsync(
    │
    ▼ every fix
    ├── socket.emit('rider:location:update', { lat, lng, requestId })   ← preferred
-   └── if socket disconnected, ring-buffer + drain via batched POST /api/rider/location
+   └── if socket disconnected, ring-buffer + drain via batched POST /rider/location
 
    Server:
      ├── writes Redis rider:location:{id} (TTL 30s)
@@ -613,12 +613,12 @@ Stop conditions:
              otpString
 
    Upload:
-      POST /api/auth/upload-signature {kind:"pod"} → { url, params, signature }
+      POST /auth/upload-signature {kind:"pod"} → { url, params, signature }
       multipart POST to Cloudinary  →  cloudinaryUrl
       (parallel for photo + signature)
 
    Commit:
-      PATCH /api/requests/:id/status
+      PATCH /requests/:id/status
         body: { status: 'DELIVERED', podPhotoUrl, podSignatureUrl?, podDeliveryOtp? }
         header: Idempotency-Key
       → 200: status=DELIVERED, settlement job queued
@@ -636,13 +636,13 @@ Stop conditions:
       ▼
    WithdrawScreen
       - amount input (validates against wallet.minWithdraw / maxWithdraw)
-      - bank picker → GET /api/wallet/banks
-      - account number → POST /api/wallet/banks/lookup (returns accountName)
+      - bank picker → GET /wallet/banks
+      - account number → POST /wallet/banks/lookup (returns accountName)
       - "Save as beneficiary?" toggle
       ▼
    PinBottomSheet (verifyTransactionPin)
       ▼
-   POST /api/wallet/withdraw
+   POST /wallet/withdraw
        body: { amount, bankCode, accountNumber, accountName, pin, saveBeneficiary }
        header: Idempotency-Key
       ▼
@@ -664,7 +664,7 @@ Stop conditions:
 1. **JWT silent refresh.** Port `services/api.js` from customer-app verbatim. Bearer access token from SecureStore on every request; 401 triggers one in-flight refresh that retries the original request, coalesces concurrent 401s, and on refresh failure clears tokens + fires a registered `onForceLogout` callback. Refresh tokens live in SecureStore; access tokens too. Tokens are never logged.
 2. **Biometric gate.** Cold start hydrates auth → if user is authenticated and `biometricEnabled` flag is true → `bioGate=required` → locked screen until `authenticateWithBiometric()` resolves true. Re-prompt after 60 s of backgrounding (mirrors customer-app `AppNavigator.js`). Bypass for unenrolled / unsupported devices.
 3. **PIN-vs-biometric split.** Biometric only unlocks the app shell. Every action that touches money (withdraw, transfer) and every state transition that triggers settlement (DELIVERED with POD that releases funds, when `settings.delivery.podPinEscalation === true`) requires a 6-digit PIN via `PinBottomSheet`. Server-truthful lockout: 423 with `lockedUntil` and `attemptsRemaining` is rendered into a live countdown that survives kill+restart.
-4. **FCM token rotation.** `registerPushToken()` is called in `authSlice.login.fulfilled` and `hydrateAuth.fulfilled`. The Expo push token is POSTed to `/api/auth/fcm-token`. The rider's offer channel is high-priority + sound + vibration; trip channel is high-priority silent; wallet channel default.
+4. **FCM token rotation.** `registerPushToken()` is called in `authSlice.login.fulfilled` and `hydrateAuth.fulfilled`. The Expo push token is POSTed to `/auth/fcm-token`. The rider's offer channel is high-priority + sound + vibration; trip channel is high-priority silent; wallet channel default.
 5. **Secure storage rules.**
    - `accessToken`, `refreshToken` → SecureStore.
    - `biometricEnabled` flag → SecureStore.
@@ -683,7 +683,7 @@ The rider app uses **foreground-only** GPS streaming. There is no background loc
 - 3 s while `ON_DELIVERY`.
 - 30 s when battery is below 20 % (via `expo-battery`).
 
-Each fix is emitted via socket `rider:location:update` (and falls back to batched `POST /api/rider/location` if the socket is disconnected).
+Each fix is emitted via socket `rider:location:update` (and falls back to batched `POST /rider/location` if the socket is disconnected).
 
 **UX constraint — rider keeps the app open.** The home screen sets `expo-keep-awake` (or the equivalent screen-wake hint on Android via the `keepScreenOn` flag while ONLINE) so the device screen does not sleep while a delivery is active. The rider docks their phone on the bike, screen on, app foregrounded. The persistent "You're online" banner is in-app, not an OS notification.
 
@@ -804,10 +804,10 @@ A brand-new device can install the rider app, register a user, complete the mult
 ### 1.2 Tasks
 
 **BE**
-- ⏸ Verify `POST /api/rider/register` accepts the expanded payload — open. Client sends the new fields today; backend will start persisting them once 🔒 BLK-RiderKycExpansion lands.
+- ⏸ Verify `POST /rider/register` accepts the expanded payload — open. Client sends the new fields today; backend will start persisting them once 🔒 BLK-RiderKycExpansion lands.
 - 🔒 **BLK-PushOnApproval.** Extend admin approve / reject handlers in `admin.service.js` to call `notify.service.pushAndSocket(riderUserId, { type: 'RIDER_APPROVED' | 'RIDER_REJECTED', title, body, data: { route: '/main' | '/onboarding/rejected', reason? } })`. Until shipped, RA falls back to polling.
-- 🔒 Extend `POST /api/auth/upload-signature` `UPLOAD_KINDS` to include `rider_id`, `rider_driver_license`, `rider_vehicle_registration`, `rider_insurance`, `rider_vehicle_photo` (today only `profile / prescription / return / product / dispute / ticket` are accepted — rider uploads will 400 until extended).
-- 🔒 Confirm rider NIN verification path — current `POST /api/auth/kyc/verify-bvn` is BVN-shaped. Either relax to accept NIN or add a `verify-nin` sibling. Track as BLK-NinKyc.
+- 🔒 Extend `POST /auth/upload-signature` `UPLOAD_KINDS` to include `rider_id`, `rider_driver_license`, `rider_vehicle_registration`, `rider_insurance`, `rider_vehicle_photo` (today only `profile / prescription / return / product / dispute / ticket` are accepted — rider uploads will 400 until extended).
+- 🔒 Confirm rider NIN verification path — current `POST /auth/kyc/verify-bvn` is BVN-shaped. Either relax to accept NIN or add a `verify-nin` sibling. Track as BLK-NinKyc.
 - 🔒 Extend `riderRegistrationSchema` (`rider.validator.js`) to accept the new doc fields (driverLicense*, vehicleRegistration*, insurance*).
 - 🔒 Extend `rider.service.registerRider` + `admin.service` rider-detail responses to persist + surface the new document URLs and expiries.
 
@@ -830,11 +830,11 @@ A brand-new device can install the rider app, register a user, complete the mult
 - ✅ `BecomeRiderPersonalStep` — DOB + address inputs; uses `tokens.*` for dark-mode parity. Zod validator with `parseISODate` round-trip + `ageFromDob` (≥ 16) so `2024-13-45` and underage entries get rejected.
 - ✅ `BecomeRiderVehicleStep` — vehicleType segmented control (MOTORCYCLE / BICYCLE / CAR / VAN matching Prisma enum), masked plateNumber input, optional vehicleColor.
 - ✅ `BecomeRiderDocumentsStep` — 5 tiles in one screen (NIN + idDocument, driver's licence + expiry + url, vehicle registration + expiry + url, insurance + expiry + url, vehicle photo). Each tile uses `DocumentUploadTile` with the new `services/cloudinary.js`. Expiry validation uses `parseISODate` + `isValidFutureDate` so malformed or already-expired dates surface in the issues banner.
-- ✅ `BecomeRiderReviewSubmitStep` — read-only summary; "Submit" dispatches `submitRiderApplication` (which posts `POST /api/rider/register` with `Idempotency-Key` and clears the persisted draft on success).
-- ✅ `PendingApprovalScreen` — polls `GET /api/rider/profile` + `GET /api/auth/profile` on a 30 s timer + on every AppState `active` event + on pull-to-refresh. Shows submission timestamp + diagnostic status chip for QA. Reactive to `notification:new` for instant transitions once 🔒 BLK-PushOnApproval ships.
+- ✅ `BecomeRiderReviewSubmitStep` — read-only summary; "Submit" dispatches `submitRiderApplication` (which posts `POST /rider/register` with `Idempotency-Key` and clears the persisted draft on success).
+- ✅ `PendingApprovalScreen` — polls `GET /rider/profile` + `GET /auth/profile` on a 30 s timer + on every AppState `active` event + on pull-to-refresh. Shows submission timestamp + diagnostic status chip for QA. Reactive to `notification:new` for instant transitions once 🔒 BLK-PushOnApproval ships.
 - ✅ `RejectedScreen` — shows reviewer reason; "Re-apply" resets onboarding step to Documents with the previous draft preserved.
 - ✅ `SuspendedScreen` — shows suspension reason; "Open support ticket" deep-links to CreateTicket (Phase 7 screen — guarded so it no-ops until built).
-- ✅ `SetTransactionPinScreen` — 6-digit set + confirm. Calls `POST /api/auth/pin/set` via `profileSlice.setTransactionPin` thunk; on success bumps `profile.hasPinSet=true` so the gate clears.
+- ✅ `SetTransactionPinScreen` — 6-digit set + confirm. Calls `POST /auth/pin/set` via `profileSlice.setTransactionPin` thunk; on success bumps `profile.hasPinSet=true` so the gate clears.
 - ✅ `EnableBiometricScreen` — `isBiometricAvailable()` + `authenticateWithBiometric()` flow; on success persists `biometricEnabled=true` to SecureStore; "Skip for now" still proceeds to MainTabs.
 - ✅ `onboardingSlice` — `{ step, draft: { personal, vehicle, documents }, status }`. Persisted to SecureStore via `lib/onboardingPersistence` on every change; hydrated by `hydrateOnboarding` on cold start; cleared on logout AND on successful submit AND on silent-refresh forceLogout (both paths handled).
 - ✅ `authSlice` ported with `register`/`verifyOtp`/`login`/`logout`/`requestPasswordReset`/`resetPassword`/`hydrateAuth`/`forceLogout`. Logout drops the persisted onboarding draft.
@@ -856,7 +856,7 @@ A brand-new device can install the rider app, register a user, complete the mult
 
 ### 1.4 Risks
 
-- **KYC path conflict.** Customer KYC uses BVN; rider schema has `ninNumber` only. If `POST /api/auth/kyc/verify-bvn` blocks non-BVN payloads, we need a separate `verify-nin` flow or to relax the validator. Investigate before implementation; if it requires a backend change, raise it as BLK-NinKyc.
+- **KYC path conflict.** Customer KYC uses BVN; rider schema has `ninNumber` only. If `POST /auth/kyc/verify-bvn` blocks non-BVN payloads, we need a separate `verify-nin` flow or to relax the validator. Investigate before implementation; if it requires a backend change, raise it as BLK-NinKyc.
 - **Polling vs push.** Until BLK-PushOnApproval ships, approval feels laggy. Mitigation: poll `getProfile` every time the app foregrounds and on a 30 s timer while `PendingApprovalScreen` is mounted (battery-friendly; only when screen is foregrounded).
 - **Document upload on flaky network.** Cloudinary multipart upload can fail mid-upload. Mitigation: implement exponential retry with `services/idempotency.js` keys and surface progress per file. Draft holds Cloudinary URL only after success; partial uploads don't poison the draft.
 
@@ -884,8 +884,8 @@ The Home tab presents a single, prominent ONLINE / OFFLINE toggle. Going ONLINE 
 ### 2.2 Tasks
 
 **BE**
-- ⏸ Verify `PATCH /api/rider/availability` updates `Rider.availability` + writes Redis `rider:availability:{riderId}` TTL 30 s, and the location handler refreshes the TTL on each fix. Client behaves correctly assuming this contract; final live-verification against the server happens during integration testing.
-- ⏸ Verify `POST /api/rider/location` accepts the batched form `{ updates: [...] }` the client now sends on socket-disconnected drain. Today's BE may only accept singletons — extend if needed.
+- ⏸ Verify `PATCH /rider/availability` updates `Rider.availability` + writes Redis `rider:availability:{riderId}` TTL 30 s, and the location handler refreshes the TTL on each fix. Client behaves correctly assuming this contract; final live-verification against the server happens during integration testing.
+- ⏸ Verify `POST /rider/location` accepts the batched form `{ updates: [...] }` the client now sends on socket-disconnected drain. Today's BE may only accept singletons — extend if needed.
 - 🔒 **BLK-AvailabilityForceOffline.** Wire admin route + emit `notification:new type=SYSTEM_FORCE_OFFLINE`. Client listener already in place.
 - ⏸ Presence TTL expiry behaviour is platform-side — no client work; documented for completeness.
 
@@ -925,7 +925,7 @@ The Home tab presents a single, prominent ONLINE / OFFLINE toggle. Going ONLINE 
 
 - **Rider screen-off mid-shift.** The most likely real-world failure mode: rider locks the phone, GPS stops, offers don't arrive. Mitigation: `useKeepAwake` keeps the screen on while ONLINE; the in-app banner reminds them; onboarding tip explains. If a rider repeatedly goes screen-off, surface a notification next time they open the app.
 - **Power draw with screen always on.** Mitigation: phone-mount + charger is documented as required equipment for full-shift riders; in-app low-battery banner at 30 %, 20 %, 10 %.
-- **Socket disconnect during a stream window.** Mitigation: `locationStream.js` ring-buffers fixes when the socket is disconnected and drains via batched `POST /api/rider/location` on reconnect. Idempotency-Key per batch.
+- **Socket disconnect during a stream window.** Mitigation: `locationStream.js` ring-buffers fixes when the socket is disconnected and drains via batched `POST /rider/location` on reconnect. Idempotency-Key per batch.
 - **Rider toggles ONLINE in airplane mode.** Mitigation: the toggle requires a successful PATCH first; on network failure show the error and revert to OFFLINE.
 
 ### 2.5 Demo Script
@@ -941,7 +941,7 @@ The Home tab presents a single, prominent ONLINE / OFFLINE toggle. Going ONLINE 
 
 ## Phase 3 — Job Offer & Acceptance
 
-> **Status: ✅ COMPLETE (client).** Full-screen offer overlay with animated countdown ring, static pickup→dropoff map preview, accept/reject actions. HTTP `POST /api/rider/accept` is authoritative (Idempotency-Key reused on retries); optimistic socket emit `rider:job:accept` decorative. Race-loss (409 OFFER_TAKEN), expiry (410 OFFER_EXPIRED), and network-error states all surface with auto-dismiss + retry. On accept success → `activateFromAcceptedRequest` thunk normalises the Request payload, joins the `request:{id}` socket room, switches location stream to `ON_DELIVERY` cadence (3 s). Stale-offer prune on AppState `active`. Audio loop ready in `services/offerRingtone.js` — drop an MP3 into `assets/sounds/offer.mp3` to enable; haptics fire every 5 s regardless.
+> **Status: ✅ COMPLETE (client).** Full-screen offer overlay with animated countdown ring, static pickup→dropoff map preview, accept/reject actions. HTTP `POST /rider/accept` is authoritative (Idempotency-Key reused on retries); optimistic socket emit `rider:job:accept` decorative. Race-loss (409 OFFER_TAKEN), expiry (410 OFFER_EXPIRED), and network-error states all surface with auto-dismiss + retry. On accept success → `activateFromAcceptedRequest` thunk normalises the Request payload, joins the `request:{id}` socket room, switches location stream to `ON_DELIVERY` cadence (3 s). Stale-offer prune on AppState `active`. Audio loop ready in `services/offerRingtone.js` — drop an MP3 into `assets/sounds/offer.mp3` to enable; haptics fire every 5 s regardless.
 
 ### 3.1 Goals
 
@@ -950,7 +950,7 @@ When `rider:job:new` arrives, the rider sees a full-screen offer with a 60 s cou
 ### 3.2 Tasks
 
 **BE**
-- ✅ **BLK-OfferAck.** Decision settled: HTTP `POST /api/rider/accept` is authoritative; socket `rider:job:accept` is decorative (optimistic emit only).
+- ✅ **BLK-OfferAck.** Decision settled: HTTP `POST /rider/accept` is authoritative; socket `rider:job:accept` is decorative (optimistic emit only).
 - ⏸ Verify `notify.service` emits a push (`notification:new` with `type=RIDER_NEW_OFFER`) alongside `rider:job:new` so backgrounded apps wake. Client uses the `rider-offer` Android channel created in Phase 0.
 - ⏸ Verify server returns `409 OFFER_TAKEN` / `410 OFFER_EXPIRED` for late-accept races. Client already handles both response shapes.
 
@@ -988,7 +988,7 @@ When `rider:job:new` arrives, the rider sees a full-screen offer with a 60 s cou
 ### 3.4 Risks
 
 - **DND silencing the ringtone on iOS.** Mitigation: accept it in v1 (no critical-alert entitlement); rider must keep DND off or schedule DND. Documented in onboarding tips.
-- **Clock skew.** Mitigation: payload includes `offeredAt` (server clock). Client uses `Math.max(0, offeredAt + 60_000 - Date.now() + skewCorrection)` where `skewCorrection` is derived once at app startup from `Date` header on `/api/health`.
+- **Clock skew.** Mitigation: payload includes `offeredAt` (server clock). Client uses `Math.max(0, offeredAt + 60_000 - Date.now() + skewCorrection)` where `skewCorrection` is derived once at app startup from `Date` header on `/health`.
 - **Network loss during the 1 s accept call.** Mitigation: a single retry with the same Idempotency-Key. If still failing, show "Try again" and keep the sheet up.
 - **Lost socket events.** Mitigation: the push notification is the redundancy channel. If the in-app socket connection is dropped, push still wakes the device.
 
@@ -1003,7 +1003,7 @@ When `rider:job:new` arrives, the rider sees a full-screen offer with a 60 s cou
 
 ## Phase 4 — Active Delivery Lifecycle (Trip Cockpit)
 
-> **Status: ✅ COMPLETE.** Full trip cockpit shipped: map + status-aware sheet (PickupCard / DropoffCard), `StatusActionButton` driving the RIDER_ASSIGNED → DELIVERED FSM, soft geofences (75 m + 150 m fallback after 5 min) auto-flag arrival, ContactPartiesSheet (call + chat + auto-ticket on 3 unanswered calls), real-time `ChatThread`, `CancelTripSheet` (reason picker + PIN), `WrongAddressSheet` (address-correction note + corrected coords), and `TripCancelledOverlay` for admin/customer force-cancel. tripSlice owns the canonical state with `patchStatus` (Idempotency-Key + offline `statusQueue` drained on socket reconnect; reconciles via `hydrateFromServer` on 409/422/403), `cancelTrip`, `reportAddressCorrection`, `hydrateFromServer` (preserves CANCELLED banner), `fetchMessages`/`sendMessage`/`tripMessageReceived`. Force-close survives: `Rider.profile.activeRequest` carries the in-flight trip; AppNavigator rehydrates the cockpit AND resumes the GPS stream at ON_DELIVERY cadence on cold start. Geofence timer cancelled on unmount; async state writes guarded by mounted-ref; full i18n via `t("trip.*")` with English fallbacks (Hausa translations land in Phase 7's language sweep). Backend additions: `POST /api/requests/:id/rider-cancel` (PIN-gated, atomic Request CANCELLED + rider availability flip back to ONLINE, refunds customer via existing REFUND_REQUEST worker), `POST /api/requests/:id/address-correction` (audit log + socket + push to merchant or customer; rejects when trip terminal or pickup-correction-after-pickup); idempotency middleware on the status PATCH and message POST; chat post pushes to non-senders with per-role routes (`/request/:id` to customer, `/trip/:id` to rider, `/orders/:id` to merchant); `request:address:correction` socket event; `Rider.getProfile` returns the in-flight active trip; `settleRequest` and `refundRequest` workers reset rider availability ON_DELIVERY → ONLINE so the matcher can offer them work again. Phase 5 hands the DELIVERED PATCH to the POD capture sheet; Phase 4 currently fires the PATCH directly so the FSM completes end-to-end (the cockpit handles `POD_PHOTO_REQUIRED` with a friendly toast when Phase 5 ships).
+> **Status: ✅ COMPLETE.** Full trip cockpit shipped: map + status-aware sheet (PickupCard / DropoffCard), `StatusActionButton` driving the RIDER_ASSIGNED → DELIVERED FSM, soft geofences (75 m + 150 m fallback after 5 min) auto-flag arrival, ContactPartiesSheet (call + chat + auto-ticket on 3 unanswered calls), real-time `ChatThread`, `CancelTripSheet` (reason picker + PIN), `WrongAddressSheet` (address-correction note + corrected coords), and `TripCancelledOverlay` for admin/customer force-cancel. tripSlice owns the canonical state with `patchStatus` (Idempotency-Key + offline `statusQueue` drained on socket reconnect; reconciles via `hydrateFromServer` on 409/422/403), `cancelTrip`, `reportAddressCorrection`, `hydrateFromServer` (preserves CANCELLED banner), `fetchMessages`/`sendMessage`/`tripMessageReceived`. Force-close survives: `Rider.profile.activeRequest` carries the in-flight trip; AppNavigator rehydrates the cockpit AND resumes the GPS stream at ON_DELIVERY cadence on cold start. Geofence timer cancelled on unmount; async state writes guarded by mounted-ref; full i18n via `t("trip.*")` with English fallbacks (Hausa translations land in Phase 7's language sweep). Backend additions: `POST /requests/:id/rider-cancel` (PIN-gated, atomic Request CANCELLED + rider availability flip back to ONLINE, refunds customer via existing REFUND_REQUEST worker), `POST /requests/:id/address-correction` (audit log + socket + push to merchant or customer; rejects when trip terminal or pickup-correction-after-pickup); idempotency middleware on the status PATCH and message POST; chat post pushes to non-senders with per-role routes (`/request/:id` to customer, `/trip/:id` to rider, `/orders/:id` to merchant); `request:address:correction` socket event; `Rider.getProfile` returns the in-flight active trip; `settleRequest` and `refundRequest` workers reset rider availability ON_DELIVERY → ONLINE so the matcher can offer them work again. Phase 5 hands the DELIVERED PATCH to the POD capture sheet; Phase 4 currently fires the PATCH directly so the FSM completes end-to-end (the cockpit handles `POD_PHOTO_REQUIRED` with a friendly toast when Phase 5 ships).
 
 ### 4.1 Goals
 
@@ -1012,14 +1012,14 @@ After accepting, the rider runs the entire delivery from a single cockpit screen
 ### 4.2 Tasks
 
 **BE**
-- Confirm `PATCH /api/requests/:id/status` accepts the rider's transitions and enforces them in `request.service.js` (RIDER_EN_ROUTE → PICKED_UP → IN_TRANSIT → DELIVERED). Document acceptable error codes:
+- Confirm `PATCH /requests/:id/status` accepts the rider's transitions and enforces them in `request.service.js` (RIDER_EN_ROUTE → PICKED_UP → IN_TRANSIT → DELIVERED). Document acceptable error codes:
   - 422 INVALID_TRANSITION (already past this status).
   - 422 POD_REQUIRED (DELIVERED without POD when required).
   - 409 STATUS_CONFLICT (someone else moved the request — e.g. admin force-cancelled).
-- Confirm `POST /api/requests/:id/messages` allows rider role with idempotency support, and `notification:new` fires for the customer / merchant on every inbound rider message.
-- 🔒 **BLK-AddressCorrection.** New endpoint `POST /api/requests/:id/address-correction { stage: 'pickup' | 'dropoff', note, lat, lng }` that creates an audit row and emits `request:address:correction` to merchant + admin rooms. Phase-4 fallback if not shipped: rider files a support ticket via the same flow with `category=ADDRESS_CORRECTION`.
+- Confirm `POST /requests/:id/messages` allows rider role with idempotency support, and `notification:new` fires for the customer / merchant on every inbound rider message.
+- 🔒 **BLK-AddressCorrection.** New endpoint `POST /requests/:id/address-correction { stage: 'pickup' | 'dropoff', note, lat, lng }` that creates an audit row and emits `request:address:correction` to merchant + admin rooms. Phase-4 fallback if not shipped: rider files a support ticket via the same flow with `category=ADDRESS_CORRECTION`.
 - 🔒 **BLK-SupportAutoTicket.** Auto-file a support ticket of type `CUSTOMER_UNREACHABLE` when the rider's `ContactPartiesSheet.callCustomer` reports 3 failed attempts. Phase-4 fallback: the rider manually files the ticket; the auto-file feature is an enhancement.
-- 🔒 **BLK-ChatNotifRouting.** Confirm `notification:new` for `/api/requests/:id/messages` inbound routes to the `TripCockpitScreen` chat thread when the trip is active. If not, add a `data.route = '/trip/:id/chat'` to the notification payload.
+- 🔒 **BLK-ChatNotifRouting.** Confirm `notification:new` for `/requests/:id/messages` inbound routes to the `TripCockpitScreen` chat thread when the trip is active. If not, add a `data.route = '/trip/:id/chat'` to the notification payload.
 
 **DB** — no schema changes for v1 (the audit row for address corrections is its own table created under BLK-AddressCorrection).
 
@@ -1038,7 +1038,7 @@ After accepting, the rider runs the entire delivery from a single cockpit screen
 - `components/PickupCard.js`: pickup address, contact-name & phone, items list (if merchant order), pickup notes from customer/merchant. "Open in Maps" CTA → `mapsNav.openTo({ lat, lng, label })`.
 - `components/DropoffCard.js`: dropoff address, customer name & phone, delivery notes, "Open in Maps" CTA.
 - `components/ContactPartiesSheet.js`: bottom sheet with two rows — **Call** (Tel: deep link) and **Chat** (in-app). On Call → `Linking.openURL('tel:+234…')`; record attempt in `tripSlice.callAttempts[counterpartId]++`. On 3rd attempt, surface "Customer not reachable? File a report" → auto-creates a `CUSTOMER_UNREACHABLE` support ticket (BLK-SupportAutoTicket; falls back to manual ticket flow).
-- `components/ChatThread.js`: lists messages from `GET /api/requests/:id/messages` paginated, polls every 15 s while open + subscribes to `notification:new` filtered to this requestId. Sends via `POST /api/requests/:id/messages` with Idempotency-Key. Renders sender role badges (Customer / Merchant / You).
+- `components/ChatThread.js`: lists messages from `GET /requests/:id/messages` paginated, polls every 15 s while open + subscribes to `notification:new` filtered to this requestId. Sends via `POST /requests/:id/messages` with Idempotency-Key. Renders sender role badges (Customer / Merchant / You).
 - `services/geofence.js`:
   - `enter({ lat, lng, radiusM = 75, fallbackRadiusM = 150, fallbackAfterMs = 5*60*1000, onEnter })`: subscribes to location updates while a fence is active; fires `onEnter` when distance < radiusM OR after fallbackAfterMs while within fallbackRadiusM. Exposes `cancel()`.
   - Used twice per trip: pickup fence after RIDER_EN_ROUTE, dropoff fence after IN_TRANSIT.
@@ -1048,9 +1048,9 @@ After accepting, the rider runs the entire delivery from a single cockpit screen
 - `store/slices/tripSlice.js`:
   - `{ activeRequestId, status, pickup: { lat, lng, address, contactName, contactPhone, notes }, dropoff: {…}, items, distanceKm, estimatedMinutes, riderEarning, arrivedAt: { pickup, dropoff }, callAttempts: { customerId: n, merchantId: n }, statusQueue: [{ status, attemptedAt, idempotencyKey }] }`.
   - Async thunks: `activateFromAcceptedRequest(payload)`, `patchStatus(nextStatus, extras)`, `cancel({ reason, pin })`, `hydrateFromServer(requestId)`.
-  - `patchStatus`: optimistic local update + `PATCH /api/requests/:id/status` with `Idempotency-Key`. On network failure, push onto `statusQueue` and retry on reconnect with the same key. On 409 STATUS_CONFLICT, replace local with server state and surface a toast.
-- `features/trip/CancelTripSheet.js`: reason picker (`CUSTOMER_NOT_REACHABLE`, `WRONG_ADDRESS`, `VEHICLE_ISSUE`, `OTHER`). For `OTHER`, free text. PIN sheet on confirm. Calls `DELETE /api/requests/:id` (or whatever the cancellation endpoint is for riders — verify against `request.routes.js`; admin force-cancel exists, rider-initiated may need a new endpoint — add BLK-RiderCancel if missing).
-- `features/trip/WrongAddressSheet.js`: lets the rider attach a corrected location + note via `POST /api/requests/:id/address-correction` (BLK-AddressCorrection). Doesn't change the trip flow — just routes the note to dispatch.
+  - `patchStatus`: optimistic local update + `PATCH /requests/:id/status` with `Idempotency-Key`. On network failure, push onto `statusQueue` and retry on reconnect with the same key. On 409 STATUS_CONFLICT, replace local with server state and surface a toast.
+- `features/trip/CancelTripSheet.js`: reason picker (`CUSTOMER_NOT_REACHABLE`, `WRONG_ADDRESS`, `VEHICLE_ISSUE`, `OTHER`). For `OTHER`, free text. PIN sheet on confirm. Calls `DELETE /requests/:id` (or whatever the cancellation endpoint is for riders — verify against `request.routes.js`; admin force-cancel exists, rider-initiated may need a new endpoint — add BLK-RiderCancel if missing).
+- `features/trip/WrongAddressSheet.js`: lets the rider attach a corrected location + note via `POST /requests/:id/address-correction` (BLK-AddressCorrection). Doesn't change the trip flow — just routes the note to dispatch.
 - Update `MainTabNavigator.js`: while `tripSlice.activeRequestId` is set, the "Trip" tab is visible and the default landing tab on app foreground.
 
 **RT** — Subscribe to `request:cancelled` and `request:status:changed` in `tripSlice` to keep local state in sync with server-side transitions (admin force-cancel, customer cancel before pickup, etc.).
@@ -1072,7 +1072,7 @@ After accepting, the rider runs the entire delivery from a single cockpit screen
 ### 4.4 Risks
 
 - **Geofence false negatives** in dense GPS-shadow areas. Mitigation: 150 m fallback after 5 min inside; manual "Arrived" button is always available.
-- **Customer's number going to the wrong rider** if pickup overlaps another delivery. Mitigation: only the assigned rider's app loads the number from a fresh `GET /api/requests/:id` on cockpit mount.
+- **Customer's number going to the wrong rider** if pickup overlaps another delivery. Mitigation: only the assigned rider's app loads the number from a fresh `GET /requests/:id` on cockpit mount.
 - **Optimistic state out-of-sync with server**. Mitigation: subscribe to `request:status:changed` and reconcile; on any 422 INVALID_TRANSITION error, hard-refresh from server.
 - **Battery drain from 3 s GPS cadence over a long delivery**. Mitigation: throttle to 5 s when stationary > 60 s; 3 s resumes on movement.
 
@@ -1090,7 +1090,7 @@ After accepting, the rider runs the entire delivery from a single cockpit screen
 
 ## Phase 5 — Proof of Delivery (POD)
 
-> **Status: ✅ COMPLETE.** Full POD pipeline live: photo + optional signature + high-value OTP, gated by platform settings (`delivery.requirePodPhoto`, `delivery.requireSignature`, `delivery.podOtpThresholdNgn`). Cockpit's "Complete delivery" tap walks the rider through a stage machine (`photo → signature → otp → submit`) that auto-skips disabled stages and re-mounts the right sheet on server-side 422s (`POD_PHOTO_REQUIRED`, `POD_PHOTO_INVALID`, `POD_SIGNATURE_REQUIRED`, `POD_SIGNATURE_INVALID`, `POD_OTP_REQUIRED`, `POD_OTP_NOT_ISSUED`, `POD_OTP_MISMATCH`). POD draft persists in SecureStore under `pod:draft:{requestId}`, restored on cockpit mount, cleared on DELIVERED 200. Settlement animation: cockpit subscribes to `wallet:balance:updated`, swaps the success card to `+₦XXX earned` when the RIDER_EARNING transaction lands, and auto-clears after 8 s. Backend additions: `add_pod_to_request` migration (4 nullable columns on Request); `POST /api/requests/:id/pod-otp/generate` (RIDER-gated, idempotent, rate-limited 3/10 min per request, bcrypt OTP, push + Notification Center to customer with `data.otp` flowing through FCM); request-scoped Cloudinary upload kinds `pod` + `pod_signature` (folder `vtu-logistics/pod/{requestId}`, rider-only writes, window-gated to PICKED_UP/IN_TRANSIT/DELIVERED); `updateStatus(DELIVERED)` validates the three POD gates against current settings + bcrypt-compares the OTP; settle/refund workers reset rider availability ON_DELIVERY → ONLINE; `request:status:changed` on DELIVERED carries POD URLs so the customer's tracking screen flips without a refetch. Customer-app: prominent OTP banner driven by `notification:new POD_OTP_GENERATED`, POD photo card on DELIVERED. Merchant dashboard `OrderDetailsModal`: Proof of Delivery card (photo + signature thumbnails) on DELIVERED/SETTLED. Admin: POD strip in `RidersPage` delivery history + full POD card in `RequestsPage` request detail. Full i18n via `pod.*` keys with English fallback (Hausa translations land in Phase 7).
+> **Status: ✅ COMPLETE.** Full POD pipeline live: photo + optional signature + high-value OTP, gated by platform settings (`delivery.requirePodPhoto`, `delivery.requireSignature`, `delivery.podOtpThresholdNgn`). Cockpit's "Complete delivery" tap walks the rider through a stage machine (`photo → signature → otp → submit`) that auto-skips disabled stages and re-mounts the right sheet on server-side 422s (`POD_PHOTO_REQUIRED`, `POD_PHOTO_INVALID`, `POD_SIGNATURE_REQUIRED`, `POD_SIGNATURE_INVALID`, `POD_OTP_REQUIRED`, `POD_OTP_NOT_ISSUED`, `POD_OTP_MISMATCH`). POD draft persists in SecureStore under `pod:draft:{requestId}`, restored on cockpit mount, cleared on DELIVERED 200. Settlement animation: cockpit subscribes to `wallet:balance:updated`, swaps the success card to `+₦XXX earned` when the RIDER_EARNING transaction lands, and auto-clears after 8 s. Backend additions: `add_pod_to_request` migration (4 nullable columns on Request); `POST /requests/:id/pod-otp/generate` (RIDER-gated, idempotent, rate-limited 3/10 min per request, bcrypt OTP, push + Notification Center to customer with `data.otp` flowing through FCM); request-scoped Cloudinary upload kinds `pod` + `pod_signature` (folder `vtu-logistics/pod/{requestId}`, rider-only writes, window-gated to PICKED_UP/IN_TRANSIT/DELIVERED); `updateStatus(DELIVERED)` validates the three POD gates against current settings + bcrypt-compares the OTP; settle/refund workers reset rider availability ON_DELIVERY → ONLINE; `request:status:changed` on DELIVERED carries POD URLs so the customer's tracking screen flips without a refetch. Customer-app: prominent OTP banner driven by `notification:new POD_OTP_GENERATED`, POD photo card on DELIVERED. Merchant dashboard `OrderDetailsModal`: Proof of Delivery card (photo + signature thumbnails) on DELIVERED/SETTLED. Admin: POD strip in `RidersPage` delivery history + full POD card in `RequestsPage` request detail. Full i18n via `pod.*` keys with English fallback (Hausa translations land in Phase 7).
 
 ### 5.1 Goals
 
@@ -1108,24 +1108,24 @@ At delivery time, the rider captures evidence: always a **photo**, optionally a 
   - `delivery.requirePodPhoto` (boolean, default `true`).
   - `delivery.requireSignature` (boolean, default `false` — opt-in later).
   - `delivery.podOtpThresholdNgn` (number, default `50000`). When `Request.total` ≥ this threshold, the customer is prompted to share a 6-digit OTP visible in the customer app; the rider must enter it on the dropoff side.
-- **Endpoint**: `POST /api/requests/:id/pod-otp/generate` — RIDER only — server generates a 6-digit OTP, stores `bcrypt(otp)` on `Request.podDeliveryOtp`, pushes `notification:new` to the customer with type `POD_OTP_GENERATED` carrying the OTP in the payload (or just the message "Share this code with your rider: 123456" — exact UX decided in implementation).
+- **Endpoint**: `POST /requests/:id/pod-otp/generate` — RIDER only — server generates a 6-digit OTP, stores `bcrypt(otp)` on `Request.podDeliveryOtp`, pushes `notification:new` to the customer with type `POD_OTP_GENERATED` carrying the OTP in the payload (or just the message "Share this code with your rider: 123456" — exact UX decided in implementation).
 - **Validation in `request.service.updateStatus`** when transitioning to `DELIVERED`:
   - If `delivery.requirePodPhoto` is true and `podPhotoUrl` is null → 422 POD_PHOTO_REQUIRED.
   - If `delivery.requireSignature` is true and `podSignatureUrl` is null → 422 POD_SIGNATURE_REQUIRED.
   - If `Request.total >= delivery.podOtpThresholdNgn` and provided `podDeliveryOtp` does not bcrypt-match → 422 POD_OTP_MISMATCH.
-- Extend `POST /api/auth/upload-signature` (or equivalent) to accept `kind: "pod"` and sign Cloudinary uploads into a `pod/{requestId}/` folder, tagged for retention policy.
+- Extend `POST /auth/upload-signature` (or equivalent) to accept `kind: "pod"` and sign Cloudinary uploads into a `pod/{requestId}/` folder, tagged for retention policy.
 
 **RA**
 - `components/PodCaptureSheet.js`: full-screen sheet. Uses `expo-camera` `CameraView` with rear-facing camera. Big shutter button. After capture: thumbnail + Retake + Continue. Compress via `expo-image-manipulator` to JPEG quality 0.7, max long edge 1600 px, target ≤ 1 MB. Optionally allow `expo-media-library.saveToLibraryAsync` if the rider's settings toggle says so (default off).
 - `components/SignaturePadSheet.js`: `react-native-signature-canvas` instance. Clear / Done buttons. On Done, exports PNG dataURL (transparent background). Compress to ≤ 200 KB.
-- `components/DeliveryOtpInputSheet.js`: 6-digit input with auto-advance. "Send code to customer" CTA at top → calls `POST /api/requests/:id/pod-otp/generate`; the customer app receives the OTP via `notification:new` + an in-app banner; the customer reads it to the rider over the phone or in person. Below the input: "I didn't receive a code" recovery CTA → re-generate (rate-limited: max 3 in 10 min).
-- `services/cloudinary.js`: `uploadPodAsset({ localUri, kind, requestId })` → fetch signature from `/api/auth/upload-signature` → multipart POST → return `{ secureUrl, publicId }`. Retries with exponential backoff (3 tries: 1 s, 3 s, 9 s). Uses the connected upload while user waits (no background queue — fail-loud).
+- `components/DeliveryOtpInputSheet.js`: 6-digit input with auto-advance. "Send code to customer" CTA at top → calls `POST /requests/:id/pod-otp/generate`; the customer app receives the OTP via `notification:new` + an in-app banner; the customer reads it to the rider over the phone or in person. Below the input: "I didn't receive a code" recovery CTA → re-generate (rate-limited: max 3 in 10 min).
+- `services/cloudinary.js`: `uploadPodAsset({ localUri, kind, requestId })` → fetch signature from `/auth/upload-signature` → multipart POST → return `{ secureUrl, publicId }`. Retries with exponential backoff (3 tries: 1 s, 3 s, 9 s). Uses the connected upload while user waits (no background queue — fail-loud).
 - `store/slices/tripSlice.js` extension: `pod: { photoUrl, signatureUrl, otp, photoLocalUri, signatureLocalUri, draftedAt }`. Drafts persisted in SecureStore under `pod:draft:{requestId}` on every change; cleared on DELIVERED 200.
 - Flow integration in `TripCockpitScreen` for the "Complete delivery" action:
   1. Check `settings.delivery.requirePodPhoto` (cached) → mount `PodCaptureSheet`. On capture + Continue, upload photo.
   2. If `settings.delivery.requireSignature` → mount `SignaturePadSheet`. On Done, upload signature.
   3. If `Request.total >= settings.delivery.podOtpThresholdNgn` → mount `DeliveryOtpInputSheet`.
-  4. PATCH `/api/requests/:id/status` with `{ status: 'DELIVERED', podPhotoUrl, podSignatureUrl?, podDeliveryOtp? }`, `Idempotency-Key`.
+  4. PATCH `/requests/:id/status` with `{ status: 'DELIVERED', podPhotoUrl, podSignatureUrl?, podDeliveryOtp? }`, `Idempotency-Key`.
   5. On 200: clear draft → show success animation → wait for `wallet:balance:updated` (settlement) → animate earnings card → navigate to `EarningsBreakdownScreen` row for this delivery.
   6. On 422 with specific code: re-mount the sheet that produced the missing input.
 
@@ -1164,7 +1164,7 @@ At delivery time, the rider captures evidence: always a **photo**, optionally a 
 
 ## Phase 6 — Earnings, Wallet, Withdrawals
 
-> **Status: ✅ COMPLETE.** Full money-side surface shipped end-to-end. **Backend:** `GET /api/rider/earnings?page=N&limit=N` now returns the dashboard payload — `summary` (today / week / month / allTime each `{amount,count}`), `daily` (trailing-30-day Postgres `DATE_TRUNC` series), `recent` (paginated transactions hydrated with the originating Request's customer / dropoff / distance / duration via batched lookup), `pagination`, `averageRating`. Wallet endpoints already permitted RIDER (no BLK-Beneficiaries fix needed); withdraw is PIN-gated + rate-limited + idempotent. **Rider app slices:** `walletSlice` ported with `fetchWallet` / `retryProvisioning` / `fetchTransactions` (filter+search+pagination, stale-response guard) / `fetchBanks` / `lookupBankAccount` / `withdrawToBank` (persistent SecureStore idempotency key) / `fetchReceipt`, plus `getPendingWithdraw`/`discardPendingWithdraw` helpers for cold-start replay; `earningsSlice` with summary/daily/byId/allIds/page/hasMore, `fetchRiderEarnings` + `fetchMoreEarnings` (infinite scroll) + `earningCreditedFromSocket` (bumps today + week + month + allTime + daily bucket + prepends optimistic row); `beneficiariesSlice` with normalised store + dedupe-on-save. **Screens:** `EarningsDashboardScreen` (big today header, 4-tab strip, 7-day SVG bar chart with day drill-in, wallet widget, action row); `EarningsBreakdownScreen` (sticky-header sectioned list grouped by day, infinite scroll, pull-to-refresh, tap row → TripCockpit deep-link); `WalletHomeScreen` (animated balance with spring on credit, NUBAN tap-to-copy with Clipboard.setString, provisioning-pending banner + 30 s auto-retry + manual retry); `WithdrawScreen` (bank picker modal with search, 10-digit account → debounced name lookup, saved-beneficiary chips, quick-amount chips, balance/min/max validation, PinBottomSheet with persistent idempotency key + crash-recovery "Unfinished withdrawal" banner that resumes with the same key — server's idempotency middleware replays original response, no double-charge); `BeneficiariesScreen` (list/add/delete with confirmation modal); `TransactionsScreen` (filter chips ALL/RIDER_EARNING/WITHDRAWAL/REFUND/WALLET_FUNDING, debounced search, infinite scroll); `TransactionDetailScreen` (`react-native-view-shot` captures the receipt card → `expo-sharing` opens device share sheet as PNG, server-side `/wallet/transactions/:id/receipt` augments client data). **Wiring:** `notificationsBus` pipes `wallet:balance:updated` into BOTH walletSlice (balance + tx list) AND earningsSlice (dashboard tallies + chart + breakdown row) — same event drives the cockpit's settlement animation; AppNavigator registers all 5 new screens + boots `fetchWallet` post-auth; `lib/notificationRoute.js` routes `/wallet/withdraw`, `/wallet/transactions/:id`, `/wallet/beneficiaries`, `/earnings/breakdown` deep-links. Full i18n via `earnings.*`, `transactions.*`, `withdraw.*`, `beneficiaries.*`, `receipt.*`, plus extended `wallet.*` keys (English fallbacks for all; Hausa translations land in Phase 7).
+> **Status: ✅ COMPLETE.** Full money-side surface shipped end-to-end. **Backend:** `GET /rider/earnings?page=N&limit=N` now returns the dashboard payload — `summary` (today / week / month / allTime each `{amount,count}`), `daily` (trailing-30-day Postgres `DATE_TRUNC` series), `recent` (paginated transactions hydrated with the originating Request's customer / dropoff / distance / duration via batched lookup), `pagination`, `averageRating`. Wallet endpoints already permitted RIDER (no BLK-Beneficiaries fix needed); withdraw is PIN-gated + rate-limited + idempotent. **Rider app slices:** `walletSlice` ported with `fetchWallet` / `retryProvisioning` / `fetchTransactions` (filter+search+pagination, stale-response guard) / `fetchBanks` / `lookupBankAccount` / `withdrawToBank` (persistent SecureStore idempotency key) / `fetchReceipt`, plus `getPendingWithdraw`/`discardPendingWithdraw` helpers for cold-start replay; `earningsSlice` with summary/daily/byId/allIds/page/hasMore, `fetchRiderEarnings` + `fetchMoreEarnings` (infinite scroll) + `earningCreditedFromSocket` (bumps today + week + month + allTime + daily bucket + prepends optimistic row); `beneficiariesSlice` with normalised store + dedupe-on-save. **Screens:** `EarningsDashboardScreen` (big today header, 4-tab strip, 7-day SVG bar chart with day drill-in, wallet widget, action row); `EarningsBreakdownScreen` (sticky-header sectioned list grouped by day, infinite scroll, pull-to-refresh, tap row → TripCockpit deep-link); `WalletHomeScreen` (animated balance with spring on credit, NUBAN tap-to-copy with Clipboard.setString, provisioning-pending banner + 30 s auto-retry + manual retry); `WithdrawScreen` (bank picker modal with search, 10-digit account → debounced name lookup, saved-beneficiary chips, quick-amount chips, balance/min/max validation, PinBottomSheet with persistent idempotency key + crash-recovery "Unfinished withdrawal" banner that resumes with the same key — server's idempotency middleware replays original response, no double-charge); `BeneficiariesScreen` (list/add/delete with confirmation modal); `TransactionsScreen` (filter chips ALL/RIDER_EARNING/WITHDRAWAL/REFUND/WALLET_FUNDING, debounced search, infinite scroll); `TransactionDetailScreen` (`react-native-view-shot` captures the receipt card → `expo-sharing` opens device share sheet as PNG, server-side `/wallet/transactions/:id/receipt` augments client data). **Wiring:** `notificationsBus` pipes `wallet:balance:updated` into BOTH walletSlice (balance + tx list) AND earningsSlice (dashboard tallies + chart + breakdown row) — same event drives the cockpit's settlement animation; AppNavigator registers all 5 new screens + boots `fetchWallet` post-auth; `lib/notificationRoute.js` routes `/wallet/withdraw`, `/wallet/transactions/:id`, `/wallet/beneficiaries`, `/earnings/breakdown` deep-links. Full i18n via `earnings.*`, `transactions.*`, `withdraw.*`, `beneficiaries.*`, `receipt.*`, plus extended `wallet.*` keys (English fallbacks for all; Hausa translations land in Phase 7).
 
 ### 6.1 Goals
 
@@ -1173,13 +1173,13 @@ Every settled delivery shows up in the rider's earnings within 60 s. The rider c
 ### 6.2 Tasks
 
 **BE**
-- Confirm `GET /api/rider/earnings` returns the shape the client expects:
+- Confirm `GET /rider/earnings` returns the shape the client expects:
   - Summary: `{ today: { count, amount }, week: { count, amount }, month: { count, amount }, allTime: { count, amount } }`.
   - Recent: paginated array of `{ requestId, deliveredAt, settledAt, riderEarning, distanceKm, durationMin, customerName, dropoffAddress }`.
   - Daily series for chart: array `{ date: 'YYYY-MM-DD', amount, count }` for the trailing 30 days.
   - If the endpoint currently returns less, augment it (Phase-6 BE delta).
-- Confirm `POST /api/wallet/withdraw` works for RIDER role (it currently lists CUSTOMER/RIDER). PIN-protected, Idempotency-Key required.
-- 🔒 **BLK-Beneficiaries.** Verify `GET/POST/DELETE /api/wallet/beneficiaries` allow RIDER. If they are currently customer-only, relax the role guard.
+- Confirm `POST /wallet/withdraw` works for RIDER role (it currently lists CUSTOMER/RIDER). PIN-protected, Idempotency-Key required.
+- 🔒 **BLK-Beneficiaries.** Verify `GET/POST/DELETE /wallet/beneficiaries` allow RIDER. If they are currently customer-only, relax the role guard.
 - Settlement worker behavior — already implemented per `request.worker.js` for DELIVERED → SETTLED. Verify it emits `wallet:balance:updated` to `user:{riderId}` and creates a Transaction of type `RIDER_EARNING`.
 
 **DB** — no schema changes; rely on existing `Transaction` ledger.
@@ -1192,7 +1192,7 @@ Every settled delivery shows up in the rider's earnings within 60 s. The rider c
   - "View all" link → `EarningsBreakdownScreen`.
   - Wallet balance widget at bottom: balance + "Withdraw" CTA.
 - `features/earnings/EarningsBreakdownScreen.js`:
-  - Sticky-header sectioned list grouped by day. Row = `{ time, distanceKm, customerName, ₦ earned }`. Tap → request details modal (read-only `GET /api/requests/:id`).
+  - Sticky-header sectioned list grouped by day. Row = `{ time, distanceKm, customerName, ₦ earned }`. Tap → request details modal (read-only `GET /requests/:id`).
   - Pull-to-refresh; infinite scroll via `?page` query.
 - `features/wallet/WalletHomeScreen.js`:
   - Balance display + animated change on `wallet:balance:updated`.
@@ -1201,11 +1201,11 @@ Every settled delivery shows up in the rider's earnings within 60 s. The rider c
   - If `bvnStatus !== 'VERIFIED'` or `virtualAccountNumber` is missing: show the same Provisioning-Pending state the customer app uses, including the 30 s polling retry.
 - `features/wallet/WithdrawScreen.js`:
   - Amount input with min / max from `settings.wallet.minWithdraw / maxWithdraw`; quick amounts from `settings.wallet.withdrawQuickAmounts`.
-  - Bank picker bound to `GET /api/wallet/banks`. Account number → `POST /api/wallet/banks/lookup` reveals account name; cannot proceed without resolution.
+  - Bank picker bound to `GET /wallet/banks`. Account number → `POST /wallet/banks/lookup` reveals account name; cannot proceed without resolution.
   - "Save as beneficiary" toggle.
-  - "Withdraw" → `PinBottomSheet` → `POST /api/wallet/withdraw` with Idempotency-Key persisted to SecureStore until the response settles.
+  - "Withdraw" → `PinBottomSheet` → `POST /wallet/withdraw` with Idempotency-Key persisted to SecureStore until the response settles.
   - Success → ReceiptScreen with the new transaction; failure modes map to user-friendly messages.
-- `features/wallet/BeneficiariesScreen.js`: list of `GET /api/wallet/beneficiaries`, add via `POST`, delete via `DELETE`. Tap to pre-fill `WithdrawScreen` with the saved bank.
+- `features/wallet/BeneficiariesScreen.js`: list of `GET /wallet/beneficiaries`, add via `POST`, delete via `DELETE`. Tap to pre-fill `WithdrawScreen` with the saved bank.
 - `features/wallet/TransactionsScreen.js`: paginated list with filters (type = ALL / RIDER_EARNING / WITHDRAWAL / PAYOUT_FEE), search by reference, date range.
 - `features/wallet/TransactionDetailScreen.js`: full details + ReceiptScreen export (uses `react-native-view-shot` to render a shareable image via `expo-sharing`).
 - `store/slices/walletSlice.js`: port verbatim from customer-app. Already has `fetchWallet`, `retryProvisioning`, `sendMoney`, `withdraw`, `lookupBankAccount`, `subscribeToWalletSocket`. Confirm `withdraw` thunk includes Idempotency-Key.
@@ -1220,7 +1220,7 @@ Every settled delivery shows up in the rider's earnings within 60 s. The rider c
 ### 6.3 Acceptance Criteria
 
 - ✅ Right after PATCH DELIVERED 200, settlement worker fires; `wallet:balance:updated` is received; earnings card animates `+₦` and the wallet balance increments. End-to-end latency from DELIVERED to UI animation: ≤ 60 s.
-- ✅ `EarningsDashboardScreen` shows today / week / month tallies that match `GET /api/rider/earnings` exactly.
+- ✅ `EarningsDashboardScreen` shows today / week / month tallies that match `GET /rider/earnings` exactly.
 - ✅ Chart renders for the past 7 days; tapping a bar drills to that day's deliveries.
 - ✅ `WithdrawScreen`: amount + bank + valid account number + PIN → 200 → balance decrements → Transaction PENDING → moves to COMPLETED (or FAILED with refund) per KatPay async.
 - ✅ Withdraw idempotency: kill the app right after tapping Withdraw → re-open → the in-flight retry uses the same Idempotency-Key and the server returns the original response. No double-charge.
@@ -1255,7 +1255,7 @@ Every settled delivery shows up in the rider's earnings within 60 s. The rider c
 >   - `RiderOfferLog` writes wired into the dispatch broadcaster (`emitRing`, persists OFFERED rows per candidate), `acceptJob` (flips to ACCEPTED + others to TAKEN inside the txn), `notifyJobTaken` (TAKEN), and `autoCancelUnmatched` (EXPIRED).
 >   - `rider.service.getPerformance(userId)` — trailing-30-day acceptance / cancellation / on-time / rating breakdown + streak. 7 parallel queries; cancellation rate divides by claimed jobs; on-time tolerates 1.2× of `estimatedMinutes`; streak walks consecutive UTC days from most-recent delivery.
 >   - `rider.service.reuploadDocument({ kind, url, expiresAt })` — whitelisted kinds (ID_DOC, DRIVER_LICENCE, VEHICLE_PHOTO, VEHICLE_REG, INSURANCE), Cloudinary-URL prefix check, future-expiry check, auto-mirrors `min(vehicleReg, insurance)` into `vehicleDocExpiresAt`, clears throttle marker on re-upload.
->   - `POST /api/rider/performance`, `POST /api/rider/documents`, `POST /api/rider/decline` (rider-initiated offer decline) — controllers + zod validators + RIDER-gated routes.
+>   - `POST /rider/performance`, `POST /rider/documents`, `POST /rider/decline` (rider-initiated offer decline) — controllers + zod validators + RIDER-gated routes.
 >   - `updateRiderStatus` now pushes `RIDER_APPROVED` / `RIDER_REJECTED` / `RIDER_SUSPENDED` / `RIDER_REACTIVATED` so the rider's profile gate flips without a re-launch.
 >   - `auth.service.UPLOAD_KINDS.rider_doc` — RIDER+ADMIN only, user-scoped Cloudinary folder.
 >   - `support.service` opened to RIDER role: `createDispute` accepts RIDER raisers (must be the assigned rider on a DELIVERED/SETTLED request); `listDisputes` returns disputes raised by OR involving the rider; `assertDisputeAccess` honours rider/customer counterparty visibility; `postDisputeMessage` notifies the rider counterparty; `adminResolveDispute` notifies the rider when they aren't the raiser.
@@ -1290,13 +1290,13 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 ### 7.2 Tasks
 
 **BE**
-- 🔒 **BLK-PerformanceEndpoint.** `GET /api/rider/performance` returning:
+- 🔒 **BLK-PerformanceEndpoint.** `GET /rider/performance` returning:
   - `acceptanceRate` (last 30 days), `cancellationRate`, `onTimeRate`, `totalDeliveries`, `rating: { average, count, breakdown: { 5,4,3,2,1 } }`, `currentStreakDays`.
   - All metrics computed server-side from `Request` history + `Rating` rows.
-- 🔒 **BLK-DocExpiry.** Add `idDocExpiresAt DateTime?`, `vehicleDocExpiresAt DateTime?` to `Rider`. Cron worker that pushes `notification:new type=DOC_EXPIRING_SOON` 14 days before expiry. New endpoint `POST /api/rider/documents` for re-upload.
-- 🔒 **BLK-RatingAggregate.** Confirm `Rating` rows aggregate into `Rider.averageRating` and that `GET /api/rider/performance` exposes the breakdown.
-- Confirm `GET /api/notifications` returns paginated notifications filtered by user; `notification:new` already received via socket.
-- Confirm `GET/POST /api/support/tickets` and `POST /api/support/disputes` work for RIDER role.
+- 🔒 **BLK-DocExpiry.** Add `idDocExpiresAt DateTime?`, `vehicleDocExpiresAt DateTime?` to `Rider`. Cron worker that pushes `notification:new type=DOC_EXPIRING_SOON` 14 days before expiry. New endpoint `POST /rider/documents` for re-upload.
+- 🔒 **BLK-RatingAggregate.** Confirm `Rating` rows aggregate into `Rider.averageRating` and that `GET /rider/performance` exposes the breakdown.
+- Confirm `GET /notifications` returns paginated notifications filtered by user; `notification:new` already received via socket.
+- Confirm `GET/POST /support/tickets` and `POST /support/disputes` work for RIDER role.
 
 **DB** — `add_doc_expiry_to_rider` migration (BLK-DocExpiry).
 
@@ -1308,14 +1308,14 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 - `features/profile/KycStatusScreen.js`:
   - Five document tiles, each with thumbnail + expiry chip (where applicable) + status (Valid / Expiring soon / Expired / Missing): NIN slip, driver's licence, vehicle registration, insurance certificate, vehicle photo.
   - NIN tile shows verified state (no expiry).
-  - Each non-NIN tile has a "Re-upload" CTA → Cloudinary signed upload → `POST /api/rider/documents` with the doc kind.
+  - Each non-NIN tile has a "Re-upload" CTA → Cloudinary signed upload → `POST /rider/documents` with the doc kind.
   - Expiry-warning banner when any doc is within 14 days of expiry; hard banner with "Re-upload to keep working" when any doc has expired.
   - Deep-linked from `DOC_EXPIRING_SOON` notification and the 30-day grace banner that fires for accounts migrated under BLK-RiderKycExpansion's backfill.
 - `features/profile/PerformanceScreen.js`:
   - Cards for each metric (acceptance, cancellation, on-time, rating).
   - Rating bar chart showing 5★/4★/3★/2★/1★ breakdown.
   - Trailing-30-day streak indicator.
-  - Hook for `riderSlice.fetchPerformance` (calls `GET /api/rider/performance`).
+  - Hook for `riderSlice.fetchPerformance` (calls `GET /rider/performance`).
 - `features/profile/SessionsScreen.js`: port verbatim from customer.
 - `features/profile/ChangePinScreen.js`: port verbatim.
 - `features/profile/PhoneChangeScreen.js`: port verbatim.
@@ -1328,7 +1328,7 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 - `features/support/TicketDetailScreen.js`: thread; post message; close ticket.
 - `features/support/CreateDisputeScreen.js`: target a recent delivered request, dispute reason, evidence.
 - `features/support/DisputeDetailScreen.js`: thread + status.
-- `features/settings/SecuritySettingsScreen.js`: PIN settings, biometric, sessions, account deletion (`DELETE /api/auth/account`).
+- `features/settings/SecuritySettingsScreen.js`: PIN settings, biometric, sessions, account deletion (`DELETE /auth/account`).
 - `store/slices/notificationsSlice.js`: port verbatim from customer with the addition of routing for rider-specific types (`RIDER_NEW_OFFER`, `RIDER_APPROVED`, `RIDER_REJECTED`, `POD_OTP_GENERATED`, `DOC_EXPIRING_SOON`, `SYSTEM_FORCE_OFFLINE`).
 - `store/slices/supportSlice.js`: port verbatim.
 - `store/slices/profileSlice.js`: extend with `fetchPerformance` thunk.
@@ -1339,13 +1339,13 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 ### 7.3 Acceptance Criteria
 
 - ✅ Every notification type the backend can send to a rider has a routing entry that lands on the correct screen.
-- ✅ Performance screen renders with live data from `/api/rider/performance` (or zero values when BLK is pending).
+- ✅ Performance screen renders with live data from `/rider/performance` (or zero values when BLK is pending).
 - ✅ Re-uploading an expiring document succeeds and updates the expiry.
 - ✅ Filing a ticket from `CreateTicketScreen` appears in admin's support dashboard.
 - ✅ Filing a dispute on a delivered request creates an audit-trail row visible to admin + customer.
 - ✅ Changing language to Hausa swaps every visible string.
 - ✅ Revoking another session from `SessionsScreen` invalidates that session's tokens on next API call.
-- ✅ Deleting the account from `SecuritySettingsScreen` requires confirmation, hits `DELETE /api/auth/account`, force-logs out.
+- ✅ Deleting the account from `SecuritySettingsScreen` requires confirmation, hits `DELETE /auth/account`, force-logs out.
 
 ### 7.4 Risks
 
@@ -1705,19 +1705,19 @@ Sentry tags: `role=RIDER`, `riderId`, `appVersion`, `osVersion`, `deviceModel`.
 
 | ID | What | Why | Blocks phase | Effort |
 |---|---|---|---|---|
-| **BLK-POD** | Add `Request.podPhotoUrl / podSignatureUrl / podDeliveryOtp / podCapturedAt`; `POST /api/requests/:id/pod-otp/generate`; settings `delivery.requirePodPhoto`, `delivery.requireSignature`, `delivery.podOtpThresholdNgn`. | Dispute defense; high-value verification | Phase 5 (MVP gate) | M |
+| **BLK-POD** | Add `Request.podPhotoUrl / podSignatureUrl / podDeliveryOtp / podCapturedAt`; `POST /requests/:id/pod-otp/generate`; settings `delivery.requirePodPhoto`, `delivery.requireSignature`, `delivery.podOtpThresholdNgn`. | Dispute defense; high-value verification | Phase 5 (MVP gate) | M |
 | BLK-PushOnApproval | Send FCM push + `notification:new` (type `RIDER_APPROVED` / `RIDER_REJECTED`) when admin approves / rejects a rider. | Reduce post-application limbo | Phase 1 (degrades to polling) | S |
-| BLK-PerformanceEndpoint | `GET /api/rider/performance` returning acceptance / cancellation / on-time / rating breakdown / streak. | Rider transparency + self-correction | Phase 7 | M |
-| **BLK-RiderKycExpansion** | Expand `Rider` KYC depth: add `driverLicenseNumber/Url/ExpiresAt`, `vehicleRegistrationUrl/ExpiresAt`, `insuranceCertificateUrl/ExpiresAt`, `idDocExpiresAt`, `vehiclePhotoExpiresAt`. Migration `expand_rider_kyc_documents` with 30-day grace backfill. `POST /api/rider/documents` accepts the new kinds. Cron pushes `DOC_EXPIRING_SOON` 14 days out. **Supersedes the prior BLK-DocExpiry.** | Legal exposure: current KYC depth (NIN slip + vehicle photo) is too thin for commercial rider liability after a real-world incident | Phase 1 (onboarding) + Phase 7 (re-upload) | M |
-| BLK-Beneficiaries | Confirm `GET/POST/DELETE /api/wallet/beneficiaries` allow RIDER. | Speed up repeat withdrawals | Phase 6 | XS |
+| BLK-PerformanceEndpoint | `GET /rider/performance` returning acceptance / cancellation / on-time / rating breakdown / streak. | Rider transparency + self-correction | Phase 7 | M |
+| **BLK-RiderKycExpansion** | Expand `Rider` KYC depth: add `driverLicenseNumber/Url/ExpiresAt`, `vehicleRegistrationUrl/ExpiresAt`, `insuranceCertificateUrl/ExpiresAt`, `idDocExpiresAt`, `vehiclePhotoExpiresAt`. Migration `expand_rider_kyc_documents` with 30-day grace backfill. `POST /rider/documents` accepts the new kinds. Cron pushes `DOC_EXPIRING_SOON` 14 days out. **Supersedes the prior BLK-DocExpiry.** | Legal exposure: current KYC depth (NIN slip + vehicle photo) is too thin for commercial rider liability after a real-world incident | Phase 1 (onboarding) + Phase 7 (re-upload) | M |
+| BLK-Beneficiaries | Confirm `GET/POST/DELETE /wallet/beneficiaries` allow RIDER. | Speed up repeat withdrawals | Phase 6 | XS |
 | BLK-SupportAutoTicket | System-generated ticket type `CUSTOMER_UNREACHABLE` after 3 failed call attempts. | Dispatch escalation | Phase 4 (fallback: manual ticket) | S |
-| BLK-AddressCorrection | `POST /api/requests/:id/address-correction { stage, note, lat, lng }`. | Field-truth corrections | Phase 4 (fallback: support ticket) | S |
-| BLK-OfferAck | Decision-only: HTTP `POST /api/rider/accept` is authoritative; socket emit decorative. Document in `docs/SOCKET_ARCHITECTURE.md`. | Avoid client-side ambiguity | Phase 3 | XS |
+| BLK-AddressCorrection | `POST /requests/:id/address-correction { stage, note, lat, lng }`. | Field-truth corrections | Phase 4 (fallback: support ticket) | S |
+| BLK-OfferAck | Decision-only: HTTP `POST /rider/accept` is authoritative; socket emit decorative. Document in `docs/SOCKET_ARCHITECTURE.md`. | Avoid client-side ambiguity | Phase 3 | XS |
 | BLK-RatingAggregate | Endpoint exposing aggregate rating breakdown to the rider. | Transparency | Phase 7 | S |
-| BLK-AvailabilityForceOffline | `POST /api/admin/riders/:riderId/force-offline` → `notification:new` `type=SYSTEM_FORCE_OFFLINE`. | Safety kill-switch | Phase 2 | S |
+| BLK-AvailabilityForceOffline | `POST /admin/riders/:riderId/force-offline` → `notification:new` `type=SYSTEM_FORCE_OFFLINE`. | Safety kill-switch | Phase 2 | S |
 | BLK-ChatNotifRouting | Confirm `notification:new` for `/requests/:id/messages` inbound carries `data.route='/trip/:id/chat'`. | Push deep-links into chat | Phase 4 | XS |
 | BLK-RiderSeedScript | `scripts/seed-rider.js` for QA — bypass KYC and create an APPROVED rider for local testing. | Faster verification | Verification plan | XS |
-| BLK-NinKyc | Confirm whether `POST /api/auth/kyc/verify-bvn` supports NIN-only verification for riders (the rider schema has `ninNumber`, not BVN). | Onboarding parity with schema | Phase 1 | S |
+| BLK-NinKyc | Confirm whether `POST /auth/kyc/verify-bvn` supports NIN-only verification for riders (the rider schema has `ninNumber`, not BVN). | Onboarding parity with schema | Phase 1 | S |
 | BLK-RiderCancel | Confirm a rider-initiated cancellation endpoint exists (vs. admin force-cancel + customer cancel). | Phase 4 cancel sheet | Phase 4 | S |
 
 ### 5.5 Risks & Mitigations

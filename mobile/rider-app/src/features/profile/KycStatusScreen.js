@@ -3,7 +3,7 @@
  *
  * Each tile renders the current state (Valid / Expiring soon / Expired /
  * Missing) and offers a "Re-upload" CTA. The picker → Cloudinary upload →
- * `POST /api/rider/documents` chain lives in `reuploadRiderDocument`
+ * `POST /rider/documents` chain lives in `reuploadRiderDocument`
  * (profileSlice). NIN is verified at onboarding and has no expiry.
  *
  * The 30-day grace banner for accounts migrated under BLK-RiderKycExpansion

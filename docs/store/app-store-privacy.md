@@ -69,7 +69,7 @@ This means **no AppTrackingTransparency prompt is required** for V1.
 ## Privacy Policy URL
 
 ```
-https://vtulogistics.com/legal/privacy
+https://iprime.ng/legal/privacy
 ```
 
 (This URL must resolve and contain the document at submission time —

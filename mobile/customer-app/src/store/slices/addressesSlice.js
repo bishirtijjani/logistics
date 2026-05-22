@@ -1,7 +1,7 @@
 /**
  * SavedAddresses slice — Phase 6.
  *
- * Mirrors `/api/addresses` (list/create/update/setDefault/delete). Used by
+ * Mirrors `/addresses` (list/create/update/setDefault/delete). Used by
  * SavedAddressesScreen as the canonical list AND by CreateRequest/Checkout
  * as the picker source.
  */

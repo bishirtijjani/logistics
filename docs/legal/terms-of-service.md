@@ -50,7 +50,7 @@ payment partner.
 ### 3.2 Account security
 - You're responsible for keeping your password and **transaction PIN** confidential. Anyone who knows your PIN can move funds out of your wallet — we have no way to reverse a PIN-authorized transaction made from your device.
 - We never ask for your password, PIN, OTP, or BVN over phone, SMS, email, or social media. Anyone who does is a scammer.
-- Notify us immediately at **contact@mhprime.ng** if you suspect unauthorized access. Sessions can be revoked in-app under Profile → Security → Active Sessions.
+- Notify us immediately at **contact@iprime.ng** if you suspect unauthorized access. Sessions can be revoked in-app under Profile → Security → Active Sessions.
 
 ### 3.3 One account per person
 You may not maintain multiple accounts to circumvent limits, abuse referral
@@ -302,7 +302,7 @@ Nigeria**, without reference to its conflict-of-laws principles.
 ## 16. Dispute resolution
 
 Before suing us:
-1. Email **contact@mhprime.ng** describing the issue. We have **30 days** to respond and try to resolve it informally.
+1. Email **contact@iprime.ng** describing the issue. We have **30 days** to respond and try to resolve it informally.
 2. If we can't resolve it informally, you and we agree to **mediation** in **Katsina State, Nigeria**, using a mediator we agree on (or one appointed by the local High Court if we can't agree).
 3. If mediation fails, you can bring a claim in the courts of **Katsina State, Nigeria**, which have exclusive jurisdiction.
 
@@ -323,8 +323,8 @@ date is authoritative.
 
 ## 18. Contact
 
-- **Support:** contact@mhprime.ng
-- **Disputes:** contact@mhprime.ng
+- **Support:** contact@iprime.ng
+- **Disputes:** contact@iprime.ng
 - **Postal:** MH Prime, 2, Liyafa Street, Katsina, Katsina State, Nigeria
 
 ---

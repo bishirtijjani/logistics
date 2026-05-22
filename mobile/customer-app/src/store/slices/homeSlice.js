@@ -1,7 +1,7 @@
 /**
  * Home slice — drives the Phase 6 HomeScreen widgets:
- *   - activeRequest from /api/requests/active (auto-updates via socket events)
- *   - banners from /api/banners
+ *   - activeRequest from /requests/active (auto-updates via socket events)
+ *   - banners from /banners
  *   - recentActivity = last few requests + wallet transactions interleaved by date
  *
  * Kept separate from `request` and `wallet` so HomeScreen can refresh its

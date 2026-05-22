@@ -2,7 +2,7 @@
 // addition. Legal pages are explicitly listed so search engines discover
 // them (Apple / Google store review also fetches the URLs we declare, but
 // they don't need to be indexed).
-const SITE = "https://vtulogistics.com";
+const SITE = "https://iprime.ng";
 
 export default function sitemap() {
   const now = new Date();
@@ -12,6 +12,18 @@ export default function sitemap() {
       lastModified: now,
       changeFrequency: "monthly",
       priority: 1,
+    },
+    {
+      url: `${SITE}/merchants`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${SITE}/riders`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
     },
     {
       url: `${SITE}/careers`,

@@ -2,8 +2,8 @@
  * Support controller — HTTP handlers for tickets and disputes.
  *
  * User-side endpoints serve customers, merchants, and (eventually) riders.
- * Admin-side endpoints mirror the existing /api/admin/disputes and
- * /api/admin/support/tickets paths but now have a real backing model.
+ * Admin-side endpoints mirror the existing /admin/disputes and
+ * /admin/support/tickets paths but now have a real backing model.
  */
 
 const supportService = require('./support.service');

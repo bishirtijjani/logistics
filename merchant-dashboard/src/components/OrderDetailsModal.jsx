@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { 
   X, 
   Phone, 
@@ -36,7 +37,7 @@ export default function OrderDetailsModal({ order, onClose }) {
   const handleSaveNotes = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/orders/${order.id}/notes`, {
+      const response = await fetch(`${API_URL}/orders/${order.id}/notes`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -61,7 +62,7 @@ export default function OrderDetailsModal({ order, onClose }) {
   const handleSaveInstructions = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/orders/${order.id}/instructions`, {
+      const response = await fetch(`${API_URL}/orders/${order.id}/instructions`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -86,7 +87,7 @@ export default function OrderDetailsModal({ order, onClose }) {
   const handleSavePriority = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/orders/${order.id}/priority`, {
+      const response = await fetch(`${API_URL}/orders/${order.id}/priority`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -113,7 +114,7 @@ export default function OrderDetailsModal({ order, onClose }) {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/orders/${order.id}/comments`, {
+      const response = await fetch(`${API_URL}/orders/${order.id}/comments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -145,7 +146,7 @@ export default function OrderDetailsModal({ order, onClose }) {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/orders/${order.id}/comments/${commentId}`, {
+      const response = await fetch(`${API_URL}/orders/${order.id}/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

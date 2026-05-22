@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { API_URL } from '../lib/api'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   fetchSalesSummary,
@@ -141,7 +142,7 @@ export default function AnalyticsPage() {
       }
 
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/merchants/${merchantId}/analytics/export?${new URLSearchParams(params)}`, {
+      const response = await fetch(`${API_URL}/merchants/${merchantId}/analytics/export?${new URLSearchParams(params)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

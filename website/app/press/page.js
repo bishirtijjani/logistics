@@ -26,7 +26,7 @@ const facts = [
   { Icon: Truck, label: "Service area", value: "Katsina State" },
   { Icon: Wallet, label: "Core products", value: "Delivery · Wallet · Bills" },
   { Icon: Smartphone, label: "Apps", value: "Customer · Rider · Merchant" },
-  { Icon: Mail, label: "Press contact", value: "press@vtulogistics.com" },
+  { Icon: Mail, label: "Press contact", value: "press@iprime.ng" },
 ];
 
 const oneLiners = [
@@ -48,22 +48,22 @@ const assets = [
   {
     title: "Logo — primary (PNG)",
     desc: "Burnt-orange iPrime mark on transparent background.",
-    href: "mailto:press@vtulogistics.com?subject=Press%20kit%20%E2%80%94%20logo%20request",
+    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20logo%20request",
   },
   {
     title: "Logo — monochrome (SVG)",
     desc: "Single-colour SVG for print and dark backgrounds.",
-    href: "mailto:press@vtulogistics.com?subject=Press%20kit%20%E2%80%94%20logo%20request",
+    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20logo%20request",
   },
   {
     title: "App screenshots",
     desc: "Customer, rider, and merchant app shots at 3x retina.",
-    href: "mailto:press@vtulogistics.com?subject=Press%20kit%20%E2%80%94%20screenshots",
+    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20screenshots",
   },
   {
     title: "Founder headshots",
     desc: "High-res portraits for editorial use.",
-    href: "mailto:press@vtulogistics.com?subject=Press%20kit%20%E2%80%94%20headshots",
+    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20headshots",
   },
 ];
 
@@ -89,10 +89,10 @@ export default function PressPage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="mailto:press@vtulogistics.com?subject=Press%20enquiry"
+                  href="mailto:press@iprime.ng?subject=Press%20enquiry"
                   className="ui-btn ui-btn-primary"
                 >
-                  Email press@vtulogistics.com
+                  Email press@iprime.ng
                   <ArrowRight size={16} strokeWidth={2.5} />
                 </a>
                 <a href="#assets" className="ui-btn ui-btn-ghost">
@@ -232,10 +232,10 @@ export default function PressPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:press@vtulogistics.com?subject=Press%20enquiry%20%E2%80%94%20%5BOutlet%5D"
+                    href="mailto:press@iprime.ng?subject=Press%20enquiry%20%E2%80%94%20%5BOutlet%5D"
                     className="ui-btn ui-btn-primary"
                   >
-                    press@vtulogistics.com
+                    press@iprime.ng
                     <Mail size={16} strokeWidth={2.5} />
                   </a>
                   <Link href="/#contact" className="ui-btn ui-btn-ghost">

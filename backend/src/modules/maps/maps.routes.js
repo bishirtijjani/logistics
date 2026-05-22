@@ -1,5 +1,5 @@
 /**
- * Maps routes — /api/maps
+ * Maps routes — /maps
  */
 
 const { Router } = require("express");

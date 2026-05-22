@@ -6,7 +6,7 @@ import api from "../../services/api";
  * per-request breakdown. Drives `EarningsDashboardScreen`,
  * `EarningsBreakdownScreen`, and the cockpit's settlement animation.
  *
- * Server payload (Phase 6 — `GET /api/rider/earnings?page=N&limit=N`):
+ * Server payload (Phase 6 — `GET /rider/earnings?page=N&limit=N`):
  *   {
  *     summary: { today, week, month, allTime }, // each { amount, count }
  *     daily:   [{ date: 'YYYY-MM-DD', amount, count }, ...],

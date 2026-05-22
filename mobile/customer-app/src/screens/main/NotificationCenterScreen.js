@@ -1,7 +1,7 @@
 /**
  * NotificationCenterScreen — Phase 5 in-app notification feed.
  *
- * Reads from /api/notifications, live-updates via the `notification:new`
+ * Reads from /notifications, live-updates via the `notification:new`
  * socket event, and deep-links to the relevant screen on tap.
  */
 

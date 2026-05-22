@@ -32,11 +32,11 @@
 **Implementation:**
 ```javascript
 // New analytics endpoints needed
-GET /api/admin/analytics/revenue
-GET /api/admin/analytics/orders
-GET /api/admin/analytics/customers
-GET /api/admin/analytics/geographic
-GET /api/admin/analytics/realtime
+GET /admin/analytics/revenue
+GET /admin/analytics/orders
+GET /admin/analytics/customers
+GET /admin/analytics/geographic
+GET /admin/analytics/realtime
 ```
 
 ### **1.2 Performance Benchmarking**
@@ -63,10 +63,10 @@ GET /api/admin/analytics/realtime
 **Implementation:**
 ```javascript
 // New withdrawal endpoints
-GET /api/admin/withdrawals/pending
-POST /api/admin/withdrawals/:id/approve
-POST /api/admin/withdrawals/:id/reject
-GET /api/admin/withdrawals/history
+GET /admin/withdrawals/pending
+POST /admin/withdrawals/:id/approve
+POST /admin/withdrawals/:id/reject
+GET /admin/withdrawals/history
 ```
 
 ### **2.2 Dispute Resolution System**
@@ -200,13 +200,13 @@ GET /api/admin/withdrawals/history
 ### **Backend API Extensions**
 ```javascript
 // New admin routes needed
-/api/admin/analytics/*
-/api/admin/financials/*
-/api/admin/support/*
-/api/admin/marketing/*
-/api/admin/riders/*
-/api/admin/safety/*
-/api/admin/system/*
+/admin/analytics/*
+/admin/financials/*
+/admin/support/*
+/admin/marketing/*
+/admin/riders/*
+/admin/safety/*
+/admin/system/*
 ```
 
 ### **Frontend Components**

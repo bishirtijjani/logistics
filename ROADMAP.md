@@ -36,7 +36,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ `rateRequest` with rating updates
 - ✅ Create `request.controller.js` with HTTP handlers
 - ✅ Create `request.routes.js` with REST endpoints
-- ✅ Register routes in `app.js` under `/api/requests`
+- ✅ Register routes in `app.js` under `/requests`
 
 ### Backend — Merchant Module
 - ✅ Create `merchant.validator.js` with Zod schemas:
@@ -56,7 +56,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ `updateMerchantCommission` for admin
 - ✅ Create `merchant.controller.js` with HTTP handlers
 - ✅ Create `merchant.routes.js` with REST endpoints
-- ✅ Register routes in `app.js` under `/api/merchants`
+- ✅ Register routes in `app.js` under `/merchants`
 
 ### Backend — Queue Jobs
 - ✅ Add `REQUEST` queue to `jobs.js`
@@ -128,17 +128,17 @@ This document outlines the implementation roadmap for the unified request archit
 - ❌ Test foreign key relationships (not tested)
 
 ### Backend — Testing
-- ❌ Test `/api/requests` POST endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/requests` GET endpoint with filters (skipped - user won't test until Phase 5)
-- ❌ Test `/api/requests/:id` GET endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/requests/:id/status` PATCH endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/requests/:id` DELETE endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/requests/:id/rate` POST endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/merchants` GET endpoint with location filtering (skipped - user won't test until Phase 5)
-- ❌ Test `/api/merchants/:id` GET endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/merchants/:id` PATCH endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/merchants/:id/wallet` GET endpoint (skipped - user won't test until Phase 5)
-- ❌ Test `/api/merchants/:id/orders` GET endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/requests` POST endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/requests` GET endpoint with filters (skipped - user won't test until Phase 5)
+- ❌ Test `/requests/:id` GET endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/requests/:id/status` PATCH endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/requests/:id` DELETE endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/requests/:id/rate` POST endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/merchants` GET endpoint with location filtering (skipped - user won't test until Phase 5)
+- ❌ Test `/merchants/:id` GET endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/merchants/:id` PATCH endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/merchants/:id/wallet` GET endpoint (skipped - user won't test until Phase 5)
+- ❌ Test `/merchants/:id/orders` GET endpoint (skipped - user won't test until Phase 5)
 
 ### Frontend — Checkout Flow
 - ✅ Create `CheckoutScreen.js`:
@@ -341,7 +341,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Get order history (getMerchantOrderHistory)
   - ✅ Get earnings breakdown (getMerchantEarningsBreakdown)
 - ✅ Add Zod validation schemas for all merchant endpoints
-- ✅ Register merchant routes in merchant.routes.js under /api/merchants/merchant
+- ✅ Register merchant routes in merchant.routes.js under /merchants/merchant
 
 ### Frontend — Merchant Dashboard (Web)
 - ✅ Set up React web app with Vite
@@ -401,7 +401,7 @@ This document outlines the implementation roadmap for the unified request archit
 
 ### Package Delivery Refinement
 - [ ] Integrate package delivery with unified request system
-- [ ] Update package creation to use `/api/requests` with type='PACKAGE'
+- [ ] Update package creation to use `/requests` with type='PACKAGE'
 - [ ] Update package tracking to use unified tracking screen
 - [ ] Add package-specific fields (size, weight, description)
 - [ ] Test end-to-end package flow

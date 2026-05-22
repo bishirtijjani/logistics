@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { useNavigate, Link } from 'react-router-dom'
 import { Store, User, MapPin, Clock, ArrowRight, ArrowLeft, Check, AlertCircle } from 'lucide-react'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
@@ -47,7 +48,7 @@ export default function RegistrationPage() {
     setCategoriesLoading(true)
     setCategoriesError('')
     try {
-      const res = await fetch('/api/categories')
+      const res = await fetch(`${API_URL}/categories`)
       if (!res.ok) throw new Error('Failed to load categories')
       const json = await res.json()
       setCategories(json.data || [])
@@ -152,7 +153,7 @@ export default function RegistrationPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/merchant/register', {
+      const response = await fetch(`${API_URL}/auth/merchant/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,7 +195,7 @@ export default function RegistrationPage() {
     setOtpError('')
 
     try {
-      const response = await fetch('/api/auth/otp/verify', {
+      const response = await fetch(`${API_URL}/auth/otp/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,7 +231,7 @@ export default function RegistrationPage() {
     setOtpError('')
 
     try {
-      const response = await fetch('/api/auth/otp/send', {
+      const response = await fetch(`${API_URL}/auth/otp/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

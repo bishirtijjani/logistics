@@ -167,10 +167,10 @@ SETTLED
 ### 3. `docs/API_CONTRACT.md`
 **Purpose:** Complete API specification
 **Key endpoints:**
-- `/api/requests` — Unified request CRUD
-- `/api/merchants` — Merchant browsing and management
-- `/api/merchant/wallet` — Merchant earnings
-- `/api/search` — Universal search
+- `/requests` — Unified request CRUD
+- `/merchants` — Merchant browsing and management
+- `/merchant/wallet` — Merchant earnings
+- `/search` — Universal search
 
 ### 5. `CONVENTIONS.md` (Updated)
 **Added:**
@@ -328,8 +328,8 @@ Riders see:
 ### Backward Compatibility
 
 During migration:
-1. Keep v1 endpoints working (`/api/delivery/*`)
-2. Run unified system (`/api/requests/*`)
+1. Keep v1 endpoints working (`/delivery/*`)
+2. Run unified system (`/requests/*`)
 3. Migrate data from `DeliveryOrder` → `Request`
 4. Update apps to use unified system
 5. Deprecate v1 after 30 days

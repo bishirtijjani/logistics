@@ -1,6 +1,6 @@
 # Two riders compete for the same offer. The staging helper script
 # `simulate-offer-race.sh` enqueues an offer and immediately calls
-# /api/rider/accept as a sibling rider, so the rider running this flow
+# /rider/accept as a sibling rider, so the rider running this flow
 # sees a 409 OFFER_TAKEN when they tap Accept.
 appId: ng.iprime.rider
 env:

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { Shield, Smartphone, Mail, CheckCircle, AlertCircle, Copy, RefreshCw } from 'lucide-react'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 
@@ -26,7 +27,7 @@ export default function TwoFactorAuth({
 
   const setupTOTP = async () => {
     try {
-      const response = await fetch('/api/auth/2fa/setup', {
+      const response = await fetch(`${API_URL}/auth/2fa/setup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +77,7 @@ export default function TwoFactorAuth({
   const handleVerify = async (verificationCode) => {
     setLoading(true)
     try {
-      const endpoint = setupMode ? '/api/auth/2fa/verify-setup' : '/api/auth/2fa/verify'
+      const endpoint = setupMode ? `${API_URL}/auth/2fa/verify-setup` : `${API_URL}/auth/2fa/verify`
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -107,7 +108,7 @@ export default function TwoFactorAuth({
   const handleResend = async () => {
     setResending(true)
     try {
-      const response = await fetch('/api/auth/2fa/resend', {
+      const response = await fetch(`${API_URL}/auth/2fa/resend`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

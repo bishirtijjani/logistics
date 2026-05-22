@@ -285,7 +285,7 @@ REQUESTED → ACCEPTED → PROCESSING → READY_FOR_PICKUP → RIDER_ASSIGNED �
 
 ### API Rules (Request Endpoints)
 
-- Use `/api/requests` for ALL request operations.
+- Use `/requests` for ALL request operations.
 - Do NOT create separate `/food/orders`, `/grocery/orders`, `/delivery/orders` endpoints.
 - The `type` field in the request body determines the business logic.
 

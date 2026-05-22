@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_URL } from '../lib/api'
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -210,7 +211,7 @@ export default function EarningsPage() {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `/api/merchants/${merchantId}/withdrawals/${withdrawalId}/cancel`,
+          `${API_URL}/merchants/${merchantId}/withdrawals/${withdrawalId}/cancel`,
           {
             method: "POST",
             headers: {

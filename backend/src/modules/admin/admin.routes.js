@@ -1,5 +1,5 @@
 /**
- * Admin routes — /api/admin
+ * Admin routes — /admin
  * All routes require ADMIN role.
  */
 

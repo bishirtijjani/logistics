@@ -22,9 +22,9 @@ import { useTheme } from "../../theme";
 // stable across releases — coordinate a migration if the marketing domain
 // ever moves to a brand-aligned host.
 const URLS = {
-  terms: "https://vtulogistics.com/legal/terms",
-  privacy: "https://vtulogistics.com/legal/privacy",
-  about: "https://vtulogistics.com",
+  terms: "https://iprime.ng/legal/terms",
+  privacy: "https://iprime.ng/legal/privacy",
+  about: "https://iprime.ng",
 };
 
 export default function LegalScreen() {

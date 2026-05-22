@@ -6,6 +6,6 @@ export default function robots() {
         allow: "/",
       },
     ],
-    sitemap: "https://vtulogistics.com/sitemap.xml",
+    sitemap: "https://iprime.ng/sitemap.xml",
   };
 }

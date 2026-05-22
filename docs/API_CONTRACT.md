@@ -41,7 +41,7 @@
 
 ---
 
-## Authentication — `/api/auth`
+## Authentication — `/auth`
 
 ### POST `/auth/register`
 Register a new customer or rider account.
@@ -161,7 +161,7 @@ Delete account permanently.
 
 ---
 
-## Wallet — `/api/wallet`
+## Wallet — `/wallet`
 
 > Most wallet routes require authentication. `GET /banks` is public.
 
@@ -248,7 +248,7 @@ Get printable receipt for a transaction.
 
 ---
 
-## Requests — `/api/requests`
+## Requests — `/requests`
 
 The unified endpoint for all request types: `FOOD`, `GROCERY`, `PHARMACY`, `PACKAGE`.
 
@@ -366,7 +366,7 @@ Rate a completed request.
 
 ---
 
-## Merchants — `/api/merchants`
+## Merchants — `/merchants`
 
 > 🔒 All routes require authentication.
 
@@ -433,7 +433,7 @@ Toggle merchant open/closed status.
 
 ---
 
-## Utilities — `/api/utilities`
+## Utilities — `/utilities`
 
 > 🔒 👤 All routes: CUSTOMER role + authentication. All purchases require PIN.
 
@@ -500,7 +500,7 @@ Bill payment history. **Query:** `page`, `limit`, `type`
 
 ---
 
-## Rider — `/api/rider`
+## Rider — `/rider`
 
 > 🔒 Authentication required.
 
@@ -540,7 +540,7 @@ Accept a job. Prefer Socket.io `rider:job:accept` for real-time flow.
 
 ---
 
-## Admin — `/api/admin`
+## Admin — `/admin`
 
 > 🔒 🔑 All routes: ADMIN role + authentication.
 
@@ -632,7 +632,7 @@ Platform summary: revenue, active requests, users, riders, merchants.
 
 ---
 
-## Maps — `/api/maps`
+## Maps — `/maps`
 
 > No authentication required (used in address picker before login).
 
@@ -665,7 +665,7 @@ Convert coordinates to a human-readable address.
 
 ---
 
-## Webhooks — `/api/webhooks`
+## Webhooks — `/webhooks`
 
 > No JWT authentication. Verified via provider-specific signatures.
 
@@ -674,8 +674,8 @@ Receives wallet funding (virtual account credits) and withdrawal status events f
 
 ---
 
-## Delivery — `/api/delivery` *(Legacy)*
+## Delivery — `/delivery` *(Legacy)*
 
-> **Deprecated.** This module is kept for backward compatibility during migration. New clients must use `/api/requests` instead.
+> **Deprecated.** This module is kept for backward compatibility during migration. New clients must use `/requests` instead.
 
-The `/api/delivery` endpoints map to the same `Request` model under the hood. They will be removed in a future release. See `docs/UNIFIED_REQUEST_ARCHITECTURE.md` for migration details.
+The `/delivery` endpoints map to the same `Request` model under the hood. They will be removed in a future release. See `docs/UNIFIED_REQUEST_ARCHITECTURE.md` for migration details.

@@ -11,7 +11,7 @@ import { newIdempotencyKey } from "../../services/idempotency";
  *   - User taps Accept → acceptOffer thunk runs:
  *       1. status = 'accepting'
  *       2. Optimistic socket emit `rider:job:accept` (server treats HTTP as truth).
- *       3. HTTP `POST /api/rider/accept` with Idempotency-Key.
+ *       3. HTTP `POST /rider/accept` with Idempotency-Key.
  *       4. 200 → status = 'accepted'; the parent component dispatches
  *          tripSlice.activateFromAcceptedRequest(payload) and dismisses the overlay.
  *       5. 409 OFFER_TAKEN → status = 'taken' (auto-dismiss after 2 s in UI).

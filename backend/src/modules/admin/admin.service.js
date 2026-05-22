@@ -1560,7 +1560,7 @@ const getPlatformSettings = async () => {
     defaultRiderCommission: 10,
     minDeliveryFee: 500,
     maxDeliveryFee: 5000,
-    supportEmail: 'support@vtulogistics.com',
+    supportEmail: 'support@iprime.ng',
     supportPhone: '+2348000000000',
     emailNotifications: true,
     pushNotifications: true,

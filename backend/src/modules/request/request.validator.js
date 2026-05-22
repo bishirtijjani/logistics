@@ -84,7 +84,7 @@ const createRequestSchema = z.object({
   // Payment method
   paymentMethod: z.enum(['WALLET', 'CASH', 'CARD']).default('WALLET'),
 
-  // Signed quote token from POST /api/requests/quote.
+  // Signed quote token from POST /requests/quote.
   // Server re-verifies signature + TTL + locked numbers before persisting.
   quoteToken: z.string().min(20),
 }).refine((data) => {
@@ -124,7 +124,7 @@ const updateStatusSchema = z.object({
   podDeliveryOtp: z.string().regex(/^\d{6}$/, 'OTP must be 6 digits').optional(),
 });
 
-// Phase 5 — body shape for `POST /api/requests/:id/pod-otp/generate`.
+// Phase 5 — body shape for `POST /requests/:id/pod-otp/generate`.
 // The endpoint takes no request body, but we declare a schema for the
 // idempotency middleware's body-hash to be deterministic.
 const podOtpGenerateSchema = z.object({}).passthrough();

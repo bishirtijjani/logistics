@@ -1,5 +1,5 @@
 /**
- * Rider routes — /api/rider
+ * Rider routes — /rider
  */
 
 const { Router } = require('express');

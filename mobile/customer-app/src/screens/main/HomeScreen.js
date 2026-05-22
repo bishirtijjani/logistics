@@ -38,7 +38,7 @@ import {
 import Toast from "react-native-toast-message";
 
 // UNIFIED REQUEST ARCHITECTURE
-// Everything is a Request. The category list is data-driven from /api/categories;
+// Everything is a Request. The category list is data-driven from /categories;
 // PACKAGE is the only static tile (no merchant — pure courier).
 
 // Home shows only these top-level categories; everything else lives behind
@@ -886,7 +886,7 @@ export default function HomeScreen({ navigation }) {
           })()}
         </View>
 
-        {/* Promo Banner — admin-managed via /api/banners.
+        {/* Promo Banner — admin-managed via /banners.
             Hidden entirely when no banners are eligible (per spec). */}
         {banners.length > 0 && (
           <PromoBanner banner={banners[0]} navigation={navigation} />
@@ -1192,7 +1192,7 @@ function ActiveRequestBanner({ request, navigation }) {
   );
 }
 
-// Phase 6 — promo banner sourced from /api/banners. Tap deep-links via
+// Phase 6 — promo banner sourced from /banners. Tap deep-links via
 // `banner.deepLink` (matches notify.service route conventions) or via an
 // in-app screen name.
 function PromoBanner({ banner, navigation }) {

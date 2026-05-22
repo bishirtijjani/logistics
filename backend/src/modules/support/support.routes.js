@@ -1,8 +1,8 @@
 /**
- * Support routes — /api/support
+ * Support routes — /support
  * User-facing endpoints for tickets and disputes.
  *
- * Admin endpoints live under /api/admin/* and are wired in admin.routes.js
+ * Admin endpoints live under /admin/* and are wired in admin.routes.js
  * (delegated to this module's controller to keep paths backward-compatible).
  */
 

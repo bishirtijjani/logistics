@@ -106,7 +106,7 @@ export default function BankingPartnersPage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="mailto:partnerships@vtulogistics.com?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
+                  href="mailto:partnerships@iprime.ng?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
                   className="ui-btn ui-btn-primary"
                 >
                   Email partnerships
@@ -290,10 +290,10 @@ export default function BankingPartnersPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:partnerships@vtulogistics.com?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
+                    href="mailto:partnerships@iprime.ng?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
                     className="ui-btn ui-btn-primary"
                   >
-                    partnerships@vtulogistics.com
+                    partnerships@iprime.ng
                     <ArrowRight size={16} strokeWidth={2.5} />
                   </a>
                   <Link

@@ -18,7 +18,7 @@ export const STATUS = Object.freeze({
 });
 
 /**
- * Status transitions the rider client drives via PATCH /api/requests/:id/status.
+ * Status transitions the rider client drives via PATCH /requests/:id/status.
  * Used by `StatusActionButton` to decide which button label + next status to fire.
  */
 export const RIDER_NEXT_ACTION = Object.freeze({

@@ -8,7 +8,7 @@ import { AVAILABILITY } from '../../lib/constants';
  * Rider slice — availability, presence, location streaming, performance.
  *
  * Public thunks:
- *   - fetchRiderProfile()        → GET /api/rider/profile
+ *   - fetchRiderProfile()        → GET /rider/profile
  *   - goOnline()                 → permission + PATCH ONLINE + start GPS stream
  *   - goOffline({ reason? })     → stop stream + PATCH OFFLINE
  *   - setOnDelivery(bool)        → switch stream cadence; doesn't touch availability

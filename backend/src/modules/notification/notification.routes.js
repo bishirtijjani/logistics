@@ -6,16 +6,16 @@ const router = Router();
 
 router.use(authenticate);
 
-// GET /api/notifications?page=&limit=&unread=true
+// GET /notifications?page=&limit=&unread=true
 router.get('/', controller.listNotifications);
 
-// GET /api/notifications/unread-count
+// GET /notifications/unread-count
 router.get('/unread-count', controller.getUnreadCount);
 
-// PATCH /api/notifications/read-all  (must come before /:id/read for correctness)
+// PATCH /notifications/read-all  (must come before /:id/read for correctness)
 router.patch('/read-all', controller.markAllRead);
 
-// PATCH /api/notifications/:id/read
+// PATCH /notifications/:id/read
 router.patch('/:id/read', controller.markRead);
 
 module.exports = router;

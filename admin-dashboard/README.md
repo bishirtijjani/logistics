@@ -125,44 +125,44 @@ VITE_API_BASE_URL=http://localhost:3000/api
 
 ## API Integration
 
-The admin dashboard communicates with the backend API via `/api/admin` endpoints. All requests require authentication with an admin JWT token.
+The admin dashboard communicates with the backend API via `/admin` endpoints. All requests require authentication with an admin JWT token.
 
 ### API Endpoints
 
 #### Dashboard
-- `GET /api/admin/dashboard` - Get dashboard statistics
+- `GET /admin/dashboard` - Get dashboard statistics
 
 #### Requests
-- `GET /api/admin/requests` - Get all requests (with filters)
-- `PATCH /api/admin/requests/:requestId/reassign` - Reassign rider
-- `PATCH /api/admin/requests/:requestId/cancel` - Force cancel request
-- `PATCH /api/admin/requests/:requestId/status` - Update request status
+- `GET /admin/requests` - Get all requests (with filters)
+- `PATCH /admin/requests/:requestId/reassign` - Reassign rider
+- `PATCH /admin/requests/:requestId/cancel` - Force cancel request
+- `PATCH /admin/requests/:requestId/status` - Update request status
 
 #### Merchants
-- `GET /api/admin/merchants` - Get all merchants (with filters)
-- `PATCH /api/admin/merchants/:merchantId/approve` - Approve merchant
-- `PATCH /api/admin/merchants/:merchantId/reject` - Reject merchant
-- `PATCH /api/admin/merchants/:merchantId/suspend` - Suspend merchant
-- `PATCH /api/admin/merchants/:merchantId/unsuspend` - Unsuspend merchant
-- `PATCH /api/admin/merchants/:merchantId/commission` - Update commission rate
+- `GET /admin/merchants` - Get all merchants (with filters)
+- `PATCH /admin/merchants/:merchantId/approve` - Approve merchant
+- `PATCH /admin/merchants/:merchantId/reject` - Reject merchant
+- `PATCH /admin/merchants/:merchantId/suspend` - Suspend merchant
+- `PATCH /admin/merchants/:merchantId/unsuspend` - Unsuspend merchant
+- `PATCH /admin/merchants/:merchantId/commission` - Update commission rate
 
 #### Riders
-- `GET /api/admin/riders` - Get all riders (with filters)
-- `GET /api/admin/riders/pending` - Get pending riders
-- `PATCH /api/admin/riders/:riderId/review` - Review rider (approve/reject)
-- `GET /api/admin/riders/:riderId/earnings` - Get rider earnings
-- `GET /api/admin/riders/:riderId/deliveries` - Get rider delivery history
+- `GET /admin/riders` - Get all riders (with filters)
+- `GET /admin/riders/pending` - Get pending riders
+- `PATCH /admin/riders/:riderId/review` - Review rider (approve/reject)
+- `GET /admin/riders/:riderId/earnings` - Get rider earnings
+- `GET /admin/riders/:riderId/deliveries` - Get rider delivery history
 
 #### Users
-- `GET /api/admin/users` - Get all users (with filters)
-- `PATCH /api/admin/users/:userId/status` - Update user status (suspend/unsuspend)
+- `GET /admin/users` - Get all users (with filters)
+- `PATCH /admin/users/:userId/status` - Update user status (suspend/unsuspend)
 
 #### Transactions
-- `GET /api/admin/transactions` - Get all transactions (with filters)
+- `GET /admin/transactions` - Get all transactions (with filters)
 
 #### Settings
-- `GET /api/admin/settings` - Get platform settings
-- `PATCH /api/admin/settings` - Update platform settings
+- `GET /admin/settings` - Get platform settings
+- `PATCH /admin/settings` - Update platform settings
 
 ## Redux State Management
 

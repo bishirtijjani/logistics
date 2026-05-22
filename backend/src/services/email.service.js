@@ -255,7 +255,7 @@ const emailBase = (content) => `
           <tr>
             <td style="padding:0 32px 28px;text-align:center;border-top:1px solid #f3f4f6;">
               <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} iPrime. All rights reserved.</p>
-              <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@vtulogistics.com" style="color:#EA580C;text-decoration:none;">support@vtulogistics.com</a></p>
+              <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@iprime.ng" style="color:#EA580C;text-decoration:none;">support@iprime.ng</a></p>
             </td>
           </tr>
         </table>
@@ -329,7 +329,7 @@ const sendMerchantRejectedEmail = async (email, merchantName, reason) => {
     </div>
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you believe this decision was made in error, please contact us at
-      <a href="mailto:support@vtulogistics.com" style="color:#EA580C;">support@vtulogistics.com</a>.
+      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>.
     </p>
   `);
 
@@ -337,7 +337,7 @@ const sendMerchantRejectedEmail = async (email, merchantName, reason) => {
     to: email,
     subject: `Update on your iPrime merchant application`,
     html,
-    text: `Dear ${merchantName}, your merchant application was not approved. Reason: ${reason}. Please contact support@vtulogistics.com for more information.`,
+    text: `Dear ${merchantName}, your merchant application was not approved. Reason: ${reason}. Please contact support@iprime.ng for more information.`,
   });
 };
 
@@ -355,7 +355,7 @@ const sendMerchantSuspendedEmail = async (email, merchantName, reason) => {
     ${infoBox('#f59e0b', '#fffbeb', [['Suspension Reason', reason || 'Account review in progress.']])}
     <p style="margin:20px 0;font-size:14px;color:#6b7280;line-height:1.6;">
       To appeal this decision or get more information, please contact our merchant support team at
-      <a href="mailto:support@vtulogistics.com" style="color:#EA580C;">support@vtulogistics.com</a>
+      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>
       or call <strong>+234-800-000-0000</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#9ca3af;">We aim to resolve all suspensions as quickly as possible.</p>
@@ -365,7 +365,7 @@ const sendMerchantSuspendedEmail = async (email, merchantName, reason) => {
     to: email,
     subject: `Important: Your iPrime merchant account has been suspended`,
     html,
-    text: `Dear ${merchantName}, your merchant account has been suspended. Reason: ${reason}. Contact support@vtulogistics.com to appeal.`,
+    text: `Dear ${merchantName}, your merchant account has been suspended. Reason: ${reason}. Contact support@iprime.ng to appeal.`,
   });
 };
 
@@ -416,7 +416,7 @@ const sendWithdrawalApprovedEmail = async (email, merchantName, amount, referenc
     ])}
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you don't receive the funds within 24 hours, please contact us at
-      <a href="mailto:support@vtulogistics.com" style="color:#EA580C;">support@vtulogistics.com</a>
+      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>
       quoting your reference number.
     </p>
   `);
@@ -449,7 +449,7 @@ const sendWithdrawalRejectedEmail = async (email, merchantName, amount, reason) 
     </div>
     <p style="margin:0;font-size:14px;color:#6b7280;">
       To retry, log in to your dashboard and submit a new withdrawal request. If you need assistance,
-      contact <a href="mailto:support@vtulogistics.com" style="color:#EA580C;">support@vtulogistics.com</a>.
+      contact <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>.
     </p>
   `);
 
@@ -481,7 +481,7 @@ const sendCommissionChangedEmail = async (email, merchantName, previousRate, new
     ])}
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you have questions about this change, please contact your account manager or reach us at
-      <a href="mailto:support@vtulogistics.com" style="color:#EA580C;">support@vtulogistics.com</a>.
+      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>.
     </p>
   `);
 

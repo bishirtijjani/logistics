@@ -179,7 +179,7 @@ You have the right to:
 - **Withdraw consent** to marketing or optional features at any time
 - **Lodge a complaint** with the **Nigeria Data Protection Commission (NDPC)** at https://ndpc.gov.ng
 
-To exercise any of these rights, email **contact@mhprime.ng**. We respond within
+To exercise any of these rights, email **contact@iprime.ng**. We respond within
 30 days as required by the NDPA. Identity verification may be required for
 sensitive requests to prevent account takeover.
 
@@ -221,8 +221,8 @@ they take effect. The "Last updated" date at the top is authoritative.
 
 ## 11. Contact us
 
-- **General support:** contact@mhprime.ng
-- **Data Protection Officer (DPO):** contact@mhprime.ng
+- **General support:** contact@iprime.ng
+- **Data Protection Officer (DPO):** contact@iprime.ng
 - **Postal:** MH Prime, 2, Liyafa Street, Katsina, Katsina State, Nigeria
 - **NDPC:** https://ndpc.gov.ng — if you believe we have not handled your data correctly
 

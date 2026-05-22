@@ -14,8 +14,8 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "iPrime",
-  url: "https://vtulogistics.com",
-  logo: "https://vtulogistics.com/favicon.ico",
+  url: "https://iprime.ng",
+  logo: "https://iprime.ng/favicon.ico",
   description:
     "Wallet, utilities, and delivery super-app for Katsina State, Nigeria.",
   address: {
@@ -25,7 +25,7 @@ const organizationSchema = {
   },
   contactPoint: {
     "@type": "ContactPoint",
-    email: "hello@vtulogistics.com",
+    email: "hello@iprime.ng",
     contactType: "customer support",
     areaServed: "NG",
   },

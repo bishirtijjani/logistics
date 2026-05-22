@@ -36,7 +36,7 @@ function Recenter({ lat, lng }) {
 /**
  * Pin a merchant location on a map and capture address + coordinates together
  * so the address text and the lat/lng can't drift apart. Uses the existing
- * /api/maps backend endpoints (Google Places under the hood) for search +
+ * /maps backend endpoints (Google Places under the hood) for search +
  * reverse-geocode; the embedded map is OpenStreetMap tiles so no browser-side
  * Google Maps key is required.
  *

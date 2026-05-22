@@ -23,7 +23,7 @@ const OTP_LENGTH = 6;
 /**
  * DeliveryOtpInputSheet — rider enters the 6-digit code the customer reads
  * aloud. The sheet also hosts the "Send code to customer" CTA which calls
- * `POST /api/requests/:id/pod-otp/generate` (rate-limited to 3/10min on the
+ * `POST /requests/:id/pod-otp/generate` (rate-limited to 3/10min on the
  * server). On submit, the parent's `onSubmit(otp)` callback runs — typically
  * the cockpit's "complete delivery" thunk.
  *

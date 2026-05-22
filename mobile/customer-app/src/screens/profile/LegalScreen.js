@@ -23,12 +23,12 @@ export default function LegalScreen({ navigation }) {
     {
       icon: "document-text-outline",
       label: t("legal.terms"),
-      url: "https://vtulogistics.com/legal/terms",
+      url: "https://iprime.ng/legal/terms",
     },
     {
       icon: "shield-outline",
       label: t("legal.privacy"),
-      url: "https://vtulogistics.com/legal/privacy",
+      url: "https://iprime.ng/legal/privacy",
     },
   ];
 

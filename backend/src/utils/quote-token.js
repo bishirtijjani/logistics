@@ -1,6 +1,6 @@
 /**
- * Quote token — HMAC-signed pricing token issued by POST /api/requests/quote
- * and re-validated by POST /api/requests.
+ * Quote token — HMAC-signed pricing token issued by POST /requests/quote
+ * and re-validated by POST /requests.
  *
  * Wire format: base64url(JSON payload) + "." + base64url(HMAC-SHA256(payload))
  *

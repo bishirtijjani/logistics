@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { DollarSign, Check, X, Clock, RefreshCw } from 'lucide-react'
 
 export default function FinancialPage() {
@@ -11,8 +12,8 @@ export default function FinancialPage() {
     try {
       const token = localStorage.getItem('token')
       const endpoint = activeTab === 'pending' 
-        ? '/api/admin/withdrawals/pending'
-        : `/api/admin/withdrawals/history?status=${activeTab}`
+        ? `${API_URL}/admin/withdrawals/pending`
+        : `${API_URL}/admin/withdrawals/history?status=${activeTab}`
       
       const response = await fetch(endpoint, {
         headers: { Authorization: `Bearer ${token}` }
@@ -32,7 +33,7 @@ export default function FinancialPage() {
   const handleApprove = async (withdrawalId) => {
     try {
       const token = localStorage.getItem('token')
-      await fetch(`/api/admin/withdrawals/${withdrawalId}/approve`, {
+      await fetch(`${API_URL}/admin/withdrawals/${withdrawalId}/approve`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -48,7 +49,7 @@ export default function FinancialPage() {
     
     try {
       const token = localStorage.getItem('token')
-      await fetch(`/api/admin/withdrawals/${withdrawalId}/reject`, {
+      await fetch(`${API_URL}/admin/withdrawals/${withdrawalId}/reject`, {
         method: 'PATCH',
         headers: { 
           Authorization: `Bearer ${token}`,

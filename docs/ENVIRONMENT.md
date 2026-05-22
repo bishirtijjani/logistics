@@ -47,7 +47,7 @@ Sole payment provider — issues NUBAN virtual accounts per user, processes inbo
 | `KATPAY_API_SECRET` | Prod | — | KatPay API secret key |
 | `KATPAY_PUBLIC_KEY` | Prod | — | KatPay public key |
 | `KATPAY_MERCHANT_ID` | Prod | — | KatPay merchant ID |
-| `KATPAY_CALLBACK_URL` | Prod | `http://localhost:3000/api/webhooks/katpay` | Webhook callback URL for payment events |
+| `KATPAY_CALLBACK_URL` | Prod | `http://localhost:3000/webhooks/katpay` | Webhook callback URL for payment events |
 
 ## AlRahuz (Utility Payments)
 
@@ -102,7 +102,7 @@ Used for merchant logos, cover images, product photos, and prescription uploads.
 
 ## Delivery Pricing
 
-These defaults can also be managed at runtime via the admin settings panel (`/api/settings`).
+These defaults can also be managed at runtime via the admin settings panel (`/settings`).
 
 | Variable | Required | Default | Description |
 |---|---|---|---|

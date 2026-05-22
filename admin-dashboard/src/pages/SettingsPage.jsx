@@ -17,7 +17,7 @@ export default function SettingsPage() {
     defaultRiderCommission: 10,
     minDeliveryFee: 500,
     maxDeliveryFee: 5000,
-    supportEmail: 'support@vtulogistics.com',
+    supportEmail: 'support@iprime.ng',
     supportPhone: '+2348000000000',
   })
   const [notificationSettings, setNotificationSettings] = useState({
@@ -43,7 +43,7 @@ export default function SettingsPage() {
         defaultRiderCommission: platformSettings.defaultRiderCommission || 10,
         minDeliveryFee: platformSettings.minDeliveryFee || 500,
         maxDeliveryFee: platformSettings.maxDeliveryFee || 5000,
-        supportEmail: platformSettings.supportEmail || 'support@vtulogistics.com',
+        supportEmail: platformSettings.supportEmail || 'support@iprime.ng',
         supportPhone: platformSettings.supportPhone || '+2348000000000',
       })
       setNotificationSettings({

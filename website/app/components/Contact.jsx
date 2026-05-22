@@ -7,8 +7,8 @@ const channels = [
   {
     Icon: Mail,
     label: "Email us",
-    value: "hello@vtulogistics.com",
-    href: "mailto:hello@vtulogistics.com",
+    value: "hello@iprime.ng",
+    href: "mailto:hello@iprime.ng",
   },
   {
     Icon: Phone,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { Shield, AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react'
 
 export default function SafetyPage() {
@@ -13,7 +14,7 @@ export default function SafetyPage() {
     try {
       const token = localStorage.getItem('token')
       const status = incidentFilter === 'ALL' ? '' : incidentFilter
-      const response = await fetch(`/api/admin/safety/incidents?status=${status}`, {
+      const response = await fetch(`${API_URL}/admin/safety/incidents?status=${status}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()
@@ -29,7 +30,7 @@ export default function SafetyPage() {
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('/api/admin/safety/compliance', {
+      const response = await fetch(`${API_URL}/admin/safety/compliance`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()

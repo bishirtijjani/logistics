@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_URL } from '../lib/api'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchOrders, acceptOrder, rejectOrder, updateOrderStatus } from '../store/slices/ordersSlice.js'
 import {
@@ -122,7 +123,7 @@ export default function OrdersPage() {
   const handleSaveOrderModification = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`/api/orders/${modifyingOrder.id}/modify`, {
+      const response = await fetch(`${API_URL}/orders/${modifyingOrder.id}/modify`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

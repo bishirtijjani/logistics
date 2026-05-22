@@ -1,7 +1,7 @@
 /**
  * PerformanceScreen — trailing-30-day rider performance dashboard.
  *
- * Metrics fetched from `/api/rider/performance`:
+ * Metrics fetched from `/rider/performance`:
  *   - acceptanceRate, cancellationRate, onTimeRate (percentages)
  *   - rating: { average, count, breakdown: { 5..1 } }
  *   - currentStreakDays

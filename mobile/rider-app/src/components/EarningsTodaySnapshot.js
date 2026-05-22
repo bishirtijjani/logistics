@@ -7,7 +7,7 @@ import { formatNaira } from "../lib/formatters";
 
 /**
  * Compact earnings strip for the Home tab — three stats sourced from
- * `GET /api/rider/earnings` (today/week summary) with fallback to lifetime
+ * `GET /rider/earnings` (today/week summary) with fallback to lifetime
  * stats from the rider profile while earnings are still loading. No mock
  * data: if the endpoint returns nothing, we show `—`.
  */

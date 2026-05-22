@@ -20,7 +20,7 @@ alike — and is deliberately specific so you can verify each claim
 against the source.
 
 If you're a regulator or compliance counterparty and need formal
-attestations, contact **contact@mhprime.ng**.
+attestations, contact **contact@iprime.ng**.
 
 ---
 
@@ -41,7 +41,7 @@ This section names every one we hold ourselves to.
   Protection Commission (NDPC)** as a Data Controller of Major
   Importance once we cross the relevant processing thresholds.
 - **Data Protection Officer (DPO)** — appointed and reachable at
-  **contact@mhprime.ng**. The DPO is empowered to halt any processing
+  **contact@iprime.ng**. The DPO is empowered to halt any processing
   activity they assess as non-compliant.
 
 ### 2.2 Financial services
@@ -141,10 +141,10 @@ self-service or human-assisted ways to exercise each one:
 
 | Right | How to exercise it |
 |---|---|
-| **Access your data** | Profile → Settings → "Download my data" (or email **contact@mhprime.ng**) |
+| **Access your data** | Profile → Settings → "Download my data" (or email **contact@iprime.ng**) |
 | **Correct your data** | Profile → Edit details, for fields you can change yourself; via support for KYC-locked fields |
 | **Delete your account** | Profile → Settings → "Delete account" (with a 30-day grace period for fraud-related holds) |
-| **Object to processing** | Email **contact@mhprime.ng** describing the processing you object to |
+| **Object to processing** | Email **contact@iprime.ng** describing the processing you object to |
 | **Lodge a complaint with the regulator** | NDPC at https://ndpc.gov.ng |
 
 Statutory response time is **30 days** under the NDPA; we aim for **7
@@ -166,7 +166,7 @@ assessment. The minimum bar:
 This applies equally to our payment partners, our analytics providers,
 our SMS and push-notification gateways, and our cloud infrastructure
 provider. The full vendor list is available on request to
-**contact@mhprime.ng**.
+**contact@iprime.ng**.
 
 ---
 
@@ -193,8 +193,8 @@ response.
 If you believe iPrime is not living up to the standards on this page —
 whether you're a user, a partner, a regulator, or an employee:
 
-- **General compliance concerns:** email **contact@mhprime.ng**.
-- **Data protection concerns:** email **contact@mhprime.ng**, or contact the
+- **General compliance concerns:** email **contact@iprime.ng**.
+- **Data protection concerns:** email **contact@iprime.ng**, or contact the
   NDPC directly.
 - **Anonymous whistleblowing:** use the contact form on the homepage
   (free text, no account required) and start the message with the word

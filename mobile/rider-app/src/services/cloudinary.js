@@ -2,7 +2,7 @@
  * Cloudinary signed-upload client.
  *
  * Flow:
- *   1. POST /api/auth/upload-signature { kind, requestId? }
+ *   1. POST /auth/upload-signature { kind, requestId? }
  *      → { signature, timestamp, apiKey, cloudName, folder, publicId, kind }
  *      (see backend `getCloudinaryUploadSignature` in auth.service.js).
  *   2. Construct Cloudinary upload URL from cloudName.

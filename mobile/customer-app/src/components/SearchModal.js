@@ -1,7 +1,7 @@
 /**
  * Phase 6 unified search modal.
  *
- * Debounced fetch against `/api/search` (pg_trgm fuzzy backend). Renders
+ * Debounced fetch against `/search` (pg_trgm fuzzy backend). Renders
  * merchants and products in one list with a "kind" chip; tap routes to
  * MerchantMenu / ProductDetail.
  *

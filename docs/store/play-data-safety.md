@@ -138,7 +138,7 @@ If the form's framing makes this ambiguous, the canonical reference is
 ## Section 5 — Privacy Policy URL
 
 ```
-https://vtulogistics.com/legal/privacy
+https://iprime.ng/legal/privacy
 ```
 
 (Must resolve at the time of review — deployed via Phase 10 #5.3.)

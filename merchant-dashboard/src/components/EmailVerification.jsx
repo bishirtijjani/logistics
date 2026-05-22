@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_URL } from '../lib/api'
 import { Mail, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 
@@ -59,7 +60,7 @@ export default function EmailVerification({ email, onVerified, onClose }) {
   const handleVerify = async (code) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/auth/verify-email', {
+      const response = await fetch(`${API_URL}/auth/verify-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +86,7 @@ export default function EmailVerification({ email, onVerified, onClose }) {
   const handleResend = async () => {
     setResending(true)
     try {
-      const response = await fetch('/api/auth/resend-verification', {
+      const response = await fetch(`${API_URL}/auth/resend-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
