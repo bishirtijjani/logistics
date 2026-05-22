@@ -6,7 +6,7 @@ set -euo pipefail
 
 : "${ADMIN_TOKEN:?ADMIN_TOKEN required}"
 : "${SIBLING_RIDER_TOKEN:?SIBLING_RIDER_TOKEN required — a logged-in test rider's access token}"
-: "${API_URL:=https://logistics.codeket.com/api}"
+: "${API_URL:=https://api.logistics.codeket.com}"
 
 # 1. Seed an offer addressed at both test riders.
 SEED_RES=$(curl --fail --silent --show-error \

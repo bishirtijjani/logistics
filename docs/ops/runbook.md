@@ -47,7 +47,7 @@ runbook.
 ### 1. Backend totally down (5xx storm)
 
 **Symptoms**
-- Health-check fails: `curl https://logistics.codeket.com/api/health`
+- Health-check fails: `curl https://api.logistics.codeket.com/health`
 - Sentry shows a `5xx` spike in the last few minutes
 - Customer app's session-expired toast firing for all users (interceptor falls back to NETWORK_ERROR)
 
@@ -260,7 +260,7 @@ npm ci --omit=dev
 npx prisma migrate deploy
 systemctl reload iprime-backend
 # Smoke test
-curl https://logistics.codeket.com/api/health
+curl https://api.logistics.codeket.com/health
 ```
 
 ### Run a manual reconciliation

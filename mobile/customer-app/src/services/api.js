@@ -23,15 +23,13 @@ const translateError = (data, fallbackMessage) => {
   return translated === key ? serverMessage : translated;
 };
 
-// Load base URL from environment variables, fallback for local dev
-// For physical device testing, use your computer's LAN IP (e.g., http://192.168.1.100:3000)
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000';
+// Load base URL from environment variables, fallback for local dev.
+// EXPO_PUBLIC_API_URL is the full HTTP base — include /api for local dev
+// (e.g. http://192.168.1.100:3000/api); prod backend serves routes at root.
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000/api';
 
-// Full API URL with version prefix for HTTP requests
-export const BASE_URL = `${API_BASE}/api`;
-
-// Base server URL for Socket.io
-export const SOCKET_URL = API_BASE;
+// Socket.io connects at the host root, so strip any trailing /api.
+export const SOCKET_URL = BASE_URL.replace(/\/api\/?$/, '');
 
 const api = axios.create({
   baseURL: BASE_URL,

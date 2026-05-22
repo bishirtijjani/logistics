@@ -29,7 +29,7 @@ sees a permission banner; or just nothing happens.
 4. **Active delivery.** If `availability === ON_DELIVERY`, the rider is
    mid-trip. The trip must complete (or be force-cancelled by an admin
    — see runbook 4) before they can go offline → back online.
-5. **Backend reachable?** Check `https://logistics.codeket.com/api/healthz`
+5. **Backend reachable?** Check `https://api.logistics.codeket.com/healthz`
    from a browser. If it 503's, the rider's problem is the platform's
    problem — escalate to the platform on-call.
 6. **Socket connection.** The rider app's `OfflineBanner` shows when the

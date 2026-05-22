@@ -5,7 +5,7 @@
 set -euo pipefail
 
 : "${ADMIN_TOKEN:?ADMIN_TOKEN is required to trigger force-offline}"
-: "${API_URL:=https://logistics.codeket.com/api}"
+: "${API_URL:=https://api.logistics.codeket.com}"
 : "${RIDER_ID:?RIDER_ID is required (rider record id, not the user id)}"
 
 curl --fail --silent --show-error \

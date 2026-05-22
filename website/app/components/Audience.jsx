@@ -80,7 +80,7 @@ export default function Audience() {
               {/* Gradient overlay for legibility */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/10"
+                className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/35 to-black/3"
               />
 
               {/* Content overlay */}

@@ -189,7 +189,7 @@ All additions below are Expo-Go-compatible so the rider app's dev workflow match
 Identical workflow to customer-app: Expo Go for development, EAS standalone for shipping.
 
 - `eas.json` defines two profiles (mirrors `mobile/customer-app/eas.json`):
-  - `preview` → internal distribution APK, `EXPO_PUBLIC_API_URL=https://logistics.codeket.com/api`.
+  - `preview` → internal distribution APK, `EXPO_PUBLIC_API_URL=https://api.logistics.codeket.com`.
   - `production` → app-bundle, Play Store / TestFlight target.
 - **No `developmentClient: true` profile.** Developers run the JS bundle through Expo Go against `npx expo start`. No custom dev-client builds.
 - OTA channel binding: `preview=staging`, `production=production`.
