@@ -43,7 +43,7 @@ const callMiddleware = (req, res) =>
 
 test('idempotency: no header → passes through without touching the store', async () => {
   prisma.idempotencyKey._store.clear();
-  const req = { headers: {}, method: 'POST', path: '/api/requests', body: {}, user: { id: 'u1' } };
+  const req = { headers: {}, method: 'POST', path: '/requests', body: {}, user: { id: 'u1' } };
   const res = makeRes();
 
   await callMiddleware(req, res);
@@ -57,7 +57,7 @@ test('idempotency: first request reserves the key, handler runs, response is cap
   const req = {
     headers: { 'idempotency-key': key },
     method: 'POST',
-    path: '/api/requests',
+    path: '/requests',
     body: { amount: 1000 },
     user: { id: 'u1' },
   };
@@ -69,7 +69,7 @@ test('idempotency: first request reserves the key, handler runs, response is cap
   const reserved = await prisma.idempotencyKey.findUnique({ where: { key } });
   assert.ok(reserved, 'reservation should exist');
   assert.equal(reserved.userId, 'u1');
-  assert.equal(reserved.route, 'POST:/api/requests');
+  assert.equal(reserved.route, 'POST:/requests');
   assert.ok(reserved.requestHash);
   assert.equal(reserved.responseSnapshot, undefined);
 
@@ -91,7 +91,7 @@ test('idempotency: duplicate request replays cached response and skips handler',
     data: {
       key,
       userId: 'u1',
-      route: 'POST:/api/requests',
+      route: 'POST:/requests',
       requestHash: 'abc',
       expiresAt: new Date(Date.now() + 60_000),
       responseSnapshot: { status: 201, body: { ok: true, id: 'req_99' } },
@@ -101,7 +101,7 @@ test('idempotency: duplicate request replays cached response and skips handler',
   const req = {
     headers: { 'idempotency-key': key },
     method: 'POST',
-    path: '/api/requests',
+    path: '/requests',
     body: { amount: 1000 },
     user: { id: 'u1' },
   };
@@ -123,7 +123,7 @@ test('idempotency: expired keys are deleted and treated as new', async () => {
     data: {
       key,
       userId: 'u1',
-      route: 'POST:/api/requests',
+      route: 'POST:/requests',
       requestHash: 'abc',
       expiresAt: new Date(Date.now() - 1000),
       responseSnapshot: { status: 200, body: { stale: true } },
@@ -133,7 +133,7 @@ test('idempotency: expired keys are deleted and treated as new', async () => {
   const req = {
     headers: { 'idempotency-key': key },
     method: 'POST',
-    path: '/api/requests',
+    path: '/requests',
     body: {},
     user: { id: 'u1' },
   };
@@ -154,7 +154,7 @@ test('idempotency: anonymous user (no req.user) still works', async () => {
   const req = {
     headers: { 'idempotency-key': key },
     method: 'POST',
-    path: '/api/requests',
+    path: '/requests',
     body: {},
   };
   const res = makeRes();
@@ -180,7 +180,7 @@ test('idempotency: returns 503 when the lookup throws', async () => {
     {
       headers: { 'idempotency-key': 'k-503-lookup' },
       method: 'POST',
-      path: '/api/requests',
+      path: '/requests',
       body: {},
       user: { id: 'u1' },
     },
@@ -210,7 +210,7 @@ test('idempotency: returns 503 when the reservation create throws non-P2002', as
     {
       headers: { 'idempotency-key': 'k-503-create' },
       method: 'POST',
-      path: '/api/requests',
+      path: '/requests',
       body: {},
       user: { id: 'u1' },
     },
@@ -235,7 +235,7 @@ test('idempotency: two concurrent calls — only one passes through, the other r
   const reqA = {
     headers: { 'idempotency-key': key },
     method: 'POST',
-    path: '/api/requests',
+    path: '/requests',
     body: { amount: 1000 },
     user: { id: 'u1' },
   };
@@ -286,7 +286,7 @@ test('idempotency: race loser returns 409 if winner never responds in time', asy
     data: {
       key,
       userId: 'u1',
-      route: 'POST:/api/requests',
+      route: 'POST:/requests',
       requestHash: 'abc',
       expiresAt: new Date(Date.now() + 60_000),
     },
@@ -298,7 +298,7 @@ test('idempotency: race loser returns 409 if winner never responds in time', asy
     {
       headers: { 'idempotency-key': key },
       method: 'POST',
-      path: '/api/requests',
+      path: '/requests',
       body: {},
       user: { id: 'u1' },
     },

@@ -89,7 +89,7 @@ const buildApp = (controllerSpy) => {
   // Stub JSON parser — we'll set req.body manually since our fake req can't be
   // streamed, so just assign through a tiny middleware.
   app.use((req, _res, next) => next());
-  app.post('/api/requests', idempotency, async (req, res) => {
+  app.post('/requests', idempotency, async (req, res) => {
     controllerSpy.calls += 1;
     controllerSpy.lastBody = req.body;
     res.status(201).json({ ok: true, id: `req_${controllerSpy.calls}`, echo: req.body });
@@ -108,7 +108,7 @@ test('integration: same Idempotency-Key invokes the controller exactly once', as
   // First call — handler runs.
   const first = await drive(app, {
     method: 'POST',
-    url: '/api/requests',
+    url: '/requests',
     headers: { 'idempotency-key': key },
     body: { amount: 1000 },
   });
@@ -119,7 +119,7 @@ test('integration: same Idempotency-Key invokes the controller exactly once', as
   // Second call with the same key — must replay, NOT re-invoke the handler.
   const second = await drive(app, {
     method: 'POST',
-    url: '/api/requests',
+    url: '/requests',
     headers: { 'idempotency-key': key },
     body: { amount: 1000 },
   });
@@ -136,13 +136,13 @@ test('integration: different keys both invoke the controller', async () => {
 
   await drive(app, {
     method: 'POST',
-    url: '/api/requests',
+    url: '/requests',
     headers: { 'idempotency-key': 'integ-a-' + Date.now() },
     body: { amount: 1000 },
   });
   await drive(app, {
     method: 'POST',
-    url: '/api/requests',
+    url: '/requests',
     headers: { 'idempotency-key': 'integ-b-' + Date.now() },
     body: { amount: 2000 },
   });
@@ -157,12 +157,12 @@ test('integration: no Idempotency-Key still works (legacy clients)', async () =>
 
   const first = await drive(app, {
     method: 'POST',
-    url: '/api/requests',
+    url: '/requests',
     body: { amount: 1000 },
   });
   const second = await drive(app, {
     method: 'POST',
-    url: '/api/requests',
+    url: '/requests',
     body: { amount: 1000 },
   });
 
@@ -185,7 +185,7 @@ test('integration: middleware fails closed (503) when the dedup store throws', a
 
   const { res } = await drive(app, {
     method: 'POST',
-    url: '/api/requests',
+    url: '/requests',
     headers: { 'idempotency-key': 'integ-503-' + Date.now() },
     body: { amount: 1000 },
   });
@@ -209,7 +209,7 @@ test('integration: real request.routes.js mounts idempotency on POST /', () => {
   const handlers = layer.route.stack.map((s) => s.name || 'anonymous');
   assert.ok(
     handlers.includes('idempotency'),
-    `expected idempotency middleware on POST /api/requests; got: ${handlers.join(', ')}`,
+    `expected idempotency middleware on POST /requests; got: ${handlers.join(', ')}`,
   );
 });
 

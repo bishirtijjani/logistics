@@ -77,7 +77,7 @@ const envSchema = z.object({
   KATPAY_API_SECRET: isDev ? z.string().default('') : z.string().min(1),
   KATPAY_PUBLIC_KEY: isDev ? z.string().default('') : z.string().min(1),
   KATPAY_MERCHANT_ID: isDev ? z.string().default('') : z.string().min(1),
-  KATPAY_CALLBACK_URL: isDev ? z.string().default('http://localhost:3000/api/webhooks/katpay') : z.string().url(),
+  KATPAY_CALLBACK_URL: isDev ? z.string().default('http://localhost:3000/webhooks/katpay') : z.string().url(),
 
   // Delivery Pricing
   DELIVERY_BASE_FARE: z.coerce.number().default(200),
