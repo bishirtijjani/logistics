@@ -3,7 +3,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="relative pt-36 pb-20 md:pt-40 md:pb-24 overflow-hidden bg-bg-secondary">
+    <section className="relative pt-44 pb-20 md:pt-48 md:pb-24 overflow-hidden bg-bg-secondary">
       <div className="ui-container">
         <div className="grid lg:grid-cols-[1fr_1.25fr] gap-12 lg:gap-16 items-center">
           <div className="text-center lg:text-left">

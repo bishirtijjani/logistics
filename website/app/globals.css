@@ -41,6 +41,9 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Floating fixed header is ~85px tall + 24px top offset. Add ~110px so
+       anchor jumps don't park content under it. */
+    scroll-padding-top: 110px;
   }
   body {
     background: var(--color-bg-primary);
