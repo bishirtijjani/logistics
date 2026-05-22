@@ -24,6 +24,8 @@ import socketService from "../services/socket";
 import locationStream from "../services/locationStream";
 import { registerForceLogout } from "../services/api";
 import { subscribeSocketToStore } from "../services/notificationsBus";
+import { setUser as sentrySetUser, addBreadcrumb as sentryBreadcrumb } from "../services/sentry";
+import { setUser as analyticsSetUser, track, EVENTS } from "../lib/analytics";
 import { routeToScreen } from "../lib/notificationRoute";
 import {
   isBiometricAvailable,
@@ -101,8 +103,16 @@ function collectScreenNames(state) {
 // scheme is shared with the customer app (each binary registers its own
 // handler on-device); we keep them apart on universal links via separate
 // hostnames (rider.iprime.ng here, customer.iprime.ng in the customer app).
+//
+// `riderapp://` is kept as a legacy prefix so notifications minted before
+// Phase 8's iprime:// rebrand still parse correctly. parseDeepLink() in
+// lib/notificationRoute.js strips any scheme:// prefix before matching.
 const NAV_LINKING = {
-  prefixes: ["iprime://", "https://rider.iprime.ng"],
+  prefixes: [
+    "iprime://",
+    "https://rider.iprime.ng",
+    "riderapp://", // legacy — keep for back-compat
+  ],
   config: {
     screens: {
       MainTabs: {
@@ -115,6 +125,35 @@ const NAV_LINKING = {
         },
       },
       TripCockpit: "trip/:requestId",
+      // Wallet sub-tree
+      Withdraw: "wallet/withdraw",
+      Beneficiaries: "wallet/beneficiaries",
+      Transactions: "wallet/transactions",
+      TransactionDetail: "wallet/transactions/:transactionId",
+      // Earnings
+      EarningsBreakdown: "earnings/breakdown",
+      // Notifications & profile
+      NotificationsCenter: "notifications",
+      KycStatus: "kyc",
+      Performance: "performance",
+      VehicleInfo: "vehicle",
+      EditProfile: "profile/edit",
+      ProfilePhoto: "profile/photo",
+      // Security & settings
+      SecuritySettings: "security",
+      Sessions: "security/sessions",
+      ChangePin: "security/pin",
+      PhoneChange: "security/phone",
+      BiometricSettings: "security/biometric",
+      Language: "settings/language",
+      Theme: "settings/theme",
+      Legal: "settings/legal",
+      // Support
+      SupportHome: "support",
+      CreateTicket: "support/new",
+      TicketDetail: "support/ticket/:ticketId",
+      CreateDispute: "support/dispute/new/:requestId",
+      DisputeDetail: "support/dispute/:disputeId",
     },
   },
 };
@@ -143,6 +182,27 @@ export default function AppNavigator() {
   useEffect(() => {
     registerForceLogout(() => dispatch(forceLogout()));
   }, [dispatch]);
+
+  // Sentry + analytics user tagging — fires whenever the authenticated
+  // user changes so crash reports and events are scoped to the right
+  // rider. Cleared on sign-out so a shared device doesn't leak the
+  // previous rider's id into next session's breadcrumbs.
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      sentrySetUser({ id: user.id, role: user.role || "RIDER" });
+      analyticsSetUser({ id: user.id, role: user.role || "RIDER" });
+      sentryBreadcrumb({
+        category: "auth",
+        message: "user authenticated",
+        level: "info",
+        data: { userId: user.id, role: user.role },
+      });
+      track(EVENTS.LoginSucceeded, { method: "session-restore" });
+    } else {
+      sentrySetUser(null);
+      analyticsSetUser(null);
+    }
+  }, [isAuthenticated, user?.id, user?.role]);
 
   // Boot sequence: hydrate auth + onboarding draft + fetch public settings.
   useEffect(() => {

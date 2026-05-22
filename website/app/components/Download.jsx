@@ -1,114 +1,107 @@
-"use client";
+import Image from "next/image";
 
-import { motion } from "framer-motion";
-import { Apple, Smartphone, QrCode } from "lucide-react";
+const screens = [
+  {
+    src: "/images/home-screen.png",
+    alt: "iPrime home — wallet balance, category tiles, active order",
+    rotate: "-rotate-3",
+    translate: "translate-y-4 md:translate-y-8",
+    z: "z-10",
+  },
+  {
+    src: "/images/orders-screen.png",
+    alt: "My Orders — active deliveries from Mama Kachalla's, Suya King, KFC Katsina",
+    rotate: "rotate-0",
+    translate: "-translate-y-2 md:-translate-y-4",
+    z: "z-20",
+  },
+  {
+    src: "/images/map-screen.png",
+    alt: "Live tracking — rider en route with 4-digit doorstep code",
+    rotate: "rotate-3",
+    translate: "translate-y-5 md:translate-y-10",
+    z: "z-10",
+  },
+];
 
 export default function Download() {
   return (
     <section
-      className="ui-section bg-[--color-text-primary] text-white overflow-hidden relative"
+      className="ui-section bg-text-primary text-white overflow-hidden relative"
       id="download"
     >
-      <div aria-hidden="true" className="absolute inset-0 -z-0 opacity-30">
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[500px] h-[500px] bg-accent/40 rounded-full blur-[150px]" />
-        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-[400px] h-[400px] bg-accent/30 rounded-full blur-[140px]" />
-      </div>
-
       <div className="ui-container relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6 }}
-          >
-            <div className="inline-flex font-mono text-[0.7rem] uppercase tracking-widest px-3.5 py-1.5 rounded-full text-accent bg-accent/15 font-extrabold border border-accent/30 mb-5">
-              Get the app
-            </div>
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="inline-flex font-mono text-[0.7rem] uppercase tracking-widest px-3.5 py-1.5 rounded-full text-accent bg-accent/15 font-extrabold border border-accent/30 mb-5">
+            Get the app
+          </div>
 
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-[1.05] mb-6">
-              Carry your wallet, bills, <br className="hidden md:block" />
-              and deliveries{" "}
-              <span className="text-accent">in your pocket.</span>
-            </h2>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-[1.05] mb-6">
+            Order, track, pay —{" "}
+            <span className="text-accent">in your pocket.</span>
+          </h2>
 
-            <p className="text-base md:text-lg text-white/60 font-medium leading-relaxed mb-8 max-w-lg">
-              Available on iOS and Android. Sign up with your phone number,
-              fund your wallet, and start sending money or ordering deliveries
-              in under two minutes.
-            </p>
+          <p className="text-base md:text-lg text-white/60 font-medium leading-relaxed mb-8 max-w-xl mx-auto">
+            Available on iOS and Android. Sign up with your phone number and
+            place your first delivery in under two minutes.
+          </p>
 
-            <div className="flex flex-col sm:flex-row gap-3 mb-8">
-              <a
-                href="#"
-                className="flex items-center gap-3 bg-white text-[--color-text-primary] px-6 py-3.5 rounded-2xl hover:bg-gray-100 transition-all no-underline"
+          <div className="flex flex-col sm:flex-row gap-3 mb-4 justify-center items-center">
+            <a
+              href="#"
+              aria-label="Download on the App Store"
+              className="inline-block transition-transform hover:-translate-y-0.5"
+            >
+              <img
+                src="/images/ios-app-store-btn.svg"
+                alt="Download on the App Store"
+                width={150}
+                height={50}
+                className="h-[50px] w-auto"
+              />
+            </a>
+
+            <a
+              href="#"
+              aria-label="Get it on Google Play"
+              className="inline-block transition-transform hover:-translate-y-0.5"
+            >
+              <img
+                src="/images/google-play-btn.svg"
+                alt="Get it on Google Play"
+                width={167}
+                height={50}
+                className="h-[50px] w-auto"
+              />
+            </a>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] max-w-[700px] aspect-square bg-accent/20 blur-[120px] rounded-full"
+          />
+
+          <div className="relative grid grid-cols-3 gap-2 sm:gap-4 md:gap-4 lg:gap-8 max-w-5xl mx-auto">
+            {screens.map((s) => (
+              <div
+                key={s.src}
+                className={`relative ${s.z} ${s.rotate} ${s.translate} transition-transform duration-500 hover:-translate-y-2 hover:rotate-0`}
               >
-                <Apple
-                  size={28}
-                  strokeWidth={1.75}
-                  className="fill-[--color-text-primary]"
-                />
-                <div>
-                  <div className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-500">
-                    Download on the
-                  </div>
-                  <div className="text-lg font-extrabold tracking-tight -mt-0.5">
-                    App Store
-                  </div>
-                </div>
-              </a>
-
-              <a
-                href="#"
-                className="flex items-center gap-3 bg-white text-[--color-text-primary] px-6 py-3.5 rounded-2xl hover:bg-gray-100 transition-all no-underline"
-              >
-                <Smartphone size={26} strokeWidth={2} />
-                <div>
-                  <div className="text-[0.65rem] font-bold uppercase tracking-widest text-gray-500">
-                    Get it on
-                  </div>
-                  <div className="text-lg font-extrabold tracking-tight -mt-0.5">
-                    Google Play
-                  </div>
-                </div>
-              </a>
-            </div>
-
-            <div className="text-xs font-bold uppercase tracking-widest text-white/40">
-              Launching soon — store badges are placeholders
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="flex justify-center"
-          >
-            <div className="relative">
-              <div className="bg-white rounded-3xl p-8 text-center max-w-xs shadow-2xl">
-                <div className="w-40 h-40 mx-auto rounded-2xl bg-[--color-bg-tertiary] border-2 border-dashed border-gray-300 flex items-center justify-center mb-5">
-                  <QrCode
-                    size={120}
-                    strokeWidth={1.25}
-                    className="text-[--color-text-primary]"
+                <div className="relative rounded-2xl md:rounded-3xl lg:rounded-4xl overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] ring-1 ring-white/10">
+                  <Image
+                    src={s.src}
+                    alt={s.alt}
+                    width={740}
+                    height={1600}
+                    sizes="(min-width: 1024px) 320px, (min-width: 640px) 30vw, 32vw"
+                    className="w-full h-auto"
                   />
                 </div>
-                <div className="text-sm font-extrabold tracking-tight text-[--color-text-primary] mb-1">
-                  Scan to install
-                </div>
-                <div className="text-xs text-gray-500 font-semibold">
-                  Point your camera, tap the link, and the app downloads from
-                  the right store automatically.
-                </div>
               </div>
-
-              <div className="absolute -top-3 -right-3 bg-accent text-white text-[0.65rem] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-accent/40">
-                Easy install
-              </div>
-            </div>
-          </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

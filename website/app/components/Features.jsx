@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import {
   Wallet,
   Zap,
@@ -16,36 +13,39 @@ import {
 
 const pillars = [
   {
-    icon: Wallet,
-    title: "Digital Wallet",
+    icon: Package,
+    tint: "bg-orange-500",
+    title: "Food, Groceries & Parcels",
     blurb:
-      "Fund your wallet from any Nigerian bank, send money to anyone on iPrime in seconds, and withdraw back to your account anytime.",
+      "Order from local restaurants, supermarkets and pharmacies across Katsina. Or send a package across town with a nearby rider — live GPS the whole way.",
     bullets: [
-      { Icon: Banknote, label: "Virtual bank account on signup" },
-      { Icon: ShieldCheck, label: "Transaction PIN authorization" },
-      { Icon: Radio, label: "Real-time transfer notifications" },
+      { Icon: Utensils, label: "Suya, jollof, and everything between" },
+      { Icon: ShoppingBasket, label: "Groceries and pharmacy" },
+      { Icon: Pill, label: "Courier across the city" },
+    ],
+  },
+  {
+    icon: Wallet,
+    tint: "bg-emerald-500",
+    title: "Wallet & Transfers",
+    blurb:
+      "Pay for what's delivered straight from your iPrime balance. Get a virtual NUBAN on signup, fund from any Nigerian bank, send to anyone on iPrime in seconds.",
+    bullets: [
+      { Icon: Banknote, label: "Virtual account on signup" },
+      { Icon: ShieldCheck, label: "PIN-protected transactions" },
+      { Icon: Radio, label: "Instant credit notifications" },
     ],
   },
   {
     icon: Zap,
-    title: "Utility Payments",
+    tint: "bg-amber-500",
+    title: "Airtime, Data & Bills",
     blurb:
-      "Recharge airtime, buy data, and pay electricity bills across every Nigerian network and DISCO. Tokens delivered the moment payment clears.",
+      "Same balance covers your everyday bills. Recharge MTN, Airtel, Glo and 9mobile, buy data, pay any DISCO — tokens land in SMS the moment payment clears.",
     bullets: [
       { Icon: Radio, label: "MTN, Airtel, Glo, 9mobile" },
-      { Icon: Lightbulb, label: "All DISCO electricity prepaid & postpaid" },
-      { Icon: ShieldCheck, label: "Automatic refund on failed delivery" },
-    ],
-  },
-  {
-    icon: Package,
-    title: "On-Demand Delivery",
-    blurb:
-      "From a hot meal to a courier package, order it in the app and watch a nearby rider deliver it to your door — live GPS the whole way.",
-    bullets: [
-      { Icon: Utensils, label: "Food from local restaurants" },
-      { Icon: ShoppingBasket, label: "Groceries and pharmacy" },
-      { Icon: Pill, label: "Courier packages across town" },
+      { Icon: Lightbulb, label: "Every Nigerian DISCO" },
+      { Icon: ShieldCheck, label: "Auto-refund on failure" },
     ],
   },
 ];
@@ -57,30 +57,28 @@ export default function Features() {
         <header className="text-center max-w-2xl mx-auto mb-16">
           <span className="ui-eyebrow">What&apos;s inside</span>
           <h2 className="ui-title">
-            Three apps&apos; worth of services,{" "}
-            <span className="text-accent">one tap away.</span>
+            Delivery first.{" "}
+            <span className="text-accent">Everything else, included.</span>
           </h2>
           <p className="ui-sub mx-auto">
-            We built iPrime as a true super-app — your wallet, your bill
-            payments, and your daily deliveries all share the same login,
-            balance, and tracking history.
+            iPrime is built around getting things to your door. The wallet and
+            bill payments share the same balance so you never juggle apps to
+            pay for what you ordered.
           </p>
         </header>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {pillars.map((p, i) => (
-            <motion.article
+          {pillars.map((p) => (
+            <article
               key={p.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="ui-card group hover:border-accent/40 hover:shadow-lg hover:-translate-y-1"
+              className="ui-card group hover:border-accent/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-xl bg-[--color-accent-dim] flex items-center justify-center text-accent mb-5 group-hover:bg-accent group-hover:text-white transition-colors duration-300">
+              <div
+                className={`w-12 h-12 rounded-2xl ${p.tint} flex items-center justify-center text-white mb-5 shadow-sm`}
+              >
                 <p.icon size={22} strokeWidth={2.25} />
               </div>
-              <h3 className="text-xl font-extrabold tracking-tight text-[--color-text-primary] mb-3">
+              <h3 className="text-xl font-extrabold tracking-tight text-text-primary mb-3">
                 {p.title}
               </h3>
               <p className="text-gray-500 font-medium leading-relaxed mb-6">
@@ -101,7 +99,7 @@ export default function Features() {
                   </li>
                 ))}
               </ul>
-            </motion.article>
+            </article>
           ))}
         </div>
       </div>

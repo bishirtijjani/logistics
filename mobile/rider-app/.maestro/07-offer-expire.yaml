@@ -1,0 +1,21 @@
+# Wait for the offer's 60 s timeout without action and verify the sheet
+# dismisses. Acceptance-rate stat should reflect the expiry (server-side
+# offer log row flips to EXPIRED).
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+---
+- runFlow:
+    file: 01-login-and-go-online.yaml
+- extendedWaitUntil:
+    visible: "New job"
+    timeout: 60000
+# Maestro idle-wait for 65 s. We don't tap the sheet; OfferCountdownRing
+# fires offerExpired() which dismisses the overlay.
+- waitForAnimationToEnd:
+    timeout: 65000
+- assertNotVisible: "New job"
+- assertNotVisible: "Accept"
+# Home tab should be visible again.
+- assertVisible: "Online"

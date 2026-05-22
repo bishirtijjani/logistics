@@ -62,37 +62,37 @@ const columns = [
   {
     title: "Product",
     links: [
-      { name: "Features", href: "#features" },
-      { name: "How it works", href: "#how-it-works" },
-      { name: "Download", href: "#download" },
-      { name: "FAQ", href: "#faq" },
+      { name: "Features", href: "/#features" },
+      { name: "How it works", href: "/#how-it-works" },
+      { name: "Download", href: "/#download" },
+      { name: "FAQ", href: "/#faq" },
     ],
   },
   {
     title: "Company",
     links: [
-      { name: "About", href: "#about" },
-      { name: "Contact", href: "#contact" },
-      { name: "Careers", href: "#" },
-      { name: "Press", href: "#" },
+      { name: "About", href: "/#about" },
+      { name: "Contact", href: "/#contact" },
+      { name: "Careers", href: "/careers" },
+      { name: "Press", href: "/press" },
     ],
   },
   {
     title: "Partners",
     links: [
-      { name: "For merchants", href: "#contact" },
-      { name: "For riders", href: "#contact" },
-      { name: "Bill payment partners", href: "#" },
-      { name: "Bank partners", href: "#" },
+      { name: "For merchants", href: "/#contact" },
+      { name: "For riders", href: "/#contact" },
+      { name: "Bill payment partners", href: "/partners/bill-payment" },
+      { name: "Bank partners", href: "/partners/banking" },
     ],
   },
   {
     title: "Legal",
     links: [
-      { name: "Privacy policy", href: "#" },
-      { name: "Terms of service", href: "#" },
-      { name: "Refund policy", href: "#" },
-      { name: "Compliance", href: "#" },
+      { name: "Privacy policy", href: "/legal/privacy" },
+      { name: "Terms of service", href: "/legal/terms" },
+      { name: "Refund policy", href: "/legal/refund" },
+      { name: "Compliance", href: "/legal/compliance" },
     ],
   },
 ];
@@ -106,7 +106,7 @@ const socials = [
 
 export default function Footer() {
   return (
-    <footer className="bg-[--color-text-primary] text-white pt-20 pb-10">
+    <footer className="bg-text-primary text-white pt-20 pb-10">
       <div className="ui-container">
         <div className="grid lg:grid-cols-[1.4fr_repeat(4,1fr)] gap-12 lg:gap-10 pb-14 border-b border-white/10">
           <div>

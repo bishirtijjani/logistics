@@ -7,7 +7,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -17,6 +18,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ng.iprime.rider",
+      "buildNumber": "1",
+      "associatedDomains": ["applinks:rider.iprime.ng"],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "iPrime Rider needs your location to deliver jobs near you.",
         "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
@@ -33,7 +36,16 @@
         "backgroundColor": "#EA580C"
       },
       "package": "ng.iprime.rider",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "rider.iprime.ng" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI"

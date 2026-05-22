@@ -23,6 +23,16 @@ import { registerForceLogout } from "./src/services/api";
 import { forceLogout as forceLogoutAction } from "./src/store/slices/authSlice";
 import { ThemeProvider, useTheme } from "./src/theme";
 import { useToastConfig } from "./src/components/toastShared";
+import { initSentry, captureError } from "./src/services/sentry";
+import { initAnalytics, track, EVENTS } from "./src/lib/analytics";
+import OfflineBanner from "./src/components/OfflineBanner";
+
+// Initialize Sentry FIRST so any crash during module-load below is reported.
+// `initSentry` is a safe no-op when EXPO_PUBLIC_SENTRY_DSN is empty or the
+// SDK isn't installed (see services/sentry.js header).
+initSentry();
+initAnalytics();
+track(EVENTS.AppOpened);
 
 // Register the silent-refresh fallback so the api.js interceptor can flip the
 // auth state out from anywhere in the tree when the refresh token is
@@ -54,6 +64,7 @@ function ThemedRoot({ children }) {
   const { tokens } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
+      <OfflineBanner />
       <View style={{ flex: 1, zIndex: 1, elevation: 1 }}>{children}</View>
     </View>
   );
@@ -71,6 +82,23 @@ function ErrorFallback({ error, resetErrorBoundary }) {
   );
 }
 
+/**
+ * Fire-and-forget Sentry capture for root-level renders that crash. The
+ * `react-error-boundary` library invokes this BEFORE rendering the fallback,
+ * so the user sees the recovery UI while Sentry receives the exception.
+ */
+function reportToSentry(error, info) {
+  try {
+    captureError(error, {
+      screen: "App",
+      feature: "root-error-boundary",
+      componentStack: info?.componentStack,
+    });
+  } catch (_) {
+    // Never let Sentry reporting itself crash the boundary.
+  }
+}
+
 export default function App() {
   // Socket lifecycle is managed by AppNavigator (gated on auth + biometric).
   // ErrorBoundary sits OUTSIDE ThemeProvider so the fallback still renders if
@@ -79,7 +107,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <ErrorBoundary FallbackComponent={ErrorFallback} onError={reportToSentry}>
           <ThemeProvider>
             <Provider store={store}>
               <ThemedRoot>

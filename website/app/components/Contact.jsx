@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Send, ArrowRight } from "lucide-react";
 import { useState } from "react";
 
@@ -40,12 +39,7 @@ export default function Contact() {
     <section className="ui-section bg-white" id="contact">
       <div className="ui-container">
         <div className="grid lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5 }}
-          >
+          <div>
             <span className="ui-eyebrow">Contact</span>
             <h2 className="ui-title mb-6">
               Talk to the team <br />
@@ -62,16 +56,16 @@ export default function Contact() {
                 <li key={c.label}>
                   <a
                     href={c.href}
-                    className="flex items-center gap-4 p-4 rounded-2xl border border-gray-200 hover:border-accent/40 hover:bg-[--color-accent-dim]/40 transition-all no-underline group"
+                    className="flex items-center gap-4 p-4 rounded-2xl border border-gray-200 hover:border-accent/40 hover:bg-accent-dim/40 transition-all no-underline group"
                   >
-                    <span className="w-11 h-11 rounded-xl bg-[--color-accent-dim] text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors">
+                    <span className="w-11 h-11 rounded-xl bg-accent-dim text-accent flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors">
                       <c.Icon size={18} strokeWidth={2.25} />
                     </span>
                     <span className="flex-1">
                       <span className="block text-xs font-extrabold uppercase tracking-widest text-gray-400">
                         {c.label}
                       </span>
-                      <span className="block text-base font-extrabold tracking-tight text-[--color-text-primary]">
+                      <span className="block text-base font-extrabold tracking-tight text-text-primary">
                         {c.value}
                       </span>
                     </span>
@@ -84,18 +78,14 @@ export default function Contact() {
                 </li>
               ))}
             </ul>
-          </motion.div>
+          </div>
 
-          <motion.form
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+          <form
             onSubmit={handleSubmit}
-            className="bg-[--color-bg-secondary] border border-gray-200 rounded-3xl p-6 md:p-8 lg:p-10"
+            className="bg-bg-secondary border border-gray-200 rounded-3xl p-6 md:p-8 lg:p-10"
             aria-label="Contact form"
           >
-            <h3 className="text-2xl font-extrabold tracking-tight text-[--color-text-primary] mb-6">
+            <h3 className="text-2xl font-extrabold tracking-tight text-text-primary mb-6">
               Send us a message
             </h3>
 
@@ -168,7 +158,7 @@ export default function Contact() {
                 By submitting, you agree to be contacted about your enquiry.
               </p>
             </div>
-          </motion.form>
+          </form>
         </div>
       </div>
     </section>

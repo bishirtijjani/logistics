@@ -1,0 +1,28 @@
+# Two riders compete for the same offer. The staging helper script
+# `simulate-offer-race.sh` enqueues an offer and immediately calls
+# /api/rider/accept as a sibling rider, so the rider running this flow
+# sees a 409 OFFER_TAKEN when they tap Accept.
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+  ADMIN_TOKEN: ${ADMIN_TOKEN}
+---
+- runFlow:
+    file: 01-login-and-go-online.yaml
+- runScript:
+    file: scripts/simulate-offer-race.sh
+- extendedWaitUntil:
+    visible: "New job"
+    timeout: 60000
+- tapOn: "Accept"
+# JobOfferSheet transitions to "Already taken" within 2 s.
+- extendedWaitUntil:
+    visible: "Already taken"
+    timeout: 5000
+- assertVisible: "Already taken"
+# Sheet auto-dismisses after 2 s.
+- waitForAnimationToEnd:
+    timeout: 4000
+- assertNotVisible: "New job"
+- assertVisible: "Online"

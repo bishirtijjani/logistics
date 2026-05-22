@@ -142,10 +142,26 @@ const forceLogout = async ({ showToast = true } = {}) => {
 api.interceptors.response.use(
   (response) => {
     maybeUpdateSkewFromHeader(response.headers);
+    // Phase 8 — a successful response confirms connectivity. Lazy require
+    // so we don't create a load-order dep between api.js and connectivity.js.
+    try {
+      // eslint-disable-next-line global-require
+      require('./connectivity').markOnline();
+    } catch (_) { /* connectivity module not available in tests */ }
     return response.data;
   },
   async (error) => {
     maybeUpdateSkewFromHeader(error?.response?.headers);
+    // Phase 8 — a network-level failure (no error.response) means we
+    // couldn't reach the server at all. Flip the offline signal so the
+    // global banner appears. HTTP error responses (4xx/5xx) leave the
+    // signal alone because the server WAS reachable.
+    if (!error.response) {
+      try {
+        // eslint-disable-next-line global-require
+        require('./connectivity').markOffline('api-network-error');
+      } catch (_) { /* see above */ }
+    }
     const original = error.config;
     const status = error.response?.status ?? null;
     const requestUrl = original?.url || '';

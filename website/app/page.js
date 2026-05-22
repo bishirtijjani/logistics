@@ -2,10 +2,12 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Features from "./components/Features";
 import HowItWorks from "./components/HowItWorks";
+import Audience from "./components/Audience";
 import About from "./components/About";
 import Download from "./components/Download";
 import FAQ from "./components/FAQ";
 import Contact from "./components/Contact";
+import Social from "./components/Social";
 import Footer from "./components/Footer";
 
 const organizationSchema = {
@@ -43,10 +45,12 @@ export default function Home() {
         <Hero />
         <Features />
         <HowItWorks />
+        <Audience />
         <About />
         <Download />
         <FAQ />
         <Contact />
+        <Social />
       </main>
       <Footer />
     </>

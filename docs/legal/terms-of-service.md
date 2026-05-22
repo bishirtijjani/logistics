@@ -1,19 +1,14 @@
 # iPrime Terms of Service
 
-**Effective date:** {{EFFECTIVE_DATE}}  
-**Last updated:** {{LAST_UPDATED_DATE}}
-
-> **Placeholders in this draft** (replace before publishing):  
-> `{{LEGAL_ENTITY}}`, `{{CAC_RC_NUMBER}}`, `{{REGISTERED_ADDRESS}}`,
-> `{{SUPPORT_EMAIL}}`, `{{DISPUTE_EMAIL}}`, `{{GOVERNING_LAW_STATE}}` (e.g. "Katsina State, Nigeria"),
-> `{{EFFECTIVE_DATE}}`, `{{LAST_UPDATED_DATE}}`
+**Effective date:** 2026-05-22  
+**Last updated:** {{TODAY}}
 
 ---
 
 ## 1. Agreement
 
 These Terms of Service ("**Terms**") form a binding agreement between you
-and **{{LEGAL_ENTITY}}** (CAC RC **{{CAC_RC_NUMBER}}**), trading as
+and **MH Prime** (CAC BN **9518859**), trading as
 "**iPrime**", "**we**", "**us**", or "**our**". They cover your use of the
 iPrime customer app, rider app, merchant tools, website, and any related
 services (together, the "**Service**").
@@ -39,9 +34,9 @@ for package deliveries; riders are independent contractors using the
 platform to find work.
 
 For wallet, payments, and virtual-account services, we operate under
-agreements with licensed Nigerian financial-service providers (KatPay,
-and any successor we engage). Your funds in your iPrime wallet are held
-in segregated accounts with our payment partner.
+agreements with one or more licensed Nigerian financial-service providers.
+Your funds in your iPrime wallet are held in segregated accounts with our
+payment partner.
 
 ---
 
@@ -55,7 +50,7 @@ in segregated accounts with our payment partner.
 ### 3.2 Account security
 - You're responsible for keeping your password and **transaction PIN** confidential. Anyone who knows your PIN can move funds out of your wallet — we have no way to reverse a PIN-authorized transaction made from your device.
 - We never ask for your password, PIN, OTP, or BVN over phone, SMS, email, or social media. Anyone who does is a scammer.
-- Notify us immediately at **{{SUPPORT_EMAIL}}** if you suspect unauthorized access. Sessions can be revoked in-app under Profile → Security → Active Sessions.
+- Notify us immediately at **contact@mhprime.ng** if you suspect unauthorized access. Sessions can be revoked in-app under Profile → Security → Active Sessions.
 
 ### 3.3 One account per person
 You may not maintain multiple accounts to circumvent limits, abuse referral
@@ -224,7 +219,7 @@ If you operate as a merchant, you also agree:
 ## 11. Intellectual property
 
 The iPrime name, logo, app design, code, and content are owned by
-{{LEGAL_ENTITY}} and protected by Nigerian copyright, trademark, and
+MH Prime and protected by Nigerian copyright, trademark, and
 trade-secret law. We grant you a non-exclusive, non-transferable,
 revocable licence to use the apps for their intended purpose. You do not
 acquire any ownership rights.
@@ -286,7 +281,7 @@ unenforceable under Nigerian law.
 We are not responsible for delays or failures caused by events outside
 our reasonable control: natural disasters, public health emergencies,
 internet outages, power failures, government action, or actions of
-third-party providers (e.g. KatPay downtime).
+third-party providers (e.g. payment-provider or telco downtime).
 
 ---
 
@@ -307,9 +302,9 @@ Nigeria**, without reference to its conflict-of-laws principles.
 ## 16. Dispute resolution
 
 Before suing us:
-1. Email **{{DISPUTE_EMAIL}}** describing the issue. We have **30 days** to respond and try to resolve it informally.
-2. If we can't resolve it informally, you and we agree to **mediation** in **{{GOVERNING_LAW_STATE}}**, using a mediator we agree on (or one appointed by the local High Court if we can't agree).
-3. If mediation fails, you can bring a claim in the courts of **{{GOVERNING_LAW_STATE}}**, which have exclusive jurisdiction.
+1. Email **contact@mhprime.ng** describing the issue. We have **30 days** to respond and try to resolve it informally.
+2. If we can't resolve it informally, you and we agree to **mediation** in **Katsina State, Nigeria**, using a mediator we agree on (or one appointed by the local High Court if we can't agree).
+3. If mediation fails, you can bring a claim in the courts of **Katsina State, Nigeria**, which have exclusive jurisdiction.
 
 Nothing in this section prevents either of us from seeking emergency
 injunctive relief in court.
@@ -328,9 +323,9 @@ date is authoritative.
 
 ## 18. Contact
 
-- **Support:** {{SUPPORT_EMAIL}}
-- **Disputes:** {{DISPUTE_EMAIL}}
-- **Postal:** {{LEGAL_ENTITY}}, {{REGISTERED_ADDRESS}}
+- **Support:** contact@mhprime.ng
+- **Disputes:** contact@mhprime.ng
+- **Postal:** MH Prime, 2, Liyafa Street, Katsina, Katsina State, Nigeria
 
 ---
 

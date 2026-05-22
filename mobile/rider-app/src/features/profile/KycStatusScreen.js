@@ -37,9 +37,9 @@ const WARN_WINDOW_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Static description of every doc tile. `urlField` and `expiryField` point
- * at the column on the Rider record. `kind` is the value sent to the
- * `/rider/documents` API.
+ * Static description of every doc tile. `urlField` / `expiryField` point at
+ * Rider columns. `requireExpiry` controls whether the upload sheet forces
+ * the rider to enter a date. NIN slips and vehicle photos are exempt.
  */
 const DOC_TILES = [
   {
@@ -48,7 +48,7 @@ const DOC_TILES = [
     title: "National ID / NIN slip",
     urlField: "idDocumentUrl",
     expiryField: "idDocExpiresAt",
-    requireExpiry: true,
+    requireExpiry: false, // NIN slips don't expire; national-ID cards optionally do.
   },
   {
     kind: "DRIVER_LICENCE",
@@ -84,11 +84,28 @@ const DOC_TILES = [
   },
 ];
 
-function classify(expiry) {
-  if (!expiry) return "missing";
-  const t = new Date(expiry).getTime();
-  if (Number.isNaN(t)) return "missing";
-  const delta = t - Date.now();
+/**
+ * Classify a tile from its URL and (optional) expiry. Returns one of
+ * "missing" | "valid" | "expiring" | "expired".
+ *
+ * Three regimes:
+ *  1. No expiry tracked (VEHICLE_PHOTO):       valid if URL present, missing otherwise.
+ *  2. Expiry tracked but optional (ID_DOC):    valid if URL present and (no expiry OR expiry in future);
+ *                                              expiring/expired follow normal date logic when expiry set.
+ *  3. Expiry tracked + required:               same as (2) but missing if URL or expiry absent.
+ */
+function classifyTile(tile, rider) {
+  const url = rider[tile.urlField];
+  if (!url) return "missing";
+  if (!tile.expiryField) return "valid";
+
+  const expiry = rider[tile.expiryField];
+  if (!expiry) {
+    return tile.requireExpiry ? "missing" : "valid";
+  }
+  const ts = new Date(expiry).getTime();
+  if (Number.isNaN(ts)) return tile.requireExpiry ? "missing" : "valid";
+  const delta = ts - Date.now();
   if (delta < 0) return "expired";
   if (delta <= WARN_WINDOW_DAYS * DAY_MS) return "expiring";
   return "valid";
@@ -120,23 +137,12 @@ export default function KycStatusScreen() {
 
   const tiles = useMemo(
     () =>
-      DOC_TILES.map((d) => {
-        const expiry = d.expiryField ? rider[d.expiryField] : null;
-        const url = rider[d.urlField] || null;
-        return {
-          ...d,
-          state: classify(d.expiryField ? expiry : url ? "valid-no-expiry" : null),
-          // For VEHICLE_PHOTO (no expiry), classify on URL presence:
-          url,
-          expiry,
-        };
-      }).map((d) => {
-        if (!d.expiryField) {
-          // No-expiry tile: classify by URL presence only.
-          return { ...d, state: d.url ? "valid" : "missing" };
-        }
-        return d;
-      }),
+      DOC_TILES.map((d) => ({
+        ...d,
+        url: rider[d.urlField] || null,
+        expiry: d.expiryField ? rider[d.expiryField] || null : null,
+        state: classifyTile(d, rider),
+      })),
     [rider],
   );
 
@@ -166,12 +172,19 @@ export default function KycStatusScreen() {
       Toast.show({ type: "error", text1: t("kyc.pickPhotoFirst", "Pick a photo to upload first.") });
       return;
     }
-    if (activeTile.requireExpiry && !/^\d{4}-\d{2}-\d{2}$/.test(expiryInput)) {
+    // Validate expiry: required for tiles like driver's licence, optional
+    // for ID slips. If provided, must be a valid future date.
+    const expiryTrimmed = (expiryInput || "").trim();
+    if (activeTile.requireExpiry && !/^\d{4}-\d{2}-\d{2}$/.test(expiryTrimmed)) {
       Toast.show({ type: "error", text1: t("kyc.expiryRequired", "Enter the expiry in YYYY-MM-DD.") });
       return;
     }
-    if (activeTile.requireExpiry) {
-      const ts = new Date(expiryInput).getTime();
+    if (expiryTrimmed) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(expiryTrimmed)) {
+        Toast.show({ type: "error", text1: t("kyc.expiryFormat", "Use date format YYYY-MM-DD.") });
+        return;
+      }
+      const ts = new Date(expiryTrimmed).getTime();
       if (Number.isNaN(ts) || ts <= Date.now()) {
         Toast.show({ type: "error", text1: t("kyc.expiryFuture", "Expiry must be a future date.") });
         return;
@@ -189,7 +202,7 @@ export default function KycStatusScreen() {
         reuploadRiderDocument({
           kind: activeTile.kind,
           url: secureUrl,
-          expiresAt: activeTile.requireExpiry ? new Date(expiryInput).toISOString() : undefined,
+          expiresAt: expiryTrimmed ? new Date(expiryTrimmed).toISOString() : undefined,
         }),
       ).unwrap();
       Toast.show({ type: "success", text1: t("kyc.uploaded", "Document updated") });
@@ -383,10 +396,12 @@ export default function KycStatusScreen() {
               </Text>
             </TouchableOpacity>
 
-            {activeTile?.requireExpiry ? (
+            {activeTile?.expiryField ? (
               <>
                 <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6 }}>
-                  {t("kyc.expiryLabel", "Expiry date (YYYY-MM-DD)")}
+                  {activeTile.requireExpiry
+                    ? t("kyc.expiryLabel", "Expiry date (YYYY-MM-DD)")
+                    : t("kyc.expiryLabelOptional", "Expiry date (optional)")}
                 </Text>
                 <TextInput
                   value={expiryInput}
@@ -401,6 +416,11 @@ export default function KycStatusScreen() {
                     marginBottom: 14,
                   }}
                 />
+                {!activeTile.requireExpiry ? (
+                  <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: -8, marginBottom: 14 }}>
+                    {t("kyc.expiryHintOptional", "Leave blank if your ID doesn't have an expiry.")}
+                  </Text>
+                ) : null}
               </>
             ) : null}
 

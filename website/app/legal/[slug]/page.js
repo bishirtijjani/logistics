@@ -22,6 +22,18 @@ const SLUGS = {
     description:
       "The agreement that governs your use of iPrime — wallet, deliveries, and the platform overall.",
   },
+  refund: {
+    file: "refund-policy.md",
+    title: "Refund Policy",
+    description:
+      "When and how iPrime refunds money — bill payments, wallet operations, delivery orders, and cancellations.",
+  },
+  compliance: {
+    file: "compliance.md",
+    title: "Compliance Statement",
+    description:
+      "How iPrime complies with the NDPA, CBN, FCCPA, and NIPOST rules that apply to a Nigerian wallet and delivery platform.",
+  },
 };
 
 export const dynamicParams = false;
@@ -53,11 +65,21 @@ async function loadMarkdown(slug) {
   }
 }
 
+// Force re-render on every request so the "Last updated" token always
+// resolves to the visitor's current date (UTC). Without this the page is
+// fully SSG and the date freezes at build time.
+export const dynamic = "force-dynamic";
+
 export default async function LegalPage({ params }) {
   const { slug } = await params;
   const meta = SLUGS[slug];
   const content = meta ? await loadMarkdown(slug) : null;
   if (!meta || !content) notFound();
+
+  const today = new Date().toLocaleDateString("en-CA", {
+    timeZone: "Africa/Lagos",
+  });
+  const rendered = content.replace(/\{\{TODAY\}\}/g, today);
 
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -70,7 +92,7 @@ export default async function LegalPage({ params }) {
         </Link>
 
         <article className="legal-prose mt-8">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{rendered}</ReactMarkdown>
         </article>
 
         <footer className="mt-16 border-t border-zinc-200 pt-6 text-xs text-zinc-500">

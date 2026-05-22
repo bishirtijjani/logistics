@@ -1366,7 +1366,61 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 
 ## Phase 8 — Hardening, Polish, Launch
 
-> **Status: ◻ Not Started. Depends on: Phases 0–7.**
+> **Status: ✅ COMPLETE (engineering). Depends on: Phases 0–7.**
+>
+> **What shipped (2026-05-20):**
+> - **Observability**
+>   - `src/services/sentry.js` — no-op stub mirroring the customer-app pattern; safe to ship without `@sentry/react-native` installed. Real impl is a 1-file swap-in once the SDK is added (template inline). Init'd from `App.js`; user tagging fired from `AppNavigator` on auth changes; root `ErrorBoundary` calls `captureError` before showing the fallback.
+>   - `src/lib/analytics.js` — `track(event, props)` helper with a centralized `EVENTS` catalog covering lifecycle, auth, availability, offers, trip, POD, wallet, support, KYC, profile, and errors. Dev builds log to the console; real provider wire-up is a 1-file change.
+>   - `EXPO_PUBLIC_SENTRY_ENVIRONMENT` configured in `eas.json` for dev / staging / production profiles.
+> - **Connectivity**
+>   - `src/services/connectivity.js` fuses socket-disconnect events and api network errors into a single boolean. Exposes `useConnectivity()` hook + imperative `markOnline/markOffline`.
+>   - `src/components/OfflineBanner.js` — global strip rendered above the NavigationContainer in `ThemedRoot`. Hidden when online; shows "You're offline — actions will retry when you reconnect." with appropriate `accessibilityLiveRegion`.
+>   - `api.js` interceptor calls `markOffline('api-network-error')` on network-level failures (no `error.response`) and `markOnline()` on the next successful response.
+> - **Release configuration**
+>   - `app.json`: `jsEngine: "hermes"`, `userInterfaceStyle: "automatic"`, `ios.buildNumber: "1"`, `android.versionCode: 1`, `ios.associatedDomains: ["applinks:rider.iprime.ng"]`, `android.intentFilters` for `https://rider.iprime.ng`.
+>   - `eas.json`: development / preview / production profiles each with their own `channel` (development / staging / production), `EXPO_PUBLIC_SENTRY_ENVIRONMENT`, `autoIncrement: true` on production, iOS `appleTeamId` / `ascAppId` placeholders, and `submit.production.android.releaseStatus: draft` for safer initial uploads.
+>   - `babel.config.js` strips `console.*` (excluding `error`/`warn`) when `NODE_ENV=production` via `babel-plugin-transform-remove-console` (added to `devDependencies`).
+> - **Deep-link completeness**
+>   - `NAV_LINKING.prefixes` extended to `["iprime://", "https://rider.iprime.ng", "riderapp://"]` (legacy for back-compat with pre-rebrand notifications).
+>   - `NAV_LINKING.config.screens` now exhaustively maps every reachable stack screen: wallet sub-tree, earnings, notifications, KYC, performance, profile, security, sessions, change-PIN, phone change, biometric, language, theme, legal, support home + ticket / dispute detail + create flows.
+>   - `lib/notificationRoute.parseDeepLink` already strips any scheme before matching — `riderapp://`, `iprime://`, and `https://rider.iprime.ng/*` all resolve via the same code path; verified by `__tests__/lib/notificationRoute.test.js`.
+> - **Testing**
+>   - `package.json` adds `jest`, `jest-expo`, `@testing-library/react-native`, `@testing-library/jest-native`, `babel-plugin-transform-remove-console`; embedded `jest` config uses `jest-expo` preset with `transformIgnorePatterns` covering RN/Expo/Redux/NativeWind, and a `__mocks__/fileMock.js` for static assets.
+>   - 7 test files / 50+ assertions in `__tests__/`:
+>     - `lib/formatters.test.js`, `lib/time.test.js`, `lib/polyline.test.js` — pure utilities.
+>     - `lib/notificationRoute.test.js` — string forms, payload forms, deep-link parsing across iprime:// + riderapp:// + universal links.
+>     - `store/notificationsSlice.test.js` — receive/dedupe, fetch happy & rejected, mark-read, mark-all-read, reset.
+>     - `store/earningsSlice.test.js` — socket dedup against fetched rows, 50-entry log cap, paginated append dedup, error path.
+>     - `store/offersSlice.test.js` — enqueue / reject / take / expire / accept-thunk fulfilled/409/410/500 paths; mocks the socket service for isolation.
+>   - Scripts: `npm test`, `npm run test:watch`, `npm run test:ci`.
+> - **Maestro E2E (`mobile/rider-app/.maestro/`)**
+>   - 8 YAML flows mapped to the QA matrix: login + online, accept + deliver, POD photo + OTP, withdraw with PIN, force-offline, Hausa language switch, offer expiry, offer race lost.
+>   - Helper shell scripts (`trigger-force-offline.sh`, `simulate-offer-race.sh`) document the staging API touch-points and the env vars (`ADMIN_TOKEN`, `SIBLING_RIDER_TOKEN`, `RIDER_ID`) the Maestro Cloud secret store must hold.
+>   - `.maestro/README.md` covers local + CI runs, test data conventions, and the flow-to-QA-matrix mapping.
+> - **Launch docs**
+>   - `QA_SCENARIOS.md` — 20-row manual QA matrix with Maestro-automation flags, performance gates (cold start < 3s, bundle < 6MB), crash-free target (99.5%), beta delivery-completion target (95%), and a clear release-blocker definition.
+>   - `RUNBOOKS.md` — seven runbooks: rider-can't-go-online troubleshooting, OTA publish, production rollout (Play + App Store staged), force-cancel an active trip, OTA + native binary rollback, on-call escalation for region-wide offer push failures, and staging/test-data quirks.
+>   - `src/i18n/HAUSA_REVIEW.md` — section-by-section checklist for the native-Hausa review, inheriting the customer-app's conventions and adding rider-specific sections (onboarding, offers, trip, POD, earnings, KYC, performance, support, security, offline).
+> - **Misc**
+>   - `offline.banner` / `offline.bannerRetry` keys added to `en.json` + `ha.json`.
+>   - `AppNavigator.NAV_LINKING.prefixes` accepts the legacy `riderapp://` scheme so notifications minted pre-iprime rebrand still parse.
+>
+> **Engineering acceptance criteria met** (per §8.3):
+> - ✅ Unit tests written (Jest + RTL deps wired; 50+ assertions across utilities and slices).
+> - ✅ 8 Maestro flows authored mapped to the QA matrix.
+> - ✅ Hausa review checklist published with rider-specific section coverage.
+> - ✅ Sentry stub + analytics catalog in place; SDK + provider wire-up is a documented 1-file change.
+> - ✅ Hermes enabled; console-strip in production; bundle-size measurable via `expo export --dump-sourcemap`.
+> - ✅ Deep linking exhaustive; legacy scheme back-compat preserved.
+>
+> **Human-blocker acceptance criteria** (require physical devices / external systems):
+> - ⏳ All 20 QA matrix scenarios run on a physical Android + iOS device.
+> - ⏳ Maestro Cloud green on the EAS preview build for the release candidate.
+> - ⏳ Sentry 24h soak shows zero severe issues.
+> - ⏳ Native-speaker Hausa review signed off; `_meta.reviewedAt` stamped on `ha.json`.
+> - ⏳ Play Internal + TestFlight builds accepted by the stores.
+> - ⏳ Beta with ≥20 active riders for ≥7 days at ≥99.5% crash-free + ≥95% delivery-completion.
 
 ### 8.1 Goals
 

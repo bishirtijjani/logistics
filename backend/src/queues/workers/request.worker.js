@@ -56,19 +56,31 @@ const notifyJobTaken = async (io, requestId, takenByRiderId = null) => {
     logger.warn('notifyJobTaken failed', { requestId, error: err.message });
   }
 
-  // Phase 7 — settle the persistent offer log so any still-OFFERED rows
-  // for this request transition to TAKEN (another rider got it). The
-  // accepting rider's own row is set to ACCEPTED inside acceptJob's
-  // transaction, so we exclude that rider here.
+  // Phase 7 — settle the persistent offer log. Two distinct terminal states
+  // depending on what just happened:
+  //   - takenByRiderId set     → another rider claimed it. Other OFFERED
+  //                              rows become TAKEN.
+  //   - takenByRiderId null    → no rider claimed it (auto-cancel,
+  //                              customer cancellation mid-ring, etc.).
+  //                              Any still-OFFERED rows become EXPIRED.
+  // The accepting rider's own row is already ACCEPTED via acceptJob's
+  // transaction so we exclude that rider here.
   try {
-    await prisma.riderOfferLog.updateMany({
-      where: {
-        requestId,
-        outcome: 'OFFERED',
-        ...(takenByRiderId && { riderId: { not: takenByRiderId } }),
-      },
-      data: { outcome: 'TAKEN', respondedAt: new Date() },
-    });
+    if (takenByRiderId) {
+      await prisma.riderOfferLog.updateMany({
+        where: {
+          requestId,
+          outcome: 'OFFERED',
+          riderId: { not: takenByRiderId },
+        },
+        data: { outcome: 'TAKEN', respondedAt: new Date() },
+      });
+    } else {
+      await prisma.riderOfferLog.updateMany({
+        where: { requestId, outcome: 'OFFERED' },
+        data: { outcome: 'EXPIRED', respondedAt: new Date() },
+      });
+    }
   } catch (err) {
     logger.warn('Failed to settle rider offer logs', { requestId, error: err.message });
   }
@@ -735,18 +747,9 @@ const autoCancelUnmatched = async (job) => {
   emitCancelled(io, requestId, request.customerId, cancellationReason);
 
   // Also tell any riders we previously offered this request that it's gone.
+  // notifyJobTaken handles the offer-log EXPIRED state transition when
+  // called with `null` (no claiming rider).
   await notifyJobTaken(io, requestId, null);
-
-  // Phase 7 — flip any still-OFFERED rows for this request to EXPIRED so
-  // performance metrics treat the no-response correctly.
-  try {
-    await prisma.riderOfferLog.updateMany({
-      where: { requestId, outcome: 'OFFERED' },
-      data: { outcome: 'EXPIRED', respondedAt: new Date() },
-    });
-  } catch (err) {
-    logger.warn('Failed to expire rider offer logs', { requestId, error: err.message });
-  }
 
   // Notification Center row + push for the customer (consistent with the
   // customer-initiated cancel path).

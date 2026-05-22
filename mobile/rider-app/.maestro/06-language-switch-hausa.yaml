@@ -1,0 +1,23 @@
+# Switch language to Hausa and verify the primary UI strings flip.
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+---
+- runFlow:
+    file: 01-login-and-go-online.yaml
+- tapOn: "Me"
+- extendedWaitUntil:
+    visible: "Language"
+    timeout: 10000
+- tapOn: "Language"
+- extendedWaitUntil:
+    visible: "Hausa"
+    timeout: 10000
+- tapOn: "Hausa"
+# Back on Me tab — primary section label should now read "Asusu" (Hausa for Account).
+- extendedWaitUntil:
+    visible: "Asusu"
+    timeout: 5000
+- assertVisible: "Asusu"
+- assertNotVisible: "Account"

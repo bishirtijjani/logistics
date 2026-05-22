@@ -66,7 +66,9 @@
   }
 
   .ui-badge {
-    @apply inline-flex items-center font-mono text-[0.7rem] uppercase tracking-widest px-3.5 py-1.5 rounded-full text-accent bg-[var(--color-accent-dim)] font-extrabold border border-[var(--color-accent-soft)];
+    @apply inline-flex items-center font-mono text-[0.7rem] uppercase tracking-widest px-3.5 py-1.5 rounded-full text-accent font-extrabold border;
+    background-color: var(--color-accent-dim);
+    border-color: var(--color-accent-soft);
   }
 
   .ui-card {
@@ -78,11 +80,15 @@
   }
 
   .ui-btn-primary {
-    @apply bg-accent text-white hover:bg-[var(--color-accent-hover)] hover:-translate-y-px hover:shadow-[0_8px_16px_rgba(234,88,12,0.25)];
+    @apply bg-accent text-white hover:-translate-y-px hover:shadow-[0_8px_16px_rgba(234,88,12,0.25)];
+  }
+  .ui-btn-primary:hover {
+    background-color: var(--color-accent-hover);
   }
 
   .ui-btn-ghost {
-    @apply bg-white text-[var(--color-text-primary)] border-gray-200 border hover:border-gray-300 hover:-translate-y-px;
+    @apply bg-white border-gray-200 border hover:border-gray-300 hover:-translate-y-px;
+    color: var(--color-text-primary);
   }
 
   .ui-eyebrow {
@@ -90,12 +96,57 @@
   }
 
   .ui-title {
-    @apply text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-[1.05] text-[var(--color-text-primary)];
+    @apply text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-[1.05];
+    color: var(--color-text-primary);
   }
 
   .ui-sub {
     @apply text-base md:text-lg text-gray-500 font-medium leading-relaxed mt-4 max-w-2xl;
   }
+}
+
+/* --- Subway/lifecycle animations ---------------------------------------- */
+@keyframes lifecycle-travel {
+  0%   { left: 0%; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes lifecycle-trail {
+  0%   { left: 0%; opacity: 0; }
+  8%   { opacity: 0.5; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes lifecycle-travel-vertical {
+  0%   { top: 0%; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* --- Audience card Ken Burns ambient motion (multi-phase, infinite) ---- */
+@keyframes ken-burns-a {
+  0%   { transform: scale(1.10) translate(0%, 0%) rotate(0deg); }
+  20%  { transform: scale(1.18) translate(-3%, -2%) rotate(0.4deg); }
+  45%  { transform: scale(1.25) translate(-1%, 3%) rotate(-0.3deg); }
+  70%  { transform: scale(1.20) translate(3%, 1%) rotate(0.2deg); }
+  100% { transform: scale(1.10) translate(0%, 0%) rotate(0deg); }
+}
+@keyframes ken-burns-b {
+  0%   { transform: scale(1.12) translate(2%, 0%) rotate(0deg); }
+  25%  { transform: scale(1.22) translate(-1%, -3%) rotate(-0.4deg); }
+  50%  { transform: scale(1.28) translate(-3%, 2%) rotate(0.5deg); }
+  75%  { transform: scale(1.18) translate(2%, 3%) rotate(0deg); }
+  100% { transform: scale(1.12) translate(2%, 0%) rotate(0deg); }
+}
+@keyframes ken-burns-c {
+  0%   { transform: scale(1.10) translate(0%, 2%) rotate(0deg); }
+  30%  { transform: scale(1.24) translate(3%, -1%) rotate(0.3deg); }
+  55%  { transform: scale(1.28) translate(-2%, -3%) rotate(-0.5deg); }
+  80%  { transform: scale(1.16) translate(-3%, 2%) rotate(0.2deg); }
+  100% { transform: scale(1.10) translate(0%, 2%) rotate(0deg); }
 }
 
 /* --- Legal prose --------------------------------------------------------- */

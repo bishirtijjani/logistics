@@ -1,0 +1,19 @@
+# Admin invokes force-offline on the rider; the rider's app should flip
+# OFFLINE within 3 s and surface a kill-switch toast.
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+  ADMIN_TOKEN: ${ADMIN_TOKEN}
+---
+- runFlow:
+    file: 01-login-and-go-online.yaml
+# Trigger from admin via the staging helper endpoint. The test runner sets
+# ADMIN_TOKEN; the curl runs out-of-band before the wait.
+- runScript:
+    file: scripts/trigger-force-offline.sh
+- extendedWaitUntil:
+    visible: "Offline"
+    timeout: 5000
+- assertVisible: "Offline"
+- assertNotVisible: "Go Online"

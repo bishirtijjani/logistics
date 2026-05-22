@@ -1,0 +1,30 @@
+# Login with seeded test rider, flip ONLINE, verify Home tab.
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+  RIDER_PIN: ${RIDER_PIN:-123456}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Login"
+    timeout: 20000
+- tapOn:
+    text: "Phone"
+- inputText: ${RIDER_PHONE}
+- tapOn:
+    text: "Password"
+- inputText: ${RIDER_PASSWORD}
+- tapOn:
+    text: "Sign in"
+- extendedWaitUntil:
+    visible: "Go Online"
+    timeout: 30000
+- tapOn:
+    text: "Go Online"
+# AvailabilityToggle re-renders to "Online" when the PATCH succeeds.
+- extendedWaitUntil:
+    visible: "Online"
+    timeout: 15000
+- assertVisible: "Online"

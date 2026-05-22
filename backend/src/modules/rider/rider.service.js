@@ -545,21 +545,23 @@ const getPerformance = async (userId) => {
   }
 
   // Current streak — consecutive trailing days ending today (or yesterday).
+  // All comparisons live in UTC to match Postgres DATE_TRUNC results.
   const dayStrings = recentDeliveryDays.map((r) =>
     r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day).slice(0, 10),
   );
-  const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    .toISOString().slice(0, 10);
-  const yesterdayStr = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const todayUtc = now.toISOString().slice(0, 10);
+  const yesterdayUtc = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     .toISOString().slice(0, 10);
   let streak = 0;
-  if (dayStrings[0] === todayStr || dayStrings[0] === yesterdayStr) {
-    // Walk backwards from the most recent delivery day; count consecutive.
-    let cursor = new Date(dayStrings[0]);
+  if (dayStrings[0] === todayUtc || dayStrings[0] === yesterdayUtc) {
+    let cursorDate = dayStrings[0];
     for (const ds of dayStrings) {
-      if (ds === cursor.toISOString().slice(0, 10)) {
+      if (ds === cursorDate) {
         streak += 1;
-        cursor.setDate(cursor.getDate() - 1);
+        // Decrement cursor by one UTC day.
+        const d = new Date(`${cursorDate}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() - 1);
+        cursorDate = d.toISOString().slice(0, 10);
       } else {
         break;
       }
@@ -598,12 +600,15 @@ const getPerformance = async (userId) => {
 
 /// Whitelisted document kinds the rider can re-upload from the KYC screen.
 /// `kind` maps to the column on `Rider` that holds the Cloudinary URL.
+/// `expiryRequired` distinguishes documents that always have an expiry
+/// (driver's licence, vehicle reg, insurance) from those that may not
+/// (NIN slip — no expiry; vehicle photo — no expiry).
 const DOC_KIND_COLUMN = {
-  ID_DOC:         { url: 'idDocumentUrl',  expiry: 'idDocExpiresAt' },
-  DRIVER_LICENCE: { url: 'driverLicenceUrl', expiry: 'driverLicenceExpiresAt' },
-  VEHICLE_PHOTO:  { url: 'vehiclePhotoUrl', expiry: null }, // photo has no expiry
-  VEHICLE_REG:    { url: 'vehicleRegUrl',  expiry: 'vehicleRegExpiresAt' },
-  INSURANCE:      { url: 'insuranceDocUrl', expiry: 'insuranceExpiresAt' },
+  ID_DOC:         { url: 'idDocumentUrl',   expiry: 'idDocExpiresAt',         expiryRequired: false },
+  DRIVER_LICENCE: { url: 'driverLicenceUrl', expiry: 'driverLicenceExpiresAt', expiryRequired: true  },
+  VEHICLE_PHOTO:  { url: 'vehiclePhotoUrl',  expiry: null,                     expiryRequired: false },
+  VEHICLE_REG:    { url: 'vehicleRegUrl',    expiry: 'vehicleRegExpiresAt',    expiryRequired: true  },
+  INSURANCE:      { url: 'insuranceDocUrl',  expiry: 'insuranceExpiresAt',     expiryRequired: true  },
 };
 
 /**
@@ -634,26 +639,32 @@ const reuploadDocument = async (userId, { kind, url, expiresAt }) => {
     }
   }
 
-  // Expiry must be in the future (if provided). Vehicle photos legitimately
-  // omit expiry.
+  // Expiry handling: required for documents that always expire (driver's
+  // licence, vehicle reg, insurance); optional for ID_DOC (NIN slips don't
+  // expire) and VEHICLE_PHOTO (no expiry at all).
   let parsedExpiry = null;
   if (mapping.expiry) {
-    if (!expiresAt) {
+    if (expiresAt) {
+      parsedExpiry = new Date(expiresAt);
+      if (Number.isNaN(parsedExpiry.getTime())) {
+        throw AppError.badRequest('Invalid expiry date', { code: 'INVALID_EXPIRY' });
+      }
+      if (parsedExpiry.getTime() < Date.now()) {
+        throw AppError.badRequest('Expiry date must be in the future', { code: 'EXPIRY_PAST' });
+      }
+    } else if (mapping.expiryRequired) {
       throw AppError.badRequest('Document expiry is required for this document type', {
         code: 'EXPIRY_REQUIRED',
       });
     }
-    parsedExpiry = new Date(expiresAt);
-    if (Number.isNaN(parsedExpiry.getTime())) {
-      throw AppError.badRequest('Invalid expiry date', { code: 'INVALID_EXPIRY' });
-    }
-    if (parsedExpiry.getTime() < Date.now()) {
-      throw AppError.badRequest('Expiry date must be in the future', { code: 'EXPIRY_PAST' });
-    }
   }
 
   const data = { [mapping.url]: url };
-  if (mapping.expiry) data[mapping.expiry] = parsedExpiry;
+  if (mapping.expiry) {
+    // Always write the expiry column — null clears any stale prior value
+    // when an ID slip is re-uploaded without an expiry.
+    data[mapping.expiry] = parsedExpiry;
+  }
   // Reset the throttle marker so a re-upload that pushes the rider out of
   // the 14-day window stops emitting expiry pushes.
   data.lastDocExpiryNoticeAt = null;
@@ -758,12 +769,55 @@ const updateRiderStatus = async (riderId, status, adminId) => {
     throw AppError.badRequest('Invalid rider status');
   }
 
+  const prevStatus = rider.status;
   const updated = await prisma.rider.update({
     where: { id: riderId },
     data: { status },
   });
 
   logger.info('Rider status updated by admin', { riderId, status, adminId });
+
+  // Phase 7 — push + socket notification so the rider's profile gate flips
+  // (PendingApproval → Main, or Main → Suspended) without a re-launch. The
+  // mobile bus listens for these types and refetches the rider profile.
+  if (prevStatus !== status) {
+    try {
+      const notifyService = require('../../services/notify.service');
+      const TYPE_FOR = {
+        APPROVED: prevStatus === 'SUSPENDED' ? 'RIDER_REACTIVATED' : 'RIDER_APPROVED',
+        REJECTED: 'RIDER_REJECTED',
+        SUSPENDED: 'RIDER_SUSPENDED',
+        PENDING_APPROVAL: 'RIDER_PENDING',
+      };
+      const TITLES = {
+        RIDER_APPROVED:    'You\'re approved!',
+        RIDER_REACTIVATED: 'Account reactivated',
+        RIDER_REJECTED:    'Application rejected',
+        RIDER_SUSPENDED:   'Account suspended',
+        RIDER_PENDING:     'Account under review',
+      };
+      const BODIES = {
+        RIDER_APPROVED:    'Welcome aboard. You can go online and start receiving offers now.',
+        RIDER_REACTIVATED: 'Your rider account has been reactivated. Welcome back.',
+        RIDER_REJECTED:    'Your rider application wasn\'t approved. Check the Me tab for details.',
+        RIDER_SUSPENDED:   'Your rider account has been suspended. Open a support ticket to appeal.',
+        RIDER_PENDING:     'Your account is being reviewed again. We\'ll notify you with the outcome.',
+      };
+      const type = TYPE_FOR[status];
+      if (type) {
+        await notifyService.pushAndSocket(rider.userId, {
+          type,
+          title: TITLES[type],
+          body: BODIES[type],
+          data: { route: '/home', kind: 'rider-status', status },
+        });
+      }
+    } catch (err) {
+      logger.warn('Failed to notify rider of status change', {
+        riderId, status, error: err.message,
+      });
+    }
+  }
 
   return updated;
 };

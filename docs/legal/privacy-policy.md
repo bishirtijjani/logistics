@@ -1,24 +1,17 @@
 # iPrime Privacy Policy
 
-**Effective date:** {{EFFECTIVE_DATE}}  
-**Last updated:** {{LAST_UPDATED_DATE}}
-
-> **Placeholders in this draft** (replace before publishing):  
-> `{{LEGAL_ENTITY}}` — registered company name (e.g. "iPrime Logistics Limited")  
-> `{{CAC_RC_NUMBER}}` — CAC RC/BN registration number  
-> `{{REGISTERED_ADDRESS}}` — full registered address  
-> `{{SUPPORT_EMAIL}}` — user-facing support inbox  
-> `{{DPO_EMAIL}}` — Data Protection Officer contact (NDPR §2.6 requires one for any controller processing >2,000 NG data subjects/year — likely you)  
-> `{{EFFECTIVE_DATE}}` / `{{LAST_UPDATED_DATE}}` — set on publish
+**Effective date:** 2026-05-22  
+**Last updated:** {{TODAY}}
 
 ---
 
 ## 1. Who we are
 
 iPrime ("**iPrime**", "**we**", "**us**", "**our**") is a logistics, payments,
-and digital-services platform operated by **{{LEGAL_ENTITY}}**, a company
-registered in Nigeria under CAC number **{{CAC_RC_NUMBER}}**, with its
-registered office at **{{REGISTERED_ADDRESS}}**.
+and digital-services platform operated by **MH Prime**, a business
+registered with the Corporate Affairs Commission of Nigeria under
+business name number **9518859**, with its registered office at
+**2, Liyafa Street, Katsina, Katsina State, Nigeria**.
 
 We are the **data controller** for personal data you provide while using
 the iPrime customer app, iPrime rider app, or merchant tools. This policy
@@ -114,14 +107,13 @@ function strictly requires:
 
 | Provider | Data shared | Purpose |
 |---|---|---|
-| **KatPay** | BVN hash, name, account details | NUBAN wallet provisioning, bank transfers, settlement |
+| **Licensed Nigerian payment-service provider** | BVN hash, name, account details | NUBAN wallet provisioning, bank transfers, settlement |
 | **Termii** | Phone number, OTP code | Sending SMS verification codes |
 | **Cloudinary** | Profile photos, prescription images, support attachments | Image hosting (uploads are signed, time-limited) |
 | **Google Maps Platform** | GPS coordinates, addresses you search | Geocoding, route calculation, distance & ETA |
 | **Firebase Cloud Messaging (Google)** | FCM token, notification payload | Push notification delivery |
 | **Sentry** | Error stack traces, request IDs (PII stripped before send) | Crash reporting |
 | **Posthog / Firebase Analytics** | Anonymized event data | Product analytics |
-| **AlRahuz** *(if used)* | Limited transaction metadata | Specific payment rails |
 
 ### 4.3 Legal disclosure
 
@@ -162,9 +154,10 @@ systems.
 ## 6. Where your data is stored
 
 Our application servers and databases run in cloud infrastructure
-(`{{CLOUD_REGION}}`). Some service providers (Google Maps, Firebase,
-Cloudinary, Sentry) may process data outside Nigeria. When data is
-transferred outside Nigeria, we rely on:
+regions approved for processing personal data of Nigerian residents.
+Some service providers (Google Maps, Firebase, Cloudinary, Sentry) may
+process data outside Nigeria. When data is transferred outside Nigeria,
+we rely on:
 
 - Contractual safeguards (Data Processing Addenda with each vendor), and
 - Adequacy decisions or other transfer mechanisms recognized by the NDPC.
@@ -186,7 +179,7 @@ You have the right to:
 - **Withdraw consent** to marketing or optional features at any time
 - **Lodge a complaint** with the **Nigeria Data Protection Commission (NDPC)** at https://ndpc.gov.ng
 
-To exercise any of these rights, email **{{DPO_EMAIL}}**. We respond within
+To exercise any of these rights, email **contact@mhprime.ng**. We respond within
 30 days as required by the NDPA. Identity verification may be required for
 sensitive requests to prevent account takeover.
 
@@ -228,9 +221,9 @@ they take effect. The "Last updated" date at the top is authoritative.
 
 ## 11. Contact us
 
-- **General support:** {{SUPPORT_EMAIL}}
-- **Data Protection Officer (DPO):** {{DPO_EMAIL}}
-- **Postal:** {{LEGAL_ENTITY}}, {{REGISTERED_ADDRESS}}
+- **General support:** contact@mhprime.ng
+- **Data Protection Officer (DPO):** contact@mhprime.ng
+- **Postal:** MH Prime, 2, Liyafa Street, Katsina, Katsina State, Nigeria
 - **NDPC:** https://ndpc.gov.ng — if you believe we have not handled your data correctly
 
 ---

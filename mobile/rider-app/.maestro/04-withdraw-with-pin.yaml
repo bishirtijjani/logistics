@@ -1,0 +1,37 @@
+# Withdraw to a saved beneficiary; PIN bottom sheet authorises the transfer.
+# Idempotency key is set internally — re-running this flow within seconds
+# should NOT double-charge.
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+  RIDER_PIN: ${RIDER_PIN:-123456}
+---
+- runFlow:
+    file: 01-login-and-go-online.yaml
+- tapOn:
+    text: "Wallet"
+- extendedWaitUntil:
+    visible: "Withdraw"
+    timeout: 10000
+- tapOn:
+    text: "Withdraw"
+# Saved beneficiary chip from staging seed.
+- extendedWaitUntil:
+    visible: "Test Beneficiary"
+    timeout: 10000
+- tapOn:
+    text: "Test Beneficiary"
+- tapOn:
+    text: "Amount"
+- inputText: "1000"
+- tapOn:
+    text: "Withdraw"
+- extendedWaitUntil:
+    visible: "Enter PIN"
+    timeout: 10000
+- inputText: ${RIDER_PIN}
+- extendedWaitUntil:
+    visible: "Withdrawal queued"
+    timeout: 15000
+- assertVisible: "Withdrawal queued"

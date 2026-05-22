@@ -254,6 +254,30 @@ export default function TransactionDetailScreen() {
             </>
           )}
         </TouchableOpacity>
+
+        {/* Phase 7 — report an issue on a delivered trip. RIDER_EARNING txs
+            carry the originating requestId in metadata, which is exactly what
+            CreateDispute needs. */}
+        {tx.type === "RIDER_EARNING" && tx.metadata?.requestId ? (
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("CreateDispute", { requestId: tx.metadata.requestId })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={t("support.fileDispute", "File dispute")}
+            style={{
+              marginTop: 10, paddingVertical: 14, borderRadius: 12,
+              backgroundColor: tokens.bg.surface,
+              borderWidth: 1, borderColor: tokens.border.default,
+              alignItems: "center", flexDirection: "row", justifyContent: "center",
+            }}
+          >
+            <Ionicons name="flag-outline" size={16} color={tokens.text.primary} />
+            <Text style={{ marginLeft: 6, color: tokens.text.primary, fontWeight: "700", fontSize: 14 }}>
+              {t("support.reportThisDelivery", "Report an issue with this delivery")}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

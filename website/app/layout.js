@@ -18,11 +18,11 @@ const roboto = Roboto({
 export const metadata = {
   metadataBase: new URL("https://vtulogistics.com"),
   title: {
-    default: "iPrime — Wallet, Utilities & Delivery in Katsina",
+    default: "iPrime — Delivery, Wallet & Bills for Katsina",
     template: "%s · iPrime",
   },
   description:
-    "iPrime is the wallet, utilities, and delivery super-app for Katsina State. Send money, pay bills, order food, groceries, pharmacy and courier — all in one app.",
+    "iPrime is Katsina's delivery app. Order food, groceries, pharmacy and parcels with live rider tracking — plus a built-in wallet that handles airtime, data and electricity bills.",
   keywords: [
     "iPrime",
     "Katsina delivery",
@@ -42,16 +42,16 @@ export const metadata = {
     type: "website",
     locale: "en_NG",
     url: "https://vtulogistics.com",
-    title: "iPrime — Wallet, Utilities & Delivery in Katsina",
+    title: "iPrime — Delivery, Wallet & Bills for Katsina",
     description:
-      "One app for your wallet, airtime, electricity, and door-to-door delivery across Katsina State.",
+      "Door-to-door delivery across Katsina State — food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
     siteName: "iPrime",
   },
   twitter: {
     card: "summary_large_image",
-    title: "iPrime — Wallet, Utilities & Delivery in Katsina",
+    title: "iPrime — Delivery, Wallet & Bills for Katsina",
     description:
-      "One app for your wallet, airtime, electricity, and door-to-door delivery across Katsina State.",
+      "Door-to-door delivery across Katsina State — food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
   },
   robots: {
     index: true,
@@ -77,7 +77,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${roboto.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-white text-[--color-text-primary]">
+      <body className="min-h-full flex flex-col bg-white text-text-primary">
         {children}
       </body>
     </html>

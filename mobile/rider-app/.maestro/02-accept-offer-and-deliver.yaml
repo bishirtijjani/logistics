@@ -1,0 +1,59 @@
+# End-to-end delivery: receive offer → accept → arrived pickup → confirm
+# pickup → arrived dropoff → POD photo → DELIVERED. Wallet should reflect
+# the credit on return to Home.
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+---
+- runFlow:
+    file: 01-login-and-go-online.yaml
+# Backend seeder injects an offer for this rider; wait for the offer sheet.
+- extendedWaitUntil:
+    visible: "New job"
+    timeout: 60000
+- tapOn:
+    text: "Accept"
+# Trip cockpit opens. Status starts at RIDER_ASSIGNED.
+- extendedWaitUntil:
+    visible: "I'm on my way to pickup"
+    timeout: 15000
+- tapOn:
+    text: "I'm on my way to pickup"
+- extendedWaitUntil:
+    visible: "I've arrived at pickup"
+    timeout: 10000
+- tapOn:
+    text: "I've arrived at pickup"
+- extendedWaitUntil:
+    visible: "Confirm pickup"
+    timeout: 10000
+- tapOn:
+    text: "Confirm pickup"
+- extendedWaitUntil:
+    visible: "I'm on my way to dropoff"
+    timeout: 10000
+- tapOn:
+    text: "I'm on my way to dropoff"
+- extendedWaitUntil:
+    visible: "I've arrived at dropoff"
+    timeout: 10000
+- tapOn:
+    text: "I've arrived at dropoff"
+- extendedWaitUntil:
+    visible: "Complete delivery"
+    timeout: 10000
+- tapOn:
+    text: "Complete delivery"
+# POD photo sheet — Maestro can't actually take a photo, but the captured
+# fixture in test mode auto-fills.
+- extendedWaitUntil:
+    visible: "Use this photo"
+    timeout: 15000
+- tapOn:
+    text: "Use this photo"
+# Settlement animation, then back to Home tab.
+- extendedWaitUntil:
+    visible: "You earned"
+    timeout: 30000
+- assertVisible: "Delivered"

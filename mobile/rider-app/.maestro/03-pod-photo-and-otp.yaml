@@ -1,0 +1,47 @@
+# High-value delivery: order total > podOtpThresholdNgn requires the
+# customer's OTP. Seeded offer in staging is ₦80,000 to trip the threshold.
+appId: ng.iprime.rider
+env:
+  RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
+  RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}
+  POD_OTP: ${POD_OTP:-123456}
+---
+- runFlow:
+    file: 01-login-and-go-online.yaml
+- extendedWaitUntil:
+    visible: "New job"
+    timeout: 60000
+- tapOn:
+    text: "Accept"
+- extendedWaitUntil:
+    visible: "I'm on my way to pickup"
+    timeout: 15000
+- tapOn:
+    text: "I'm on my way to pickup"
+- tapOn:
+    text: "I've arrived at pickup"
+- tapOn:
+    text: "Confirm pickup"
+- tapOn:
+    text: "I'm on my way to dropoff"
+- tapOn:
+    text: "I've arrived at dropoff"
+- tapOn:
+    text: "Complete delivery"
+# POD photo first.
+- extendedWaitUntil:
+    visible: "Use this photo"
+    timeout: 15000
+- tapOn:
+    text: "Use this photo"
+# OTP sheet for high-value.
+- extendedWaitUntil:
+    visible: "Delivery code"
+    timeout: 10000
+- inputText: ${POD_OTP}
+- tapOn:
+    text: "Verify"
+- extendedWaitUntil:
+    visible: "You earned"
+    timeout: 30000
+- assertVisible: "Delivered"

@@ -14,6 +14,30 @@ export default function sitemap() {
       priority: 1,
     },
     {
+      url: `${SITE}/careers`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE}/press`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${SITE}/partners/bill-payment`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${SITE}/partners/banking`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       url: `${SITE}/legal/privacy`,
       lastModified: now,
       changeFrequency: "yearly",
@@ -21,6 +45,18 @@ export default function sitemap() {
     },
     {
       url: `${SITE}/legal/terms`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.5,
+    },
+    {
+      url: `${SITE}/legal/refund`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.5,
+    },
+    {
+      url: `${SITE}/legal/compliance`,
       lastModified: now,
       changeFrequency: "yearly",
       priority: 0.5,
