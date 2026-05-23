@@ -9,6 +9,10 @@ const nextConfig = {
   // up fresh assets. Without `output: 'export'`, `next build` only writes
   // .next/ and the deploy ships a stale out/ from the last manual export.
   output: "export",
+  // Emit /careers/index.html (not /careers.html) so nginx's default
+  // `index index.html` directive serves routes without needing a custom
+  // `try_files $uri.html` rule on the VPS.
+  trailingSlash: true,
   // Static export has no runtime image optimizer; serve images as-is.
   images: {
     unoptimized: true,
