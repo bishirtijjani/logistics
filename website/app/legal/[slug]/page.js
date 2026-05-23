@@ -65,11 +65,9 @@ async function loadMarkdown(slug) {
   }
 }
 
-// Force re-render on every request so the "Last updated" token always
-// resolves to the visitor's current date (UTC). Without this the page is
-// fully SSG and the date freezes at build time.
-export const dynamic = "force-dynamic";
-
+// Site is built with `output: 'export'` (see next.config.mjs), so this
+// page must be fully static. {{TODAY}} resolves at build time — meaning
+// the "Last updated" date refreshes on every deploy/webhook rebuild.
 export default async function LegalPage({ params }) {
   const { slug } = await params;
   const meta = SLUGS[slug];

@@ -4,6 +4,10 @@
 // they don't need to be indexed).
 const SITE = "https://iprime.ng";
 
+// Required by Next 16 under `output: 'export'` — sitemap is emitted at
+// build time into out/sitemap.xml.
+export const dynamic = "force-static";
+
 export default function sitemap() {
   const now = new Date();
   return [
