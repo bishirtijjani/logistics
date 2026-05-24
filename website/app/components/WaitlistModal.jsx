@@ -129,7 +129,7 @@ export default function WaitlistModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="waitlist-modal-title"
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[1100] flex items-end sm:items-center justify-center"
     >
       <button
         type="button"
