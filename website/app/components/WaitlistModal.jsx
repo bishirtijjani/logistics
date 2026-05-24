@@ -138,7 +138,7 @@ export default function WaitlistModal({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-default"
       />
 
-      <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl mx-0 sm:mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full sm:max-w-md bg-white text-text-primary rounded-t-3xl sm:rounded-3xl shadow-2xl mx-0 sm:mx-4 max-h-[90vh] overflow-y-auto">
         <button
           type="button"
           onClick={onClose}

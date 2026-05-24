@@ -1,6 +1,14 @@
 "use client";
 
-import { Mail, Phone, MapPin, Send, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Send,
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 import { useState } from "react";
 import { API_URL } from "../lib/api";
 
@@ -14,8 +22,8 @@ const channels = [
   {
     Icon: Phone,
     label: "Call or WhatsApp",
-    value: "+234 800 000 0000",
-    href: "tel:+2348000000000",
+    value: "+234 906 561 7528",
+    href: "tel:+2349065617528",
   },
   {
     Icon: MapPin,
@@ -56,28 +64,39 @@ export default function Contact() {
           name: form.name.trim(),
           email: form.email.trim(),
           message: form.message.trim(),
-          source: typeof window !== "undefined" ? window.location.pathname : undefined,
+          source:
+            typeof window !== "undefined"
+              ? window.location.pathname
+              : undefined,
         }),
       });
 
       const payload = await res.json().catch(() => null);
 
       if (!res.ok) {
-        if (payload?.code === "VALIDATION_FAILED" && Array.isArray(payload.errors)) {
+        if (
+          payload?.code === "VALIDATION_FAILED" &&
+          Array.isArray(payload.errors)
+        ) {
           const fe = {};
           payload.errors.forEach((err) => {
             if (err.field) fe[err.field] = err.message;
           });
           setFieldErrors(fe);
         }
-        throw new Error(payload?.message || "Something went wrong. Please try again.");
+        throw new Error(
+          payload?.message || "Something went wrong. Please try again.",
+        );
       }
 
       setStatus("success");
       setForm(initialForm);
     } catch (err) {
       setStatus("error");
-      setErrorMsg(err.message || "Network error. Please try again or email hello@iprime.ng.");
+      setErrorMsg(
+        err.message ||
+          "Network error. Please try again or email hello@iprime.ng.",
+      );
     }
   };
 
@@ -145,7 +164,8 @@ export default function Contact() {
                   Message sent.
                 </h4>
                 <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
-                  Thanks — we got it. A human will reply within one business day.
+                  Thanks — we got it. A human will reply within one business
+                  day.
                 </p>
                 <button
                   type="button"
@@ -175,7 +195,9 @@ export default function Contact() {
                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
                   />
                   {fieldErrors.name && (
-                    <p className="mt-1.5 text-xs font-semibold text-error">{fieldErrors.name}</p>
+                    <p className="mt-1.5 text-xs font-semibold text-error">
+                      {fieldErrors.name}
+                    </p>
                   )}
                 </div>
 
@@ -197,7 +219,9 @@ export default function Contact() {
                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
                   />
                   {fieldErrors.email && (
-                    <p className="mt-1.5 text-xs font-semibold text-error">{fieldErrors.email}</p>
+                    <p className="mt-1.5 text-xs font-semibold text-error">
+                      {fieldErrors.email}
+                    </p>
                   )}
                 </div>
 
@@ -218,7 +242,9 @@ export default function Contact() {
                     className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all resize-none"
                   />
                   {fieldErrors.message && (
-                    <p className="mt-1.5 text-xs font-semibold text-error">{fieldErrors.message}</p>
+                    <p className="mt-1.5 text-xs font-semibold text-error">
+                      {fieldErrors.message}
+                    </p>
                   )}
                 </div>
 
