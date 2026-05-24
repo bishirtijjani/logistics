@@ -12,6 +12,7 @@ import auditLogsReducer from './slices/auditLogsSlice.js'
 import categoriesReducer from './slices/categoriesSlice.js'
 import supportTicketsReducer from './slices/supportTicketsSlice.js'
 import disputesReducer from './slices/disputesSlice.js'
+import waitlistReducer from './slices/waitlistSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -28,5 +29,6 @@ export const store = configureStore({
     categories: categoriesReducer,
     supportTickets: supportTicketsReducer,
     disputes: disputesReducer,
+    waitlist: waitlistReducer,
   },
 })

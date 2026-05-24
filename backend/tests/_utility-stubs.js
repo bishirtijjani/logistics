@@ -5,7 +5,7 @@
  *   - prisma (database)
  *   - redis (queue / cache)
  *   - alrahuz.service (HTTP provider)
- *   - termii.service (SMS provider)
+ *   - messaging.service (OTP + transactional SMS dispatcher)
  *   - notify.service (push + socket fan-out)
  *   - queues/index.js (BullMQ queues — themselves wrap redis)
  *
@@ -104,15 +104,29 @@ const installUtilityStubs = () => {
   };
 
   // ── Config / logger ───────────────────────────────────────────────────────
-  const config = { NODE_ENV: 'test', ALRAHUZ_TOKEN: 'test', TERMII_API_KEY: 'k', TERMII_BASE_URL: 'http://termii', TERMII_SENDER_ID: 'KAT' };
+  const config = {
+    NODE_ENV: 'test',
+    ALRAHUZ_TOKEN: 'test',
+    OTP_PROVIDER: 'whatsapp',
+    TERMII_API_KEY: 'k', TERMII_BASE_URL: 'http://termii', TERMII_SENDER_ID: 'KAT',
+  };
   const logger = { info() {}, warn() {}, error() {}, debug() {} };
 
-  // ── Notify + Termii (record calls) ────────────────────────────────────────
+  // ── Notify + Messaging (record calls) ─────────────────────────────────────
   const calls = { push: [], sms: [], polls: [], refunds: [] };
   const notify = {
     async pushAndSocket(userId, payload) { calls.push.push({ userId, ...payload }); return { id: 'n1' }; },
     async onWalletEvent(userId, payload) { calls.push.push({ userId, kind: 'wallet-event', ...payload }); },
     setIO() {}, getIO() { return null; },
+  };
+  // Both messaging.service (new dispatcher) and termii.service (kept dormant)
+  // record into the same `calls.sms` bucket so test assertions don't need to
+  // know which channel the worker chose.
+  const messaging = {
+    async sendSms(phone, message) { calls.sms.push({ phone, message }); return { ok: true }; },
+    async sendOtp(phone, code) { calls.sms.push({ phone, code, otp: true }); return { ok: true }; },
+    assertConfiguredForProd() {},
+    getActiveOtpProvider() { return 'whatsapp'; },
   };
   const termii = {
     async sendSms(phone, message) { calls.sms.push({ phone, message }); return { ok: true }; },
@@ -135,6 +149,7 @@ const installUtilityStubs = () => {
   stub('src/config/index.js', { config });
   stub('src/utils/logger.js', { logger });
   stub('src/services/notify.service.js', notify);
+  stub('src/services/messaging.service.js', messaging);
   stub('src/services/termii.service.js', termii);
   stub('src/queues/index.js', queuesModule);
 

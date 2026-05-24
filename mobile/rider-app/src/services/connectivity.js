@@ -66,10 +66,16 @@ export const markOnline = () => {
 // Socket subscription. Lives outside the React tree so the connectivity
 // signal is correct on first paint even before any component mounts.
 // Skip in test envs where socketService might be a partial mock.
+//
+// socket.js emits boolean true/false on `connectionStateChange` — accept
+// either booleans or the legacy string form ("connected"/"disconnected")
+// so a future emitter change doesn't silently break the banner again.
 if (socketService && typeof socketService.onConnectionStateChange === "function") {
   socketService.onConnectionStateChange((state) => {
-    if (state === "connected") markOnline();
-    else if (state === "disconnected") markOffline("socket-disconnected");
+    const isConnected = state === true || state === "connected";
+    const isDisconnected = state === false || state === "disconnected";
+    if (isConnected) markOnline();
+    else if (isDisconnected) markOffline("socket-disconnected");
   });
 }
 

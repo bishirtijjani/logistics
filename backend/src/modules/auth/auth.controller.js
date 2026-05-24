@@ -17,15 +17,15 @@ const register = async (req, res, next) => {
     const code = await authService.generateOtp(req.body.email);
 
     const emailService = require("../../services/email.service");
-    const termiiService = require("../../services/termii.service");
+    const messagingService = require("../../services/messaging.service");
 
     // Send via email always
     await emailService.sendOtpEmail(req.body.email, code);
 
-    // Send via SMS if phone provided
+    // Also push to phone via the active OTP provider (WhatsApp by default).
     if (req.body.phone) {
-      termiiService.sendOtp(req.body.phone, code).catch((err) => {
-        require("../../utils/logger").logger.warn("SMS OTP failed (non-fatal)", { error: err.message });
+      messagingService.sendOtp(req.body.phone, code).catch((err) => {
+        require("../../utils/logger").logger.warn("Phone OTP failed (non-fatal)", { error: err.message });
       });
     }
 
@@ -98,14 +98,14 @@ const sendOtp = async (req, res, next) => {
     });
 
     const emailService = require("../../services/email.service");
-    const termiiService = require("../../services/termii.service");
+    const messagingService = require("../../services/messaging.service");
 
     await emailService.sendOtpEmail(req.body.email, code);
 
-    // Also SMS if phone supplied in body
+    // Also resend to phone via the active provider if supplied.
     if (req.body.phone) {
-      termiiService.sendOtp(req.body.phone, code).catch((err) => {
-        require("../../utils/logger").logger.warn("Resend SMS OTP failed", { error: err.message });
+      messagingService.sendOtp(req.body.phone, code).catch((err) => {
+        require("../../utils/logger").logger.warn("Resend phone OTP failed", { error: err.message });
       });
     }
 

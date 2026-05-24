@@ -8,19 +8,29 @@ const isConfigured = () => Boolean(config.TERMII_API_KEY && config.TERMII_API_KE
 
 /**
  * Startup guard — call from server bootstrap.
- * Throws in production/staging if Termii credentials are missing so the process
- * fails fast rather than silently skipping SMS.
+ *
+ * Only fails the process when Termii is the ACTIVE OTP provider in prod. When
+ * `OTP_PROVIDER=whatsapp` Termii is dormant: it stays callable for transactional
+ * SMS (electricity tokens, security notices) if configured, and silently no-ops
+ * if not. That way a deployment running WhatsApp-only doesn't need any Termii
+ * credentials at all.
  */
 const assertConfiguredForProd = () => {
-  if (isProd() && !isConfigured()) {
+  const isActiveProvider = config.OTP_PROVIDER === 'termii';
+  if (isProd() && isActiveProvider && !isConfigured()) {
     throw new Error(
-      'Termii is not configured. TERMII_API_KEY / TERMII_SECRET_KEY / TERMII_SENDER_ID must be set in production.',
+      'Termii is not configured but OTP_PROVIDER=termii. Set TERMII_API_KEY / TERMII_SECRET_KEY / TERMII_SENDER_ID, or switch OTP_PROVIDER to "whatsapp".',
     );
   }
   if (isConfigured()) {
-    logger.info('Termii SMS provider configured', { senderId: config.TERMII_SENDER_ID });
-  } else {
+    logger.info('Termii SMS provider configured', {
+      senderId: config.TERMII_SENDER_ID,
+      role: isActiveProvider ? 'active-otp-provider' : 'dormant-transactional-sms',
+    });
+  } else if (isActiveProvider) {
     logger.warn('Termii not configured — OTP and security SMS will be logged locally only');
+  } else {
+    logger.info('Termii dormant (OTP_PROVIDER=whatsapp) and not configured — transactional SMS will skip with a warning');
   }
 };
 
@@ -29,8 +39,10 @@ const assertConfiguredForProd = () => {
  */
 const sendOtp = async (phoneNumber, otp) => {
   if (!isConfigured()) {
-    if (isProd()) {
-      // Prod must not silently swallow OTP — fail loudly so retry logic / monitoring catches it.
+    // Only fail loudly when Termii is the active OTP provider. If WhatsApp
+    // is the active provider, a stray sendOtp call here means the dispatcher
+    // misrouted — log instead of crashing the request.
+    if (isProd() && config.OTP_PROVIDER === 'termii') {
       throw AppError.internal('SMS provider not configured');
     }
     logger.info(`[DEV] OTP for ${phoneNumber}: ${otp} (SMS not sent — Termii not configured)`);
@@ -60,7 +72,19 @@ const sendOtp = async (phoneNumber, otp) => {
  */
 const sendSms = async (phoneNumber, message) => {
   if (!isConfigured()) {
-    if (isProd()) throw AppError.internal('SMS provider not configured');
+    // Transactional SMS is best-effort; callers wrap these in .catch(). When
+    // Termii is dormant and unconfigured we degrade to a log rather than
+    // throwing — otherwise welcome / electricity-token messages would surface
+    // as 5xx errors on otherwise-successful KYC and utility flows.
+    if (isProd() && config.OTP_PROVIDER === 'termii') {
+      throw AppError.internal('SMS provider not configured');
+    }
+    if (isProd()) {
+      logger.warn('Transactional SMS skipped — Termii not configured (dormant mode)', {
+        phone: String(phoneNumber).slice(-4),
+      });
+      return { skipped: true, reason: 'TERMII_DORMANT_UNCONFIGURED' };
+    }
     logger.info(`[DEV] SMS to ${phoneNumber}: ${message} (not sent)`);
     return { dev: true };
   }

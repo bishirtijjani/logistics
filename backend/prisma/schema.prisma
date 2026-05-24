@@ -1492,3 +1492,43 @@ model SupportMessage {
   @@index([createdAt])
   @@map("support_messages")
 }
+
+// ============================================================
+// WAITLIST — pre-launch sign-ups from the marketing website.
+// ============================================================
+// Customers / riders who tap "Download" before the mobile apps are in the
+// stores leave their contact info here. Admin can view + export the list.
+// No PII enforcement — phone is the only required identifier.
+
+enum WaitlistRole {
+  CUSTOMER
+  RIDER
+  UNKNOWN
+}
+
+enum WaitlistPlatform {
+  IOS
+  ANDROID
+  UNKNOWN
+}
+
+model WaitlistEntry {
+  id        String           @id @default(uuid())
+  name      String           @db.VarChar(120)
+  phone     String           @db.VarChar(20)
+  email     String?          @db.VarChar(160)
+  city      String?          @db.VarChar(80)
+  notes     String?          @db.VarChar(1000)
+  role      WaitlistRole     @default(UNKNOWN)
+  platform  WaitlistPlatform @default(UNKNOWN)
+  source    String?          @db.VarChar(255) /// Page URL the form was submitted from
+  ipAddress String?          @db.VarChar(64)
+  userAgent String?          @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+
+  @@index([role])
+  @@index([phone])
+  @@index([createdAt])
+  @@map("waitlist_entries")
+}

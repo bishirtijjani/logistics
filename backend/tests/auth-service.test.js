@@ -56,6 +56,14 @@ stubModule(require.resolve('bullmq'), {
 stubModule(path.resolve(__dirname, '../src/services/termii.service.js'), {
   sendSms: async () => ({ ok: true }),
 });
+// Messaging dispatcher — the new entry point for outbound OTP + SMS. Stubbed
+// so phone-OTP / welcome / phone-change paths don't try to hit Meta or Termii.
+stubModule(path.resolve(__dirname, '../src/services/messaging.service.js'), {
+  sendOtp: async () => ({ ok: true, messageId: 'wamid.test' }),
+  sendSms: async () => ({ ok: true }),
+  assertConfiguredForProd: () => {},
+  getActiveOtpProvider: () => 'whatsapp',
+});
 stubModule(path.resolve(__dirname, '../src/services/katpay.service.js'), {
   createVirtualAccount: async () => ({ accountNumber: '1234567890', bankName: 'PALMPAY', accountName: 'TEST' }),
 });

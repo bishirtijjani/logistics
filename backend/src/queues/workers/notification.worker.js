@@ -7,7 +7,7 @@ const { redis } = require('../../config/redis');
 const { QUEUES, NOTIFICATION_JOBS } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const notificationService = require('../../services/notification.service');
-const termiiService = require('../../services/termii.service');
+const messagingService = require('../../services/messaging.service');
 
 const startNotificationWorker = () => {
   const worker = new Worker(
@@ -25,10 +25,10 @@ const startNotificationWorker = () => {
           );
 
         case NOTIFICATION_JOBS.SEND_SMS:
-          return termiiService.sendSms(job.data.phone, job.data.message);
+          return messagingService.sendSms(job.data.phone, job.data.message);
 
         case NOTIFICATION_JOBS.SEND_OTP:
-          return termiiService.sendOtp(job.data.phone, job.data.code);
+          return messagingService.sendOtp(job.data.phone, job.data.code);
 
         default:
           logger.warn(`Unknown notification job: ${job.name}`);

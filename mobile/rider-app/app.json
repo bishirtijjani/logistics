@@ -1,8 +1,7 @@
 {
   "expo": {
     "name": "iPrime Rider",
-    "slug": "vtu-rider-app",
-    "owner": "vtu-logistics",
+    "slug": "iprime-rider",
     "scheme": "iprime",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -19,7 +18,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "ng.iprime.rider",
       "buildNumber": "1",
-      "associatedDomains": ["applinks:rider.iprime.ng"],
+      "associatedDomains": [
+        "applinks:rider.iprime.ng"
+      ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "iPrime Rider needs your location to deliver jobs near you.",
         "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
@@ -42,8 +43,16 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [{ "scheme": "https", "host": "rider.iprime.ng" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "https",
+              "host": "rider.iprime.ng"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "config": {
@@ -92,18 +101,20 @@
         {
           "color": "#EA580C"
         }
-      ]
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "REPLACE_WITH_SENTRY_ORG",
+          "project": "iprime-rider",
+          "url": "https://sentry.io/"
+        }
+      ],
+      "expo-font",
+      "@sentry/react-native"
     ],
-    "extra": {
-      "eas": {
-        "projectId": ""
-      }
-    },
     "runtimeVersion": {
       "policy": "appVersion"
-    },
-    "updates": {
-      "url": ""
     }
   }
 }

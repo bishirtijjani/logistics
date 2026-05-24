@@ -17,13 +17,15 @@ const { logger } = require('./utils/logger');
 const { initializeSocket } = require('./sockets');
 const { initializeQueues } = require('./queues');
 const { prisma } = require('./config/database');
-const termiiService = require('./services/termii.service');
+const messagingService = require('./services/messaging.service');
 const sentry = require('./utils/sentry');
 
 const start = async () => {
   try {
-    // Fail fast in production if SMS provider isn't configured.
-    termiiService.assertConfiguredForProd();
+    // Fail fast in production if the active OTP provider isn't configured.
+    // Delegates to whichever channel `OTP_PROVIDER` selects (WhatsApp by
+    // default; Termii on fallback).
+    messagingService.assertConfiguredForProd();
 
     // Verify database connection
     await prisma.$connect();

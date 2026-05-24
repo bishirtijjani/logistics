@@ -32,6 +32,7 @@ import MerchantAnalyticsPage from './pages/MerchantAnalyticsPage'
 import VtuPlansPage from './pages/VtuPlansPage'
 import VtuNetworksPage from './pages/VtuNetworksPage'
 import CategoriesPage from './pages/CategoriesPage'
+import WaitlistPage from './pages/WaitlistPage'
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('accessToken')
@@ -101,6 +102,7 @@ function App() {
           <Route path="safety" element={<SafetyPage />} />
           <Route path="vtu-plans" element={<VtuPlansPage />} />
           <Route path="vtu-networks" element={<VtuNetworksPage />} />
+          <Route path="waitlist" element={<WaitlistPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

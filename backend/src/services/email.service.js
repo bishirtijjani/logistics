@@ -493,6 +493,86 @@ const sendCommissionChangedEmail = async (email, merchantName, previousRate, new
   });
 };
 
+// ============================================================
+// Marketing-site contact form
+// ============================================================
+
+const escapeHtml = (s = '') =>
+  String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+/**
+ * Forward a marketing-site contact-form submission to the inbox.
+ * The Reply-To is set to the submitter so support staff can hit Reply directly.
+ */
+const sendContactInquiryEmail = async ({ to, name, email, message, source }) => {
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+  const safeSource = source ? escapeHtml(source) : null;
+
+  const html = emailBase(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">New contact form message</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">Someone reached out via the iPrime website contact form.</p>
+    ${infoBox('#EA580C', '#fff7ed', [
+      ['Name', safeName],
+      ['Email', `<a href="mailto:${safeEmail}" style="color:#EA580C;">${safeEmail}</a>`],
+      ...(safeSource ? [['Submitted from', safeSource]] : []),
+    ])}
+    <div style="background:#fafafa;border-radius:10px;padding:18px 20px;margin:20px 0;">
+      <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:0.05em;">Message</p>
+      <p style="margin:0;font-size:15px;color:#111827;line-height:1.6;">${safeMessage}</p>
+    </div>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">Reply to this email to respond to ${safeName} directly.</p>
+  `);
+
+  return getTransporter().sendMail({
+    from: `"iPrime Website" <${config.SMTP_USER}>`,
+    to,
+    replyTo: email,
+    subject: `Website contact — ${name}`,
+    html,
+    text: `New contact form submission\n\nFrom: ${name} <${email}>${source ? `\nFrom page: ${source}` : ''}\n\nMessage:\n${message}\n`,
+  }).then((info) => {
+    logger.info('Contact inquiry forwarded', { to, from: email, messageId: info.messageId });
+    return info;
+  });
+};
+
+/**
+ * Confirmation auto-reply to the form submitter so they know we got it.
+ */
+const sendContactConfirmationEmail = async ({ name, email }) => {
+  const safeName = escapeHtml(name);
+  const html = emailBase(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">We got your message</h2>
+    <p style="margin:0 0 16px;font-size:16px;color:#374151;">Hi ${safeName},</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#6b7280;line-height:1.6;">
+      Thanks for reaching out to iPrime. A human on our team will get back to you
+      within one business day at this email address.
+    </p>
+    <div style="background:#f0fdf4;border-radius:10px;padding:16px 20px;margin:20px 0;">
+      <p style="margin:0;font-size:14px;color:#166534;">
+        Need a faster response? You can also email us at
+        <a href="mailto:hello@iprime.ng" style="color:#EA580C;">hello@iprime.ng</a>
+        or message us on WhatsApp.
+      </p>
+    </div>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">— The iPrime team</p>
+  `);
+
+  return sendEmail({
+    to: email,
+    subject: 'We received your message — iPrime',
+    html,
+    text: `Hi ${name},\n\nThanks for reaching out to iPrime. A human on our team will get back to you within one business day.\n\n— The iPrime team`,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendOtpEmail,
@@ -505,4 +585,6 @@ module.exports = {
   sendWithdrawalApprovedEmail,
   sendWithdrawalRejectedEmail,
   sendCommissionChangedEmail,
+  sendContactInquiryEmail,
+  sendContactConfirmationEmail,
 };

@@ -17,6 +17,8 @@ const {
   resolveDisputeSchema: supportResolveDisputeSchema,
   disputeListQuerySchema: supportDisputeListQuerySchema,
 } = require('../support/support.validator');
+const waitlistController = require('../waitlist/waitlist.controller');
+const { listWaitlistQuerySchema } = require('../waitlist/waitlist.validator');
 const {
   reviewRiderSchema,
   updateCustomerStatusSchema,
@@ -155,6 +157,11 @@ router.patch('/support/tickets/:ticketId/status', validate(supportUpdateTicketSt
 router.patch('/support/tickets/:ticketId/assign', validate(supportAssignTicketSchema), adminController.assignTicket);
 router.post('/support/tickets/:ticketId/messages', validate(supportTicketMessageSchema), adminController.postTicketMessageAdmin);
 
+// Pre-launch waitlist — backed by modules/waitlist
+router.get('/waitlist', validate(listWaitlistQuerySchema, 'query'), waitlistController.adminListEntries);
+router.get('/waitlist/summary', waitlistController.adminSummary);
+router.delete('/waitlist/:id', waitlistController.adminDeleteEntry);
+
 // Marketing oversight
 router.get('/marketing/campaigns', validate(paginationSchema, 'query'), adminController.getPlatformCampaigns);
 router.get('/marketing/discounts', validate(paginationStatusSchema, 'query'), adminController.getDiscountCodes);
@@ -181,5 +188,13 @@ router.get('/vtu-networks', adminController.getVtuNetworks);
 router.post('/vtu-networks', adminController.createVtuNetwork);
 router.put('/vtu-networks/:networkId', adminController.updateVtuNetwork);
 router.delete('/vtu-networks/:networkId', adminController.deleteVtuNetwork);
+
+// Phase 8 — Rider force-offline (real admin use + Maestro 05-force-offline).
+router.post('/riders/:riderId/force-offline', adminController.forceOfflineRider);
+
+// Phase 8 — Staging-only Maestro helpers. The service-layer guard refuses
+// to run on production, so leaving the route mounted in all environments
+// is safe.
+router.post('/test/seed-offer', adminController.seedTestOffer);
 
 module.exports = router;

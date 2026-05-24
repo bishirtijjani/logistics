@@ -16,7 +16,7 @@ import { Provider } from "react-redux";
 import { store } from "./src/store";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { ErrorBoundary } from "react-error-boundary";
 import { registerForceLogout } from "./src/services/api";
@@ -62,8 +62,12 @@ function ThemedStatusBar() {
 
 function ThemedRoot({ children }) {
   const { tokens } = useTheme();
+  // Android `edgeToEdgeEnabled: true` lets content draw under the status bar;
+  // none of the screens wrap in SafeAreaView, so we apply the top inset once
+  // here. The OfflineBanner adds its own inset on top of this when shown.
+  const insets = useSafeAreaInsets();
   return (
-    <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
+    <View style={{ flex: 1, backgroundColor: tokens.bg.canvas, paddingTop: insets.top }}>
       <OfflineBanner />
       <View style={{ flex: 1, zIndex: 1, elevation: 1 }}>{children}</View>
     </View>

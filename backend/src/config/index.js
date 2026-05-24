@@ -50,11 +50,35 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: isDev ? z.string().default('') : z.string().min(1),
   CLOUDINARY_API_SECRET: isDev ? z.string().default('') : z.string().min(1),
 
-  // Termii — required in production, optional in dev
-  TERMII_BASE_URL: isDev ? z.string().default('https://api.ng.termii.com') : z.string().url(),
-  TERMII_API_KEY: isDev ? z.string().default('') : z.string().min(1),
-  TERMII_SECRET_KEY: isDev ? z.string().default('') : z.string().min(1),
-  TERMII_SENDER_ID: isDev ? z.string().default('') : z.string().min(1),
+  // OTP provider — selects which channel sends one-time passcodes. WhatsApp
+  // is the default (cheaper, no NCC sender-ID dance). Termii is kept dormant
+  // — code paths still exist so flipping back is one env-var change without
+  // a redeploy. Transactional (non-OTP) SMS always tries Termii; if Termii
+  // isn't configured those messages no-op with a warning rather than blocking.
+  OTP_PROVIDER: z.enum(['whatsapp', 'termii']).default('whatsapp'),
+
+  // Termii — fully optional. Required only if OTP_PROVIDER=termii in prod
+  // (asserted at boot inside termii.service). When OTP_PROVIDER=whatsapp,
+  // Termii is the dormant transactional-SMS channel: configured → it works,
+  // unconfigured → those messages skip with a warning.
+  TERMII_BASE_URL: z.string().default('https://api.ng.termii.com'),
+  TERMII_API_KEY: z.string().optional().default(''),
+  TERMII_SECRET_KEY: z.string().optional().default(''),
+  TERMII_SENDER_ID: z.string().optional().default(''),
+
+  // WhatsApp Cloud API — required in prod when OTP_PROVIDER=whatsapp.
+  // Asserted at boot inside whatsapp.service. The auth template must be
+  // pre-approved in Meta Business Manager before it can be used.
+  WHATSAPP_API_VERSION: z.string().default('v21.0'),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(''),
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default(''),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional().default(''),
+  WHATSAPP_AUTH_TEMPLATE_NAME: z.string().default('iprime_otp'),
+  WHATSAPP_AUTH_TEMPLATE_LANGUAGE: z.string().default('en_US'),
+  // Webhook security — verify token is shown in Meta's UI during webhook
+  // setup; app secret is used to validate X-Hub-Signature-256 on each event.
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().optional().default(''),
+  WHATSAPP_APP_SECRET: z.string().optional().default(''),
 
   // Temporary bypass for KYC phone-OTP. Set to 'true' while Termii sender ID
   // approval is pending so users can verify BVN without proving phone
@@ -71,6 +95,9 @@ const envSchema = z.object({
   SMTP_USER: isDev ? z.string().optional().default('') : z.string().email(),
   SMTP_PASS: isDev ? z.string().optional().default('') : z.string().min(1),
   SMTP_FROM_NAME: z.string().default('iPrime'),
+  // Inbox that receives marketing-site contact-form submissions. Defaults
+  // to the public support address; override to route to a shared inbox.
+  CONTACT_INBOX_EMAIL: z.string().email().default('hello@iprime.ng'),
 
   // KatPay — required in production, optional in dev
   KATPAY_BASE_URL: z.string().default('https://api.katpay.co'),

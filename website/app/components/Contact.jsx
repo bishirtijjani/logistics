@@ -1,7 +1,8 @@
 "use client";
 
-import { Mail, Phone, MapPin, Send, ArrowRight } from "lucide-react";
+import { Mail, Phone, MapPin, Send, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { API_URL } from "../lib/api";
 
 const channels = [
   {
@@ -24,15 +25,60 @@ const channels = [
   },
 ];
 
-export default function Contact() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [sent, setSent] = useState(false);
+const initialForm = { name: "", email: "", message: "" };
 
-  const handleSubmit = (e) => {
+export default function Contact() {
+  const [form, setForm] = useState(initialForm);
+  const [status, setStatus] = useState("idle"); // idle | submitting | success | error
+  const [errorMsg, setErrorMsg] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const updateField = (key) => (e) => {
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+    if (fieldErrors[key]) {
+      setFieldErrors((fe) => ({ ...fe, [key]: undefined }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
-    setForm({ name: "", email: "", message: "" });
-    setTimeout(() => setSent(false), 4000);
+    if (status === "submitting") return;
+
+    setStatus("submitting");
+    setErrorMsg("");
+    setFieldErrors({});
+
+    try {
+      const res = await fetch(`${API_URL}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          email: form.email.trim(),
+          message: form.message.trim(),
+          source: typeof window !== "undefined" ? window.location.pathname : undefined,
+        }),
+      });
+
+      const payload = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        if (payload?.code === "VALIDATION_FAILED" && Array.isArray(payload.errors)) {
+          const fe = {};
+          payload.errors.forEach((err) => {
+            if (err.field) fe[err.field] = err.message;
+          });
+          setFieldErrors(fe);
+        }
+        throw new Error(payload?.message || "Something went wrong. Please try again.");
+      }
+
+      setStatus("success");
+      setForm(initialForm);
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err.message || "Network error. Please try again or email hello@iprime.ng.");
+    }
   };
 
   return (
@@ -84,80 +130,130 @@ export default function Contact() {
             onSubmit={handleSubmit}
             className="bg-bg-secondary border border-gray-200 rounded-3xl p-6 md:p-8 lg:p-10"
             aria-label="Contact form"
+            noValidate
           >
             <h3 className="text-2xl font-extrabold tracking-tight text-text-primary mb-6">
               Send us a message
             </h3>
 
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="contact-name"
-                  className="block text-xs font-extrabold uppercase tracking-widest text-gray-500 mb-2"
+            {status === "success" ? (
+              <div className="text-center py-8">
+                <div className="w-14 h-14 rounded-full bg-accent-dim text-accent flex items-center justify-center mx-auto mb-5">
+                  <CheckCircle2 size={28} strokeWidth={2.25} />
+                </div>
+                <h4 className="text-xl font-black tracking-tight text-text-primary mb-2">
+                  Message sent.
+                </h4>
+                <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
+                  Thanks — we got it. A human will reply within one business day.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStatus("idle")}
+                  className="ui-btn ui-btn-ghost !rounded-xl"
                 >
-                  Your name
-                </label>
-                <input
-                  id="contact-name"
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Aisha Ibrahim"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
-                />
+                  Send another message
+                </button>
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="contact-name"
+                    className="block text-xs font-extrabold uppercase tracking-widest text-gray-500 mb-2"
+                  >
+                    Your name
+                  </label>
+                  <input
+                    id="contact-name"
+                    type="text"
+                    required
+                    autoComplete="name"
+                    value={form.name}
+                    onChange={updateField("name")}
+                    placeholder="Aisha Ibrahim"
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                  />
+                  {fieldErrors.name && (
+                    <p className="mt-1.5 text-xs font-semibold text-error">{fieldErrors.name}</p>
+                  )}
+                </div>
 
-              <div>
-                <label
-                  htmlFor="contact-email"
-                  className="block text-xs font-extrabold uppercase tracking-widest text-gray-500 mb-2"
+                <div>
+                  <label
+                    htmlFor="contact-email"
+                    className="block text-xs font-extrabold uppercase tracking-widest text-gray-500 mb-2"
+                  >
+                    Email
+                  </label>
+                  <input
+                    id="contact-email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={form.email}
+                    onChange={updateField("email")}
+                    placeholder="you@example.com"
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
+                  />
+                  {fieldErrors.email && (
+                    <p className="mt-1.5 text-xs font-semibold text-error">{fieldErrors.email}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="contact-message"
+                    className="block text-xs font-extrabold uppercase tracking-widest text-gray-500 mb-2"
+                  >
+                    Message
+                  </label>
+                  <textarea
+                    id="contact-message"
+                    required
+                    rows={5}
+                    value={form.message}
+                    onChange={updateField("message")}
+                    placeholder="Tell us a bit about what you need…"
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all resize-none"
+                  />
+                  {fieldErrors.message && (
+                    <p className="mt-1.5 text-xs font-semibold text-error">{fieldErrors.message}</p>
+                  )}
+                </div>
+
+                {status === "error" && errorMsg && (
+                  <p
+                    role="alert"
+                    className="text-sm font-semibold text-error bg-error/5 border border-error/30 rounded-xl px-3 py-2"
+                  >
+                    {errorMsg}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={status === "submitting"}
+                  className="ui-btn ui-btn-primary w-full !rounded-xl disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  Email
-                </label>
-                <input
-                  id="contact-email"
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="you@example.com"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all"
-                />
+                  {status === "submitting" ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Sending…
+                    </>
+                  ) : (
+                    <>
+                      Send message
+                      <Send size={16} strokeWidth={2.5} />
+                    </>
+                  )}
+                </button>
+
+                <p className="text-xs text-gray-400 font-semibold text-center">
+                  By submitting, you agree to be contacted about your enquiry.
+                </p>
               </div>
-
-              <div>
-                <label
-                  htmlFor="contact-message"
-                  className="block text-xs font-extrabold uppercase tracking-widest text-gray-500 mb-2"
-                >
-                  Message
-                </label>
-                <textarea
-                  id="contact-message"
-                  required
-                  rows={5}
-                  value={form.message}
-                  onChange={(e) =>
-                    setForm({ ...form, message: e.target.value })
-                  }
-                  placeholder="Tell us a bit about what you need…"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold outline-none focus:border-accent focus:ring-4 focus:ring-accent/10 transition-all resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="ui-btn ui-btn-primary w-full !rounded-xl"
-              >
-                {sent ? "Message sent — thank you!" : "Send message"}
-                {!sent && <Send size={16} strokeWidth={2.5} />}
-              </button>
-
-              <p className="text-xs text-gray-400 font-semibold text-center">
-                By submitting, you agree to be contacted about your enquiry.
-              </p>
-            </div>
+            )}
           </form>
         </div>
       </div>

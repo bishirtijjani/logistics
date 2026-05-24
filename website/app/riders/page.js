@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import RiderDownloadButtons from "../components/RiderDownloadButtons";
 
 export const metadata = {
   title: "For riders",
@@ -128,34 +129,7 @@ export default function RidersPage() {
                 receives the order. Withdraw to any Nigerian bank, anytime.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                <a
-                  href="#"
-                  aria-label="Download the iPrime Rider app on the App Store"
-                  className="inline-block transition-transform hover:-translate-y-0.5"
-                >
-                  <img
-                    src="/images/ios-app-store-btn.svg"
-                    alt="Download on the App Store"
-                    width={150}
-                    height={50}
-                    className="h-[50px] w-auto"
-                  />
-                </a>
-                <a
-                  href="#"
-                  aria-label="Get the iPrime Rider app on Google Play"
-                  className="inline-block transition-transform hover:-translate-y-0.5"
-                >
-                  <img
-                    src="/images/google-play-btn.svg"
-                    alt="Get it on Google Play"
-                    width={167}
-                    height={50}
-                    className="h-[50px] w-auto"
-                  />
-                </a>
-              </div>
+              <RiderDownloadButtons />
             </div>
           </div>
         </section>

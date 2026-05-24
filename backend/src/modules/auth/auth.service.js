@@ -762,18 +762,17 @@ const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const otpKey = `kyc:phone:otp:${userId}`;
-  const termiiService = require('../../services/termii.service');
+  const messagingService = require('../../services/messaging.service');
 
-  // SMS first, persist second — if Termii fails we don't want the user to see
-  // "OTP expired" later when really it was never sent.
+  // Send via the active OTP provider first, persist second — if delivery fails
+  // we don't want the user to see "OTP expired" later when it was never sent.
+  // The WhatsApp auth template carries only the code; the "this is for KYC"
+  // context lives in the OTP-entry UI, not the message body.
   try {
-    await termiiService.sendSms(
-      bvnPhone,
-      `Your ${config.APP_NAME || 'iPrime'} identity verification code is ${code}. It expires in 10 minutes.`,
-    );
+    await messagingService.sendOtp(bvnPhone, code);
   } catch (err) {
-    logger.warn('KYC phone OTP SMS failed', { userId, error: err.message });
-    throw AppError.serviceUnavailable('Could not send verification SMS. Please try again shortly.');
+    logger.warn('KYC phone OTP send failed', { userId, error: err.message });
+    throw AppError.serviceUnavailable('Could not send verification code. Please try again shortly.');
   }
 
   await redis.set(otpKey, JSON.stringify({ code, phone: bvnPhone }), 'EX', 10 * 60);
@@ -952,7 +951,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
   // can carry the NUBAN. If it fails, enqueue a retry job and return the
   // wallet without a NUBAN — the client will pick it up via socket / refetch.
   const katpayService = require('../../services/katpay.service');
-  const termiiService = require('../../services/termii.service');
+  const messagingService = require('../../services/messaging.service');
   const notificationService = require('../../services/notification.service');
 
   let virtualAccount = null;
@@ -1002,7 +1001,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
   // We only send these on first verification, not on the recovery path.
   if (!alreadyVerified) {
     if (user.phone) {
-      termiiService
+      messagingService
         .sendSms(
           user.phone,
           `Welcome to ${config.APP_NAME || 'iPrime'}! Your wallet is now active${virtualAccount ? ` — fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
@@ -1435,18 +1434,15 @@ const requestPhoneChange = async (userId, { newPhone, password }) => {
   const key = `phone:change:${userId}`;
 
   // Send OTP to the NEW phone first; only stash the pending change in Redis
-  // if delivery succeeded. If we stashed first and SMS failed, the user would
-  // see a generic "OTP expired" later — opaque and frustrating.
+  // if delivery succeeded. If we stashed first and delivery failed, the user
+  // would see a generic "OTP expired" later — opaque and frustrating.
   // Lazy-require to avoid circular import at boot.
-  const termiiService = require('../../services/termii.service');
+  const messagingService = require('../../services/messaging.service');
   try {
-    await termiiService.sendSms(
-      newPhone,
-      `Your phone-change verification code is ${code}. It expires in 10 minutes.`,
-    );
+    await messagingService.sendOtp(newPhone, code);
   } catch (err) {
-    logger.warn('Phone-change OTP SMS failed', { userId, error: err.message });
-    throw AppError.serviceUnavailable('Could not send verification SMS. Please try again shortly.');
+    logger.warn('Phone-change OTP send failed', { userId, error: err.message });
+    throw AppError.serviceUnavailable('Could not send verification code. Please try again shortly.');
   }
 
   await redis.set(
@@ -1483,8 +1479,8 @@ const confirmPhoneChange = async (userId, { newPhone, otp }) => {
   // Notify the old number — fire-and-forget. Mask the new number for safety.
   if (oldPhone) {
     const maskedNew = newPhone.length > 4 ? `****${newPhone.slice(-4)}` : newPhone;
-    const termiiService = require('../../services/termii.service');
-    termiiService
+    const messagingService = require('../../services/messaging.service');
+    messagingService
       .sendSms(
         oldPhone,
         `Security notice: the phone number on your ${config.APP_NAME || 'iPrime'} account was changed to ${maskedNew}. If this wasn't you, contact support immediately.`,

@@ -58,6 +58,8 @@ const notificationRoutes = require("./modules/notification/notification.routes")
 const addressRoutes = require("./modules/address/address.routes");
 const bannerRoutes = require("./modules/banner/banner.routes");
 const supportRoutes = require("./modules/support/support.routes");
+const waitlistRoutes = require("./modules/waitlist/waitlist.routes");
+const contactRoutes = require("./modules/contact/contact.routes");
 
 const createApp = () => {
   const app = express();
@@ -124,6 +126,8 @@ const createApp = () => {
   app.use("/addresses", addressRoutes);
   app.use("/banners", bannerRoutes);
   app.use("/support", supportRoutes);
+  app.use("/waitlist", waitlistRoutes);
+  app.use("/contact", contactRoutes);
   app.use("/", searchRoutes);
 
   // --------------- 404 Handler ---------------

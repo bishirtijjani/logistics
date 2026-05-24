@@ -2260,6 +2260,135 @@ const getComplianceReport = async () => {
   };
 };
 
+// ─── Phase 8 — Rider force-offline (used by admin + Maestro `05-force-offline`)
+//
+// Flips the rider from ONLINE/ON_DELIVERY to OFFLINE, clears the Redis
+// presence cache so the dispatcher won't broadcast offers to them, and
+// fires SYSTEM_FORCE_OFFLINE via the notification bus. The rider app's
+// `notificationsBus.js` listens for that type and dispatches
+// `riderSlice.goOffline({ reason: "force-offline" })`.
+const forceOfflineRider = async (riderId, reason, adminUserId, ipAddress, userAgent) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    select: { id: true, userId: true, availability: true },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  await prisma.rider.update({
+    where: { id: riderId },
+    data: { availability: 'OFFLINE' },
+  });
+
+  // Clear presence cache + geo index so the next ring won't include them.
+  try {
+    await redis.del(`${REDIS_KEYS.RIDER_AVAILABILITY}${riderId}`);
+    await redis.del(`${REDIS_KEYS.RIDER_LOCATION}${riderId}`);
+    await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, riderId);
+  } catch (err) {
+    logger.warn('force-offline cache clear failed (non-fatal)', { riderId, error: err.message });
+  }
+
+  // Push the rider's app to flip itself OFFLINE in-UI within ~3s.
+  try {
+    const notifyService = require('../../services/notify.service');
+    await notifyService.pushAndSocket(rider.userId, {
+      type: 'SYSTEM_FORCE_OFFLINE',
+      title: 'You\'ve been taken offline',
+      body: reason || 'An admin has flipped your status to offline. Contact support to reactivate.',
+      data: { route: '/home', kind: 'force-offline', reason: reason || null },
+    });
+  } catch (err) {
+    logger.warn('force-offline notify failed (non-fatal)', { riderId, error: err.message });
+  }
+
+  await createAuditLog(
+    adminUserId,
+    'FORCE_OFFLINE_RIDER',
+    'Rider',
+    riderId,
+    { previousAvailability: rider.availability, reason: reason || null },
+    ipAddress,
+    userAgent,
+  );
+
+  return { riderId, availability: 'OFFLINE' };
+};
+
+// ─── Phase 8 — Staging-only test offer seeder (Maestro `08-offer-race-lost`)
+//
+// Creates a minimal PACKAGE request + immediately enqueues a broadcast
+// targeted at the test rider population. Gated behind NODE_ENV !== production
+// so it can never run on a live prod cluster.
+//
+// `target` arg can be 'both' (seed offer is broadcast wide to attract both
+// test riders) or a specific rider's userId. Returns the requestId so
+// the helper script can immediately call /rider/accept as the sibling
+// rider for the race scenario.
+const seedTestOffer = async ({ target = 'both', pickupLat, pickupLng, fare = 1500 }) => {
+  if (process.env.NODE_ENV === 'production') {
+    throw AppError.forbidden('seedTestOffer is staging-only', { code: 'STAGING_ONLY' });
+  }
+
+  // Need a customer + at least one approved test rider in the area for
+  // the dispatcher to find candidates via GEOSEARCH.
+  const customer = await prisma.user.findFirst({
+    where: { role: 'CUSTOMER', email: { contains: '+staging' }, status: 'ACTIVE' },
+    select: { id: true },
+  });
+  if (!customer) {
+    throw AppError.badRequest('No staging customer found — seed one first.', { code: 'NO_STAGING_CUSTOMER' });
+  }
+
+  // Defaults: a pickup in Katsina town centre so the broadcast lands on
+  // any test rider with a sensible location fix.
+  const lat = typeof pickupLat === 'number' ? pickupLat : 12.9908;
+  const lng = typeof pickupLng === 'number' ? pickupLng : 7.6018;
+
+  const request = await prisma.request.create({
+    data: {
+      type: 'PACKAGE',
+      status: 'REQUESTED',
+      customerId: customer.id,
+      pickupAddress: 'Maestro test pickup',
+      pickupLat: lat,
+      pickupLng: lng,
+      pickupName: 'Test sender',
+      dropoffAddress: 'Maestro test dropoff',
+      dropoffLat: lat + 0.005,
+      dropoffLng: lng + 0.005,
+      dropoffName: 'Test recipient',
+      subtotal: 0,
+      deliveryFee: fare,
+      platformFee: 0,
+      tax: 0,
+      total: fare,
+      customerPaid: fare,
+      riderEarning: Math.round(fare * 0.8),
+      platformEarning: Math.round(fare * 0.2),
+      distanceKm: 1.0,
+      estimatedMinutes: 10,
+    },
+    select: { id: true, customerId: true, pickupLat: true, pickupLng: true, deliveryFee: true, distanceKm: true },
+  });
+
+  // Enqueue the broadcast directly via the request queue so this seeder
+  // doesn't depend on the standard request.service flow (which validates
+  // payment, locks the customer wallet, etc. — overkill for staging).
+  const { requestQueue } = require('../../queues');
+  const { REQUEST_JOBS } = require('../../queues/jobs');
+  await requestQueue.add(REQUEST_JOBS.BROADCAST_TO_RIDERS, {
+    requestId: request.id,
+    pickupLat: request.pickupLat,
+    pickupLng: request.pickupLng,
+    fare: Number(request.deliveryFee),
+    distanceKm: request.distanceKm,
+  });
+
+  logger.info('Test offer seeded', { requestId: request.id, target });
+
+  return { requestId: request.id, target };
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
@@ -2324,6 +2453,9 @@ module.exports = {
   createVtuNetwork,
   updateVtuNetwork,
   deleteVtuNetwork,
+  // Phase 8 — Maestro support
+  forceOfflineRider,
+  seedTestOffer,
 };
 
 // ─── VTU Plan Management ──────────────────────────────────────────────────────

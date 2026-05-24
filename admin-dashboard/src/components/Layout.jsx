@@ -25,7 +25,8 @@ import {
   Shield,
   Wifi,
   Network,
-  Tags
+  Tags,
+  ListChecks
 } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Breadcrumb from './Breadcrumb'
@@ -44,6 +45,7 @@ const navItems = [
   { path: '/disputes', icon: MessageCircle, label: 'Disputes' },
   { path: '/support', icon: Headphones, label: 'Support' },
   { path: '/marketing', icon: Megaphone, label: 'Marketing' },
+  { path: '/waitlist', icon: ListChecks, label: 'Waitlist' },
   { path: '/rider-operations', icon: Bike, label: 'Rider Ops' },
   { path: '/safety', icon: Shield, label: 'Safety' },
   { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans' },

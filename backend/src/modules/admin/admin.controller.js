@@ -458,6 +458,34 @@ const setMerchantTags = async (req, res, next) => {
 // Admin Rider Management Controllers
 // ============================================================
 
+// Phase 8 — Force a rider offline. Used by support to handle "rider went
+// rogue" scenarios and by the Maestro `05-force-offline` flow.
+const forceOfflineRider = async (req, res, next) => {
+  try {
+    const result = await adminService.forceOfflineRider(
+      req.params.riderId,
+      req.body?.reason,
+      req.user.id,
+      req.ip,
+      req.get('user-agent'),
+    );
+    res.json(ApiResponse.success('Rider forced offline', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Phase 8 — Staging-only helper used by the Maestro `08-offer-race-lost`
+// flow. Service-layer guard refuses on production.
+const seedTestOffer = async (req, res, next) => {
+  try {
+    const result = await adminService.seedTestOffer(req.body || {});
+    res.json(ApiResponse.success('Test offer seeded', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getAllRiders = async (req, res, next) => {
   try {
     const { riders, total, page, limit } = await adminService.getAllRiders(req.query);
@@ -815,6 +843,9 @@ module.exports = {
   createVtuNetwork,
   updateVtuNetwork,
   deleteVtuNetwork,
+  // Phase 8 — Maestro support
+  forceOfflineRider,
+  seedTestOffer,
 };
 
 // ─── VTU Plan Controllers ─────────────────────────────────────────────────────

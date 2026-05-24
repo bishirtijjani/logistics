@@ -136,7 +136,14 @@ export const routeToScreen = (n) => {
 export const parseDeepLink = (url) => {
   if (!url) return null;
   try {
-    const stripped = url.replace(/^[a-z][a-z0-9+.-]*:\/\/(?:[^/]+)?/i, '');
+    // http(s) URLs carry a hostname between `://` and the first `/` —
+    // strip both. Custom schemes like `iprime://trip/abc` have no host;
+    // strip only the scheme so the first path segment ("trip") isn't
+    // mistaken for a hostname and discarded.
+    const isHttp = /^https?:\/\//i.test(url);
+    const stripped = isHttp
+      ? url.replace(/^https?:\/\/[^/]+/i, '')
+      : url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
     return matchRoute(stripped);
   } catch (_) {
     return null;

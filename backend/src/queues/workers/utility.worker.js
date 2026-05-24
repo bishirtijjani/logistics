@@ -21,7 +21,7 @@ const { QUEUES, UTILITY_JOBS, POLL_CONFIG } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const alrahuzService = require('../../services/alrahuz.service');
-const termiiService = require('../../services/termii.service');
+const messagingService = require('../../services/messaging.service');
 const notifyService = require('../../services/notify.service');
 // NB: lazy-require `../index` inside the call site below to break the circular
 // import (`queues/index.js` requires this worker to start it; if we required
@@ -192,7 +192,7 @@ const _smsElectricityToken = async ({ payment, token }) => {
   const amount = `₦${Number(payment.amount || 0).toLocaleString('en-NG')}`;
   const msg = `Your ${payment.biller} token for meter ${payment.meterNumber} (${amount}): ${token}. — Katsina Logistics`;
   try {
-    await termiiService.sendSms(payment.phoneNumber, msg);
+    await messagingService.sendSms(payment.phoneNumber, msg);
   } catch (err) {
     logger.warn('Electricity token SMS failed (non-fatal)', {
       paymentId: payment.id, error: err.message,

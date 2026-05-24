@@ -1,4 +1,8 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
+import WaitlistModal from "./WaitlistModal";
 
 const screens = [
   {
@@ -25,6 +29,11 @@ const screens = [
 ];
 
 export default function Download() {
+  const [modal, setModal] = useState({ open: false, platform: "UNKNOWN" });
+
+  const openWaitlist = (platform) =>
+    setModal({ open: true, platform });
+
   return (
     <section
       className="ui-section bg-text-primary text-white overflow-hidden relative"
@@ -47,10 +56,11 @@ export default function Download() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-4 justify-center items-center">
-            <a
-              href="#"
-              aria-label="Download on the App Store"
-              className="inline-block transition-transform hover:-translate-y-0.5"
+            <button
+              type="button"
+              onClick={() => openWaitlist("IOS")}
+              aria-label="Join the iOS waitlist"
+              className="inline-block transition-transform hover:-translate-y-0.5 bg-transparent border-0 p-0 cursor-pointer"
             >
               <img
                 src="/images/ios-app-store-btn.svg"
@@ -59,12 +69,13 @@ export default function Download() {
                 height={50}
                 className="h-[50px] w-auto"
               />
-            </a>
+            </button>
 
-            <a
-              href="#"
-              aria-label="Get it on Google Play"
-              className="inline-block transition-transform hover:-translate-y-0.5"
+            <button
+              type="button"
+              onClick={() => openWaitlist("ANDROID")}
+              aria-label="Join the Android waitlist"
+              className="inline-block transition-transform hover:-translate-y-0.5 bg-transparent border-0 p-0 cursor-pointer"
             >
               <img
                 src="/images/google-play-btn.svg"
@@ -73,8 +84,12 @@ export default function Download() {
                 height={50}
                 className="h-[50px] w-auto"
               />
-            </a>
+            </button>
           </div>
+
+          <p className="text-xs text-white/40 font-semibold">
+            Coming soon — tap a button to join the launch waitlist.
+          </p>
         </div>
 
         <div className="relative">
@@ -104,6 +119,14 @@ export default function Download() {
           </div>
         </div>
       </div>
+
+      <WaitlistModal
+        open={modal.open}
+        onClose={() => setModal((m) => ({ ...m, open: false }))}
+        role="CUSTOMER"
+        platform={modal.platform}
+        source="/#download"
+      />
     </section>
   );
 }
