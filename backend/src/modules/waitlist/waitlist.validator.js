@@ -42,6 +42,8 @@ const createWaitlistEntrySchema = z.object({
   role: z.enum(WAITLIST_ROLES).optional().default('UNKNOWN'),
   platform: z.enum(WAITLIST_PLATFORMS).optional().default('UNKNOWN'),
   source: z.string().trim().max(255).optional(),
+  // Honeypot — hidden in the UI. See contact.validator for the full rationale.
+  website: z.string().max(200).optional().default(''),
 });
 
 const listWaitlistQuerySchema = z.object({

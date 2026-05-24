@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, CheckCircle2, Loader2 } from "lucide-react";
 import { API_URL } from "../lib/api";
+import Honeypot from "./Honeypot";
 
 const COPY = {
   CUSTOMER: {
@@ -22,7 +23,7 @@ const COPY = {
   },
 };
 
-const initialForm = { name: "", phone: "", email: "", city: "", notes: "" };
+const initialForm = { name: "", phone: "", email: "", city: "", notes: "", website: "" };
 
 export default function WaitlistModal({
   open,
@@ -96,6 +97,7 @@ export default function WaitlistModal({
           email: form.email.trim() || undefined,
           city: form.city.trim() || undefined,
           notes: form.notes.trim() || undefined,
+          website: form.website,
           role,
           platform,
           source:
@@ -183,6 +185,12 @@ export default function WaitlistModal({
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <Honeypot
+                  value={form.website}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, website: e.target.value }))
+                  }
+                />
                 <Field
                   id="waitlist-name"
                   label="Your name"

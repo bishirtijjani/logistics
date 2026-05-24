@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { API_URL } from "../lib/api";
+import Honeypot from "./Honeypot";
 
 const channels = [
   {
@@ -33,7 +34,7 @@ const channels = [
   },
 ];
 
-const initialForm = { name: "", email: "", message: "" };
+const initialForm = { name: "", email: "", message: "", website: "" };
 
 export default function Contact() {
   const [form, setForm] = useState(initialForm);
@@ -64,6 +65,7 @@ export default function Contact() {
           name: form.name.trim(),
           email: form.email.trim(),
           message: form.message.trim(),
+          website: form.website,
           source:
             typeof window !== "undefined"
               ? window.location.pathname
@@ -177,6 +179,10 @@ export default function Contact() {
               </div>
             ) : (
               <div className="space-y-4">
+                <Honeypot
+                  value={form.website}
+                  onChange={updateField("website")}
+                />
                 <div>
                   <label
                     htmlFor="contact-name"

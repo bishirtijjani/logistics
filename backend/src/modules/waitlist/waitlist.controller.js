@@ -2,7 +2,7 @@
  * Waitlist HTTP controllers.
  *
  * Public:
- *   POST   /waitlist            — anyone (rate-limited)
+ *   POST   /waitlist            — anyone (honeypot-protected)
  *
  * Admin:
  *   GET    /admin/waitlist           — list entries
@@ -12,11 +12,24 @@
 
 const waitlistService = require('./waitlist.service');
 const { ApiResponse } = require('../../utils/api-response');
+const { logger } = require('../../utils/logger');
 
 const createEntry = async (req, res, next) => {
   try {
+    // Honeypot: if the hidden `website` field was filled, this is a bot.
+    // Respond 201 like a normal success so the bot moves on; don't persist.
+    if (req.body.website && req.body.website.trim() !== '') {
+      logger.info('Waitlist honeypot triggered — silently dropped', { ip: req.ip });
+      return res.status(201).json(
+        ApiResponse.success(
+          "You're on the list — we'll text you when the app goes live.",
+          { id: null },
+        ),
+      );
+    }
+
     // Trust the proxy chain to set req.ip / req.ips. The Express setting is
-    // configured globally in server.js when behind nginx.
+    // configured globally in app.js when behind nginx.
     const entry = await waitlistService.createEntry(req.body, {
       ipAddress: (req.headers['x-forwarded-for']?.split(',')[0]?.trim()) || req.ip,
       userAgent: req.headers['user-agent']?.slice(0, 500),

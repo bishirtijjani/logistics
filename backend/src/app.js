@@ -64,6 +64,14 @@ const contactRoutes = require("./modules/contact/contact.routes");
 const createApp = () => {
   const app = express();
 
+  // We sit behind nginx in staging/prod — without this, express-rate-limit
+  // sees every request as coming from 127.0.0.1 and all visitors share one
+  // bucket (e.g. the marketing-site contact form would rate-limit the whole
+  // internet, not the person actually spamming). '1' = trust the one proxy
+  // hop in front of us; safe for our single-nginx setup. See express docs:
+  // https://expressjs.com/en/guide/behind-proxies.html
+  app.set('trust proxy', 1);
+
   // --------------- Observability (must be FIRST) ---------------
   // Sentry handlers must run before everything else so each request gets a
   // transaction; the request-id middleware runs right after so request logs

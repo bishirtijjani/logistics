@@ -16,7 +16,7 @@ const submitContactMessage = async (input) => {
   if (!config.SMTP_USER || !config.SMTP_PASS) {
     // Dev convenience: log + succeed so the form doesn't 500 on a fresh
     // clone before SMTP is wired up. Prod always has SMTP_* set (validated at boot).
-    logger.warn({ submission: input }, 'SMTP not configured — contact message logged only');
+    logger.warn('SMTP not configured — contact message logged only', { submission: input });
     return { delivered: false, devLog: true };
   }
 
@@ -35,12 +35,12 @@ const submitContactMessage = async (input) => {
     emailService
       .sendContactConfirmationEmail({ name: input.name, email: input.email })
       .catch((err) => {
-        logger.warn({ err: err.message, email: input.email }, 'Contact confirmation email failed');
+        logger.warn('Contact confirmation email failed', { err: err.message, email: input.email });
       });
 
     return { delivered: true };
   } catch (err) {
-    logger.error({ err: err.message, email: input.email }, 'Contact form delivery failed');
+    logger.error('Contact form delivery failed', { err: err.message, email: input.email });
     throw AppError.serviceUnavailable("We couldn't send your message right now. Please email hello@iprime.ng instead.");
   }
 };
