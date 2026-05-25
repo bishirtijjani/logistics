@@ -79,7 +79,7 @@ as the request worker).
 ## 6. Privacy + Data Safety
 
 - [ ] Privacy Policy URL hosted publicly (the in-app `LegalScreen`
-  already links to `https://vtulogistics.com/legal/privacy`).
+  already links to `https://iprime.ng/legal/privacy`).
   Confirm that URL serves.
 - [ ] Play Console → Data Safety form:
   - Location: **collected**, **used in-app**, **not shared**,
@@ -164,8 +164,3 @@ Internal → Production staged rollout per `RUNBOOKS.md` § 3.
 - `googleMapsApiKey` in [app.json](app.json) — currently shared with
   staging. Issue a separate restricted key for production iOS/Android
   packages and replace before submitting.
-- `EXPO_PUBLIC_API_URL` in [eas.json](eas.json) — currently points at
-  `https://api.logistics.codeket.com` for all profiles. If you stand
-  up a separate prod-only backend, point production at it.
-- `LegalScreen.js` URLs — update to the final brand-aligned domain if
-  not `vtulogistics.com`.

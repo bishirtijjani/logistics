@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "iPrime",
-    "slug": "vtu-customer-app",
-    "owner": "vtu-logistics",
+    "slug": "iprime-customer",
+    "owner": "mh-prime",
     "scheme": "iprime",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,9 +16,14 @@
     },
     "ios": {
       "bundleIdentifier": "ng.iprime.customer",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "We need your location to show nearby services and delivery options."
+        "NSLocationWhenInUseUsageDescription": "iPrime needs your location to show nearby services and delivery options.",
+        "NSCameraUsageDescription": "iPrime needs the camera to capture your profile photo and prescription images.",
+        "NSPhotoLibraryUsageDescription": "iPrime needs photo access so you can attach prescriptions, support tickets, and your profile photo.",
+        "NSPhotoLibraryAddUsageDescription": "iPrime saves receipts and order images to your gallery when you tap save.",
+        "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions like withdrawals."
       },
       "config": {
         "googleMapsApiKey": "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI"
@@ -30,6 +35,7 @@
         "backgroundColor": "#EA580C"
       },
       "package": "ng.iprime.customer",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "config": {
         "googleMaps": {
@@ -38,7 +44,13 @@
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -50,21 +62,37 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "We need your location to show nearby services and delivery options."
+          "locationWhenInUsePermission": "iPrime needs your location to show nearby services and delivery options."
         }
       ],
-      "expo-localization"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "iPrime needs photo access so you can attach prescriptions, support tickets, and your profile photo.",
+          "cameraPermission": "iPrime needs the camera to capture your profile photo and prescription images."
+        }
+      ],
+      "expo-localization",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "mh-prime",
+          "project": "iprime-customer",
+          "url": "https://sentry.io/"
+        }
+      ],
+      "@sentry/react-native"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "51598e22-56e9-4189-a5e1-ff5c63f101e7"
-      }
-    },
     "runtimeVersion": {
       "policy": "appVersion"
     },
+    "extra": {
+      "eas": {
+        "projectId": "1a521fdc-1900-40e9-8e0f-83c6595dfcb9"
+      }
+    },
     "updates": {
-      "url": "https://u.expo.dev/51598e22-56e9-4189-a5e1-ff5c63f101e7"
+      "url": "https://u.expo.dev/1a521fdc-1900-40e9-8e0f-83c6595dfcb9"
     }
   }
 }

@@ -1118,10 +1118,10 @@ const updateNotificationPreferences = async (userId, data) => {
  * Generate Cloudinary upload signature for direct upload from the client.
  *
  * `kind` selects the folder + publicId convention:
- *   - "profile"      → vtu-logistics/profiles/{userId}/profile_{ts}      (default)
- *   - "prescription" → vtu-logistics/prescriptions/{userId}/rx_{ts}_{nonce}
- *   - "return"       → vtu-logistics/returns/{userId}/return_{ts}_{nonce} (Phase 8.5)
- *   - "product"      → vtu-logistics/products/{userId}/prod_{ts}_{nonce}
+ *   - "profile"      → iprime/profiles/{userId}/profile_{ts}      (default)
+ *   - "prescription" → iprime/prescriptions/{userId}/rx_{ts}_{nonce}
+ *   - "return"       → iprime/returns/{userId}/return_{ts}_{nonce} (Phase 8.5)
+ *   - "product"      → iprime/products/{userId}/prod_{ts}_{nonce}
  *
  * Each issued signature is logged with the customer id + folder. The durable
  * audit trail of *which* prescription was used for *which* order lives on
@@ -1135,22 +1135,31 @@ const UPLOAD_KINDS = {
   dispute: { root: "disputes", prefix: "ev" },
   ticket: { root: "tickets", prefix: "att" },
   // Phase 5 — Proof of Delivery assets. Stored under
-  // `vtu-logistics/pod/{requestId}/...` so retention/lifecycle rules can be
+  // `iprime/pod/{requestId}/...` so retention/lifecycle rules can be
   // scoped per delivery rather than per uploading user, and so disputes can
   // be investigated by listing the folder. Scope is `request` (not `user`).
   pod: { root: "pod", prefix: "pod", scope: "request" },
   pod_signature: { root: "pod", prefix: "sig", scope: "request" },
-  // Phase 7 — rider re-uploadable KYC documents. Stored under
-  // `vtu-logistics/rider-docs/{userId}/...`. Role-gated to RIDER below.
+  // Phase 7 — rider re-uploadable KYC documents (generic re-upload bucket
+  // from the KYC status screen). Stored under `iprime/rider-docs/{userId}/...`.
+  // Role-gated to RIDER below.
   rider_doc: { root: "rider-docs", prefix: "doc", scope: "rider" },
+  // Phase 1 — rider onboarding KYC kinds. Each doc type lands in its own
+  // top-level folder so disputes / audits can list a single doc type across
+  // riders without scanning a mixed folder. All rider-scoped.
+  rider_id: { root: "rider-id", prefix: "id", scope: "rider" },
+  rider_driver_license: { root: "rider-license", prefix: "lic", scope: "rider" },
+  rider_vehicle_registration: { root: "rider-vehicle-reg", prefix: "reg", scope: "rider" },
+  rider_insurance: { root: "rider-insurance", prefix: "ins", scope: "rider" },
+  rider_vehicle_photo: { root: "rider-vehicle-photo", prefix: "veh", scope: "rider" },
 };
 
 /**
  * Issue a Cloudinary upload signature.
  *
  * `kind` controls folder layout + scope:
- *   - User-scoped kinds (default): `vtu-logistics/<root>/<userId>/...`
- *   - Request-scoped kinds (POD): `vtu-logistics/<root>/<requestId>/...`
+ *   - User-scoped kinds (default): `iprime/<root>/<userId>/...`
+ *   - Request-scoped kinds (POD): `iprime/<root>/<requestId>/...`
  *     — caller MUST pass `scopeId = requestId` and the server verifies the
  *       user is the assigned rider on that request (or admin).
  */
@@ -1211,7 +1220,7 @@ const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", 
 
   const crypto = require("crypto");
   const timestamp = Math.round(new Date().getTime() / 1000);
-  const folder = `vtu-logistics/${spec.root}/${folderScopeId}`;
+  const folder = `iprime/${spec.root}/${folderScopeId}`;
   // Prescription / return docs add a short nonce so two uploads in the same
   // second don't collide on publicId. Profiles keep the legacy shape.
   const publicId = kind === "profile"

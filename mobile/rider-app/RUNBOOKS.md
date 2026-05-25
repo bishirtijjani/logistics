@@ -29,7 +29,7 @@ sees a permission banner; or just nothing happens.
 4. **Active delivery.** If `availability === ON_DELIVERY`, the rider is
    mid-trip. The trip must complete (or be force-cancelled by an admin
    — see runbook 4) before they can go offline → back online.
-5. **Backend reachable?** Check `https://api.logistics.codeket.com/health`
+5. **Backend reachable?** Check `https://api.iprime.ng/health`
    from a browser. If it 503's, the rider's problem is the platform's
    problem — escalate to the platform on-call.
 6. **Socket connection.** The rider app's `OfflineBanner` shows when the
@@ -200,12 +200,11 @@ backend on-call.
 - Staging riders / customers / merchants live behind the same database
   as the live admin dashboard — DO NOT promote staging seed data to
   prod. The seed script segregates by `email` suffix `+staging@`.
-- Staging Cloudinary cloud is `vtu-logistics-staging`; prod is
-  `vtu-logistics`. Misconfiguring this prevents document uploads even
-  when the URL is signed correctly.
-- Staging FCM project is `vtu-logistics-staging`. Use a separate APNs
-  key for staging so prod TestFlight builds don't accidentally read
-  staging routing keys.
+- Prod Cloudinary cloud is `dxen6m3r0`. Staging uses a separate cloud —
+  set `CLOUDINARY_CLOUD_NAME` per environment. Misconfiguring this
+  prevents document uploads even when the URL is signed correctly.
+- Use a separate FCM project + APNs key for staging so prod TestFlight
+  builds don't accidentally read staging routing keys.
 - Maestro flows depend on a sibling test rider's access token
   (`SIBLING_RIDER_TOKEN`). Refresh by running the seeder weekly — the
   rider's session expires per the auth policy.

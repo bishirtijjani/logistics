@@ -1,5 +1,5 @@
 {
-  "name": "vtu-logistics-backend",
+  "name": "iprime-backend",
   "version": "1.0.0",
   "description": "Backend API for iPrime — Katsina State",
   "main": "src/server.js",

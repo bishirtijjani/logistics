@@ -22,7 +22,7 @@ const devFormat = printf(({ level, message, timestamp, ...meta }) => {
 
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  defaultMeta: { service: 'vtu-logistics' },
+  defaultMeta: { service: 'iprime' },
   transports: [
     // Console transport — always active
     new winston.transports.Console({

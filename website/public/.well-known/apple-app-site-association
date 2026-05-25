@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.ng.iprime.customer"],
+        "components": [
+          { "/": "/*" }
+        ]
+      },
+      {
+        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.ng.iprime.rider"],
+        "components": [
+          { "/": "/*" }
+        ]
+      }
+    ]
+  }
+}

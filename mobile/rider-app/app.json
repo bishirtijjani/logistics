@@ -2,6 +2,7 @@
   "expo": {
     "name": "iPrime Rider",
     "slug": "iprime-rider",
+    "owner": "mh-prime",
     "scheme": "iprime",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,12 +19,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "ng.iprime.rider",
       "buildNumber": "1",
-      "associatedDomains": [
-        "applinks:rider.iprime.ng"
-      ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "iPrime Rider needs your location to deliver jobs near you.",
         "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
+        "NSPhotoLibraryUsageDescription": "iPrime Rider needs photo access so you can attach KYC documents and proof-of-delivery images.",
         "NSPhotoLibraryAddUsageDescription": "Optionally save proof-of-delivery photos to your gallery.",
         "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions."
       },
@@ -39,22 +38,6 @@
       "package": "ng.iprime.rider",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "https",
-              "host": "rider.iprime.ng"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI"
@@ -63,10 +46,13 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.POST_NOTIFICATIONS",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.VIBRATE"
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -105,7 +91,7 @@
       [
         "@sentry/react-native/expo",
         {
-          "organization": "REPLACE_WITH_SENTRY_ORG",
+          "organization": "mh-prime",
           "project": "iprime-rider",
           "url": "https://sentry.io/"
         }
@@ -115,6 +101,14 @@
     ],
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4e4084bc-a546-427a-8ff3-f877c33e7b26"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4e4084bc-a546-427a-8ff3-f877c33e7b26"
     }
   }
 }
