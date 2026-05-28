@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Store,
   Menu,
@@ -17,68 +17,106 @@ import {
   ShoppingBag,
   CheckCircle2,
   Smartphone,
-} from 'lucide-react'
-import { useTheme } from '../contexts/ThemeContext.jsx'
+} from "lucide-react";
+import { useTheme } from "../contexts/ThemeContext.jsx";
 
 const benefits = [
   {
     Icon: CalendarClock,
-    title: 'Daily payouts to your bank',
+    title: "Daily payouts to your bank",
     body: "Settlements run every business morning for the prior day's orders. No 30-day net terms, no chasing payouts at month-end.",
   },
   {
     Icon: BadgeDollarSign,
-    title: 'No fixed monthly fee',
-    body: 'We earn only when you do — a percentage commission on orders iPrime actually delivers. Slow week? You pay nothing.',
+    title: "No fixed monthly fee",
+    body: "We earn only when you do — a percentage commission on orders iPrime actually delivers. Slow week? You pay nothing.",
   },
   {
     Icon: Truck,
-    title: 'Riders included',
-    body: 'Every accepted order is auto-routed to a vetted iPrime rider nearby. No fleet to hire, no parcels to chase.',
+    title: "Riders included",
+    body: "Every accepted order is auto-routed to a vetted iPrime rider nearby. No fleet to hire, no parcels to chase.",
   },
   {
     Icon: TrendingUp,
-    title: 'We market with you',
-    body: 'Featured slots, push campaigns, and category banners built into the app and our launch calendar. We grow your basket.',
+    title: "We market with you",
+    body: "Featured slots, push campaigns, and category banners built into the app and our launch calendar. We grow your basket.",
   },
-]
+];
 
 const verticals = [
-  { Icon: ChefHat, title: 'Restaurants & street food', body: 'From buka kitchens to QSR chains. We surface your menu and route every order to a nearby rider.' },
-  { Icon: ShoppingCart, title: 'Supermarkets & grocery', body: 'List your aisles, set per-item availability, and accept basket orders with customer substitutions.' },
-  { Icon: Pill, title: 'Pharmacies', body: 'Take prescription and OTC orders with built-in prescription upload and validity checks.' },
-  { Icon: ShoppingBag, title: 'Retail & specialty shops', body: 'Phone accessories, beauty supplies, household goods. If it fits on a motorcycle, we deliver it.' },
-]
+  {
+    Icon: ChefHat,
+    title: "Restaurants & street food",
+    body: "From buka kitchens to QSR chains. We surface your menu and route every order to a nearby rider.",
+  },
+  {
+    Icon: ShoppingCart,
+    title: "Supermarkets & grocery",
+    body: "List your aisles, set per-item availability, and accept basket orders with customer substitutions.",
+  },
+  {
+    Icon: Pill,
+    title: "Pharmacies",
+    body: "Take prescription and OTC orders with built-in prescription upload and validity checks.",
+  },
+  {
+    Icon: ShoppingBag,
+    title: "Retail & specialty shops",
+    body: "Phone accessories, beauty supplies, household goods. If it fits on a motorcycle, we deliver it.",
+  },
+];
 
 const steps = [
-  { n: '01', title: 'Apply in five minutes', body: 'Tell us about your business and upload your registration documents.' },
-  { n: '02', title: 'Build your listing', body: 'Our team helps you upload your catalog, photograph hero items, and set hours.' },
-  { n: '03', title: 'Accept your first orders', body: 'Orders land in the app. Confirm, prepare, and hand off to the assigned rider.' },
-  { n: '04', title: 'Get paid next morning', body: "End-of-day settlement lands in your bank by mid-morning, with full history in-app." },
-]
+  {
+    n: "01",
+    title: "Apply in five minutes",
+    body: "Tell us about your business and upload your registration documents.",
+  },
+  {
+    n: "02",
+    title: "Build your listing",
+    body: "Our team helps you upload your catalog, photograph hero items, and set hours.",
+  },
+  {
+    n: "03",
+    title: "Accept your first orders",
+    body: "Orders land in the app. Confirm, prepare, and hand off to the assigned rider.",
+  },
+  {
+    n: "04",
+    title: "Get paid next morning",
+    body: "End-of-day settlement lands in your bank by mid-morning, with full history in-app.",
+  },
+];
 
 export default function LandingPage() {
-  const { isDark, toggleTheme } = useTheme()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const isAuthenticated = Boolean(localStorage.getItem('token'))
+  const { isDark, toggleTheme } = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isAuthenticated = Boolean(localStorage.getItem("token"));
 
   const navLinks = [
-    { href: '#benefits', label: 'Why iPrime' },
-    { href: '#categories', label: 'Who we list' },
-    { href: '#how-it-works', label: 'How it works' },
-  ]
+    { href: "#benefits", label: "Why iPrime" },
+    { href: "#categories", label: "Who we list" },
+    { href: "#how-it-works", label: "How it works" },
+  ];
 
   return (
     <div className="min-h-screen bg-background dark:bg-dark-background text-text dark:text-dark-text">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-surface-muted/70 dark:border-dark-surface-muted/70 bg-background/80 dark:bg-dark-background/80 backdrop-blur-md">
-        <nav className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between" aria-label="Primary">
+        <nav
+          className="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between"
+          aria-label="Primary"
+        >
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
             <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-white shadow-sm">
               <Store className="w-5 h-5" />
             </span>
             <span className="font-bold text-lg tracking-tight">
-              iPrime <span className="text-muted dark:text-dark-muted font-medium">Merchant</span>
+              iPrime{" "}
+              <span className="text-muted dark:text-dark-muted font-medium">
+                Merchant
+              </span>
             </span>
           </Link>
 
@@ -98,10 +136,16 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={toggleTheme}
-              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={
+                isDark ? "Switch to light mode" : "Switch to dark mode"
+              }
               className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors duration-200 cursor-pointer"
             >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {isDark ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
             </button>
 
             {isAuthenticated ? (
@@ -137,7 +181,11 @@ export default function LandingPage() {
               aria-expanded={menuOpen}
               className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors duration-200 cursor-pointer"
             >
-              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {menuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </button>
           </div>
         </nav>
@@ -157,15 +205,24 @@ export default function LandingPage() {
             ))}
             <div className="pt-2 flex flex-col gap-2">
               {isAuthenticated ? (
-                <Link to="/dashboard" className="w-full text-center bg-primary text-white px-4 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200 cursor-pointer">
+                <Link
+                  to="/dashboard"
+                  className="w-full text-center bg-primary text-white px-4 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200 cursor-pointer"
+                >
                   Go to Dashboard
                 </Link>
               ) : (
                 <>
-                  <Link to="/login" className="w-full text-center border border-surface-muted dark:border-dark-surface-muted px-4 py-3 rounded-lg font-semibold hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors duration-200 cursor-pointer">
+                  <Link
+                    to="/login"
+                    className="w-full text-center border border-surface-muted dark:border-dark-surface-muted px-4 py-3 rounded-lg font-semibold hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors duration-200 cursor-pointer"
+                  >
                     Sign in
                   </Link>
-                  <Link to="/register" className="w-full text-center bg-primary text-white px-4 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200 cursor-pointer">
+                  <Link
+                    to="/register"
+                    className="w-full text-center bg-primary text-white px-4 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200 cursor-pointer"
+                  >
                     Register your business
                   </Link>
                 </>
@@ -182,24 +239,26 @@ export default function LandingPage() {
             src="/images/audience-merchant.png"
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover object-center -scale-x-100 -z-10"
+            className="absolute inset-0 w-full h-full object-cover object-center -scale-x-100"
           />
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/25 -z-10"
+            className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/65 to-black/25"
           />
-          <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-20 md:py-28 relative">
+          <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-20 md:py-28 relative z-10">
             <div className="max-w-2xl text-white">
               <span className="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-4">
                 For merchants
               </span>
               <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.05] mb-6">
-                Sell to your city,{' '}
+                Sell to your city,
+                <br />
                 <span className="text-primary">straight from your phone.</span>
               </h1>
               <p className="text-lg md:text-xl text-white/80 font-medium leading-relaxed max-w-xl mb-8">
-                Plug your restaurant, supermarket, pharmacy, or retail shop into the iPrime
-                customer base. We handle delivery, payments, and support — you focus on what you make.
+                Plug your restaurant, supermarket, pharmacy, or retail shop into
+                the iPrime customer base. We handle delivery, payments, and
+                support — you focus on what you make.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
@@ -210,15 +269,18 @@ export default function LandingPage() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a
-                  href="#how-it-works"
-                  className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg font-semibold border border-white/25 text-white hover:bg-white/10 transition-colors duration-200 cursor-pointer"
+                  href="/login"
+                  className="inline-flex items-center justify-center px-6 py-3.5 rounded-lg font-semibold border border-white/25 text-white hover:bg-white/10 transition-colors duration-200 cursor-pointer bg-white/10"
                 >
-                  See how it works
+                  Sign in
                 </a>
               </div>
               <p className="mt-6 text-sm text-white/70">
-                Already onboarded?{' '}
-                <Link to="/login" className="text-primary font-semibold hover:text-primary-400 cursor-pointer">
+                Already onboarded?{" "}
+                <Link
+                  to="/login"
+                  className="text-primary font-semibold hover:text-primary-400 cursor-pointer"
+                >
                   Sign in to your dashboard
                 </Link>
               </p>
@@ -227,7 +289,10 @@ export default function LandingPage() {
         </section>
 
         {/* Benefits */}
-        <section id="benefits" className="py-16 md:py-24 bg-surface dark:bg-dark-surface border-y border-surface-muted dark:border-dark-surface-muted">
+        <section
+          id="benefits"
+          className="py-16 md:py-24 bg-surface dark:bg-dark-surface border-y border-surface-muted dark:border-dark-surface-muted"
+        >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <header className="max-w-2xl mb-12">
               <span className="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-3">
@@ -246,8 +311,12 @@ export default function LandingPage() {
                   <div className="w-12 h-12 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary flex items-center justify-center mb-5">
                     <b.Icon className="w-6 h-6" />
                   </div>
-                  <h3 className="text-xl font-bold tracking-tight mb-2">{b.title}</h3>
-                  <p className="text-muted dark:text-dark-muted font-medium leading-relaxed">{b.body}</p>
+                  <h3 className="text-xl font-bold tracking-tight mb-2">
+                    {b.title}
+                  </h3>
+                  <p className="text-muted dark:text-dark-muted font-medium leading-relaxed">
+                    {b.body}
+                  </p>
                 </article>
               ))}
             </div>
@@ -274,8 +343,12 @@ export default function LandingPage() {
                   <div className="w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center mb-4 shadow-sm">
                     <v.Icon className="w-5 h-5" />
                   </div>
-                  <h3 className="text-lg font-bold tracking-tight mb-2">{v.title}</h3>
-                  <p className="text-muted dark:text-dark-muted font-medium leading-relaxed">{v.body}</p>
+                  <h3 className="text-lg font-bold tracking-tight mb-2">
+                    {v.title}
+                  </h3>
+                  <p className="text-muted dark:text-dark-muted font-medium leading-relaxed">
+                    {v.body}
+                  </p>
                 </article>
               ))}
             </div>
@@ -283,7 +356,10 @@ export default function LandingPage() {
         </section>
 
         {/* How it works */}
-        <section id="how-it-works" className="py-16 md:py-24 bg-surface dark:bg-dark-surface border-y border-surface-muted dark:border-dark-surface-muted">
+        <section
+          id="how-it-works"
+          className="py-16 md:py-24 bg-surface dark:bg-dark-surface border-y border-surface-muted dark:border-dark-surface-muted"
+        >
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <header className="max-w-2xl mb-12">
               <span className="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-3">
@@ -293,7 +369,8 @@ export default function LandingPage() {
                 From application to first payout.
               </h2>
               <p className="mt-3 text-muted dark:text-dark-muted font-medium">
-                We aim to take most new merchants from application to live listing in under one business week.
+                We aim to take most new merchants from application to live
+                listing in under one business week.
               </p>
             </header>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -302,9 +379,15 @@ export default function LandingPage() {
                   key={s.n}
                   className="bg-background dark:bg-dark-background border border-surface-muted dark:border-dark-surface-muted rounded-2xl p-6"
                 >
-                  <div className="text-xs font-mono font-extrabold text-primary mb-3">{s.n}</div>
-                  <h3 className="text-base font-bold tracking-tight mb-2">{s.title}</h3>
-                  <p className="text-sm text-muted dark:text-dark-muted font-medium leading-relaxed">{s.body}</p>
+                  <div className="text-xs font-mono font-extrabold text-primary mb-3">
+                    {s.n}
+                  </div>
+                  <h3 className="text-base font-bold tracking-tight mb-2">
+                    {s.title}
+                  </h3>
+                  <p className="text-sm text-muted dark:text-dark-muted font-medium leading-relaxed">
+                    {s.body}
+                  </p>
                 </article>
               ))}
             </div>
@@ -315,7 +398,10 @@ export default function LandingPage() {
         <section className="py-16 md:py-24">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="relative overflow-hidden rounded-3xl bg-secondary text-white p-8 md:p-14">
-              <div aria-hidden="true" className="pointer-events-none absolute -top-20 -right-20 w-72 h-72 rounded-full bg-primary/30 blur-3xl" />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-20 -right-20 w-72 h-72 rounded-full bg-primary/30 blur-3xl"
+              />
               <div className="relative max-w-2xl">
                 <span className="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-3">
                   Get started
@@ -324,8 +410,8 @@ export default function LandingPage() {
                   Ready to go live?
                 </h2>
                 <p className="text-base md:text-lg text-white/70 font-medium leading-relaxed mb-8">
-                  Register your business in minutes. Our merchant success team will help you build
-                  your listing and get you taking orders.
+                  Register your business in minutes. Our merchant success team
+                  will help you build your listing and get you taking orders.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
@@ -357,18 +443,26 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-muted dark:text-dark-muted">
             <Store className="w-4 h-4 text-primary" />
-            <span>© {new Date().getFullYear()} iPrime. All rights reserved.</span>
+            <span>
+              © {new Date().getFullYear()} iPrime. All rights reserved.
+            </span>
           </div>
           <div className="flex items-center gap-6 text-sm">
-            <Link to="/login" className="text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer">
+            <Link
+              to="/login"
+              className="text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer"
+            >
               Sign in
             </Link>
-            <Link to="/register" className="text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer">
+            <Link
+              to="/register"
+              className="text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer"
+            >
               Register
             </Link>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
