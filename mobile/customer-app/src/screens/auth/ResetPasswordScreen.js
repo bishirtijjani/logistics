@@ -17,8 +17,9 @@ import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import FormInput from "../../components/FormInput";
 import AuthErrorBanner from "../../components/AuthErrorBanner";
+import AuthBrandMark from "../../components/AuthBrandMark";
 import { resetPassword, clearError } from "../../store/slices/authSlice";
-import { colors } from "../../theme";
+import { colors, light } from "../../theme";
 
 export default function ResetPasswordScreen({ route, navigation }) {
   const { email, code } = route.params || {};
@@ -81,7 +82,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: light.bg.canvas }}
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
       <ScrollView
@@ -95,14 +96,16 @@ export default function ResetPasswordScreen({ route, navigation }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{ marginBottom: 32 }}
-            accessibilityRole="button"
-            accessibilityLabel={t("a11y.back")}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 32 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel={t("a11y.back")}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <AuthBrandMark style={{ marginBottom: 0, marginLeft: 16 }} />
+          </View>
 
           <View style={{ marginBottom: 36 }}>
             <Text

@@ -1,8 +1,9 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
-import { useState } from 'react'
-import { 
-  LayoutDashboard, 
+import { useState, useEffect } from 'react'
+import {
+  LayoutDashboard,
+  ShieldCheck,
   Package, 
   Store, 
   Bike, 
@@ -64,38 +65,77 @@ export default function Layout() {
   const { isDark, toggleTheme } = useTheme()
   const { showWarning, timeRemaining, extending, formatTimeRemaining, handleLogout, extendSession } = useAuthSession()
 
+  // Mobile drawer: lock background scroll and close on Escape while open.
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setSidebarOpen(false) }
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [sidebarOpen])
+
+  const isActivePath = (path) =>
+    location.pathname === path || location.pathname.startsWith(path + '/')
+
   return (
-    <div className="flex h-screen bg-background dark:bg-dark-background">
-      {/* Mobile menu button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-surface dark:bg-dark-surface rounded-lg shadow-lg border border-surface-muted dark:border-dark-surface-muted"
-      >
-        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+    <div className="flex h-[100dvh] bg-background dark:bg-dark-background">
+      {/* Mobile menu button — only when closed, so it never overlaps the sidebar */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+          aria-expanded={false}
+          aria-controls="admin-sidebar"
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-surface dark:bg-dark-surface rounded-lg shadow-lg border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text"
+        >
+          <Menu size={24} />
+        </button>
+      )}
 
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
+          aria-hidden="true"
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface dark:bg-dark-surface border-r border-surface-muted dark:border-dark-surface-muted flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
-          <h1
-            className="text-xl font-bold text-text dark:text-dark-text"
-            style={{ fontFamily: "Roboto, sans-serif" }}
-          >iPrime</h1>
-          <p className="text-sm text-muted dark:text-dark-muted mt-1">Admin Dashboard</p>
+      <aside
+        id="admin-sidebar"
+        className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-surface dark:bg-dark-surface border-r border-surface-muted dark:border-dark-surface-muted flex flex-col transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white shrink-0">
+              <ShieldCheck size={22} />
+            </span>
+            <div className="min-w-0">
+              <h1
+                className="text-xl font-bold text-text dark:text-dark-text leading-tight"
+                style={{ fontFamily: "Roboto, sans-serif" }}
+              >iPrime</h1>
+              <p className="text-xs text-muted dark:text-dark-muted">Admin Dashboard</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close menu"
+            className="lg:hidden p-2 -mr-2 rounded-lg text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted"
+          >
+            <X size={22} />
+          </button>
         </div>
-        
+
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = location.pathname === item.path
+              const isActive = isActivePath(item.path)
               return (
                 <li key={item.path}>
                   <Link
@@ -133,7 +173,8 @@ export default function Layout() {
           <div className="flex gap-2">
             <button
               onClick={toggleTheme}
-              className="flex items-center gap-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors flex-1 px-4 py-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted"
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="flex items-center justify-center gap-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors flex-1 px-4 py-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted"
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -149,7 +190,7 @@ export default function Layout() {
       </aside>
 
       <main className="flex-1 overflow-auto">
-        <div className="px-4 pt-16 pb-6 sm:px-6 sm:pt-8 sm:pb-8 lg:p-8 bg-background dark:bg-dark-background min-h-screen">
+        <div className="px-4 pt-16 pb-6 sm:px-6 sm:pt-8 sm:pb-8 lg:p-8 bg-background dark:bg-dark-background min-h-full">
           <Breadcrumb />
           <Outlet />
         </div>

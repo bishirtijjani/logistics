@@ -155,7 +155,7 @@ export default function SettingsPage() {
                       type="email"
                       value={platformForm.supportEmail}
                       onChange={(e) => setPlatformForm({ ...platformForm, supportEmail: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                     />
                   </div>
                 </div>
@@ -167,7 +167,7 @@ export default function SettingsPage() {
                       type="tel"
                       value={platformForm.supportPhone}
                       onChange={(e) => setPlatformForm({ ...platformForm, supportPhone: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
                     />
                   </div>
                 </div>

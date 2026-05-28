@@ -8,6 +8,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap" rel="stylesheet" />
     <title>iPrime Admin</title>
+    <script>
+      // Apply persisted/system theme before first paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var s = localStorage.getItem('darkMode');
+          var d = s !== null ? JSON.parse(s) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (d) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

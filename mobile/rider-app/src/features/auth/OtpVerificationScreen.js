@@ -16,7 +16,8 @@ import { useTranslation } from "react-i18next";
 import { verifyOtp, clearError } from "../../store/slices/authSlice";
 import api from "../../services/api";
 import AuthErrorBanner from "../../components/AuthErrorBanner";
-import { colors } from "../../theme";
+import AuthBrandMark from "../../components/AuthBrandMark";
+import { colors, light } from "../../theme";
 
 const RESEND_COOLDOWN = 60;
 
@@ -103,7 +104,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: light.bg.canvas }}
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
       <ScrollView
@@ -117,14 +118,16 @@ export default function OtpVerificationScreen({ route, navigation }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{ marginBottom: 32 }}
-            accessibilityRole="button"
-            accessibilityLabel={t("a11y.back")}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 32 }}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel={t("a11y.back")}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+            <AuthBrandMark style={{ marginBottom: 0, marginLeft: 16 }} />
+          </View>
 
           <View style={{ marginBottom: 36 }}>
             <Text

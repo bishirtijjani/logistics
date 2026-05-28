@@ -47,7 +47,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className={`p-2 ${btnBase}`}
+            className={`p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center ${btnBase}`}
             title="Previous page"
             aria-label="Previous page"
           >
@@ -65,7 +65,7 @@ export default function Pagination({
             <button
               key={n}
               onClick={() => onPageChange(n)}
-              className={`px-3 py-2 border rounded-lg text-sm ${
+              className={`px-3 py-2 min-w-[40px] min-h-[40px] border rounded-lg text-sm ${
                 currentPage === n
                   ? 'bg-primary text-white border-primary'
                   : 'border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
@@ -85,7 +85,7 @@ export default function Pagination({
           <button
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className={`p-2 ${btnBase}`}
+            className={`p-2.5 min-h-[40px] min-w-[40px] flex items-center justify-center ${btnBase}`}
             title="Next page"
             aria-label="Next page"
           >

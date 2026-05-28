@@ -14,11 +14,12 @@ import { login, clearError } from "../../store/slices/authSlice";
 import { useForm, Controller } from "react-hook-form";
 import FormInput from "../../components/FormInput";
 import AuthErrorBanner from "../../components/AuthErrorBanner";
+import AuthBrandMark from "../../components/AuthBrandMark";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { colors, light } from "../../theme";
 
 const LAST_EMAIL_KEY = "vtu_last_email";
 
@@ -87,7 +88,7 @@ export default function LoginScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: light.bg.canvas }}
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
       <ScrollView
@@ -101,6 +102,8 @@ export default function LoginScreen({ navigation }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+          <AuthBrandMark />
+
           <View style={{ marginBottom: 36 }}>
             <Text
               accessibilityRole="header"

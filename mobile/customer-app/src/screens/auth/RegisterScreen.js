@@ -17,7 +17,8 @@ import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import FormInput from "../../components/FormInput";
 import AuthErrorBanner from "../../components/AuthErrorBanner";
-import { colors } from "../../theme";
+import AuthBrandMark from "../../components/AuthBrandMark";
+import { colors, light } from "../../theme";
 
 export default function RegisterScreen({ navigation }) {
   const dispatch = useDispatch();
@@ -89,11 +90,13 @@ export default function RegisterScreen({ navigation }) {
     >
       <View style={{ height: 4, backgroundColor: colors.primary }} />
       <ScrollView
-        style={{ flex: 1, backgroundColor: colors.background }}
+        style={{ flex: 1, backgroundColor: light.bg.canvas }}
         contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 52 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+          <AuthBrandMark />
+
           <View style={{ marginBottom: 32 }}>
             <Text
               accessibilityRole="header"

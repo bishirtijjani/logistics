@@ -14,52 +14,35 @@ import {
   UserCheck
 } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useTheme } from '../contexts/ThemeContext'
 
 export default function DashboardPage() {
   const dispatch = useDispatch()
   const { stats, loading } = useSelector((state) => state.dashboard)
+  const { isDark } = useTheme()
+
+  // Theme-aware chart palette (recharts can't read Tailwind classes).
+  const brandColor = isDark ? '#FB923C' : '#EA580C'
+  const axisColor = isDark ? '#9CA3AF' : '#6B7280'
+  const gridColor = isDark ? '#2A2A2A' : '#E5E7EB'
+  const tooltipStyle = {
+    backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
+    border: `1px solid ${isDark ? '#2A2A2A' : '#E5E7EB'}`,
+    borderRadius: 8,
+    color: isDark ? '#F9FAFB' : '#09090b',
+  }
 
   useEffect(() => {
     dispatch(fetchDashboardStats())
   }, [dispatch])
 
   const statCards = [
-    {
-      title: 'Total Requests',
-      value: stats?.totalRequests || 0,
-      icon: Package,
-      color: 'bg-primary',
-    },
-    {
-      title: 'Active Requests',
-      value: stats?.activeRequests || 0,
-      icon: TrendingUp,
-      color: 'bg-success',
-    },
-    {
-      title: 'Total Revenue',
-      value: `₦${(stats?.totalRevenue || 0).toLocaleString()}`,
-      icon: DollarSign,
-      color: 'bg-purple-500',
-    },
-    {
-      title: 'Merchants',
-      value: stats?.totalMerchants || 0,
-      icon: Store,
-      color: 'bg-orange-500',
-    },
-    {
-      title: 'Riders',
-      value: stats?.totalRiders || 0,
-      icon: Bike,
-      color: 'bg-cyan-500',
-    },
-    {
-      title: 'Users',
-      value: stats?.totalUsers || 0,
-      icon: Users,
-      color: 'bg-pink-500',
-    },
+    { title: 'Total Requests', value: stats?.totalRequests || 0, icon: Package },
+    { title: 'Active Requests', value: stats?.activeRequests || 0, icon: TrendingUp },
+    { title: 'Total Revenue', value: `₦${(stats?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign },
+    { title: 'Merchants', value: stats?.totalMerchants || 0, icon: Store },
+    { title: 'Riders', value: stats?.totalRiders || 0, icon: Bike },
+    { title: 'Users', value: stats?.totalUsers || 0, icon: Users },
   ]
 
   const revenueData = stats?.revenueTrend || [
@@ -98,8 +81,8 @@ export default function DashboardPage() {
                       <p className="text-sm font-medium text-muted dark:text-dark-muted">{card.title}</p>
                       <p className="text-2xl font-bold text-text dark:text-dark-text mt-1">{card.value}</p>
                     </div>
-                    <div className={`${card.color} p-3 rounded-lg`}>
-                      <Icon size={24} className="text-white" />
+                    <div className="bg-primary/10 dark:bg-primary/20 p-3 rounded-lg">
+                      <Icon size={24} className="text-primary" />
                     </div>
                   </div>
                 </div>
@@ -112,12 +95,12 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Revenue Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `₦${value.toLocaleString()}`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="month" stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <YAxis stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => `₦${value.toLocaleString()}`} />
                   <Legend />
-                  <Line type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={2} name="Revenue" />
+                  <Line type="monotone" dataKey="revenue" stroke={brandColor} strokeWidth={2} name="Revenue" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -125,12 +108,12 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Request Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={requestsData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="month" stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <YAxis stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }} />
                   <Legend />
-                  <Bar dataKey="requests" fill="#3b82f6" name="Requests" />
+                  <Bar dataKey="requests" fill={brandColor} name="Requests" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
