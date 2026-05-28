@@ -72,6 +72,19 @@ export default function Layout() {
     }
   }, [needsOnboarding])
 
+  // Mobile drawer: lock background scroll and close on Escape while open.
+  useEffect(() => {
+    if (!sidebarOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setSidebarOpen(false) }
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [sidebarOpen])
+
   const handleLogout = async () => {
     await dispatch(logout())
     navigate('/login')
@@ -87,13 +100,14 @@ export default function Layout() {
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ]
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
 
   return (
     <div className="min-h-screen bg-background dark:bg-dark-background flex">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 bg-gray-800 bg-opacity-50 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -101,7 +115,8 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 w-64 h-screen bg-surface dark:bg-dark-surface shadow-lg transform transition-transform duration-300 ease-in-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 ${
+        id="merchant-sidebar"
+        className={`fixed top-0 left-0 z-50 w-64 h-[100dvh] bg-surface dark:bg-dark-surface shadow-lg transform transition-transform duration-300 ease-in-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -116,6 +131,7 @@ export default function Layout() {
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
+              aria-label="Close menu"
               className="lg:hidden text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
             >
               <X className="w-6 h-6" />
@@ -175,6 +191,9 @@ export default function Layout() {
           <div className="flex items-center justify-between h-16 px-4 sm:px-6">
             <button
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={sidebarOpen}
+              aria-controls="merchant-sidebar"
               className="lg:hidden text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
             >
               <Menu className="w-6 h-6" />
@@ -183,6 +202,7 @@ export default function Layout() {
             <div className="flex items-center gap-4">
               <button
                 onClick={toggleTheme}
+                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
                 className="p-2 rounded-lg bg-surface-muted hover:bg-surface-muted/80 dark:bg-dark-surface-muted dark:hover:bg-dark-surface-muted/80 transition-colors"
                 title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               >
@@ -233,7 +253,7 @@ export default function Layout() {
           merchants rarely lose context mid-order. */}
       {showWarning && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white dark:bg-dark-surface rounded-2xl p-6 w-full max-w-md shadow-2xl">
+          <div className="bg-surface dark:bg-dark-surface rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
                 <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />

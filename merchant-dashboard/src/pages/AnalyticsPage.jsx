@@ -30,12 +30,25 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { useTheme } from '../contexts/ThemeContext.jsx'
 
 export default function AnalyticsPage() {
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
   const dispatch = useDispatch()
   const { salesSummary, orderHistory, earningsBreakdown, loading, error } = useSelector((state) => state.analytics)
+  const { isDark } = useTheme()
+
+  // Theme-aware chart palette (recharts can't read Tailwind classes).
+  const brandColor = isDark ? '#FB923C' : '#EA580C'
+  const axisColor = isDark ? '#9CA3AF' : '#6B7280'
+  const gridColor = isDark ? '#2A2A2A' : '#E5E7EB'
+  const tooltipStyle = {
+    backgroundColor: isDark ? '#1A1A1A' : '#FFFFFF',
+    border: `1px solid ${isDark ? '#2A2A2A' : '#E5E7EB'}`,
+    borderRadius: 8,
+    color: isDark ? '#FAFAFA' : '#09090b',
+  }
   const [period, setPeriod] = useState('7d')
   const [isCustomRange, setIsCustomRange] = useState(false)
   const [startDate, setStartDate] = useState('')
@@ -376,12 +389,12 @@ export default function AnalyticsPage() {
               <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Revenue Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `₦${value.toLocaleString()}`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="month" stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <YAxis stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(value) => `₦${value.toLocaleString()}`} />
                   <Legend />
-                  <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} name="Revenue" />
+                  <Line type="monotone" dataKey="revenue" stroke={brandColor} strokeWidth={2} name="Revenue" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -389,12 +402,12 @@ export default function AnalyticsPage() {
               <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Orders Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={ordersData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="day" stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <YAxis stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }} />
                   <Legend />
-                  <Bar dataKey="orders" fill="#8b5cf6" name="Orders" />
+                  <Bar dataKey="orders" fill={brandColor} name="Orders" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -477,11 +490,11 @@ export default function AnalyticsPage() {
               <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Peak Hours Analysis</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={salesSummary?.peakHours || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="orders" fill="#3b82f6" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                  <XAxis dataKey="hour" stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <YAxis stroke={axisColor} tick={{ fill: axisColor, fontSize: 12 }} />
+                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }} />
+                  <Bar dataKey="orders" fill={brandColor} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

@@ -100,7 +100,7 @@ export default function Layout() {
       {sidebarOpen && (
         <div
           aria-hidden="true"
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
           onClick={() => setSidebarOpen(false)}
         />
       )}
