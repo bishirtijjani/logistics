@@ -13,23 +13,36 @@ import TicketDetailPage from './pages/TicketDetailPage.jsx'
 import DisputeDetailPage from './pages/DisputeDetailPage.jsx'
 import MarketingPage from './pages/MarketingPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
-import SessionWarningModal from './components/SessionWarningModal.jsx'
-import { useSessionManager } from './hooks/useSessionManager.js'
+
+// Decode a JWT's exp claim without verifying the signature — the server is
+// still the authority, this is just to keep stale tokens from flashing the
+// dashboard before the API kicks the user out.
+const isTokenLive = (token) => {
+  if (!token) return false
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return typeof payload?.exp === 'number' && payload.exp * 1000 > Date.now()
+  } catch {
+    return false
+  }
+}
 
 function ProtectedRoute({ children }) {
-  const isAuthenticated = localStorage.getItem('token')
-  if (!isAuthenticated) {
+  const token = localStorage.getItem('token')
+  if (!isTokenLive(token)) {
+    // Clean up stale state on the way out so the next protected nav doesn't
+    // loop right back here with the same dead token.
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('merchant_user')
     return <Navigate to="/login" replace />
   }
   return children
 }
 
 function AppContent() {
-  const sessionManager = useSessionManager()
-
   return (
-    <>
-      <Routes>
+    <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegistrationPage />} />
@@ -53,17 +66,7 @@ function AppContent() {
             <Route index element={<Navigate to="orders" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        
-        <SessionWarningModal
-          show={sessionManager.showWarning}
-          timeLeft={sessionManager.timeLeft}
-          formatTime={sessionManager.formatTime}
-          onStayLoggedIn={sessionManager.handleStayLoggedIn}
-          onLogout={sessionManager.handleLogout}
-          isRefreshing={sessionManager.isRefreshing}
-        />
-      </>
+    </Routes>
   )
 }
 

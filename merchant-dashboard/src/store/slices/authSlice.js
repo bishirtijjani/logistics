@@ -62,10 +62,23 @@ export const refreshToken = createAsyncThunk(
   }
 )
 
+// Rehydrate the persisted user on app startup. Without this, refreshing the
+// page leaves us "authenticated" (we still have a token) but state.auth.user
+// is null — every page that reads state.auth.user?.merchantId breaks silently
+// for the first few renders.
+const readStoredUser = () => {
+  try {
+    const raw = localStorage.getItem('merchant_user')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    user: null,
+    user: readStoredUser(),
     token: localStorage.getItem('token'),
     isAuthenticated: !!localStorage.getItem('token'),
     loading: false,
