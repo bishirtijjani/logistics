@@ -33,6 +33,29 @@ function Recenter({ lat, lng }) {
   return null
 }
 
+// Leaflet sizes its tile grid from the container at init. Inside a
+// modal/initially-hidden/animated container that size is wrong on first paint,
+// so tiles load for the wrong viewport and labels never resolve (roads show,
+// street names don't). Recompute once settled, then track container resizes.
+function MapAutoSize() {
+  const map = useMap()
+  useEffect(() => {
+    const fix = () => map.invalidateSize()
+    const raf = requestAnimationFrame(fix)
+    const settle = setTimeout(fix, 300)
+    const ro = new ResizeObserver(fix)
+    ro.observe(map.getContainer())
+    window.addEventListener('resize', fix)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(settle)
+      ro.disconnect()
+      window.removeEventListener('resize', fix)
+    }
+  }, [map])
+  return null
+}
+
 /**
  * Pin a merchant location on a map and capture address + coordinates together
  * so the address text and the lat/lng can't drift apart. Uses the existing
@@ -179,9 +202,13 @@ export default function LocationPicker({ value, onChange }) {
           scrollWheelZoom
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            subdomains="abcd"
+            maxZoom={20}
+            detectRetina
           />
+          <MapAutoSize />
           {hasPin && (
             <Marker
               ref={markerRef}
