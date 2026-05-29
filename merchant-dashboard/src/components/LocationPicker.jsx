@@ -28,6 +28,30 @@ function Recenter({ lat, lng }) {
   return null
 }
 
+// Leaflet computes its tile grid from the container size at init. Inside a
+// modal/animated/initially-hidden container that size is wrong on first paint,
+// so tiles load for the wrong viewport and labels never resolve (you see roads
+// but no street names). Recompute once the container settles, then keep it in
+// sync with any resize (modal open, sidebar toggle, orientation change).
+function MapAutoSize() {
+  const map = useMap()
+  useEffect(() => {
+    const fix = () => map.invalidateSize()
+    const raf = requestAnimationFrame(fix)
+    const settle = setTimeout(fix, 300)
+    const ro = new ResizeObserver(fix)
+    ro.observe(map.getContainer())
+    window.addEventListener('resize', fix)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(settle)
+      ro.disconnect()
+      window.removeEventListener('resize', fix)
+    }
+  }, [map])
+  return null
+}
+
 /**
  * Pin a merchant location on a map and capture address + coordinates together
  * so the address text and the lat/lng can't drift apart. Hits the backend
@@ -183,7 +207,9 @@ export default function LocationPicker({ value, onChange }) {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             subdomains="abcd"
             maxZoom={20}
+            detectRetina
           />
+          <MapAutoSize />
           {hasPin && (
             <Marker
               ref={markerRef}

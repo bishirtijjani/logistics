@@ -428,6 +428,79 @@ export default function OrdersPage() {
     return colors[status] || 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'
   }
 
+  // Shared row actions — rendered both in the desktop table and the mobile
+  // card list so the two layouts never drift apart.
+  const renderOrderActions = (order) => (
+    <>
+      <button
+        onClick={() => { setSelectedOrder(order); setShowOrderDetails(true) }}
+        className="p-2 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg transition-colors"
+        title="View Details"
+      >
+        <Eye className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => handlePrintReceipt(order)}
+        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+        title="Print Receipt"
+      >
+        <Printer className="w-4 h-4" />
+      </button>
+      {order.status === 'REQUESTED' && (
+        <>
+          <button
+            onClick={() => handleAccept(order.id)}
+            className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+            title="Accept Order"
+          >
+            <Check className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleReject(order.id)}
+            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            title="Reject Order"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </>
+      )}
+      {(order.status === 'REQUESTED' || order.status === 'ACCEPTED') && (
+        <>
+          <button
+            onClick={() => handleModifyOrder(order)}
+            className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+            title="Modify Order"
+          >
+            <Edit3 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleCancelOrder(order.id)}
+            className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
+            title="Cancel Order"
+          >
+            <XCircle className="w-4 h-4" />
+          </button>
+        </>
+      )}
+      {order.status === 'ACCEPTED' && (
+        <button
+          onClick={() => handleStatusUpdate(order.id, 'PROCESSING')}
+          className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Process
+        </button>
+      )}
+      {order.status === 'PROCESSING' && (
+        <button
+          onClick={() => handleStatusUpdate(order.id, 'READY_FOR_PICKUP')}
+          className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          Ready
+        </button>
+      )}
+    </>
+  )
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -449,14 +522,14 @@ export default function OrdersPage() {
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           {/* Search Input */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted dark:text-dark-muted" />
             <input
               type="text"
               placeholder="Search by order ID or customer name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-64 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
+              className="pl-10 pr-4 py-2 w-full sm:w-64 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
             />
           </div>
           
@@ -522,7 +595,7 @@ export default function OrdersPage() {
 
       {/* Bulk Action Buttons */}
       {selectedOrders.size > 0 && (
-        <div className="flex items-center gap-2 bg-primary/10 dark:bg-primary/10 px-3 py-2 rounded-lg">
+        <div className="flex flex-wrap items-center gap-2 bg-primary/10 dark:bg-primary/10 px-3 py-2 rounded-lg">
           <span className="text-sm text-primary dark:text-primary font-medium">
             {selectedOrders.size} selected
           </span>
@@ -643,7 +716,7 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto hidden md:block">
             <table className="w-full">
               <thead className="bg-surface-muted dark:bg-dark-surface-muted border-b border-surface-muted dark:border-dark-surface-muted">
                 <tr>
@@ -705,72 +778,7 @@ export default function OrdersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setShowOrderDetails(true)}
-                          className="p-2 text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handlePrintReceipt(order)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="Print Receipt"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                        {order.status === 'REQUESTED' && (
-                          <>
-                            <button
-                              onClick={() => handleAccept(order.id)}
-                              className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                              title="Accept Order"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleReject(order.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              title="Reject Order"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        {(order.status === 'REQUESTED' || order.status === 'ACCEPTED') && (
-                          <>
-                            <button
-                              onClick={() => handleModifyOrder(order)}
-                              className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                              title="Modify Order"
-                            >
-                              <Edit3 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleCancelOrder(order.id)}
-                              className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors"
-                              title="Cancel Order"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        {order.status === 'ACCEPTED' && (
-                          <button
-                            onClick={() => handleStatusUpdate(order.id, 'PROCESSING')}
-                            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            Process
-                          </button>
-                        )}
-                        {order.status === 'PROCESSING' && (
-                          <button
-                            onClick={() => handleStatusUpdate(order.id, 'READY_FOR_PICKUP')}
-                            className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            Ready
-                          </button>
-                        )}
+                        {renderOrderActions(order)}
                       </div>
                     </td>
                   </tr>
@@ -778,7 +786,49 @@ export default function OrdersPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-4 border-t border-surface-muted dark:border-dark-surface-muted flex items-center justify-between">
+
+          {/* Mobile card list — replaces the horizontal-scroll table below md */}
+          <div className="md:hidden divide-y divide-surface-muted dark:divide-dark-surface-muted">
+            {orders.map((order) => (
+              <div
+                key={order.id}
+                className={`p-4 space-y-3 ${selectedOrders.has(order.id) ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <label className="flex items-center gap-2 min-w-0">
+                    <input
+                      type="checkbox"
+                      checked={selectedOrders.has(order.id)}
+                      onChange={() => handleSelectOrder(order.id)}
+                      className="w-4 h-4 shrink-0 text-primary border-surface-muted rounded focus:ring-primary"
+                    />
+                    <span className="text-sm font-semibold text-text dark:text-dark-text truncate">
+                      #{order.id.slice(0, 8)}
+                    </span>
+                  </label>
+                  <span className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                    {order.status.replace(/_/g, ' ')}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted dark:text-dark-muted truncate">
+                    {order.customer?.firstName} {order.customer?.lastName}
+                  </span>
+                  <span className="font-semibold text-text dark:text-dark-text shrink-0">
+                    ₦{order.total?.toLocaleString() || '0'}
+                  </span>
+                </div>
+                <div className="text-xs text-muted dark:text-dark-muted">
+                  {format(new Date(order.createdAt), 'MMM dd, yyyy • h:mm a')}
+                </div>
+                <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-surface-muted dark:border-dark-surface-muted">
+                  {renderOrderActions(order)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="px-4 sm:px-6 py-4 border-t border-surface-muted dark:border-dark-surface-muted flex items-center justify-between gap-3">
             <p className="text-sm text-muted dark:text-dark-muted">
               Showing {orders.length} of {total} orders
             </p>
@@ -804,8 +854,8 @@ export default function OrdersPage() {
 
       {/* Bulk Action Confirmation Modal */}
       {showBulkActionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl p-6 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Confirm Bulk Action
@@ -838,8 +888,8 @@ export default function OrdersPage() {
 
       {/* Export Modal */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl p-6 w-full sm:max-w-md max-h-[90dvh] overflow-y-auto pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Export Orders
@@ -978,17 +1028,17 @@ export default function OrdersPage() {
       )}
 
       {/* Order Details Modal */}
-      {showOrderDetails && (
+      {showOrderDetails && selectedOrder && (
         <OrderDetailsModal
-          order={orders.find(o => selectedOrders.has(o.id)) || orders[0]}
-          onClose={() => setShowOrderDetails(false)}
+          order={selectedOrder}
+          onClose={() => { setShowOrderDetails(false); setSelectedOrder(null) }}
         />
       )}
 
       {/* Order Modification Modal */}
       {showOrderModification && modifyingOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-4xl max-h-[95dvh] sm:max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-text dark:text-dark-text">
@@ -1010,7 +1060,7 @@ export default function OrdersPage() {
                   <h3 className="text-lg font-semibold text-text dark:text-dark-text">Order Items</h3>
                   <button
                     onClick={handleAddItem}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
                   >
                     <Plus className="w-4 h-4" />
                     Add Item
@@ -1116,7 +1166,7 @@ export default function OrdersPage() {
                   <span className="text-lg font-semibold text-text dark:text-dark-text">
                     New Total:
                   </span>
-                  <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  <span className="text-xl font-bold text-primary">
                     ₦{modifiedOrderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString()}
                   </span>
                 </div>

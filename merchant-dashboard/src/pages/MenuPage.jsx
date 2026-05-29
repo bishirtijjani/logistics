@@ -462,17 +462,17 @@ export default function MenuPage() {
             Category-driven form: select your category, the form renders the right axes and pack inputs automatically.
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center w-full sm:w-auto">
           <input
             type="text"
             placeholder="Search products"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text placeholder:text-muted dark:placeholder:text-dark-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="flex-1 sm:flex-none sm:w-56 border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text placeholder:text-muted dark:placeholder:text-dark-muted focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-2"
+            className="shrink-0 whitespace-nowrap px-4 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-2 hover:bg-primary-700 transition-colors"
           >
             <Plus size={16} /> New Product
           </button>
@@ -681,23 +681,24 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
       <form
         onSubmit={submit}
-        className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-3xl max-h-[95vh] overflow-y-auto shadow-xl space-y-4"
+        className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl w-full sm:max-w-3xl max-h-[95dvh] flex flex-col shadow-2xl"
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-surface-muted dark:border-dark-surface-muted">
           <h2 className="text-lg font-semibold text-text dark:text-dark-text">New Product</h2>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-error hover:bg-error/10 rounded-md"
+            className="p-2.5 -mr-1 text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors"
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
         <div>
           <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Category *</label>
           <select
@@ -817,15 +818,17 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
           </div>
         )}
 
-        <div className="flex gap-3 pt-3 border-t border-surface-muted dark:border-dark-surface-muted">
+        </div>
+
+        <div className="flex gap-3 px-4 sm:px-6 py-4 border-t border-surface-muted dark:border-dark-surface-muted pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
+            className="flex-1 px-4 py-2.5 border border-surface-muted dark:border-dark-surface-muted rounded-lg text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
           >
             Cancel
           </button>
-          <button type="submit" disabled={saving} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 disabled:opacity-60">
+          <button type="submit" disabled={saving} className="flex-1 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-700 disabled:opacity-60 font-medium">
             {saving ? 'Saving…' : 'Create product'}
           </button>
         </div>
@@ -885,19 +888,20 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-      <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-4xl max-h-[95vh] overflow-y-auto shadow-xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-text dark:text-dark-text">Edit — {product.name}</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl w-full sm:max-w-4xl max-h-[95dvh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-surface-muted dark:border-dark-surface-muted">
+          <h2 className="text-lg font-semibold text-text dark:text-dark-text truncate pr-2">Edit — {product.name}</h2>
           <button
             onClick={onClose}
-            className="p-2 text-error hover:bg-error/10 rounded-md"
+            className="p-2.5 -mr-1 shrink-0 text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors"
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
         <div>
           <label className="text-xs font-semibold text-muted dark:text-dark-muted block mb-1">Name</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
@@ -959,8 +963,10 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
           </div>
         )}
 
-        <div className="pt-3 border-t border-surface-muted dark:border-dark-surface-muted">
-          <button onClick={onClose} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700">Close</button>
+        </div>
+
+        <div className="px-4 sm:px-6 py-4 border-t border-surface-muted dark:border-dark-surface-muted pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-700 font-medium">Close</button>
         </div>
       </div>
     </div>

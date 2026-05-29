@@ -185,7 +185,7 @@ export default function AnalyticsPage() {
       name: 'Total Orders',
       value: salesSummary?.totalOrders || 0,
       icon: ShoppingCart,
-      color: 'bg-blue-500',
+      color: 'bg-primary',
     },
     {
       name: 'Total Revenue',
@@ -232,7 +232,7 @@ export default function AnalyticsPage() {
 
           {/* Custom Date Range */}
           {period === 'custom' && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 type="date"
                 value={startDate}

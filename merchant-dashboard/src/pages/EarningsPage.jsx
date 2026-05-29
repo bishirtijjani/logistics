@@ -1524,25 +1524,25 @@ Thank you for your business!
         <>
           {/* Enhanced Wallet Balance Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+            <div className="bg-gradient-to-br from-primary to-primary-700 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
                 <Wallet className="w-6 h-6" />
                 <h2 className="text-lg font-semibold">Available Balance</h2>
               </div>
-              <p className="text-4xl font-bold">
+              <p className="text-3xl sm:text-4xl font-bold break-words">
                 ₦{wallet.availableBalance?.toLocaleString() || "0"}
               </p>
-              <p className="text-blue-100 mt-2 text-sm">Ready for withdrawal</p>
+              <p className="text-orange-100 mt-2 text-sm">Ready for withdrawal</p>
             </div>
-            <div className="bg-gradient-to-br from-surface-700 to-surface-800 rounded-xl p-6 text-accent">
+            <div className="bg-gradient-to-br from-zinc-700 to-zinc-900 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-6 h-6" />
                 <h3 className="text-lg font-semibold">Pending Balance</h3>
               </div>
-              <p className="text-4xl font-bold">
+              <p className="text-3xl sm:text-4xl font-bold break-words">
                 ₦{wallet.pendingBalance?.toLocaleString() || "0"}
               </p>
-              <p className="text-surface-300 mt-2 text-sm">
+              <p className="text-zinc-300 mt-2 text-sm">
                 Awaiting settlement
               </p>
             </div>
@@ -1857,7 +1857,7 @@ Thank you for your business!
 
       {/* Enhanced Withdrawal Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
@@ -2161,7 +2161,7 @@ Thank you for your business!
 
       {/* Transaction Details Modal */}
       {showTransactionDetails && selectedTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
@@ -2373,7 +2373,7 @@ Thank you for your business!
 
       {/* Withdrawal History Modal */}
       {showWithdrawalHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
@@ -2544,7 +2544,7 @@ Thank you for your business!
 
       {/* Refund Modal */}
       {showRefundModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
@@ -2669,7 +2669,7 @@ Thank you for your business!
 
       {/* Refund History Modal */}
       {showRefundHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
@@ -2792,7 +2792,7 @@ Thank you for your business!
 
       {/* Disputes Modal */}
       {showDisputes && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
@@ -2903,7 +2903,7 @@ Thank you for your business!
 
       {/* Dispute Creation Modal */}
       {showDisputeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
@@ -3048,7 +3048,7 @@ Thank you for your business!
 
       {/* Dispute Details Modal */}
       {showDisputeDetails && selectedDispute && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
@@ -3424,7 +3424,7 @@ Thank you for your business!
 
       {/* Custom Report Generation Modal */}
       {showCustomReportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">

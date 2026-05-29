@@ -274,13 +274,13 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-surface-muted dark:border-dark-surface-muted dark:border-dark-surface-muted">
-        <nav className="flex gap-8">
+      <div className="border-b border-surface-muted dark:border-dark-surface-muted">
+        <nav className="flex gap-6 sm:gap-8 overflow-x-auto -mb-px">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`pb-4 border-b-2 font-medium transition-colors ${
+            className={`pb-4 border-b-2 font-medium transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'profile'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
@@ -288,9 +288,9 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab('notifications')}
-            className={`pb-4 border-b-2 font-medium transition-colors ${
+            className={`pb-4 border-b-2 font-medium transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'notifications'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
@@ -298,9 +298,9 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab('security')}
-            className={`pb-4 border-b-2 font-medium transition-colors ${
+            className={`pb-4 border-b-2 font-medium transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'security'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
@@ -308,9 +308,9 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`pb-4 border-b-2 font-medium transition-colors ${
+            className={`pb-4 border-b-2 font-medium transition-colors whitespace-nowrap shrink-0 ${
               activeTab === 'history'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                ? 'border-primary text-primary'
                 : 'border-transparent text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text'
             }`}
           >
@@ -325,8 +325,8 @@ export default function SettingsPage() {
         <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
           <form onSubmit={handleProfileSave} className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Store className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+                <Store className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-text dark:text-dark-text">Profile Information</h2>
@@ -360,7 +360,7 @@ export default function SettingsPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
               <div>
@@ -369,7 +369,7 @@ export default function SettingsPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
             </div>
@@ -380,7 +380,7 @@ export default function SettingsPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
 
@@ -399,7 +399,7 @@ export default function SettingsPage() {
                   type="time"
                   value={formData.openingTime}
                   onChange={(e) => setFormData({ ...formData, openingTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
               <div>
@@ -408,7 +408,7 @@ export default function SettingsPage() {
                   type="time"
                   value={formData.closingTime}
                   onChange={(e) => setFormData({ ...formData, closingTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
             </div>
@@ -419,7 +419,7 @@ export default function SettingsPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text resize-none"
+                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text resize-none"
               />
             </div>
 
@@ -427,7 +427,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
@@ -441,8 +441,8 @@ export default function SettingsPage() {
         <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
           <form onSubmit={handleNotificationSave} className="space-y-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+                <Bell className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-text dark:text-dark-text">Notification Preferences</h2>
@@ -532,7 +532,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
@@ -545,8 +545,8 @@ export default function SettingsPage() {
       {activeTab === 'security' && (
         <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-              <Lock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+              <Lock className="w-6 h-6 text-primary" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-text dark:text-dark-text">Password Management</h2>
@@ -562,7 +562,7 @@ export default function SettingsPage() {
                   type={showPasswords.current ? 'text' : 'password'}
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                 />
                 <button
@@ -585,7 +585,7 @@ export default function SettingsPage() {
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
                     setPasswordStrength(checkPasswordStrength(e.target.value))
                   }}
-                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                   minLength="8"
                 />
@@ -628,7 +628,7 @@ export default function SettingsPage() {
                   type={showPasswords.confirm ? 'text' : 'password'}
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-text dark:text-dark-text"
+                  className="w-full px-4 py-2 pr-10 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                   required
                 />
                 <button
@@ -645,7 +645,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Lock className="w-4 h-4" />
                 Update Password
@@ -660,8 +660,8 @@ export default function SettingsPage() {
           {/* Login History */}
           <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+                <Clock className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-text dark:text-dark-text">Login History</h2>
@@ -707,8 +707,8 @@ export default function SettingsPage() {
           {/* Device Management */}
           <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <Smartphone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+                <Smartphone className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-text dark:text-dark-text">Active Devices</h2>
