@@ -23,14 +23,36 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor to handle errors
+// Public auth endpoints. A 401 from these means "bad credentials" or "bad
+// OTP" — NOT "session expired" — so we must NOT hard-redirect; the calling
+// page needs to show its inline error. Without this guard the
+// window.location.href below kicks off a full page reload that wipes the
+// freshly-set error message one frame after it paints, which is why every
+// failed sign-in looked like the error was "flashing and disappearing".
+const PUBLIC_AUTH_PATHS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/merchant/register',
+  '/auth/password/forgot',
+  '/auth/password/reset',
+  '/auth/otp/send',
+  '/auth/otp/verify',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+]
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('merchant_user')
-      window.location.href = '/login'
+      const url = error.config?.url || ''
+      const isPublicAuthCall = PUBLIC_AUTH_PATHS.some((p) => url.includes(p))
+      if (!isPublicAuthCall) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('merchant_user')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
