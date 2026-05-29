@@ -36,11 +36,9 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const result = await dispatch(login({ 
-        email, 
-        password, 
-        rememberMe 
-      })).unwrap()
+      // rememberMe is purely client-side (localStorage below) — the thunk
+      // ignores it, so don't pass it along and pretend it's part of the API.
+      const result = await dispatch(login({ email, password })).unwrap()
       
       if (rememberMe) {
         localStorage.setItem('remember_me', 'true')
@@ -105,8 +103,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-background to-surface-muted dark:from-dark-background dark:to-dark-surface-muted flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-surface dark:bg-dark-surface rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/60 dark:bg-primary/20 rounded-full mb-4">
-            <Store className="w-8 h-8 text-secondary dark:text-primary" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full mb-4">
+            <Store className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-text dark:text-dark-text">Merchant Dashboard</h1>
           <p className="text-muted dark:text-dark-muted mt-2">Sign in to manage your store</p>

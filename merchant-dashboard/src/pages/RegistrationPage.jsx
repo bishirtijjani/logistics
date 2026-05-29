@@ -63,6 +63,19 @@ export default function RegistrationPage() {
     loadCategories()
   }, [])
 
+  // Resend-OTP cooldown countdown. Driving this from useEffect (instead of a
+  // setInterval started inside handleResendOtp) means the timer is torn down
+  // automatically if the user navigates away mid-cooldown — the old
+  // implementation kept ticking on an unmounted component and called
+  // setResendCooldown after unmount.
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined
+    const id = setTimeout(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    return () => clearTimeout(id)
+  }, [resendCooldown])
+
   const [businessErrors, setBusinessErrors] = useState({
     businessName: '',
     businessPhone: '',
@@ -246,15 +259,8 @@ export default function RegistrationPage() {
       if (data.success) {
         showSuccessToast('Verification code sent to your email')
         setResendCooldown(60)
-        const timer = setInterval(() => {
-          setResendCooldown((prev) => {
-            if (prev <= 1) {
-              clearInterval(timer)
-              return 0
-            }
-            return prev - 1
-          })
-        }, 1000)
+        // The useEffect on resendCooldown above drives the countdown and
+        // cleans up the timer on unmount.
       }
     } catch (err) {
       setOtpError(err.message || 'Failed to resend code')
