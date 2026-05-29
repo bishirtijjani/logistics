@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout, refreshToken as refreshTokenThunk } from '../store/slices/authSlice'
 
-const WARNING_MS = 5 * 60 * 1000 // 5 minutes before expiry
+// Access tokens live ~15m. Silently refresh once we're inside this buffer of
+// the expiry so the merchant never sees an interruption — the 7-day refresh
+// token does the work in the background.
+const REFRESH_BUFFER_MS = 3 * 60 * 1000
 const POLL_MS = 60 * 1000        // re-check expiry every minute
 
 /**
  * Decode the exp claim out of a JWT without verifying the signature. We only
- * use this to drive the client-side countdown — the server is still the
+ * use this to drive the client-side refresh timing — the server is still the
  * authority on whether a token is valid.
  */
 const getTokenExpiryMs = () => {
@@ -23,43 +26,33 @@ const getTokenExpiryMs = () => {
 }
 
 /**
- * Session lifecycle hook for the merchant dashboard. Surfaces a 5-min
- * warning before the access token expires, drives a silent refresh via the
- * existing /auth/refresh endpoint (so the merchant rarely sees the modal),
- * and force-logs them out when the token is dead.
- *
- * `extendSession` returns a boolean so callers can react to refresh failure
- * (e.g. show a "couldn't extend, please sign in again" toast).
+ * Session lifecycle hook for the merchant dashboard. Keeps the access token
+ * fresh by silently refreshing via /auth/refresh shortly before it expires —
+ * no modal, no manual "stay signed in" click. The merchant is only sent back
+ * to /login when the refresh itself fails (refresh token expired/revoked).
  */
 export const useAuthSession = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const [timeRemaining, setTimeRemaining] = useState(null)
-  const [showWarning, setShowWarning] = useState(false)
-  const [extending, setExtending] = useState(false)
   const loggedOutRef = useRef(false)
+  // Tracks the token expiry we've already kicked a refresh for, so the 60s
+  // poll doesn't fire overlapping /auth/refresh calls for the same token.
+  const refreshedForRef = useRef(null)
 
   const handleLogout = useCallback(async () => {
     if (loggedOutRef.current) return
     loggedOutRef.current = true
-    setShowWarning(false)
     await dispatch(logout())
     navigate('/login')
   }, [dispatch, navigate])
 
-  const extendSession = useCallback(async () => {
-    setExtending(true)
+  const refreshSession = useCallback(async () => {
     try {
       await dispatch(refreshTokenThunk()).unwrap()
-      setShowWarning(false)
-      return true
     } catch {
-      // Refresh failed (refresh token expired/revoked). Force the user back
-      // to login rather than leaving them in a half-authenticated state.
+      // Refresh failed (refresh token expired/revoked). Force the merchant
+      // back to login rather than leaving them half-authenticated.
       await handleLogout()
-      return false
-    } finally {
-      setExtending(false)
     }
   }, [dispatch, handleLogout])
 
@@ -69,18 +62,14 @@ export const useAuthSession = () => {
     const tick = () => {
       if (cancelled) return
       const expiry = getTokenExpiryMs()
-      if (!expiry) {
-        setTimeRemaining(null)
-        return
-      }
+      if (!expiry) return
       const remaining = expiry - Date.now()
-      setTimeRemaining(remaining)
-      if (remaining <= 0) {
-        handleLogout()
-        return
-      }
-      if (remaining <= WARNING_MS) {
-        setShowWarning(true)
+      // Refresh proactively near expiry, and reactively if the token already
+      // lapsed (e.g. the laptop slept) — the refresh token may still be valid,
+      // so try it before giving up. Guarded per-expiry to avoid double-firing.
+      if (remaining <= REFRESH_BUFFER_MS && refreshedForRef.current !== expiry) {
+        refreshedForRef.current = expiry
+        refreshSession()
       }
     }
 
@@ -90,21 +79,7 @@ export const useAuthSession = () => {
       cancelled = true
       clearInterval(interval)
     }
-  }, [handleLogout])
+  }, [refreshSession])
 
-  return {
-    timeRemaining,
-    showWarning,
-    extending,
-    formatTimeRemaining,
-    handleLogout,
-    extendSession,
-  }
-}
-
-const formatTimeRemaining = (ms) => {
-  if (ms == null || ms <= 0) return null
-  const minutes = Math.floor(ms / 60000)
-  const seconds = Math.floor((ms % 60000) / 1000)
-  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
+  return { handleLogout }
 }

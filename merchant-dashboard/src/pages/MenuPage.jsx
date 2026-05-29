@@ -20,7 +20,7 @@ import {
 } from '../store/slices/productsSlice.js'
 import api from '../lib/api.js'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
-import { Plus, X, Trash2, Edit3, ToggleLeft, ToggleRight, Package, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { Plus, X, Trash2, Edit3, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import CloudinaryImageUploader from '../components/CloudinaryImageUploader.jsx'
 
 const PACK_UNITS = ['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON']
@@ -450,6 +450,10 @@ export default function MenuPage() {
   const { products, loading } = useSelector((s) => s.products)
 
   const [categories, setCategories] = useState([])
+  // The merchant's own business category (chosen once at signup). Every product
+  // they add belongs to this — they never re-pick it. Drives the form's axes,
+  // pack units, and add-on support.
+  const [merchantCategory, setMerchantCategory] = useState(null)
   const [search, setSearch] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [editing, setEditing] = useState(null) // product being edited
@@ -457,7 +461,10 @@ export default function MenuPage() {
   useEffect(() => {
     if (!merchantId) return
     dispatch(fetchProducts({ merchantId }))
+    // Full list still needed by the edit modal to resolve a product's category.
     api.get('/categories').then((r) => setCategories(r.data.data || [])).catch(() => {})
+    // The merchant's locked-in business category — used to pre-bind the create form.
+    api.get(`/merchants/${merchantId}`).then((r) => setMerchantCategory(r.data?.data?.category || null)).catch(() => {})
   }, [dispatch, merchantId])
 
   const filtered = useMemo(() => {
@@ -492,7 +499,7 @@ export default function MenuPage() {
         <div>
           <h1 className="text-xl font-bold text-text dark:text-dark-text">Products</h1>
           <p className="text-sm text-muted dark:text-dark-muted">
-            Category-driven form: select your category, the form renders the right axes and pack inputs automatically.
+            Add and manage everything you sell.
           </p>
         </div>
         <div className="flex gap-2 items-center w-full sm:w-auto">
@@ -505,7 +512,9 @@ export default function MenuPage() {
           />
           <button
             onClick={() => setShowCreate(true)}
-            className="shrink-0 whitespace-nowrap px-4 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-2 hover:bg-primary-700 transition-colors"
+            disabled={!merchantCategory}
+            title={!merchantCategory ? 'Loading your category…' : undefined}
+            className="shrink-0 whitespace-nowrap px-4 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Plus size={16} /> New Product
           </button>
@@ -524,7 +533,7 @@ export default function MenuPage() {
 
       {showCreate && (
         <ProductCreateModal
-          categories={categories}
+          category={merchantCategory}
           onClose={() => setShowCreate(false)}
           onSubmit={onCreated}
         />
@@ -621,20 +630,9 @@ const inputCls = 'w-full border border-surface-muted dark:border-dark-surface-mu
 const smInputCls = 'border border-surface-muted dark:border-dark-surface-muted rounded-lg px-2.5 py-1.5 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors'
 const ghostBtnCls = 'px-3 py-1.5 border border-surface-muted dark:border-dark-surface-muted rounded-md text-sm text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors'
 
-// One short label describing what a category's schema will ask for.
-function categoryHint(cat) {
-  const schema = cat?.attributeSchema || {}
-  const axes = Array.isArray(schema.axes) ? schema.axes : []
-  const bits = []
-  if (axes.length > 0) bits.push(axes.join(' · '))
-  if (schema.pack) bits.push('pack sizes')
-  if (cat?.hasPreparation) bits.push('add-ons')
-  return bits.length ? bits.join(' • ') : 'Single product'
-}
-
-function ProductCreateModal({ categories, onClose, onSubmit }) {
-  const [categoryId, setCategoryId] = useState('')
-  const selectedCategory = categories.find((c) => c.id === categoryId)
+// The merchant's business category is fixed at signup, so the create form is
+// bound to it — the merchant never re-selects a category per product.
+function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
   const schema = selectedCategory?.attributeSchema || {}
   const axes = Array.isArray(schema.axes) ? schema.axes : []
   const pack = !!schema.pack
@@ -645,7 +643,9 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
   const [imageUrl, setImageUrl] = useState('')
   const [requiresPrescription, setRequiresPrescription] = useState(false)
   const [dosage, setDosage] = useState('')
-  const [singleSku, setSingleSku] = useState(true)
+  // Categories with axes (fashion, pharmacy…) default to the variant builder;
+  // axis-less ones (food, groceries) default to a single SKU.
+  const [singleSku, setSingleSku] = useState(() => axes.length === 0)
   const [singlePrice, setSinglePrice] = useState(0)
   const [singleStock, setSingleStock] = useState(0)
   const [singlePackSize, setSinglePackSize] = useState('')
@@ -655,17 +655,9 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
   const [saving, setSaving] = useState(false)
   const [stepIdx, setStepIdx] = useState(0)
 
-  // When the user picks a category with axes, force into multi-variant mode by default.
-  useEffect(() => {
-    if (axes.length > 0) setSingleSku(false)
-    else setSingleSku(true)
-  }, [categoryId]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Wizard steps depend on the chosen category (food/prep categories get an
-  // extra "Add-ons" step). Clamp the active step if the list shrinks.
+  // Wizard steps: food/prep categories get an extra "Add-ons" step.
   const steps = useMemo(() => {
     const s = [
-      { key: 'category', label: 'Category' },
       { key: 'details', label: 'Details' },
       { key: 'pricing', label: 'Pricing' },
     ]
@@ -673,27 +665,22 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
     return s
   }, [selectedCategory])
 
-  useEffect(() => {
-    if (stepIdx > steps.length - 1) setStepIdx(steps.length - 1)
-  }, [steps.length, stepIdx])
-
   const step = steps[stepIdx]?.key
   const isLast = stepIdx === steps.length - 1
 
   // Per-step validation gate the "Next/Create" button reads.
   const stepError = useMemo(() => {
-    if (step === 'category' && !selectedCategory) return 'Pick a category to continue'
     if (step === 'details' && !name.trim()) return 'Give your product a name'
     if (step === 'pricing') {
       if (singleSku && !(Number(singlePrice) > 0)) return 'Set a price greater than ₦0'
       if (!singleSku && variants.length === 0) return 'Generate at least one variant'
     }
     return ''
-  }, [step, selectedCategory, name, singleSku, singlePrice, variants.length])
+  }, [step, name, singleSku, singlePrice, variants.length])
 
   const submit = async () => {
     if (!name.trim()) return showErrorToast('Name required')
-    if (!selectedCategory) return showErrorToast('Pick a category')
+    if (!selectedCategory) return showErrorToast('Category still loading — try again')
 
     let inlineVariants
     if (singleSku) {
@@ -773,7 +760,7 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
         <div className="shrink-0 px-5 sm:px-6 pt-2 sm:pt-5">
           <div className="sm:hidden mx-auto mt-1 mb-3 h-1.5 w-10 rounded-full bg-surface-muted dark:bg-dark-surface-muted" />
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <h2 className="text-xl font-bold text-text dark:text-dark-text">New product</h2>
               <p className="text-sm text-muted dark:text-dark-muted mt-0.5">
                 Step {stepIdx + 1} of {steps.length} · <span className="text-text dark:text-dark-text font-medium">{steps[stepIdx]?.label}</span>
@@ -800,46 +787,6 @@ function ProductCreateModal({ categories, onClose, onSubmit }) {
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5 space-y-5">
-          {step === 'category' && (
-            <div className="space-y-3">
-              <div>
-                <h3 className="text-base font-semibold text-text dark:text-dark-text">What are you selling?</h3>
-                <p className="text-sm text-muted dark:text-dark-muted">Pick a category — we'll tailor the form to it.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {categories.map((c) => {
-                  const active = c.id === categoryId
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCategoryId(c.id)}
-                      className={`relative text-left rounded-2xl border p-4 transition active:scale-[0.98] ${
-                        active
-                          ? 'border-primary bg-primary/5 ring-2 ring-primary/30'
-                          : 'border-surface-muted dark:border-dark-surface-muted hover:border-primary/50 bg-surface dark:bg-dark-surface'
-                      }`}
-                    >
-                      {active && (
-                        <span className="absolute top-2.5 right-2.5 grid place-items-center w-5 h-5 rounded-full bg-primary text-white">
-                          <Check size={13} strokeWidth={3} />
-                        </span>
-                      )}
-                      <span className={`grid place-items-center w-10 h-10 rounded-xl mb-2.5 ${active ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'}`}>
-                        <Package size={20} />
-                      </span>
-                      <div className="font-semibold text-text dark:text-dark-text leading-tight">{c.name}</div>
-                      <div className="text-xs text-muted dark:text-dark-muted mt-0.5 capitalize">{categoryHint(c)}</div>
-                    </button>
-                  )
-                })}
-              </div>
-              {categories.length === 0 && (
-                <div className="text-sm text-muted dark:text-dark-muted text-center py-6">No categories available yet.</div>
-              )}
-            </div>
-          )}
-
           {step === 'details' && (
             <div className="space-y-5">
               <div>

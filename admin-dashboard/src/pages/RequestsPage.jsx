@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchAllRequests, reassignRider, forceCancelRequest, adminUpdateStatus } from '../store/slices/requestsSlice'
 import { fetchCategories } from '../store/slices/categoriesSlice'
+import { fetchAllRiders } from '../store/slices/ridersSlice'
 import { exportToCSV } from '../lib/exportToCSV'
 import { Search, Filter, MoreVertical, User, Store, Bike, Clock, DollarSign, CheckCircle, XCircle, X, MapPin, Phone, Mail, Download } from 'lucide-react'
 import Pagination from '../components/Pagination'
@@ -20,6 +21,7 @@ export default function RequestsPage() {
   const dispatch = useDispatch()
   const { requests, total, page, loading } = useSelector((state) => state.requests)
   const { list: categories } = useSelector((s) => s.categories)
+  const { riders, loading: ridersLoading } = useSelector((s) => s.riders)
   const [filters, setFilters] = useState({
     status: '',
     type: '',
@@ -34,6 +36,7 @@ export default function RequestsPage() {
   const [cancelReason, setCancelReason] = useState('')
   const [pageSize, setPageSize] = useState(20)
   const [newRiderId, setNewRiderId] = useState('')
+  const [riderSearch, setRiderSearch] = useState('')
   const [actionLoading, setActionLoading] = useState(null)
 
   useEffect(() => {
@@ -63,15 +66,40 @@ export default function RequestsPage() {
     setShowDetailsModal(true)
   }
 
+  const openReassignModal = () => {
+    setNewRiderId('')
+    setRiderSearch('')
+    setShowReassignModal(true)
+    // Pull approved riders to choose from instead of forcing the admin to
+    // paste a raw rider ID. Limit kept high so the searchable list is complete.
+    dispatch(fetchAllRiders({ page: 1, limit: 200, status: 'APPROVED' }))
+  }
+
+  const closeReassignModal = () => {
+    setShowReassignModal(false)
+    setNewRiderId('')
+    setRiderSearch('')
+  }
+
   const handleReassignRider = async () => {
     if (!newRiderId) return
     setActionLoading('reassign')
     await dispatch(reassignRider({ requestId: selectedRequest.id, newRiderId }))
     setActionLoading(null)
-    setShowReassignModal(false)
-    setNewRiderId('')
+    closeReassignModal()
     dispatch(fetchAllRequests({ page, limit: 20, ...filters }))
   }
+
+  const riderResults = riders.filter((r) => {
+    const q = riderSearch.trim().toLowerCase()
+    if (!q) return true
+    const name = `${r.user?.firstName || ''} ${r.user?.lastName || ''}`.toLowerCase()
+    return (
+      name.includes(q) ||
+      (r.user?.phone || '').toLowerCase().includes(q) ||
+      r.id.slice(-8).toLowerCase().includes(q)
+    )
+  })
 
   const handleForceCancel = async () => {
     if (!cancelReason.trim()) return
@@ -454,7 +482,7 @@ export default function RequestsPage() {
               {selectedRequest.status !== 'CANCELLED' && selectedRequest.status !== 'DELIVERED' && selectedRequest.status !== 'SETTLED' && (
                 <>
                   <button
-                    onClick={() => { setShowReassignModal(true) }}
+                    onClick={openReassignModal}
                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto"
                   >
                     Reassign Rider
@@ -522,18 +550,62 @@ export default function RequestsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl shadow-xl w-full sm:max-w-md p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text mb-4">Reassign Rider</h2>
-            <p className="text-muted dark:text-dark-muted mb-4">Enter the new rider ID:</p>
-            <input
-              type="text"
-              value={newRiderId}
-              onChange={(e) => setNewRiderId(e.target.value)}
-              className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none mb-4 dark:bg-dark-surface-muted dark:text-dark-text"
-              placeholder="Enter rider ID..."
-            />
+            <p className="text-muted dark:text-dark-muted mb-3">Select a rider to take over this delivery:</p>
+
+            <div className="relative mb-3">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <input
+                type="text"
+                value={riderSearch}
+                onChange={(e) => setRiderSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                placeholder="Search by name, phone, or ID..."
+              />
+            </div>
+
+            <div className="max-h-64 overflow-y-auto border border-surface-muted dark:border-dark-surface-muted rounded-lg divide-y divide-surface-muted dark:divide-dark-surface-muted mb-4">
+              {ridersLoading ? (
+                <div className="p-6 text-center text-sm text-muted dark:text-dark-muted">Loading riders...</div>
+              ) : riderResults.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted dark:text-dark-muted">No approved riders found</div>
+              ) : (
+                riderResults.map((rider) => {
+                  const isSelected = newRiderId === rider.id
+                  const isCurrent = selectedRequest?.rider?.id === rider.id
+                  return (
+                    <button
+                      key={rider.id}
+                      type="button"
+                      onClick={() => setNewRiderId(rider.id)}
+                      disabled={isCurrent}
+                      className={`w-full text-left px-3 py-2.5 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isSelected ? 'bg-primary/10' : 'hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Bike size={16} className="text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-text dark:text-dark-text truncate">
+                          {rider.user?.firstName} {rider.user?.lastName}
+                          {isCurrent && <span className="ml-2 text-xs text-muted">(current)</span>}
+                        </p>
+                        <p className="text-xs text-muted dark:text-dark-muted truncate">{rider.user?.phone || '—'}</p>
+                      </div>
+                      <span className={`text-xs font-medium shrink-0 ${rider.availability === 'ONLINE' ? 'text-success' : 'text-muted'}`}>
+                        {(rider.availability || 'OFFLINE').replace('_', ' ')}
+                      </span>
+                      {isSelected && <CheckCircle size={18} className="text-primary shrink-0" />}
+                    </button>
+                  )
+                })
+              )}
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={handleReassignRider}
-                disabled={!newRiderId.trim() || actionLoading === 'reassign'}
+                disabled={!newRiderId || actionLoading === 'reassign'}
                 className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {actionLoading === 'reassign' ? (
@@ -546,7 +618,7 @@ export default function RequestsPage() {
                 )}
               </button>
               <button
-                onClick={() => { setShowReassignModal(false); setNewRiderId('') }}
+                onClick={closeReassignModal}
                 className="w-full sm:w-auto px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted transition-colors"
               >
                 Cancel

@@ -16,7 +16,6 @@ import {
   X,
   Moon,
   Sun,
-  Clock,
   BarChart3,
   DollarSign,
   MessageCircle,
@@ -61,7 +60,7 @@ export default function Layout() {
   const { user } = useSelector((state) => state.auth)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isDark, toggleTheme } = useTheme()
-  const { showWarning, timeRemaining, extending, formatTimeRemaining, handleLogout, extendSession } = useAuthSession()
+  const { handleLogout } = useAuthSession()
 
   // Mobile drawer: lock background scroll and close on Escape while open.
   useEffect(() => {
@@ -193,42 +192,6 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
-
-      {/* Session Warning Modal */}
-      {showWarning && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl p-6 w-full max-w-md shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
-                <Clock size={24} className="text-orange-600 dark:text-orange-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Session Expiring</h3>
-            </div>
-            <p className="text-muted dark:text-dark-muted mb-2">
-              Your session will expire in <span className="font-semibold">{formatTimeRemaining(timeRemaining)}</span>
-            </p>
-            <p className="text-sm text-muted dark:text-dark-muted mb-6">
-              Please save your work or extend your session to continue.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={extendSession}
-                disabled={extending}
-                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {extending ? 'Extending…' : 'Extend Session'}
-              </button>
-              <button
-                onClick={handleLogout}
-                disabled={extending}
-                className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text disabled:opacity-60"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import api from './api'
 import { logout, setCredentials } from '../store/slices/authSlice'
 
-const WARNING_MS = 5 * 60 * 1000 // 5 minutes before expiry
+// Access tokens live ~15m. Silently refresh once we're inside this buffer of
+// the expiry so the user never sees an interruption — the 7-day refresh token
+// does the work in the background.
+const REFRESH_BUFFER_MS = 3 * 60 * 1000
 const POLL_MS = 60 * 1000
 
 const getTokenExpiryMs = () => {
@@ -19,33 +22,32 @@ const getTokenExpiryMs = () => {
 }
 
 /**
- * Session lifecycle hook. Surfaces a 5-min warning before the access token
- * expires and offers a silent refresh via /auth/refresh — the stubbed
- * `extendSession` from the original implementation was a no-op.
+ * Session lifecycle hook. Keeps the access token fresh by silently refreshing
+ * via /auth/refresh shortly before it expires — no modal, no manual "extend"
+ * click. The user only gets bounced to /login when the refresh itself fails
+ * (refresh token expired or revoked).
  */
 export const useAuthSession = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const [timeRemaining, setTimeRemaining] = useState(null)
-  const [showWarning, setShowWarning] = useState(false)
-  const [extending, setExtending] = useState(false)
   const loggedOutRef = useRef(false)
+  // Tracks the token expiry we've already kicked a refresh for, so the 60s
+  // poll doesn't fire overlapping /auth/refresh calls for the same token.
+  const refreshedForRef = useRef(null)
 
   const handleLogout = useCallback(() => {
     if (loggedOutRef.current) return
     loggedOutRef.current = true
     dispatch(logout())
-    setShowWarning(false)
     navigate('/login')
   }, [dispatch, navigate])
 
-  const extendSession = useCallback(async () => {
+  const refreshSession = useCallback(async () => {
     const stored = localStorage.getItem('refreshToken')
     if (!stored) {
       handleLogout()
-      return false
+      return
     }
-    setExtending(true)
     try {
       const response = await api.post('/auth/refresh', { refreshToken: stored })
       const tokens = response.data?.data
@@ -59,13 +61,8 @@ export const useAuthSession = () => {
         token: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       }))
-      setShowWarning(false)
-      return true
     } catch {
       handleLogout()
-      return false
-    } finally {
-      setExtending(false)
     }
   }, [dispatch, handleLogout])
 
@@ -75,18 +72,14 @@ export const useAuthSession = () => {
     const tick = () => {
       if (cancelled) return
       const expiry = getTokenExpiryMs()
-      if (!expiry) {
-        setTimeRemaining(null)
-        return
-      }
+      if (!expiry) return
       const remaining = expiry - Date.now()
-      setTimeRemaining(remaining)
-      if (remaining <= 0) {
-        handleLogout()
-        return
-      }
-      if (remaining <= WARNING_MS) {
-        setShowWarning(true)
+      // Refresh proactively near expiry, and reactively if the token already
+      // lapsed (e.g. the laptop slept) — the refresh token may still be valid,
+      // so try it before giving up. Guarded per-expiry to avoid double-firing.
+      if (remaining <= REFRESH_BUFFER_MS && refreshedForRef.current !== expiry) {
+        refreshedForRef.current = expiry
+        refreshSession()
       }
     }
 
@@ -96,21 +89,7 @@ export const useAuthSession = () => {
       cancelled = true
       clearInterval(interval)
     }
-  }, [handleLogout])
+  }, [refreshSession])
 
-  return {
-    timeRemaining,
-    showWarning,
-    extending,
-    formatTimeRemaining,
-    handleLogout,
-    extendSession,
-  }
-}
-
-const formatTimeRemaining = (ms) => {
-  if (ms == null || ms <= 0) return null
-  const minutes = Math.floor(ms / 60000)
-  const seconds = Math.floor((ms % 60000) / 1000)
-  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
+  return { handleLogout }
 }
