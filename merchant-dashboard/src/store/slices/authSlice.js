@@ -1,11 +1,34 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
+// Pull the actual error message out of an axios failure. The backend always
+// includes a human-readable `message` in its error body (e.g. "Invalid email
+// or password") — without this helper we'd surface axios's default
+// "Request failed with status code 401" to the user, which is what was
+// happening before.
+const apiErrorMessage = (err, fallback) => {
+  const body = err?.response?.data
+  if (body?.message) return body.message
+  if (body?.error?.message) return body.error.message
+  if (typeof body?.error === 'string') return body.error
+  if (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error') {
+    return "Can't reach the server. Check your connection and try again."
+  }
+  if (err?.response?.status >= 500) {
+    return 'Server error. Please try again in a moment.'
+  }
+  return fallback
+}
+
 export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }) => {
-    const response = await api.post('/auth/login', { email, password })
-    return response.data.data
+    try {
+      const response = await api.post('/auth/login', { email, password })
+      return response.data.data
+    } catch (err) {
+      throw new Error(apiErrorMessage(err, 'Login failed. Please try again.'))
+    }
   }
 )
 
@@ -21,16 +44,24 @@ export const logout = createAsyncThunk(
 export const verifyEmail = createAsyncThunk(
   'auth/verifyEmail',
   async ({ email, code }) => {
-    const response = await api.post('/auth/verify-email', { email, code })
-    return response.data.data
+    try {
+      const response = await api.post('/auth/verify-email', { email, code })
+      return response.data.data
+    } catch (err) {
+      throw new Error(apiErrorMessage(err, 'Verification failed. Please try again.'))
+    }
   }
 )
 
 export const resendVerification = createAsyncThunk(
   'auth/resendVerification',
   async ({ email }) => {
-    const response = await api.post('/auth/resend-verification', { email })
-    return response.data
+    try {
+      const response = await api.post('/auth/resend-verification', { email })
+      return response.data
+    } catch (err) {
+      throw new Error(apiErrorMessage(err, "Couldn't resend the code. Please try again."))
+    }
   }
 )
 

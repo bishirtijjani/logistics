@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
+import { toast } from 'sonner'
 
 export const fetchAllRiders = createAsyncThunk(
   'riders/fetchAll',
@@ -35,6 +36,17 @@ export const fetchRiderDeliveryHistory = createAsyncThunk(
       limit: limit || 20,
     })
     const response = await api.get(`/admin/riders/${riderId}/deliveries?${params}`)
+    return response.data.data
+  }
+)
+
+// Approve/reject a rider awaiting approval. Folded in from the old
+// pendingRiders slice so review now happens inline on the Riders page.
+export const reviewRider = createAsyncThunk(
+  'riders/review',
+  async ({ riderId, decision }) => {
+    const response = await api.patch(`/admin/riders/${riderId}/review`, { decision })
+    toast.success(`Rider ${decision === 'approve' ? 'approved' : 'rejected'}`)
     return response.data.data
   }
 )
@@ -81,6 +93,21 @@ const ridersSlice = createSlice({
       })
       .addCase(fetchRiderDeliveryHistory.fulfilled, (state, action) => {
         state.riderDeliveries = action.payload
+      })
+      .addCase(reviewRider.fulfilled, (state, action) => {
+        // Reflect the new status in place so the row stays visible (and the
+        // filter can still narrow to it) rather than disappearing on review.
+        const updated = action.payload
+        const index = state.riders.findIndex((r) => r.id === updated?.id)
+        if (index !== -1) {
+          state.riders[index] = { ...state.riders[index], ...updated }
+        }
+        if (state.selectedRider?.id === updated?.id) {
+          state.selectedRider = { ...state.selectedRider, ...updated }
+        }
+      })
+      .addCase(reviewRider.rejected, () => {
+        toast.error('Failed to review rider')
       })
   },
 })

@@ -7,7 +7,6 @@ const breadcrumbMap = {
   '/merchants': { label: 'Merchants', parent: '/dashboard' },
   '/categories': { label: 'Categories', parent: '/dashboard' },
   '/riders': { label: 'Riders', parent: '/dashboard' },
-  '/pending-riders': { label: 'Pending Riders', parent: '/dashboard' },
   '/analytics': { label: 'Analytics', parent: '/dashboard' },
   '/financial': { label: 'Financial', parent: '/dashboard' },
   '/disputes': { label: 'Disputes', parent: '/dashboard' },

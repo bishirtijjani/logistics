@@ -20,7 +20,7 @@ import {
 } from '../store/slices/productsSlice.js'
 import api from '../lib/api.js'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
-import { Plus, X, Trash2, Edit3, ToggleLeft, ToggleRight, Package } from 'lucide-react'
+import { Plus, X, Trash2, Edit3, ToggleLeft, ToggleRight, Package, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import CloudinaryImageUploader from '../components/CloudinaryImageUploader.jsx'
 
 const PACK_UNITS = ['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON']
@@ -85,120 +85,153 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
     setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)))
   }
 
+  const canGenerate = axes.some((a) => (axisValues[a] || []).length > 0)
+
   return (
     <div className="space-y-3">
       {axes.length > 0 && (
-        <div className="space-y-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg p-3 bg-surface dark:bg-dark-surface">
-          <div className="text-xs font-semibold text-muted dark:text-dark-muted">Axis values</div>
-          {axes.map((axis) => (
-            <div key={axis}>
-              <div className="text-xs text-muted dark:text-dark-muted mb-1 capitalize">{axis}</div>
-              <input
-                type="text"
-                placeholder={`comma-separated, e.g. ${axis === 'size' ? 'Small, Medium, Large' : axis === 'color' ? 'Black, Red, Blue' : `${axis} values`}`}
-                value={(axisValues[axis] || []).join(', ')}
-                onChange={(e) =>
-                  setAxisValues({
-                    ...axisValues,
-                    [axis]: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                  })
-                }
-                className={inputCls}
-              />
-            </div>
-          ))}
+        <div className="space-y-3 rounded-2xl p-4 bg-surface-muted/50 dark:bg-dark-surface-muted/40 ring-1 ring-inset ring-black/5 dark:ring-white/5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted dark:text-dark-muted">Build your options</div>
+          {axes.map((axis) => {
+            const vals = axisValues[axis] || []
+            return (
+              <div key={axis}>
+                <label className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block capitalize">{axis}</label>
+                <input
+                  type="text"
+                  placeholder={`e.g. ${axis === 'size' ? 'Small, Medium, Large' : axis === 'color' ? 'Black, Red, Blue' : `${axis} values`}`}
+                  value={vals.join(', ')}
+                  onChange={(e) =>
+                    setAxisValues({
+                      ...axisValues,
+                      [axis]: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                  className={inputCls}
+                />
+                {vals.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {vals.map((val) => (
+                      <span key={val} className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary capitalize">
+                        {val}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted dark:text-dark-muted mt-1">Separate each value with a comma.</p>
+              </div>
+            )
+          })}
           <button
             type="button"
             onClick={generateMatrix}
-            className="text-sm px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-700"
+            disabled={!canGenerate}
+            className="w-full min-h-[44px] text-sm font-semibold px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-700 active:scale-[0.99] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Generate variant matrix
+            {variants.length > 0 ? 'Regenerate combinations' : 'Generate combinations'}
           </button>
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {variants.length === 0 ? (
-          <div className="text-sm text-muted dark:text-dark-muted">
+          <div className="text-sm text-muted dark:text-dark-muted rounded-xl border border-dashed border-surface-muted dark:border-dark-surface-muted px-4 py-6 text-center">
             {axes.length === 0
               ? 'Single-SKU product — set price & stock below.'
-              : 'No variants yet. Fill axis values above and click "Generate variant matrix".'}
+              : 'Enter your option values above, then tap “Generate combinations”.'}
           </div>
         ) : (
-          <div className="space-y-2">
-            {variants.map((v, idx) => (
-              <div
-                key={idx}
-                className="flex flex-wrap items-center gap-2 p-2 rounded-lg border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface"
-              >
-                <CloudinaryImageUploader
-                  size="sm"
-                  value={v.imageUrl || ''}
-                  onChange={(url) => patchRow(idx, { imageUrl: url || undefined })}
-                />
-                <div className="flex-1 min-w-[140px] text-sm text-text dark:text-dark-text">
-                  {axes.map((a) => v.attributes?.[a]).filter(Boolean).join(' / ') || '—'}
-                </div>
-                {pack && (
-                  <div className="flex items-center gap-1">
-                    <label className="text-xs text-muted dark:text-dark-muted">pack</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={v.packSize ?? ''}
-                      onChange={(e) => patchRow(idx, { packSize: e.target.value ? Number(e.target.value) : undefined })}
-                      className={`${smInputCls} w-20`}
-                    />
-                    <select
-                      value={v.packUnit || ''}
-                      onChange={(e) => patchRow(idx, { packUnit: e.target.value || undefined })}
-                      className={smInputCls}
-                    >
-                      <option value="">—</option>
-                      {(packUnits && packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
-                        <option key={u} value={u}>{u}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div className="flex items-center gap-1">
-                  <label className="text-xs text-muted dark:text-dark-muted">₦</label>
-                  <input
-                    type="number"
-                    value={v.price}
-                    onChange={(e) => patchRow(idx, { price: Number(e.target.value) })}
-                    className={`${smInputCls} w-24`}
-                  />
-                </div>
-                <div className="flex items-center gap-1">
-                  <label className="text-xs text-muted dark:text-dark-muted">stock</label>
-                  <input
-                    type="number"
-                    value={v.stock}
-                    onChange={(e) => patchRow(idx, { stock: Number(e.target.value) })}
-                    className={`${smInputCls} w-20`}
-                  />
-                </div>
-                <label className="flex items-center gap-1 text-xs text-text dark:text-dark-text">
-                  <input
-                    type="checkbox"
-                    checked={v.isAvailable !== false}
-                    onChange={(e) => patchRow(idx, { isAvailable: e.target.checked })}
-                    className="accent-primary"
-                  />
-                  available
-                </label>
-                <button
-                  type="button"
-                  onClick={() => removeRow(idx)}
-                  className="ml-auto p-1.5 text-error hover:bg-error/10 rounded"
-                  title="Remove variant"
+          <>
+            <div className="text-xs font-semibold uppercase tracking-wide text-muted dark:text-dark-muted">
+              {variants.length} variant{variants.length !== 1 ? 's' : ''}
+            </div>
+            {variants.map((v, idx) => {
+              const label = axes.map((a) => v.attributes?.[a]).filter(Boolean).join(' · ') || 'Default'
+              const off = v.isAvailable === false
+              return (
+                <div
+                  key={idx}
+                  className={`rounded-2xl border bg-surface dark:bg-dark-surface p-3 transition ${off ? 'border-surface-muted dark:border-dark-surface-muted opacity-70' : 'border-surface-muted dark:border-dark-surface-muted'}`}
                 >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center gap-3">
+                    <CloudinaryImageUploader
+                      size="sm"
+                      value={v.imageUrl || ''}
+                      onChange={(url) => patchRow(idx, { imageUrl: url || undefined })}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-text dark:text-dark-text truncate capitalize">{label}</div>
+                      <button
+                        type="button"
+                        onClick={() => patchRow(idx, { isAvailable: off })}
+                        className={`mt-0.5 text-xs font-medium px-2 py-0.5 rounded-full transition ${off ? 'bg-error/10 text-error' : 'bg-success/10 text-success'}`}
+                      >
+                        {off ? 'Hidden' : 'Available'}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeRow(idx)}
+                      className="p-2 -mr-1 text-muted hover:text-error hover:bg-error/10 rounded-lg transition"
+                      title="Remove variant"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <label className="block">
+                      <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Price (₦)</span>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={v.price}
+                        onChange={(e) => patchRow(idx, { price: Number(e.target.value) })}
+                        className={inputCls}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Stock</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        value={v.stock}
+                        onChange={(e) => patchRow(idx, { stock: Number(e.target.value) })}
+                        className={inputCls}
+                      />
+                    </label>
+                    {pack && (
+                      <>
+                        <label className="block">
+                          <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Pack size</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            inputMode="decimal"
+                            value={v.packSize ?? ''}
+                            onChange={(e) => patchRow(idx, { packSize: e.target.value ? Number(e.target.value) : undefined })}
+                            className={inputCls}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Pack unit</span>
+                          <select
+                            value={v.packUnit || ''}
+                            onChange={(e) => patchRow(idx, { packUnit: e.target.value || undefined })}
+                            className={inputCls}
+                          >
+                            <option value="">—</option>
+                            {(packUnits && packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
+                              <option key={u} value={u}>{u}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </>
         )}
       </div>
     </div>
@@ -582,9 +615,393 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
 // Create modal — inline variants + option groups all at once
 // ---------------------------------------------------------------------------
 
-const inputCls = 'w-full border border-surface-muted dark:border-dark-surface-muted rounded-lg px-3 py-2 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary/30'
-const smInputCls = 'border border-surface-muted dark:border-dark-surface-muted rounded px-2 py-1 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary/30'
+// text-base (16px) on inputs prevents iOS Safari from auto-zooming on focus.
+// py-3 keeps every field a comfortable ~48px tap target on mobile.
+const inputCls = 'w-full border border-surface-muted dark:border-dark-surface-muted rounded-xl px-3.5 py-3 text-base bg-surface dark:bg-dark-surface text-text dark:text-dark-text placeholder:text-muted/60 dark:placeholder:text-dark-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors'
+const smInputCls = 'border border-surface-muted dark:border-dark-surface-muted rounded-lg px-2.5 py-1.5 text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors'
 const ghostBtnCls = 'px-3 py-1.5 border border-surface-muted dark:border-dark-surface-muted rounded-md text-sm text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors'
+
+// One short label describing what a category's schema will ask for.
+function categoryHint(cat) {
+  const schema = cat?.attributeSchema || {}
+  const axes = Array.isArray(schema.axes) ? schema.axes : []
+  const bits = []
+  if (axes.length > 0) bits.push(axes.join(' · '))
+  if (schema.pack) bits.push('pack sizes')
+  if (cat?.hasPreparation) bits.push('add-ons')
+  return bits.length ? bits.join(' • ') : 'Single product'
+}
+
+function ProductCreateModal({ categories, onClose, onSubmit }) {
+  const [categoryId, setCategoryId] = useState('')
+  const selectedCategory = categories.find((c) => c.id === categoryId)
+  const schema = selectedCategory?.attributeSchema || {}
+  const axes = Array.isArray(schema.axes) ? schema.axes : []
+  const pack = !!schema.pack
+  const packUnits = Array.isArray(schema.packUnits) ? schema.packUnits : []
+
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+  const [requiresPrescription, setRequiresPrescription] = useState(false)
+  const [dosage, setDosage] = useState('')
+  const [singleSku, setSingleSku] = useState(true)
+  const [singlePrice, setSinglePrice] = useState(0)
+  const [singleStock, setSingleStock] = useState(0)
+  const [singlePackSize, setSinglePackSize] = useState('')
+  const [singlePackUnit, setSinglePackUnit] = useState('')
+  const [variants, setVariants] = useState([])
+  const [optionGroups, setOptionGroups] = useState([])
+  const [saving, setSaving] = useState(false)
+  const [stepIdx, setStepIdx] = useState(0)
+
+  // When the user picks a category with axes, force into multi-variant mode by default.
+  useEffect(() => {
+    if (axes.length > 0) setSingleSku(false)
+    else setSingleSku(true)
+  }, [categoryId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Wizard steps depend on the chosen category (food/prep categories get an
+  // extra "Add-ons" step). Clamp the active step if the list shrinks.
+  const steps = useMemo(() => {
+    const s = [
+      { key: 'category', label: 'Category' },
+      { key: 'details', label: 'Details' },
+      { key: 'pricing', label: 'Pricing' },
+    ]
+    if (selectedCategory?.hasPreparation) s.push({ key: 'options', label: 'Add-ons' })
+    return s
+  }, [selectedCategory])
+
+  useEffect(() => {
+    if (stepIdx > steps.length - 1) setStepIdx(steps.length - 1)
+  }, [steps.length, stepIdx])
+
+  const step = steps[stepIdx]?.key
+  const isLast = stepIdx === steps.length - 1
+
+  // Per-step validation gate the "Next/Create" button reads.
+  const stepError = useMemo(() => {
+    if (step === 'category' && !selectedCategory) return 'Pick a category to continue'
+    if (step === 'details' && !name.trim()) return 'Give your product a name'
+    if (step === 'pricing') {
+      if (singleSku && !(Number(singlePrice) > 0)) return 'Set a price greater than ₦0'
+      if (!singleSku && variants.length === 0) return 'Generate at least one variant'
+    }
+    return ''
+  }, [step, selectedCategory, name, singleSku, singlePrice, variants.length])
+
+  const submit = async () => {
+    if (!name.trim()) return showErrorToast('Name required')
+    if (!selectedCategory) return showErrorToast('Pick a category')
+
+    let inlineVariants
+    if (singleSku) {
+      inlineVariants = [{
+        attributes: {},
+        price: Number(singlePrice) || 0,
+        stock: Number(singleStock) || 0,
+        ...(pack && singlePackSize ? { packSize: Number(singlePackSize) } : {}),
+        ...(pack && singlePackUnit ? { packUnit: singlePackUnit } : {}),
+      }]
+    } else {
+      if (variants.length === 0) return showErrorToast('Generate at least one variant')
+      inlineVariants = variants.map((v) => ({
+        attributes: v.attributes || {},
+        price: Number(v.price) || 0,
+        stock: Number(v.stock) || 0,
+        sku: v.sku || undefined,
+        ...(pack && v.packSize ? { packSize: Number(v.packSize) } : {}),
+        ...(pack && v.packUnit ? { packUnit: v.packUnit } : {}),
+        imageUrl: v.imageUrl || undefined,
+        isAvailable: v.isAvailable !== false,
+      }))
+    }
+
+    const payload = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      basePrice: inlineVariants[0].price,
+      category: selectedCategory.slug,
+      imageUrl: imageUrl || undefined,
+      stock: inlineVariants.reduce((sum, v) => sum + (v.stock || 0), 0),
+      requiresPrescription,
+      dosage: dosage || undefined,
+      variants: inlineVariants,
+      optionGroups: optionGroups
+        .filter((g) => g.name.trim())
+        .map((g) => ({
+          name: g.name.trim(),
+          selectionRule: g.selectionRule,
+          minSelect: g.minSelect,
+          maxSelect: g.maxSelect,
+          sortOrder: g.sortOrder,
+          items: g.items
+            .filter((it) => it.name.trim())
+            .map((it) => ({
+              name: it.name.trim(),
+              priceDelta: Number(it.priceDelta) || 0,
+              isDefault: !!it.isDefault,
+              isAvailable: it.isAvailable !== false,
+              sortOrder: it.sortOrder,
+            })),
+        })),
+    }
+
+    setSaving(true)
+    try {
+      await onSubmit(payload)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handlePrimary = () => {
+    if (stepError) return showErrorToast(stepError)
+    if (isLast) return submit()
+    setStepIdx((i) => i + 1)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div onClick={onClose} className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden />
+      <form
+        onSubmit={(e) => { e.preventDefault(); handlePrimary() }}
+        className="relative bg-surface dark:bg-dark-surface rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl h-[94dvh] sm:h-auto sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="shrink-0 px-5 sm:px-6 pt-2 sm:pt-5">
+          <div className="sm:hidden mx-auto mt-1 mb-3 h-1.5 w-10 rounded-full bg-surface-muted dark:bg-dark-surface-muted" />
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-text dark:text-dark-text">New product</h2>
+              <p className="text-sm text-muted dark:text-dark-muted mt-0.5">
+                Step {stepIdx + 1} of {steps.length} · <span className="text-text dark:text-dark-text font-medium">{steps[stepIdx]?.label}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2.5 -mr-1 -mt-1 text-muted hover:text-error hover:bg-error/10 rounded-xl transition-colors"
+              aria-label="Close"
+            >
+              <X size={22} />
+            </button>
+          </div>
+          <div className="flex gap-1.5 mt-4 mb-1">
+            {steps.map((s, i) => (
+              <div
+                key={s.key}
+                className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${i <= stepIdx ? 'bg-primary' : 'bg-surface-muted dark:bg-dark-surface-muted'}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5 space-y-5">
+          {step === 'category' && (
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-base font-semibold text-text dark:text-dark-text">What are you selling?</h3>
+                <p className="text-sm text-muted dark:text-dark-muted">Pick a category — we'll tailor the form to it.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {categories.map((c) => {
+                  const active = c.id === categoryId
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setCategoryId(c.id)}
+                      className={`relative text-left rounded-2xl border p-4 transition active:scale-[0.98] ${
+                        active
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/30'
+                          : 'border-surface-muted dark:border-dark-surface-muted hover:border-primary/50 bg-surface dark:bg-dark-surface'
+                      }`}
+                    >
+                      {active && (
+                        <span className="absolute top-2.5 right-2.5 grid place-items-center w-5 h-5 rounded-full bg-primary text-white">
+                          <Check size={13} strokeWidth={3} />
+                        </span>
+                      )}
+                      <span className={`grid place-items-center w-10 h-10 rounded-xl mb-2.5 ${active ? 'bg-primary text-white' : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'}`}>
+                        <Package size={20} />
+                      </span>
+                      <div className="font-semibold text-text dark:text-dark-text leading-tight">{c.name}</div>
+                      <div className="text-xs text-muted dark:text-dark-muted mt-0.5 capitalize">{categoryHint(c)}</div>
+                    </button>
+                  )
+                })}
+              </div>
+              {categories.length === 0 && (
+                <div className="text-sm text-muted dark:text-dark-muted text-center py-6">No categories available yet.</div>
+              )}
+            </div>
+          )}
+
+          {step === 'details' && (
+            <div className="space-y-5">
+              <div>
+                <label className="text-sm font-semibold text-text dark:text-dark-text block mb-2">Product photo</label>
+                <CloudinaryImageUploader value={imageUrl} onChange={setImageUrl} label="Add a photo" />
+                <p className="text-xs text-muted dark:text-dark-muted mt-1.5">A clear photo helps your product sell. Optional.</p>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-text dark:text-dark-text block mb-2">
+                  Name <span className="text-error">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputCls}
+                  placeholder="e.g. Jollof Rice with Chicken"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-text dark:text-dark-text block mb-2">Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className={inputCls}
+                  rows={3}
+                  placeholder="Tell customers what makes this special…"
+                />
+              </div>
+              {selectedCategory?.slug === 'pharmacy' && (
+                <div className="space-y-4 rounded-2xl p-4 bg-surface-muted/50 dark:bg-dark-surface-muted/40 ring-1 ring-inset ring-black/5 dark:ring-white/5">
+                  <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <span className="text-sm font-medium text-text dark:text-dark-text">Requires prescription</span>
+                    <input
+                      type="checkbox"
+                      checked={requiresPrescription}
+                      onChange={(e) => setRequiresPrescription(e.target.checked)}
+                      className="w-5 h-5 accent-primary"
+                    />
+                  </label>
+                  <div>
+                    <label className="text-sm font-medium text-text dark:text-dark-text block mb-2">Dosage</label>
+                    <input
+                      type="text"
+                      value={dosage}
+                      onChange={(e) => setDosage(e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. Take 1 tablet twice daily"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 'pricing' && (
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-text dark:text-dark-text">Price &amp; stock</h3>
+                  <p className="text-sm text-muted dark:text-dark-muted">
+                    {singleSku ? 'Set one price for this product.' : 'Create a variant for each option combination.'}
+                  </p>
+                </div>
+                {axes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSingleSku((v) => !v)}
+                    className={`shrink-0 text-xs font-semibold px-3 py-2 rounded-xl border transition ${
+                      singleSku
+                        ? 'border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text'
+                        : 'border-primary bg-primary/10 text-primary'
+                    }`}
+                  >
+                    {singleSku ? 'Has variants?' : 'Variants on'}
+                  </button>
+                )}
+              </div>
+
+              {singleSku ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Price (₦) <span className="text-error">*</span></span>
+                    <input type="number" inputMode="decimal" value={singlePrice} onChange={(e) => setSinglePrice(e.target.value)} className={inputCls} />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Stock</span>
+                    <input type="number" inputMode="numeric" value={singleStock} onChange={(e) => setSingleStock(e.target.value)} className={inputCls} />
+                  </label>
+                  {pack && (
+                    <>
+                      <label className="block">
+                        <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Pack size</span>
+                        <input type="number" step="0.01" inputMode="decimal" value={singlePackSize} onChange={(e) => setSinglePackSize(e.target.value)} className={inputCls} />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Pack unit</span>
+                        <select value={singlePackUnit} onChange={(e) => setSinglePackUnit(e.target.value)} className={inputCls}>
+                          <option value="">—</option>
+                          {(packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
+                            <option key={u} value={u}>{u}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <VariantMatrixBuilder
+                  axes={axes}
+                  pack={pack}
+                  packUnits={packUnits}
+                  variants={variants}
+                  setVariants={setVariants}
+                />
+              )}
+            </div>
+          )}
+
+          {step === 'options' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-text dark:text-dark-text">Add-ons &amp; choices</h3>
+                <p className="text-sm text-muted dark:text-dark-muted">Sides, spice levels, extras — anything customers pick. Optional.</p>
+              </div>
+              <OptionGroupsBuilder groups={optionGroups} setGroups={setOptionGroups} />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 flex gap-3 px-5 sm:px-6 py-4 border-t border-surface-muted dark:border-dark-surface-muted pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {stepIdx > 0 ? (
+            <button
+              type="button"
+              onClick={() => setStepIdx((i) => i - 1)}
+              className="min-h-[48px] px-4 flex items-center gap-1 rounded-xl border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors font-medium"
+            >
+              <ChevronLeft size={18} /> Back
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-[48px] px-4 rounded-xl border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors font-medium"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex-1 min-h-[48px] flex items-center justify-center gap-1.5 bg-primary text-white rounded-xl hover:bg-primary-700 active:scale-[0.99] disabled:opacity-60 font-semibold transition shadow-lg shadow-primary/20"
+          >
+            {saving ? 'Saving…' : isLast ? (<><Check size={18} /> Create product</>) : (<>Continue <ChevronRight size={18} /></>)}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
 
 function ProductCreateModal({ categories, onClose, onSubmit }) {
   const [categoryId, setCategoryId] = useState('')

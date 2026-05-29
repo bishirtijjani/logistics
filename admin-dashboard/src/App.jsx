@@ -11,7 +11,6 @@ import DashboardPage from './pages/DashboardPage'
 import RequestsPage from './pages/RequestsPage'
 import MerchantsPage from './pages/MerchantsPage'
 import RidersPage from './pages/RidersPage'
-import PendingRidersPage from './pages/PendingRidersPage'
 import CustomersPage from './pages/CustomersPage'
 import CustomerDetailPage from './pages/CustomerDetailPage'
 import TransactionsPage from './pages/TransactionsPage'
@@ -84,7 +83,6 @@ function App() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="merchants/:merchantId/analytics" element={<MerchantAnalyticsPage />} />
           <Route path="riders" element={<RidersPage />} />
-          <Route path="pending-riders" element={<PendingRidersPage />} />
           <Route path="audit-logs" element={<AuditLogPage />} />
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:customerId" element={<CustomerDetailPage />} />

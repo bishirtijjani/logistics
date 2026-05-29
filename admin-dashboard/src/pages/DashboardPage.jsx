@@ -182,7 +182,7 @@ export default function DashboardPage() {
             <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-text dark:text-dark-text">Pending Riders</h3>
-                <Link to="/pending-riders" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">
+                <Link to="/riders?status=PENDING_APPROVAL" className="text-sm text-primary hover:text-primary-700 dark:hover:text-primary-400">
                   View All
                 </Link>
               </div>

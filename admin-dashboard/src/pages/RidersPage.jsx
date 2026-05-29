@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { fetchAllRiders, fetchRiderEarnings, fetchRiderDeliveryHistory, clearSelectedRider } from '../store/slices/ridersSlice'
+import { useSearchParams } from 'react-router-dom'
+import { fetchAllRiders, fetchRiderEarnings, fetchRiderDeliveryHistory, clearSelectedRider, reviewRider } from '../store/slices/ridersSlice'
 import { Bike, User, Phone, Mail, DollarSign, Star, Clock, MoreVertical, Check, X, Eye, Package, X as CloseIcon } from 'lucide-react'
 import Pagination from '../components/Pagination'
 
@@ -19,26 +20,38 @@ const AVAILABILITY_COLORS = {
 
 export default function RidersPage() {
   const dispatch = useDispatch()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { riders, total, page, riderEarnings, riderDeliveries, loading } = useSelector((state) => state.riders)
+  // Seed the status filter from the URL so deep links like
+  // /riders?status=PENDING_APPROVAL (e.g. the dashboard's review shortcut) land pre-filtered.
   const [filters, setFilters] = useState({
-    status: '',
+    status: searchParams.get('status') || '',
     availability: '',
   })
   const [selectedRider, setSelectedRider] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [activeTab, setActiveTab] = useState('details')
   const [pageSize, setPageSize] = useState(20)
+  const [actionLoading, setActionLoading] = useState(null)
 
   useEffect(() => {
-    dispatch(fetchAllRiders({ page: 1, limit: 20 }))
-  }, [dispatch])
+    dispatch(fetchAllRiders({ page: 1, limit: 20, status: searchParams.get('status') || '' }))
+  }, [dispatch]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFilterChange = (key, value) => {
     setFilters({ ...filters, [key]: value })
   }
 
   const handleApplyFilters = () => {
+    // Keep the status in the URL so the filtered view is shareable/refresh-safe.
+    setSearchParams(filters.status ? { status: filters.status } : {})
     dispatch(fetchAllRiders({ page: 1, limit: 20, ...filters }))
+  }
+
+  const handleReview = async (riderId, decision) => {
+    setActionLoading(riderId)
+    await dispatch(reviewRider({ riderId, decision }))
+    setActionLoading(null)
   }
 
   const handlePageChange = (newPage) => {
@@ -182,6 +195,34 @@ export default function RidersPage() {
                         >
                           <Eye size={18} />
                         </button>
+                        {rider.status === 'PENDING_APPROVAL' && (
+                          <>
+                            <button
+                              onClick={() => handleReview(rider.id, 'approve')}
+                              disabled={actionLoading === rider.id}
+                              className="p-2 text-success hover:bg-success/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Approve"
+                            >
+                              {actionLoading === rider.id ? (
+                                <div className="w-[18px] h-[18px] border-2 border-success border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Check size={18} />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleReview(rider.id, 'reject')}
+                              disabled={actionLoading === rider.id}
+                              className="p-2 text-error hover:bg-error/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Reject"
+                            >
+                              {actionLoading === rider.id ? (
+                                <div className="w-[18px] h-[18px] border-2 border-error border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <X size={18} />
+                              )}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -427,6 +468,45 @@ export default function RidersPage() {
                 </div>
               )}
             </div>
+
+            {selectedRider.status === 'PENDING_APPROVAL' && (
+              <div className="p-4 sm:p-6 border-t border-surface-muted dark:border-dark-surface-muted flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <button
+                  onClick={() => handleReview(selectedRider.id, 'approve')}
+                  disabled={actionLoading === selectedRider.id}
+                  className="w-full sm:flex-1 px-4 py-2 bg-success text-white rounded-lg hover:bg-success/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading === selectedRider.id ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={18} />
+                      Approve Rider
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleReview(selectedRider.id, 'reject')}
+                  disabled={actionLoading === selectedRider.id}
+                  className="w-full sm:flex-1 px-4 py-2 bg-error text-white rounded-lg hover:bg-error-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {actionLoading === selectedRider.id ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Rejecting...
+                    </>
+                  ) : (
+                    <>
+                      <X size={18} />
+                      Reject Rider
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
