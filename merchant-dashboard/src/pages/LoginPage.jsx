@@ -18,7 +18,7 @@ export default function LoginPage() {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { loading, isLocked, lockoutTime, loginAttempts } = useSelector((state) => state.auth)
+  const { loading } = useSelector((state) => state.auth)
 
   // Auto-fill email if remember me was checked
   useEffect(() => {
@@ -106,27 +106,8 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className={`px-4 py-3 rounded-lg ${
-            isLocked 
-              ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400' 
-              : 'bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 text-error'
-          }`}>
-            <div className="flex items-start gap-2">
-              {isLocked && <Lock className="w-5 h-5 mt-0.5 flex-shrink-0" />}
-              <div>
-                <p className="font-medium">{error}</p>
-                {isLocked && lockoutTime && (
-                  <p className="text-sm mt-1 opacity-90">
-                    Account will be unlocked at {new Date(lockoutTime).toLocaleTimeString()}
-                  </p>
-                )}
-                {!isLocked && loginAttempts > 0 && (
-                  <p className="text-sm mt-1 opacity-90">
-                    Attempts remaining: {5 - loginAttempts}
-                  </p>
-                )}
-              </div>
-            </div>
+          <div className="px-4 py-3 mb-6 rounded-lg bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 text-error">
+            <p className="font-medium">{error}</p>
           </div>
         )}
 

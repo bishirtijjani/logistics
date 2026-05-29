@@ -83,9 +83,6 @@ const authSlice = createSlice({
     isAuthenticated: !!localStorage.getItem('token'),
     loading: false,
     error: null,
-    loginAttempts: 0,
-    isLocked: false,
-    lockoutTime: null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -99,9 +96,6 @@ const authSlice = createSlice({
         state.user = action.payload.user
         state.token = action.payload.tokens?.accessToken
         state.isAuthenticated = true
-        state.loginAttempts = 0
-        state.isLocked = false
-        state.lockoutTime = null
         localStorage.setItem('token', action.payload.tokens?.accessToken)
         if (action.payload.tokens?.refreshToken) {
           localStorage.setItem('refreshToken', action.payload.tokens.refreshToken)
@@ -109,19 +103,12 @@ const authSlice = createSlice({
         localStorage.setItem('merchant_user', JSON.stringify(action.payload.user))
       })
       .addCase(login.rejected, (state, action) => {
+        // The "5 attempts → lock account" logic that used to live here was
+        // pure client-side fiction: a page refresh reset the counter to 0,
+        // so anyone hitting refresh got unlimited tries. The backend already
+        // rate-limits /auth/login (authLimiter) — that's the real ceiling.
         state.loading = false
         state.error = action.error.message
-        state.loginAttempts += 1
-        
-        // Lock account after 5 failed attempts
-        if (state.loginAttempts >= 5) {
-          state.isLocked = true
-          state.lockoutTime = Date.now() + (15 * 60 * 1000) // 15 minutes lockout
-          state.error = 'Account locked due to too many failed login attempts. Please try again in 15 minutes.'
-        } else {
-          const attemptsLeft = 5 - state.loginAttempts
-          state.error = `${action.error.message}. ${attemptsLeft} attempts remaining before account lockout.`
-        }
       })
       .addCase(logout.fulfilled, (state) => {
         state.user = null
