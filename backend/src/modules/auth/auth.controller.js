@@ -29,13 +29,10 @@ const register = async (req, res, next) => {
       });
     }
 
-    const isDev = process.env.NODE_ENV === "development";
-    const responseData = isDev ? { ...result, devOtp: code } : result;
-
     res.status(200).json(
       ApiResponse.success(
         "Registration successful. Check your email for the verification code.",
-        responseData,
+        result,
       ),
     );
   } catch (error) {
@@ -45,22 +42,18 @@ const register = async (req, res, next) => {
 
 const merchantRegister = async (req, res, next) => {
   try {
-    const result = await authService.merchantRegister(req.body);
+    const { code, ...result } = await authService.merchantRegister(req.body);
 
     // Send OTP email
     const emailService = require("../../services/email.service");
-    await emailService.sendOtpEmail(req.body.email, result.devOtp);
-
-    // In development, include OTP in response for testing
-    const isDev = process.env.NODE_ENV === "development";
-    const responseData = isDev ? { ...result, devOtp: result.devOtp } : result;
+    await emailService.sendOtpEmail(req.body.email, code);
 
     res
       .status(200)
       .json(
         ApiResponse.success(
           "Registration successful. Check your email for the verification code.",
-          responseData,
+          result,
         ),
       );
   } catch (error) {
@@ -109,10 +102,7 @@ const sendOtp = async (req, res, next) => {
       });
     }
 
-    const isDev = process.env.NODE_ENV === "development";
-    const responseData = isDev ? { devOtp: code } : undefined;
-
-    res.json(ApiResponse.success("OTP sent to your email address", responseData));
+    res.json(ApiResponse.success("OTP sent to your email address"));
   } catch (error) {
     next(error);
   }
@@ -128,13 +118,9 @@ const requestPasswordReset = async (req, res, next) => {
     }
 
     // Always respond generically — don't reveal whether email exists
-    const isDev = process.env.NODE_ENV === "development";
-    const responseData = isDev && code ? { devOtp: code } : undefined;
-
     res.json(
       ApiResponse.success(
         "If an account exists with that email, a reset code has been sent.",
-        responseData,
       ),
     );
   } catch (error) {
@@ -259,15 +245,8 @@ const verifyBvn = async (req, res, next) => {
 
 const requestKycPhoneOtp = async (req, res, next) => {
   try {
-    const result = await authService.requestKycPhoneOtp(req.user.id, req.body);
-    // Mirror the phone-change endpoint: surface the OTP in non-prod envs so
-    // dev/QA can run the flow without a real SMS-receiving handset.
-    res.json(
-      ApiResponse.success(
-        'Verification code sent to your BVN phone',
-        process.env.NODE_ENV !== 'production' ? { devOtp: result.code } : undefined,
-      ),
-    );
+    await authService.requestKycPhoneOtp(req.user.id, req.body);
+    res.json(ApiResponse.success('Verification code sent to your BVN phone'));
   } catch (error) {
     next(error);
   }
@@ -362,8 +341,8 @@ const revokeOtherSessions = async (req, res, next) => {
 
 const requestPhoneChange = async (req, res, next) => {
   try {
-    const result = await authService.requestPhoneChange(req.user.id, req.body);
-    res.json(ApiResponse.success('OTP sent to new phone number', process.env.NODE_ENV !== 'production' ? { devOtp: result.code } : undefined));
+    await authService.requestPhoneChange(req.user.id, req.body);
+    res.json(ApiResponse.success('OTP sent to new phone number'));
   } catch (error) {
     next(error);
   }

@@ -172,11 +172,7 @@ export default function RegistrationPage() {
 
       if (data.success) {
         setVerificationSent(true)
-        if (data.data && data.data.devOtp) {
-          showSuccessToast(`Registration successful! Your verification code is: ${data.data.devOtp}`)
-        } else {
-          showSuccessToast('Registration successful! Please check your email for verification code.')
-        }
+        showSuccessToast('Registration successful! Please check your email for verification code.')
       }
     } catch (err) {
       showErrorToast(err.message || 'Registration failed')

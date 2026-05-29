@@ -1413,7 +1413,7 @@ const merchantRegister = async ({
   return {
     email,
     businessName,
-    devOtp: code,
+    code,
   };
 };
 
@@ -1462,7 +1462,6 @@ const requestPhoneChange = async (userId, { newPhone, password }) => {
   );
 
   logger.info('Phone change OTP generated', { userId, newPhone });
-  return { code, devOnly: true };
 };
 
 /**
