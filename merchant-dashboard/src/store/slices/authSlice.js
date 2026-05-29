@@ -35,33 +35,17 @@ export const login = createAsyncThunk(
 export const logout = createAsyncThunk(
   'auth/logout',
   async () => {
+    // Best-effort tell the backend to revoke the session record. If the
+    // network is down or the access token is already expired we still need
+    // to clear local state below — never block sign-out on this call.
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // ignore
+    }
     localStorage.removeItem('token')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('merchant_user')
-  }
-)
-
-export const verifyEmail = createAsyncThunk(
-  'auth/verifyEmail',
-  async ({ email, code }) => {
-    try {
-      const response = await api.post('/auth/verify-email', { email, code })
-      return response.data.data
-    } catch (err) {
-      throw new Error(apiErrorMessage(err, 'Verification failed. Please try again.'))
-    }
-  }
-)
-
-export const resendVerification = createAsyncThunk(
-  'auth/resendVerification',
-  async ({ email }) => {
-    try {
-      const response = await api.post('/auth/resend-verification', { email })
-      return response.data
-    } catch (err) {
-      throw new Error(apiErrorMessage(err, "Couldn't resend the code. Please try again."))
-    }
   }
 )
 
@@ -84,8 +68,6 @@ const authSlice = createSlice({
     user: null,
     token: localStorage.getItem('token'),
     isAuthenticated: !!localStorage.getItem('token'),
-    emailVerified: false,
-    verificationLoading: false,
     loading: false,
     error: null,
     loginAttempts: 0,
@@ -132,33 +114,6 @@ const authSlice = createSlice({
         state.user = null
         state.token = null
         state.isAuthenticated = false
-        state.emailVerified = false
-      })
-      .addCase(verifyEmail.pending, (state) => {
-        state.verificationLoading = true
-        state.error = null
-      })
-      .addCase(verifyEmail.fulfilled, (state, action) => {
-        state.verificationLoading = false
-        state.emailVerified = true
-        if (state.user) {
-          state.user.emailVerified = true
-        }
-      })
-      .addCase(verifyEmail.rejected, (state, action) => {
-        state.verificationLoading = false
-        state.error = action.error.message
-      })
-      .addCase(resendVerification.pending, (state) => {
-        state.verificationLoading = true
-        state.error = null
-      })
-      .addCase(resendVerification.fulfilled, (state) => {
-        state.verificationLoading = false
-      })
-      .addCase(resendVerification.rejected, (state, action) => {
-        state.verificationLoading = false
-        state.error = action.error.message
       })
       .addCase(refreshToken.pending, (state) => {
         state.error = null

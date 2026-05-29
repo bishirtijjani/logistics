@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { API_URL } from '../lib/api'
+import api from '../lib/api'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout, refreshToken } from '../store/slices/authSlice.js'
@@ -83,24 +83,18 @@ export function useSessionManager() {
   }, [token, isRefreshing, dispatch, handleLogout])
 
   const logoutAllDevices = useCallback(async () => {
+    // Real backend route — revokes every OTHER active session record then
+    // signs out the current one locally. The old code targeted POST
+    // /auth/logout-all which never existed and produced 404s.
     try {
-      const response = await fetch(`${API_URL}/auth/logout-all`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      if (response.ok) {
-        await handleLogout()
-        showWarningToast('Logged out from all devices successfully')
-      }
+      await api.delete('/auth/sessions/others')
+      await handleLogout()
+      showWarningToast('Logged out from all other devices successfully')
     } catch (error) {
       console.error('Logout all devices error:', error)
       showErrorToast('Failed to logout from all devices')
     }
-  }, [token, handleLogout])
+  }, [handleLogout])
 
   // Setup activity listeners
   useEffect(() => {
