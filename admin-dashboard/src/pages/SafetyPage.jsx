@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { API_URL } from '../lib/api'
-import { Shield, AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react'
+import api from '../lib/api'
+import { Shield, AlertTriangle, RefreshCw } from 'lucide-react'
 
 export default function SafetyPage() {
   const [activeTab, setActiveTab] = useState('compliance')
@@ -12,13 +12,9 @@ export default function SafetyPage() {
   const fetchIncidents = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
       const status = incidentFilter === 'ALL' ? '' : incidentFilter
-      const response = await fetch(`${API_URL}/admin/safety/incidents?status=${status}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) setIncidents(data.data.incidents || [])
+      const res = await api.get(`/admin/safety/incidents?status=${status}`)
+      setIncidents(res.data?.data?.incidents || [])
     } catch (error) {
       console.error('Failed to fetch incidents:', error)
     } finally {
@@ -29,12 +25,8 @@ export default function SafetyPage() {
   const fetchCompliance = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/admin/safety/compliance`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) setCompliance(data.data)
+      const res = await api.get('/admin/safety/compliance')
+      setCompliance(res.data?.data || null)
     } catch (error) {
       console.error('Failed to fetch compliance:', error)
     } finally {

@@ -30,8 +30,10 @@ const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
  * `{ latitude, longitude, address }` on confirm. No redux dependency — the
  * rider app has no location slice, so onSelect is the only sink.
  *
- * Note: the rider `api` response interceptor returns `response.data` directly,
- * so calls here read `const data = await api.get(...)` (not `{ data }`).
+ * Note: the `api` interceptor returns the response body, which is the backend
+ * success envelope `{ success, data, meta }`. So every call unwraps the inner
+ * payload with `const { data } = await api.get(...)`, exactly like the
+ * customer app.
  */
 export default function LocationPickerScreen({ navigation, route }) {
   const { t } = useTranslation();
@@ -70,7 +72,7 @@ export default function LocationPickerScreen({ navigation, route }) {
 
       geocodeTimeout.current = setTimeout(async () => {
         try {
-          const data = await api.get("/maps/reverse-geocode", {
+          const { data } = await api.get("/maps/reverse-geocode", {
             params: { lat: newRegion.latitude, lng: newRegion.longitude },
           });
           const formattedAddress = data?.formattedAddress;
@@ -98,7 +100,7 @@ export default function LocationPickerScreen({ navigation, route }) {
     searchTimeout.current = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const data = await api.get("/maps/autocomplete", {
+        const { data } = await api.get("/maps/autocomplete", {
           params: { query: text, sessionToken: sessionToken.current },
         });
         setPredictions(data || []);
@@ -119,7 +121,7 @@ export default function LocationPickerScreen({ navigation, route }) {
     setIsGeocoding(true);
 
     try {
-      const data = await api.get("/maps/place-details", {
+      const { data } = await api.get("/maps/place-details", {
         params: { placeId: prediction.placeId, sessionToken: sessionToken.current },
       });
       const place = data;

@@ -1146,12 +1146,15 @@ const UPLOAD_KINDS = {
   rider_doc: { root: "rider-docs", prefix: "doc", scope: "rider" },
   // Phase 1 — rider onboarding KYC kinds. Each doc type lands in its own
   // top-level folder so disputes / audits can list a single doc type across
-  // riders without scanning a mixed folder. All rider-scoped.
-  rider_id: { root: "rider-id", prefix: "id", scope: "rider" },
-  rider_driver_license: { root: "rider-license", prefix: "lic", scope: "rider" },
-  rider_vehicle_registration: { root: "rider-vehicle-reg", prefix: "reg", scope: "rider" },
-  rider_insurance: { root: "rider-insurance", prefix: "ins", scope: "rider" },
-  rider_vehicle_photo: { root: "rider-vehicle-photo", prefix: "veh", scope: "rider" },
+  // riders without scanning a mixed folder. Scope is `rider_onboarding`:
+  // user-folder-scoped (same as `rider`) but uploadable by an applicant who
+  // is NOT yet a RIDER — these docs are the prerequisite for /rider/register,
+  // so gating them to role===RIDER is a chicken-and-egg deadlock.
+  rider_id: { root: "rider-id", prefix: "id", scope: "rider_onboarding" },
+  rider_driver_license: { root: "rider-license", prefix: "lic", scope: "rider_onboarding" },
+  rider_vehicle_registration: { root: "rider-vehicle-reg", prefix: "reg", scope: "rider_onboarding" },
+  rider_insurance: { root: "rider-insurance", prefix: "ins", scope: "rider_onboarding" },
+  rider_vehicle_photo: { root: "rider-vehicle-photo", prefix: "veh", scope: "rider_onboarding" },
 };
 
 /**
@@ -1217,6 +1220,11 @@ const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", 
       throw AppError.forbidden("Only riders can upload KYC documents");
     }
   }
+  // Phase 1 — onboarding KYC docs are uploaded BEFORE the applicant becomes a
+  // RIDER (they're the prerequisite for /rider/register), so any authenticated
+  // user may mint these. Still user-folder-scoped, so one applicant can never
+  // write into another's folder. CUSTOMER/MERCHANT applying to ride is allowed;
+  // unauthenticated callers are already blocked by the `authenticate` middleware.
 
   const crypto = require("crypto");
   const timestamp = Math.round(new Date().getTime() / 1000);
