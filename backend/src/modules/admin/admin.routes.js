@@ -47,6 +47,9 @@ const {
   updateTagSchema,
   setMerchantTagsSchema,
   listAllRidersSchema,
+  suspendRiderSchema,
+  unsuspendRiderSchema,
+  forceOfflineRiderSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,
   customerRequestsSchema,
@@ -105,9 +108,14 @@ router.patch('/categories/:categoryId/attribute-schema', validate(updateAttribut
 router.delete('/categories/:categoryId', adminController.deleteCategory);
 
 // Rider management
+// NOTE: literal sub-paths (/pending, /stats) are declared before the
+// parameterized /riders/:riderId/* routes so they are not shadowed.
 router.get('/riders/pending', validate(listPendingRidersSchema, 'query'), adminController.getPendingRiders);
+router.get('/riders/stats', adminController.getRiderStats);
 router.get('/riders', validate(listAllRidersSchema, 'query'), adminController.getAllRiders);
 router.patch('/riders/:riderId/review', validate(reviewRiderSchema), adminController.reviewRider);
+router.patch('/riders/:riderId/suspend', validate(suspendRiderSchema), adminController.suspendRider);
+router.patch('/riders/:riderId/unsuspend', validate(unsuspendRiderSchema), adminController.unsuspendRider);
 router.get('/riders/:riderId/earnings', validate(getRiderEarningsSchema, 'query'), adminController.getRiderEarnings);
 router.get('/riders/:riderId/deliveries', validate(paginationSchema, 'query'), adminController.getRiderDeliveryHistory);
 
@@ -190,7 +198,7 @@ router.put('/vtu-networks/:networkId', adminController.updateVtuNetwork);
 router.delete('/vtu-networks/:networkId', adminController.deleteVtuNetwork);
 
 // Phase 8 — Rider force-offline (real admin use + Maestro 05-force-offline).
-router.post('/riders/:riderId/force-offline', adminController.forceOfflineRider);
+router.post('/riders/:riderId/force-offline', validate(forceOfflineRiderSchema), adminController.forceOfflineRider);
 
 // Phase 8 — Staging-only Maestro helpers. The service-layer guard refuses
 // to run on production, so leaving the route mounted in all environments

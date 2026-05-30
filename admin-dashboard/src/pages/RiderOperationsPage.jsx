@@ -1,6 +1,77 @@
-import { useState, useEffect } from 'react'
-import { API_URL } from '../lib/api'
-import { MapPin, RefreshCw, Activity, TrendingUp } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import api from '../lib/api'
+import { MapPin, RefreshCw, Activity, Star, Package, Bike } from 'lucide-react'
+
+const FALLBACK = { lat: 13.0059, lng: 7.6019 } // Katsina city centre
+
+const AVAIL_META = {
+  ONLINE:      { label: 'Online',      cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300', dot: 'bg-emerald-500' },
+  ON_DELIVERY: { label: 'On delivery', cls: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', dot: 'bg-blue-500' },
+  OFFLINE:     { label: 'Offline',     cls: 'bg-surface-muted text-muted dark:bg-dark-surface-muted dark:text-dark-muted', dot: 'bg-gray-400 dark:bg-dark-muted' },
+}
+
+const AvailabilityBadge = ({ availability }) => {
+  const m = AVAIL_META[availability] || AVAIL_META.OFFLINE
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${m.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${m.dot} ${availability === 'ONLINE' ? 'animate-pulse' : ''}`} />
+      {m.label}
+    </span>
+  )
+}
+
+// Brand pin (lifted from LocationPicker — avoids Leaflet's bundled-asset path issue under Vite).
+const RIDER_PIN = L.divIcon({
+  className: '',
+  html: `<div style="transform:translate(-50%,-100%);color:#EA580C;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C7.589 2 4 5.589 4 9.995C4 14.59 8.6 19.55 11.18 22.04C11.62 22.46 12.38 22.46 12.82 22.04C15.4 19.55 20 14.59 20 9.995C20 5.589 16.411 2 12 2ZM12 12.5C10.62 12.5 9.5 11.38 9.5 10C9.5 8.62 10.62 7.5 12 7.5C13.38 7.5 14.5 8.62 14.5 10C14.5 11.38 13.38 12.5 12 12.5Z"/>
+    </svg>
+  </div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 28],
+})
+
+// Keeps the map sized correctly when it mounts inside a tab/flex container
+// (the invalidateSize fix from LocationPicker, needed to avoid blank tiles).
+function MapAutoSize() {
+  const map = useMap()
+  useEffect(() => {
+    const fix = () => map.invalidateSize()
+    const raf = requestAnimationFrame(fix)
+    const settle = setTimeout(fix, 300)
+    const ro = new ResizeObserver(fix)
+    ro.observe(map.getContainer())
+    window.addEventListener('resize', fix)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(settle)
+      ro.disconnect()
+      window.removeEventListener('resize', fix)
+    }
+  }, [map])
+  return null
+}
+
+// Fit the viewport to all rider pins once (not on every 10s poll, which would
+// make the map jump while the admin is looking at it).
+function FitBounds({ points }) {
+  const map = useMap()
+  const done = useRef(false)
+  useEffect(() => {
+    if (done.current || points.length === 0) return
+    if (points.length === 1) {
+      map.setView([points[0].lat, points[0].lng], 14)
+    } else {
+      map.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lng])), { padding: [40, 40], maxZoom: 14 })
+    }
+    done.current = true
+  }, [points, map])
+  return null
+}
 
 export default function RiderOperationsPage() {
   const [activeTab, setActiveTab] = useState('performance')
@@ -11,12 +82,8 @@ export default function RiderOperationsPage() {
   const fetchRiderPerformance = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/admin/riders/performance`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) setRiders(data.data.riders || [])
+      const res = await api.get('/admin/riders/performance')
+      setRiders(res.data?.data || [])
     } catch (error) {
       console.error('Failed to fetch rider performance:', error)
     } finally {
@@ -27,12 +94,8 @@ export default function RiderOperationsPage() {
   const fetchRiderLocations = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/admin/riders/realtime`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const data = await response.json()
-      if (data.success) setLocations(data.data || [])
+      const res = await api.get('/admin/riders/realtime')
+      setLocations(res.data?.data || [])
     } catch (error) {
       console.error('Failed to fetch rider locations:', error)
     } finally {
@@ -43,33 +106,43 @@ export default function RiderOperationsPage() {
   useEffect(() => {
     if (activeTab === 'performance') fetchRiderPerformance()
     else fetchRiderLocations()
-    
+
     const interval = setInterval(() => {
       if (activeTab === 'locations') fetchRiderLocations()
     }, 10000)
     return () => clearInterval(interval)
   }, [activeTab])
 
+  const mapPoints = locations
+    .filter((r) => typeof r.lastLat === 'number' && typeof r.lastLng === 'number')
+    .map((r) => ({ id: r.id, lat: r.lastLat, lng: r.lastLng, name: `${r.user?.firstName || ''} ${r.user?.lastName || ''}`.trim(), availability: r.availability, at: r.lastLocationAt }))
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">Rider Operations</h1>
-        <button onClick={activeTab === 'performance' ? fetchRiderPerformance : fetchRiderLocations} className="p-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg w-full sm:w-auto flex items-center justify-center">
-          <RefreshCw className="w-5 h-5" />
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">Rider Operations</h1>
+          <p className="text-sm text-muted dark:text-dark-muted mt-1">Live fleet positions and the rider performance leaderboard</p>
+        </div>
+        <button
+          onClick={activeTab === 'performance' ? fetchRiderPerformance : fetchRiderLocations}
+          className="p-2 px-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg w-full sm:w-auto flex items-center justify-center gap-2 text-sm text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
 
-      <div className="flex gap-2 sm:gap-4 border-b overflow-x-auto">
+      <div className="flex gap-2 sm:gap-4 border-b border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
         <button
           onClick={() => setActiveTab('performance')}
-          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'performance' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'performance' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'}`}
         >
           <Activity className="w-4 h-4 inline mr-2" />
           Performance
         </button>
         <button
           onClick={() => setActiveTab('locations')}
-          className={`px-3 sm:px-4 py-3 border-b-2 text-sm whitespace-nowrap ${activeTab === 'locations' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted'}`}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === 'locations' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'}`}
         >
           <MapPin className="w-4 h-4 inline mr-2" />
           Real-time Locations
@@ -77,41 +150,44 @@ export default function RiderOperationsPage() {
       </div>
 
       {activeTab === 'performance' ? (
-        <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
+        <div className="bg-surface dark:bg-dark-surface rounded-xl border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
             </div>
           ) : (
-            <table className="w-full min-w-[640px]">
-              <thead className="bg-surface-muted dark:bg-dark-surface-muted">
+            <table className="w-full min-w-[720px]">
+              <thead className="bg-surface-muted dark:bg-dark-surface-muted text-left">
                 <tr>
-                  <th className="px-4 py-3 text-left">Rider</th>
-                  <th className="px-4 py-3 text-left">Email</th>
-                  <th className="px-4 py-3 text-left">Deliveries</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Available</th>
+                  {['Rider', 'Email', 'Deliveries', 'Rating', 'Earnings', 'Availability'].map((h) => (
+                    <th key={h} className="px-4 py-3 text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wide">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {riders.map((rider) => (
-                  <tr key={rider.id} className="border-b">
+                {riders.map((rider, i) => (
+                  <tr key={rider.id} className="border-t border-surface-muted dark:border-dark-surface-muted">
                     <td className="px-4 py-3">
-                      {rider.user?.firstName} {rider.user?.lastName}
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 text-xs font-bold text-muted dark:text-dark-muted">#{i + 1}</span>
+                        <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Bike size={15} className="text-primary" /></span>
+                        <span className="text-sm font-medium text-text dark:text-dark-text">{rider.user?.firstName} {rider.user?.lastName}</span>
+                      </div>
                     </td>
-                    <td className="px-4 py-3">{rider.user?.email}</td>
-                    <td className="px-4 py-3">{rider._count?.deliveries || 0}</td>
-                    <td className="px-4 py-3">{rider.status}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-xs ${rider.isAvailable ? 'bg-success/10 text-success' : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'}`}>
-                        {rider.isAvailable ? 'Yes' : 'No'}
-                      </span>
+                    <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted">{rider.user?.email}</td>
+                    <td className="px-4 py-3 text-sm text-text dark:text-dark-text">
+                      <span className="flex items-center gap-1"><Package size={13} className="text-muted dark:text-dark-muted" /> {rider.totalDeliveries || 0}</span>
                     </td>
+                    <td className="px-4 py-3 text-sm text-text dark:text-dark-text">
+                      <span className="flex items-center gap-1"><Star size={13} className="text-amber-400 fill-amber-400" /> {rider.averageRating?.toFixed(1) || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-text dark:text-dark-text">₦{Number(rider.totalEarnings || 0).toLocaleString('en-NG')}</td>
+                    <td className="px-4 py-3"><AvailabilityBadge availability={rider.availability} /></td>
                   </tr>
                 ))}
                 {riders.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted dark:text-dark-muted">No riders found</td>
+                    <td colSpan={6} className="px-4 py-10 text-center text-muted dark:text-dark-muted">No approved riders found</td>
                   </tr>
                 )}
               </tbody>
@@ -119,33 +195,59 @@ export default function RiderOperationsPage() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted p-6">
-            <h3 className="font-semibold text-text dark:text-dark-text mb-4">Active Riders</h3>
-            <div className="space-y-2">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+          {/* Active riders list */}
+          <div className="lg:col-span-2 bg-surface dark:bg-dark-surface rounded-xl border border-surface-muted dark:border-dark-surface-muted p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-text dark:text-dark-text">Active Riders</h3>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">{locations.length} live</span>
+            </div>
+            <div className="space-y-2 max-h-[420px] overflow-y-auto">
               {locations.map((rider) => (
-                <div key={rider.id} className="flex items-center justify-between p-3 bg-surface-muted dark:bg-dark-surface-muted rounded">
-                  <div>
-                    <p className="font-medium text-text dark:text-dark-text">
-                      {rider.user?.firstName} {rider.user?.lastName}
-                    </p>
-                    <p className="text-sm text-muted dark:text-dark-muted">
-                      Lat: {rider.currentLat?.toFixed(4)}, Lng: {rider.currentLng?.toFixed(4)}
+                <div key={rider.id} className="flex items-center justify-between gap-3 p-3 bg-surface-muted dark:bg-dark-surface-muted rounded-xl">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm text-text dark:text-dark-text truncate">{rider.user?.firstName} {rider.user?.lastName}</p>
+                    <p className="text-xs text-muted dark:text-dark-muted">
+                      {typeof rider.lastLat === 'number' ? `${rider.lastLat.toFixed(4)}, ${rider.lastLng.toFixed(4)}` : 'No fix'}
+                      {rider.lastLocationAt ? ` · ${new Date(rider.lastLocationAt).toLocaleTimeString()}` : ''}
                     </p>
                   </div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                  <AvailabilityBadge availability={rider.availability} />
                 </div>
               ))}
               {locations.length === 0 && (
-                <p className="text-muted dark:text-dark-muted text-center py-4">No active riders</p>
+                <p className="text-muted dark:text-dark-muted text-center py-8 text-sm">No riders online right now</p>
               )}
             </div>
           </div>
-          <div className="bg-surface dark:bg-dark-surface rounded-lg border border-surface-muted dark:border-dark-surface-muted p-6">
+
+          {/* Live map */}
+          <div className="lg:col-span-3 bg-surface dark:bg-dark-surface rounded-xl border border-surface-muted dark:border-dark-surface-muted p-4 sm:p-6">
             <h3 className="font-semibold text-text dark:text-dark-text mb-4">Live Map</h3>
-            <div className="h-64 bg-surface-muted dark:bg-dark-surface-muted rounded flex items-center justify-center text-muted dark:text-dark-muted">
-              <p>Map visualization will be rendered here</p>
+            <div className="rounded-xl overflow-hidden border border-surface-muted dark:border-dark-surface-muted" style={{ height: 440 }}>
+              <MapContainer center={[FALLBACK.lat, FALLBACK.lng]} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+                <TileLayer
+                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                  subdomains="abcd"
+                  maxZoom={20}
+                  detectRetina
+                />
+                <MapAutoSize />
+                <FitBounds points={mapPoints} />
+                {mapPoints.map((p) => (
+                  <Marker key={p.id} position={[p.lat, p.lng]} icon={RIDER_PIN}>
+                    <Popup>
+                      <span className="font-semibold">{p.name || 'Rider'}</span>
+                      <br />
+                      {p.availability === 'ON_DELIVERY' ? 'On delivery' : 'Online'}
+                      {p.at ? <><br />Updated {new Date(p.at).toLocaleTimeString()}</> : null}
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
             </div>
+            <p className="text-xs text-muted dark:text-dark-muted mt-2">Auto-refreshes every 10 seconds · showing up to 50 riders</p>
           </div>
         </div>
       )}

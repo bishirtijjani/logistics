@@ -17,7 +17,9 @@ const getPendingRiders = async (req, res, next) => {
 
 const reviewRider = async (req, res, next) => {
   try {
-    const result = await adminService.reviewRider(req.params.riderId, req.body.decision);
+    const result = await adminService.reviewRider(
+      req.params.riderId, req.body.decision, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Rider reviewed', result));
   } catch (error) {
     next(error);
@@ -495,6 +497,37 @@ const getAllRiders = async (req, res, next) => {
   }
 };
 
+const getRiderStats = async (req, res, next) => {
+  try {
+    const result = await adminService.getRiderStats();
+    res.json(ApiResponse.success('Rider stats', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const suspendRider = async (req, res, next) => {
+  try {
+    const result = await adminService.suspendRider(
+      req.params.riderId, req.body.reason, req.user.id, req.ip, req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Rider suspended', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const unsuspendRider = async (req, res, next) => {
+  try {
+    const result = await adminService.unsuspendRider(
+      req.params.riderId, req.user.id, req.ip, req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Rider unsuspended', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getRiderEarnings = async (req, res, next) => {
   try {
     const result = await adminService.getRiderEarnings(req.params.riderId, req.query);
@@ -711,7 +744,9 @@ const getDiscountCodes = async (req, res, next) => {
 
 const approveDiscountCode = async (req, res, next) => {
   try {
-    const result = await adminService.approveDiscountCode(req.params.discountId);
+    const result = await adminService.approveDiscountCode(
+      req.params.discountId, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Discount code approved', result));
   } catch (error) {
     next(error);
@@ -720,7 +755,9 @@ const approveDiscountCode = async (req, res, next) => {
 
 const rejectDiscountCode = async (req, res, next) => {
   try {
-    const result = await adminService.rejectDiscountCode(req.params.discountId, req.body.reason);
+    const result = await adminService.rejectDiscountCode(
+      req.params.discountId, req.body.reason, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Discount code rejected', result));
   } catch (error) {
     next(error);
@@ -803,6 +840,9 @@ module.exports = {
   deleteCategory,
   setMerchantTags,
   getAllRiders,
+  getRiderStats,
+  suspendRider,
+  unsuspendRider,
   getRiderEarnings,
   getRiderDeliveryHistory,
   getPlatformSettings,

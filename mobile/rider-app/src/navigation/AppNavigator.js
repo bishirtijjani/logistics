@@ -51,6 +51,7 @@ import BecomeRiderVehicleStep from "../features/onboarding/BecomeRiderVehicleSte
 import BecomeRiderDocumentsStep from "../features/onboarding/BecomeRiderDocumentsStep";
 import BecomeRiderReviewSubmitStep from "../features/onboarding/BecomeRiderReviewSubmitStep";
 import LocationPermissionRecoveryScreen from "../features/location/LocationPermissionRecoveryScreen";
+import LocationPickerScreen from "../features/location/LocationPickerScreen";
 
 import TripCockpitScreen from "../features/trip/TripCockpitScreen";
 
@@ -512,6 +513,7 @@ export default function AppNavigator() {
             <Stack.Screen name="BecomeRiderVehicle" component={BecomeRiderVehicleStep} />
             <Stack.Screen name="BecomeRiderDocuments" component={BecomeRiderDocumentsStep} />
             <Stack.Screen name="BecomeRiderReview" component={BecomeRiderReviewSubmitStep} />
+            <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
           </Stack.Group>
         ) : isPending ? (
           <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
@@ -521,6 +523,7 @@ export default function AppNavigator() {
             <Stack.Screen name="BecomeRiderVehicle" component={BecomeRiderVehicleStep} />
             <Stack.Screen name="BecomeRiderDocuments" component={BecomeRiderDocumentsStep} />
             <Stack.Screen name="BecomeRiderReview" component={BecomeRiderReviewSubmitStep} />
+            <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
           </Stack.Group>
         ) : needsPin ? (
           <Stack.Group>
@@ -549,6 +552,7 @@ export default function AppNavigator() {
               component={LocationPermissionRecoveryScreen}
               options={{ presentation: "modal" }}
             />
+            <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
             {/* Phase 7 — profile / settings / support / notifications */}
             <Stack.Screen name="NotificationsCenter" component={NotificationsCenterScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />

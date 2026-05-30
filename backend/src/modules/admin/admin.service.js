@@ -37,7 +37,7 @@ const getPendingRiders = async ({ page = 1, limit = 20 }) => {
 /**
  * Approve or reject a rider.
  */
-const reviewRider = async (riderId, decision) => {
+const reviewRider = async (riderId, decision, adminUserId, ipAddress, userAgent) => {
   const rider = await prisma.rider.findUnique({ where: { id: riderId } });
   if (!rider) throw AppError.notFound('Rider not found');
   if (rider.status !== 'PENDING_APPROVAL') {
@@ -50,6 +50,16 @@ const reviewRider = async (riderId, decision) => {
     where: { id: riderId },
     data: { status: newStatus },
   });
+
+  await createAuditLog(
+    adminUserId,
+    decision === 'approve' ? 'APPROVE_RIDER' : 'REJECT_RIDER',
+    'RIDER',
+    riderId,
+    { decision: newStatus },
+    ipAddress,
+    userAgent
+  );
 
   logger.info('Rider reviewed', { riderId, decision: newStatus });
 
@@ -1456,10 +1466,24 @@ const deleteCategory = async (categoryId, adminUserId, ipAddress, userAgent) => 
 /**
  * List all riders with filtering.
  */
-const getAllRiders = async ({ page = 1, limit = 20, status, availability }) => {
+const getAllRiders = async ({ page = 1, limit = 20, status, availability, search }) => {
+  // Each search term must match somewhere on the rider's user (name or phone),
+  // so multi-word queries like "john doe" match across firstName + lastName.
+  const terms = (search || '').split(/\s+/).filter(Boolean);
   const where = {
     ...(status && { status }),
     ...(availability && { availability }),
+    ...(terms.length > 0 && {
+      user: {
+        AND: terms.map((t) => ({
+          OR: [
+            { firstName: { contains: t, mode: 'insensitive' } },
+            { lastName: { contains: t, mode: 'insensitive' } },
+            { phone: { contains: t, mode: 'insensitive' } },
+          ],
+        })),
+      },
+    }),
   };
 
   const [riders, total] = await Promise.all([
@@ -1517,6 +1541,104 @@ const getRiderEarnings = async (riderId, { startDate, endDate }) => {
     completedDeliveries,
     totalEarnings: totalEarnings._sum.amount || 0,
   };
+};
+
+/**
+ * Aggregate rider counts for the admin Riders console KPI cards.
+ * One groupBy per dimension keeps it cheap; missing buckets default to 0.
+ */
+const getRiderStats = async () => {
+  const [byStatus, byAvailability, total] = await Promise.all([
+    prisma.rider.groupBy({ by: ['status'], _count: { _all: true } }),
+    prisma.rider.groupBy({ by: ['availability'], _count: { _all: true } }),
+    prisma.rider.count(),
+  ]);
+  const statusCount = (s) => byStatus.find((r) => r.status === s)?._count._all || 0;
+  const availCount = (a) => byAvailability.find((r) => r.availability === a)?._count._all || 0;
+  return {
+    total,
+    pending: statusCount('PENDING_APPROVAL'),
+    approved: statusCount('APPROVED'),
+    suspended: statusCount('SUSPENDED'),
+    rejected: statusCount('REJECTED'),
+    online: availCount('ONLINE'),
+    offline: availCount('OFFLINE'),
+    onDelivery: availCount('ON_DELIVERY'),
+  };
+};
+
+/**
+ * Suspend a rider. Mirrors merchant suspension: flips status to SUSPENDED,
+ * records the reason, and locks the rider's wallet so payouts pause. Riders
+ * share the generic Wallet (keyed by userId) — there is no RiderWallet.
+ */
+const suspendRider = async (riderId, reason, adminUserId, ipAddress, userAgent) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    include: { user: { select: { firstName: true, lastName: true } } },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+  if (rider.status === 'SUSPENDED') throw AppError.badRequest('Rider is already suspended');
+
+  const [updated] = await prisma.$transaction([
+    prisma.rider.update({
+      where: { id: riderId },
+      data: { status: 'SUSPENDED', suspensionReason: reason },
+    }),
+    prisma.wallet.updateMany({
+      where: { userId: rider.userId },
+      data: { isLocked: true },
+    }),
+  ]);
+
+  await createAuditLog(
+    adminUserId,
+    'SUSPEND_RIDER',
+    'RIDER',
+    riderId,
+    { riderName: `${rider.user?.firstName || ''} ${rider.user?.lastName || ''}`.trim(), reason },
+    ipAddress,
+    userAgent
+  );
+
+  logger.info('Rider suspended', { riderId, reason });
+  return updated;
+};
+
+/**
+ * Lift a rider suspension: restore APPROVED, clear the reason, unlock wallet.
+ */
+const unsuspendRider = async (riderId, adminUserId, ipAddress, userAgent) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    include: { user: { select: { firstName: true, lastName: true } } },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+  if (rider.status !== 'SUSPENDED') throw AppError.badRequest('Rider is not suspended');
+
+  const [updated] = await prisma.$transaction([
+    prisma.rider.update({
+      where: { id: riderId },
+      data: { status: 'APPROVED', suspensionReason: null },
+    }),
+    prisma.wallet.updateMany({
+      where: { userId: rider.userId },
+      data: { isLocked: false },
+    }),
+  ]);
+
+  await createAuditLog(
+    adminUserId,
+    'UNSUSPEND_RIDER',
+    'RIDER',
+    riderId,
+    { riderName: `${rider.user?.firstName || ''} ${rider.user?.lastName || ''}`.trim() },
+    ipAddress,
+    userAgent
+  );
+
+  logger.info('Rider unsuspended', { riderId });
+  return updated;
 };
 
 /**
@@ -2110,37 +2232,43 @@ const getDiscountCodes = async ({ page = 1, limit = 20, status }) => {
   return { discounts, total, page, limit };
 };
 
-const approveDiscountCode = async (discountId) => {
+const approveDiscountCode = async (discountId, adminUserId, ipAddress, userAgent) => {
   const discount = await prisma.discountCode.update({
     where: { id: discountId },
     data: { status: 'APPROVED' },
   });
 
-  await createAuditLog({
-    action: 'APPROVE_DISCOUNT',
-    entityType: 'DiscountCode',
-    entityId: discountId,
-    details: { code: discount.code },
-  });
+  await createAuditLog(
+    adminUserId,
+    'APPROVE_DISCOUNT',
+    'DiscountCode',
+    discountId,
+    { code: discount.code },
+    ipAddress,
+    userAgent
+  );
 
   return discount;
 };
 
-const rejectDiscountCode = async (discountId, reason) => {
+const rejectDiscountCode = async (discountId, reason, adminUserId, ipAddress, userAgent) => {
   const discount = await prisma.discountCode.update({
     where: { id: discountId },
-    data: { 
+    data: {
       status: 'REJECTED',
       rejectionReason: reason,
     },
   });
 
-  await createAuditLog({
-    action: 'REJECT_DISCOUNT',
-    entityType: 'DiscountCode',
-    entityId: discountId,
-    details: { code: discount.code, reason },
-  });
+  await createAuditLog(
+    adminUserId,
+    'REJECT_DISCOUNT',
+    'DiscountCode',
+    discountId,
+    { code: discount.code, reason },
+    ipAddress,
+    userAgent
+  );
 
   return discount;
 };
@@ -2149,55 +2277,43 @@ const rejectDiscountCode = async (discountId, reason) => {
 // Rider Operations
 // ============================================================
 
-const getRiderPerformance = async ({ page = 1, limit = 20, startDate, endDate }) => {
+const getRiderPerformance = async ({ page = 1, limit = 20 }) => {
   const skip = (page - 1) * limit;
-  const where = {
-    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
-    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
-  };
+  const where = { status: 'APPROVED' };
 
+  // Rank by the persisted performance counters on the Rider row. The previous
+  // implementation tried `_count: { deliveries: true }` but the relation is
+  // named `requests` (Prisma threw at runtime), and built a createdAt date
+  // filter it never applied — both removed in favour of the real metrics.
   const [riders, total] = await Promise.all([
     prisma.rider.findMany({
-      where: { status: 'APPROVED' },
+      where,
       include: {
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
-          },
-        },
-        _count: {
-          select: {
-            deliveries: true,
-          },
-        },
+        user: { select: { firstName: true, lastName: true, email: true } },
       },
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ totalDeliveries: 'desc' }, { averageRating: 'desc' }],
     }),
-    prisma.rider.count({ where: { status: 'APPROVED' } }),
+    prisma.rider.count({ where }),
   ]);
 
   return { riders, total, page, limit };
 };
 
 const getRiderRealtimeLocation = async () => {
+  // Riders currently online/on a delivery with a known last position. The
+  // previous query referenced non-existent columns (isAvailable/currentLat/
+  // currentLng) and threw; the real fields are availability + lastLat/lastLng.
   const riders = await prisma.rider.findMany({
     where: {
       status: 'APPROVED',
-      isAvailable: true,
-      currentLat: { not: null },
-      currentLng: { not: null },
+      availability: { in: ['ONLINE', 'ON_DELIVERY'] },
+      lastLat: { not: null },
+      lastLng: { not: null },
     },
     include: {
-      user: {
-        select: {
-          firstName: true,
-          lastName: true,
-        },
-      },
+      user: { select: { firstName: true, lastName: true } },
     },
     take: 50,
   });
@@ -2429,8 +2545,17 @@ module.exports = {
   updateCategoryAttributeSchema,
   deleteCategory,
   getAllRiders,
+  getRiderStats,
+  suspendRider,
+  unsuspendRider,
   getRiderEarnings,
   getRiderDeliveryHistory,
+  // Rider operations + safety/compliance (were defined but never exported,
+  // so these endpoints 500'd with "is not a function").
+  getRiderPerformance,
+  getRiderRealtimeLocation,
+  getSafetyIncidents,
+  getComplianceReport,
   getPlatformSettings,
   updatePlatformSettings,
   createAuditLog,

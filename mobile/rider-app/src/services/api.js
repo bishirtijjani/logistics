@@ -193,7 +193,12 @@ api.interceptors.response.use(
       : translateError(data, serverMessage);
     const code = data?.code || (isNetworkError ? 'NETWORK_ERROR' : null);
 
-    if (status !== 401 && status !== 423 && status !== 429) {
+    // Best-effort background calls (e.g. push-token registration) opt out of
+    // the global error toast by setting `suppressErrorToast` on their config —
+    // a transient failure there must not nag the rider with "Something went
+    // wrong", least of all right after they grant notification permission.
+    const suppressErrorToast = original?.suppressErrorToast === true;
+    if (status !== 401 && status !== 423 && status !== 429 && !suppressErrorToast) {
       Toast.show({
         type: 'error',
         text1: i18n.t('errors.title'),

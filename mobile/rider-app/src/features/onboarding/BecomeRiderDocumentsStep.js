@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import FormInput from "../../components/FormInput";
+import DatePickerField from "../../components/DatePickerField";
 import DocumentUploadTile from "../../components/DocumentUploadTile";
 import {
   onboardingDocumentSet,
@@ -169,14 +170,13 @@ export default function BecomeRiderDocumentsStep({ navigation }) {
           onChangeText={(text) => setDoc("driverLicenseNumber", text || null)}
           autoCapitalize="characters"
         />
-        <FormInput
+        <DatePickerField
           label="Expiry date"
           icon="calendar-outline"
-          placeholder="YYYY-MM-DD"
+          placeholder={t("onboarding.expiryPlaceholder", "Select expiry date")}
           value={docs.driverLicenseExpiresAt || ""}
-          onChangeText={(text) => setDoc("driverLicenseExpiresAt", text || null)}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
+          onChange={(v) => setDoc("driverLicenseExpiresAt", v || null)}
+          minDate={new Date()}
         />
         <DocumentUploadTile
           title="Licence photo"
@@ -192,14 +192,13 @@ export default function BecomeRiderDocumentsStep({ navigation }) {
         <Text style={{ fontSize: 13, fontWeight: "800", color: tokens.text.primary, marginBottom: 8, marginTop: 12, letterSpacing: 0.5 }}>
           3. VEHICLE PARTICULARS
         </Text>
-        <FormInput
+        <DatePickerField
           label="Expiry date"
           icon="calendar-outline"
-          placeholder="YYYY-MM-DD"
+          placeholder={t("onboarding.expiryPlaceholder", "Select expiry date")}
           value={docs.vehicleRegistrationExpiresAt || ""}
-          onChangeText={(text) => setDoc("vehicleRegistrationExpiresAt", text || null)}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
+          onChange={(v) => setDoc("vehicleRegistrationExpiresAt", v || null)}
+          minDate={new Date()}
         />
         <DocumentUploadTile
           title="Vehicle registration / particulars"
@@ -215,14 +214,13 @@ export default function BecomeRiderDocumentsStep({ navigation }) {
         <Text style={{ fontSize: 13, fontWeight: "800", color: tokens.text.primary, marginBottom: 8, marginTop: 12, letterSpacing: 0.5 }}>
           4. INSURANCE
         </Text>
-        <FormInput
+        <DatePickerField
           label="Expiry date"
           icon="calendar-outline"
-          placeholder="YYYY-MM-DD"
+          placeholder={t("onboarding.expiryPlaceholder", "Select expiry date")}
           value={docs.insuranceExpiresAt || ""}
-          onChangeText={(text) => setDoc("insuranceExpiresAt", text || null)}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
+          onChange={(v) => setDoc("insuranceExpiresAt", v || null)}
+          minDate={new Date()}
         />
         <DocumentUploadTile
           title="Third-party insurance certificate"

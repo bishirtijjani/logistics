@@ -70,9 +70,8 @@ export default function RequestsPage() {
     setNewRiderId('')
     setRiderSearch('')
     setShowReassignModal(true)
-    // Pull approved riders to choose from instead of forcing the admin to
-    // paste a raw rider ID. Limit kept high so the searchable list is complete.
-    dispatch(fetchAllRiders({ page: 1, limit: 200, status: 'APPROVED' }))
+    // The fetch is driven by the debounced effect below (fires on open with an
+    // empty search, then again as the admin types).
   }
 
   const closeReassignModal = () => {
@@ -90,16 +89,16 @@ export default function RequestsPage() {
     dispatch(fetchAllRequests({ page, limit: 20, ...filters }))
   }
 
-  const riderResults = riders.filter((r) => {
-    const q = riderSearch.trim().toLowerCase()
-    if (!q) return true
-    const name = `${r.user?.firstName || ''} ${r.user?.lastName || ''}`.toLowerCase()
-    return (
-      name.includes(q) ||
-      (r.user?.phone || '').toLowerCase().includes(q) ||
-      r.id.slice(-8).toLowerCase().includes(q)
-    )
-  })
+  // Server-side rider search: debounce the query so we hit the API ~300ms
+  // after the admin stops typing, not on every keystroke. Runs on modal open
+  // too (empty search → first page of approved riders).
+  useEffect(() => {
+    if (!showReassignModal) return
+    const handle = setTimeout(() => {
+      dispatch(fetchAllRiders({ page: 1, limit: 50, status: 'APPROVED', search: riderSearch.trim() }))
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [dispatch, showReassignModal, riderSearch])
 
   const handleForceCancel = async () => {
     if (!cancelReason.trim()) return
@@ -559,17 +558,19 @@ export default function RequestsPage() {
                 value={riderSearch}
                 onChange={(e) => setRiderSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                placeholder="Search by name, phone, or ID..."
+                placeholder="Search by name or phone..."
               />
             </div>
 
             <div className="max-h-64 overflow-y-auto border border-surface-muted dark:border-dark-surface-muted rounded-lg divide-y divide-surface-muted dark:divide-dark-surface-muted mb-4">
               {ridersLoading ? (
                 <div className="p-6 text-center text-sm text-muted dark:text-dark-muted">Loading riders...</div>
-              ) : riderResults.length === 0 ? (
-                <div className="p-6 text-center text-sm text-muted dark:text-dark-muted">No approved riders found</div>
+              ) : riders.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted dark:text-dark-muted">
+                  {riderSearch.trim() ? 'No riders match your search' : 'No approved riders found'}
+                </div>
               ) : (
-                riderResults.map((rider) => {
+                riders.map((rider) => {
                   const isSelected = newRiderId === rider.id
                   const isCurrent = selectedRequest?.rider?.id === rider.id
                   return (

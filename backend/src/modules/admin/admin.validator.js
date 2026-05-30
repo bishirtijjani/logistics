@@ -44,6 +44,16 @@ const reviewRiderSchema = z.object({
   decision: z.enum(['approve', 'reject']),
 });
 
+const suspendRiderSchema = z.object({
+  reason: z.string().min(1, 'Reason is required').max(500),
+});
+
+const unsuspendRiderSchema = z.object({});
+
+const forceOfflineRiderSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
 const updateCustomerStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']),
   reason: z.string().min(1).max(500).optional(),
@@ -312,6 +322,7 @@ const listAllRidersSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
   status: z.enum(['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTED']).optional(),
   availability: z.enum(['ONLINE', 'OFFLINE', 'ON_DELIVERY']).optional(),
+  search: z.string().trim().optional(),
 });
 
 const getRiderEarningsSchema = z.object({
@@ -364,6 +375,9 @@ module.exports = {
   updateAttributeSchemaSchema,
   listCategoriesSchema,
   listAllRidersSchema,
+  suspendRiderSchema,
+  unsuspendRiderSchema,
+  forceOfflineRiderSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,
 };

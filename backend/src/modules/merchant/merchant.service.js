@@ -443,6 +443,10 @@ const getMerchantProfile = async (merchantId, userId, role) => {
         },
       },
       wallet: true,
+      // The merchant's locked-in business category. Carries attributeSchema /
+      // hasPreparation so the dashboard can drive the product form without a
+      // second round-trip.
+      category: true,
     },
   });
 

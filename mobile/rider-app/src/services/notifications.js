@@ -83,7 +83,10 @@ export const registerPushToken = async () => {
 
   try {
     const token = (await Notifications.getExpoPushTokenAsync()).data;
-    await api.post('/auth/fcm-token', { fcmToken: token });
+    // Best-effort: opt out of the global error toast. This fires right after
+    // the rider grants notification permission — a failed registration should
+    // retry silently next launch, not surface "Something went wrong".
+    await api.post('/auth/fcm-token', { fcmToken: token }, { suppressErrorToast: true });
     return token;
   } catch (error) {
     console.warn('[Notifications] Token registration failed:', error.message);

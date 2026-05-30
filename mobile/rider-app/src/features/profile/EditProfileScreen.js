@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../theme";
 import { updateProfile, fetchProfile } from "../../store/slices/profileSlice";
+import DatePickerField from "../../components/DatePickerField";
 
 export default function EditProfileScreen() {
   const navigation = useNavigation();
@@ -131,23 +132,57 @@ export default function EditProfileScreen() {
             readOnly
             hint={t("edit.phoneNote", "Phone changes require verification — use 'Change phone number' in Security.")}
           />
-          <Field
-            tokens={tokens}
+          <DatePickerField
             label={t("edit.dob", "Date of birth")}
             icon="calendar-outline"
             value={dateOfBirth}
-            placeholder="YYYY-MM-DD"
-            onChangeText={onChange(setDateOfBirth)}
-            editable={!isUpdating}
+            placeholder={t("edit.dobPlaceholder", "Select your date of birth")}
+            onChange={onChange(setDateOfBirth)}
+            maxDate={new Date()}
+            disabled={isUpdating}
           />
-          <Field
-            tokens={tokens}
-            label={t("edit.address", "Address")}
-            icon="location-outline"
-            value={address}
-            onChangeText={onChange(setAddress)}
-            editable={!isUpdating}
-          />
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6 }}>
+              {t("edit.address", "Address")}
+            </Text>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("LocationPicker", {
+                  initial: address ? { address } : null,
+                  onSelect: (sel) => { setAddress(sel.address); setDirty(true); },
+                })
+              }
+              disabled={isUpdating}
+              accessibilityRole="button"
+              accessibilityLabel={t("edit.address", "Address")}
+              activeOpacity={0.7}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: tokens.bg.surface,
+                borderWidth: 1,
+                borderColor: tokens.border.default,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 13,
+                opacity: isUpdating ? 0.6 : 1,
+              }}
+            >
+              <Ionicons
+                name="location-outline"
+                size={18}
+                color={address ? tokens.brand.default : tokens.text.muted}
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 15, color: address ? tokens.text.primary : tokens.text.placeholder }}
+              >
+                {address || t("edit.addressPlaceholder", "Pick your address on the map")}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             onPress={onSave}

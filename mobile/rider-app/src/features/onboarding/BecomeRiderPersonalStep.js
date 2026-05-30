@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
-import FormInput from "../../components/FormInput";
+import DatePickerField from "../../components/DatePickerField";
 import {
   onboardingPersonalSet,
   onboardingStepSet,
@@ -22,6 +22,12 @@ import { useTheme } from "../../theme";
 import { ageFromDob, isValidPastDate } from "../../lib/time";
 
 const MIN_RIDER_AGE = 16;
+
+/** Latest birth date that still satisfies the minimum rider age. */
+function maxDobString() {
+  const now = new Date();
+  return `${now.getFullYear() - MIN_RIDER_AGE}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
 
 /**
  * Step 0/3 — Personal info.
@@ -35,7 +41,6 @@ export default function BecomeRiderPersonalStep({ navigation }) {
   const { tokens } = useTheme();
   const user = useSelector((s) => s.auth?.user);
   const draftPersonal = useSelector((s) => s.onboarding?.draft?.personal);
-  const addressRef = useRef(null);
 
   const schema = useMemo(
     () =>
@@ -149,19 +154,15 @@ export default function BecomeRiderPersonalStep({ navigation }) {
         <Controller
           control={control}
           name="dob"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <FormInput
+          render={({ field: { onChange, value } }) => (
+            <DatePickerField
               label={t("onboarding.dobLabel", "Date of birth")}
               icon="calendar-outline"
-              placeholder="YYYY-MM-DD"
-              onBlur={onBlur}
-              onChangeText={onChange}
+              placeholder={t("onboarding.dobPlaceholder", "Select your date of birth")}
               value={value}
+              onChange={onChange}
               error={errors.dob?.message}
-              keyboardType="numbers-and-punctuation"
-              autoCapitalize="none"
-              returnKeyType="next"
-              onSubmitEditing={() => addressRef.current?.focus()}
+              maxDate={maxDobString()}
             />
           )}
         />
@@ -169,19 +170,57 @@ export default function BecomeRiderPersonalStep({ navigation }) {
         <Controller
           control={control}
           name="address"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <FormInput
-              ref={addressRef}
-              label={t("onboarding.addressLabel", "Home address")}
-              icon="location-outline"
-              placeholder={t("onboarding.addressPlaceholder", "House, street, area")}
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              error={errors.address?.message}
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit(onSubmit)}
-            />
+          render={({ field: { onChange, value } }) => (
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ fontSize: 12, fontWeight: "600", marginBottom: 6, marginLeft: 2, color: tokens.text.muted }}>
+                {t("onboarding.addressLabel", "Home address")}
+              </Text>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("LocationPicker", {
+                    initial: value ? { address: value } : null,
+                    onSelect: (sel) => onChange(sel.address),
+                  })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={t("onboarding.addressLabel", "Home address")}
+                activeOpacity={0.7}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: tokens.bg.surface,
+                  paddingHorizontal: 16,
+                  paddingVertical: 16,
+                  borderRadius: 12,
+                  borderWidth: 2,
+                  borderColor: errors.address ? tokens.status.error : tokens.border.default,
+                }}
+              >
+                <Ionicons
+                  name="location-outline"
+                  size={18}
+                  color={value ? tokens.brand.default : tokens.text.placeholder}
+                  style={{ marginRight: 10 }}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    flex: 1,
+                    fontSize: 16,
+                    fontWeight: "500",
+                    color: value ? tokens.text.primary : tokens.text.placeholder,
+                  }}
+                >
+                  {value || t("onboarding.addressPlaceholder", "Pick your address on the map")}
+                </Text>
+                <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+              </TouchableOpacity>
+              {errors.address ? (
+                <Text style={{ fontSize: 12, marginTop: 6, marginLeft: 2, fontWeight: "500", color: tokens.status.error }}>
+                  {errors.address.message}
+                </Text>
+              ) : null}
+            </View>
           )}
         />
 

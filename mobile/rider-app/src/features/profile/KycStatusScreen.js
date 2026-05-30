@@ -18,7 +18,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
-  TextInput,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,6 +31,7 @@ import { uploadToCloudinary } from "../../services/cloudinary";
 import { pickImage } from "../support/supportUploads";
 import { reuploadRiderDocument } from "../../store/slices/profileSlice";
 import { fetchRiderProfile } from "../../store/slices/riderSlice";
+import DatePickerField from "../../components/DatePickerField";
 
 const WARN_WINDOW_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -400,21 +400,14 @@ export default function KycStatusScreen() {
               <>
                 <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6 }}>
                   {activeTile.requireExpiry
-                    ? t("kyc.expiryLabel", "Expiry date (YYYY-MM-DD)")
+                    ? t("kyc.expiryLabel", "Expiry date")
                     : t("kyc.expiryLabelOptional", "Expiry date (optional)")}
                 </Text>
-                <TextInput
+                <DatePickerField
                   value={expiryInput}
-                  onChangeText={setExpiryInput}
-                  placeholder="2027-12-31"
-                  placeholderTextColor={tokens.text.placeholder}
-                  keyboardType="numbers-and-punctuation"
-                  style={{
-                    backgroundColor: tokens.bg.surfaceMuted,
-                    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
-                    fontSize: 14, color: tokens.text.primary,
-                    marginBottom: 14,
-                  }}
+                  onChange={setExpiryInput}
+                  placeholder={t("kyc.expiryPlaceholder", "Select expiry date")}
+                  minDate={new Date()}
                 />
                 {!activeTile.requireExpiry ? (
                   <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: -8, marginBottom: 14 }}>

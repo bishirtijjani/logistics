@@ -20,6 +20,9 @@ export default function OnboardingWizard({ open, onClose }) {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
+  // The merchant's fixed business category (chosen at signup) — products are
+  // tagged with it silently; the merchant never picks a category here.
+  const merchantCategorySlug = useSelector((state) => state.settings.settings?.category?.slug)
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
 
@@ -39,7 +42,6 @@ export default function OnboardingWizard({ open, onClose }) {
     name: '',
     description: '',
     price: '',
-    category: '',
     stock: ''
   })
 
@@ -134,7 +136,8 @@ export default function OnboardingWizard({ open, onClose }) {
           name: productData.name,
           description: productData.description,
           price: parseFloat(productData.price),
-          category: productData.category || 'General',
+          // Bound to the merchant's business category, not a free-text guess.
+          category: merchantCategorySlug || 'General',
           stock: parseInt(productData.stock) || 100,
           isAvailable: true
         })
@@ -146,7 +149,7 @@ export default function OnboardingWizard({ open, onClose }) {
 
       showSuccessToast('Product added successfully!')
       setOnboardingData({ ...onboardingData, hasAddedProduct: true })
-      setProductData({ name: '', description: '', price: '', category: '', stock: '' })
+      setProductData({ name: '', description: '', price: '', stock: '' })
     } catch (err) {
       showErrorToast('Failed to add product. Please try again.')
     } finally {
@@ -312,18 +315,6 @@ export default function OnboardingWizard({ open, onClose }) {
                   className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
                 />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                Category
-              </label>
-              <input
-                type="text"
-                value={productData.category}
-                onChange={(e) => setProductData({ ...productData, category: e.target.value })}
-                placeholder="e.g., Rice, Drinks, etc."
-                className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
-              />
             </div>
           </div>
           <button
