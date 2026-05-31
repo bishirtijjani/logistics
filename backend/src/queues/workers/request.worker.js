@@ -380,12 +380,16 @@ const settleRequest = async (job) => {
       });
     }
 
-    // Credit merchant wallet (if applicable)
+    // Credit merchant wallet (if applicable).
+    // Earnings land directly in availableBalance so the merchant can withdraw
+    // them immediately after delivery. pendingBalance is reserved exclusively
+    // for withdrawals that are mid-flight (requested → not yet paid out); see
+    // requestMerchantWithdrawal / approveWithdrawal / the payout webhook.
     if (request.merchant && request.merchant.merchantWallet && merchantEarning > 0) {
       await tx.merchantWallet.update({
         where: { merchantId: request.merchantId },
         data: {
-          pendingBalance: { increment: merchantEarning },
+          availableBalance: { increment: merchantEarning },
           totalEarnings: { increment: merchantEarning },
         },
       });

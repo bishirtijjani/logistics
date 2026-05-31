@@ -1002,6 +1002,33 @@ const setWithdrawalHold = async (merchantId, held, holdReason, adminUserId, ipAd
 };
 
 /**
+ * Admin sets / updates a merchant's payout bank account on their behalf
+ * (support flows). Reuses the merchant-side save, which resolves and verifies
+ * the account name against the bank before storing it.
+ */
+const setMerchantBankAccount = async (merchantId, { bankCode, accountNumber, accountName }, adminUserId, ipAddress, userAgent) => {
+  const merchantService = require('../merchant/merchant.service');
+  const saved = await merchantService.saveMerchantBankAccount(merchantId, adminUserId, 'ADMIN', {
+    bankCode,
+    accountNumber,
+    accountName,
+  });
+
+  await createAuditLog(
+    adminUserId,
+    'UPDATE_MERCHANT_BANK_ACCOUNT',
+    'MERCHANT',
+    merchantId,
+    { bankCode, accountNumber, verified: saved.verified },
+    ipAddress,
+    userAgent,
+  );
+
+  logger.info('Admin updated merchant bank account', { merchantId, verified: saved.verified });
+  return saved;
+};
+
+/**
  * Bulk approve multiple pending withdrawals.
  */
 const bulkApproveWithdrawals = async (withdrawalIds, adminUserId, ipAddress, userAgent) => {
@@ -2532,6 +2559,7 @@ module.exports = {
   updateMerchantProfile,
   getMerchantCommissionHistory,
   setWithdrawalHold,
+  setMerchantBankAccount,
   bulkApproveWithdrawals,
   getMerchantAnalytics,
   getAllTags,

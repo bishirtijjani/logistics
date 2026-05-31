@@ -381,12 +381,43 @@ const requestMerchantWithdrawal = async (req, res, next) => {
     const { merchantId } = req.params;
     const userId = req.user.id;
     const role = req.user.role;
-    const { amount, bankAccount } = req.body;
+    const { amount } = req.body;
 
-    const withdrawal = await merchantService.requestMerchantWithdrawal(merchantId, userId, role, { amount, bankAccount });
+    const withdrawal = await merchantService.requestMerchantWithdrawal(merchantId, userId, role, { amount });
 
     res.json(
       ApiResponse.success('Withdrawal requested', withdrawal)
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMerchantBankAccount = async (req, res, next) => {
+  try {
+    const { merchantId } = req.params;
+    const account = await merchantService.getMerchantBankAccount(merchantId, req.user.id, req.user.role);
+
+    res.json(
+      ApiResponse.success('Bank account retrieved', account)
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+const saveMerchantBankAccount = async (req, res, next) => {
+  try {
+    const { merchantId } = req.params;
+    const { bankCode, accountNumber, accountName } = req.body;
+    const account = await merchantService.saveMerchantBankAccount(merchantId, req.user.id, req.user.role, {
+      bankCode,
+      accountNumber,
+      accountName,
+    });
+
+    res.json(
+      ApiResponse.success('Bank account saved', account)
     );
   } catch (error) {
     next(error);
@@ -662,6 +693,8 @@ module.exports = {
   rejectMerchantOrder,
   updateMerchantOrderStatus,
   requestMerchantWithdrawal,
+  getMerchantBankAccount,
+  saveMerchantBankAccount,
   getMerchantProducts,
   createMerchantProduct,
   updateMerchantProduct,

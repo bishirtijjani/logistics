@@ -20,6 +20,7 @@ const {
   rejectOrderSchema,
   updateOrderStatusSchema,
   requestWithdrawalSchema,
+  saveBankAccountSchema,
   merchantProductsSchema,
   createProductSchema,
   updateProductSchema,
@@ -110,6 +111,10 @@ router.patch('/merchant/:merchantId/orders/:requestId/status', authorize('MERCHA
 // Merchant wallet
 router.get('/merchant/:merchantId/wallet', authorize('MERCHANT'), merchantController.getMerchantWallet);
 router.post('/merchant/:merchantId/wallet/withdraw', authorize('MERCHANT'), validate(requestWithdrawalSchema), merchantController.requestMerchantWithdrawal);
+
+// Merchant payout bank account (saved once, reused for every withdrawal)
+router.get('/merchant/:merchantId/bank-account', authorize('MERCHANT'), merchantController.getMerchantBankAccount);
+router.put('/merchant/:merchantId/bank-account', authorize('MERCHANT'), validate(saveBankAccountSchema), merchantController.saveMerchantBankAccount);
 
 // Merchant products
 router.get('/merchant/:merchantId/products', authorize('MERCHANT'), validate(merchantProductsSchema, 'query'), merchantController.getMerchantProducts);

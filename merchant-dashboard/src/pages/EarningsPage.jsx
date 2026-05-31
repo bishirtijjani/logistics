@@ -6,6 +6,10 @@ import {
   fetchWallet,
   requestWithdrawal,
   fetchBankList,
+  fetchBankAccount,
+  resolveBankAccount,
+  saveBankAccount,
+  clearResolvedAccount,
 } from "../store/slices/earningsSlice.js";
 import {
   Wallet,
@@ -26,6 +30,9 @@ import {
   CheckCircle,
   XCircle,
   X,
+  Landmark,
+  ShieldCheck,
+  Pencil,
 } from "lucide-react";
 import { format } from "date-fns";
 import { showErrorToast, showSuccessToast } from "../utils/toast.js";
@@ -37,31 +44,40 @@ export default function EarningsPage() {
   const merchantId = user?.merchantId;
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { wallet, loading, banks, banksLoading } = useSelector(
-    (state) => state.earnings,
-  );
+  const {
+    wallet,
+    loading,
+    banks,
+    banksLoading,
+    bankAccount,
+    bankAccountLoading,
+    resolvedAccount,
+    resolving,
+    saving,
+  } = useSelector((state) => state.earnings);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawalForm, setWithdrawalForm] = useState({
     amount: "",
+  });
+  // Bank-account setup form (saved once, reused for every withdrawal).
+  const [bankForm, setBankForm] = useState({
     bankCode: "",
     accountNumber: "",
-    accountName: "",
   });
+  const [editingBank, setEditingBank] = useState(false);
+  const [bankNudgeDismissed, setBankNudgeDismissed] = useState(
+    () => localStorage.getItem("iprime_merchant_bank_nudge_dismissed") === "1",
+  );
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionDetails, setShowTransactionDetails] = useState(false);
-  const [savedBankAccounts, setSavedBankAccounts] = useState([]);
-  const [showSavedAccounts, setShowSavedAccounts] = useState(false);
   const [withdrawalHistory, setWithdrawalHistory] = useState([]);
   const [showWithdrawalHistory, setShowWithdrawalHistory] = useState(false);
-  const [withdrawalLimits, setWithdrawalLimits] = useState({
+  const [withdrawalLimits] = useState({
     dailyLimit: 500000,
     monthlyLimit: 5000000,
     minAmount: 1000,
     maxAmount: 1000000,
-    instantWithdrawalFee: 0.02, // 2%
-    standardWithdrawalFee: 0,
   });
-  const [instantWithdrawal, setInstantWithdrawal] = useState(false);
 
   // Dispute state variables
   const [showDisputeModal, setShowDisputeModal] = useState(false);
@@ -123,11 +139,17 @@ export default function EarningsPage() {
   useEffect(() => {
     dispatch(fetchWallet({ merchantId }));
     dispatch(fetchBankList());
+    dispatch(fetchBankAccount({ merchantId }));
   }, [dispatch, merchantId]);
 
   const handleWithdrawal = async (e) => {
     e.preventDefault();
     const amount = parseFloat(withdrawalForm.amount);
+
+    if (!bankAccount) {
+      showErrorToast("Add a bank account before requesting a withdrawal");
+      return;
+    }
 
     // Validate withdrawal limits
     if (amount < withdrawalLimits.minAmount) {
@@ -144,66 +166,38 @@ export default function EarningsPage() {
       return;
     }
 
-    // Calculate fees
-    const feeAmount = instantWithdrawal
-      ? amount * withdrawalLimits.instantWithdrawalFee
-      : withdrawalLimits.standardWithdrawalFee;
-    const totalAmount = amount + feeAmount;
-
-    if (totalAmount > (wallet?.availableBalance || 0)) {
-      showErrorToast("Insufficient balance for withdrawal including fees");
+    if (amount > (wallet?.availableBalance || 0)) {
+      showErrorToast("Insufficient available balance");
       return;
     }
 
     try {
-      const withdrawalData = {
-        merchantId,
-        amount,
-        bankCode: withdrawalForm.bankCode,
-        accountNumber: withdrawalForm.accountNumber,
-        accountName: withdrawalForm.accountName,
-      };
+      await dispatch(requestWithdrawal({ merchantId, amount })).unwrap();
 
-      await dispatch(requestWithdrawal(withdrawalData)).unwrap();
-
-      // Add to withdrawal history
+      // Add to withdrawal history (client-side, optimistic)
       const newWithdrawal = {
         id: Date.now(),
         amount,
-        fee: feeAmount,
-        totalAmount,
         status: "PENDING",
-        bankCode: withdrawalForm.bankCode,
+        bankCode: bankAccount.bankCode,
         bankName:
-          (Array.isArray(banks) ? banks : []).find((b) => b.code === withdrawalForm.bankCode)?.name ||
-          withdrawalForm.bankCode,
-        accountNumber: withdrawalForm.accountNumber,
-        accountName: withdrawalForm.accountName,
+          (Array.isArray(banks) ? banks : []).find(
+            (b) => (b.code || b.bankCode) === bankAccount.bankCode,
+          )?.name || bankAccount.bankCode,
+        accountNumber: bankAccount.accountNumber,
+        accountName: bankAccount.accountName,
         createdAt: new Date().toISOString(),
-        estimatedProcessingTime: instantWithdrawal
-          ? "5-10 minutes"
-          : "24-48 hours",
       };
 
       setWithdrawalHistory([newWithdrawal, ...withdrawalHistory]);
 
       setShowWithdrawModal(false);
-      setWithdrawalForm({
-        amount: "",
-        bankCode: "",
-        accountNumber: "",
-        accountName: "",
-      });
-      setInstantWithdrawal(false);
+      setWithdrawalForm({ amount: "" });
       dispatch(fetchWallet({ merchantId }));
 
-      showSuccessToast(
-        instantWithdrawal
-          ? "Instant withdrawal request submitted - processing within 5-10 minutes"
-          : "Withdrawal request submitted successfully - processing within 24-48 hours",
-      );
+      showSuccessToast("Withdrawal request submitted. You'll be paid once it's approved.");
     } catch (err) {
-      showErrorToast("Failed to request withdrawal. Please try again.");
+      showErrorToast(err?.message || "Failed to request withdrawal. Please try again.");
     }
   };
 
@@ -236,12 +230,6 @@ export default function EarningsPage() {
         showErrorToast("Failed to cancel withdrawal request");
       }
     }
-  };
-
-  const calculateWithdrawalFee = (amount) => {
-    return instantWithdrawal
-      ? amount * withdrawalLimits.instantWithdrawalFee
-      : withdrawalLimits.standardWithdrawalFee;
   };
 
   const getWithdrawalStatusColor = (status) => {
@@ -311,35 +299,62 @@ Thank you for your business!
     showSuccessToast("Receipt downloaded successfully");
   };
 
-  const handleSaveBankAccount = () => {
-    if (
-      withdrawalForm.bankCode &&
-      withdrawalForm.accountNumber &&
-      withdrawalForm.accountName
-    ) {
-      const newAccount = {
-        id: Date.now(),
-        bankCode: withdrawalForm.bankCode,
-        bankName:
-          (Array.isArray(banks) ? banks : []).find((b) => (b.code || b.bankCode) === withdrawalForm.bankCode)
-            ?.name || withdrawalForm.bankCode,
-        accountNumber: withdrawalForm.accountNumber,
-        accountName: withdrawalForm.accountName,
-        isDefault: savedBankAccounts.length === 0,
-      };
-      setSavedBankAccounts([...savedBankAccounts, newAccount]);
-      showSuccessToast("Bank account saved successfully");
+  const bankNameForCode = (code) =>
+    (Array.isArray(banks) ? banks : []).find(
+      (b) => (b.code || b.bankCode) === code,
+    )?.name || code;
+
+  // Verify the account number against the selected bank, surfacing the real
+  // account name before the merchant commits to saving it.
+  const handleResolveAccount = async () => {
+    if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
+      showErrorToast("Select a bank and enter a 10-digit account number");
+      return;
+    }
+    try {
+      await dispatch(
+        resolveBankAccount({
+          bankCode: bankForm.bankCode,
+          accountNumber: bankForm.accountNumber,
+        }),
+      ).unwrap();
+    } catch (err) {
+      showErrorToast(
+        err?.message ||
+          "Couldn't verify that account. Check the details and try again.",
+      );
     }
   };
 
-  const handleUseSavedAccount = (account) => {
-    setWithdrawalForm({
-      ...withdrawalForm,
-      bankCode: account.bankCode || account.bankName,
-      accountNumber: account.accountNumber,
-      accountName: account.accountName,
+  const handleSaveBank = async () => {
+    if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
+      showErrorToast("Select a bank and enter a 10-digit account number");
+      return;
+    }
+    try {
+      await dispatch(
+        saveBankAccount({
+          merchantId,
+          bankCode: bankForm.bankCode,
+          accountNumber: bankForm.accountNumber,
+          accountName: resolvedAccount?.accountName,
+        }),
+      ).unwrap();
+      setEditingBank(false);
+      setBankForm({ bankCode: "", accountNumber: "" });
+      showSuccessToast("Bank account saved");
+    } catch (err) {
+      showErrorToast(err?.message || "Failed to save bank account");
+    }
+  };
+
+  const startEditingBank = () => {
+    dispatch(clearResolvedAccount());
+    setBankForm({
+      bankCode: bankAccount?.bankCode || "",
+      accountNumber: bankAccount?.accountNumber || "",
     });
-    setShowSavedAccounts(false);
+    setEditingBank(true);
   };
 
   // Dispute handling functions
@@ -1523,6 +1538,46 @@ Thank you for your business!
         </>
       ) : wallet ? (
         <>
+          {/* One-time nudge: prompt merchants who haven't added a payout bank account */}
+          {!bankAccountLoading && !bankAccount && !bankNudgeDismissed && (
+            <div className="flex items-start gap-3 rounded-xl border border-yellow-300 dark:border-yellow-900/50 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+              <Landmark className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold text-yellow-900 dark:text-yellow-200">
+                  Add your payout bank account
+                </p>
+                <p className="text-sm text-yellow-800 dark:text-yellow-300 mt-0.5">
+                  Set up the bank account where your earnings are paid. You only
+                  need to do this once.
+                </p>
+                <button
+                  onClick={() => {
+                    document
+                      .getElementById("payout-bank-account")
+                      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors"
+                >
+                  <Landmark className="w-4 h-4" />
+                  Set up now
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem(
+                    "iprime_merchant_bank_nudge_dismissed",
+                    "1",
+                  );
+                  setBankNudgeDismissed(true);
+                }}
+                className="p-1 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 rounded"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Enhanced Wallet Balance Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-gradient-to-br from-primary to-primary-700 rounded-xl p-6 text-white">
@@ -1544,7 +1599,7 @@ Thank you for your business!
                 ₦{wallet.pendingBalance?.toLocaleString() || "0"}
               </p>
               <p className="text-zinc-300 mt-2 text-sm">
-                Awaiting settlement
+                Withdrawals in progress
               </p>
             </div>
             <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white">
@@ -1555,6 +1610,7 @@ Thank you for your business!
               <p className="text-4xl font-bold">
                 ₦
                 {(
+                  wallet.totalEarnings ??
                   (wallet.availableBalance || 0) + (wallet.pendingBalance || 0)
                 ).toLocaleString()}
               </p>
@@ -1612,6 +1668,149 @@ Thank you for your business!
               <ArrowUpRight className="w-5 h-5" />
               Request Withdrawal
             </button>
+          </div>
+
+          {/* Payout Bank Account */}
+          <div
+            id="payout-bank-account"
+            className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Landmark className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold text-text dark:text-dark-text">
+                  Payout Bank Account
+                </h3>
+              </div>
+              {bankAccount && !editingBank && (
+                <button
+                  onClick={startEditingBank}
+                  className="flex items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Change
+                </button>
+              )}
+            </div>
+
+            {bankAccount && !editingBank ? (
+              <div className="flex items-center justify-between rounded-lg border border-surface-muted dark:border-dark-surface-muted p-4">
+                <div>
+                  <p className="font-semibold text-text dark:text-dark-text">
+                    {bankAccount.accountName}
+                  </p>
+                  <p className="text-sm text-muted dark:text-dark-muted">
+                    {bankNameForCode(bankAccount.bankCode)} · ****
+                    {bankAccount.accountNumber?.slice(-4)}
+                  </p>
+                </div>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Verified
+                </span>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-muted dark:text-dark-muted">
+                  This is where your withdrawals are paid. We verify the account
+                  name with the bank before saving it.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+                    Bank
+                  </label>
+                  <select
+                    value={bankForm.bankCode}
+                    onChange={(e) => {
+                      dispatch(clearResolvedAccount());
+                      setBankForm({ ...bankForm, bankCode: e.target.value });
+                    }}
+                    disabled={banksLoading}
+                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
+                  >
+                    <option value="">
+                      {banksLoading ? "Loading banks…" : "Select a bank"}
+                    </option>
+                    {(Array.isArray(banks) ? banks : []).map((bank) => (
+                      <option
+                        key={bank.code || bank.bankCode}
+                        value={bank.code || bank.bankCode}
+                      >
+                        {bank.name || bank.bankName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+                    Account Number
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={bankForm.accountNumber}
+                    onChange={(e) => {
+                      dispatch(clearResolvedAccount());
+                      setBankForm({
+                        ...bankForm,
+                        accountNumber: e.target.value.replace(/\D/g, ""),
+                      });
+                    }}
+                    placeholder="10-digit account number"
+                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
+                  />
+                </div>
+
+                {resolvedAccount?.accountName && (
+                  <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 p-3">
+                    <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                      {resolvedAccount.accountName}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleResolveAccount}
+                    disabled={
+                      resolving ||
+                      !bankForm.bankCode ||
+                      bankForm.accountNumber.length !== 10
+                    }
+                    className="px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {resolving ? "Verifying…" : "Verify account"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveBank}
+                    disabled={
+                      saving ||
+                      !bankForm.bankCode ||
+                      bankForm.accountNumber.length !== 10
+                    }
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {saving ? "Saving…" : "Save bank account"}
+                  </button>
+                  {bankAccount && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingBank(false);
+                        dispatch(clearResolvedAccount());
+                      }}
+                      className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Date Range Filter */}
@@ -1900,72 +2099,6 @@ Thank you for your business!
                     Min: ₦{withdrawalLimits.minAmount.toLocaleString()} | Max: ₦
                     {withdrawalLimits.maxAmount.toLocaleString()}
                   </p>
-                  {withdrawalForm.amount && (
-                    <p className="text-xs text-primary dark:text-primary">
-                      Fee: ₦
-                      {calculateWithdrawalFee(
-                        parseFloat(withdrawalForm.amount) || 0,
-                      ).toLocaleString()}
-                      {instantWithdrawal &&
-                        ` (${(withdrawalLimits.instantWithdrawalFee * 100).toFixed(0)}%)`}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Withdrawal Type Selection */}
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Withdrawal Type
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center p-3 border border-surface-muted dark:border-dark-surface-muted rounded-lg cursor-pointer hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
-                    <input
-                      type="radio"
-                      name="withdrawalType"
-                      checked={!instantWithdrawal}
-                      onChange={() => setInstantWithdrawal(false)}
-                      className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted focus:ring-primary"
-                    />
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-text dark:text-dark-text">
-                          Standard Withdrawal
-                        </span>
-                        <span className="text-sm text-success dark:text-success">
-                          Free
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted dark:text-dark-muted">
-                        Processing time: 24-48 hours
-                      </p>
-                    </div>
-                  </label>
-                  <label className="flex items-center p-3 border border-surface-muted dark:border-dark-surface-muted rounded-lg cursor-pointer hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
-                    <input
-                      type="radio"
-                      name="withdrawalType"
-                      checked={instantWithdrawal}
-                      onChange={() => setInstantWithdrawal(true)}
-                      className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted focus:ring-primary"
-                    />
-                    <div className="ml-3 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-text dark:text-dark-text">
-                          Instant Withdrawal
-                        </span>
-                        <span className="text-sm text-orange-600 dark:text-orange-400">
-                          {(
-                            withdrawalLimits.instantWithdrawalFee * 100
-                          ).toFixed(0)}
-                          % fee
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted dark:text-dark-muted">
-                        Processing time: 5-10 minutes
-                      </p>
-                    </div>
-                  </label>
                 </div>
               </div>
 
@@ -1994,150 +2127,41 @@ Thank you for your business!
                 </div>
               </div>
 
-              {/* Saved Bank Accounts */}
-              {savedBankAccounts.length > 0 && (
+              {/* Destination account — managed in the Payout Bank Account card */}
+              {bankAccount ? (
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-text dark:text-dark-text">
-                      Saved Bank Accounts
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowSavedAccounts(!showSavedAccounts)}
-                      className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                    >
-                      {showSavedAccounts ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                  {showSavedAccounts && (
-                    <div className="space-y-2 mb-4">
-                      {savedBankAccounts.map((account) => (
-                        <div
-                          key={account.id}
-                          onClick={() => handleUseSavedAccount(account)}
-                          className="p-3 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted cursor-pointer transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-text dark:text-dark-text">
-                                {account.bankName}
-                              </p>
-                              <p className="text-sm text-muted dark:text-dark-muted">
-                                {account.accountName}
-                              </p>
-                              <p className="text-xs text-muted dark:text-dark-muted">
-                                ****{account.accountNumber.slice(-4)}
-                              </p>
-                            </div>
-                            {account.isDefault && (
-                              <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded">
-                                Default
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+                    Paid to
+                  </label>
+                  <div className="flex items-center gap-2 rounded-lg border border-surface-muted dark:border-dark-surface-muted p-3">
+                    <Landmark className="w-4 h-4 text-primary shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-text dark:text-dark-text">
+                        {bankAccount.accountName}
+                      </p>
+                      <p className="text-muted dark:text-dark-muted">
+                        {bankNameForCode(bankAccount.bankCode)} · ****
+                        {bankAccount.accountNumber?.slice(-4)}
+                      </p>
                     </div>
-                  )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/40 p-3">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                    Add a payout bank account first — use the Payout Bank Account
+                    section on this page, then come back to withdraw.
+                  </p>
                 </div>
               )}
-
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
-                  Bank
-                </label>
-                <select
-                  required
-                  value={withdrawalForm.bankCode}
-                  onChange={(e) =>
-                    setWithdrawalForm({
-                      ...withdrawalForm,
-                      bankCode: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
-                  disabled={banksLoading}
-                >
-                  <option value="">
-                    {banksLoading ? "Loading banks…" : "Select a bank"}
-                  </option>
-                  {(Array.isArray(banks) ? banks : []).map((bank) => (
-                    <option
-                      key={bank.code || bank.bankCode}
-                      value={bank.code || bank.bankCode}
-                    >
-                      {bank.name || bank.bankName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
-                  Account Number
-                </label>
-                <input
-                  type="text"
-                  required
-                  minLength="10"
-                  value={withdrawalForm.accountNumber}
-                  onChange={(e) =>
-                    setWithdrawalForm({
-                      ...withdrawalForm,
-                      accountNumber: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
-                  Account Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={withdrawalForm.accountName}
-                  onChange={(e) =>
-                    setWithdrawalForm({
-                      ...withdrawalForm,
-                      accountName: e.target.value,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
-                />
-              </div>
-
-              {/* Save Bank Account Checkbox */}
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="saveAccount"
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      handleSaveBankAccount();
-                    }
-                  }}
-                  className="w-4 h-4 text-primary border-surface-muted dark:border-dark-surface-muted rounded focus:ring-primary"
-                />
-                <label
-                  htmlFor="saveAccount"
-                  className="ml-2 text-sm text-text dark:text-dark-text"
-                >
-                  Save this bank account for future withdrawals
-                </label>
-              </div>
 
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setShowWithdrawModal(false);
-                    setWithdrawalForm({
-                      amount: "",
-                      bankCode: "",
-                      accountNumber: "",
-                      accountName: "",
-                    });
+                    setWithdrawalForm({ amount: "" });
                   }}
                   className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
                 >
@@ -2145,7 +2169,8 @@ Thank you for your business!
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  disabled={!bankAccount}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Request Withdrawal
                 </button>
@@ -2403,22 +2428,12 @@ Thank you for your business!
                     >
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              withdrawal.instantWithdrawal
-                                ? "bg-orange-100 dark:bg-orange-900/30"
-                                : "bg-blue-100 dark:bg-blue-900/30"
-                            }`}
-                          >
-                            <ArrowUpRight
-                              className={`w-5 h-5 ${withdrawal.instantWithdrawal ? "text-orange-600 dark:text-orange-400" : "text-blue-600 dark:text-blue-400"}`}
-                            />
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/30">
+                            <ArrowUpRight className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-text dark:text-dark-text">
-                              {withdrawal.instantWithdrawal
-                                ? "Instant Withdrawal"
-                                : "Standard Withdrawal"}
+                              Withdrawal
                             </h3>
                             <p className="text-sm text-muted dark:text-dark-muted">
                               {format(new Date(withdrawal.createdAt), "PPPpp")}
@@ -2437,32 +2452,16 @@ Thank you for your business!
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted dark:text-dark-muted">
-                            Bank Account
-                          </p>
-                          <p className="font-medium text-text dark:text-dark-text">
-                            {withdrawal.bankName} - {withdrawal.accountName}
-                          </p>
-                          <p className="text-muted dark:text-dark-muted">
-                            ****{withdrawal.accountNumber.slice(-4)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted dark:text-dark-muted">
-                            Processing Details
-                          </p>
-                          <p className="font-medium text-text dark:text-dark-text">
-                            Fee: ₦{withdrawal.fee.toLocaleString()}
-                          </p>
-                          <p className="text-muted dark:text-dark-muted">
-                            Total: ₦{withdrawal.totalAmount.toLocaleString()}
-                          </p>
-                          <p className="text-muted dark:text-dark-muted">
-                            Est. time: {withdrawal.estimatedProcessingTime}
-                          </p>
-                        </div>
+                      <div className="text-sm">
+                        <p className="text-muted dark:text-dark-muted">
+                          Bank Account
+                        </p>
+                        <p className="font-medium text-text dark:text-dark-text">
+                          {withdrawal.bankName} - {withdrawal.accountName}
+                        </p>
+                        <p className="text-muted dark:text-dark-muted">
+                          ****{withdrawal.accountNumber?.slice(-4)}
+                        </p>
                       </div>
 
                       {withdrawal.status === "PENDING" && (

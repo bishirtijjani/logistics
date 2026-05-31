@@ -38,6 +38,7 @@ const {
   updateMerchantCommissionSchema,
   updateMerchantProfileSchema,
   setWithdrawalHoldSchema,
+  setMerchantBankAccountSchema,
   bulkApproveWithdrawalsSchema,
   createTagSchema,
   createCategorySchema,
@@ -88,6 +89,7 @@ router.patch('/merchants/:merchantId/unsuspend', validate(unsuspendMerchantSchem
 router.patch('/merchants/:merchantId/commission', validate(updateMerchantCommissionSchema), adminController.updateMerchantCommission);
 router.get('/merchants/:merchantId/commission-history', validate(paginationSchema, 'query'), adminController.getMerchantCommissionHistory);
 router.patch('/merchants/:merchantId/withdrawal-hold', validate(setWithdrawalHoldSchema), adminController.setWithdrawalHold);
+router.put('/merchants/:merchantId/bank-account', validate(setMerchantBankAccountSchema), adminController.setMerchantBankAccount);
 router.get('/merchants/:merchantId/analytics', adminController.getMerchantAnalytics);
 router.post('/merchants/:merchantId/tags', validate(setMerchantTagsSchema), adminController.setMerchantTags);
 

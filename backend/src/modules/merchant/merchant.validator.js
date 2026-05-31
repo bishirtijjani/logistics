@@ -113,11 +113,19 @@ const updateOrderStatusSchema = z.object({
   status: z.enum(['PROCESSING', 'READY_FOR_PICKUP']),
 });
 
+// Withdrawals draw on the bank account already saved to the merchant's wallet,
+// so the request body only carries the amount.
 const requestWithdrawalSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
-  bankCode: z.string().min(2, 'Bank code is required'),
+});
+
+// Save / update the merchant's payout bank account. accountName is resolved
+// server-side against the bank; it is accepted here only as a fallback for
+// when name-resolution is unavailable.
+const saveBankAccountSchema = z.object({
+  bankCode: z.string().min(2, 'Bank is required'),
   accountNumber: z.string().length(10, 'Account number must be 10 digits'),
-  accountName: z.string().min(2, 'Account name is required'),
+  accountName: z.string().min(2).optional(),
 });
 
 const merchantProductsSchema = z.object({
@@ -240,6 +248,7 @@ module.exports = {
   rejectOrderSchema,
   updateOrderStatusSchema,
   requestWithdrawalSchema,
+  saveBankAccountSchema,
   merchantProductsSchema,
   createProductSchema,
   updateProductSchema,

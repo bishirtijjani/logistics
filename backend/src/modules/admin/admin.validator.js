@@ -245,6 +245,14 @@ const setWithdrawalHoldSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
+// Admin sets a merchant's payout bank account on their behalf. accountName is
+// resolved against the bank server-side; accepted here only as a fallback.
+const setMerchantBankAccountSchema = z.object({
+  bankCode: z.string().min(2, 'Bank is required'),
+  accountNumber: z.string().length(10, 'Account number must be 10 digits'),
+  accountName: z.string().min(2).optional(),
+});
+
 const bulkApproveWithdrawalsSchema = z.object({
   withdrawalIds: z.array(z.string().uuid()).min(1).max(50),
 });
@@ -366,6 +374,7 @@ module.exports = {
   updateMerchantCommissionSchema,
   updateMerchantProfileSchema,
   setWithdrawalHoldSchema,
+  setMerchantBankAccountSchema,
   bulkApproveWithdrawalsSchema,
   createTagSchema,
   updateTagSchema,

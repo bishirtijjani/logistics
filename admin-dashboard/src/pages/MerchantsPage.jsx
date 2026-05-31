@@ -9,6 +9,7 @@ import {
   setWithdrawalHold, fetchPendingWithdrawals, fetchWithdrawalHistory,
   approveWithdrawal, rejectWithdrawal, bulkApproveWithdrawals,
   fetchAllTags, createTag, updateTag, deleteTag, setMerchantTags,
+  fetchBankList, resolveBankAccount, updateMerchantBankAccount,
   clearSelectedMerchant,
 } from '../store/slices/merchantsSlice'
 import { fetchCategories } from '../store/slices/categoriesSlice'
@@ -37,6 +38,11 @@ const STATUS_META = {
 // when no category is loaded yet (e.g. immediately after create).
 const categoryLabel = (merchant) => merchant?.category?.name || '—'
 const categoryColor = (merchant) => merchant?.category?.color || '#9CA3AF'
+
+// Map a bank code to its display name when the bank list is loaded; fall back
+// to the raw code (or em-dash) otherwise.
+const bankLabel = (banks, code) =>
+  (Array.isArray(banks) ? banks : []).find((b) => (b.code || b.bankCode) === code)?.name || code || '—'
 
 const TABS = [
   { id: 'overview',    label: 'All Merchants',    icon: Store },
@@ -136,7 +142,7 @@ const Btn = ({ variant = 'primary', size = 'md', loading, children, className = 
 function MerchantDrawer({ merchant, onClose, onAction }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { commissionHistory, commissionHistoryLoading } = useSelector((s) => s.merchants)
+  const { commissionHistory, commissionHistoryLoading, banks } = useSelector((s) => s.merchants)
   const [tab, setTab] = useState('info')
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState({})
@@ -144,12 +150,23 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
   const [commissionReason, setCommissionReason] = useState('')
   const [holdReason, setHoldReason] = useState('')
   const [loading, setLoading] = useState(null)
+  const [bankEditMode, setBankEditMode] = useState(false)
+  const [bankForm, setBankForm] = useState({ bankCode: '', accountNumber: '' })
+  const [resolvedBank, setResolvedBank] = useState(null)
 
   useEffect(() => {
     if (merchant && tab === 'commission') {
       dispatch(fetchCommissionHistory({ merchantId: merchant.id }))
     }
   }, [merchant, tab, dispatch])
+
+  // Load the bank list when viewing the Wallet tab so a saved bank code renders
+  // as its proper name (and so the editor's dropdown is ready).
+  useEffect(() => {
+    if (merchant && tab === 'wallet' && !banks?.length) {
+      dispatch(fetchBankList())
+    }
+  }, [merchant, tab, banks, dispatch])
 
   useEffect(() => {
     if (merchant) {
@@ -214,6 +231,47 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         onAction?.()
       } else {
         toast.error(result.error?.message || 'Failed to update hold')
+      }
+    })
+
+  const startBankEdit = () => {
+    setResolvedBank(null)
+    setBankForm({
+      bankCode: merchant.wallet?.bankCode || '',
+      accountNumber: merchant.wallet?.accountNumber || '',
+    })
+    if (!banks?.length) dispatch(fetchBankList())
+    setBankEditMode(true)
+  }
+
+  const handleResolveBank = () =>
+    act('resolveBank', async () => {
+      if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
+        return toast.error('Select a bank and enter a 10-digit account number')
+      }
+      const r = await dispatch(resolveBankAccount({ bankCode: bankForm.bankCode, accountNumber: bankForm.accountNumber }))
+      if (r.meta.requestStatus === 'fulfilled') setResolvedBank(r.payload)
+      else toast.error(r.error?.message || "Couldn't verify that account")
+    })
+
+  const handleSaveBank = () =>
+    act('saveBank', async () => {
+      if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
+        return toast.error('Select a bank and enter a 10-digit account number')
+      }
+      const r = await dispatch(updateMerchantBankAccount({
+        merchantId: merchant.id,
+        bankCode: bankForm.bankCode,
+        accountNumber: bankForm.accountNumber,
+        accountName: resolvedBank?.accountName,
+      }))
+      if (r.meta.requestStatus === 'fulfilled') {
+        toast.success('Bank account updated')
+        setBankEditMode(false)
+        setResolvedBank(null)
+        onAction?.()
+      } else {
+        toast.error(r.error?.message || 'Failed to save bank account')
       }
     })
 
@@ -533,16 +591,75 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
               )}
 
               {merchant.wallet && (
-                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4 space-y-2">
-                  <h4 className="font-semibold text-text dark:text-dark-text text-sm">Bank Account</h4>
-                  {merchant.wallet.accountNumber ? (
-                    <>
-                      <InfoRow label="Account Name" value={merchant.wallet.accountName || '—'} />
-                      <InfoRow label="Account Number" value={merchant.wallet.accountNumber} />
-                      <InfoRow label="Bank" value={merchant.wallet.bankCode || '—'} />
-                    </>
+                <div className="border-t border-surface-muted dark:border-dark-surface-muted pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-text dark:text-dark-text text-sm">Payout Bank Account</h4>
+                    {!bankEditMode && (
+                      <Btn size="sm" variant="ghost" onClick={startBankEdit}>
+                        <Pencil size={13} /> {merchant.wallet.accountNumber ? 'Change' : 'Set up'}
+                      </Btn>
+                    )}
+                  </div>
+
+                  {!bankEditMode ? (
+                    merchant.wallet.accountNumber ? (
+                      <>
+                        <InfoRow label="Account Name" value={merchant.wallet.accountName || '—'} />
+                        <InfoRow label="Account Number" value={merchant.wallet.accountNumber} />
+                        <InfoRow label="Bank" value={bankLabel(banks, merchant.wallet.bankCode)} />
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted dark:text-dark-muted">No bank account linked yet</p>
+                    )
                   ) : (
-                    <p className="text-sm text-muted dark:text-dark-muted">No bank account linked yet</p>
+                    <div className="space-y-3">
+                      <FormField label="Bank">
+                        <Select
+                          value={bankForm.bankCode}
+                          onChange={(e) => { setResolvedBank(null); setBankForm((f) => ({ ...f, bankCode: e.target.value })) }}
+                        >
+                          <option value="">Select a bank</option>
+                          {(Array.isArray(banks) ? banks : []).map((b) => (
+                            <option key={b.code || b.bankCode} value={b.code || b.bankCode}>{b.name || b.bankName}</option>
+                          ))}
+                        </Select>
+                      </FormField>
+                      <FormField label="Account Number">
+                        <Input
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="10-digit account number"
+                          value={bankForm.accountNumber}
+                          onChange={(e) => { setResolvedBank(null); setBankForm((f) => ({ ...f, accountNumber: e.target.value.replace(/\D/g, '') })) }}
+                        />
+                      </FormField>
+
+                      {resolvedBank?.accountName && (
+                        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 p-3">
+                          <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400" />
+                          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{resolvedBank.accountName}</p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2">
+                        <Btn size="sm" variant="outline" loading={loading === 'resolveBank'}
+                          disabled={!bankForm.bankCode || bankForm.accountNumber.length !== 10}
+                          onClick={handleResolveBank}>
+                          Verify
+                        </Btn>
+                        <Btn size="sm" variant="primary" loading={loading === 'saveBank'}
+                          disabled={!bankForm.bankCode || bankForm.accountNumber.length !== 10}
+                          onClick={handleSaveBank}>
+                          Save
+                        </Btn>
+                        <Btn size="sm" variant="ghost" onClick={() => { setBankEditMode(false); setResolvedBank(null) }}>
+                          Cancel
+                        </Btn>
+                      </div>
+                      <p className="text-xs text-muted dark:text-dark-muted">
+                        We verify the account name with the bank before saving.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}

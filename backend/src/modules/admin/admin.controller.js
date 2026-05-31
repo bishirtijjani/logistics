@@ -305,6 +305,25 @@ const setWithdrawalHold = async (req, res, next) => {
   }
 };
 
+const setMerchantBankAccount = async (req, res, next) => {
+  try {
+    const result = await adminService.setMerchantBankAccount(
+      req.params.merchantId,
+      {
+        bankCode: req.body.bankCode,
+        accountNumber: req.body.accountNumber,
+        accountName: req.body.accountName,
+      },
+      req.user.id,
+      req.ip,
+      req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Bank account updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const bulkApproveWithdrawals = async (req, res, next) => {
   try {
     const result = await adminService.bulkApproveWithdrawals(
@@ -827,6 +846,7 @@ module.exports = {
   updateMerchantProfile,
   getMerchantCommissionHistory,
   setWithdrawalHold,
+  setMerchantBankAccount,
   bulkApproveWithdrawals,
   getMerchantAnalytics,
   getAllTags,

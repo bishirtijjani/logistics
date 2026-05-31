@@ -9,14 +9,13 @@ export const fetchWallet = createAsyncThunk(
   }
 )
 
+// Withdrawals pay out to the bank account saved on the merchant's profile, so
+// the request only carries the amount.
 export const requestWithdrawal = createAsyncThunk(
   'earnings/requestWithdrawal',
-  async ({ merchantId, amount, bankCode, accountNumber, accountName }) => {
+  async ({ merchantId, amount }) => {
     const response = await api.post(`/merchants/merchant/${merchantId}/wallet/withdraw`, {
       amount,
-      bankCode,
-      accountNumber,
-      accountName,
     })
     return response.data.data
   }
@@ -38,16 +37,56 @@ export const fetchBankList = createAsyncThunk(
   }
 )
 
+// Saved payout bank account ----------------------------------------------------
+
+export const fetchBankAccount = createAsyncThunk(
+  'earnings/fetchBankAccount',
+  async ({ merchantId }) => {
+    const response = await api.get(`/merchants/merchant/${merchantId}/bank-account`)
+    return response.data.data // account object, or null if not set up yet
+  }
+)
+
+// Resolve the real account name from the bank for a (bank, accountNumber) pair.
+export const resolveBankAccount = createAsyncThunk(
+  'earnings/resolveBankAccount',
+  async ({ bankCode, accountNumber }) => {
+    const response = await api.post('/wallet/banks/lookup', { bankCode, accountNumber })
+    return response.data.data // { accountName, accountNumber, bankCode }
+  }
+)
+
+export const saveBankAccount = createAsyncThunk(
+  'earnings/saveBankAccount',
+  async ({ merchantId, bankCode, accountNumber, accountName }) => {
+    const response = await api.put(`/merchants/merchant/${merchantId}/bank-account`, {
+      bankCode,
+      accountNumber,
+      accountName,
+    })
+    return response.data.data
+  }
+)
+
 const earningsSlice = createSlice({
   name: 'earnings',
   initialState: {
     wallet: null,
     banks: [],
+    bankAccount: null,
+    resolvedAccount: null,
     loading: false,
     banksLoading: false,
+    bankAccountLoading: false,
+    resolving: false,
+    saving: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    clearResolvedAccount: (state) => {
+      state.resolvedAccount = null
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchWallet.pending, (state) => {
@@ -78,7 +117,44 @@ const earningsSlice = createSlice({
       .addCase(fetchBankList.rejected, (state) => {
         state.banksLoading = false
       })
+      .addCase(fetchBankAccount.pending, (state) => {
+        state.bankAccountLoading = true
+      })
+      .addCase(fetchBankAccount.fulfilled, (state, action) => {
+        state.bankAccountLoading = false
+        state.bankAccount = action.payload || null
+      })
+      .addCase(fetchBankAccount.rejected, (state) => {
+        state.bankAccountLoading = false
+      })
+      .addCase(resolveBankAccount.pending, (state) => {
+        state.resolving = true
+        state.resolvedAccount = null
+        state.error = null
+      })
+      .addCase(resolveBankAccount.fulfilled, (state, action) => {
+        state.resolving = false
+        state.resolvedAccount = action.payload || null
+      })
+      .addCase(resolveBankAccount.rejected, (state, action) => {
+        state.resolving = false
+        state.error = action.error.message
+      })
+      .addCase(saveBankAccount.pending, (state) => {
+        state.saving = true
+        state.error = null
+      })
+      .addCase(saveBankAccount.fulfilled, (state, action) => {
+        state.saving = false
+        state.bankAccount = action.payload || null
+        state.resolvedAccount = null
+      })
+      .addCase(saveBankAccount.rejected, (state, action) => {
+        state.saving = false
+        state.error = action.error.message
+      })
   },
 })
 
+export const { clearResolvedAccount } = earningsSlice.actions
 export default earningsSlice.reducer

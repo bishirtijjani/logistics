@@ -237,6 +237,43 @@ export const bulkApproveWithdrawals = createAsyncThunk(
 )
 
 // ============================================================
+// Merchant payout bank account (admin set/update on their behalf)
+// ============================================================
+
+export const fetchBankList = createAsyncThunk(
+  'merchants/fetchBankList',
+  async () => {
+    const response = await api.get('/wallet/banks')
+    const payload = response.data?.data
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.banks)) return payload.banks
+    if (Array.isArray(payload?.items)) return payload.items
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+  }
+)
+
+export const resolveBankAccount = createAsyncThunk(
+  'merchants/resolveBankAccount',
+  async ({ bankCode, accountNumber }) => {
+    const response = await api.post('/wallet/banks/lookup', { bankCode, accountNumber })
+    return response.data.data // { accountName, accountNumber, bankCode }
+  }
+)
+
+export const updateMerchantBankAccount = createAsyncThunk(
+  'merchants/updateBankAccount',
+  async ({ merchantId, bankCode, accountNumber, accountName }) => {
+    const response = await api.put(`/admin/merchants/${merchantId}/bank-account`, {
+      bankCode,
+      accountNumber,
+      accountName,
+    })
+    return { merchantId, account: response.data.data }
+  }
+)
+
+// ============================================================
 // Slice
 // ============================================================
 
@@ -275,6 +312,9 @@ const merchantsSlice = createSlice({
     withdrawalHistory: [],
     withdrawalHistoryTotal: 0,
     withdrawalsLoading: false,
+
+    // Bank list (for the admin bank-account editor)
+    banks: [],
   },
   reducers: {
     clearSelectedMerchant(state) {
@@ -435,6 +475,26 @@ const merchantsSlice = createSlice({
         if (idx !== -1) state.merchants[idx].wallet = { ...state.merchants[idx].wallet, ...wallet }
         if (state.selectedMerchant?.id === merchantId) {
           state.selectedMerchant.wallet = { ...state.selectedMerchant.wallet, ...wallet }
+        }
+      })
+
+    // ── Bank account ──
+    builder
+      .addCase(fetchBankList.fulfilled, (state, action) => {
+        state.banks = Array.isArray(action.payload) ? action.payload : []
+      })
+      .addCase(updateMerchantBankAccount.fulfilled, (state, action) => {
+        const { merchantId, account } = action.payload
+        if (!account) return
+        const bank = {
+          bankCode: account.bankCode,
+          accountNumber: account.accountNumber,
+          accountName: account.accountName,
+        }
+        const idx = state.merchants.findIndex((m) => m.id === merchantId)
+        if (idx !== -1) state.merchants[idx].wallet = { ...state.merchants[idx].wallet, ...bank }
+        if (state.selectedMerchant?.id === merchantId) {
+          state.selectedMerchant.wallet = { ...state.selectedMerchant.wallet, ...bank }
         }
       })
   },

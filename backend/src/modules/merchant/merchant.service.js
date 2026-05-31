@@ -512,26 +512,78 @@ const updateMerchantOrderStatus = async (merchantId, userId, role, requestId, st
   return updated;
 };
 
-const requestMerchantWithdrawal = async (merchantId, userId, role, { amount, bankCode, accountNumber, accountName }) => {
-  const merchant = await prisma.merchant.findUnique({
-    where: { id: merchantId },
-  });
-
+// Shared ownership guard for the wallet/bank-account endpoints.
+const loadOwnedMerchantWallet = async (merchantId, userId, role) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
   if (!merchant) throw AppError.notFound('Merchant not found');
-
   if (role === 'MERCHANT' && merchant.userId !== userId) {
     throw AppError.forbidden('Not your merchant profile');
   }
+  const wallet = await prisma.merchantWallet.findUnique({ where: { merchantId } });
+  if (!wallet) throw AppError.notFound('Merchant wallet not found');
+  return wallet;
+};
 
-  if (!bankCode || !accountNumber || !accountName) {
-    throw AppError.badRequest('bankCode, accountNumber, and accountName are required');
+// Return the saved payout bank account, or null if none has been set up yet.
+const getMerchantBankAccount = async (merchantId, userId, role) => {
+  const wallet = await loadOwnedMerchantWallet(merchantId, userId, role);
+  if (!wallet.bankCode || !wallet.accountNumber) return null;
+  return {
+    bankCode: wallet.bankCode,
+    accountNumber: wallet.accountNumber,
+    accountName: wallet.accountName,
+  };
+};
+
+// Save / update the merchant's payout bank account. The account name is
+// resolved against the bank (so a mistyped account number can't silently
+// redirect payouts). If resolution is unavailable, we fall back to a
+// caller-supplied name rather than blocking setup entirely.
+const saveMerchantBankAccount = async (merchantId, userId, role, { bankCode, accountNumber, accountName }) => {
+  const wallet = await loadOwnedMerchantWallet(merchantId, userId, role);
+
+  let resolvedName = null;
+  try {
+    const walletService = require('../wallet/wallet.service');
+    const resolved = await walletService.lookupBankAccount({ bankCode, accountNumber });
+    resolvedName = resolved?.accountName || null;
+  } catch (err) {
+    logger.warn('Bank account name resolution unavailable; using supplied name', {
+      merchantId, bankCode, error: err.message,
+    });
   }
 
-  const wallet = await prisma.merchantWallet.findUnique({
+  const finalName = resolvedName || accountName;
+  if (!finalName) {
+    throw AppError.badRequest('Could not verify this account. Please re-check the bank and account number.');
+  }
+
+  const updated = await prisma.merchantWallet.update({
     where: { merchantId },
+    data: { bankCode, accountNumber, accountName: finalName },
+    select: { bankCode: true, accountNumber: true, accountName: true },
   });
 
-  if (!wallet) throw AppError.notFound('Merchant wallet not found');
+  logger.info('Merchant bank account saved', { merchantId, bankCode, verified: !!resolvedName });
+  return { ...updated, verified: !!resolvedName };
+};
+
+const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) => {
+  const wallet = await loadOwnedMerchantWallet(merchantId, userId, role);
+
+  // Payouts go to the bank account already saved on the wallet.
+  if (!wallet.bankCode || !wallet.accountNumber || !wallet.accountName) {
+    throw AppError.badRequest('Add a bank account before requesting a withdrawal');
+  }
+  if (wallet.isLocked) {
+    throw AppError.badRequest('Your wallet is currently locked');
+  }
+  if (wallet.withdrawalHeld) {
+    throw AppError.badRequest(wallet.withdrawalHoldReason || 'Withdrawals on your account are currently on hold');
+  }
+  if (!(amount > 0)) {
+    throw AppError.badRequest('Amount must be positive');
+  }
   if (Number(wallet.availableBalance) < amount) {
     throw AppError.badRequest('Insufficient available balance');
   }
@@ -539,6 +591,10 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount, ban
   const reference = `MWD-${uuidv4()}`;
 
   const withdrawal = await prisma.$transaction(async (tx) => {
+    // Move the amount out of availableBalance into pendingBalance so it can't
+    // be double-spent while the payout is in flight. It leaves pendingBalance
+    // when the payout webhook confirms, or returns to availableBalance if the
+    // withdrawal is rejected.
     await tx.merchantWallet.update({
       where: { merchantId },
       data: {
@@ -554,9 +610,9 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount, ban
         type: 'WITHDRAWAL',
         status: 'PENDING',
         amount,
-        bankCode,
-        accountNumber,
-        accountName,
+        bankCode: wallet.bankCode,
+        accountNumber: wallet.accountNumber,
+        accountName: wallet.accountName,
       },
     });
   });
@@ -1254,6 +1310,8 @@ module.exports = {
   rejectMerchantOrder,
   updateMerchantOrderStatus,
   requestMerchantWithdrawal,
+  getMerchantBankAccount,
+  saveMerchantBankAccount,
   getMerchantProducts,
   getMerchantProductById,
   createMerchantProduct,
