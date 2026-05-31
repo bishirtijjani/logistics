@@ -248,3 +248,24 @@
   border-top: 1px solid #e4e4e7;
   margin: 2rem 0;
 }
+
+/* --- Help Center prose extras (reuses .legal-prose) --------------------- */
+.help-prose .lead {
+  font-size: 1.125rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+.help-prose img {
+  width: 100%;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  margin: 1.25rem 0;
+}
+/* Callout blockquotes: tip (default orange) + warning (amber) via leading emoji */
+.help-prose blockquote {
+  border-left: 3px solid #fdba74;
+  background: #fff7ed;
+  color: #7c2d12;
+}

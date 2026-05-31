@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node ../scripts/build-help-content.mjs admin .",
+    "prebuild": "node ../scripts/build-help-content.mjs admin .",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
@@ -19,9 +21,11 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
+    "react-markdown": "^9.1.0",
     "react-redux": "^9.1.0",
     "react-router-dom": "^6.22.0",
     "recharts": "^2.12.1",
+    "remark-gfm": "^4.0.1",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.2.1"
   },

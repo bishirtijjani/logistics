@@ -22,6 +22,7 @@ import {
   Eye,
   Star,
 } from 'lucide-react'
+import NumberInput from '../components/NumberInput.jsx'
 
 export default function MarketingPage() {
   const { user } = useSelector((state) => state.auth)
@@ -64,7 +65,7 @@ export default function MarketingPage() {
     name: '',
     pointsPerNaira: 1,
     redemptionRate: 100,
-    welcomeBonus: 0,
+    welcomeBonus: '',
     tiers: [
       { name: 'Bronze', minPoints: 0, benefits: '5% off on birthdays' },
       { name: 'Silver', minPoints: 500, benefits: '10% off + free delivery' },
@@ -744,10 +745,10 @@ export default function MarketingPage() {
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Budget (₦)
                 </label>
-                <input
-                  type="number"
+                <NumberInput
+                  decimal
                   value={newCampaign.budget}
-                  onChange={(e) => setNewCampaign({ ...newCampaign, budget: e.target.value })}
+                  onChange={(val) => setNewCampaign({ ...newCampaign, budget: val })}
                   className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>
@@ -808,10 +809,10 @@ export default function MarketingPage() {
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Value
                   </label>
-                  <input
-                    type="number"
+                  <NumberInput
+                    decimal
                     value={newDiscount.value}
-                    onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
+                    onChange={(val) => setNewDiscount({ ...newDiscount, value: val })}
                     className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                     placeholder={newDiscount.type === 'percentage' ? '20' : '500'}
                   />
@@ -822,10 +823,10 @@ export default function MarketingPage() {
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Min Order (₦)
                   </label>
-                  <input
-                    type="number"
+                  <NumberInput
+                    decimal
                     value={newDiscount.minOrder}
-                    onChange={(e) => setNewDiscount({ ...newDiscount, minOrder: e.target.value })}
+                    onChange={(val) => setNewDiscount({ ...newDiscount, minOrder: val })}
                     className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
@@ -833,10 +834,9 @@ export default function MarketingPage() {
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Usage Limit
                   </label>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={newDiscount.usageLimit}
-                    onChange={(e) => setNewDiscount({ ...newDiscount, usageLimit: e.target.value })}
+                    onChange={(val) => setNewDiscount({ ...newDiscount, usageLimit: val })}
                     className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
@@ -908,10 +908,10 @@ export default function MarketingPage() {
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Points per ₦1
                   </label>
-                  <input
-                    type="number"
+                  <NumberInput
+                    decimal
                     value={newLoyalty.pointsPerNaira}
-                    onChange={(e) => setNewLoyalty({ ...newLoyalty, pointsPerNaira: e.target.value })}
+                    onChange={(val) => setNewLoyalty({ ...newLoyalty, pointsPerNaira: val })}
                     className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
@@ -919,10 +919,10 @@ export default function MarketingPage() {
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                     Redemption Rate (₦)
                   </label>
-                  <input
-                    type="number"
+                  <NumberInput
+                    decimal
                     value={newLoyalty.redemptionRate}
-                    onChange={(e) => setNewLoyalty({ ...newLoyalty, redemptionRate: e.target.value })}
+                    onChange={(val) => setNewLoyalty({ ...newLoyalty, redemptionRate: val })}
                     className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   />
                 </div>
@@ -931,10 +931,9 @@ export default function MarketingPage() {
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
                   Welcome Bonus (points)
                 </label>
-                <input
-                  type="number"
+                <NumberInput
                   value={newLoyalty.welcomeBonus}
-                  onChange={(e) => setNewLoyalty({ ...newLoyalty, welcomeBonus: e.target.value })}
+                  onChange={(val) => setNewLoyalty({ ...newLoyalty, welcomeBonus: val })}
                   className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface text-text dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                 />
               </div>

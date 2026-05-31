@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { TableSkeleton } from '../components/LoadingSkeleton.jsx'
+import NumberInput from '../components/NumberInput.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 import { useWebSocket } from '../hooks/useWebSocket.js'
 import ConnectionStatus from '../components/ConnectionStatus.jsx'
@@ -153,7 +154,7 @@ export default function OrdersPage() {
         {
           id: Date.now(),
           name: '',
-          price: 0,
+          price: '',
           quantity: 1,
           customItem: true
         }
@@ -650,21 +651,21 @@ export default function OrdersPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Min Price</label>
-              <input
-                type="number"
+              <NumberInput
+                decimal
                 placeholder="₦0"
                 value={priceRange.min}
-                onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                onChange={(val) => setPriceRange({ ...priceRange, min: val })}
                 className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Max Price</label>
-              <input
-                type="number"
-                placeholder="₦100000"
+              <NumberInput
+                decimal
+                placeholder="₦100,000"
                 value={priceRange.max}
-                onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                onChange={(val) => setPriceRange({ ...priceRange, max: val })}
                 className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
               />
             </div>
@@ -1078,18 +1079,17 @@ export default function OrdersPage() {
                           onChange={(e) => handleUpdateItem(index, 'name', e.target.value)}
                           className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
                         />
-                        <input
-                          type="number"
+                        <NumberInput
+                          decimal
                           placeholder="Price"
                           value={item.price}
-                          onChange={(e) => handleUpdateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                          onChange={(val) => handleUpdateItem(index, 'price', val === '' ? '' : parseFloat(val) || 0)}
                           className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
                         />
-                        <input
-                          type="number"
+                        <NumberInput
                           placeholder="Quantity"
                           value={item.quantity}
-                          onChange={(e) => handleUpdateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                          onChange={(val) => handleUpdateItem(index, 'quantity', parseInt(val) || 1)}
                           className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-text dark:text-dark-text"
                         />
                         <div className="text-sm font-medium text-text dark:text-dark-text py-2">

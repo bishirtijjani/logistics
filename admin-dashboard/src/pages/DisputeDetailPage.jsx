@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { ArrowLeft, Banknote, CheckCircle2, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import SupportThread from '../components/SupportThread'
+import NumberInput from '../components/NumberInput.jsx'
 import {
   fetchDisputeDetail,
   postDisputeMessage,
@@ -249,13 +250,10 @@ export default function DisputeDetailPage() {
                   <label className="text-xs text-muted dark:text-dark-muted">
                     Refund amount (max {naira(customerPaid)})
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max={customerPaid}
-                    step="0.01"
+                  <NumberInput
+                    decimal
                     value={refundAmount}
-                    onChange={(e) => setRefundAmount(e.target.value)}
+                    onChange={setRefundAmount}
                     className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg bg-surface dark:bg-dark-surface text-text dark:text-dark-text text-sm"
                   />
                 </div>

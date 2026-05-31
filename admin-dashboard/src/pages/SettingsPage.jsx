@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { User, Mail, Phone, Lock, Bell, Globe, Save, Percent, DollarSign } from 'lucide-react'
 import { fetchPlatformSettings, updatePlatformSettings } from '../store/slices/settingsSlice'
+import NumberInput from '../components/NumberInput.jsx'
 
 export default function SettingsPage() {
   const dispatch = useDispatch()
@@ -57,15 +58,25 @@ export default function SettingsPage() {
     }
   }, [platformSettings])
 
+  // The fee/commission fields are entered as formatted strings ("5,000" →
+  // "5000"); coerce them back to numbers before they hit the API.
+  const normalizedPlatformForm = () => ({
+    ...platformForm,
+    defaultMerchantCommission: Number(platformForm.defaultMerchantCommission) || 0,
+    defaultRiderCommission: Number(platformForm.defaultRiderCommission) || 0,
+    minDeliveryFee: Number(platformForm.minDeliveryFee) || 0,
+    maxDeliveryFee: Number(platformForm.maxDeliveryFee) || 0,
+  })
+
   const handlePlatformSave = async () => {
     setSaving(true)
-    await dispatch(updatePlatformSettings(platformForm))
+    await dispatch(updatePlatformSettings(normalizedPlatformForm()))
     setSaving(false)
   }
 
   const handleNotificationSave = async () => {
     setSaving(true)
-    await dispatch(updatePlatformSettings({ ...platformForm, ...notificationSettings }))
+    await dispatch(updatePlatformSettings({ ...normalizedPlatformForm(), ...notificationSettings }))
     setSaving(false)
   }
 
@@ -223,12 +234,11 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Minimum Delivery Fee</label>
                   <div className="relative">
                     <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                    <input
-                      type="number"
+                    <NumberInput
+                      decimal
                       value={platformForm.minDeliveryFee}
-                      onChange={(e) => setPlatformForm({ ...platformForm, minDeliveryFee: parseFloat(e.target.value) })}
+                      onChange={(val) => setPlatformForm({ ...platformForm, minDeliveryFee: val })}
                       className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                      min="0"
                     />
                   </div>
                 </div>
@@ -236,12 +246,11 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Maximum Delivery Fee</label>
                   <div className="relative">
                     <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                    <input
-                      type="number"
+                    <NumberInput
+                      decimal
                       value={platformForm.maxDeliveryFee}
-                      onChange={(e) => setPlatformForm({ ...platformForm, maxDeliveryFee: parseFloat(e.target.value) })}
+                      onChange={(val) => setPlatformForm({ ...platformForm, maxDeliveryFee: val })}
                       className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                      min="0"
                     />
                   </div>
                 </div>

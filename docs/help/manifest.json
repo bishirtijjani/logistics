@@ -1,0 +1,144 @@
+{
+  "_comment": "Source of truth for the iPrime Help Center. Each guide's markdown body lives in docs/help/<file>. Screenshots live in website/public/help/screenshots/. keywords drive search relevance (synonyms/alternate phrasings users actually type). titleHa/summaryHa hold the Hausa strings (added in a later pass).",
+  "_roles_note": "public:false means the role's guides are NOT published to the public web Help Center; they remain available only inside that role's authenticated in-app help panel.",
+  "roles": [
+    { "id": "merchant", "label": "For Merchants", "labelHa": "Ga 'yan kasuwa", "order": 1, "public": true },
+    { "id": "admin", "label": "For Admins", "labelHa": "Ga masu gudanarwa", "order": 2, "public": false }
+  ],
+  "categories": [
+    { "id": "getting-started", "label": "Getting Started", "labelHa": "Farawa", "order": 1 },
+    { "id": "everyday", "label": "Everyday tasks", "labelHa": "Ayyukan yau da kullum", "order": 2 },
+    { "id": "operations", "label": "Operations", "labelHa": "Ayyuka", "order": 3 },
+    { "id": "configuration", "label": "Configuration", "labelHa": "Saiti", "order": 4 },
+    { "id": "insights", "label": "Insights & tools", "labelHa": "Bayanai da kayan aiki", "order": 5 },
+    { "id": "troubleshooting", "label": "Troubleshooting", "labelHa": "Warware matsaloli", "order": 6 }
+  ],
+  "guides": [
+    {
+      "role": "merchant", "category": "getting-started", "slug": "set-up-your-shop",
+      "title": "Set up your shop",
+      "summary": "Go from sign-up to your first sale in about 5 minutes.",
+      "order": 1, "file": "merchant/set-up-your-shop.md",
+      "keywords": ["register", "sign up", "signup", "create account", "create store", "new account", "onboarding", "approval", "verify", "otp", "location", "pin", "map", "hours", "first product", "getting started", "start selling", "open my shop", "new merchant"]
+    },
+    {
+      "role": "merchant", "category": "everyday", "slug": "receiving-orders",
+      "title": "Receiving and fulfilling orders",
+      "summary": "Accept, prepare, and hand off orders — from new order to rider pickup.",
+      "order": 1, "file": "merchant/receiving-orders.md",
+      "keywords": ["orders", "incoming orders", "new order", "accept", "reject", "process", "prepare", "ready", "ready for pickup", "pickup", "give to rider", "fulfil", "fulfill", "confirm order", "requested", "delivered", "cancel", "modify", "receipt", "export", "status", "not getting orders"]
+    },
+    {
+      "role": "merchant", "category": "everyday", "slug": "managing-products",
+      "title": "Adding and managing products",
+      "summary": "Add items, set prices and variants, hide what's sold out, and edit your catalogue.",
+      "order": 2, "file": "merchant/managing-products.md",
+      "keywords": ["products", "menu", "item", "menu item", "new product", "add product", "add item", "price", "change price", "stock", "variants", "sizes", "small medium large", "options", "add-ons", "photo", "edit", "delete", "remove", "hide", "available", "sold out", "out of stock", "catalogue", "catalog"]
+    },
+    {
+      "role": "merchant", "category": "everyday", "slug": "getting-paid",
+      "title": "Getting paid: earnings and withdrawals",
+      "summary": "Understand your balances and cash out to your bank.",
+      "order": 3, "file": "merchant/getting-paid.md",
+      "keywords": ["earnings", "withdraw", "withdrawal", "cash out", "payout", "get paid", "bank", "transfer to bank", "available balance", "pending", "commission", "fee", "instant", "standard", "money", "wallet", "my money", "refund"]
+    },
+    {
+      "role": "merchant", "category": "everyday", "slug": "shop-settings",
+      "title": "Your shop settings",
+      "summary": "Update your profile, hours, open/closed status, notifications, and password.",
+      "order": 4, "file": "merchant/shop-settings.md",
+      "keywords": ["settings", "profile", "shop name", "business info", "location", "hours", "opening times", "open", "closed", "open for orders", "go offline", "turn off shop", "pause shop", "notifications", "alerts", "password", "security", "login history", "category"]
+    },
+    {
+      "role": "merchant", "category": "everyday", "slug": "getting-help",
+      "title": "Getting help: support and disputes",
+      "summary": "Raise a support ticket, respond to disputes, and find quick answers.",
+      "order": 5, "file": "merchant/getting-help.md",
+      "keywords": ["support", "help", "contact", "contact support", "customer service", "talk to someone", "reach us", "ticket", "raise ticket", "complaint", "complain", "report problem", "dispute", "customer dispute", "refund dispute", "faq", "knowledge base", "issue", "problem"]
+    },
+    {
+      "role": "merchant", "category": "troubleshooting", "slug": "troubleshooting",
+      "title": "Troubleshooting & FAQ",
+      "summary": "Quick answers to the most common merchant questions and problems.",
+      "order": 1, "file": "merchant/troubleshooting.md",
+      "keywords": ["troubleshooting", "faq", "problem", "not working", "cant see my shop", "shop not showing", "invisible", "not found", "pending withdrawal", "forgot password", "otp", "verification code", "greyed out", "disabled", "button not working", "approval", "pending approval", "login", "help"]
+    },
+    {
+      "role": "admin", "category": "getting-started", "slug": "admin-overview",
+      "title": "Getting started with the admin dashboard",
+      "summary": "Log in, read the dashboard, and find your way around every section.",
+      "order": 1, "file": "admin/admin-overview.md",
+      "keywords": ["admin", "overview", "dashboard", "login", "log in", "first time", "new admin", "admin home", "navigation", "navigate", "sidebar", "stats", "numbers", "getting started", "control room"]
+    },
+    {
+      "role": "admin", "category": "operations", "slug": "managing-merchants",
+      "title": "Approving and managing merchants",
+      "summary": "Review applications, approve/reject/suspend, set commission, and approve withdrawals.",
+      "order": 1, "file": "admin/managing-merchants.md",
+      "keywords": ["merchants", "vendor", "store", "shop", "approve", "approve merchant", "reject", "suspend", "block merchant", "ban vendor", "pending review", "application", "merchant approval", "commission", "set commission", "withdrawal hold", "tags", "merchant withdrawals", "merchant management"]
+    },
+    {
+      "role": "admin", "category": "operations", "slug": "managing-riders",
+      "title": "Managing riders",
+      "summary": "Approve rider applications, review documents, and watch for expiry.",
+      "order": 2, "file": "admin/managing-riders.md",
+      "keywords": ["riders", "driver", "delivery driver", "approve", "approve rider", "reject", "suspend", "block rider", "deactivate rider", "documents", "papers", "verify documents", "licence", "license", "insurance", "expiry", "expired documents", "online", "availability", "pending approvals", "earnings"]
+    },
+    {
+      "role": "admin", "category": "operations", "slug": "delivery-requests",
+      "title": "Monitoring delivery requests",
+      "summary": "Track every order, look into the details, and cancel when necessary.",
+      "order": 3, "file": "admin/delivery-requests.md",
+      "keywords": ["requests", "orders", "delivery", "deliveries", "order details", "view order", "status", "cancel", "cancel delivery", "stop delivery", "track", "track orders", "live orders", "customer", "rider", "merchant", "monitor"]
+    },
+    {
+      "role": "admin", "category": "operations", "slug": "resolving-disputes",
+      "title": "Resolving disputes",
+      "summary": "Investigate order disputes and decide refunds fairly.",
+      "order": 4, "file": "admin/resolving-disputes.md",
+      "keywords": ["disputes", "dispute", "refund", "approve refund", "give refund", "money back", "full refund", "partial refund", "reject dispute", "resolution", "resolve dispute", "complaint", "customer complaint", "investigate", "evidence", "order issue", "order disputes"]
+    },
+    {
+      "role": "admin", "category": "operations", "slug": "support-tickets",
+      "title": "Handling support tickets",
+      "summary": "Pick up tickets, assign yourself, reply, and move them to resolution.",
+      "order": 5, "file": "admin/support-tickets.md",
+      "keywords": ["support", "tickets", "support ticket", "assign", "assign to me", "status", "open", "in progress", "resolved", "closed", "reply", "respond", "complaint", "customer complaints", "customer issues", "customer service", "help requests"]
+    },
+    {
+      "role": "admin", "category": "operations", "slug": "managing-customers",
+      "title": "Managing customers",
+      "summary": "Look up customers, review their history, and suspend or adjust where needed.",
+      "order": 6, "file": "admin/managing-customers.md",
+      "keywords": ["customers", "customer", "user", "find customer", "look up", "search customers", "suspend", "ban", "ban user", "block customer", "freeze account", "deactivate customer", "wallet adjustment", "wallet balance", "order history", "addresses", "account"]
+    },
+    {
+      "role": "admin", "category": "operations", "slug": "finance",
+      "title": "Finances, transactions & withdrawals",
+      "summary": "Read the transaction ledger, run financial operations, and approve payouts.",
+      "order": 7, "file": "admin/finance.md",
+      "keywords": ["finance", "transactions", "transaction history", "view transactions", "ledger", "payment", "refund", "commission", "withdrawal", "approve withdrawal", "approve payout", "payout", "cash out", "send money", "pay merchant", "pay rider", "reconciliation", "escrow", "failed transaction", "financial operations", "money"]
+    },
+    {
+      "role": "admin", "category": "configuration", "slug": "catalogue",
+      "title": "Categories, VTU networks & plans",
+      "summary": "Manage merchant categories and the airtime/data/cable/electricity catalogue.",
+      "order": 1, "file": "admin/catalogue.md",
+      "keywords": ["categories", "merchant categories", "add category", "vtu", "networks", "plans", "pricing", "airtime", "data", "data plan", "cable", "cable tv", "electricity", "biller", "provider id", "network provider", "change price", "icon"]
+    },
+    {
+      "role": "admin", "category": "configuration", "slug": "marketing-settings",
+      "title": "Marketing & platform settings",
+      "summary": "Manage banners, and configure platform-wide fees, commission, and notifications.",
+      "order": 2, "file": "admin/marketing-settings.md",
+      "keywords": ["marketing", "banners", "banner", "promo", "campaigns", "settings", "platform configuration", "commission", "commission rate", "commission percentage", "service charge", "fees", "platform fees", "delivery fee", "limits", "notification settings"]
+    },
+    {
+      "role": "admin", "category": "insights", "slug": "analytics-tools",
+      "title": "Analytics, safety, waitlist & audit logs",
+      "summary": "Reports, safety signals, the pre-launch waitlist, and the record of every admin action.",
+      "order": 1, "file": "admin/analytics-tools.md",
+      "keywords": ["analytics", "reports", "revenue", "orders report", "geographic", "safety", "compliance", "waitlist", "pre-launch", "signups", "sign ups", "audit logs", "audit trail", "history", "who changed", "who deleted", "track changes", "admin activity", "activity history", "who made a change"]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 /**
- * MenuPage â€” merchant product catalogue.
+ * MenuPage — merchant product catalogue.
  *
  * Phase 2: category-driven product form. The merchant selects a category, the
  * form reads `category.attributeSchema` from the backend, and renders only the
@@ -22,16 +22,17 @@ import api from '../lib/api.js'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 import { Plus, X, Trash2, Edit3, ToggleLeft, ToggleRight, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import CloudinaryImageUploader from '../components/CloudinaryImageUploader.jsx'
+import NumberInput from '../components/NumberInput.jsx'
 
 const PACK_UNITS = ['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON']
 const SELECTION_RULES = [
-  { value: 'REQUIRED_ONE',      label: 'Required Â· Pick exactly one' },
-  { value: 'OPTIONAL_ONE',      label: 'Optional Â· Pick at most one' },
-  { value: 'REQUIRED_MULTIPLE', label: 'Required Â· Pick multiple' },
-  { value: 'OPTIONAL_MULTIPLE', label: 'Optional Â· Pick multiple' },
+  { value: 'REQUIRED_ONE',      label: 'Required · Pick exactly one' },
+  { value: 'OPTIONAL_ONE',      label: 'Optional · Pick at most one' },
+  { value: 'REQUIRED_MULTIPLE', label: 'Required · Pick multiple' },
+  { value: 'OPTIONAL_MULTIPLE', label: 'Optional · Pick multiple' },
 ]
 
-const moneyFmt = (n) => `â‚¦${Number(n || 0).toLocaleString()}`
+const moneyFmt = (n) => `₦${Number(n || 0).toLocaleString()}`
 
 const cartesian = (arrays) =>
   arrays.reduce(
@@ -46,27 +47,36 @@ const cartesian = (arrays) =>
 // price + stock + image + isAvailable.
 // ---------------------------------------------------------------------------
 
+// "30, 40 ,, 50" -> ["30","40","50"]. Splitting on commas drops empty segments,
+// so a trailing/leading comma is ignored rather than producing a blank value.
+const parseAxisList = (s) => (s || '').split(',').map((x) => x.trim()).filter(Boolean)
+
 function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) {
-  // axis values keyed by axis name
-  const [axisValues, setAxisValues] = useState(() => {
+  // Raw comma-separated text per axis. We hold the user's literal text — commas
+  // and spaces included — instead of a parsed array, so typing "30," doesn't get
+  // its trailing comma stripped on the next keystroke. Values are parsed only
+  // when we actually need the distinct list (chips, matrix generation).
+  const [axisText, setAxisText] = useState(() => {
     const map = {}
     axes.forEach((a) => { map[a] = [] })
-    // Hydrate from existing variants
+    // Hydrate from existing variants, then collapse each axis to editable text.
     variants.forEach((v) => {
       Object.entries(v.attributes || {}).forEach(([k, val]) => {
         if (axes.includes(k) && !map[k].includes(val)) map[k].push(val)
       })
     })
-    return map
+    const text = {}
+    axes.forEach((a) => { text[a] = map[a].join(', ') })
+    return text
   })
 
   const generateMatrix = () => {
-    const filledAxes = axes.filter((a) => (axisValues[a] || []).length > 0)
+    const filledAxes = axes.filter((a) => parseAxisList(axisText[a]).length > 0)
     if (filledAxes.length === 0) {
-      setVariants([{ attributes: {}, price: 0, stock: 0, isAvailable: true }])
+      setVariants([{ attributes: {}, price: '', stock: '', isAvailable: true }])
       return
     }
-    const combos = cartesian(filledAxes.map((a) => axisValues[a]))
+    const combos = cartesian(filledAxes.map((a) => parseAxisList(axisText[a])))
     const next = combos.map((tuple) => {
       const attrs = {}
       filledAxes.forEach((a, i) => { attrs[a] = tuple[i] })
@@ -74,7 +84,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
       const existing = variants.find((v) =>
         filledAxes.every((a) => v.attributes && v.attributes[a] === attrs[a])
       )
-      return existing || { attributes: attrs, price: 0, stock: 0, isAvailable: true }
+      return existing || { attributes: attrs, price: '', stock: '', isAvailable: true }
     })
     setVariants(next)
   }
@@ -85,7 +95,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
     setVariants(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)))
   }
 
-  const canGenerate = axes.some((a) => (axisValues[a] || []).length > 0)
+  const canGenerate = axes.some((a) => parseAxisList(axisText[a]).length > 0)
 
   return (
     <div className="space-y-3">
@@ -93,26 +103,21 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
         <div className="space-y-3 rounded-2xl p-4 bg-surface-muted/50 dark:bg-dark-surface-muted/40 ring-1 ring-inset ring-black/5 dark:ring-white/5">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted dark:text-dark-muted">Build your options</div>
           {axes.map((axis) => {
-            const vals = axisValues[axis] || []
+            const vals = parseAxisList(axisText[axis])
             return (
               <div key={axis}>
                 <label className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block capitalize">{axis}</label>
                 <input
                   type="text"
                   placeholder={`e.g. ${axis === 'size' ? 'Small, Medium, Large' : axis === 'color' ? 'Black, Red, Blue' : `${axis} values`}`}
-                  value={vals.join(', ')}
-                  onChange={(e) =>
-                    setAxisValues({
-                      ...axisValues,
-                      [axis]: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                    })
-                  }
+                  value={axisText[axis] || ''}
+                  onChange={(e) => setAxisText({ ...axisText, [axis]: e.target.value })}
                   className={inputCls}
                 />
                 {vals.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {vals.map((val) => (
-                      <span key={val} className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary capitalize">
+                    {vals.map((val, i) => (
+                      <span key={`${val}-${i}`} className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary capitalize">
                         {val}
                       </span>
                     ))}
@@ -137,8 +142,8 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
         {variants.length === 0 ? (
           <div className="text-sm text-muted dark:text-dark-muted rounded-xl border border-dashed border-surface-muted dark:border-dark-surface-muted px-4 py-6 text-center">
             {axes.length === 0
-              ? 'Single-SKU product â€” set price & stock below.'
-              : 'Enter your option values above, then tap â€œGenerate combinationsâ€.'}
+              ? 'Single-SKU product — set price & stock below.'
+              : 'Enter your option values above, then tap “Generate combinations”.'}
           </div>
         ) : (
           <>
@@ -146,7 +151,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
               {variants.length} variant{variants.length !== 1 ? 's' : ''}
             </div>
             {variants.map((v, idx) => {
-              const label = axes.map((a) => v.attributes?.[a]).filter(Boolean).join(' Â· ') || 'Default'
+              const label = axes.map((a) => v.attributes?.[a]).filter(Boolean).join(' · ') || 'Default'
               const off = v.isAvailable === false
               return (
                 <div
@@ -180,22 +185,19 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-3">
                     <label className="block">
-                      <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Price (â‚¦)</span>
-                      <input
-                        type="number"
-                        inputMode="decimal"
+                      <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Price (₦)</span>
+                      <NumberInput
+                        decimal
                         value={v.price}
-                        onChange={(e) => patchRow(idx, { price: Number(e.target.value) })}
+                        onChange={(val) => patchRow(idx, { price: val })}
                         className={inputCls}
                       />
                     </label>
                     <label className="block">
                       <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Stock</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
+                      <NumberInput
                         value={v.stock}
-                        onChange={(e) => patchRow(idx, { stock: Number(e.target.value) })}
+                        onChange={(val) => patchRow(idx, { stock: val })}
                         className={inputCls}
                       />
                     </label>
@@ -203,12 +205,10 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
                       <>
                         <label className="block">
                           <span className="text-xs text-muted dark:text-dark-muted mb-1 block">Pack size</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            inputMode="decimal"
+                          <NumberInput
+                            decimal
                             value={v.packSize ?? ''}
-                            onChange={(e) => patchRow(idx, { packSize: e.target.value ? Number(e.target.value) : undefined })}
+                            onChange={(val) => patchRow(idx, { packSize: val === '' ? undefined : val })}
                             className={inputCls}
                           />
                         </label>
@@ -219,7 +219,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
                             onChange={(e) => patchRow(idx, { packUnit: e.target.value || undefined })}
                             className={inputCls}
                           >
-                            <option value="">â€”</option>
+                            <option value="">—</option>
                             {(packUnits && packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
                               <option key={u} value={u}>{u}</option>
                             ))}
@@ -239,7 +239,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
 }
 
 // ---------------------------------------------------------------------------
-// OptionGroupsBuilder â€” inline editor used on product CREATE only. Existing
+// OptionGroupsBuilder — inline editor used on product CREATE only. Existing
 // products use the per-row option-group endpoints (added in EditProductModal).
 // ---------------------------------------------------------------------------
 
@@ -258,7 +258,7 @@ function OptionGroupsBuilder({ groups, setGroups }) {
     setGroups(
       groups.map((g, i) =>
         i === groupIdx
-          ? { ...g, items: [...g.items, { name: '', description: '', priceDelta: 0, imageUrl: '', isDefault: false, isAvailable: true, sortOrder: g.items.length }] }
+          ? { ...g, items: [...g.items, { name: '', description: '', priceDelta: '', imageUrl: '', isDefault: false, isAvailable: true, sortOrder: g.items.length }] }
           : g
       )
     )
@@ -388,11 +388,11 @@ function OptionGroupsBuilder({ groups, setGroups }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mt-2 pl-[3.75rem] sm:pl-[4rem]">
                   <div className="flex items-center gap-1">
-                    <label className="text-xs text-muted dark:text-dark-muted">+â‚¦</label>
-                    <input
-                      type="number"
+                    <label className="text-xs text-muted dark:text-dark-muted">+₦</label>
+                    <NumberInput
+                      decimal
                       value={it.priceDelta}
-                      onChange={(e) => patchItem(gi, ii, { priceDelta: Number(e.target.value) })}
+                      onChange={(val) => patchItem(gi, ii, { priceDelta: val })}
                       className={`${smInputCls} w-24`}
                     />
                   </div>
@@ -451,7 +451,7 @@ export default function MenuPage() {
 
   const [categories, setCategories] = useState([])
   // The merchant's own business category (chosen once at signup). Every product
-  // they add belongs to this â€” they never re-pick it. Drives the form's axes,
+  // they add belongs to this — they never re-pick it. Drives the form's axes,
   // pack units, and add-on support.
   const [merchantCategory, setMerchantCategory] = useState(null)
   const [search, setSearch] = useState('')
@@ -463,7 +463,7 @@ export default function MenuPage() {
     dispatch(fetchProducts({ merchantId }))
     // Full list still needed by the edit modal to resolve a product's category.
     api.get('/categories').then((r) => setCategories(r.data.data || [])).catch(() => {})
-    // The merchant's locked-in business category â€” used to pre-bind the create form.
+    // The merchant's locked-in business category — used to pre-bind the create form.
     api.get(`/merchants/${merchantId}`).then((r) => setMerchantCategory(r.data?.data?.category || null)).catch(() => {})
   }, [dispatch, merchantId])
 
@@ -513,7 +513,7 @@ export default function MenuPage() {
           <button
             onClick={() => setShowCreate(true)}
             disabled={!merchantCategory}
-            title={!merchantCategory ? 'Loading your categoryâ€¦' : undefined}
+            title={!merchantCategory ? 'Loading your category…' : undefined}
             className="shrink-0 whitespace-nowrap px-4 py-2 bg-primary text-white rounded-lg text-sm flex items-center gap-2 hover:bg-primary-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Plus size={16} /> New Product
@@ -523,7 +523,7 @@ export default function MenuPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {loading && products.length === 0 ? (
-          <div className="col-span-full text-muted dark:text-dark-muted text-sm">Loadingâ€¦</div>
+          <div className="col-span-full text-muted dark:text-dark-muted text-sm">Loading…</div>
         ) : filtered.length === 0 ? (
           <div className="col-span-full text-muted dark:text-dark-muted text-sm">No products yet.</div>
         ) : (
@@ -568,9 +568,9 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="font-semibold text-text dark:text-dark-text">{product.name}</div>
-          <div className="text-xs text-muted dark:text-dark-muted">{product.description || 'â€”'}</div>
+          <div className="text-xs text-muted dark:text-dark-muted">{product.description || '—'}</div>
           <div className="mt-1 text-sm text-text dark:text-dark-text font-medium">
-            from {moneyFmt(lowestPrice)} Â· {totalStock} in stock
+            from {moneyFmt(lowestPrice)} · {totalStock} in stock
           </div>
         </div>
         {product.imageUrl && (
@@ -587,7 +587,7 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
             }`}
           >
             {Object.entries(v.attributes || {}).map(([k, val]) => `${val}`).join(' / ') || (v.packLabel || 'default')}
-            {' '}Â· {moneyFmt(v.price)} Â· {v.stock}
+            {' '}· {moneyFmt(v.price)} · {v.stock}
           </span>
         ))}
       </div>
@@ -621,7 +621,7 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
 }
 
 // ---------------------------------------------------------------------------
-// Create modal â€” inline variants + option groups all at once
+// Create modal — inline variants + option groups all at once
 // ---------------------------------------------------------------------------
 
 // text-base (16px) on inputs prevents iOS Safari from auto-zooming on focus.
@@ -631,8 +631,10 @@ const smInputCls = 'border border-surface-muted dark:border-dark-surface-muted r
 const ghostBtnCls = 'px-3 py-1.5 border border-surface-muted dark:border-dark-surface-muted rounded-md text-sm text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors'
 
 // The merchant's business category is fixed at signup, so the create form is
-// bound to it â€” the merchant never re-selects a category per product.
-function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
+// bound to it — the merchant never re-selects a category per product.
+// Exported so the onboarding wizard can reuse the exact same product form for
+// the merchant's first product, instead of a thinner, divergent inline form.
+export function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
   const schema = selectedCategory?.attributeSchema || {}
   const axes = Array.isArray(schema.axes) ? schema.axes : []
   const pack = !!schema.pack
@@ -643,11 +645,11 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
   const [imageUrl, setImageUrl] = useState('')
   const [requiresPrescription, setRequiresPrescription] = useState(false)
   const [dosage, setDosage] = useState('')
-  // Categories with axes (fashion, pharmacyâ€¦) default to the variant builder;
+  // Categories with axes (fashion, pharmacy…) default to the variant builder;
   // axis-less ones (food, groceries) default to a single SKU.
   const [singleSku, setSingleSku] = useState(() => axes.length === 0)
-  const [singlePrice, setSinglePrice] = useState(0)
-  const [singleStock, setSingleStock] = useState(0)
+  const [singlePrice, setSinglePrice] = useState('')
+  const [singleStock, setSingleStock] = useState('')
   const [singlePackSize, setSinglePackSize] = useState('')
   const [singlePackUnit, setSinglePackUnit] = useState('')
   const [variants, setVariants] = useState([])
@@ -672,7 +674,7 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
   const stepError = useMemo(() => {
     if (step === 'details' && !name.trim()) return 'Give your product a name'
     if (step === 'pricing') {
-      if (singleSku && !(Number(singlePrice) > 0)) return 'Set a price greater than â‚¦0'
+      if (singleSku && !(Number(singlePrice) > 0)) return 'Set a price greater than ₦0'
       if (!singleSku && variants.length === 0) return 'Generate at least one variant'
     }
     return ''
@@ -680,7 +682,7 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
 
   const submit = async () => {
     if (!name.trim()) return showErrorToast('Name required')
-    if (!selectedCategory) return showErrorToast('Category still loading â€” try again')
+    if (!selectedCategory) return showErrorToast('Category still loading — try again')
 
     let inlineVariants
     if (singleSku) {
@@ -763,7 +765,7 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
             <div className="min-w-0">
               <h2 className="text-xl font-bold text-text dark:text-dark-text">New product</h2>
               <p className="text-sm text-muted dark:text-dark-muted mt-0.5">
-                Step {stepIdx + 1} of {steps.length} Â· <span className="text-text dark:text-dark-text font-medium">{steps[stepIdx]?.label}</span>
+                Step {stepIdx + 1} of {steps.length} · <span className="text-text dark:text-dark-text font-medium">{steps[stepIdx]?.label}</span>
               </p>
             </div>
             <button
@@ -814,7 +816,7 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
                   onChange={(e) => setDescription(e.target.value)}
                   className={inputCls}
                   rows={3}
-                  placeholder="Tell customers what makes this specialâ€¦"
+                  placeholder="Tell customers what makes this special…"
                 />
               </div>
               {selectedCategory?.slug === 'pharmacy' && (
@@ -870,23 +872,23 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
               {singleSku ? (
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Price (â‚¦) <span className="text-error">*</span></span>
-                    <input type="number" inputMode="decimal" value={singlePrice} onChange={(e) => setSinglePrice(e.target.value)} className={inputCls} />
+                    <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Price (₦) <span className="text-error">*</span></span>
+                    <NumberInput decimal value={singlePrice} onChange={setSinglePrice} className={inputCls} />
                   </label>
                   <label className="block">
                     <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Stock</span>
-                    <input type="number" inputMode="numeric" value={singleStock} onChange={(e) => setSingleStock(e.target.value)} className={inputCls} />
+                    <NumberInput value={singleStock} onChange={setSingleStock} className={inputCls} />
                   </label>
                   {pack && (
                     <>
                       <label className="block">
                         <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Pack size</span>
-                        <input type="number" step="0.01" inputMode="decimal" value={singlePackSize} onChange={(e) => setSinglePackSize(e.target.value)} className={inputCls} />
+                        <NumberInput decimal value={singlePackSize} onChange={setSinglePackSize} className={inputCls} />
                       </label>
                       <label className="block">
                         <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Pack unit</span>
                         <select value={singlePackUnit} onChange={(e) => setSinglePackUnit(e.target.value)} className={inputCls}>
-                          <option value="">â€”</option>
+                          <option value="">—</option>
                           {(packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
                             <option key={u} value={u}>{u}</option>
                           ))}
@@ -911,7 +913,7 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
             <div className="space-y-4">
               <div>
                 <h3 className="text-base font-semibold text-text dark:text-dark-text">Add-ons &amp; choices</h3>
-                <p className="text-sm text-muted dark:text-dark-muted">Sides, spice levels, extras â€” anything customers pick. Optional.</p>
+                <p className="text-sm text-muted dark:text-dark-muted">Sides, spice levels, extras — anything customers pick. Optional.</p>
               </div>
               <OptionGroupsBuilder groups={optionGroups} setGroups={setOptionGroups} />
             </div>
@@ -942,7 +944,7 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
             disabled={saving}
             className="flex-1 min-h-[48px] flex items-center justify-center gap-1.5 bg-primary text-white rounded-xl hover:bg-primary-700 active:scale-[0.99] disabled:opacity-60 font-semibold transition shadow-lg shadow-primary/20"
           >
-            {saving ? 'Savingâ€¦' : isLast ? (<><Check size={18} /> Create product</>) : (<>Continue <ChevronRight size={18} /></>)}
+            {saving ? 'Saving…' : isLast ? (<><Check size={18} /> Create product</>) : (<>Continue <ChevronRight size={18} /></>)}
           </button>
         </div>
       </form>
@@ -951,7 +953,7 @@ function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
 }
 
 // ---------------------------------------------------------------------------
-// Edit modal â€” uses per-row endpoints for variants + option groups so the
+// Edit modal — uses per-row endpoints for variants + option groups so the
 // merchant can incrementally add/remove rows on an existing product.
 // ---------------------------------------------------------------------------
 
@@ -960,7 +962,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
   const [name, setName] = useState(product.name)
   const [description, setDescription] = useState(product.description || '')
   const [imageUrl, setImageUrl] = useState(product.imageUrl || '')
-  // Phase 8 â€” pharmacy fields, editable on the existing product so merchants
+  // Phase 8 — pharmacy fields, editable on the existing product so merchants
   // can flag/clear the Rx requirement or update the dosage label after creation.
   const [requiresPrescription, setRequiresPrescription] = useState(Boolean(product.requiresPrescription))
   const [dosage, setDosage] = useState(product.dosage || '')
@@ -1004,7 +1006,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
       <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl w-full sm:max-w-4xl max-h-[95dvh] flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-surface-muted dark:border-dark-surface-muted">
-          <h2 className="text-lg font-semibold text-text dark:text-dark-text truncate pr-2">Edit â€” {product.name}</h2>
+          <h2 className="text-lg font-semibold text-text dark:text-dark-text truncate pr-2">Edit — {product.name}</h2>
           <button
             onClick={onClose}
             className="p-2.5 -mr-1 shrink-0 text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors"
@@ -1027,7 +1029,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} rows={2} />
         </div>
 
-        {/* Phase 8 â€” pharmacy product edit fields. Hidden for non-pharmacy
+        {/* Phase 8 — pharmacy product edit fields. Hidden for non-pharmacy
             categories to keep the form focused. */}
         {isPharmacy && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1054,7 +1056,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
         )}
 
         <button onClick={saveBasics} disabled={saving} className="px-3 py-1.5 bg-primary text-white rounded-md text-sm hover:bg-primary-700 disabled:opacity-60">
-          {saving ? 'Savingâ€¦' : 'Save basics'}
+          {saving ? 'Saving…' : 'Save basics'}
         </button>
 
         {/* Variants */}
@@ -1089,7 +1091,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
 function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
   const dispatch = useDispatch()
   const [adding, setAdding] = useState(false)
-  const [draft, setDraft] = useState({ attributes: {}, price: 0, stock: 0, packSize: '', packUnit: '', imageUrl: '', isAvailable: true })
+  const [draft, setDraft] = useState({ attributes: {}, price: '', stock: '', packSize: '', packUnit: '', imageUrl: '', isAvailable: true })
 
   const addVariant = async () => {
     try {
@@ -1154,7 +1156,7 @@ function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
               )}
             </div>
             <div className="flex items-center gap-1">
-              <label className="text-xs text-muted dark:text-dark-muted">â‚¦</label>
+              <label className="text-xs text-muted dark:text-dark-muted">₦</label>
               <input
                 type="number"
                 defaultValue={v.price}
@@ -1222,12 +1224,11 @@ function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
           {pack && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted dark:text-dark-muted">pack</label>
-              <input
-                type="number"
-                step="0.01"
+              <NumberInput
+                decimal
                 placeholder="size"
                 value={draft.packSize}
-                onChange={(e) => setDraft({ ...draft, packSize: e.target.value })}
+                onChange={(val) => setDraft({ ...draft, packSize: val })}
                 className={`${smInputCls} w-24`}
               />
               <select
@@ -1235,29 +1236,28 @@ function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
                 onChange={(e) => setDraft({ ...draft, packUnit: e.target.value })}
                 className={smInputCls}
               >
-                <option value="">â€”</option>
+                <option value="">—</option>
                 {(packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1">
-              <label className="text-xs text-muted dark:text-dark-muted">â‚¦</label>
-              <input
-                type="number"
+              <label className="text-xs text-muted dark:text-dark-muted">₦</label>
+              <NumberInput
+                decimal
                 placeholder="price"
                 value={draft.price}
-                onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                onChange={(val) => setDraft({ ...draft, price: val })}
                 className={`${smInputCls} w-24`}
               />
             </div>
             <div className="flex items-center gap-1">
               <label className="text-xs text-muted dark:text-dark-muted">stock</label>
-              <input
-                type="number"
+              <NumberInput
                 placeholder="stock"
                 value={draft.stock}
-                onChange={(e) => setDraft({ ...draft, stock: e.target.value })}
+                onChange={(val) => setDraft({ ...draft, stock: val })}
                 className={`${smInputCls} w-20`}
               />
             </div>
@@ -1375,7 +1375,7 @@ function OptionGroupsTable({ product, merchantId }) {
 function OptionGroupRow({ group, product, merchantId, onDelete }) {
   const dispatch = useDispatch()
   const [addingItem, setAddingItem] = useState(false)
-  const [itemDraft, setItemDraft] = useState({ name: '', description: '', priceDelta: 0, imageUrl: '', isDefault: false })
+  const [itemDraft, setItemDraft] = useState({ name: '', description: '', priceDelta: '', imageUrl: '', isDefault: false })
 
   const addItem = async () => {
     if (!itemDraft.name.trim()) return
@@ -1423,7 +1423,7 @@ function OptionGroupRow({ group, product, merchantId, onDelete }) {
         <div className="min-w-0">
           <div className="font-medium text-text dark:text-dark-text truncate">{group.name}</div>
           <div className="text-xs text-muted dark:text-dark-muted">
-            {SELECTION_RULES.find((r) => r.value === group.selectionRule)?.label} Â· min {group.minSelect} Â· max {group.maxSelect}
+            {SELECTION_RULES.find((r) => r.value === group.selectionRule)?.label} · min {group.minSelect} · max {group.maxSelect}
           </div>
         </div>
         <button onClick={onDelete} className="p-2 text-error hover:bg-error/10 rounded-md" title="Delete group">
@@ -1501,11 +1501,11 @@ function OptionGroupRow({ group, product, merchantId, onDelete }) {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-1">
-                <label className="text-xs text-muted dark:text-dark-muted">+â‚¦</label>
-                <input
-                  type="number"
+                <label className="text-xs text-muted dark:text-dark-muted">+₦</label>
+                <NumberInput
+                  decimal
                   value={itemDraft.priceDelta}
-                  onChange={(e) => setItemDraft({ ...itemDraft, priceDelta: e.target.value })}
+                  onChange={(val) => setItemDraft({ ...itemDraft, priceDelta: val })}
                   className={`${smInputCls} w-24`}
                 />
               </div>

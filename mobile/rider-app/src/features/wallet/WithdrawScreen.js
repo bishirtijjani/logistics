@@ -44,6 +44,16 @@ import {
  * lockout countdown; the user can re-enter and re-submit.
  */
 
+// Group the integer part with thousand separators for display ("5000" ->
+// "5,000") while the model stays a bare numeric string. The amount field's own
+// onChangeText strips commas back out, so this round-trips cleanly.
+const groupAmount = (raw) => {
+  if (!raw) return raw;
+  const [int, ...rest] = raw.split(".");
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return raw.includes(".") ? `${grouped}.${rest.join("")}` : grouped;
+};
+
 export default function WithdrawScreen() {
   const { tokens } = useTheme();
   const { t } = useT();
@@ -502,7 +512,7 @@ export default function WithdrawScreen() {
           >
             <Text style={{ fontSize: 18, fontWeight: "800", color: tokens.text.muted, marginRight: 4 }}>₦</Text>
             <TextInput
-              value={amount}
+              value={groupAmount(amount)}
               onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ""))}
               placeholder="0.00"
               placeholderTextColor={tokens.text.placeholder}

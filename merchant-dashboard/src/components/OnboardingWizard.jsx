@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
-import { API_URL } from '../lib/api'
+import React, { useEffect, useRef, useState } from 'react'
+import api from '../lib/api'
 import { useDispatch, useSelector } from 'react-redux'
-import { X, ArrowRight, ArrowLeft, Check, Store, Package, Clock, Settings, Sparkles, MapPin } from 'lucide-react'
+import { X, ArrowRight, ArrowLeft, Check, Store, Package, Plus, Sparkles, MapPin } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
 import { updateSettings } from '../store/slices/settingsSlice.js'
+import { createProduct } from '../store/slices/productsSlice.js'
 import LocationPicker from './LocationPicker.jsx'
+import { ProductCreateModal } from '../pages/MenuPage.jsx'
 
 /**
  * Onboarding flow. Visibility and the "needs onboarding" signal both come
@@ -20,11 +22,18 @@ export default function OnboardingWizard({ open, onClose }) {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
-  // The merchant's fixed business category (chosen at signup) — products are
-  // tagged with it silently; the merchant never picks a category here.
-  const merchantCategorySlug = useSelector((state) => state.settings.settings?.category?.slug)
+  // Full merchant profile (lat/lng/address) — drives the "already pinned"
+  // logic so a merchant reopening the wizard just to add their first product
+  // isn't forced to re-pin a location they already have.
+  const merchantProfile = useSelector((state) => state.settings.settings)
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
+
+  // The merchant's locked-in business category — needed by the real product
+  // modal (ProductCreateModal) to render its category-aware form. Fetched the
+  // same way the Products page does.
+  const [merchantCategory, setMerchantCategory] = useState(null)
+  const [showProductModal, setShowProductModal] = useState(false)
 
   const [onboardingData, setOnboardingData] = useState({
     skipForLater: false,
@@ -38,18 +47,47 @@ export default function OnboardingWizard({ open, onClose }) {
   const [locationData, setLocationData] = useState({ address: '', lat: 0, lng: 0 })
   const [locationSaved, setLocationSaved] = useState(false)
 
-  const [productData, setProductData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    stock: ''
-  })
+  // Placeholder coords are 0,0 and a "Pending…" address — either means the
+  // merchant hasn't pinned a real location yet (mirrors Layout's check).
+  const locationAlreadySet =
+    !!merchantProfile &&
+    !(Number(merchantProfile.lat) === 0 && Number(merchantProfile.lng) === 0) &&
+    !(typeof merchantProfile.address === 'string' && merchantProfile.address.startsWith('Pending'))
 
-  const [hoursData, setHoursData] = useState({
-    openingTime: '08:00',
-    closingTime: '22:00',
-    isOpen: true
-  })
+  // Lazily fetch the business category the first time the wizard opens — most
+  // sessions never open it.
+  useEffect(() => {
+    if (!open || !merchantId || merchantCategory) return
+    api
+      .get(`/merchants/${merchantId}`)
+      .then((r) => setMerchantCategory(r.data?.data?.category || null))
+      .catch(() => {})
+  }, [open, merchantId, merchantCategory])
+
+  // Prefill an already-saved location once so step 2 doesn't demand a re-pin
+  // when the merchant reopened the wizard only to add their first product.
+  const prefilledRef = useRef(false)
+  useEffect(() => {
+    if (prefilledRef.current || !locationAlreadySet || !merchantProfile) return
+    prefilledRef.current = true
+    setLocationData({
+      address: merchantProfile.address || '',
+      lat: Number(merchantProfile.lat) || 0,
+      lng: Number(merchantProfile.lng) || 0,
+    })
+    setLocationSaved(true)
+  }, [locationAlreadySet, merchantProfile])
+
+  // Choose the starting step once per open: jump straight to the product step
+  // when location is already pinned and the only thing left is the first
+  // product. Wait for the profile so we don't misjudge and start at step 1.
+  const initializedRef = useRef(false)
+  useEffect(() => {
+    if (!open) { initializedRef.current = false; return }
+    if (initializedRef.current || !merchantProfile) return
+    initializedRef.current = true
+    setCurrentStep(locationAlreadySet && !onboardingData.hasAddedProduct ? 3 : 1)
+  }, [open, merchantProfile, locationAlreadySet, onboardingData.hasAddedProduct])
 
   const handleSkip = () => {
     onClose?.()
@@ -59,17 +97,6 @@ export default function OnboardingWizard({ open, onClose }) {
     // Step 2 (location) is required — block advance until the pin is saved.
     if (currentStep === 2 && !locationSaved) {
       const ok = await saveLocation()
-      if (!ok) return
-    }
-    if (currentStep === 3) {
-      if (onboardingData.hasAddedProduct && !validateProduct()) return
-    }
-    if (currentStep === 4) {
-      // The Next button is the only save affordance for hours now — the
-      // inline "Save Hours" button was removed because it never updated the
-      // wizard's own state, so users hit Next thinking they were done and
-      // nothing actually persisted.
-      const ok = await saveBusinessHours()
       if (!ok) return
     }
     setCurrentStep(currentStep + 1)
@@ -112,83 +139,28 @@ export default function OnboardingWizard({ open, onClose }) {
     setCurrentStep(currentStep - 1)
   }
 
-  const validateProduct = () => {
-    if (!productData.name || !productData.price) {
-      showErrorToast('Please enter product name and price')
-      return false
-    }
-    return true
-  }
-
-  const handleAddProduct = async () => {
-    if (!validateProduct()) return
-
-    setLoading(true)
+  // The first product is created through the real product modal
+  // (ProductCreateModal), so it goes through the same Redux thunk and endpoint
+  // as the Products page — and updates the store, which is what flips the
+  // dashboard's "needs onboarding" signal off.
+  const handleCreateProduct = async (payload) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/merchants/${merchantId}/products`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: productData.name,
-          description: productData.description,
-          price: parseFloat(productData.price),
-          // Bound to the merchant's business category, not a free-text guess.
-          category: merchantCategorySlug || 'General',
-          stock: parseInt(productData.stock) || 100,
-          isAvailable: true
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to add product')
-      }
-
-      showSuccessToast('Product added successfully!')
-      setOnboardingData({ ...onboardingData, hasAddedProduct: true })
-      setProductData({ name: '', description: '', price: '', stock: '' })
+      await dispatch(createProduct({ merchantId, productData: payload })).unwrap()
+      showSuccessToast('First product added!')
+      setOnboardingData((d) => ({ ...d, hasAddedProduct: true }))
+      setShowProductModal(false)
     } catch (err) {
-      showErrorToast('Failed to add product. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const saveBusinessHours = async () => {
-    setLoading(true)
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/merchants/${merchantId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          openingTime: hoursData.openingTime,
-          closingTime: hoursData.closingTime,
-          isOpen: hoursData.isOpen
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to save hours')
-      }
-
-      showSuccessToast('Business hours saved!')
-      return true
-    } catch (err) {
-      showErrorToast('Failed to save hours. Please try again.')
-      return false
-    } finally {
-      setLoading(false)
+      showErrorToast(err?.message || 'Failed to add product. Please try again.')
     }
   }
 
   const handleComplete = () => {
+    // Onboarding isn't complete without a first product — the Complete button
+    // is disabled in this case, but guard here too.
+    if (!onboardingData.hasAddedProduct) {
+      showErrorToast('Add your first product to finish setup')
+      return
+    }
     showSuccessToast('Welcome to iPrime! Your dashboard is ready.')
     onClose?.()
   }
@@ -212,11 +184,11 @@ export default function OnboardingWizard({ open, onClose }) {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                Add your first product
+                Set your business hours
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                Set your business hours
+                Add your first product
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -262,176 +234,63 @@ export default function OnboardingWizard({ open, onClose }) {
       id: 3,
       icon: Package,
       title: 'Add Your First Product',
-      description: 'Start by adding your first product to your catalog.',
+      description: 'Add at least one product so customers have something to order.',
       component: (
         <div className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                Product Name *
-              </label>
-              <input
-                type="text"
-                value={productData.name}
-                onChange={(e) => setProductData({ ...productData, name: e.target.value })}
-                placeholder="e.g., Jollof Rice"
-                className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                Description
-              </label>
-              <textarea
-                value={productData.description}
-                onChange={(e) => setProductData({ ...productData, description: e.target.value })}
-                placeholder="Describe your product"
-                rows={3}
-                className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text resize-none"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Price (₦) *
-                </label>
-                <input
-                  type="number"
-                  value={productData.price}
-                  onChange={(e) => setProductData({ ...productData, price: e.target.value })}
-                  placeholder="1500"
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
-                />
+          {onboardingData.hasAddedProduct ? (
+            <div className="text-center space-y-4 py-2">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <Check className="w-10 h-10 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Stock
-                </label>
-                <input
-                  type="number"
-                  value={productData.stock}
-                  onChange={(e) => setProductData({ ...productData, stock: e.target.value })}
-                  placeholder="50"
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
-                />
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={handleAddProduct}
-            disabled={loading || onboardingData.hasAddedProduct}
-            className="w-full py-3 bg-gradient-to-r from-primary to-primary-700 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? 'Adding...' : onboardingData.hasAddedProduct ? '✓ Product Added' : 'Add Product'}
-            <Package className="w-5 h-5" />
-          </button>
-        </div>
-      )
-    },
-    {
-      id: 4,
-      icon: Clock,
-      title: 'Set Business Hours',
-      description: 'Configure when your business is open for orders.',
-      component: (
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-surface-muted dark:bg-dark-surface-muted rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${hoursData.isOpen ? 'bg-success' : 'bg-error'}`} />
-                <span className="font-medium text-text dark:text-dark-text">
-                  {hoursData.isOpen ? 'Open for Business' : 'Closed'}
-                </span>
+                <h4 className="text-lg font-bold text-text dark:text-dark-text">First product added!</h4>
+                <p className="text-sm text-muted dark:text-dark-muted mt-1">
+                  You can add more anytime from the Products page. Click “Complete Setup” to finish.
+                </p>
               </div>
               <button
-                onClick={() => setHoursData({ ...hoursData, isOpen: !hoursData.isOpen })}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  hoursData.isOpen
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
-                    : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400'
-                }`}
+                type="button"
+                onClick={() => setShowProductModal(true)}
+                disabled={!merchantCategory}
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {hoursData.isOpen ? 'Open' : 'Closed'}
+                <Plus className="w-4 h-4" /> Add another product
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Opening Time
-                </label>
-                <input
-                  type="time"
-                  value={hoursData.openingTime}
-                  onChange={(e) => setHoursData({ ...hoursData, openingTime: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
-                />
+          ) : (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center text-center gap-4 rounded-2xl border-2 border-dashed border-surface-muted dark:border-dark-surface-muted p-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 dark:bg-primary/20 rounded-full">
+                  <Package className="w-8 h-8 text-primary" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-text dark:text-dark-text">No products yet</h4>
+                  <p className="text-sm text-muted dark:text-dark-muted mt-1">
+                    Add your first product to open your store. You can't finish setup until you have at least one.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowProductModal(true)}
+                  disabled={!merchantCategory}
+                  className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-primary to-primary-700 text-white rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  {merchantCategory ? 'Add your first product' : 'Loading…'}
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">
-                  Closing Time
-                </label>
-                <input
-                  type="time"
-                  value={hoursData.closingTime}
-                  onChange={(e) => setHoursData({ ...hoursData, closingTime: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
-                />
+              <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl text-sm text-orange-700 dark:text-orange-400">
+                This step is required — your store needs at least one product before setup is complete.
               </div>
             </div>
-            <div className="bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 rounded-xl p-4">
-              <p className="text-sm text-primary dark:text-primary-300">
-                💡 Customers can only place orders during your business hours
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 5,
-      icon: Settings,
-      title: 'You\'re All Set!',
-      description: 'Your business is ready to start receiving orders.',
-      component: (
-        <div className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
-              <Check className="w-10 h-10 text-green-600 dark:text-green-400" />
-            </div>
-            <h4 className="text-xl font-bold text-text dark:text-dark-text">
-              Setup Complete!
-            </h4>
-            <p className="text-muted dark:text-dark-muted">
-              Your business is now configured and ready to receive orders.
-            </p>
-          </div>
-          <div className="bg-gradient-to-r from-primary/10 to-primary/20 dark:from-primary/20 dark:to-primary/30 rounded-xl p-6 space-y-3">
-            <h5 className="font-semibold text-text dark:text-dark-text">Next Steps:</h5>
-            <ul className="space-y-2 text-sm text-muted dark:text-dark-muted">
-              <li className="flex items-center gap-2">
-                <ArrowRight className="w-4 h-4 text-primary" />
-                Add more products to your catalog
-              </li>
-              <li className="flex items-center gap-2">
-                <ArrowRight className="w-4 h-4 text-primary" />
-                Monitor incoming orders in real-time
-              </li>
-              <li className="flex items-center gap-2">
-                <ArrowRight className="w-4 h-4 text-primary" />
-                Track your earnings and analytics
-              </li>
-              <li className="flex items-center gap-2">
-                <ArrowRight className="w-4 h-4 text-primary" />
-                Manage your settings anytime
-              </li>
-            </ul>
-          </div>
+          )}
         </div>
       )
     }
   ]
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-dark-surface rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
@@ -518,7 +377,8 @@ export default function OnboardingWizard({ open, onClose }) {
             ) : (
               <button
                 onClick={handleComplete}
-                disabled={loading}
+                disabled={loading || !onboardingData.hasAddedProduct}
+                title={!onboardingData.hasAddedProduct ? 'Add your first product to finish' : undefined}
                 className="flex-1 py-3 bg-gradient-to-r from-success to-emerald-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Complete Setup
@@ -539,5 +399,16 @@ export default function OnboardingWizard({ open, onClose }) {
         </div>
       </div>
     </div>
+
+    {/* The real product modal, reused from the Products page, layered on top
+        of the wizard. Creating a product here marks the step complete. */}
+    {showProductModal && (
+      <ProductCreateModal
+        category={merchantCategory}
+        onClose={() => setShowProductModal(false)}
+        onSubmit={handleCreateProduct}
+      />
+    )}
+    </>
   )
 }

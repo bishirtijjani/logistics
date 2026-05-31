@@ -30,6 +30,7 @@ import {
 import { format } from "date-fns";
 import { showErrorToast, showSuccessToast } from "../utils/toast.js";
 import { CardSkeleton, TableSkeleton } from "../components/LoadingSkeleton.jsx";
+import NumberInput from "../components/NumberInput.jsx";
 
 export default function EarningsPage() {
   const { user } = useSelector((state) => state.auth);
@@ -1878,19 +1879,14 @@ Thank you for your business!
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Amount (₦)
                 </label>
-                <input
-                  type="number"
+                <NumberInput
+                  decimal
                   required
-                  min={withdrawalLimits.minAmount}
-                  max={Math.min(
-                    withdrawalLimits.maxAmount,
-                    wallet?.availableBalance || 0,
-                  )}
                   value={withdrawalForm.amount}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     setWithdrawalForm({
                       ...withdrawalForm,
-                      amount: e.target.value,
+                      amount: val,
                     })
                   }
                   className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
@@ -2596,11 +2592,11 @@ Thank you for your business!
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                   Refund Amount (₦)
                 </label>
-                <input
-                  type="number"
+                <NumberInput
+                  decimal
                   value={refundForm.amount}
-                  onChange={(e) =>
-                    setRefundForm({ ...refundForm, amount: e.target.value })
+                  onChange={(val) =>
+                    setRefundForm({ ...refundForm, amount: val })
                   }
                   className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-surface-muted dark:text-dark-text"
                   placeholder="Enter amount"
@@ -3846,15 +3842,15 @@ Thank you for your business!
                     <label className="block text-xs font-medium text-muted dark:text-dark-muted mb-1">
                       Min Amount (₦)
                     </label>
-                    <input
-                      type="number"
+                    <NumberInput
+                      decimal
                       value={customReport.filters.minAmount}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         setCustomReport({
                           ...customReport,
                           filters: {
                             ...customReport.filters,
-                            minAmount: e.target.value,
+                            minAmount: val,
                           },
                         })
                       }
@@ -3867,15 +3863,15 @@ Thank you for your business!
                     <label className="block text-xs font-medium text-muted dark:text-dark-muted mb-1">
                       Max Amount (₦)
                     </label>
-                    <input
-                      type="number"
+                    <NumberInput
+                      decimal
                       value={customReport.filters.maxAmount}
-                      onChange={(e) =>
+                      onChange={(val) =>
                         setCustomReport({
                           ...customReport,
                           filters: {
                             ...customReport.filters,
-                            maxAmount: e.target.value,
+                            maxAmount: val,
                           },
                         })
                       }

@@ -23,6 +23,7 @@ export default function SettingsPage() {
     lng: 0,
     openingTime: '08:00',
     closingTime: '22:00',
+    isOpen: true,
   })
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -101,6 +102,7 @@ export default function SettingsPage() {
         lng: typeof settings.lng === 'number' ? settings.lng : 0,
         openingTime: settings.openingTime || '08:00',
         closingTime: settings.closingTime || '22:00',
+        isOpen: settings.isOpen ?? true,
       })
       setNotificationSettings({
         emailNotifications: settings.emailNotifications ?? true,
@@ -411,6 +413,24 @@ export default function SettingsPage() {
                   className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
+              <div>
+                <p className="font-medium text-text dark:text-dark-text">Open for orders</p>
+                <p className="text-sm text-muted dark:text-dark-muted">
+                  When off, your shop is hidden from customers and won't receive new orders.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isOpen}
+                  onChange={(e) => setFormData({ ...formData, isOpen: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted dark:border-dark-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
+              </label>
             </div>
 
             <div>

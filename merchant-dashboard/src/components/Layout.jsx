@@ -2,9 +2,11 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/slices/authSlice.js'
 import { fetchSettings } from '../store/slices/settingsSlice.js'
+import { fetchProducts } from '../store/slices/productsSlice.js'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import { useAuthSession } from '../lib/useAuthSession.js'
 import OnboardingWizard from './OnboardingWizard.jsx'
+import HelpPanel from './HelpPanel.jsx'
 import {
   ShoppingBag,
   Package,
@@ -31,6 +33,8 @@ export default function Layout() {
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
   const merchantProfile = useSelector((state) => state.settings.settings)
+  const { products, total: productTotal } = useSelector((state) => state.products)
+  const [productsChecked, setProductsChecked] = useState(false)
   const { isDark, toggleTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
@@ -43,18 +47,34 @@ export default function Layout() {
   // (instead of a per-device localStorage flag that strands merchants who
   // skipped the wizard).
   useEffect(() => {
-    if (merchantId) dispatch(fetchSettings({ merchantId }))
+    if (!merchantId) return
+    dispatch(fetchSettings({ merchantId }))
+    // Onboarding now also requires at least one product, so pull the product
+    // count up front. Mark "checked" only on success so a failed fetch doesn't
+    // nag a merchant who actually has products.
+    dispatch(fetchProducts({ merchantId }))
+      .unwrap()
+      .then(() => setProductsChecked(true))
+      .catch(() => {})
   }, [dispatch, merchantId])
 
   // Placeholder coords are 0,0 (Gulf of Guinea — no Nigerian merchant lands
   // there) and the placeholder address starts with "Pending". Either signal
   // means the merchant still needs to pin their real location.
-  const needsOnboarding =
+  const locationMissing =
     !!merchantProfile &&
     (
       (Number(merchantProfile.lat) === 0 && Number(merchantProfile.lng) === 0) ||
       (typeof merchantProfile.address === 'string' && merchantProfile.address.startsWith('Pending'))
     )
+
+  // A merchant with no products isn't really open for business — keep
+  // onboarding incomplete until they've added their first one. Gate on
+  // `productsChecked` so we don't flash "incomplete" before products load.
+  const hasProducts = (productTotal || 0) > 0 || (products?.length || 0) > 0
+  const productMissing = !!merchantProfile && productsChecked && !hasProducts
+
+  const needsOnboarding = locationMissing || productMissing
 
   // Auto-open once per page load — after the user dismisses, the banner is
   // the entry point. Layout persists across route changes, so this won't
@@ -232,7 +252,9 @@ export default function Layout() {
                   Finish your business setup
                 </div>
                 <div className="text-sm text-amber-800/80 dark:text-amber-300/80">
-                  Pin your business on the map — until you do, customers can't find you and admin can't approve your account.
+                  {locationMissing
+                    ? "Pin your business on the map — until you do, customers can't find you and admin can't approve your account."
+                    : 'Add your first product so customers have something to order.'}
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0" />
@@ -244,6 +266,9 @@ export default function Layout() {
 
       {/* Onboarding Wizard */}
       <OnboardingWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
+
+      {/* In-app help */}
+      <HelpPanel />
     </div>
   )
 }

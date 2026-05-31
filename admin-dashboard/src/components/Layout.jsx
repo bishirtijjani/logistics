@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Breadcrumb from './Breadcrumb'
+import HelpPanel from './HelpPanel'
 import { useTheme } from '../contexts/ThemeContext'
 import { useAuthSession } from '../lib/useAuthSession'
 
@@ -192,6 +193,8 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      <HelpPanel />
     </div>
   )
 }

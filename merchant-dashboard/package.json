@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node ../scripts/build-help-content.mjs merchant .",
+    "prebuild": "node ../scripts/build-help-content.mjs merchant .",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
@@ -22,9 +24,11 @@
     "react-hot-toast": "^2.6.0",
     "react-is": "^19.2.6",
     "react-leaflet": "^5.0.0",
+    "react-markdown": "^9.1.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.14.2",
     "recharts": "^3.8.1",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

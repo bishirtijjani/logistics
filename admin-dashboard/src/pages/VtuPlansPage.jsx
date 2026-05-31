@@ -6,6 +6,7 @@ import {
   Tv, Zap, Filter, MoreHorizontal,
 } from 'lucide-react'
 import api from '../lib/api'
+import NumberInput from '../components/NumberInput.jsx'
 
 // ────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -1055,11 +1056,11 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={cls.label}>Cost (₦) *</label>
-                <input required type="number" step="0.01" value={form.costPrice} onChange={(e) => setField('costPrice', e.target.value)} className={cls.input} placeholder="AlRahuz price" />
+                <NumberInput decimal required value={form.costPrice} onChange={(val) => setField('costPrice', val)} className={cls.input} placeholder="AlRahuz price" />
               </div>
               <div>
                 <label className={cls.label}>Selling (₦) *</label>
-                <input required type="number" step="0.01" value={form.sellingPrice} onChange={(e) => setField('sellingPrice', e.target.value)} className={cls.input} placeholder="Customer price" />
+                <NumberInput decimal required value={form.sellingPrice} onChange={(val) => setField('sellingPrice', val)} className={cls.input} placeholder="Customer price" />
               </div>
             </div>
             <div className="rounded-lg bg-surface-muted dark:bg-dark-surface-muted p-3 flex items-center justify-between">

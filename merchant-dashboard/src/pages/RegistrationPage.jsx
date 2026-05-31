@@ -1,67 +1,76 @@
-import { useState, useEffect } from 'react'
-import { API_URL } from '../lib/api'
-import { useNavigate, Link } from 'react-router-dom'
-import { Store, User, MapPin, Clock, ArrowRight, ArrowLeft, Check, AlertCircle } from 'lucide-react'
-import { showErrorToast, showSuccessToast } from '../utils/toast.js'
+import { useState, useEffect } from "react";
+import { API_URL } from "../lib/api";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Store,
+  User,
+  MapPin,
+  Clock,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  AlertCircle,
+} from "lucide-react";
+import { showErrorToast, showSuccessToast } from "../utils/toast.js";
 
 export default function RegistrationPage() {
-  const navigate = useNavigate()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [verificationSent, setVerificationSent] = useState(false)
-  const [otp, setOtp] = useState('')
-  const [otpError, setOtpError] = useState('')
-  const [resendCooldown, setResendCooldown] = useState(0)
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [personalInfo, setPersonalInfo] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: ''
-  })
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   const [personalErrors, setPersonalErrors] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: ''
-  })
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   const [businessInfo, setBusinessInfo] = useState({
-    businessName: '',
-    categoryId: '',
-    businessPhone: '',
-    businessEmail: '',
-    openingTime: '08:00',
-    closingTime: '22:00',
-  })
+    businessName: "",
+    categoryId: "",
+    businessPhone: "",
+    businessEmail: "",
+    openingTime: "08:00",
+    closingTime: "22:00",
+  });
 
-  const [categories, setCategories] = useState([])
-  const [categoriesLoading, setCategoriesLoading] = useState(false)
-  const [categoriesError, setCategoriesError] = useState('')
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState("");
 
   const loadCategories = async () => {
-    setCategoriesLoading(true)
-    setCategoriesError('')
+    setCategoriesLoading(true);
+    setCategoriesError("");
     try {
-      const res = await fetch(`${API_URL}/categories`)
-      if (!res.ok) throw new Error('Failed to load categories')
-      const json = await res.json()
-      setCategories(json.data || [])
+      const res = await fetch(`${API_URL}/categories`);
+      if (!res.ok) throw new Error("Failed to load categories");
+      const json = await res.json();
+      setCategories(json.data || []);
     } catch (e) {
-      setCategoriesError(e.message || 'Failed to load categories')
+      setCategoriesError(e.message || "Failed to load categories");
     } finally {
-      setCategoriesLoading(false)
+      setCategoriesLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadCategories()
-  }, [])
+    loadCategories();
+  }, []);
 
   // Resend-OTP cooldown countdown. Driving this from useEffect (instead of a
   // setInterval started inside handleResendOtp) means the timer is torn down
@@ -69,206 +78,215 @@ export default function RegistrationPage() {
   // implementation kept ticking on an unmounted component and called
   // setResendCooldown after unmount.
   useEffect(() => {
-    if (resendCooldown <= 0) return undefined
+    if (resendCooldown <= 0) return undefined;
     const id = setTimeout(() => {
-      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0))
-    }, 1000)
-    return () => clearTimeout(id)
-  }, [resendCooldown])
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
 
   const [businessErrors, setBusinessErrors] = useState({
-    businessName: '',
-    businessPhone: '',
-    businessEmail: '',
-  })
-
+    businessName: "",
+    businessPhone: "",
+    businessEmail: "",
+  });
 
   const validatePersonalInfo = () => {
     const errors = {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      password: '',
-      confirmPassword: ''
-    }
-    let isValid = true
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    };
+    let isValid = true;
 
     if (!personalInfo.firstName) {
-      errors.firstName = 'Please enter your first name'
-      isValid = false
+      errors.firstName = "Please enter your first name";
+      isValid = false;
     }
     if (!personalInfo.lastName) {
-      errors.lastName = 'Please enter your last name'
-      isValid = false
+      errors.lastName = "Please enter your last name";
+      isValid = false;
     }
-    if (!personalInfo.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.email)) {
-      errors.email = 'Please enter a valid email address'
-      isValid = false
+    if (
+      !personalInfo.email ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalInfo.email)
+    ) {
+      errors.email = "Please enter a valid email address";
+      isValid = false;
     }
     if (!personalInfo.phone || !/^0[789][01]\d{8}$/.test(personalInfo.phone)) {
-      errors.phone = 'Please enter a valid Nigerian phone number'
-      isValid = false
+      errors.phone = "Please enter a valid Nigerian phone number";
+      isValid = false;
     }
     if (!personalInfo.password || personalInfo.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters'
-      isValid = false
+      errors.password = "Password must be at least 8 characters";
+      isValid = false;
     }
     if (personalInfo.password !== personalInfo.confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match'
-      isValid = false
+      errors.confirmPassword = "Passwords do not match";
+      isValid = false;
     }
 
-    setPersonalErrors(errors)
-    return isValid
-  }
+    setPersonalErrors(errors);
+    return isValid;
+  };
 
   const validateBusinessInfo = () => {
     const errors = {
-      businessName: '',
-      businessPhone: '',
-      businessEmail: '',
-    }
-    let isValid = true
+      businessName: "",
+      businessPhone: "",
+      businessEmail: "",
+    };
+    let isValid = true;
 
     if (!businessInfo.businessName) {
-      errors.businessName = 'Please enter your business name'
-      isValid = false
+      errors.businessName = "Please enter your business name";
+      isValid = false;
     }
     if (!businessInfo.categoryId) {
-      showErrorToast('Please pick a business category')
-      isValid = false
+      showErrorToast("Please pick a business category");
+      isValid = false;
     }
     if (!businessInfo.businessPhone) {
-      errors.businessPhone = 'Please enter your business phone number'
-      isValid = false
+      errors.businessPhone = "Please enter your business phone number";
+      isValid = false;
     }
-    if (!businessInfo.businessEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessInfo.businessEmail)) {
-      errors.businessEmail = 'Please enter a valid business email'
-      isValid = false
+    if (
+      !businessInfo.businessEmail ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(businessInfo.businessEmail)
+    ) {
+      errors.businessEmail = "Please enter a valid business email";
+      isValid = false;
     }
 
-    setBusinessErrors(errors)
-    return isValid
-  }
+    setBusinessErrors(errors);
+    return isValid;
+  };
 
   const handleNext = () => {
-    if (currentStep === 1 && !validatePersonalInfo()) return
-    if (currentStep === 2 && !validateBusinessInfo()) return
-    setCurrentStep(currentStep + 1)
-  }
+    if (currentStep === 1 && !validatePersonalInfo()) return;
+    if (currentStep === 2 && !validateBusinessInfo()) return;
+    setCurrentStep(currentStep + 1);
+  };
 
   const handleBack = () => {
-    setCurrentStep(currentStep - 1)
-  }
+    setCurrentStep(currentStep - 1);
+  };
 
   const handleSubmit = async () => {
-    setLoading(true)
+    setLoading(true);
 
     try {
       const response = await fetch(`${API_URL}/auth/merchant/register`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...personalInfo,
-          ...businessInfo
-        })
-      })
+          ...businessInfo,
+        }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed')
+        throw new Error(data.message || "Registration failed");
       }
 
       if (data.success) {
-        setVerificationSent(true)
-        showSuccessToast('Registration successful! Please check your email for verification code.')
+        setVerificationSent(true);
+        showSuccessToast(
+          "Registration successful! Please check your email for verification code.",
+        );
       }
     } catch (err) {
-      showErrorToast(err.message || 'Registration failed')
+      showErrorToast(err.message || "Registration failed");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleVerifyOtp = async () => {
     if (!otp || otp.length !== 6) {
-      setOtpError('Please enter a valid 6-digit verification code')
-      return
+      setOtpError("Please enter a valid 6-digit verification code");
+      return;
     }
 
-    setLoading(true)
-    setOtpError('')
+    setLoading(true);
+    setOtpError("");
 
     try {
       const response = await fetch(`${API_URL}/auth/otp/verify`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: personalInfo.email,
-          code: otp
-        })
-      })
+          code: otp,
+        }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Verification failed')
+        throw new Error(data.message || "Verification failed");
       }
 
       if (data.success) {
-        showSuccessToast('Email verified successfully! Your account is now pending admin approval.')
-        navigate('/login')
+        showSuccessToast(
+          "Email verified successfully! Your account is now pending admin approval.",
+        );
+        navigate("/login");
       }
     } catch (err) {
-      setOtpError(err.message || 'Verification failed')
-      showErrorToast(err.message || 'Verification failed')
+      setOtpError(err.message || "Verification failed");
+      showErrorToast(err.message || "Verification failed");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleResendOtp = async () => {
-    if (resendCooldown > 0) return
+    if (resendCooldown > 0) return;
 
-    setLoading(true)
-    setOtpError('')
+    setLoading(true);
+    setOtpError("");
 
     try {
       const response = await fetch(`${API_URL}/auth/otp/send`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: personalInfo.email
-        })
-      })
+          email: personalInfo.email,
+        }),
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to resend code')
+        throw new Error(data.message || "Failed to resend code");
       }
 
       if (data.success) {
-        showSuccessToast('Verification code sent to your email')
-        setResendCooldown(60)
+        showSuccessToast("Verification code sent to your email");
+        setResendCooldown(60);
         // The useEffect on resendCooldown above drives the countdown and
         // cleans up the timer on unmount.
       }
     } catch (err) {
-      setOtpError(err.message || 'Failed to resend code')
-      showErrorToast(err.message || 'Failed to resend code')
+      setOtpError(err.message || "Failed to resend code");
+      showErrorToast(err.message || "Failed to resend code");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   if (verificationSent) {
     return (
@@ -302,7 +320,9 @@ export default function RegistrationPage() {
                 <input
                   type="text"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) =>
+                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   placeholder="Enter 6-digit code"
                   className="w-full px-4 py-3 text-center text-2xl tracking-widest border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
                   maxLength={6}
@@ -314,7 +334,7 @@ export default function RegistrationPage() {
                 disabled={loading}
                 className="w-full py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? 'Verifying...' : 'Verify Email'}
+                {loading ? "Verifying..." : "Verify Email"}
                 <ArrowRight className="w-5 h-5" />
               </button>
 
@@ -323,7 +343,9 @@ export default function RegistrationPage() {
                 disabled={resendCooldown > 0 || loading}
                 className="w-full py-3 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend code'}
+                {resendCooldown > 0
+                  ? `Resend code in ${resendCooldown}s`
+                  : "Resend code"}
               </button>
 
               <button
@@ -336,7 +358,7 @@ export default function RegistrationPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -362,19 +384,25 @@ export default function RegistrationPage() {
         <div className="flex items-center justify-center mb-8">
           {[1, 2, 3].map((step) => (
             <div key={step} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold ${
-                currentStep === step
-                  ? 'bg-primary text-white'
-                  : currentStep > step
-                  ? 'bg-success text-white'
-                  : 'bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted'
-              }`}>
+              <div
+                className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold ${
+                  currentStep === step
+                    ? "bg-primary text-white"
+                    : currentStep > step
+                      ? "bg-success text-white"
+                      : "bg-surface-muted dark:bg-dark-surface-muted text-muted dark:text-dark-muted"
+                }`}
+              >
                 {currentStep > step ? <Check className="w-5 h-5" /> : step}
               </div>
               {step < 3 && (
-                <div className={`w-24 h-1 mx-2 rounded ${
-                  currentStep > step ? 'bg-success' : 'bg-surface-muted dark:bg-dark-surface-muted'
-                }`} />
+                <div
+                  className={`w-24 h-1 mx-2 rounded ${
+                    currentStep > step
+                      ? "bg-success"
+                      : "bg-surface-muted dark:bg-dark-surface-muted"
+                  }`}
+                />
               )}
             </div>
           ))}
@@ -407,11 +435,14 @@ export default function RegistrationPage() {
                     type="text"
                     value={personalInfo.firstName}
                     onChange={(e) => {
-                      setPersonalInfo({ ...personalInfo, firstName: e.target.value })
-                      setPersonalErrors({ ...personalErrors, firstName: '' })
+                      setPersonalInfo({
+                        ...personalInfo,
+                        firstName: e.target.value,
+                      });
+                      setPersonalErrors({ ...personalErrors, firstName: "" });
                     }}
                     placeholder="John"
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.firstName ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.firstName ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                   />
                   {personalErrors.firstName && (
                     <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -428,11 +459,14 @@ export default function RegistrationPage() {
                     type="text"
                     value={personalInfo.lastName}
                     onChange={(e) => {
-                      setPersonalInfo({ ...personalInfo, lastName: e.target.value })
-                      setPersonalErrors({ ...personalErrors, lastName: '' })
+                      setPersonalInfo({
+                        ...personalInfo,
+                        lastName: e.target.value,
+                      });
+                      setPersonalErrors({ ...personalErrors, lastName: "" });
                     }}
                     placeholder="Doe"
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.lastName ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.lastName ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                   />
                   {personalErrors.lastName && (
                     <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -451,11 +485,11 @@ export default function RegistrationPage() {
                   type="email"
                   value={personalInfo.email}
                   onChange={(e) => {
-                    setPersonalInfo({ ...personalInfo, email: e.target.value })
-                    setPersonalErrors({ ...personalErrors, email: '' })
+                    setPersonalInfo({ ...personalInfo, email: e.target.value });
+                    setPersonalErrors({ ...personalErrors, email: "" });
                   }}
                   placeholder="john@example.com"
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.email ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.email ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                 />
                 {personalErrors.email && (
                   <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -473,11 +507,11 @@ export default function RegistrationPage() {
                   type="tel"
                   value={personalInfo.phone}
                   onChange={(e) => {
-                    setPersonalInfo({ ...personalInfo, phone: e.target.value })
-                    setPersonalErrors({ ...personalErrors, phone: '' })
+                    setPersonalInfo({ ...personalInfo, phone: e.target.value });
+                    setPersonalErrors({ ...personalErrors, phone: "" });
                   }}
                   placeholder="08012345678"
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.phone ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.phone ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                 />
                 {personalErrors.phone && (
                   <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -496,11 +530,14 @@ export default function RegistrationPage() {
                     type="password"
                     value={personalInfo.password}
                     onChange={(e) => {
-                      setPersonalInfo({ ...personalInfo, password: e.target.value })
-                      setPersonalErrors({ ...personalErrors, password: '' })
+                      setPersonalInfo({
+                        ...personalInfo,
+                        password: e.target.value,
+                      });
+                      setPersonalErrors({ ...personalErrors, password: "" });
                     }}
                     placeholder="Min. 8 characters"
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.password ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.password ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                   />
                   {personalErrors.password && (
                     <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -517,11 +554,17 @@ export default function RegistrationPage() {
                     type="password"
                     value={personalInfo.confirmPassword}
                     onChange={(e) => {
-                      setPersonalInfo({ ...personalInfo, confirmPassword: e.target.value })
-                      setPersonalErrors({ ...personalErrors, confirmPassword: '' })
+                      setPersonalInfo({
+                        ...personalInfo,
+                        confirmPassword: e.target.value,
+                      });
+                      setPersonalErrors({
+                        ...personalErrors,
+                        confirmPassword: "",
+                      });
                     }}
                     placeholder="Re-enter password"
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.confirmPassword ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${personalErrors.confirmPassword ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                   />
                   {personalErrors.confirmPassword && (
                     <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -576,16 +619,21 @@ export default function RegistrationPage() {
                       <button
                         type="button"
                         key={cat.id}
-                        onClick={() => setBusinessInfo({ ...businessInfo, categoryId: cat.id })}
+                        onClick={() =>
+                          setBusinessInfo({
+                            ...businessInfo,
+                            categoryId: cat.id,
+                          })
+                        }
                         className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                           businessInfo.categoryId === cat.id
-                            ? 'border-primary bg-primary/10 dark:bg-primary/20'
-                            : 'border-surface-muted dark:border-dark-surface-muted hover:border-primary/50 dark:hover:border-primary/50'
+                            ? "border-primary bg-primary/10 dark:bg-primary/20"
+                            : "border-surface-muted dark:border-dark-surface-muted hover:border-primary/50 dark:hover:border-primary/50"
                         }`}
                       >
                         <div
                           className="w-8 h-8 rounded-lg mb-2"
-                          style={{ background: cat.color || '#7C3AED' }}
+                          style={{ background: cat.color || "#7C3AED" }}
                         />
                         <div className="font-semibold text-text dark:text-dark-text">
                           {cat.name}
@@ -609,11 +657,14 @@ export default function RegistrationPage() {
                   type="text"
                   value={businessInfo.businessName}
                   onChange={(e) => {
-                    setBusinessInfo({ ...businessInfo, businessName: e.target.value })
-                    setBusinessErrors({ ...businessErrors, businessName: '' })
+                    setBusinessInfo({
+                      ...businessInfo,
+                      businessName: e.target.value,
+                    });
+                    setBusinessErrors({ ...businessErrors, businessName: "" });
                   }}
                   placeholder="My Restaurant"
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessName ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessName ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                 />
                 {businessErrors.businessName && (
                   <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -632,11 +683,17 @@ export default function RegistrationPage() {
                     type="tel"
                     value={businessInfo.businessPhone}
                     onChange={(e) => {
-                      setBusinessInfo({ ...businessInfo, businessPhone: e.target.value })
-                      setBusinessErrors({ ...businessErrors, businessPhone: '' })
+                      setBusinessInfo({
+                        ...businessInfo,
+                        businessPhone: e.target.value,
+                      });
+                      setBusinessErrors({
+                        ...businessErrors,
+                        businessPhone: "",
+                      });
                     }}
                     placeholder="08098765432"
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessPhone ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessPhone ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                   />
                   {businessErrors.businessPhone && (
                     <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -653,11 +710,17 @@ export default function RegistrationPage() {
                     type="email"
                     value={businessInfo.businessEmail}
                     onChange={(e) => {
-                      setBusinessInfo({ ...businessInfo, businessEmail: e.target.value })
-                      setBusinessErrors({ ...businessErrors, businessEmail: '' })
+                      setBusinessInfo({
+                        ...businessInfo,
+                        businessEmail: e.target.value,
+                      });
+                      setBusinessErrors({
+                        ...businessErrors,
+                        businessEmail: "",
+                      });
                     }}
                     placeholder="business@example.com"
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessEmail ? 'border-error focus:border-error' : 'border-surface-muted dark:border-dark-surface-muted'}`}
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text ${businessErrors.businessEmail ? "border-error focus:border-error" : "border-surface-muted dark:border-dark-surface-muted"}`}
                   />
                   {businessErrors.businessEmail && (
                     <p className="mt-1 text-sm text-error flex items-center gap-1">
@@ -665,20 +728,6 @@ export default function RegistrationPage() {
                       {businessErrors.businessEmail}
                     </p>
                   )}
-                </div>
-              </div>
-
-              <div className="p-4 bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-text dark:text-dark-text mb-1">
-                      You'll pin your location next
-                    </p>
-                    <p className="text-sm text-muted dark:text-dark-muted">
-                      After you verify your email and log in, you'll drop a pin on a map so customers can find you and we can calculate accurate delivery fees.
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
@@ -708,7 +757,12 @@ export default function RegistrationPage() {
                   <input
                     type="time"
                     value={businessInfo.openingTime}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, openingTime: e.target.value })}
+                    onChange={(e) =>
+                      setBusinessInfo({
+                        ...businessInfo,
+                        openingTime: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
                   />
                 </div>
@@ -719,7 +773,12 @@ export default function RegistrationPage() {
                   <input
                     type="time"
                     value={businessInfo.closingTime}
-                    onChange={(e) => setBusinessInfo({ ...businessInfo, closingTime: e.target.value })}
+                    onChange={(e) =>
+                      setBusinessInfo({
+                        ...businessInfo,
+                        closingTime: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-dark-surface-muted dark:text-dark-text"
                   />
                 </div>
@@ -733,7 +792,8 @@ export default function RegistrationPage() {
                       Approval Required
                     </p>
                     <p className="text-sm text-muted dark:text-dark-muted">
-                      Your account will be reviewed by our team before activation. This typically takes 1-2 business days.
+                      Your account will be reviewed by our team before
+                      activation. This typically takes 1-2 business days.
                     </p>
                   </div>
                 </div>
@@ -745,23 +805,36 @@ export default function RegistrationPage() {
                 </h4>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted dark:text-dark-muted">Name:</span>
+                    <span className="text-muted dark:text-dark-muted">
+                      Name:
+                    </span>
                     <span className="font-medium text-text dark:text-dark-text">
                       {personalInfo.firstName} {personalInfo.lastName}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted dark:text-dark-muted">Email:</span>
-                    <span className="font-medium text-text dark:text-dark-text">{personalInfo.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted dark:text-dark-muted">Business:</span>
-                    <span className="font-medium text-text dark:text-dark-text">{businessInfo.businessName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted dark:text-dark-muted">Category:</span>
+                    <span className="text-muted dark:text-dark-muted">
+                      Email:
+                    </span>
                     <span className="font-medium text-text dark:text-dark-text">
-                      {categories.find((c) => c.id === businessInfo.categoryId)?.name || '—'}
+                      {personalInfo.email}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted dark:text-dark-muted">
+                      Business:
+                    </span>
+                    <span className="font-medium text-text dark:text-dark-text">
+                      {businessInfo.businessName}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted dark:text-dark-muted">
+                      Category:
+                    </span>
+                    <span className="font-medium text-text dark:text-dark-text">
+                      {categories.find((c) => c.id === businessInfo.categoryId)
+                        ?.name || "—"}
                     </span>
                   </div>
                 </div>
@@ -797,7 +870,7 @@ export default function RegistrationPage() {
                 disabled={loading}
                 className="flex-1 py-3 bg-success text-white rounded-xl font-semibold hover:bg-success-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? 'Creating Account...' : 'Complete Registration'}
+                {loading ? "Creating Account..." : "Complete Registration"}
                 <Check className="w-5 h-5" />
               </button>
             )}
@@ -806,8 +879,11 @@ export default function RegistrationPage() {
           {/* Login Link */}
           <div className="mt-6 text-center">
             <p className="text-muted dark:text-dark-muted">
-              Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:underline font-semibold">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="text-primary hover:underline font-semibold"
+              >
                 Sign in
               </Link>
             </p>
@@ -815,5 +891,5 @@ export default function RegistrationPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -160,8 +160,12 @@ const productsSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false
-        state.products = action.payload.data || action.payload.products || []
-        state.total = action.payload.meta?.total ?? action.payload.total ?? state.products.length
+        // fetchProducts returns response.data.data, which is the products ARRAY.
+        // Guard against both shapes so a list payload isn't mistaken for an object.
+        state.products = Array.isArray(action.payload)
+          ? action.payload
+          : action.payload?.data || action.payload?.products || []
+        state.total = action.payload?.meta?.total ?? action.payload?.total ?? state.products.length
         state.page = action.payload.meta?.page ?? action.payload.page ?? 1
         state.limit = action.payload.meta?.limit ?? action.payload.limit ?? 50
       })
