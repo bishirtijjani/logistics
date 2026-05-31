@@ -130,6 +130,14 @@ export default function LandingPage() {
                 {l.label}
               </a>
             ))}
+            <a
+              href="https://iprime.ng/help/merchant/set-up-your-shop"
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer"
+            >
+              Guides
+            </a>
           </div>
 
           <div className="flex items-center gap-2">
@@ -391,6 +399,18 @@ export default function LandingPage() {
                 </article>
               ))}
             </div>
+
+            <div className="mt-10">
+              <a
+                href="https://iprime.ng/help/merchant/set-up-your-shop"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors duration-200 cursor-pointer"
+              >
+                Read the step-by-step merchant guide
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
           </div>
         </section>
 
@@ -448,6 +468,14 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-6 text-sm">
+            <a
+              href="https://iprime.ng/help/merchant/set-up-your-shop"
+              target="_blank"
+              rel="noreferrer"
+              className="text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer"
+            >
+              Guides
+            </a>
             <Link
               to="/login"
               className="text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer"

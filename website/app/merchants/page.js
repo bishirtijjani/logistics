@@ -252,6 +252,13 @@ export default function MerchantsPage() {
                 </article>
               ))}
             </div>
+
+            <div className="mt-10">
+              <Link href="/help/merchant/set-up-your-shop" className="ui-btn ui-btn-ghost">
+                Read the step-by-step merchant guide
+                <ArrowUpRight size={16} strokeWidth={2.5} />
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -339,6 +346,16 @@ export default function MerchantsPage() {
                     <ArrowUpRight size={16} strokeWidth={2.5} />
                   </Link>
                 </div>
+                <p className="mt-6 text-sm text-white/60 font-medium">
+                  New to selling on iPrime?{" "}
+                  <Link
+                    href="/help"
+                    className="text-accent font-semibold hover:underline"
+                  >
+                    Browse the merchant guides
+                  </Link>
+                  .
+                </p>
               </div>
             </div>
           </div>
