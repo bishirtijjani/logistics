@@ -22,7 +22,7 @@ import {
   ChevronRight, TrendingUp, Clock, Star, Hash, Tag, AlertCircle,
   PauseCircle, PlayCircle, CheckSquare, Square, RefreshCw, Plus,
   X, Search, Filter, ArrowUpRight, Building2, Users, BarChart2,
-  Banknote, History, ToggleLeft, ToggleRight, Pencil, Globe,
+  Banknote, History, ToggleLeft, ToggleRight, Pencil, Globe, Package,
 } from 'lucide-react'
 
 // ── Design tokens ────────────────────────────────────────────
@@ -343,6 +343,10 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                 <Shield size={14} /> Unsuspend
               </Btn>
             )}
+            <Btn size="sm" variant="ghost"
+              onClick={() => navigate(`/merchants/${merchant.id}/products`)}>
+              <Package size={14} /> Products
+            </Btn>
             <Btn size="sm" variant="ghost"
               onClick={() => navigate(`/merchants/${merchant.id}/analytics`)}>
               <BarChart2 size={14} /> Analytics
@@ -1288,6 +1292,9 @@ export default function MerchantsPage() {
                           <div className="flex gap-1">
                             <button onClick={() => setDrawerMerchant(m)} className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors" title="View Details">
                               <Eye size={16} />
+                            </button>
+                            <button onClick={() => navigate(`/merchants/${m.id}/products`)} className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-primary transition-colors" title="Products">
+                              <Package size={16} />
                             </button>
                             <button onClick={() => navigate(`/merchants/${m.id}/analytics`)} className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-primary transition-colors" title="Analytics">
                               <BarChart2 size={16} />

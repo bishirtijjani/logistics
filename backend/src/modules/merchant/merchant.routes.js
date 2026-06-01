@@ -117,31 +117,34 @@ router.get('/merchant/:merchantId/bank-account', authorize('MERCHANT'), merchant
 router.put('/merchant/:merchantId/bank-account', authorize('MERCHANT'), validate(saveBankAccountSchema), merchantController.saveMerchantBankAccount);
 
 // Merchant products
-router.get('/merchant/:merchantId/products', authorize('MERCHANT'), validate(merchantProductsSchema, 'query'), merchantController.getMerchantProducts);
-router.get('/merchant/:merchantId/products/:productId', authorize('MERCHANT'), merchantController.getMerchantProductById);
-router.post('/merchant/:merchantId/products', authorize('MERCHANT'), validate(createProductSchema), merchantController.createMerchantProduct);
-router.put('/merchant/:merchantId/products/:productId', authorize('MERCHANT'), validate(updateProductSchema), merchantController.updateMerchantProduct);
-router.delete('/merchant/:merchantId/products/:productId', authorize('MERCHANT'), merchantController.deleteMerchantProduct);
-router.patch('/merchant/:merchantId/products/:productId/availability', authorize('MERCHANT'), validate(toggleProductAvailabilitySchema), merchantController.toggleMerchantProductAvailability);
+// Admins share these routes (not a separate /admin namespace) because the service
+// layer is already role-aware: the ownership guard is skipped when role === 'ADMIN',
+// so admins can manage any merchant's catalogue from the admin dashboard.
+router.get('/merchant/:merchantId/products', authorize('MERCHANT', 'ADMIN'), validate(merchantProductsSchema, 'query'), merchantController.getMerchantProducts);
+router.get('/merchant/:merchantId/products/:productId', authorize('MERCHANT', 'ADMIN'), merchantController.getMerchantProductById);
+router.post('/merchant/:merchantId/products', authorize('MERCHANT', 'ADMIN'), validate(createProductSchema), merchantController.createMerchantProduct);
+router.put('/merchant/:merchantId/products/:productId', authorize('MERCHANT', 'ADMIN'), validate(updateProductSchema), merchantController.updateMerchantProduct);
+router.delete('/merchant/:merchantId/products/:productId', authorize('MERCHANT', 'ADMIN'), merchantController.deleteMerchantProduct);
+router.patch('/merchant/:merchantId/products/:productId/availability', authorize('MERCHANT', 'ADMIN'), validate(toggleProductAvailabilitySchema), merchantController.toggleMerchantProductAvailability);
 
 // Product variants (nested)
-router.post('/merchant/:merchantId/products/:productId/variants', authorize('MERCHANT'), validate(variantInputSchema), merchantController.createProductVariant);
-router.patch('/merchant/:merchantId/products/:productId/variants/:variantId', authorize('MERCHANT'), validate(updateVariantSchema), merchantController.updateProductVariant);
-router.delete('/merchant/:merchantId/products/:productId/variants/:variantId', authorize('MERCHANT'), merchantController.deleteProductVariant);
+router.post('/merchant/:merchantId/products/:productId/variants', authorize('MERCHANT', 'ADMIN'), validate(variantInputSchema), merchantController.createProductVariant);
+router.patch('/merchant/:merchantId/products/:productId/variants/:variantId', authorize('MERCHANT', 'ADMIN'), validate(updateVariantSchema), merchantController.updateProductVariant);
+router.delete('/merchant/:merchantId/products/:productId/variants/:variantId', authorize('MERCHANT', 'ADMIN'), merchantController.deleteProductVariant);
 
 // Product option groups (food customization)
-router.post('/merchant/:merchantId/products/:productId/option-groups', authorize('MERCHANT'), validate(optionGroupInputSchema), merchantController.createOptionGroup);
-router.patch('/merchant/:merchantId/products/:productId/option-groups/:groupId', authorize('MERCHANT'), validate(optionGroupUpdateSchema), merchantController.updateOptionGroup);
-router.delete('/merchant/:merchantId/products/:productId/option-groups/:groupId', authorize('MERCHANT'), merchantController.deleteOptionGroup);
+router.post('/merchant/:merchantId/products/:productId/option-groups', authorize('MERCHANT', 'ADMIN'), validate(optionGroupInputSchema), merchantController.createOptionGroup);
+router.patch('/merchant/:merchantId/products/:productId/option-groups/:groupId', authorize('MERCHANT', 'ADMIN'), validate(optionGroupUpdateSchema), merchantController.updateOptionGroup);
+router.delete('/merchant/:merchantId/products/:productId/option-groups/:groupId', authorize('MERCHANT', 'ADMIN'), merchantController.deleteOptionGroup);
 
 // Bulk-upsert all option groups + items in one shot (menu import / template apply).
 // Body: { groups: [{ id?, name, selectionRule, minSelect, maxSelect, sortOrder?, items: [{ id?, name, priceDelta?, isDefault?, isAvailable?, sortOrder? }] }] }
-router.put('/merchant/:merchantId/products/:productId/option-groups', authorize('MERCHANT'), merchantController.bulkUpsertOptionGroups);
+router.put('/merchant/:merchantId/products/:productId/option-groups', authorize('MERCHANT', 'ADMIN'), merchantController.bulkUpsertOptionGroups);
 
 // Option items within a group
-router.post('/merchant/:merchantId/products/:productId/option-groups/:groupId/items', authorize('MERCHANT'), validate(optionItemInputSchema), merchantController.createOptionItem);
-router.patch('/merchant/:merchantId/products/:productId/option-groups/:groupId/items/:itemId', authorize('MERCHANT'), validate(optionItemUpdateSchema), merchantController.updateOptionItem);
-router.delete('/merchant/:merchantId/products/:productId/option-groups/:groupId/items/:itemId', authorize('MERCHANT'), merchantController.deleteOptionItem);
+router.post('/merchant/:merchantId/products/:productId/option-groups/:groupId/items', authorize('MERCHANT', 'ADMIN'), validate(optionItemInputSchema), merchantController.createOptionItem);
+router.patch('/merchant/:merchantId/products/:productId/option-groups/:groupId/items/:itemId', authorize('MERCHANT', 'ADMIN'), validate(optionItemUpdateSchema), merchantController.updateOptionItem);
+router.delete('/merchant/:merchantId/products/:productId/option-groups/:groupId/items/:itemId', authorize('MERCHANT', 'ADMIN'), merchantController.deleteOptionItem);
 
 // Merchant analytics
 router.get('/merchant/:merchantId/analytics/sales', authorize('MERCHANT'), validate(merchantAnalyticsSchema, 'query'), merchantController.getMerchantSalesSummary);

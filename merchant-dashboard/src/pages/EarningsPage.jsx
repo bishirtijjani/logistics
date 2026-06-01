@@ -211,8 +211,8 @@ export default function EarningsPage() {
       return;
     }
 
-    if (amount > (wallet?.availableBalance || 0)) {
-      showErrorToast("Insufficient available balance");
+    if (amount > (userWallet?.balance || 0)) {
+      showErrorToast("Insufficient balance");
       return;
     }
 
@@ -238,7 +238,8 @@ export default function EarningsPage() {
 
       setShowWithdrawModal(false);
       setWithdrawalForm({ amount: "" });
-      dispatch(fetchWallet({ merchantId }));
+      dispatch(fetchUserWallet());            // balance was reserved (debited)
+      dispatch(fetchWalletTransactions({ page: 1, limit: 20 }));
 
       showSuccessToast("Withdrawal request submitted. You'll be paid once it's approved.");
     } catch (err) {
@@ -1261,8 +1262,8 @@ Thank you for your business!
         <h3>Account Summary</h3>
         <div class="summary-grid">
           <div class="summary-item">
-            <strong>Available Balance</strong>
-            ₦${wallet.availableBalance?.toLocaleString() || 0}
+            <strong>Wallet Balance</strong>
+            ₦${Number(userWallet?.balance || 0).toLocaleString()}
           </div>
           <div class="summary-item">
             <strong>Total Earnings</strong>
@@ -1605,43 +1606,28 @@ Thank you for your business!
             </div>
           )}
 
-          {/* Enhanced Wallet Balance Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Wallet balance cards — one unified wallet: earnings + top-ups land
+              here; bills + withdrawals draw from here. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-gradient-to-br from-primary to-primary-700 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
                 <Wallet className="w-6 h-6" />
-                <h2 className="text-lg font-semibold">Available Balance</h2>
+                <h2 className="text-lg font-semibold">Wallet Balance</h2>
               </div>
               <p className="text-3xl sm:text-4xl font-bold break-words">
-                ₦{wallet.availableBalance?.toLocaleString() || "0"}
+                ₦{Number(userWallet?.balance || 0).toLocaleString()}
               </p>
-              <p className="text-orange-100 mt-2 text-sm">Ready for withdrawal</p>
-            </div>
-            <div className="bg-gradient-to-br from-zinc-700 to-zinc-900 rounded-xl p-6 text-white">
-              <div className="flex items-center gap-3 mb-4">
-                <Clock className="w-6 h-6" />
-                <h3 className="text-lg font-semibold">Pending Balance</h3>
-              </div>
-              <p className="text-3xl sm:text-4xl font-bold break-words">
-                ₦{wallet.pendingBalance?.toLocaleString() || "0"}
-              </p>
-              <p className="text-zinc-300 mt-2 text-sm">
-                Withdrawals in progress
-              </p>
+              <p className="text-orange-100 mt-2 text-sm">Spend on bills or withdraw to your bank</p>
             </div>
             <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
                 <TrendingUp className="w-6 h-6" />
-                <h2 className="text-lg font-semibold">Total Earnings</h2>
+                <h2 className="text-lg font-semibold">Lifetime Earnings</h2>
               </div>
               <p className="text-4xl font-bold">
-                ₦
-                {(
-                  wallet.totalEarnings ??
-                  (wallet.availableBalance || 0) + (wallet.pendingBalance || 0)
-                ).toLocaleString()}
+                ₦{Number(wallet?.totalEarnings || 0).toLocaleString()}
               </p>
-              <p className="text-green-100 mt-2 text-sm">All time earnings</p>
+              <p className="text-green-100 mt-2 text-sm">All-time order earnings</p>
             </div>
             <div className="bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-6 text-white">
               <div className="flex items-center gap-3 mb-4">
@@ -1649,7 +1635,7 @@ Thank you for your business!
                 <h2 className="text-lg font-semibold">Total Commission</h2>
               </div>
               <p className="text-4xl font-bold">
-                ₦{wallet.totalCommission?.toLocaleString() || "0"}
+                ₦{wallet?.totalCommission?.toLocaleString() || "0"}
               </p>
               <p className="text-purple-100 mt-2 text-sm">Platform fees paid</p>
             </div>
@@ -1657,6 +1643,13 @@ Thank you for your business!
 
           {/* Withdrawal Actions */}
           <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => setShowTopUpModal(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Add Money
+            </button>
             <button
               onClick={() => setShowWithdrawalHistory(true)}
               className="flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
@@ -1687,14 +1680,48 @@ Thank you for your business!
             </button>
             <button
               onClick={() => setShowWithdrawModal(true)}
-              disabled={
-                !wallet.availableBalance || wallet.availableBalance === 0
-              }
+              disabled={!userWallet?.balance || userWallet.balance === 0}
               className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ArrowUpRight className="w-5 h-5" />
               Request Withdrawal
             </button>
+          </div>
+
+          {/* Recent wallet activity — earnings, top-ups, bills + withdrawals,
+              all in one ledger (the whole point of the unified wallet). */}
+          <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Receipt className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-text dark:text-dark-text">Recent Wallet Activity</h3>
+            </div>
+            {userWallet?.transactions?.length ? (
+              <div className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
+                {userWallet.transactions.slice(0, 12).map((tx) => {
+                  const credit = ["WALLET_FUNDING", "MERCHANT_EARNING", "P2P_TRANSFER_RECEIVED", "REFUND", "ESCROW_RELEASE", "DELIVERY_EARNING", "RIDER_EARNING"].includes(tx.type);
+                  const label = (tx.type || "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+                  return (
+                    <div key={tx.id} className="flex items-center gap-3 py-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${credit ? "bg-green-100 dark:bg-green-900/30" : "bg-surface-muted dark:bg-dark-surface-muted"}`}>
+                        {credit ? <ArrowDownLeft className="w-4 h-4 text-green-600 dark:text-green-400" /> : <ArrowUpRight className="w-4 h-4 text-text dark:text-dark-text" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-text dark:text-dark-text truncate">{tx.description || label}</p>
+                        <p className="text-xs text-muted dark:text-dark-muted">
+                          {label} • {format(new Date(tx.createdAt), "dd MMM yyyy, HH:mm")}
+                          {tx.status && tx.status !== "COMPLETED" ? ` • ${tx.status}` : ""}
+                        </p>
+                      </div>
+                      <p className={`text-sm font-bold shrink-0 ${credit ? "text-green-600 dark:text-green-400" : "text-text dark:text-dark-text"}`}>
+                        {credit ? "+" : "-"}₦{Number(tx.amount || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted dark:text-dark-muted text-center py-6">No wallet activity yet.</p>
+            )}
           </div>
 
           {/* Payout Bank Account */}
@@ -2075,6 +2102,60 @@ Thank you for your business!
       ) : null}
 
       {/* Enhanced Withdrawal Modal */}
+      {showTopUpModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-md w-full">
+            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-text dark:text-dark-text">Add Money</h2>
+                <button
+                  onClick={() => setShowTopUpModal(false)}
+                  className="p-2 text-error hover:bg-error/10 rounded-md"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleTopUp} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Amount (₦)</label>
+                <NumberInput
+                  decimal
+                  required
+                  value={topUpAmount}
+                  onChange={setTopUpAmount}
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
+                />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {[1000, 5000, 10000, 20000].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setTopUpAmount(String(v))}
+                      className="px-3 py-1.5 rounded-lg border border-surface-muted dark:border-dark-surface-muted text-sm font-semibold text-text dark:text-dark-text hover:border-primary/50"
+                    >
+                      ₦{v.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-xs text-muted dark:text-dark-muted">
+                You'll be taken to a secure payment page to transfer the amount. Your wallet is credited automatically once payment is confirmed.
+              </p>
+              <button
+                type="submit"
+                disabled={topUpLoading}
+                className="w-full flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" />
+                {topUpLoading ? "Starting…" : "Continue to payment"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {showWithdrawModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -2112,7 +2193,7 @@ Thank you for your business!
                 <div className="mt-2 space-y-1">
                   <p className="text-xs text-muted dark:text-dark-muted">
                     Available: ₦
-                    {wallet?.availableBalance?.toLocaleString() || "0"}
+                    {Number(userWallet?.balance || 0).toLocaleString()}
                   </p>
                   <p className="text-xs text-muted dark:text-dark-muted">
                     Min: ₦{withdrawalLimits.minAmount.toLocaleString()} | Max: ₦

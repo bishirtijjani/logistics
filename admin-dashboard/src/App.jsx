@@ -28,6 +28,7 @@ import MarketingPage from './pages/MarketingPage'
 import RiderOperationsPage from './pages/RiderOperationsPage'
 import SafetyPage from './pages/SafetyPage'
 import MerchantAnalyticsPage from './pages/MerchantAnalyticsPage'
+import MerchantProductsPage from './pages/MerchantProductsPage'
 import VtuPlansPage from './pages/VtuPlansPage'
 import VtuNetworksPage from './pages/VtuNetworksPage'
 import CategoriesPage from './pages/CategoriesPage'
@@ -82,6 +83,7 @@ function App() {
           <Route path="merchants" element={<MerchantsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="merchants/:merchantId/analytics" element={<MerchantAnalyticsPage />} />
+          <Route path="merchants/:merchantId/products" element={<MerchantProductsPage />} />
           <Route path="riders" element={<RidersPage />} />
           <Route path="audit-logs" element={<AuditLogPage />} />
           <Route path="customers" element={<CustomersPage />} />
