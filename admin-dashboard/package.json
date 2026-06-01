@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.1",
+    "@vis.gl/react-google-maps": "^1.8.3",
     "axios": "^1.6.7",
     "clsx": "^2.1.0",
     "date-fns": "^3.3.1",

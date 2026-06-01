@@ -7,10 +7,13 @@ import {
   requestWithdrawal,
   fetchBankList,
   fetchBankAccount,
-  resolveBankAccount,
   saveBankAccount,
-  clearResolvedAccount,
 } from "../store/slices/earningsSlice.js";
+import {
+  fetchWallet as fetchUserWallet,
+  fetchTransactions as fetchWalletTransactions,
+  initiateFunding,
+} from "../store/slices/walletSlice.js";
 import {
   Wallet,
   ArrowUpRight,
@@ -31,8 +34,9 @@ import {
   XCircle,
   X,
   Landmark,
-  ShieldCheck,
   Pencil,
+  Plus,
+  ArrowDownLeft,
 } from "lucide-react";
 import { format } from "date-fns";
 import { showErrorToast, showSuccessToast } from "../utils/toast.js";
@@ -51,11 +55,14 @@ export default function EarningsPage() {
     banksLoading,
     bankAccount,
     bankAccountLoading,
-    resolvedAccount,
-    resolving,
     saving,
   } = useSelector((state) => state.earnings);
+  // The unified spendable wallet (earnings + top-ups + VTU + withdrawals).
+  const userWallet = useSelector((state) => state.wallet);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("");
+  const [topUpLoading, setTopUpLoading] = useState(false);
   const [withdrawalForm, setWithdrawalForm] = useState({
     amount: "",
   });
@@ -63,6 +70,7 @@ export default function EarningsPage() {
   const [bankForm, setBankForm] = useState({
     bankCode: "",
     accountNumber: "",
+    accountName: "",
   });
   const [editingBank, setEditingBank] = useState(false);
   const [bankNudgeDismissed, setBankNudgeDismissed] = useState(
@@ -137,10 +145,47 @@ export default function EarningsPage() {
   });
 
   useEffect(() => {
-    dispatch(fetchWallet({ merchantId }));
+    dispatch(fetchWallet({ merchantId }));      // merchantWallet — lifetime stat + bank account
+    dispatch(fetchUserWallet());                // the unified spendable wallet
+    dispatch(fetchWalletTransactions({ page: 1, limit: 20 }));
     dispatch(fetchBankList());
     dispatch(fetchBankAccount({ merchantId }));
   }, [dispatch, merchantId]);
+
+  // Add money to the unified wallet via the standard ad-hoc KatPay top-up. We
+  // open KatPay's hosted checkout in a new tab; the credit lands via webhook, so
+  // we briefly poll the wallet to reflect it without a manual refresh.
+  const handleTopUp = async (e) => {
+    e.preventDefault();
+    const amount = parseFloat(topUpAmount);
+    if (!amount || amount < 100) {
+      showErrorToast("Enter an amount of at least ₦100");
+      return;
+    }
+    setTopUpLoading(true);
+    try {
+      const res = await dispatch(initiateFunding({ amount })).unwrap();
+      if (res?.checkout_url) {
+        window.open(res.checkout_url, "_blank", "noopener");
+        showSuccessToast("Complete your payment in the new tab — your balance updates automatically.");
+        setShowTopUpModal(false);
+        setTopUpAmount("");
+        let polls = 0;
+        const id = setInterval(() => {
+          polls += 1;
+          dispatch(fetchUserWallet());
+          dispatch(fetchWalletTransactions({ page: 1, limit: 20 }));
+          if (polls >= 24) clearInterval(id); // ~2 min
+        }, 5000);
+      } else {
+        showErrorToast("Could not start the top-up. Please try again.");
+      }
+    } catch (err) {
+      showErrorToast(err?.message || "Could not start the top-up. Please try again.");
+    } finally {
+      setTopUpLoading(false);
+    }
+  };
 
   const handleWithdrawal = async (e) => {
     e.preventDefault();
@@ -304,31 +349,13 @@ Thank you for your business!
       (b) => (b.code || b.bankCode) === code,
     )?.name || code;
 
-  // Verify the account number against the selected bank, surfacing the real
-  // account name before the merchant commits to saving it.
-  const handleResolveAccount = async () => {
+  const handleSaveBank = async () => {
     if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
       showErrorToast("Select a bank and enter a 10-digit account number");
       return;
     }
-    try {
-      await dispatch(
-        resolveBankAccount({
-          bankCode: bankForm.bankCode,
-          accountNumber: bankForm.accountNumber,
-        }),
-      ).unwrap();
-    } catch (err) {
-      showErrorToast(
-        err?.message ||
-          "Couldn't verify that account. Check the details and try again.",
-      );
-    }
-  };
-
-  const handleSaveBank = async () => {
-    if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
-      showErrorToast("Select a bank and enter a 10-digit account number");
+    if (!bankForm.accountName || bankForm.accountName.trim().length < 2) {
+      showErrorToast("Enter the account name");
       return;
     }
     try {
@@ -337,11 +364,11 @@ Thank you for your business!
           merchantId,
           bankCode: bankForm.bankCode,
           accountNumber: bankForm.accountNumber,
-          accountName: resolvedAccount?.accountName,
+          accountName: bankForm.accountName.trim(),
         }),
       ).unwrap();
       setEditingBank(false);
-      setBankForm({ bankCode: "", accountNumber: "" });
+      setBankForm({ bankCode: "", accountNumber: "", accountName: "" });
       showSuccessToast("Bank account saved");
     } catch (err) {
       showErrorToast(err?.message || "Failed to save bank account");
@@ -349,10 +376,10 @@ Thank you for your business!
   };
 
   const startEditingBank = () => {
-    dispatch(clearResolvedAccount());
     setBankForm({
       bankCode: bankAccount?.bankCode || "",
       accountNumber: bankAccount?.accountNumber || "",
+      accountName: bankAccount?.accountName || "",
     });
     setEditingBank(true);
   };
@@ -1705,15 +1732,14 @@ Thank you for your business!
                   </p>
                 </div>
                 <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Verified
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  Saved
                 </span>
               </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-muted dark:text-dark-muted">
-                  This is where your withdrawals are paid. We verify the account
-                  name with the bank before saving it.
+                  This is where your withdrawals are paid.
                 </p>
                 <div>
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
@@ -1721,10 +1747,7 @@ Thank you for your business!
                   </label>
                   <select
                     value={bankForm.bankCode}
-                    onChange={(e) => {
-                      dispatch(clearResolvedAccount());
-                      setBankForm({ ...bankForm, bankCode: e.target.value });
-                    }}
+                    onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })}
                     disabled={banksLoading}
                     className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                   >
@@ -1750,47 +1773,46 @@ Thank you for your business!
                     inputMode="numeric"
                     maxLength={10}
                     value={bankForm.accountNumber}
-                    onChange={(e) => {
-                      dispatch(clearResolvedAccount());
+                    onChange={(e) =>
                       setBankForm({
                         ...bankForm,
                         accountNumber: e.target.value.replace(/\D/g, ""),
-                      });
-                    }}
+                      })
+                    }
                     placeholder="10-digit account number"
                     className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+                    Account Name
+                  </label>
+                  <input
+                    type="text"
+                    value={bankForm.accountName}
+                    onChange={(e) => setBankForm({ ...bankForm, accountName: e.target.value })}
+                    placeholder="Name on the account"
+                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
+                  />
+                </div>
 
-                {resolvedAccount?.accountName && (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/40 p-3">
-                    <ShieldCheck className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <p className="text-sm font-medium text-green-800 dark:text-green-300">
-                      {resolvedAccount.accountName}
-                    </p>
-                  </div>
-                )}
+                <div className="flex items-start gap-2 rounded-lg bg-surface-muted/60 dark:bg-dark-surface-muted/60 p-3">
+                  <AlertCircle className="w-4 h-4 text-muted dark:text-dark-muted mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted dark:text-dark-muted">
+                    Double-check the account number and name. Transfers go to the
+                    number you enter and can&apos;t be reversed.
+                  </p>
+                </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={handleResolveAccount}
-                    disabled={
-                      resolving ||
-                      !bankForm.bankCode ||
-                      bankForm.accountNumber.length !== 10
-                    }
-                    className="px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {resolving ? "Verifying…" : "Verify account"}
-                  </button>
                   <button
                     type="button"
                     onClick={handleSaveBank}
                     disabled={
                       saving ||
                       !bankForm.bankCode ||
-                      bankForm.accountNumber.length !== 10
+                      bankForm.accountNumber.length !== 10 ||
+                      !bankForm.accountName.trim()
                     }
                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -1799,10 +1821,7 @@ Thank you for your business!
                   {bankAccount && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setEditingBank(false);
-                        dispatch(clearResolvedAccount());
-                      }}
+                      onClick={() => setEditingBank(false)}
                       className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors text-text dark:text-dark-text"
                     >
                       Cancel

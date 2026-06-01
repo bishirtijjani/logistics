@@ -253,14 +253,6 @@ export const fetchBankList = createAsyncThunk(
   }
 )
 
-export const resolveBankAccount = createAsyncThunk(
-  'merchants/resolveBankAccount',
-  async ({ bankCode, accountNumber }) => {
-    const response = await api.post('/wallet/banks/lookup', { bankCode, accountNumber })
-    return response.data.data // { accountName, accountNumber, bankCode }
-  }
-)
-
 export const updateMerchantBankAccount = createAsyncThunk(
   'merchants/updateBankAccount',
   async ({ merchantId, bankCode, accountNumber, accountName }) => {

@@ -12,6 +12,7 @@ import settingsReducer from "./slices/settingsSlice";
 import supportReducer from "./slices/supportSlice";
 import locationReducer from "./slices/locationSlice";
 import beneficiariesReducer from "./slices/beneficiariesSlice";
+import utilityReducer from "./slices/utilitySlice";
 
 const combined = combineReducers({
   auth: authReducer,
@@ -27,6 +28,7 @@ const combined = combineReducers({
   support: supportReducer,
   location: locationReducer,
   beneficiaries: beneficiariesReducer,
+  utility: utilityReducer,
 });
 
 /**

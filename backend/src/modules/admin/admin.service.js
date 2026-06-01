@@ -1019,12 +1019,12 @@ const setMerchantBankAccount = async (merchantId, { bankCode, accountNumber, acc
     'UPDATE_MERCHANT_BANK_ACCOUNT',
     'MERCHANT',
     merchantId,
-    { bankCode, accountNumber, verified: saved.verified },
+    { bankCode, accountNumber },
     ipAddress,
     userAgent,
   );
 
-  logger.info('Admin updated merchant bank account', { merchantId, verified: saved.verified });
+  logger.info('Admin updated merchant bank account', { merchantId });
   return saved;
 };
 
@@ -2089,6 +2089,13 @@ const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent
     },
   });
 
+  // Unified wallet: advance the merchant's wallet ledger entry too (the funds
+  // were already debited at request time). COMPLETED arrives via payout webhook.
+  await prisma.transaction.updateMany({
+    where: { reference: withdrawal.reference },
+    data: { status: 'PROCESSING', providerRef: updatedWithdrawal.katpayReference },
+  });
+
   await createAuditLog(
     adminUserId, 'APPROVE_WITHDRAWAL', 'MerchantWalletTransaction', withdrawalId,
     { amount: withdrawal.amount, merchantId: withdrawal.merchantWallet.merchantId, katpayReference: updatedWithdrawal.katpayReference },
@@ -2135,19 +2142,24 @@ const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, us
   if (!withdrawal) throw AppError.notFound('Withdrawal not found');
   if (withdrawal.status !== 'PENDING') throw AppError.badRequest('Withdrawal is not in pending status');
 
-  const [updatedWithdrawal] = await prisma.$transaction([
-    prisma.merchantWalletTransaction.update({
+  const updatedWithdrawal = await prisma.$transaction(async (tx) => {
+    const w = await tx.merchantWalletTransaction.update({
       where: { id: withdrawalId },
       data: { status: 'REJECTED', rejectionReason: reason, processedAt: new Date() },
-    }),
-    prisma.merchantWallet.update({
-      where: { id: withdrawal.merchantWalletId },
-      data: {
-        availableBalance: { increment: withdrawal.amount },
-        pendingBalance: { decrement: withdrawal.amount },
-      },
-    }),
-  ]);
+    });
+    // Unified wallet: return the reserved funds to the merchant's User wallet.
+    // The ledger Transaction created at request time tells us which wallet was
+    // debited (its debitWalletId), so we credit exactly that one back.
+    const ledger = await tx.transaction.findUnique({ where: { reference: withdrawal.reference } });
+    if (ledger?.debitWalletId) {
+      await tx.wallet.update({
+        where: { id: ledger.debitWalletId },
+        data: { balance: { increment: withdrawal.amount } },
+      });
+      await tx.transaction.update({ where: { id: ledger.id }, data: { status: 'REVERSED' } });
+    }
+    return w;
+  });
 
   await createAuditLog(
     adminUserId, 'REJECT_WITHDRAWAL', 'MerchantWalletTransaction', withdrawalId,

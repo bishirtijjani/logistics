@@ -245,12 +245,12 @@ const setWithdrawalHoldSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
-// Admin sets a merchant's payout bank account on their behalf. accountName is
-// resolved against the bank server-side; accepted here only as a fallback.
+// Admin sets a merchant's payout bank account on their behalf. KatPay has no
+// name-enquiry endpoint, so accountName is supplied and stored as given.
 const setMerchantBankAccountSchema = z.object({
   bankCode: z.string().min(2, 'Bank is required'),
   accountNumber: z.string().length(10, 'Account number must be 10 digits'),
-  accountName: z.string().min(2).optional(),
+  accountName: z.string().min(2, 'Account name is required'),
 });
 
 const bulkApproveWithdrawalsSchema = z.object({

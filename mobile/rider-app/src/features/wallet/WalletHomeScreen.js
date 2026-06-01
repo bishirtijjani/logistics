@@ -229,6 +229,48 @@ export default function WalletHomeScreen() {
           />
         </View>
 
+        {/* Pay bills — VTU from wallet balance */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <Text style={{ fontSize: 15, fontWeight: "800", color: tokens.text.primary }}>
+            {t("wallet.payBills", "Pay bills")}
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("UtilityHistory")}
+            accessibilityRole="button"
+            accessibilityLabel={t("utility.history.title", "Bill history")}
+          >
+            <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.brand.default }}>
+              {t("utility.history.title", "History")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+          <ActionTile
+            tokens={tokens}
+            icon="phone-portrait-outline"
+            label={t("utility.airtime", "Airtime")}
+            onPress={() => navigation.navigate("Airtime")}
+          />
+          <ActionTile
+            tokens={tokens}
+            icon="wifi-outline"
+            label={t("utility.data", "Data")}
+            onPress={() => navigation.navigate("Data")}
+          />
+          <ActionTile
+            tokens={tokens}
+            icon="flash-outline"
+            label={t("utility.electricity", "Electricity")}
+            onPress={() => navigation.navigate("Electricity")}
+          />
+          <ActionTile
+            tokens={tokens}
+            icon="tv-outline"
+            label={t("utility.cable", "Cable")}
+            onPress={() => navigation.navigate("Cable")}
+          />
+        </View>
+
         <View
           style={{
             backgroundColor: tokens.brand.soft,

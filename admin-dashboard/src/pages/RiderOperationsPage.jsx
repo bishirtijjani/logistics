@@ -2,8 +2,22 @@ import { useState, useEffect, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import {
+  APIProvider,
+  Map as GoogleMap,
+  Marker as GoogleMarker,
+  InfoWindow,
+  useMap as useGoogleMap,
+} from '@vis.gl/react-google-maps'
 import api from '../lib/api'
 import { MapPin, RefreshCw, Activity, Star, Package, Bike } from 'lucide-react'
+import {
+  MAPS_KEY,
+  ESRI_ATTRIBUTION,
+  BasemapSwitcher,
+  BasemapLayers,
+  useBrandPinIcon,
+} from '../components/GoogleBasemap'
 
 const FALLBACK = { lat: 13.0059, lng: 7.6019 } // Katsina city centre
 
@@ -71,6 +85,122 @@ function FitBounds({ points }) {
     done.current = true
   }, [points, map])
   return null
+}
+
+/* ------------------------------------------------------------------ */
+/* Google live map (preferred when VITE_GOOGLE_MAPS_API_KEY is set)    */
+/* ------------------------------------------------------------------ */
+
+// Fit the viewport to all rider pins once (not on every 10s poll, which would
+// make the map jump while the admin is looking at it).
+function FitBoundsGoogle({ points }) {
+  const map = useGoogleMap()
+  const done = useRef(false)
+  useEffect(() => {
+    if (!map || !window.google || done.current || points.length === 0) return
+    if (points.length === 1) {
+      map.setCenter({ lat: points[0].lat, lng: points[0].lng })
+      map.setZoom(14)
+    } else {
+      const bounds = new window.google.maps.LatLngBounds()
+      points.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }))
+      map.fitBounds(bounds, 40)
+    }
+    done.current = true
+  }, [map, points])
+  return null
+}
+
+function RiderMarkers({ points }) {
+  const icon = useBrandPinIcon('#EA580C', 30)
+  const [selectedId, setSelectedId] = useState(null)
+  const selected = points.find((p) => p.id === selectedId)
+  return (
+    <>
+      {points.map((p) => (
+        <GoogleMarker
+          key={p.id}
+          position={{ lat: p.lat, lng: p.lng }}
+          icon={icon}
+          onClick={() => setSelectedId(p.id)}
+        />
+      ))}
+      {selected && (
+        <InfoWindow
+          position={{ lat: selected.lat, lng: selected.lng }}
+          onCloseClick={() => setSelectedId(null)}
+        >
+          <div style={{ fontSize: 12, lineHeight: 1.4 }}>
+            <strong>{selected.name || 'Rider'}</strong>
+            <br />
+            {selected.availability === 'ON_DELIVERY' ? 'On delivery' : 'Online'}
+            {selected.at ? (
+              <>
+                <br />
+                Updated {new Date(selected.at).toLocaleTimeString()}
+              </>
+            ) : null}
+          </div>
+        </InfoWindow>
+      )}
+    </>
+  )
+}
+
+function GoogleLiveMap({ points }) {
+  const [mapType, setMapType] = useState('roadmap')
+  return (
+    <div className="relative h-full w-full">
+      <APIProvider apiKey={MAPS_KEY}>
+        <GoogleMap
+          defaultCenter={{ lat: FALLBACK.lat, lng: FALLBACK.lng }}
+          defaultZoom={12}
+          gestureHandling="greedy"
+          mapTypeControl={false}
+          streetViewControl={false}
+          fullscreenControl={false}
+          style={{ height: '100%', width: '100%' }}
+        >
+          <BasemapLayers mapType={mapType} />
+          <FitBoundsGoogle points={points} />
+          <RiderMarkers points={points} />
+        </GoogleMap>
+      </APIProvider>
+      <BasemapSwitcher value={mapType} onChange={setMapType} />
+      {mapType === 'esri' && (
+        <span className="absolute bottom-0 left-0 z-[400] bg-white/80 dark:bg-black/60 px-1 text-[10px] text-text dark:text-dark-text">
+          {ESRI_ATTRIBUTION}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// Leaflet/CARTO fallback when no browser Maps key is configured.
+function LeafletLiveMap({ points }) {
+  return (
+    <MapContainer center={[FALLBACK.lat, FALLBACK.lng]} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        subdomains="abcd"
+        maxZoom={20}
+        detectRetina
+      />
+      <MapAutoSize />
+      <FitBounds points={points} />
+      {points.map((p) => (
+        <Marker key={p.id} position={[p.lat, p.lng]} icon={RIDER_PIN}>
+          <Popup>
+            <span className="font-semibold">{p.name || 'Rider'}</span>
+            <br />
+            {p.availability === 'ON_DELIVERY' ? 'On delivery' : 'Online'}
+            {p.at ? <><br />Updated {new Date(p.at).toLocaleTimeString()}</> : null}
+          </Popup>
+        </Marker>
+      ))}
+    </MapContainer>
+  )
 }
 
 export default function RiderOperationsPage() {
@@ -225,27 +355,11 @@ export default function RiderOperationsPage() {
           <div className="lg:col-span-3 bg-surface dark:bg-dark-surface rounded-xl border border-surface-muted dark:border-dark-surface-muted p-4 sm:p-6">
             <h3 className="font-semibold text-text dark:text-dark-text mb-4">Live Map</h3>
             <div className="rounded-xl overflow-hidden border border-surface-muted dark:border-dark-surface-muted" style={{ height: 440 }}>
-              <MapContainer center={[FALLBACK.lat, FALLBACK.lng]} zoom={12} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
-                <TileLayer
-                  url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                  subdomains="abcd"
-                  maxZoom={20}
-                  detectRetina
-                />
-                <MapAutoSize />
-                <FitBounds points={mapPoints} />
-                {mapPoints.map((p) => (
-                  <Marker key={p.id} position={[p.lat, p.lng]} icon={RIDER_PIN}>
-                    <Popup>
-                      <span className="font-semibold">{p.name || 'Rider'}</span>
-                      <br />
-                      {p.availability === 'ON_DELIVERY' ? 'On delivery' : 'Online'}
-                      {p.at ? <><br />Updated {new Date(p.at).toLocaleTimeString()}</> : null}
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              {MAPS_KEY ? (
+                <GoogleLiveMap points={mapPoints} />
+              ) : (
+                <LeafletLiveMap points={mapPoints} />
+              )}
             </div>
             <p className="text-xs text-muted dark:text-dark-muted mt-2">Auto-refreshes every 10 seconds · showing up to 50 riders</p>
           </div>

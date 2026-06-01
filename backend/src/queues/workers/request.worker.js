@@ -337,7 +337,7 @@ const settleRequest = async (job) => {
       where: { id: requestId },
       include: {
         customer: { include: { wallet: true } },
-        merchant: { include: { merchantWallet: true } },
+        merchant: { include: { user: { include: { wallet: true } }, merchantWallet: true } },
         rider: { include: { user: { include: { wallet: true } } } },
       },
     });
@@ -380,18 +380,15 @@ const settleRequest = async (job) => {
       });
     }
 
-    // Credit merchant wallet (if applicable).
-    // Earnings land directly in availableBalance so the merchant can withdraw
-    // them immediately after delivery. pendingBalance is reserved exclusively
-    // for withdrawals that are mid-flight (requested → not yet paid out); see
-    // requestMerchantWithdrawal / approveWithdrawal / the payout webhook.
-    if (request.merchant && request.merchant.merchantWallet && merchantEarning > 0) {
-      await tx.merchantWallet.update({
-        where: { merchantId: request.merchantId },
-        data: {
-          availableBalance: { increment: merchantEarning },
-          totalEarnings: { increment: merchantEarning },
-        },
+    // Credit merchant earnings into the merchant's User wallet — the single
+    // wallet a merchant spends (VTU), tops up, and withdraws from, exactly like
+    // riders below. `merchantWallet.totalEarnings` is still bumped as a
+    // lifetime-earnings stat (it no longer holds spendable money).
+    if (request.merchant && request.merchant.user?.wallet && merchantEarning > 0) {
+      const merchantWallet = request.merchant.user.wallet;
+      await tx.wallet.update({
+        where: { id: merchantWallet.id },
+        data: { balance: { increment: merchantEarning } },
       });
       await tx.transaction.create({
         data: {
@@ -401,9 +398,19 @@ const settleRequest = async (job) => {
           amount: merchantEarning,
           fee: 0,
           description: `Earning for request ${requestId}`,
+          creditWalletId: merchantWallet.id,
+          balanceBefore: Number(merchantWallet.balance),
+          balanceAfter: Number(merchantWallet.balance) + merchantEarning,
           metadata: { requestId, merchantId: request.merchantId },
         },
       });
+      // Lifetime-earnings stat only (not spendable balance).
+      if (request.merchant.merchantWallet) {
+        await tx.merchantWallet.update({
+          where: { merchantId: request.merchantId },
+          data: { totalEarnings: { increment: merchantEarning } },
+        });
+      }
     }
 
     // Credit rider wallet (if applicable)

@@ -9,7 +9,7 @@ import {
   setWithdrawalHold, fetchPendingWithdrawals, fetchWithdrawalHistory,
   approveWithdrawal, rejectWithdrawal, bulkApproveWithdrawals,
   fetchAllTags, createTag, updateTag, deleteTag, setMerchantTags,
-  fetchBankList, resolveBankAccount, updateMerchantBankAccount,
+  fetchBankList, updateMerchantBankAccount,
   clearSelectedMerchant,
 } from '../store/slices/merchantsSlice'
 import { fetchCategories } from '../store/slices/categoriesSlice'
@@ -151,8 +151,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
   const [holdReason, setHoldReason] = useState('')
   const [loading, setLoading] = useState(null)
   const [bankEditMode, setBankEditMode] = useState(false)
-  const [bankForm, setBankForm] = useState({ bankCode: '', accountNumber: '' })
-  const [resolvedBank, setResolvedBank] = useState(null)
+  const [bankForm, setBankForm] = useState({ bankCode: '', accountNumber: '', accountName: '' })
 
   useEffect(() => {
     if (merchant && tab === 'commission') {
@@ -235,40 +234,32 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
     })
 
   const startBankEdit = () => {
-    setResolvedBank(null)
     setBankForm({
       bankCode: merchant.wallet?.bankCode || '',
       accountNumber: merchant.wallet?.accountNumber || '',
+      accountName: merchant.wallet?.accountName || '',
     })
     if (!banks?.length) dispatch(fetchBankList())
     setBankEditMode(true)
   }
-
-  const handleResolveBank = () =>
-    act('resolveBank', async () => {
-      if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
-        return toast.error('Select a bank and enter a 10-digit account number')
-      }
-      const r = await dispatch(resolveBankAccount({ bankCode: bankForm.bankCode, accountNumber: bankForm.accountNumber }))
-      if (r.meta.requestStatus === 'fulfilled') setResolvedBank(r.payload)
-      else toast.error(r.error?.message || "Couldn't verify that account")
-    })
 
   const handleSaveBank = () =>
     act('saveBank', async () => {
       if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
         return toast.error('Select a bank and enter a 10-digit account number')
       }
+      if (!bankForm.accountName || bankForm.accountName.trim().length < 2) {
+        return toast.error('Enter the account name')
+      }
       const r = await dispatch(updateMerchantBankAccount({
         merchantId: merchant.id,
         bankCode: bankForm.bankCode,
         accountNumber: bankForm.accountNumber,
-        accountName: resolvedBank?.accountName,
+        accountName: bankForm.accountName.trim(),
       }))
       if (r.meta.requestStatus === 'fulfilled') {
         toast.success('Bank account updated')
         setBankEditMode(false)
-        setResolvedBank(null)
         onAction?.()
       } else {
         toast.error(r.error?.message || 'Failed to save bank account')
@@ -616,7 +607,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                       <FormField label="Bank">
                         <Select
                           value={bankForm.bankCode}
-                          onChange={(e) => { setResolvedBank(null); setBankForm((f) => ({ ...f, bankCode: e.target.value })) }}
+                          onChange={(e) => setBankForm((f) => ({ ...f, bankCode: e.target.value }))}
                         >
                           <option value="">Select a bank</option>
                           {(Array.isArray(banks) ? banks : []).map((b) => (
@@ -630,34 +621,29 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                           maxLength={10}
                           placeholder="10-digit account number"
                           value={bankForm.accountNumber}
-                          onChange={(e) => { setResolvedBank(null); setBankForm((f) => ({ ...f, accountNumber: e.target.value.replace(/\D/g, '') })) }}
+                          onChange={(e) => setBankForm((f) => ({ ...f, accountNumber: e.target.value.replace(/\D/g, '') }))}
+                        />
+                      </FormField>
+                      <FormField label="Account Name">
+                        <Input
+                          placeholder="Name on the account"
+                          value={bankForm.accountName}
+                          onChange={(e) => setBankForm((f) => ({ ...f, accountName: e.target.value }))}
                         />
                       </FormField>
 
-                      {resolvedBank?.accountName && (
-                        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 p-3">
-                          <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400" />
-                          <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">{resolvedBank.accountName}</p>
-                        </div>
-                      )}
-
                       <div className="flex flex-wrap gap-2">
-                        <Btn size="sm" variant="outline" loading={loading === 'resolveBank'}
-                          disabled={!bankForm.bankCode || bankForm.accountNumber.length !== 10}
-                          onClick={handleResolveBank}>
-                          Verify
-                        </Btn>
                         <Btn size="sm" variant="primary" loading={loading === 'saveBank'}
-                          disabled={!bankForm.bankCode || bankForm.accountNumber.length !== 10}
+                          disabled={!bankForm.bankCode || bankForm.accountNumber.length !== 10 || !bankForm.accountName.trim()}
                           onClick={handleSaveBank}>
                           Save
                         </Btn>
-                        <Btn size="sm" variant="ghost" onClick={() => { setBankEditMode(false); setResolvedBank(null) }}>
+                        <Btn size="sm" variant="ghost" onClick={() => setBankEditMode(false)}>
                           Cancel
                         </Btn>
                       </div>
                       <p className="text-xs text-muted dark:text-dark-muted">
-                        We verify the account name with the bank before saving.
+                        KatPay can&apos;t auto-verify names — double-check the account number and name before saving.
                       </p>
                     </div>
                   )}

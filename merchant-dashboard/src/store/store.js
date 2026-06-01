@@ -7,6 +7,8 @@ import analyticsReducer from './slices/analyticsSlice.js'
 import settingsReducer from './slices/settingsSlice.js'
 import supportTicketsReducer from './slices/supportTicketsSlice.js'
 import disputesReducer from './slices/disputesSlice.js'
+import utilityReducer from './slices/utilitySlice.js'
+import walletReducer from './slices/walletSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -18,5 +20,7 @@ export const store = configureStore({
     settings: settingsReducer,
     supportTickets: supportTicketsReducer,
     disputes: disputesReducer,
+    utility: utilityReducer,
+    wallet: walletReducer,
   },
 })

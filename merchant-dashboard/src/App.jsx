@@ -13,6 +13,7 @@ import TicketDetailPage from './pages/TicketDetailPage.jsx'
 import DisputeDetailPage from './pages/DisputeDetailPage.jsx'
 import MarketingPage from './pages/MarketingPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
+import BillsPage from './pages/BillsPage.jsx'
 
 // Decode a JWT's exp claim without verifying the signature — the server is
 // still the authority, this is just to keep stale tokens from flashing the
@@ -57,6 +58,7 @@ function AppContent() {
             <Route path="orders" element={<OrdersPage />} />
             <Route path="menu" element={<MenuPage />} />
             <Route path="earnings" element={<EarningsPage />} />
+            <Route path="vtu" element={<BillsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="support" element={<SupportPage />} />
             <Route path="support/tickets/:ticketId" element={<TicketDetailPage />} />

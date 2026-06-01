@@ -110,19 +110,28 @@ const handleKatpay = async (req, res, next) => {
           case 'payout.processed': {
             const katpayRef = data.reference;
             if (katpayRef) {
-              await prisma.merchantWalletTransaction.updateMany({
-                where: { katpayReference: katpayRef },
-                data: { status: 'COMPLETED', processedAt: new Date() },
-              });
-              // Also release pending balance from merchant wallet
               const mwt = await prisma.merchantWalletTransaction.findFirst({
                 where: { katpayReference: katpayRef },
               });
               if (mwt) {
-                await prisma.merchantWallet.update({
-                  where: { id: mwt.merchantWalletId },
-                  data: { pendingBalance: { decrement: mwt.amount } },
+                await prisma.merchantWalletTransaction.update({
+                  where: { id: mwt.id },
+                  data: { status: 'COMPLETED', processedAt: new Date() },
                 });
+                // New unified withdrawals carry a mirror Transaction on the
+                // merchant's User wallet (funds already debited at request time)
+                // → complete it. Legacy pre-unification withdrawals instead
+                // reserved funds in merchantWallet.pendingBalance → release that
+                // so no phantom pending balance is left behind.
+                const ledger = await prisma.transaction.findFirst({ where: { reference: mwt.reference } });
+                if (ledger) {
+                  await prisma.transaction.update({ where: { id: ledger.id }, data: { status: 'COMPLETED' } });
+                } else {
+                  await prisma.merchantWallet.update({
+                    where: { id: mwt.merchantWalletId },
+                    data: { pendingBalance: { decrement: mwt.amount } },
+                  });
+                }
               }
             }
             await prisma.webhookEvent.update({

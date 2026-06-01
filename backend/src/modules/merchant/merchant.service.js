@@ -540,38 +540,31 @@ const getMerchantBankAccount = async (merchantId, userId, role) => {
 // redirect payouts). If resolution is unavailable, we fall back to a
 // caller-supplied name rather than blocking setup entirely.
 const saveMerchantBankAccount = async (merchantId, userId, role, { bankCode, accountNumber, accountName }) => {
-  const wallet = await loadOwnedMerchantWallet(merchantId, userId, role);
+  await loadOwnedMerchantWallet(merchantId, userId, role);
 
-  let resolvedName = null;
-  try {
-    const walletService = require('../wallet/wallet.service');
-    const resolved = await walletService.lookupBankAccount({ bankCode, accountNumber });
-    resolvedName = resolved?.accountName || null;
-  } catch (err) {
-    logger.warn('Bank account name resolution unavailable; using supplied name', {
-      merchantId, bankCode, error: err.message,
-    });
-  }
-
-  const finalName = resolvedName || accountName;
-  if (!finalName) {
-    throw AppError.badRequest('Could not verify this account. Please re-check the bank and account number.');
+  // KatPay has no name-enquiry endpoint, so the account name can't be verified
+  // server-side — it's collected from the user and stored as given. It is also
+  // the name we hand KatPay at payout time (payouts require account_name).
+  if (!accountName || accountName.trim().length < 2) {
+    throw AppError.badRequest('Account name is required');
   }
 
   const updated = await prisma.merchantWallet.update({
     where: { merchantId },
-    data: { bankCode, accountNumber, accountName: finalName },
+    data: { bankCode, accountNumber, accountName: accountName.trim() },
     select: { bankCode: true, accountNumber: true, accountName: true },
   });
 
-  logger.info('Merchant bank account saved', { merchantId, bankCode, verified: !!resolvedName });
-  return { ...updated, verified: !!resolvedName };
+  logger.info('Merchant bank account saved', { merchantId, bankCode });
+  return updated;
 };
 
 const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) => {
+  // `wallet` here is the merchantWallet — it still holds the payout bank account
+  // + the admin hold flags. The spendable money now lives in the merchant's
+  // User wallet (unified wallet), so that's what we validate + debit.
   const wallet = await loadOwnedMerchantWallet(merchantId, userId, role);
 
-  // Payouts go to the bank account already saved on the wallet.
   if (!wallet.bankCode || !wallet.accountNumber || !wallet.accountName) {
     throw AppError.badRequest('Add a bank account before requesting a withdrawal');
   }
@@ -584,25 +577,44 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
   if (!(amount > 0)) {
     throw AppError.badRequest('Amount must be positive');
   }
-  if (Number(wallet.availableBalance) < amount) {
-    throw AppError.badRequest('Insufficient available balance');
+
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { userId: true } });
+  const userWallet = merchant?.userId
+    ? await prisma.wallet.findUnique({ where: { userId: merchant.userId } })
+    : null;
+  if (!userWallet) throw AppError.notFound('Wallet not found');
+  if (userWallet.isLocked) throw AppError.badRequest('Your wallet is currently locked');
+  if (Number(userWallet.balance) < amount) {
+    throw AppError.badRequest('Insufficient balance');
   }
 
   const reference = `MWD-${uuidv4()}`;
+  const balance = Number(userWallet.balance);
 
   const withdrawal = await prisma.$transaction(async (tx) => {
-    // Move the amount out of availableBalance into pendingBalance so it can't
-    // be double-spent while the payout is in flight. It leaves pendingBalance
-    // when the payout webhook confirms, or returns to availableBalance if the
-    // withdrawal is rejected.
-    await tx.merchantWallet.update({
-      where: { merchantId },
+    // Reserve the funds by debiting the User wallet NOW; admin approval gates the
+    // actual payout (approveWithdrawal). On rejection the funds are credited back
+    // (rejectWithdrawal). This mirrors the standard withdraw debit, but starts
+    // PENDING instead of PROCESSING because it awaits an admin decision.
+    await tx.wallet.update({ where: { id: userWallet.id }, data: { balance: { decrement: amount } } });
+
+    // Ledger entry on the merchant's wallet (shows in their transactions list).
+    await tx.transaction.create({
       data: {
-        availableBalance: { decrement: amount },
-        pendingBalance: { increment: amount },
+        reference,
+        type: 'WITHDRAWAL',
+        status: 'PENDING',
+        amount,
+        description: `Withdrawal to ${wallet.bankCode} - ${wallet.accountNumber}`,
+        debitWalletId: userWallet.id,
+        provider: 'KATPAY',
+        balanceBefore: balance,
+        balanceAfter: balance - amount,
+        metadata: { merchantId, requiresApproval: true },
       },
     });
 
+    // Approval record for the admin pipeline (unchanged shape + bank snapshot).
     return tx.merchantWalletTransaction.create({
       data: {
         reference,

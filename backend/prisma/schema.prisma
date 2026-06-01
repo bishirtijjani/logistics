@@ -213,6 +213,7 @@ model User {
   lastName       String
   passwordHash   String? /// Hashed password for email/password login
   transactionPin String? /// Hashed 6-digit PIN for financial operations
+  transactionPinSetByUser Boolean @default(false) /// True once the user chose their own PIN. Stays false for merchants seeded with the default '000000' — used to force a real PIN before financial actions.
   bvnHash        String? /// Hashed BVN — never store plaintext
   profilePicture String? /// URL to profile picture (cloud storage)
   dateOfBirth    DateTime? /// For KYC identity confirmation

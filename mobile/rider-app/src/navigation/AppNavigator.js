@@ -61,6 +61,14 @@ import BeneficiariesScreen from "../features/wallet/BeneficiariesScreen";
 import TransactionsScreen from "../features/wallet/TransactionsScreen";
 import TransactionDetailScreen from "../features/wallet/TransactionDetailScreen";
 
+// VTU / bill payment
+import AirtimeScreen from "../features/utility/AirtimeScreen";
+import DataScreen from "../features/utility/DataScreen";
+import CableScreen from "../features/utility/CableScreen";
+import ElectricityScreen from "../features/utility/ElectricityScreen";
+import ElectricityResultScreen from "../features/utility/ElectricityResultScreen";
+import UtilityHistoryScreen from "../features/utility/UtilityHistoryScreen";
+
 // Phase 7
 import NotificationsCenterScreen from "../features/notifications/NotificationsCenterScreen";
 import EditProfileScreen from "../features/profile/EditProfileScreen";
@@ -133,6 +141,13 @@ const NAV_LINKING = {
       TransactionDetail: "wallet/transactions/:transactionId",
       // Earnings
       EarningsBreakdown: "earnings/breakdown",
+      // Utility / VTU
+      Airtime: "utility/airtime",
+      Data: "utility/data",
+      Cable: "utility/cable",
+      Electricity: "utility/electricity",
+      ElectricityResult: "utility/electricity/result/:paymentId",
+      UtilityHistory: "utility/history",
       // Notifications & profile
       NotificationsCenter: "notifications",
       KycStatus: "kyc",
@@ -573,6 +588,13 @@ export default function AppNavigator() {
             <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
             <Stack.Screen name="CreateDispute" component={CreateDisputeScreen} />
             <Stack.Screen name="DisputeDetail" component={DisputeDetailScreen} />
+            {/* Utility / VTU — airtime, data, cable, electricity */}
+            <Stack.Screen name="Airtime" component={AirtimeScreen} />
+            <Stack.Screen name="Data" component={DataScreen} />
+            <Stack.Screen name="Cable" component={CableScreen} />
+            <Stack.Screen name="Electricity" component={ElectricityScreen} />
+            <Stack.Screen name="ElectricityResult" component={ElectricityResultScreen} />
+            <Stack.Screen name="UtilityHistory" component={UtilityHistoryScreen} />
           </Stack.Group>
         )}
       </Stack.Navigator>

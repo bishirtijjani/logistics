@@ -20,7 +20,10 @@ const {
 const router = Router();
 
 router.use(authenticate);
-router.use(authorize('CUSTOMER'));
+// VTU is available to every wallet-holding role. CUSTOMER/RIDER spend from their
+// User wallet; MERCHANT spends from the merchant earnings wallet (funding source
+// is resolved per-role in utility.service.deductAndCreate).
+router.use(authorize('CUSTOMER', 'RIDER', 'MERCHANT'));
 
 // Catalogue
 router.get('/plans', validate(getPlansSchema, 'query'), utilityController.getPlans);

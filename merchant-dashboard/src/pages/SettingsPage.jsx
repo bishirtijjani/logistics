@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { API_URL } from '../lib/api'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchSettings, updateSettings } from '../store/slices/settingsSlice.js'
-import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone } from 'lucide-react'
+import { changeTransactionPin, fetchAuthProfile } from '../store/slices/authSlice.js'
+import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound, ShieldAlert } from 'lucide-react'
 import { CardSkeleton } from '../components/LoadingSkeleton.jsx'
 import LocationPicker from '../components/LocationPicker.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
@@ -48,6 +49,13 @@ export default function SettingsPage() {
   const [devices, setDevices] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
+  // Transaction PIN (authorizes bill payments). Merchants start on the seeded
+  // default '000000'; transactionPinSetByUser flips true once they set their own.
+  const [pinForm, setPinForm] = useState({ currentPin: '', newPin: '', confirmPin: '' })
+  const [pinError, setPinError] = useState('')
+  const [pinSubmitting, setPinSubmitting] = useState(false)
+  const pinSetByUser = user?.transactionPinSetByUser === true
+
   const checkPasswordStrength = (password) => {
     let strength = 0
     
@@ -88,7 +96,34 @@ export default function SettingsPage() {
 
   useEffect(() => {
     dispatch(fetchSettings({ merchantId }))
+    // Refresh the live transaction-PIN flag (the stored login blob may predate it).
+    dispatch(fetchAuthProfile())
   }, [dispatch, merchantId])
+
+  const handlePinChange = async (e) => {
+    e.preventDefault()
+    setPinError('')
+    const { currentPin, newPin, confirmPin } = pinForm
+    if (currentPin.length !== 6) return setPinError('Enter your current 6-digit PIN.')
+    if (newPin.length !== 6) return setPinError('New PIN must be exactly 6 digits.')
+    if (newPin !== confirmPin) return setPinError('New PIN entries do not match.')
+    if (newPin === currentPin) return setPinError('New PIN must be different from the current PIN.')
+    setPinSubmitting(true)
+    try {
+      await dispatch(changeTransactionPin({ currentPin, newPin })).unwrap()
+      setPinForm({ currentPin: '', newPin: '', confirmPin: '' })
+      showSuccessToast('Transaction PIN updated')
+    } catch (err) {
+      const left = err?.errors?.attemptsRemaining
+      setPinError(
+        err?.message
+          ? (left != null ? `${err.message} (${left} attempt${left === 1 ? '' : 's'} left)` : err.message)
+          : 'Could not update your PIN. Please try again.'
+      )
+    } finally {
+      setPinSubmitting(false)
+    }
+  }
 
   useEffect(() => {
     if (settings) {
@@ -563,6 +598,7 @@ export default function SettingsPage() {
       )}
 
       {activeTab === 'security' && (
+        <div className="space-y-6">
         <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
@@ -672,6 +708,85 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
+        </div>
+
+        {/* Transaction PIN — authorizes bill payments */}
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+              <KeyRound className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text">Transaction PIN</h2>
+              <p className="text-sm text-muted dark:text-dark-muted">The 6-digit PIN that authorizes bill payments</p>
+            </div>
+          </div>
+
+          {!pinSetByUser && (
+            <div className="mb-5 flex items-start gap-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 p-3">
+              <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-700 dark:text-amber-400/90">
+                Your account still uses the starter PIN <span className="font-semibold">000000</span>. Set your own PIN
+                now to start paying bills securely.
+              </p>
+            </div>
+          )}
+
+          <form onSubmit={handlePinChange} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Current PIN</label>
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={6}
+                value={pinForm.currentPin}
+                onChange={(e) => setPinForm({ ...pinForm, currentPin: e.target.value.replace(/[^0-9]/g, '') })}
+                placeholder={pinSetByUser ? 'Current 6-digit PIN' : 'Starter PIN (000000)'}
+                className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text tracking-widest"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">New PIN</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pinForm.newPin}
+                  onChange={(e) => setPinForm({ ...pinForm, newPin: e.target.value.replace(/[^0-9]/g, '') })}
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text tracking-widest"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Confirm New PIN</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pinForm.confirmPin}
+                  onChange={(e) => setPinForm({ ...pinForm, confirmPin: e.target.value.replace(/[^0-9]/g, '') })}
+                  className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted bg-white dark:bg-dark-surface rounded-lg focus:ring-2 focus:ring-primary/40 focus:border-transparent outline-none text-text dark:text-dark-text tracking-widest"
+                  required
+                />
+              </div>
+            </div>
+
+            {pinError ? <p className="text-sm text-red-600 dark:text-red-400">{pinError}</p> : null}
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={pinSubmitting}
+                className="flex items-center gap-2 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <KeyRound className="w-4 h-4" />
+                {pinSubmitting ? 'Saving…' : 'Update PIN'}
+              </button>
+            </div>
+          </form>
+        </div>
         </div>
       )}
 

@@ -119,13 +119,12 @@ const requestWithdrawalSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
 });
 
-// Save / update the merchant's payout bank account. accountName is resolved
-// server-side against the bank; it is accepted here only as a fallback for
-// when name-resolution is unavailable.
+// Save / update the merchant's payout bank account. KatPay has no name-enquiry
+// endpoint, so accountName is supplied by the user and stored as given.
 const saveBankAccountSchema = z.object({
   bankCode: z.string().min(2, 'Bank is required'),
   accountNumber: z.string().length(10, 'Account number must be 10 digits'),
-  accountName: z.string().min(2).optional(),
+  accountName: z.string().min(2, 'Account name is required'),
 });
 
 const merchantProductsSchema = z.object({

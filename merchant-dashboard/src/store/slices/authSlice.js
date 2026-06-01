@@ -49,6 +49,42 @@ export const logout = createAsyncThunk(
   }
 )
 
+// Pull the live profile so we know the current `transactionPinSetByUser` flag
+// even for sessions that logged in before the field existed (the stored
+// merchant_user blob won't have it). Merged into state.user so merchantId and
+// other login-only fields are preserved.
+export const fetchAuthProfile = createAsyncThunk(
+  'auth/fetchProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await api.get('/auth/profile')
+      return res.data.data
+    } catch (err) {
+      return rejectWithValue(apiErrorMessage(err, 'Failed to load profile'))
+    }
+  }
+)
+
+// Change the transaction PIN. Verifies the current PIN server-side, so a wrong
+// current PIN comes back 401 (with attemptsRemaining) and 6 fails → 423 lockout
+// — the form surfaces those. Merchants start on the default '000000'.
+export const changeTransactionPin = createAsyncThunk(
+  'auth/changeTransactionPin',
+  async ({ currentPin, newPin }, { rejectWithValue }) => {
+    try {
+      const res = await api.post('/auth/pin/change', { currentPin, newPin })
+      return res.data.data
+    } catch (err) {
+      return rejectWithValue({
+        message: err?.response?.data?.message || apiErrorMessage(err, 'Failed to change PIN'),
+        status: err?.response?.status ?? null,
+        code: err?.response?.data?.code ?? null,
+        errors: err?.response?.data?.errors ?? null,
+      })
+    }
+  }
+)
+
 export const refreshToken = createAsyncThunk(
   'auth/refreshToken',
   async (_, { rejectWithValue }) => {
@@ -114,6 +150,25 @@ const authSlice = createSlice({
         state.user = null
         state.token = null
         state.isAuthenticated = false
+      })
+      .addCase(fetchAuthProfile.fulfilled, (state, action) => {
+        const p = action.payload || {}
+        // Merge — the profile payload has no merchantId (that's login-only), so
+        // a replace would wipe it and break every page reading user.merchantId.
+        state.user = { ...(state.user || {}), ...p }
+        try {
+          localStorage.setItem('merchant_user', JSON.stringify(state.user))
+        } catch {
+          // ignore quota/serialization errors
+        }
+      })
+      .addCase(changeTransactionPin.fulfilled, (state) => {
+        if (state.user) state.user.transactionPinSetByUser = true
+        try {
+          localStorage.setItem('merchant_user', JSON.stringify(state.user))
+        } catch {
+          // ignore
+        }
       })
       .addCase(refreshToken.pending, (state) => {
         state.error = null

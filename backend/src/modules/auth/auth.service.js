@@ -136,6 +136,7 @@ const login = async ({ email, password }, sessionMeta = {}) => {
       role: user.role,
       status: user.status,
       hasPinSet: !!user.transactionPin,
+      transactionPinSetByUser: user.transactionPinSetByUser,
       merchantId: user.merchant?.id || null,
     },
     tokens,
@@ -424,7 +425,7 @@ const setTransactionPin = async (userId, pin) => {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { transactionPin: hashedPin },
+    data: { transactionPin: hashedPin, transactionPinSetByUser: true },
   });
 
   logger.info("Transaction PIN set", { userId });
@@ -440,7 +441,7 @@ const changeTransactionPin = async (userId, currentPin, newPin) => {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { transactionPin: hashedPin },
+    data: { transactionPin: hashedPin, transactionPinSetByUser: true },
   });
 
   logger.info("Transaction PIN changed", { userId });
@@ -652,6 +653,7 @@ const getProfile = async (userId) => {
       role: true,
       status: true,
       transactionPin: true,
+      transactionPinSetByUser: true,
       createdAt: true,
     },
   });

@@ -1,30 +1,106 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker as LeafletMarker, useMap as useLeafletMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import {
+  APIProvider,
+  Map as GoogleMap,
+  Marker as GoogleMarker,
+  useMap as useGoogleMap,
+} from '@vis.gl/react-google-maps'
 import { Search, MapPin, Loader2 } from 'lucide-react'
 import api from '../lib/api'
+import {
+  MAPS_KEY,
+  PIN_PATH,
+  ESRI_ATTRIBUTION,
+  BasemapSwitcher,
+  BasemapLayers,
+  useBrandPinIcon,
+} from './GoogleBasemap'
 
 // Katsina city centre — same fallback the customer app uses.
 const FALLBACK = { lat: 13.0059, lng: 7.6019 }
+
+const PIN_COLOR = '#EA580C'
 
 // Inline SVG pin so we don't depend on Leaflet's bundled icon asset paths,
 // which Vite doesn't resolve cleanly without extra config.
 const PIN_ICON = L.divIcon({
   className: '',
-  html: `<div style="transform:translate(-50%,-100%);color:#EA580C;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">
+  html: `<div style="transform:translate(-50%,-100%);color:${PIN_COLOR};filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">
     <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2C7.589 2 4 5.589 4 9.995C4 14.59 8.6 19.55 11.18 22.04C11.62 22.46 12.38 22.46 12.82 22.04C15.4 19.55 20 14.59 20 9.995C20 5.589 16.411 2 12 2ZM12 12.5C10.62 12.5 9.5 11.38 9.5 10C9.5 8.62 10.62 7.5 12 7.5C13.38 7.5 14.5 8.62 14.5 10C14.5 11.38 13.38 12.5 12 12.5Z"/>
+      <path d="${PIN_PATH}"/>
     </svg>
   </div>`,
   iconSize: [34, 34],
   iconAnchor: [17, 32],
 })
 
-// Recenters the map whenever the pinned location changes from outside
-// (e.g. user picks a place from the autocomplete dropdown).
-function Recenter({ lat, lng }) {
-  const map = useMap()
+/* ------------------------------------------------------------------ */
+/* Google engine (preferred when VITE_GOOGLE_MAPS_API_KEY is set)      */
+/* ------------------------------------------------------------------ */
+
+function PinMarker({ position, onDragEnd }) {
+  const icon = useBrandPinIcon(PIN_COLOR, 34)
+  return (
+    <GoogleMarker
+      position={position}
+      draggable
+      icon={icon}
+      onDragEnd={(e) => {
+        if (e.latLng) onDragEnd(e.latLng.lat(), e.latLng.lng())
+      }}
+    />
+  )
+}
+
+// Recenters when the pinned location changes from outside (autocomplete select).
+function Recenter({ lat, lng, hasPin }) {
+  const map = useGoogleMap()
+  useEffect(() => {
+    if (!map || !hasPin) return
+    map.panTo({ lat, lng })
+    if ((map.getZoom() || 0) < 16) map.setZoom(16)
+  }, [map, lat, lng, hasPin])
+  return null
+}
+
+function GoogleCanvas({ lat, lng, hasPin, center, onPinDrag }) {
+  const [mapType, setMapType] = useState('roadmap')
+  return (
+    <div className="relative h-full w-full">
+      <APIProvider apiKey={MAPS_KEY}>
+        <GoogleMap
+          defaultCenter={{ lat: center.lat, lng: center.lng }}
+          defaultZoom={hasPin ? 16 : 13}
+          gestureHandling="greedy"
+          mapTypeControl={false}
+          streetViewControl={false}
+          fullscreenControl={false}
+          style={{ height: '100%', width: '100%' }}
+        >
+          {hasPin && <PinMarker position={{ lat, lng }} onDragEnd={onPinDrag} />}
+          <BasemapLayers mapType={mapType} />
+          <Recenter lat={lat} lng={lng} hasPin={hasPin} />
+        </GoogleMap>
+      </APIProvider>
+      <BasemapSwitcher value={mapType} onChange={setMapType} />
+      {mapType === 'esri' && (
+        <span className="absolute bottom-0 left-0 z-[400] bg-white/80 dark:bg-black/60 px-1 text-[10px] text-text dark:text-dark-text">
+          {ESRI_ATTRIBUTION}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Leaflet engine (fallback when no browser Maps key is configured)    */
+/* ------------------------------------------------------------------ */
+
+function LeafletRecenter({ lat, lng }) {
+  const map = useLeafletMap()
   useEffect(() => {
     if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
       map.setView([lat, lng], Math.max(map.getZoom(), 15), { animate: true })
@@ -38,7 +114,7 @@ function Recenter({ lat, lng }) {
 // so tiles load for the wrong viewport and labels never resolve (roads show,
 // street names don't). Recompute once settled, then track container resizes.
 function MapAutoSize() {
-  const map = useMap()
+  const map = useLeafletMap()
   useEffect(() => {
     const fix = () => map.invalidateSize()
     const raf = requestAnimationFrame(fix)
@@ -56,12 +132,55 @@ function MapAutoSize() {
   return null
 }
 
+function LeafletCanvas({ lat, lng, hasPin, center, onPinDrag }) {
+  const markerRef = useRef(null)
+  return (
+    <MapContainer
+      center={[center.lat, center.lng]}
+      zoom={hasPin ? 16 : 13}
+      style={{ height: '100%', width: '100%' }}
+      scrollWheelZoom
+    >
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        subdomains="abcd"
+        maxZoom={20}
+        detectRetina
+      />
+      <MapAutoSize />
+      {hasPin && (
+        <LeafletMarker
+          ref={markerRef}
+          position={[lat, lng]}
+          icon={PIN_ICON}
+          draggable
+          eventHandlers={{
+            dragend: () => {
+              const m = markerRef.current
+              if (!m) return
+              const { lat: newLat, lng: newLng } = m.getLatLng()
+              onPinDrag(newLat, newLng)
+            },
+          }}
+        />
+      )}
+      <LeafletRecenter lat={lat} lng={lng} />
+    </MapContainer>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Main component                                                      */
+/* ------------------------------------------------------------------ */
+
 /**
  * Pin a merchant location on a map and capture address + coordinates together
  * so the address text and the lat/lng can't drift apart. Uses the existing
  * /maps backend endpoints (Google Places under the hood) for search +
- * reverse-geocode; the embedded map is OpenStreetMap tiles so no browser-side
- * Google Maps key is required.
+ * reverse-geocode. The embedded map uses Google's Maps JavaScript API when a
+ * browser key is configured (richest Katsina detail) and falls back to
+ * OpenStreetMap/CARTO tiles otherwise.
  *
  * value: { address: string, lat: number, lng: number }
  * onChange: ({ address, lat, lng }) => void
@@ -78,7 +197,6 @@ export default function LocationPicker({ value, onChange }) {
   const sessionRef = useRef(`${Date.now()}-${Math.random()}`)
   const searchTimeout = useRef(null)
   const geocodeTimeout = useRef(null)
-  const markerRef = useRef(null)
 
   useEffect(() => () => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
@@ -148,13 +266,6 @@ export default function LocationPicker({ value, onChange }) {
     }
   }
 
-  const handleMarkerDragEnd = () => {
-    const marker = markerRef.current
-    if (!marker) return
-    const { lat: newLat, lng: newLng } = marker.getLatLng()
-    reverseGeocode(newLat, newLng)
-  }
-
   const center = lat && lng ? { lat, lng } : FALLBACK
   const hasPin = lat !== 0 && lng !== 0
 
@@ -195,31 +306,11 @@ export default function LocationPicker({ value, onChange }) {
 
       {/* Map */}
       <div className="rounded-lg overflow-hidden border border-surface-muted dark:border-dark-surface-muted" style={{ height: 280 }}>
-        <MapContainer
-          center={[center.lat, center.lng]}
-          zoom={hasPin ? 16 : 13}
-          style={{ height: '100%', width: '100%' }}
-          scrollWheelZoom
-        >
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            subdomains="abcd"
-            maxZoom={20}
-            detectRetina
-          />
-          <MapAutoSize />
-          {hasPin && (
-            <Marker
-              ref={markerRef}
-              position={[lat, lng]}
-              icon={PIN_ICON}
-              draggable
-              eventHandlers={{ dragend: handleMarkerDragEnd }}
-            />
-          )}
-          <Recenter lat={lat} lng={lng} />
-        </MapContainer>
+        {MAPS_KEY ? (
+          <GoogleCanvas lat={lat} lng={lng} hasPin={hasPin} center={center} onPinDrag={reverseGeocode} />
+        ) : (
+          <LeafletCanvas lat={lat} lng={lng} hasPin={hasPin} center={center} onPinDrag={reverseGeocode} />
+        )}
       </div>
 
       {/* Status row */}

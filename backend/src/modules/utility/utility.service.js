@@ -19,6 +19,13 @@ const alrahuzService = require('../../services/alrahuz.service');
 const { addUtilityJob } = require('../../queues');
 const { UTILITY_JOBS } = require('../../queues/jobs');
 
+/**
+ * Debit the payer's User wallet and create the PROCESSING UtilityPayment,
+ * atomically. Every role (customer, rider, merchant) spends VTU from their
+ * single User-level Wallet — merchants are funded the same way riders are
+ * (order earnings + top-ups both land in this wallet). The worker later flips
+ * the paired Transaction to COMPLETED/FAILED and refunds this wallet on failure.
+ */
 const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, meterNumber, plan, reference }) => {
   return prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } });

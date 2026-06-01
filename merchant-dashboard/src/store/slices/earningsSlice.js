@@ -38,21 +38,14 @@ export const fetchBankList = createAsyncThunk(
 )
 
 // Saved payout bank account ----------------------------------------------------
+// Note: KatPay has no name-enquiry endpoint, so the account name is typed by the
+// merchant rather than auto-verified.
 
 export const fetchBankAccount = createAsyncThunk(
   'earnings/fetchBankAccount',
   async ({ merchantId }) => {
     const response = await api.get(`/merchants/merchant/${merchantId}/bank-account`)
     return response.data.data // account object, or null if not set up yet
-  }
-)
-
-// Resolve the real account name from the bank for a (bank, accountNumber) pair.
-export const resolveBankAccount = createAsyncThunk(
-  'earnings/resolveBankAccount',
-  async ({ bankCode, accountNumber }) => {
-    const response = await api.post('/wallet/banks/lookup', { bankCode, accountNumber })
-    return response.data.data // { accountName, accountNumber, bankCode }
   }
 )
 
@@ -74,19 +67,13 @@ const earningsSlice = createSlice({
     wallet: null,
     banks: [],
     bankAccount: null,
-    resolvedAccount: null,
     loading: false,
     banksLoading: false,
     bankAccountLoading: false,
-    resolving: false,
     saving: false,
     error: null,
   },
-  reducers: {
-    clearResolvedAccount: (state) => {
-      state.resolvedAccount = null
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetchWallet.pending, (state) => {
@@ -127,19 +114,6 @@ const earningsSlice = createSlice({
       .addCase(fetchBankAccount.rejected, (state) => {
         state.bankAccountLoading = false
       })
-      .addCase(resolveBankAccount.pending, (state) => {
-        state.resolving = true
-        state.resolvedAccount = null
-        state.error = null
-      })
-      .addCase(resolveBankAccount.fulfilled, (state, action) => {
-        state.resolving = false
-        state.resolvedAccount = action.payload || null
-      })
-      .addCase(resolveBankAccount.rejected, (state, action) => {
-        state.resolving = false
-        state.error = action.error.message
-      })
       .addCase(saveBankAccount.pending, (state) => {
         state.saving = true
         state.error = null
@@ -147,7 +121,6 @@ const earningsSlice = createSlice({
       .addCase(saveBankAccount.fulfilled, (state, action) => {
         state.saving = false
         state.bankAccount = action.payload || null
-        state.resolvedAccount = null
       })
       .addCase(saveBankAccount.rejected, (state, action) => {
         state.saving = false
@@ -156,5 +129,4 @@ const earningsSlice = createSlice({
   },
 })
 
-export const { clearResolvedAccount } = earningsSlice.actions
 export default earningsSlice.reducer

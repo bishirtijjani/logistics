@@ -307,43 +307,20 @@ const getTransactionHistory = async (userId, { page, limit, type, startDate, end
 };
 
 /**
- * Lookup bank account name via KatPay (cached 6h).
+ * Bank account name lookup.
+ *
+ * KatPay does NOT expose a name-enquiry / account-resolution endpoint. Their
+ * API only offers bank-list, payouts, virtual accounts and transfer-payments
+ * (verified against their docs and the live API — every resolve candidate
+ * returns 404), and payouts require the caller to supply `account_name`.
+ *
+ * There is therefore no way to resolve the account holder name server-side, so
+ * we return a graceful "unresolved" result. Callers collect the account name
+ * from the user instead. Kept as a function (rather than removed) because the
+ * customer + rider withdraw screens still call this endpoint and must not 500.
  */
 const lookupBankAccount = async ({ bankCode, accountNumber }) => {
-  const cacheKey = `bank:lookup:${bankCode}:${accountNumber}`;
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) return JSON.parse(cached);
-  } catch (_) {}
-
-  // KatPay name enquiry — the endpoint pattern varies; adjust to actual KatPay docs
-  const axios = require('axios');
-  const { config } = require('../../config');
-
-  const response = await axios.post(
-    `${config.KATPAY_BASE_URL}/bank-account/resolve`,
-    { bank_code: bankCode, account_number: accountNumber },
-    {
-      headers: {
-        Authorization: `Bearer ${config.KATPAY_API_SECRET}`,
-        'api-key': config.KATPAY_PUBLIC_KEY,
-        'Content-Type': 'application/json',
-      },
-    },
-  );
-
-  const data = response.data?.data || response.data;
-  const result = {
-    accountName: data.account_name || data.accountName,
-    accountNumber: data.account_number || data.accountNumber || accountNumber,
-    bankCode,
-  };
-
-  try {
-    await redis.set(cacheKey, JSON.stringify(result), 'EX', LOOKUP_CACHE_TTL);
-  } catch (_) {}
-
-  return result;
+  return { accountName: null, accountNumber, bankCode, resolved: false };
 };
 
 /**
