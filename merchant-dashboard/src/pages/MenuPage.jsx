@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
   fetchProducts, createProduct, updateProduct, deleteProduct, toggleProductAvailability,
   createVariant, updateVariant, deleteVariant,
-  createOptionGroup, updateOptionGroup, deleteOptionGroup,
+  createOptionGroup, deleteOptionGroup,
   createOptionItem, updateOptionItem, deleteOptionItem,
 } from '../store/slices/productsSlice.js'
 import api from '../lib/api.js'
@@ -31,6 +31,80 @@ const SELECTION_RULES = [
   { value: 'REQUIRED_MULTIPLE', label: 'Required · Pick multiple' },
   { value: 'OPTIONAL_MULTIPLE', label: 'Optional · Pick multiple' },
 ]
+
+// Each rule fully determines how min/max picks behave, so the form derives them
+// from the rule instead of letting them drift apart (a "pick exactly one" group
+// with a max of 5 is nonsense). Mirrors the server-side optionGroupRuleError.
+const isMultipleRule = (rule) => rule === 'REQUIRED_MULTIPLE' || rule === 'OPTIONAL_MULTIPLE'
+const isRequiredRule = (rule) => rule === 'REQUIRED_ONE' || rule === 'REQUIRED_MULTIPLE'
+const ruleDefaults = (rule) => {
+  switch (rule) {
+    case 'REQUIRED_ONE':      return { minSelect: 1, maxSelect: 1 }
+    case 'OPTIONAL_ONE':      return { minSelect: 0, maxSelect: 1 }
+    case 'REQUIRED_MULTIPLE': return { minSelect: 1, maxSelect: 2 }
+    case 'OPTIONAL_MULTIPLE': return { minSelect: 0, maxSelect: 2 }
+    default:                  return { minSelect: 0, maxSelect: 1 }
+  }
+}
+
+// Rule picker plus only the min/max inputs the chosen rule actually permits.
+// `value` is { selectionRule, minSelect, maxSelect }; `onChange` gets a partial
+// patch to merge. Switching rule resets min/max to that rule's canonical values.
+function OptionGroupRuleControls({ value, onChange }) {
+  const multiple = isMultipleRule(value.selectionRule)
+  const showMin = value.selectionRule === 'REQUIRED_MULTIPLE'
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className={multiple ? '' : 'sm:col-span-3'}>
+        <label className="text-xs text-muted dark:text-dark-muted block mb-1">Rule</label>
+        <select
+          value={value.selectionRule}
+          onChange={(e) => onChange({ selectionRule: e.target.value, ...ruleDefaults(e.target.value) })}
+          className={inputCls}
+        >
+          {SELECTION_RULES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
+      </div>
+      {showMin && (
+        <div>
+          <label className="text-xs text-muted dark:text-dark-muted block mb-1">Min picks</label>
+          <input
+            type="number"
+            min="1"
+            value={value.minSelect}
+            onChange={(e) => {
+              const min = Math.max(1, Number(e.target.value) || 1)
+              onChange({ minSelect: min, maxSelect: Math.max(min, value.maxSelect) })
+            }}
+            className={inputCls}
+          />
+        </div>
+      )}
+      {multiple && (
+        <div>
+          <label className="text-xs text-muted dark:text-dark-muted block mb-1">Max picks</label>
+          <input
+            type="number"
+            min={showMin ? value.minSelect : 1}
+            value={value.maxSelect}
+            onChange={(e) => {
+              const floor = showMin ? value.minSelect : 1
+              onChange({ maxSelect: Math.max(floor, Number(e.target.value) || floor) })
+            }}
+            className={inputCls}
+          />
+        </div>
+      )}
+      {!multiple && (
+        <p className="sm:col-span-3 text-xs text-muted dark:text-dark-muted -mt-1">
+          {value.selectionRule === 'REQUIRED_ONE'
+            ? 'Customers must pick exactly one option.'
+            : 'Customers may pick one option, or none.'}
+        </p>
+      )}
+    </div>
+  )
+}
 
 const moneyFmt = (n) => `₦${Number(n || 0).toLocaleString()}`
 
@@ -306,38 +380,10 @@ function OptionGroupsBuilder({ groups, setGroups }) {
                 <Trash2 size={16} />
               </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>
-                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Rule</label>
-                <select
-                  value={group.selectionRule}
-                  onChange={(e) => patchGroup(gi, { selectionRule: e.target.value })}
-                  className={inputCls}
-                >
-                  {SELECTION_RULES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Min picks</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={group.minSelect}
-                  onChange={(e) => patchGroup(gi, { minSelect: Number(e.target.value) })}
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="text-xs text-muted dark:text-dark-muted block mb-1">Max picks</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={group.maxSelect}
-                  onChange={(e) => patchGroup(gi, { maxSelect: Number(e.target.value) })}
-                  className={inputCls}
-                />
-              </div>
-            </div>
+            <OptionGroupRuleControls
+              value={{ selectionRule: group.selectionRule, minSelect: group.minSelect, maxSelect: group.maxSelect }}
+              onChange={(patch) => patchGroup(gi, patch)}
+            />
           </div>
 
           {/* Items */}
@@ -586,7 +632,7 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
               v.isAvailable ? 'bg-primary/10 text-primary' : 'bg-error/10 text-error line-through'
             }`}
           >
-            {Object.entries(v.attributes || {}).map(([k, val]) => `${val}`).join(' / ') || (v.packLabel || 'default')}
+            {Object.entries(v.attributes || {}).map(([, val]) => `${val}`).join(' / ') || (v.packLabel || 'default')}
             {' '}· {moneyFmt(v.price)} · {v.stock}
           </span>
         ))}
@@ -735,6 +781,20 @@ export function ProductCreateModal({ category: selectedCategory, onClose, onSubm
               sortOrder: it.sortOrder,
             })),
         })),
+    }
+
+    // Catch unsatisfiable add-on groups before they reach the server: a required
+    // group needs at least one item, and no group may ask for more picks than it
+    // offers. (The server rejects these too; this just gives a friendlier nudge.)
+    for (const g of optionGroups) {
+      if (!g.name.trim()) continue
+      const namedItems = g.items.filter((it) => it.name.trim())
+      if (isRequiredRule(g.selectionRule) && namedItems.length === 0) {
+        return showErrorToast(`Add at least one item to the required group "${g.name.trim()}"`)
+      }
+      if (namedItems.length > 0 && g.minSelect > namedItems.length) {
+        return showErrorToast(`"${g.name.trim()}" asks for ${g.minSelect} pick(s) but only has ${namedItems.length} item(s)`)
+      }
     }
 
     setSaving(true)
@@ -1323,38 +1383,10 @@ function OptionGroupsTable({ product, merchantId }) {
               className={inputCls}
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div>
-              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Rule</label>
-              <select
-                value={groupDraft.selectionRule}
-                onChange={(e) => setGroupDraft({ ...groupDraft, selectionRule: e.target.value })}
-                className={inputCls}
-              >
-                {SELECTION_RULES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Min picks</label>
-              <input
-                type="number"
-                min="0"
-                value={groupDraft.minSelect}
-                onChange={(e) => setGroupDraft({ ...groupDraft, minSelect: Number(e.target.value) })}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted dark:text-dark-muted block mb-1">Max picks</label>
-              <input
-                type="number"
-                min="1"
-                value={groupDraft.maxSelect}
-                onChange={(e) => setGroupDraft({ ...groupDraft, maxSelect: Number(e.target.value) })}
-                className={inputCls}
-              />
-            </div>
-          </div>
+          <OptionGroupRuleControls
+            value={{ selectionRule: groupDraft.selectionRule, minSelect: groupDraft.minSelect, maxSelect: groupDraft.maxSelect }}
+            onChange={(patch) => setGroupDraft({ ...groupDraft, ...patch })}
+          />
           <div className="flex items-center gap-2 justify-end">
             <button onClick={() => setAddingGroup(false)} className={ghostBtnCls}>Cancel</button>
             <button onClick={addGroup} className="text-sm px-3 py-1.5 bg-primary text-white rounded-md hover:bg-primary-700">Add group</button>
@@ -1425,6 +1457,25 @@ function OptionGroupRow({ group, product, merchantId, onDelete }) {
           <div className="text-xs text-muted dark:text-dark-muted">
             {SELECTION_RULES.find((r) => r.value === group.selectionRule)?.label} · min {group.minSelect} · max {group.maxSelect}
           </div>
+          {(() => {
+            const total = group.items?.length || 0
+            const avail = (group.items || []).filter((it) => it.isAvailable).length
+            if (total < group.minSelect) {
+              return (
+                <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                  ⚠ Needs at least {group.minSelect} item{group.minSelect !== 1 ? 's' : ''} — add {group.minSelect - total} more so customers can order this.
+                </div>
+              )
+            }
+            if (avail < group.minSelect) {
+              return (
+                <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                  ⚠ {group.minSelect} pick{group.minSelect !== 1 ? 's' : ''} required, but only {avail} {avail === 1 ? 'item is' : 'items are'} available right now.
+                </div>
+              )
+            }
+            return null
+          })()}
         </div>
         <button onClick={onDelete} className="p-2 text-error hover:bg-error/10 rounded-md" title="Delete group">
           <Trash2 size={16} />

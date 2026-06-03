@@ -106,6 +106,13 @@ const envSchema = z.object({
   KATPAY_MERCHANT_ID: isDev ? z.string().default('') : z.string().min(1),
   KATPAY_CALLBACK_URL: isDev ? z.string().default('http://localhost:3000/webhooks/katpay') : z.string().url(),
 
+  // Paystack — used ONLY for bank-account name verification (resolve account).
+  // Optional everywhere: when unset, verification is skipped and the account
+  // name is taken as typed. Payouts always go through KatPay, never Paystack.
+  PAYSTACK_BASE_URL: z.string().default('https://api.paystack.co'),
+  PAYSTACK_SECRET_KEY: z.string().default(''),
+  PAYSTACK_PUBLIC_KEY: z.string().default(''),
+
   // Delivery Pricing
   DELIVERY_BASE_FARE: z.coerce.number().default(200),
   DELIVERY_PER_KM_RATE: z.coerce.number().default(100),

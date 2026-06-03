@@ -152,6 +152,7 @@ router.get('/analytics/realtime', adminController.getRealtimeMetrics);
 router.get('/withdrawals/pending', validate(paginationSchema, 'query'), adminController.getPendingWithdrawals);
 router.patch('/withdrawals/:withdrawalId/approve', adminController.approveWithdrawal);
 router.patch('/withdrawals/:withdrawalId/reject', adminController.rejectWithdrawal);
+router.patch('/withdrawals/:withdrawalId/fail', adminController.failWithdrawal);
 router.get('/withdrawals/history', validate(paginationStatusDateRangeSchema, 'query'), adminController.getWithdrawalHistory);
 
 // Dispute resolution — backed by modules/support

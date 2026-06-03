@@ -14,6 +14,9 @@ const { MERCHANT, getMerchantRoom } = require('../../sockets/events');
 // all flow through a single pipeline. The merchant-side ownership guard runs
 // before the delegation for clearer error responses.
 const requestService = require('../request/request.service');
+// Shared (rule ↔ min/max) consistency check, also used by the zod validator so
+// the rule and its bounds can never drift apart on an update.
+const { optionGroupRuleError } = require('./merchant.validator');
 
 /**
  * Broadcast a `merchant:menu:updated` event to anyone watching this merchant
@@ -583,20 +586,28 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
     ? await prisma.wallet.findUnique({ where: { userId: merchant.userId } })
     : null;
   if (!userWallet) throw AppError.notFound('Wallet not found');
+  // Fast-fail before the tx for a clean error; the authoritative check happens
+  // INSIDE the transaction below to avoid a TOCTOU overdraw under concurrency.
   if (userWallet.isLocked) throw AppError.badRequest('Your wallet is currently locked');
   if (Number(userWallet.balance) < amount) {
     throw AppError.badRequest('Insufficient balance');
   }
 
   const reference = `MWD-${uuidv4()}`;
-  const balance = Number(userWallet.balance);
 
   const withdrawal = await prisma.$transaction(async (tx) => {
     // Reserve the funds by debiting the User wallet NOW; admin approval gates the
     // actual payout (approveWithdrawal). On rejection the funds are credited back
     // (rejectWithdrawal). This mirrors the standard withdraw debit, but starts
     // PENDING instead of PROCESSING because it awaits an admin decision.
-    await tx.wallet.update({ where: { id: userWallet.id }, data: { balance: { decrement: amount } } });
+    // Re-read + re-check inside the tx so concurrent withdrawals can't overdraw.
+    const w = await tx.wallet.findUnique({ where: { id: userWallet.id } });
+    if (!w) throw AppError.notFound('Wallet not found');
+    if (w.isLocked) throw AppError.badRequest('Your wallet is currently locked');
+    const balance = Number(w.balance);
+    if (balance < amount) throw AppError.badRequest('Insufficient balance');
+
+    await tx.wallet.update({ where: { id: w.id }, data: { balance: { decrement: amount } } });
 
     // Ledger entry on the merchant's wallet (shows in their transactions list).
     await tx.transaction.create({
@@ -1128,8 +1139,34 @@ const createOptionGroup = async (merchantId, userId, role, productId, groupData)
 
 const updateOptionGroup = async (merchantId, userId, role, productId, groupId, patch) => {
   await assertOwnsProduct(merchantId, userId, role, productId);
-  const existing = await prisma.productOptionGroup.findUnique({ where: { id: groupId } });
+  const existing = await prisma.productOptionGroup.findUnique({
+    where: { id: groupId },
+    include: { _count: { select: { items: true } } },
+  });
   if (!existing || existing.productId !== productId) throw AppError.notFound('Option group not found');
+
+  // When the rule or its bounds change, keep the (rule, min, max) triple
+  // consistent and never let a populated group require more picks than it has
+  // items. Untouched legacy groups can still be renamed/reordered freely.
+  const touchesBounds =
+    patch.selectionRule !== undefined ||
+    patch.minSelect !== undefined ||
+    patch.maxSelect !== undefined;
+  if (touchesBounds) {
+    const merged = {
+      selectionRule: patch.selectionRule ?? existing.selectionRule,
+      minSelect: patch.minSelect ?? existing.minSelect,
+      maxSelect: patch.maxSelect ?? existing.maxSelect,
+    };
+    const ruleErr = optionGroupRuleError(merged);
+    if (ruleErr) throw AppError.badRequest(ruleErr);
+    if (existing._count.items > 0 && merged.minSelect > existing._count.items) {
+      throw AppError.badRequest(
+        `This group asks for ${merged.minSelect} pick(s) but only has ${existing._count.items} item(s)`,
+      );
+    }
+  }
+
   const updated = await prisma.productOptionGroup.update({ where: { id: groupId }, data: patch });
   broadcastMenuUpdate(merchantId, { kind: 'OPTION_GROUP_UPDATED', productId, groupId });
   return updated;
@@ -1175,17 +1212,34 @@ const updateOptionItem = async (merchantId, userId, role, productId, groupId, it
 
 const deleteOptionItem = async (merchantId, userId, role, productId, groupId, itemId) => {
   await assertOwnsProduct(merchantId, userId, role, productId);
-  const item = await prisma.productOptionItem.findUnique({ where: { id: itemId } });
+  const item = await prisma.productOptionItem.findUnique({
+    where: { id: itemId },
+    include: { group: { include: { _count: { select: { items: true } } } } },
+  });
   if (!item || item.groupId !== groupId) throw AppError.notFound('Option item not found');
+
+  // Don't strand a populated required group below its minimum. Emptying the
+  // group entirely is fine (it returns to the "being built" state); only block
+  // the in-between case where items remain but fewer than minSelect.
+  const remaining = item.group._count.items - 1;
+  if (remaining > 0 && remaining < item.group.minSelect) {
+    throw AppError.badRequest(
+      `This group requires at least ${item.group.minSelect} pick(s). Lower its minimum or delete the whole group instead of leaving too few items.`,
+    );
+  }
+
   await prisma.productOptionItem.delete({ where: { id: itemId } });
   broadcastMenuUpdate(merchantId, { kind: 'OPTION_ITEM_DELETED', productId, groupId, itemId });
   return { success: true };
 };
 
 /**
- * Replace the full set of option groups + items on a product in one call.
- * Used by menu import / template-apply on the merchant dashboard so the
+ * Replace the full set of option groups + items on a product in one call so the
  * caller doesn't have to coordinate N CRUD requests.
+ *
+ * NOTE: no client calls this today. It was built to back a "save/apply
+ * option-group template" feature that was never shipped; the PUT route stays
+ * registered as a ready-made primitive for a future bulk menu-import.
  *
  * Semantics:
  *   - Groups (and items) present by id are updated in place.

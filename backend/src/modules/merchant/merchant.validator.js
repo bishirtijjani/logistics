@@ -139,6 +139,44 @@ const merchantProductsSchema = z.object({
 const PACK_UNITS = ['ML','L','G','KG','TABLET','CAPSULE','PIECE','PAIR','PACK','BOTTLE','SACHET','CARTON'];
 const SELECTION_RULES = ['REQUIRED_ONE','OPTIONAL_ONE','REQUIRED_MULTIPLE','OPTIONAL_MULTIPLE'];
 
+// Each selection rule fixes how minSelect/maxSelect may be set. The dashboards
+// couple these in the UI; this is the matching server-side guard so a
+// contradictory group (e.g. REQUIRED_ONE with maxSelect 5) can never be
+// persisted regardless of which client sent it. Returns a human-readable error
+// string, or null when the (rule, min, max) triple is internally consistent.
+const optionGroupRuleError = ({ selectionRule, minSelect, maxSelect }) => {
+  switch (selectionRule) {
+    case 'REQUIRED_ONE':
+      return minSelect === 1 && maxSelect === 1
+        ? null : 'A "pick exactly one" group must require exactly one selection';
+    case 'OPTIONAL_ONE':
+      return minSelect === 0 && maxSelect === 1
+        ? null : 'A "pick at most one" group must allow zero or one selection';
+    case 'REQUIRED_MULTIPLE':
+      if (minSelect < 1) return 'A required multi-pick group must ask for at least one selection';
+      if (maxSelect < minSelect) return 'Max picks must be greater than or equal to min picks';
+      return null;
+    case 'OPTIONAL_MULTIPLE':
+      if (minSelect !== 0) return 'An optional multi-pick group must have a minimum of zero';
+      if (maxSelect < 1) return 'An optional multi-pick group must allow at least one selection';
+      return null;
+    default:
+      return 'Unknown selection rule';
+  }
+};
+
+// Canonical min/max for a rule, used to fill in bounds a caller didn't pin so
+// the rule and its bounds always agree (matches ruleDefaults in the dashboards).
+const ruleDefaults = (selectionRule) => {
+  switch (selectionRule) {
+    case 'REQUIRED_ONE':      return { minSelect: 1, maxSelect: 1 };
+    case 'OPTIONAL_ONE':      return { minSelect: 0, maxSelect: 1 };
+    case 'REQUIRED_MULTIPLE': return { minSelect: 1, maxSelect: 2 };
+    case 'OPTIONAL_MULTIPLE': return { minSelect: 0, maxSelect: 2 };
+    default:                  return { minSelect: 0, maxSelect: 1 };
+  }
+};
+
 const variantInputSchema = z.object({
   sku: z.string().optional(),
   attributes: z.record(z.any()).optional(),
@@ -164,11 +202,35 @@ const optionItemInputSchema = z.object({
 const optionGroupInputSchema = z.object({
   name: z.string().min(1).max(80),
   selectionRule: z.enum(SELECTION_RULES),
-  minSelect: z.number().int().min(0).default(0),
-  maxSelect: z.number().int().min(1).default(1),
+  minSelect: z.number().int().min(0).optional(),
+  maxSelect: z.number().int().min(1).optional(),
   sortOrder: z.number().int().min(0).default(0),
   items: z.array(optionItemInputSchema).default([]),
-}).refine(d => d.maxSelect >= d.minSelect, { message: 'maxSelect must be >= minSelect' });
+}).transform((d) => {
+  // Derive canonical min/max from the rule when the caller didn't pin them, so
+  // the rule and its bounds always stay in agreement.
+  const fallback = ruleDefaults(d.selectionRule);
+  return {
+    ...d,
+    minSelect: d.minSelect ?? fallback.minSelect,
+    maxSelect: d.maxSelect ?? fallback.maxSelect,
+  };
+}).superRefine((d, ctx) => {
+  const ruleErr = optionGroupRuleError(d);
+  if (ruleErr) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: ruleErr, path: ['maxSelect'] });
+  }
+  // A populated group must be satisfiable — it can't ask for more picks than it
+  // offers. Empty groups are allowed: the dashboard creates the group first and
+  // the merchant adds items afterwards.
+  if (d.items.length > 0 && d.minSelect > d.items.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `This group asks for ${d.minSelect} pick(s) but only has ${d.items.length} item(s)`,
+      path: ['minSelect'],
+    });
+  }
+});
 
 const createProductSchema = z.object({
   name: z.string().min(2, 'Product name is required'),
@@ -263,4 +325,5 @@ module.exports = {
   optionItemUpdateSchema,
   PACK_UNITS,
   SELECTION_RULES,
+  optionGroupRuleError,
 };

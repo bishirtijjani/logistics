@@ -207,12 +207,12 @@ Variants cover SKU-level differences (different prices, different stock — e.g.
 
 **BE — Option groups**
 - ✅ `merchant.service` nested CRUD: `POST /merchants/.../option-groups`, `PATCH/DELETE /option-groups/:gid`, plus item-level CRUD under each group (`merchant.routes.js:128-135`).
-- ✅ Bulk-upsert endpoint `PUT /merchants/.../option-groups` (`bulkUpsertOptionGroups` in `merchant.service.js`) — single-transaction reconciliation: groups/items present by id are updated, missing ones deleted, new ones created. Used by menu import and "apply template".
+- ✅ Bulk-upsert endpoint `PUT /merchants/.../option-groups` (`bulkUpsertOptionGroups` in `merchant.service.js`) — single-transaction reconciliation: groups/items present by id are updated, missing ones deleted, new ones created. Built for menu import / "apply template", but no client calls it today (the template feature was dropped); kept as a ready-made primitive.
 - ✅ Product detail response embeds `optionGroups: [{id, name, selectionRule, minSelect, maxSelect, items:[...]}]` for one-shot render (`merchant.service.js:643-646`).
 - ✅ Snapshot logic at order creation — `resolveLineItems` reads current option-group / item rows by id, validates `minSelect`/`maxSelect`/required, denormalizes into `RequestItem.selectedOptions`, computes `unitPrice = variant.price + Σ priceDelta` and `lineTotal = unitPrice × quantity` server-side. Client-sent prices are never persisted (`request.service.js:96-148`).
 
 **Merchant dashboard — Option groups (food-specific UI)**
-- ✅ Per-product `OptionGroupsBuilder` (`merchant-dashboard/src/pages/MenuPage.jsx`): inline-edit `name`, `selectionRule`, `min`, `max` per group; inline-edit item `name`, `priceDelta`, `isDefault`, `isAvailable`. Templates and live-preview pane are V1.1 enhancements; the underlying API (`bulkUpsertOptionGroups`) is already shaped to receive them.
+- ✅ Per-product `OptionGroupsBuilder` (`merchant-dashboard/src/pages/MenuPage.jsx`): inline-edit `name`, `selectionRule`, `min`, `max` per group; inline-edit item `name`, `priceDelta`, `isDefault`, `isAvailable`. The form couples min/max picks to the selection rule so they can't contradict, and warns when a required group has too few items to be orderable. (Reusable templates were considered but dropped; a live-preview pane remains a possible future enhancement.)
 - ✅ 86-toggle: `isAvailable=false` on an option item is a single PATCH and propagates to customers via `merchant:menu:updated` socket within 30s.
 
 **Customer app — Food product detail (this is where food's UX lives)**

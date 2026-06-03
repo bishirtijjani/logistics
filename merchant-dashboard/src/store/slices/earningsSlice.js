@@ -61,6 +61,17 @@ export const saveBankAccount = createAsyncThunk(
   }
 )
 
+// Advisory name verification — resolves the account holder name via the backend
+// (Paystack). Returns { accountName, resolved } — resolved:false when the name
+// couldn't be confirmed, in which case the merchant types it manually.
+export const resolveBankAccount = createAsyncThunk(
+  'earnings/resolveBankAccount',
+  async ({ bankCode, accountNumber }) => {
+    const response = await api.post('/wallet/banks/lookup', { bankCode, accountNumber })
+    return response.data.data
+  }
+)
+
 const earningsSlice = createSlice({
   name: 'earnings',
   initialState: {
@@ -71,9 +82,15 @@ const earningsSlice = createSlice({
     banksLoading: false,
     bankAccountLoading: false,
     saving: false,
+    resolving: false,
+    resolvedAccount: null,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    clearResolvedAccount: (state) => {
+      state.resolvedAccount = null
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchWallet.pending, (state) => {
@@ -126,7 +143,20 @@ const earningsSlice = createSlice({
         state.saving = false
         state.error = action.error.message
       })
+      .addCase(resolveBankAccount.pending, (state) => {
+        state.resolving = true
+        state.resolvedAccount = null
+        state.error = null
+      })
+      .addCase(resolveBankAccount.fulfilled, (state, action) => {
+        state.resolving = false
+        state.resolvedAccount = action.payload || null
+      })
+      .addCase(resolveBankAccount.rejected, (state) => {
+        state.resolving = false
+      })
   },
 })
 
+export const { clearResolvedAccount } = earningsSlice.actions
 export default earningsSlice.reducer

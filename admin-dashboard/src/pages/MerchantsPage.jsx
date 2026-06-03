@@ -8,8 +8,9 @@ import {
   createMerchant, deleteMerchant, fetchCommissionHistory,
   setWithdrawalHold, fetchPendingWithdrawals, fetchWithdrawalHistory,
   approveWithdrawal, rejectWithdrawal, bulkApproveWithdrawals,
+  fetchProcessingWithdrawals, failWithdrawal,
   fetchAllTags, createTag, updateTag, deleteTag, setMerchantTags,
-  fetchBankList, updateMerchantBankAccount,
+  fetchBankList, updateMerchantBankAccount, resolveBankAccount,
   clearSelectedMerchant,
 } from '../store/slices/merchantsSlice'
 import { fetchCategories } from '../store/slices/categoriesSlice'
@@ -152,6 +153,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
   const [loading, setLoading] = useState(null)
   const [bankEditMode, setBankEditMode] = useState(false)
   const [bankForm, setBankForm] = useState({ bankCode: '', accountNumber: '', accountName: '' })
+  const [resolvedBank, setResolvedBank] = useState(null)
 
   useEffect(() => {
     if (merchant && tab === 'commission') {
@@ -240,8 +242,24 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
       accountName: merchant.wallet?.accountName || '',
     })
     if (!banks?.length) dispatch(fetchBankList())
+    setResolvedBank(null)
     setBankEditMode(true)
   }
+
+  const handleResolveBank = () =>
+    act('resolveBank', async () => {
+      if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
+        return toast.error('Select a bank and enter a 10-digit account number')
+      }
+      const r = await dispatch(resolveBankAccount({ bankCode: bankForm.bankCode, accountNumber: bankForm.accountNumber }))
+      if (r.meta.requestStatus === 'fulfilled' && r.payload?.resolved && r.payload.accountName) {
+        setResolvedBank(r.payload)
+        setBankForm((f) => ({ ...f, accountName: r.payload.accountName }))
+      } else {
+        setResolvedBank(null)
+        toast.error("Couldn't verify automatically — type the account name.")
+      }
+    })
 
   const handleSaveBank = () =>
     act('saveBank', async () => {
@@ -539,15 +557,16 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-4">
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Available</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium mb-1">Wallet Balance</p>
                   <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
-                    ₦{Number(merchant.wallet?.availableBalance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                    ₦{Number(merchant.user?.wallet?.balance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                   </p>
+                  <p className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70 mt-0.5">Spendable (earnings + top-ups)</p>
                 </div>
                 <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4">
-                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">Pending</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-1">Lifetime Earnings</p>
                   <p className="text-xl font-bold text-amber-700 dark:text-amber-300">
-                    ₦{Number(merchant.wallet?.pendingBalance || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                    ₦{Number(merchant.wallet?.totalEarnings || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
@@ -611,7 +630,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                       <FormField label="Bank">
                         <Select
                           value={bankForm.bankCode}
-                          onChange={(e) => setBankForm((f) => ({ ...f, bankCode: e.target.value }))}
+                          onChange={(e) => { setResolvedBank(null); setBankForm((f) => ({ ...f, bankCode: e.target.value })) }}
                         >
                           <option value="">Select a bank</option>
                           {(Array.isArray(banks) ? banks : []).map((b) => (
@@ -625,12 +644,26 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                           maxLength={10}
                           placeholder="10-digit account number"
                           value={bankForm.accountNumber}
-                          onChange={(e) => setBankForm((f) => ({ ...f, accountNumber: e.target.value.replace(/\D/g, '') }))}
+                          onChange={(e) => { setResolvedBank(null); setBankForm((f) => ({ ...f, accountNumber: e.target.value.replace(/\D/g, '') })) }}
                         />
                       </FormField>
-                      <FormField label="Account Name">
+                      <Btn size="sm" variant="outline" loading={loading === 'resolveBank'}
+                        disabled={!bankForm.bankCode || bankForm.accountNumber.length !== 10}
+                        onClick={handleResolveBank}>
+                        <CheckCircle size={14} /> Verify account
+                      </Btn>
+                      <FormField label={
+                        <span className="inline-flex items-center gap-2">
+                          Account Name
+                          {resolvedBank?.resolved && resolvedBank.accountName === bankForm.accountName && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                              <CheckCircle size={11} /> Verified
+                            </span>
+                          )}
+                        </span>
+                      }>
                         <Input
-                          placeholder="Name on the account"
+                          placeholder="Verify above, or type the name on the account"
                           value={bankForm.accountName}
                           onChange={(e) => setBankForm((f) => ({ ...f, accountName: e.target.value }))}
                         />
@@ -647,7 +680,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                         </Btn>
                       </div>
                       <p className="text-xs text-muted dark:text-dark-muted">
-                        KatPay can&apos;t auto-verify names — double-check the account number and name before saving.
+                        Verify pulls the real account name from the bank. If it can&apos;t be verified, type it — but double-check, since transfers can&apos;t be reversed.
                       </p>
                     </div>
                   )}
@@ -913,7 +946,7 @@ export default function MerchantsPage() {
   const navigate = useNavigate()
   const {
     merchants, total, page, limit, loading,
-    pendingWithdrawals, pendingWithdrawalsTotal, withdrawalsLoading,
+    pendingWithdrawals, pendingWithdrawalsTotal, processingWithdrawals, withdrawalsLoading,
     tags, tagsLoading,
   } = useSelector((s) => s.merchants)
   const { list: categories } = useSelector((s) => s.categories)
@@ -938,6 +971,8 @@ export default function MerchantsPage() {
   const [selectedWithdrawals, setSelectedWithdrawals] = useState(new Set())
   const [rejectWithdrawalModal, setRejectWithdrawalModal] = useState(null)
   const [withdrawalRejectReason, setWithdrawalRejectReason] = useState('')
+  const [failWithdrawalModal, setFailWithdrawalModal] = useState(null)
+  const [failReason, setFailReason] = useState('')
   const [wLoading, setWLoading] = useState(null)
 
   // Tags state
@@ -969,6 +1004,7 @@ export default function MerchantsPage() {
       dispatch(fetchAllMerchants({ page: 1, limit: pageSize, status: 'PENDING_APPROVAL' }))
     } else if (activeTab === 'withdrawals') {
       dispatch(fetchPendingWithdrawals({ page: 1, limit: 30 }))
+      dispatch(fetchProcessingWithdrawals({ page: 1, limit: 50 }))
     } else if (activeTab === 'tags') {
       dispatch(fetchAllTags())
     }
@@ -1063,6 +1099,18 @@ export default function MerchantsPage() {
     if (r.meta.requestStatus === 'fulfilled') {
       toast.success('Withdrawal rejected — funds returned')
       setRejectWithdrawalModal(null); setWithdrawalRejectReason('')
+    } else toast.error(r.error?.message || 'Failed')
+  }
+
+  const handleFailWithdrawal = async () => {
+    if (failReason.trim().length < 3) return
+    setWLoading(`fail-${failWithdrawalModal.id}`)
+    const r = await dispatch(failWithdrawal({ withdrawalId: failWithdrawalModal.id, reason: failReason }))
+    setWLoading(null)
+    if (r.meta.requestStatus === 'fulfilled') {
+      if (r.payload?.refunded) toast.success('Marked failed — funds returned to the merchant')
+      else toast.error('Marked failed, but funds were NOT auto-returned — needs reconciliation (check logs)')
+      setFailWithdrawalModal(null); setFailReason('')
     } else toast.error(r.error?.message || 'Failed')
   }
 
@@ -1279,7 +1327,7 @@ export default function MerchantsPage() {
                         </td>
                         <td className="px-5 py-4"><StatusBadge status={m.status} /></td>
                         <td className="px-5 py-4 text-sm text-text dark:text-dark-text font-medium">
-                          ₦{Number(m.wallet?.availableBalance || 0).toLocaleString()}
+                          ₦{Number(m.user?.wallet?.balance || 0).toLocaleString()}
                         </td>
                         <td className="px-5 py-4 text-sm text-text dark:text-dark-text">{m.commissionRate}%</td>
                         <td className="px-5 py-4 text-sm text-text dark:text-dark-text">
@@ -1387,6 +1435,43 @@ export default function MerchantsPage() {
                     loading={wLoading}
                   />
                 ))}
+              </div>
+            )}
+
+            {/* Processing payouts — initiated but not yet confirmed by the bank.
+                If one bounced, marking it failed returns the funds to the merchant. */}
+            {processingWithdrawals.length > 0 && (
+              <div className="pt-4 border-t border-surface-muted dark:border-dark-surface-muted">
+                <div className="mb-2">
+                  <h3 className="font-semibold text-text dark:text-dark-text">Processing payouts</h3>
+                  <p className="text-sm text-muted dark:text-dark-muted">
+                    Initiated, awaiting bank confirmation. If a payout bounced, mark it failed to return the funds.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {processingWithdrawals.map((w) => (
+                    <div key={w.id} className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold text-text dark:text-dark-text text-sm truncate">{w.merchantWallet?.merchant?.name || '—'}</p>
+                          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full shrink-0">Processing</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                          <span className="text-xs text-muted dark:text-dark-muted truncate">{w.accountName} · {w.accountNumber}</span>
+                          {w.processedAt && <span className="text-xs text-muted dark:text-dark-muted">since {new Date(w.processedAt).toLocaleDateString()}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-bold text-text dark:text-dark-text text-sm sm:text-base">₦{Number(w.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="flex-shrink-0 w-full sm:w-auto flex justify-end">
+                        <Btn size="sm" variant="danger" loading={wLoading === `fail-${w.id}`} onClick={() => { setFailWithdrawalModal(w); setFailReason('') }}>
+                          <XCircle size={13} /> Mark failed &amp; refund
+                        </Btn>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -1612,6 +1697,31 @@ export default function MerchantsPage() {
             <Btn variant="outline" onClick={() => { setRejectWithdrawalModal(null); setWithdrawalRejectReason('') }}>Cancel</Btn>
             <Btn variant="danger" loading={!!wLoading} disabled={!withdrawalRejectReason.trim()} onClick={handleRejectWithdrawal}>
               Reject & Refund
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Fail Withdrawal Modal ── */}
+      <Modal open={!!failWithdrawalModal} onClose={() => { setFailWithdrawalModal(null); setFailReason('') }} title="Mark Payout Failed">
+        <div className="space-y-4">
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4">
+            <p className="text-sm text-red-700 dark:text-red-300">
+              Only do this if the payout did <strong>not</strong> reach the merchant. It returns <strong>₦{Number(failWithdrawalModal?.amount || 0).toLocaleString()}</strong> to their wallet. If the transfer actually went through, this would double-pay them.
+            </p>
+          </div>
+          <FormField label="Reason (at least 3 characters)">
+            <Textarea
+              rows={3}
+              value={failReason}
+              onChange={(e) => setFailReason(e.target.value)}
+              placeholder="e.g. KatPay confirmed the payout bounced — account closed."
+            />
+          </FormField>
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+            <Btn variant="outline" onClick={() => { setFailWithdrawalModal(null); setFailReason('') }}>Cancel</Btn>
+            <Btn variant="danger" loading={!!wLoading} disabled={failReason.trim().length < 3} onClick={handleFailWithdrawal}>
+              Mark Failed & Refund
             </Btn>
           </div>
         </div>

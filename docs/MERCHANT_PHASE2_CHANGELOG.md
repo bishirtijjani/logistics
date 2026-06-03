@@ -15,9 +15,8 @@ Your **Add Product / Edit Product** form is now driven by the category you pick.
 
 ### Option groups — customer customizations
 - Sides, addons, spice level, "no onions", combo picks — these used to be ad-hoc JSON. They're now first-class **option groups** with rules.
-- Each group has a selection rule: `Choose 1` (required) / `Choose 1` (optional) / `Pick up to N` (required) / `Pick up to N` (optional).
+- Each group has a selection rule: **pick exactly one** (required) / **pick at most one** (optional) / **pick several** (required or optional, up to a max you set). The form fills in the min/max picks from the rule, so the two can't contradict.
 - Each item under a group has its own price delta. "Extra cheese (+₦500)" attaches a real +₦500 to the line total.
-- Save common groups (e.g. "Standard sides") as templates and apply to multiple products to avoid retyping.
 - Need to 86 an item for the day? Toggle `Available` off — it greys out in the customer app within 30 seconds without deleting the option.
 
 ### Inventory

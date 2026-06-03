@@ -721,6 +721,8 @@ const getAllMerchants = async ({ page = 1, limit = 20, categoryId, categorySlug,
             lastName: true,
             email: true,
             phone: true,
+            // Unified spendable wallet — what the merchant actually holds.
+            wallet: { select: { balance: true, isLocked: true } },
           },
         },
       },
@@ -738,7 +740,14 @@ const getMerchantById = async (merchantId) => {
   const merchant = await prisma.merchant.findUnique({
     where: { id: merchantId },
     include: {
-      user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+      // `user.wallet` is the unified spendable wallet (earnings + top-ups);
+      // `wallet` (merchantWallet) is now just payout config + lifetime stat.
+      user: {
+        select: {
+          id: true, firstName: true, lastName: true, email: true, phone: true,
+          wallet: { select: { balance: true, isLocked: true, virtualAccountNumber: true } },
+        },
+      },
       wallet: true,
       tags: { include: { tag: true } },
       commissionHistory: {
@@ -2140,26 +2149,42 @@ const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, us
   });
 
   if (!withdrawal) throw AppError.notFound('Withdrawal not found');
+  if (withdrawal.status === 'REJECTED') return withdrawal; // idempotent
   if (withdrawal.status !== 'PENDING') throw AppError.badRequest('Withdrawal is not in pending status');
 
-  const updatedWithdrawal = await prisma.$transaction(async (tx) => {
-    const w = await tx.merchantWalletTransaction.update({
-      where: { id: withdrawalId },
+  const claimed = await prisma.$transaction(async (tx) => {
+    // Atomic compare-and-set: only ONE caller can flip PENDING → REJECTED, so two
+    // concurrent rejects (or a reject racing a fail) can't both credit the wallet.
+    const claim = await tx.merchantWalletTransaction.updateMany({
+      where: { id: withdrawalId, status: 'PENDING' },
       data: { status: 'REJECTED', rejectionReason: reason, processedAt: new Date() },
     });
+    if (claim.count === 0) return false;
+
     // Unified wallet: return the reserved funds to the merchant's User wallet.
     // The ledger Transaction created at request time tells us which wallet was
-    // debited (its debitWalletId), so we credit exactly that one back.
+    // debited; reverse it under the same guard so the credit fires exactly once.
     const ledger = await tx.transaction.findUnique({ where: { reference: withdrawal.reference } });
     if (ledger?.debitWalletId) {
-      await tx.wallet.update({
-        where: { id: ledger.debitWalletId },
-        data: { balance: { increment: withdrawal.amount } },
+      const rev = await tx.transaction.updateMany({
+        where: { id: ledger.id, status: { in: ['PENDING', 'PROCESSING'] } },
+        data: { status: 'REVERSED' },
       });
-      await tx.transaction.update({ where: { id: ledger.id }, data: { status: 'REVERSED' } });
+      if (rev.count === 1) {
+        await tx.wallet.update({
+          where: { id: ledger.debitWalletId },
+          data: { balance: { increment: withdrawal.amount } },
+        });
+      }
     }
-    return w;
+    return true;
   });
+
+  // Lost the race — another caller already rejected it. Return the row without
+  // duplicating the audit log / email.
+  if (!claimed) {
+    return prisma.merchantWalletTransaction.findUnique({ where: { id: withdrawalId } });
+  }
 
   await createAuditLog(
     adminUserId, 'REJECT_WITHDRAWAL', 'MerchantWalletTransaction', withdrawalId,
@@ -2175,7 +2200,117 @@ const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, us
     ).catch((err) => logger.error('Failed to send withdrawal rejected email', { withdrawalId, err: err.message }));
   }
 
-  return updatedWithdrawal;
+  return prisma.merchantWalletTransaction.findUnique({ where: { id: withdrawalId } });
+};
+
+/**
+ * Fail a withdrawal whose payout did NOT go through, returning the reserved
+ * funds to the merchant. This is the safety net for the post-approval window:
+ * a payout that KatPay bounces (bad/closed account, provider error) would
+ * otherwise leave the withdrawal stuck on PROCESSING with the merchant's money
+ * stranded (already debited at request time).
+ *
+ * Callable from three places, so it must be IDEMPOTENT and race-safe:
+ *   - a KatPay payout.failed / payout.reversed webhook (adminUserId: 'SYSTEM')
+ *   - an admin "mark failed & refund" action
+ *   - (potentially) a reconciliation job
+ *
+ * Only acts on PROCESSING (the post-approval window — a PENDING withdrawal was
+ * never sent to KatPay, so its refund path is rejectWithdrawal → REJECTED).
+ * Already-FAILED is an idempotent no-op. Returns the row augmented with
+ * `refunded` (was the wallet credited back) and `conflict` (marked FAILED but
+ * the ledger had already settled — needs manual reconciliation).
+ */
+const failWithdrawal = async (withdrawalId, reason, { adminUserId = 'SYSTEM', ipAddress, userAgent } = {}) => {
+  const existing = await prisma.merchantWalletTransaction.findUnique({
+    where: { id: withdrawalId },
+    include: { merchantWallet: { include: { merchant: { include: { user: { select: { email: true } } } } } } },
+  });
+  if (!existing) throw AppError.notFound('Withdrawal not found');
+  if (existing.status === 'FAILED') {
+    return { ...existing, refunded: false, alreadyHandled: true };
+  }
+  if (existing.status !== 'PROCESSING') {
+    throw AppError.badRequest(`Cannot fail a withdrawal that is ${existing.status}`);
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    // Atomic compare-and-set: only matches while still PROCESSING, so exactly ONE
+    // concurrent caller (duplicate webhook / webhook racing an admin click) wins.
+    const claim = await tx.merchantWalletTransaction.updateMany({
+      where: { id: withdrawalId, status: 'PROCESSING' },
+      data: { status: 'FAILED', rejectionReason: reason, processedAt: new Date() },
+    });
+    if (claim.count === 0) return { refunded: false, conflict: false, alreadyHandled: true };
+
+    const ledger = await tx.transaction.findUnique({ where: { reference: existing.reference } });
+
+    if (!ledger) {
+      // Legacy (pre-unification) row: funds were reserved in pendingBalance, not
+      // debited from the User wallet. Return them to availableBalance.
+      await tx.merchantWallet.update({
+        where: { id: existing.merchantWalletId },
+        data: {
+          pendingBalance: { decrement: existing.amount },
+          availableBalance: { increment: existing.amount },
+        },
+      });
+      return { refunded: true, conflict: false, alreadyHandled: false };
+    }
+
+    if (['PENDING', 'PROCESSING'].includes(ledger.status)) {
+      const rev = await tx.transaction.updateMany({
+        where: { id: ledger.id, status: { in: ['PENDING', 'PROCESSING'] } },
+        data: { status: 'REVERSED' },
+      });
+      if (rev.count === 1) {
+        await tx.wallet.update({
+          where: { id: ledger.debitWalletId },
+          data: { balance: { increment: existing.amount } },
+        });
+        return { refunded: true, conflict: false, alreadyHandled: false };
+      }
+    }
+
+    // Ledger already COMPLETED or REVERSED — the payout may actually have gone
+    // out (a half-applied success). Mark FAILED but DON'T credit; this is a hard
+    // conflict that needs a human, not a silent refund.
+    return { refunded: false, conflict: true, alreadyHandled: false };
+  });
+
+  if (result.alreadyHandled) {
+    const row = await prisma.merchantWalletTransaction.findUnique({ where: { id: withdrawalId } });
+    return { ...row, refunded: false, alreadyHandled: true };
+  }
+
+  if (result.conflict) {
+    logger.error('failWithdrawal: ledger already settled — marked FAILED WITHOUT refund; manual reconciliation needed', {
+      withdrawalId, reference: existing.reference, amount: existing.amount,
+    });
+  }
+
+  await createAuditLog(
+    adminUserId, 'FAIL_WITHDRAWAL', 'MerchantWalletTransaction', withdrawalId,
+    { amount: existing.amount, reason, refunded: result.refunded, conflict: result.conflict, merchantId: existing.merchantWallet.merchantId },
+    ipAddress, userAgent
+  );
+
+  logger.info('Merchant withdrawal failed', {
+    withdrawalId, reference: existing.reference, amount: existing.amount, refunded: result.refunded,
+  });
+
+  // Only reassure the merchant their money is back when it actually is.
+  const merchant = existing.merchantWallet.merchant;
+  const recipientEmail = merchant.email || merchant.user?.email;
+  if (recipientEmail && result.refunded) {
+    emailService.sendWithdrawalRejectedEmail(
+      recipientEmail, merchant.name, existing.amount,
+      `Your payout could not be completed (${reason}). The amount has been returned to your wallet.`
+    ).catch((err) => logger.error('Failed to send withdrawal failed email', { withdrawalId, err: err.message }));
+  }
+
+  const row = await prisma.merchantWalletTransaction.findUnique({ where: { id: withdrawalId } });
+  return { ...row, refunded: result.refunded, conflict: result.conflict };
 };
 
 /**
@@ -2608,6 +2743,7 @@ module.exports = {
   getPendingWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
+  failWithdrawal,
   getWithdrawalHistory,
   listVtuPlans,
   createVtuPlan,

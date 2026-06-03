@@ -236,6 +236,25 @@ export const bulkApproveWithdrawals = createAsyncThunk(
   }
 )
 
+// Withdrawals stuck on PROCESSING (payout initiated, KatPay never confirmed).
+export const fetchProcessingWithdrawals = createAsyncThunk(
+  'merchants/fetchProcessingWithdrawals',
+  async ({ page = 1, limit = 50 } = {}) => {
+    const params = new URLSearchParams({ page, limit, status: 'PROCESSING' })
+    const response = await api.get(`/admin/withdrawals/history?${params}`)
+    return response.data
+  }
+)
+
+// Mark a stuck/processing payout as failed and return the funds to the merchant.
+export const failWithdrawal = createAsyncThunk(
+  'merchants/failWithdrawal',
+  async ({ withdrawalId, reason }) => {
+    const response = await api.patch(`/admin/withdrawals/${withdrawalId}/fail`, { reason })
+    return response.data.data
+  }
+)
+
 // ============================================================
 // Merchant payout bank account (admin set/update on their behalf)
 // ============================================================
@@ -262,6 +281,16 @@ export const updateMerchantBankAccount = createAsyncThunk(
       accountName,
     })
     return { merchantId, account: response.data.data }
+  }
+)
+
+// Advisory name verification (Paystack via the backend). Returns
+// { accountName, resolved } — resolved:false when it couldn't be confirmed.
+export const resolveBankAccount = createAsyncThunk(
+  'merchants/resolveBankAccount',
+  async ({ bankCode, accountNumber }) => {
+    const response = await api.post('/wallet/banks/lookup', { bankCode, accountNumber })
+    return response.data.data
   }
 )
 
@@ -301,6 +330,7 @@ const merchantsSlice = createSlice({
     // Withdrawals
     pendingWithdrawals: [],
     pendingWithdrawalsTotal: 0,
+    processingWithdrawals: [],
     withdrawalHistory: [],
     withdrawalHistoryTotal: 0,
     withdrawalsLoading: false,
@@ -459,6 +489,18 @@ const merchantsSlice = createSlice({
         const approved = new Set(action.payload.approved || [])
         state.pendingWithdrawals = state.pendingWithdrawals.filter((w) => !approved.has(w.id))
         state.pendingWithdrawalsTotal = Math.max(0, state.pendingWithdrawalsTotal - approved.size)
+      })
+
+      .addCase(fetchProcessingWithdrawals.fulfilled, (state, action) => {
+        state.processingWithdrawals = action.payload.data || []
+      })
+      .addCase(failWithdrawal.fulfilled, (state, action) => {
+        if (!action.payload) return
+        // Only clear it from the list when the funds were actually returned. A
+        // FAILED-but-not-refunded row is a reconciliation case — keep it visible.
+        if (action.payload.refunded) {
+          state.processingWithdrawals = state.processingWithdrawals.filter((w) => w.id !== action.payload.id)
+        }
       })
 
       .addCase(setWithdrawalHold.fulfilled, (state, action) => {

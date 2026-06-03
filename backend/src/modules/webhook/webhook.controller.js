@@ -10,6 +10,39 @@ const { QUEUES, PAYMENT_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs
 
 const paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
 
+// Resolve the merchant withdrawal a payout webhook refers to. katpayReference is
+// not DB-unique, so guard against an ambiguous match rather than acting on an
+// arbitrary row (which could refund/complete the WRONG withdrawal).
+const findWithdrawalByKatpayRef = async (katpayRef) => {
+  const rows = await prisma.merchantWalletTransaction.findMany({
+    where: { katpayReference: katpayRef },
+    take: 2,
+  });
+  if (rows.length > 1) {
+    logger.error('Multiple withdrawals share one katpayReference — refusing to act', { katpayRef });
+    return null;
+  }
+  return rows[0] || null;
+};
+
+// Apply a payout-failure signal: refund the merchant if the withdrawal is still
+// in flight. Terminal states are handled WITHOUT throwing (so the webhook can be
+// marked processed and KatPay stops retrying); only a genuine infra error during
+// the refund propagates, leaving the event unprocessed for KatPay to retry.
+const applyPayoutFailure = async (katpayRef, reason) => {
+  const mwt = await findWithdrawalByKatpayRef(katpayRef);
+  if (!mwt) return;
+  if (mwt.status === 'COMPLETED') {
+    logger.error('KatPay reports payout failed but withdrawal is already COMPLETED — manual reconciliation needed', {
+      katpayRef, withdrawalId: mwt.id, reference: mwt.reference,
+    });
+    return;
+  }
+  if (mwt.status !== 'PROCESSING') return; // FAILED / REJECTED — already terminal
+  const adminService = require('../admin/admin.service');
+  await adminService.failWithdrawal(mwt.id, reason, { adminUserId: 'SYSTEM' });
+};
+
 /**
  * Handle KatPay webhook — wallet funding and payout confirmations.
  *
@@ -54,26 +87,32 @@ const handleKatpay = async (req, res, next) => {
       data.reference ||
       `katpay-${Date.now()}`;
 
-    // 3. Idempotency check
+    // 3. Idempotency — short-circuit only when a prior delivery actually FINISHED
+    // (processed === true). A row that exists but is still unprocessed means an
+    // earlier attempt failed mid-way; KatPay's retry must re-enter and reprocess
+    // (every downstream write is an idempotent compare-and-set). Treating mere
+    // existence as "done" would turn a transient failure into a permanent one.
     const existing = await prisma.webhookEvent.findUnique({
       where: { transactionRef },
     });
 
-    if (existing) {
-      logger.info('Duplicate KatPay webhook ignored', { transactionRef });
+    if (existing && existing.processed) {
+      logger.info('Duplicate KatPay webhook ignored (already processed)', { transactionRef });
       return res.json(ApiResponse.success('Already processed'));
     }
 
-    // 4. Log event
-    await prisma.webhookEvent.create({
-      data: {
-        provider: 'katpay',
-        eventType: eventType || 'UNKNOWN',
-        transactionRef,
-        payload,
-        processed: false,
-      },
-    });
+    // 4. Log the event on first sighting (the row also acts as a uniqueness lock).
+    if (!existing) {
+      await prisma.webhookEvent.create({
+        data: {
+          provider: 'katpay',
+          eventType: eventType || 'UNKNOWN',
+          transactionRef,
+          payload,
+          processed: false,
+        },
+      });
+    }
 
     // 5. Respond immediately — KatPay retries on non-2xx
     res.json(ApiResponse.success('Webhook received'));
@@ -107,31 +146,75 @@ const handleKatpay = async (req, res, next) => {
             break;
           }
 
-          case 'payout.processed': {
+          // Defensive: KatPay only documents payout.processed, but some providers
+          // reuse that event for failures (status in the payload) and/or emit
+          // dedicated failure events. Route any failure signal to the refund path
+          // so a bounced payout never leaves the merchant's funds stranded.
+          case 'payout.failed':
+          case 'payout.reversed':
+          case 'payout.rejected':
+          case 'payout.declined': {
             const katpayRef = data.reference;
             if (katpayRef) {
-              const mwt = await prisma.merchantWalletTransaction.findFirst({
-                where: { katpayReference: katpayRef },
-              });
+              const why = data.reason || data.message || eventType.replace('payout.', 'payout ');
+              await applyPayoutFailure(katpayRef, why);
+            }
+            // Reached only if applyPayoutFailure didn't throw (transient infra
+            // errors propagate to the outer catch, leaving the event unprocessed
+            // so KatPay's retry re-enters).
+            await prisma.webhookEvent.update({
+              where: { transactionRef },
+              data: { processed: true, processedAt: new Date() },
+            });
+            break;
+          }
+
+          case 'payout.processed': {
+            const katpayRef = data.reference;
+            const payoutStatus = String(data.status || data.transaction?.status || '').toLowerCase();
+            if (katpayRef && /fail|revers|declin|cancel/.test(payoutStatus)) {
+              // payout.processed actually carrying a failure status → refund.
+              await applyPayoutFailure(katpayRef, `Payout ${payoutStatus}`);
+            } else if (katpayRef) {
+              const mwt = await findWithdrawalByKatpayRef(katpayRef);
               if (mwt) {
-                await prisma.merchantWalletTransaction.update({
-                  where: { id: mwt.id },
-                  data: { status: 'COMPLETED', processedAt: new Date() },
-                });
-                // New unified withdrawals carry a mirror Transaction on the
-                // merchant's User wallet (funds already debited at request time)
-                // → complete it. Legacy pre-unification withdrawals instead
-                // reserved funds in merchantWallet.pendingBalance → release that
-                // so no phantom pending balance is left behind.
-                const ledger = await prisma.transaction.findFirst({ where: { reference: mwt.reference } });
-                if (ledger) {
-                  await prisma.transaction.update({ where: { id: ledger.id }, data: { status: 'COMPLETED' } });
-                } else {
-                  await prisma.merchantWallet.update({
-                    where: { id: mwt.merchantWalletId },
-                    data: { pendingBalance: { decrement: mwt.amount } },
+                // Complete MWT + mirror ledger atomically so a crash can't leave
+                // them inconsistent. Conflict detection reads COMMITTED state (the
+                // updateMany result), never a stale pre-write read.
+                await prisma.$transaction(async (tx) => {
+                  const completed = await tx.merchantWalletTransaction.updateMany({
+                    where: { id: mwt.id, status: { in: ['PENDING', 'PROCESSING'] } },
+                    data: { status: 'COMPLETED', processedAt: new Date() },
                   });
-                }
+                  if (completed.count === 1) {
+                    // New unified withdrawals carry a mirror Transaction on the
+                    // merchant's User wallet (funds already debited at request
+                    // time) → complete it. Legacy rows reserved funds in
+                    // merchantWallet.pendingBalance → release that.
+                    const ledger = await tx.transaction.findFirst({ where: { reference: mwt.reference } });
+                    if (ledger) {
+                      await tx.transaction.updateMany({
+                        where: { id: ledger.id, status: { in: ['PENDING', 'PROCESSING'] } },
+                        data: { status: 'COMPLETED' },
+                      });
+                    } else {
+                      await tx.merchantWallet.update({
+                        where: { id: mwt.merchantWalletId },
+                        data: { pendingBalance: { decrement: mwt.amount } },
+                      });
+                    }
+                  } else {
+                    // Didn't win the completion — re-read committed state. If a
+                    // fail/refund beat us, the payout both SUCCEEDED (per KatPay)
+                    // and was refunded: a hard conflict for a human to reconcile.
+                    const fresh = await tx.merchantWalletTransaction.findUnique({ where: { id: mwt.id } });
+                    if (fresh && fresh.status === 'FAILED') {
+                      logger.error('Payout reported success AFTER being failed/refunded — manual reconciliation needed', {
+                        withdrawalId: mwt.id, reference: mwt.reference, katpayRef,
+                      });
+                    }
+                  }
+                });
               }
             }
             await prisma.webhookEvent.update({

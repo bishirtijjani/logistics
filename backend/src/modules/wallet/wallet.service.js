@@ -307,20 +307,39 @@ const getTransactionHistory = async (userId, { page, limit, type, startDate, end
 };
 
 /**
- * Bank account name lookup.
+ * Bank account name lookup (cached 6h on success).
  *
- * KatPay does NOT expose a name-enquiry / account-resolution endpoint. Their
- * API only offers bank-list, payouts, virtual accounts and transfer-payments
- * (verified against their docs and the live API — every resolve candidate
- * returns 404), and payouts require the caller to supply `account_name`.
+ * KatPay has no name-enquiry endpoint, so we resolve against Paystack's free
+ * `/bank/resolve` (works on test keys, before business approval). `bankCode` is
+ * the KatPay code the dashboards use; the Paystack service maps it across.
  *
- * There is therefore no way to resolve the account holder name server-side, so
- * we return a graceful "unresolved" result. Callers collect the account name
- * from the user instead. Kept as a function (rather than removed) because the
- * customer + rider withdraw screens still call this endpoint and must not 500.
+ * Verification is ADVISORY: this never throws and never 500s. On success it
+ * returns the resolved name with `resolved: true`; if Paystack is unconfigured,
+ * the bank is unsupported, or the account can't be resolved, it returns
+ * `resolved: false` so callers fall back to a user-typed name. (The customer +
+ * rider withdraw screens also call this and must keep working.)
  */
 const lookupBankAccount = async ({ bankCode, accountNumber }) => {
-  return { accountName: null, accountNumber, bankCode, resolved: false };
+  const cacheKey = `bank:lookup:${bankCode}:${accountNumber}`;
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  } catch (_) {}
+
+  const paystackService = require('../../services/paystack.service');
+  let result;
+  try {
+    const r = await paystackService.resolveAccountName({ accountNumber, bankCode });
+    result = { accountName: r.accountName, accountNumber, bankCode, resolved: true };
+  } catch (err) {
+    return { accountName: null, accountNumber, bankCode, resolved: false, reason: err.message };
+  }
+
+  try {
+    await redis.set(cacheKey, JSON.stringify(result), 'EX', LOOKUP_CACHE_TTL);
+  } catch (_) {}
+
+  return result;
 };
 
 /**

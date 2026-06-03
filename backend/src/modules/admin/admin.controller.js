@@ -687,6 +687,25 @@ const rejectWithdrawal = async (req, res, next) => {
   }
 };
 
+const failWithdrawal = async (req, res, next) => {
+  try {
+    const reason = (req.body.reason || '').trim();
+    if (reason.length < 3) {
+      return res.status(400).json(ApiResponse.error('A reason is required'));
+    }
+    const result = await adminService.failWithdrawal(
+      req.params.withdrawalId, reason,
+      { adminUserId: req.user.id, ipAddress: req.ip, userAgent: req.headers['user-agent'] }
+    );
+    const message = result?.refunded
+      ? 'Withdrawal marked failed and funds returned'
+      : 'Withdrawal marked failed — funds were NOT auto-returned; needs reconciliation';
+    res.json(ApiResponse.success(message, result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getWithdrawalHistory = async (req, res, next) => {
   try {
     const { withdrawals, total, page, limit } = await adminService.getWithdrawalHistory(req.query);
@@ -876,6 +895,7 @@ module.exports = {
   getPendingWithdrawals,
   approveWithdrawal,
   rejectWithdrawal,
+  failWithdrawal,
   getWithdrawalHistory,
   getDisputes,
   resolveDispute,

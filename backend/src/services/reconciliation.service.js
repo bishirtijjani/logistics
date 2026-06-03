@@ -115,6 +115,26 @@ const runReconciliation = async ({ threshold } = {}) => {
     }),
   ]);
 
+  // 4. Stuck withdrawals — payouts left on PROCESSING that KatPay never
+  // confirmed. We can't auto-resolve (KatPay exposes no payout-status endpoint
+  // and only documents payout.processed), and auto-refunding could double-pay a
+  // payout that actually succeeded — so we surface them loudly for an admin to
+  // fail+refund or chase with the provider.
+  const stuckAfterHours = Number(await getSetting('withdrawal.stuckAfterHours', 24));
+  const stuckCutoff = new Date(startedAt.getTime() - stuckAfterHours * 60 * 60 * 1000);
+  const stuckRows = await prisma.merchantWalletTransaction.findMany({
+    where: { type: 'WITHDRAWAL', status: 'PROCESSING', processedAt: { lt: stuckCutoff } },
+    select: { id: true, reference: true, amount: true, katpayReference: true, processedAt: true },
+    take: 100,
+  });
+  const stuckWithdrawals = stuckRows.map((r) => ({
+    id: r.id,
+    reference: r.reference,
+    amount: round2(r.amount),
+    katpayReference: r.katpayReference,
+    processingSince: r.processedAt,
+  }));
+
   const report = {
     startedAt,
     finishedAt: new Date(),
@@ -140,9 +160,15 @@ const runReconciliation = async ({ threshold } = {}) => {
       mismatches: walletMismatches,
       ok: walletMismatches.length === 0,
     },
+    withdrawals: {
+      stuckAfterHours,
+      stuckCount: stuckWithdrawals.length,
+      stuck: stuckWithdrawals,
+      ok: stuckWithdrawals.length === 0,
+    },
   };
 
-  report.ok = report.escrow.ok && report.walletParity.ok;
+  report.ok = report.escrow.ok && report.walletParity.ok && report.withdrawals.ok;
 
   // Make zero-state visible. A reconciliation run with no wallets and no
   // transactions reports `ok: true` but tells us nothing useful — it could
@@ -181,6 +207,7 @@ const persistReport = async (report) => {
     logger.error('Reconciliation FAILED', {
       escrow: report.escrow,
       mismatches: report.walletParity.mismatches,
+      stuckWithdrawals: report.withdrawals?.stuck,
     });
   }
 };

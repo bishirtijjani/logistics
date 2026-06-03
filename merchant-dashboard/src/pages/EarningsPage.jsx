@@ -8,6 +8,8 @@ import {
   fetchBankList,
   fetchBankAccount,
   saveBankAccount,
+  resolveBankAccount,
+  clearResolvedAccount,
 } from "../store/slices/earningsSlice.js";
 import {
   fetchWallet as fetchUserWallet,
@@ -29,7 +31,6 @@ import {
   Flag,
   Upload,
   MessageSquare,
-  Clock,
   CheckCircle,
   XCircle,
   X,
@@ -56,6 +57,8 @@ export default function EarningsPage() {
     bankAccount,
     bankAccountLoading,
     saving,
+    resolving,
+    resolvedAccount,
   } = useSelector((state) => state.earnings);
   // The unified spendable wallet (earnings + top-ups + VTU + withdrawals).
   const userWallet = useSelector((state) => state.wallet);
@@ -350,6 +353,30 @@ Thank you for your business!
       (b) => (b.code || b.bankCode) === code,
     )?.name || code;
 
+  // Advisory verification — resolve the real account name from the bank and
+  // prefill it. If it can't be verified, the merchant just types the name.
+  const handleResolveAccount = async () => {
+    if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
+      showErrorToast("Select a bank and enter a 10-digit account number");
+      return;
+    }
+    try {
+      const res = await dispatch(
+        resolveBankAccount({
+          bankCode: bankForm.bankCode,
+          accountNumber: bankForm.accountNumber,
+        }),
+      ).unwrap();
+      if (res?.resolved && res.accountName) {
+        setBankForm((f) => ({ ...f, accountName: res.accountName }));
+      } else {
+        showErrorToast("Couldn't verify automatically — please type the account name.");
+      }
+    } catch (err) {
+      showErrorToast(err?.message || "Couldn't verify automatically — please type the account name.");
+    }
+  };
+
   const handleSaveBank = async () => {
     if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
       showErrorToast("Select a bank and enter a 10-digit account number");
@@ -377,6 +404,7 @@ Thank you for your business!
   };
 
   const startEditingBank = () => {
+    dispatch(clearResolvedAccount());
     setBankForm({
       bankCode: bankAccount?.bankCode || "",
       accountNumber: bankAccount?.accountNumber || "",
@@ -1774,7 +1802,10 @@ Thank you for your business!
                   </label>
                   <select
                     value={bankForm.bankCode}
-                    onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })}
+                    onChange={(e) => {
+                      dispatch(clearResolvedAccount());
+                      setBankForm({ ...bankForm, bankCode: e.target.value });
+                    }}
                     disabled={banksLoading}
                     className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                   >
@@ -1800,25 +1831,51 @@ Thank you for your business!
                     inputMode="numeric"
                     maxLength={10}
                     value={bankForm.accountNumber}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      dispatch(clearResolvedAccount());
                       setBankForm({
                         ...bankForm,
                         accountNumber: e.target.value.replace(/\D/g, ""),
-                      })
-                    }
+                      });
+                    }}
                     placeholder="10-digit account number"
                     className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+                  <button
+                    type="button"
+                    onClick={handleResolveAccount}
+                    disabled={
+                      resolving ||
+                      !bankForm.bankCode ||
+                      bankForm.accountNumber.length !== 10
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    {resolving ? "Verifying…" : "Verify account"}
+                  </button>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-text dark:text-dark-text mb-1">
                     Account Name
+                    {resolvedAccount?.resolved &&
+                      bankForm.accountName &&
+                      resolvedAccount.accountName === bankForm.accountName && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          <CheckCircle className="w-3 h-3" />
+                          Verified
+                        </span>
+                      )}
                   </label>
                   <input
                     type="text"
                     value={bankForm.accountName}
                     onChange={(e) => setBankForm({ ...bankForm, accountName: e.target.value })}
-                    placeholder="Name on the account"
+                    placeholder="Verify above, or type the name on the account"
                     className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
                   />
                 </div>
