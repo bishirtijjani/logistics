@@ -335,6 +335,7 @@ model Rider {
 
   // Phase 7 — expiry tracking + supplementary documents for KYC Status screen.
   idDocExpiresAt         DateTime? /// Expiry on the uploaded ID doc (national-ID slips usually have one)
+  driverLicenceNumber    String? /// FRSC licence number as typed by the rider
   driverLicenceUrl       String?
   driverLicenceExpiresAt DateTime?
   vehicleRegUrl          String?

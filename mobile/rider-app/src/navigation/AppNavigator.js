@@ -410,7 +410,11 @@ export default function AppNavigator() {
           backgroundColor: tokens.bg.canvas,
         }}
       >
-        <ActivityIndicator color={tokens.brand.default} />
+        <ActivityIndicator
+          size="large"
+          color={tokens.brand.default}
+          style={{ transform: [{ scale: 1.6 }] }}
+        />
       </View>
     );
   }
@@ -494,7 +498,11 @@ export default function AppNavigator() {
           backgroundColor: tokens.bg.canvas,
         }}
       >
-        <ActivityIndicator color={tokens.brand.default} />
+        <ActivityIndicator
+          size="large"
+          color={tokens.brand.default}
+          style={{ transform: [{ scale: 1.6 }] }}
+        />
       </View>
     );
   }

@@ -20,11 +20,29 @@ const registerRider = async (userId, riderData) => {
   const existingRider = await prisma.rider.findUnique({ where: { userId } });
   if (existingRider) throw AppError.conflict('Already registered as a rider');
 
+  // The mobile app sends documents with American-spelled keys; the Rider
+  // columns use British spelling. Map them here. Expiry/DOB already arrive as
+  // Date objects (coerced by the validator). vehicleDocExpiresAt is the earliest
+  // of the vehicle-registration / insurance expiries — the sort key the
+  // DOC_EXPIRING_SOON cron uses, so we derive it rather than ask for it.
+  const vehicleExpiries = [
+    riderData.vehicleRegistrationExpiresAt,
+    riderData.insuranceExpiresAt,
+  ].filter(Boolean);
+  const vehicleDocExpiresAt = vehicleExpiries.length
+    ? new Date(Math.min(...vehicleExpiries.map((d) => new Date(d).getTime())))
+    : undefined;
+
   const rider = await prisma.$transaction(async (tx) => {
-    // Update user role to RIDER
+    // Update user role to RIDER, plus the personal details collected during
+    // onboarding (these live on User, not Rider).
     await tx.user.update({
       where: { id: userId },
-      data: { role: 'RIDER' },
+      data: {
+        role: 'RIDER',
+        ...(riderData.dateOfBirth && { dateOfBirth: riderData.dateOfBirth }),
+        ...(riderData.address && { address: riderData.address }),
+      },
     });
 
     const newRider = await tx.rider.create({
@@ -33,7 +51,28 @@ const registerRider = async (userId, riderData) => {
         vehicleType: riderData.vehicleType,
         plateNumber: riderData.plateNumber,
         vehicleColor: riderData.vehicleColor,
+
+        // Identity
         ninNumber: riderData.ninNumber,
+        idDocumentUrl: riderData.idDocumentUrl,
+        vehiclePhotoUrl: riderData.vehiclePhotoUrl,
+
+        // Driver's licence (American key -> British column)
+        driverLicenceNumber: riderData.driverLicenseNumber,
+        driverLicenceUrl: riderData.driverLicenseUrl,
+        driverLicenceExpiresAt: riderData.driverLicenseExpiresAt,
+
+        // Vehicle registration
+        vehicleRegUrl: riderData.vehicleRegistrationUrl,
+        vehicleRegExpiresAt: riderData.vehicleRegistrationExpiresAt,
+
+        // Insurance
+        insuranceDocUrl: riderData.insuranceCertificateUrl,
+        insuranceExpiresAt: riderData.insuranceExpiresAt,
+
+        // Derived sort key for the expiry-reminder cron
+        vehicleDocExpiresAt,
+
         status: 'PENDING_APPROVAL',
       },
     });

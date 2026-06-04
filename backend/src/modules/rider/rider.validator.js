@@ -4,11 +4,36 @@
 
 const { z } = require('zod');
 
+// Document URLs/dates are sent with the mobile app's field names (American
+// spelling); rider.service maps them onto the Rider columns (British spelling).
+// Expiry + DOB arrive as 'YYYY-MM-DD' strings from the app's date pickers, so
+// we coerce them to Date here.
 const riderRegistrationSchema = z.object({
   vehicleType: z.enum(['MOTORCYCLE', 'BICYCLE', 'CAR', 'VAN']),
   plateNumber: z.string().min(3).max(15),
   vehicleColor: z.string().max(30).optional(),
+
+  // Identity
   ninNumber: z.string().length(11).regex(/^\d{11}$/, 'NIN must be 11 digits').optional(),
+  idDocumentUrl: z.string().url().max(1024).optional(),
+  vehiclePhotoUrl: z.string().url().max(1024).optional(),
+
+  // Driver's licence
+  driverLicenseNumber: z.string().min(3).max(50).optional(),
+  driverLicenseUrl: z.string().url().max(1024).optional(),
+  driverLicenseExpiresAt: z.coerce.date().optional(),
+
+  // Vehicle registration
+  vehicleRegistrationUrl: z.string().url().max(1024).optional(),
+  vehicleRegistrationExpiresAt: z.coerce.date().optional(),
+
+  // Insurance
+  insuranceCertificateUrl: z.string().url().max(1024).optional(),
+  insuranceExpiresAt: z.coerce.date().optional(),
+
+  // Personal — persisted on the User record
+  dateOfBirth: z.coerce.date().optional(),
+  address: z.string().max(255).optional(),
 });
 
 const updateAvailabilitySchema = z.object({
