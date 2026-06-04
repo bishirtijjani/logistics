@@ -4,11 +4,20 @@
 
 const { z } = require('zod');
 
+// Money amount: positive, capped, and at most 2 decimals (kobo) — the ledger is
+// Decimal(15,2), so sub-kobo or absurd values must be rejected before they hit
+// it. The epsilon keeps legitimate kobo amounts from tripping float rounding.
+const amountField = z.coerce
+  .number()
+  .positive('Amount must be greater than 0')
+  .max(100_000_000, 'Amount exceeds the maximum allowed')
+  .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'Amount cannot have more than 2 decimal places');
+
 const transferSchema = z.object({
   recipientPhone: z
     .string()
     .regex(/^0[789][01]\d{8}$/, 'Invalid Nigerian phone number'),
-  amount: z.coerce.number().positive('Amount must be greater than 0'),
+  amount: amountField,
   description: z.string().max(200).optional(),
   pin: z.string().length(6),
 });
@@ -18,7 +27,7 @@ const withdrawSchema = z.object({
   bankName: z.string().min(1).max(80).optional(),
   accountNumber: z.string().length(10),
   accountName: z.string().min(1).max(120).optional(),
-  amount: z.coerce.number().positive('Amount must be greater than 0'),
+  amount: amountField,
   pin: z.string().length(6),
 });
 

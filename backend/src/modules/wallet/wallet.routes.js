@@ -4,7 +4,7 @@ const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
 const { pinLimiter } = require('../../middlewares/rate-limit.middleware');
-const { idempotency } = require('../../middlewares/idempotency.middleware');
+const { idempotency, requireIdempotencyKey } = require('../../middlewares/idempotency.middleware');
 const {
   transferSchema,
   withdrawSchema,
@@ -21,8 +21,8 @@ router.use(authenticate);
 
 router.get('/', walletController.getWallet);
 router.post('/retry-provisioning', walletController.retryProvisioning);
-router.post('/transfer', authorize('CUSTOMER', 'RIDER'), pinLimiter, idempotency, validate(transferSchema), walletController.transfer);
-router.post('/withdraw', authorize('CUSTOMER', 'RIDER'), pinLimiter, idempotency, validate(withdrawSchema), walletController.withdraw);
+router.post('/transfer', authorize('CUSTOMER', 'RIDER'), pinLimiter, requireIdempotencyKey, idempotency, validate(transferSchema), walletController.transfer);
+router.post('/withdraw', authorize('CUSTOMER', 'RIDER'), pinLimiter, requireIdempotencyKey, idempotency, validate(withdrawSchema), walletController.withdraw);
 router.get('/transactions', validate(transactionHistorySchema, 'query'), walletController.getTransactionHistory);
 
 // Bank account name lookup

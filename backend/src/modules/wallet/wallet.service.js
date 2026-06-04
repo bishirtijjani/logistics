@@ -56,7 +56,6 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
     if (senderWallet.isLocked) throw AppError.forbidden('Wallet is frozen');
 
     const senderBalance = Number(senderWallet.balance);
-    if (senderBalance < amount) throw AppError.insufficientBalance();
 
     const recipient = await tx.user.findUnique({
       where: { phone: recipientPhone },
@@ -65,10 +64,21 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
 
     if (!recipient || !recipient.wallet) throw AppError.notFound('Recipient not found', { code: 'RECIPIENT_NOT_FOUND' });
     if (recipient.id === senderId) throw AppError.badRequest('Cannot transfer to yourself', { code: 'TRANSFER_TO_SELF' });
+    // A frozen recipient must not receive inbound funds — the freeze is a fraud
+    // lever; silently crediting it would defeat the lockdown.
+    if (recipient.wallet.isLocked) throw AppError.forbidden('Recipient wallet is frozen', { code: 'RECIPIENT_WALLET_FROZEN' });
 
     const recipientBalance = Number(recipient.wallet.balance);
 
-    await tx.wallet.update({ where: { id: senderWallet.id }, data: { balance: { decrement: amount } } });
+    // Conditional debit: the WHERE is evaluated under the row lock the UPDATE
+    // takes, so concurrent debits serialize and the balance can never go negative.
+    // A read-then-decrement overdraws under READ COMMITTED (two requests both
+    // read the old balance, both pass the check, both decrement).
+    const debit = await tx.wallet.updateMany({
+      where: { id: senderWallet.id, isLocked: false, balance: { gte: amount } },
+      data: { balance: { decrement: amount } },
+    });
+    if (debit.count !== 1) throw AppError.insufficientBalance();
     await tx.wallet.update({ where: { id: recipient.wallet.id }, data: { balance: { increment: amount } } });
 
     await tx.transaction.create({
@@ -118,32 +128,35 @@ const transfer = async (senderId, { recipientPhone, amount, description }) => {
 
   logger.info('P2P transfer completed', { senderId, recipientPhone, amount, reference });
 
-  // Live wallet-balance nudges (silent — no Notification Center row each time).
-  const senderWallet = await prisma.wallet.findUnique({ where: { userId: senderId }, select: { balance: true } });
-  notifyService.balanceUpdated(senderId, { balance: Number(senderWallet.balance) });
-  notifyService.balanceUpdated(result.recipientId, { balance: Number((await prisma.wallet.findFirst({ where: { id: result.recipientWalletId } })).balance) });
-  notifyService.transferReceived(result.recipientId, {
-    amount,
-    senderName: 'A user',
-    reference,
-  });
+  // EVERYTHING below is post-commit. The money already moved, so a failure here
+  // must NEVER surface as a 5xx — that would make the idempotency layer release
+  // the key and a client retry would debit + credit a SECOND time. Wrap it all,
+  // log only, and always return the committed `result`.
+  try {
+    const senderWallet = await prisma.wallet.findUnique({ where: { userId: senderId }, select: { balance: true } });
+    if (senderWallet) notifyService.balanceUpdated(senderId, { balance: Number(senderWallet.balance) });
+    // Defensive read — the wallet could have been deleted concurrently; never
+    // dereference .balance on a possibly-null row.
+    const recipientWallet = await prisma.wallet.findUnique({ where: { id: result.recipientWalletId }, select: { balance: true } });
+    if (recipientWallet) notifyService.balanceUpdated(result.recipientId, { balance: Number(recipientWallet.balance) });
+    notifyService.transferReceived(result.recipientId, { amount, senderName: 'A user', reference });
 
-  // Persisted notifications: sender + recipient each get a row + push.
-  // Sender-side fire-and-forget — failure of a notification must not roll back
-  // the transfer (already committed above).
-  notifyService.onWalletEvent(senderId, {
-    kind: 'TRANSFER_SENT',
-    amount,
-    transactionId: result.debitTransaction?.reference || reference,
-    route: '/wallet',
-  }).catch((err) => logger.warn('TRANSFER_SENT notification failed', { error: err.message }));
-  notifyService.onWalletEvent(result.recipientId, {
-    kind: 'TRANSFER_RECEIVED',
-    amount,
-    transactionId: result.creditTransaction?.reference || reference,
-    senderName: 'A user',
-    route: '/wallet',
-  }).catch((err) => logger.warn('TRANSFER_RECEIVED notification failed', { error: err.message }));
+    notifyService.onWalletEvent(senderId, {
+      kind: 'TRANSFER_SENT',
+      amount,
+      transactionId: `${reference}-DEBIT`,
+      route: '/wallet',
+    }).catch((err) => logger.warn('TRANSFER_SENT notification failed', { error: err.message }));
+    notifyService.onWalletEvent(result.recipientId, {
+      kind: 'TRANSFER_RECEIVED',
+      amount,
+      transactionId: result.creditTransaction?.reference || `${reference}-CREDIT`,
+      senderName: 'A user',
+      route: '/wallet',
+    }).catch((err) => logger.warn('TRANSFER_RECEIVED notification failed', { error: err.message }));
+  } catch (err) {
+    logger.warn('P2P post-commit notification failed (transfer already committed)', { reference, error: err.message });
+  }
 
   return result;
 };
@@ -160,9 +173,14 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
     if (wallet.isLocked) throw AppError.forbidden('Wallet is frozen');
 
     const balance = Number(wallet.balance);
-    if (balance < amount) throw AppError.insufficientBalance();
-
-    await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { decrement: amount } } });
+    // Conditional debit so concurrent withdrawals can't overdraw (the WHERE runs
+    // under the UPDATE's row lock; a read-then-decrement overdraws under READ
+    // COMMITTED and would dispatch a real payout for money the user never had).
+    const debit = await tx.wallet.updateMany({
+      where: { id: wallet.id, isLocked: false, balance: { gte: amount } },
+      data: { balance: { decrement: amount } },
+    });
+    if (debit.count !== 1) throw AppError.insufficientBalance();
 
     await tx.transaction.create({
       data: {
@@ -179,14 +197,54 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
       },
     });
 
-    return { transactionRef: reference, amount, newBalance: balance - amount, status: 'PROCESSING' };
+    return { walletId: wallet.id, transactionRef: reference, amount, newBalance: balance - amount, status: 'PROCESSING' };
   });
 
-  await paymentQueue.add(
-    PAYMENT_JOBS.PROCESS_WITHDRAWAL,
-    { transactionId: reference, bankCode, accountNumber, accountName, amount, userId },
-    DEFAULT_JOB_OPTIONS,
-  );
+  // The debit has committed. If we can't enqueue the payout job, the funds would
+  // be stranded in PROCESSING forever (no payout, no refund), so compensate by
+  // reversing the debit before surfacing the error.
+  try {
+    await paymentQueue.add(
+      PAYMENT_JOBS.PROCESS_WITHDRAWAL,
+      { transactionId: reference, bankCode, accountNumber, accountName, amount, userId },
+      DEFAULT_JOB_OPTIONS,
+    );
+  } catch (enqueueErr) {
+    // CAUTION: paymentQueue.add can reject AFTER the job was actually persisted
+    // (lost ack), in which case the worker will dispatch the payout. So only
+    // reverse if the row is STILL PROCESSING (the worker claims PROCESSING→SENT
+    // before paying) — winning that compare-and-set means the cash has NOT and
+    // will NOT go out. If we lose it, the worker owns the outcome; do nothing.
+    logger.error('Failed to enqueue withdrawal payout — reversing if not yet dispatched', { reference, error: enqueueErr.message });
+    const reversed = await prisma.$transaction(async (tx) => {
+      const claim = await tx.transaction.updateMany({
+        where: { reference, status: 'PROCESSING' },
+        data: { status: 'FAILED' },
+      });
+      if (claim.count !== 1) return false;
+      await tx.wallet.update({ where: { id: result.walletId }, data: { balance: { increment: amount } } });
+      await tx.transaction.create({
+        data: {
+          reference: `REF-${reference}`,
+          type: 'REFUND',
+          status: 'COMPLETED',
+          amount,
+          description: 'Withdrawal reversed — could not queue payout',
+          creditWalletId: result.walletId,
+          provider: 'KATPAY',
+        },
+      });
+      return true;
+    }).catch((e) => {
+      // REF row already exists (worker refunded) → P2002 rolls back; worker owns it.
+      logger.warn('Withdrawal reversal skipped — already handled', { reference, error: e.message });
+      return false;
+    });
+    if (reversed) {
+      throw AppError.internal('Could not start withdrawal — your balance was not affected. Please try again.');
+    }
+    throw AppError.internal('Your withdrawal is processing — please check your wallet shortly.');
+  }
 
   logger.info('Withdrawal initiated', { userId, amount, reference });
 

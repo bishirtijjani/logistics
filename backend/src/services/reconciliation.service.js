@@ -135,6 +135,24 @@ const runReconciliation = async ({ threshold } = {}) => {
     processingSince: r.processedAt,
   }));
 
+  // Same hazard on the user/rider side: a Transaction(type=WITHDRAWAL) left on
+  // PROCESSING means the payout job never reached a terminal state (its funds are
+  // already debited). Parity also flags these as drift, but label them so ops can
+  // act directly rather than chasing a generic mismatch.
+  const stuckUserRows = await prisma.transaction.findMany({
+    where: { type: 'WITHDRAWAL', status: { in: ['PROCESSING', 'SENT'] }, createdAt: { lt: stuckCutoff } },
+    select: { id: true, reference: true, amount: true, status: true, providerRef: true, createdAt: true },
+    take: 100,
+  });
+  const stuckUserWithdrawals = stuckUserRows.map((r) => ({
+    id: r.id,
+    reference: r.reference,
+    amount: round2(r.amount),
+    status: r.status,
+    providerRef: r.providerRef,
+    processingSince: r.createdAt,
+  }));
+
   const report = {
     startedAt,
     finishedAt: new Date(),
@@ -166,9 +184,15 @@ const runReconciliation = async ({ threshold } = {}) => {
       stuck: stuckWithdrawals,
       ok: stuckWithdrawals.length === 0,
     },
+    userWithdrawals: {
+      stuckAfterHours,
+      stuckCount: stuckUserWithdrawals.length,
+      stuck: stuckUserWithdrawals,
+      ok: stuckUserWithdrawals.length === 0,
+    },
   };
 
-  report.ok = report.escrow.ok && report.walletParity.ok && report.withdrawals.ok;
+  report.ok = report.escrow.ok && report.walletParity.ok && report.withdrawals.ok && report.userWithdrawals.ok;
 
   // Make zero-state visible. A reconciliation run with no wallets and no
   // transactions reports `ok: true` but tells us nothing useful — it could
@@ -208,6 +232,7 @@ const persistReport = async (report) => {
       escrow: report.escrow,
       mismatches: report.walletParity.mismatches,
       stuckWithdrawals: report.withdrawals?.stuck,
+      stuckUserWithdrawals: report.userWithdrawals?.stuck,
     });
   }
 };

@@ -83,7 +83,7 @@ const initiatePayout = async ({ amount, bank_code, account_number, account_name,
         description: description || 'Withdrawal',
         reference,
       },
-      { headers: authHeaders() }
+      { headers: authHeaders(), timeout: 30000 }
     );
 
     const data = response.data?.data || response.data;
@@ -92,8 +92,18 @@ const initiatePayout = async ({ amount, bank_code, account_number, account_name,
 
     return data;
   } catch (error) {
-    logger.error('KatPay initiatePayout failed', { error: error.response?.data || error.message, reference });
-    throw AppError.internal('Payout failed');
+    const status = error.response?.status;
+    // "definitive" = the provider actively rejected the request (a 4xx other than
+    // 408/429), so the money definitely did NOT leave and a refund is safe.
+    // Everything else (timeout, network drop, 5xx, 408/429) is AMBIGUOUS — the
+    // payout MAY have settled, so callers must retry, never refund.
+    const definitive = Boolean(status && status >= 400 && status < 500 && status !== 408 && status !== 429);
+    logger.error('KatPay initiatePayout failed', { error: error.response?.data || error.message, reference, status, definitive });
+    const err = AppError.internal('Payout failed');
+    err.definitive = definitive;
+    err.providerStatus = status || null;
+    err.providerMessage = error.response?.data?.message || error.message;
+    throw err;
   }
 };
 

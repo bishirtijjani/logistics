@@ -37,11 +37,15 @@ const sendReplay = (res, snapshot) => {
  *                     through when the dedup store itself is unhealthy.
  */
 const idempotency = async (req, res, next) => {
-  const key = req.headers['idempotency-key'];
-  if (!key) return next();
+  const rawKey = req.headers['idempotency-key'];
+  if (!rawKey) return next();
 
   const userId = req.user?.id || 'anon';
   const route = `${req.method}:${req.path}`;
+  // Scope the dedup identity to the authenticated principal so one user's
+  // client-supplied key can never collide with another's (replaying their
+  // cached response or blocking their request). The stored PK is this composite.
+  const key = `${userId}:${rawKey}`;
   const bodyHash = crypto
     .createHash('sha256')
     .update(JSON.stringify(req.body || {}))
@@ -67,6 +71,14 @@ const idempotency = async (req, res, next) => {
       } catch (_) {
         // Another process may have deleted it; safe to continue.
       }
+    } else if (existing.requestHash && existing.requestHash !== bodyHash) {
+      // Same key, different payload → the client reused a key for a NEW request.
+      // Replaying the old result would silently return the wrong outcome, so
+      // reject instead (the stored hash was previously dead weight).
+      return res.status(422).json({
+        success: false,
+        message: 'Idempotency-Key was already used for a different request.',
+      });
     } else if (existing.responseSnapshot) {
       return sendReplay(res, existing.responseSnapshot);
     } else {
@@ -137,25 +149,25 @@ const idempotency = async (req, res, next) => {
   }
 
   // ── 3. Intercept res.json to capture the eventual response ──────────────
-  // 2xx/4xx responses are cached so retries replay them. 5xx responses
-  // indicate a transient failure where we don't know whether the side effect
-  // happened — but for our money-moving routes the side effect either ran
-  // inside a Prisma transaction (atomic) or didn't run at all, so the safer
-  // behavior is to release the reservation and let the client retry with the
-  // same key.
+  // ONLY successful responses (status < 400) are cached for replay. Any error
+  // releases the reservation so the client can retry with the SAME key — a 4xx
+  // here (e.g. a wrong/locked PIN, which is checked BEFORE any ledger write)
+  // means no side effect happened, so caching it would block the user from ever
+  // completing that transfer/withdrawal under the same key. 5xx is released for
+  // the same reason (the side effect was atomic — it ran fully or not at all).
   //
   // Capture failures here MUST NOT block the user response — log and continue.
   const originalJson = res.json.bind(res);
   res.json = async (body) => {
     const status = res.statusCode;
     try {
-      if (status >= 500) {
-        await prisma.idempotencyKey.delete({ where: { key } });
-      } else {
+      if (status < 400) {
         await prisma.idempotencyKey.update({
           where: { key },
           data: { responseSnapshot: { status, body } },
         });
+      } else {
+        await prisma.idempotencyKey.delete({ where: { key } });
       }
     } catch (err) {
       logger.warn('Idempotency snapshot capture failed', { key, status, error: err.message });
@@ -166,4 +178,20 @@ const idempotency = async (req, res, next) => {
   return next();
 };
 
-module.exports = { idempotency };
+/**
+ * Guard for money-moving routes that MUST be idempotent: reject a missing
+ * Idempotency-Key so a client retry can never silently double-apply (the
+ * `idempotency` middleware itself is opt-in and passes through when no key is
+ * present). Place BEFORE `idempotency` in the route chain.
+ */
+const requireIdempotencyKey = (req, res, next) => {
+  if (!req.headers['idempotency-key']) {
+    return res.status(400).json({
+      success: false,
+      message: 'Idempotency-Key header is required for this request.',
+    });
+  }
+  return next();
+};
+
+module.exports = { idempotency, requireIdempotencyKey };

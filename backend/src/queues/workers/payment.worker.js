@@ -176,7 +176,74 @@ const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metada
 };
 
 /**
+ * Refund a withdrawal whose payout was DEFINITIVELY rejected. Idempotent +
+ * race-safe: the REF-<id> existence check + the PROCESSING→FAILED compare-and-set
+ * ensure the wallet is credited back exactly once even under duplicate jobs.
+ */
+const refundFailedWithdrawal = async ({ transactionId, amount, userId, debitWalletId, reason }) => {
+  const refRef = `REF-${transactionId}`;
+  const already = await prisma.transaction.findUnique({ where: { reference: refRef } });
+  if (already) {
+    logger.info('Withdrawal already refunded — skipping', { transactionId });
+    return;
+  }
+
+  const refunded = await prisma.$transaction(async (tx) => {
+    // Only the caller that flips PROCESSING/SENT→FAILED performs the credit.
+    // (PROCESSING = never dispatched; SENT = dispatched-but-definitively-rejected,
+    // i.e. the money did not leave, so a refund is still safe.)
+    const claim = await tx.transaction.updateMany({
+      where: { reference: transactionId, status: { in: ['PROCESSING', 'SENT'] } },
+      data: { status: 'FAILED' },
+    });
+    if (claim.count !== 1) return false;
+
+    const wallet = debitWalletId ? await tx.wallet.findUnique({ where: { id: debitWalletId } }) : null;
+    if (!wallet) return false;
+    const currentBalance = Number(wallet.balance);
+    await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: amount } } });
+    await tx.transaction.create({
+      data: {
+        reference: refRef,
+        type: 'REFUND',
+        status: 'COMPLETED',
+        amount,
+        description: `Withdrawal refund — payout rejected${reason ? ` (${reason})` : ''}`,
+        creditWalletId: wallet.id,
+        provider: 'KATPAY',
+        balanceBefore: currentBalance,
+        balanceAfter: currentBalance + amount,
+      },
+    });
+    return true;
+  });
+
+  if (refunded && userId) {
+    const refundedWallet = await prisma.wallet.findUnique({ where: { userId }, select: { balance: true } });
+    if (refundedWallet) notifyService.balanceUpdated(userId, { balance: Number(refundedWallet.balance) });
+    notifyService.onWalletEvent(userId, {
+      kind: 'REFUND',
+      amount,
+      transactionId: `REF-${transactionId}`,
+      route: '/wallet',
+      description: 'Your withdrawal failed — funds returned to your wallet.',
+    }).catch((err) => logger.warn('Withdrawal-refund notification failed', { error: err.message }));
+  }
+};
+
+/**
  * Process withdrawal — call KatPay payout API.
+ *
+ * Money-safety rules (a payout moves real cash and can't be un-sent):
+ *   - Terminal states (COMPLETED/FAILED/REVERSED) never re-run.
+ *   - We CLAIM the row (PROCESSING→SENT) BEFORE calling the payout, so a duplicate
+ *     job, a retry, or the enqueue-failure compensation can never dispatch the
+ *     same payout twice. A row already SENT is treated as "dispatched, outcome
+ *     unknown" — we NEVER re-pay it; reconciliation surfaces it.
+ *   - Refund ONLY on a DEFINITIVE provider rejection (the money did not leave).
+ *   - On an AMBIGUOUS error (timeout/network/5xx) the payout may have settled —
+ *     do NOT refund; leave it SENT and re-throw to retry. Retries see SENT and
+ *     return without re-paying; if they exhaust, reconciliation flags it.
  */
 const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accountName, amount, userId }) => {
   const transaction = await prisma.transaction.findUnique({ where: { reference: transactionId } });
@@ -186,13 +253,34 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
     return;
   }
 
-  if (transaction.status === 'COMPLETED') {
-    logger.info('Withdrawal already completed', { transactionId });
+  if (['COMPLETED', 'FAILED', 'REVERSED'].includes(transaction.status)) {
+    logger.info('Withdrawal already settled — skipping', { transactionId, status: transaction.status });
     return;
   }
 
+  if (transaction.status === 'SENT') {
+    // A prior attempt already dispatched this payout and we can't confirm its
+    // outcome (KatPay has no payout-status endpoint). NEVER re-pay — leave it for
+    // the reconciliation scan / manual resolution.
+    logger.warn('Withdrawal already dispatched (SENT) — not re-paying; needs reconciliation', { transactionId });
+    return;
+  }
+
+  // Claim the dispatch atomically. Only the worker that flips PROCESSING→SENT may
+  // call the payout; a concurrent job or the enqueue-compensation gets count 0
+  // and bows out, so the cash is sent at most once.
+  const claim = await prisma.transaction.updateMany({
+    where: { reference: transactionId, status: 'PROCESSING' },
+    data: { status: 'SENT' },
+  });
+  if (claim.count !== 1) {
+    logger.info('Withdrawal already claimed elsewhere — skipping', { transactionId });
+    return;
+  }
+
+  let payout;
   try {
-    const payout = await katpayService.initiatePayout({
+    payout = await katpayService.initiatePayout({
       amount,
       bank_code: bankCode,
       account_number: accountNumber,
@@ -200,20 +288,30 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
       reference: transactionId,
       description: 'Wallet withdrawal',
     });
+  } catch (error) {
+    if (!error.definitive) {
+      // Ambiguous — the payout may have gone out. Leave it SENT and retry; the
+      // retry will see SENT and NOT re-pay. Never refund here.
+      logger.warn('Withdrawal payout ambiguous — left SENT for retry/reconcile', {
+        transactionId, providerStatus: error.providerStatus,
+      });
+      throw error; // BullMQ retries
+    }
+    logger.error('Withdrawal payout rejected — refunding', { transactionId, reason: error.providerMessage });
+    await refundFailedWithdrawal({ transactionId, amount, userId, debitWalletId: transaction.debitWalletId, reason: error.providerMessage });
+    return; // terminal — do NOT re-throw (no retry, no re-pay)
+  }
 
-    await prisma.transaction.update({
-      where: { reference: transactionId },
-      data: {
-        status: 'COMPLETED',
-        providerRef: payout?.reference || payout?.id || transactionId,
-      },
-    });
+  // Success → SENT→COMPLETED (compare-and-set).
+  const completed = await prisma.transaction.updateMany({
+    where: { reference: transactionId, status: 'SENT' },
+    data: { status: 'COMPLETED', providerRef: payout?.reference || payout?.id || transactionId },
+  });
 
+  if (completed.count === 1) {
     logger.info('Withdrawal payout completed', { transactionId, amount });
-
-    // Notify user their withdrawal completed — live balance + Notification Center row + push.
     if (userId) {
-      const freshWallet = await prisma.wallet.findUnique({ where: { userId: userId }, select: { balance: true } });
+      const freshWallet = await prisma.wallet.findUnique({ where: { userId }, select: { balance: true } });
       if (freshWallet) notifyService.balanceUpdated(userId, { balance: Number(freshWallet.balance) });
       notifyService.onWalletEvent(userId, {
         kind: 'WITHDRAWAL',
@@ -222,52 +320,6 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
         route: '/wallet',
       }).catch((err) => logger.warn('WITHDRAWAL notification failed', { error: err.message }));
     }
-  } catch (error) {
-    logger.error('Withdrawal payout failed', { transactionId, error: error.message });
-
-    // Refund wallet on payout failure
-    const wallet = await prisma.wallet.findUnique({ where: { id: transaction.debitWalletId } });
-    if (wallet) {
-      const currentBalance = Number(wallet.balance);
-      await prisma.$transaction([
-        prisma.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { increment: amount } },
-        }),
-        prisma.transaction.create({
-          data: {
-            reference: `REF-${transactionId}`,
-            type: 'REFUND',
-            status: 'COMPLETED',
-            amount,
-            description: 'Withdrawal refund — payout failed',
-            creditWalletId: wallet.id,
-            provider: 'KATPAY',
-            balanceBefore: currentBalance,
-            balanceAfter: currentBalance + amount,
-          },
-        }),
-        prisma.transaction.update({
-          where: { reference: transactionId },
-          data: { status: 'FAILED' },
-        }),
-      ]);
-
-      // Notify user their money was refunded — live nudge + persisted row + push.
-      if (userId) {
-        const refundedWallet = await prisma.wallet.findUnique({ where: { userId: userId }, select: { balance: true } });
-        if (refundedWallet) notifyService.balanceUpdated(userId, { balance: Number(refundedWallet.balance) });
-        notifyService.onWalletEvent(userId, {
-          kind: 'REFUND',
-          amount,
-          transactionId: `REF-${transactionId}`,
-          route: '/wallet',
-          description: 'Your withdrawal failed — funds returned to your wallet.',
-        }).catch((err) => logger.warn('Withdrawal-refund notification failed', { error: err.message }));
-      }
-    }
-
-    throw error; // Re-throw so BullMQ retries
   }
 };
 
