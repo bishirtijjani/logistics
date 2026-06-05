@@ -34,6 +34,12 @@ const SLUGS = {
     description:
       "How iPrime complies with the NDPA, CBN, FCCPA, and NIPOST rules that apply to a Nigerian wallet and delivery platform.",
   },
+  "account-deletion": {
+    file: "account-deletion.md",
+    title: "Delete your account",
+    description:
+      "How to delete your iPrime account, and what data is removed or retained when you do.",
+  },
 };
 
 export const dynamicParams = false;
