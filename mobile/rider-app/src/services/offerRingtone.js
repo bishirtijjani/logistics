@@ -52,7 +52,10 @@ export async function startOfferAlert() {
   fireHapticBurst();
   _hapticTimer = setInterval(fireHapticBurst, HAPTIC_INTERVAL_MS);
 
-  if (!OFFER_SOUND) return;
+  // expo-av audio playback is native-only here. On web we stay haptics/visual-
+  // only (web has no haptics either, so the on-screen offer card IS the alert) —
+  // this also avoids browser autoplay restrictions on un-gestured audio.
+  if (!OFFER_SOUND || Platform.OS === "web") return;
 
   try {
     await ensureAudioMode();

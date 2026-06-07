@@ -1,13 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker as LeafletMarker, useMap as useLeafletMap } from 'react-leaflet'
-import L from 'leaflet'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { MapContainer, TileLayer, useMap as useLeafletMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   APIProvider,
   Map as GoogleMap,
-  Marker as GoogleMarker,
   useMap as useGoogleMap,
-  useApiIsLoaded,
 } from '@vis.gl/react-google-maps'
 import { Search, MapPin, Loader2 } from 'lucide-react'
 import api from '../lib/api'
@@ -22,21 +19,10 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
 const PIN_COLOR = '#2563EB'
 
-// Shared teardrop pin path, reused by both the Leaflet divIcon and the Google
-// marker icon so the pin looks identical regardless of which engine renders.
+// Shared teardrop pin path, reused by the fixed centre pin on both engines so
+// it looks identical regardless of which engine renders the basemap.
 const PIN_PATH =
   'M12 2C7.589 2 4 5.589 4 9.995C4 14.59 8.6 19.55 11.18 22.04C11.62 22.46 12.38 22.46 12.82 22.04C15.4 19.55 20 14.59 20 9.995C20 5.589 16.411 2 12 2ZM12 12.5C10.62 12.5 9.5 11.38 9.5 10C9.5 8.62 10.62 7.5 12 7.5C13.38 7.5 14.5 8.62 14.5 10C14.5 11.38 13.38 12.5 12 12.5Z'
-
-const PIN_ICON = L.divIcon({
-  className: '',
-  html: `<div style="transform:translate(-50%,-100%);color:${PIN_COLOR};filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="${PIN_PATH}"/>
-    </svg>
-  </div>`,
-  iconSize: [34, 34],
-  iconAnchor: [17, 32],
-})
 
 // Esri's free World Street Map — a different street dataset than OSM, offered
 // as a basemap option since OSM is sparse for Katsina. Tile path is
@@ -44,6 +30,52 @@ const PIN_ICON = L.divIcon({
 const ESRI_ATTRIBUTION = 'Tiles © Esri'
 const esriTileUrl = (coord, zoom) =>
   `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${zoom}/${coord.y}/${coord.x}`
+
+/* ------------------------------------------------------------------ */
+/* Fixed centre pin (reticle)                                          */
+/* ------------------------------------------------------------------ */
+
+// A pin locked to the centre of the map viewport while the map pans underneath
+// it (the Uber/Bolt "set location on map" pattern, and the one the customer app
+// already uses). The selected point is always whatever sits under the centre,
+// so the pin can never scroll off-screen — which the old draggable marker did
+// the moment you panned the map.
+function CenterPin({ color, lifted }) {
+  return (
+    <>
+      {/* Teardrop — its tip rests on the exact centre point. */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 z-[450]"
+        style={{
+          transform: `translate(-50%, calc(-100% + 3px))${lifted ? ' translateY(-6px)' : ''}`,
+          transition: 'transform 150ms ease-out',
+        }}
+      >
+        <svg
+          width="38"
+          height="38"
+          viewBox="0 0 24 24"
+          fill={color}
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.4))' }}
+        >
+          <path d={PIN_PATH} />
+        </svg>
+      </div>
+      {/* Ground dot marking the precise centre coordinate under the tip. */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 z-[449]"
+        style={{
+          transform: 'translate(-50%, -50%)',
+          width: 6,
+          height: 6,
+          borderRadius: 9999,
+          background: 'rgba(0,0,0,0.35)',
+        }}
+      />
+    </>
+  )
+}
 
 /* ------------------------------------------------------------------ */
 /* Google engine (preferred when VITE_GOOGLE_MAPS_API_KEY is set)      */
@@ -80,34 +112,9 @@ function BasemapSwitcher({ value, onChange }) {
   )
 }
 
-// Draggable branded pin for the Google engine. Builds the icon only once the
-// Maps script has loaded so google.maps.Size/Point exist.
-function PinMarker({ position, onDragEnd }) {
-  const apiLoaded = useApiIsLoaded()
-  const icon = useMemo(() => {
-    if (!apiLoaded || !window.google) return undefined
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="${PIN_COLOR}"><path d="${PIN_PATH}"/></svg>`
-    return {
-      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
-      scaledSize: new window.google.maps.Size(34, 34),
-      anchor: new window.google.maps.Point(17, 32),
-    }
-  }, [apiLoaded])
-  return (
-    <GoogleMarker
-      position={position}
-      draggable
-      icon={icon}
-      onDragEnd={(e) => {
-        if (e.latLng) onDragEnd(e.latLng.lat(), e.latLng.lng())
-      }}
-    />
-  )
-}
-
-// Registers the custom Esri map type, applies the active basemap, and recenters
-// when the pinned location changes from outside (e.g. autocomplete select).
-function MapController({ lat, lng, hasPin, mapType }) {
+// Registers the custom Esri map type once and applies the active basemap
+// whenever it changes. Renders nothing.
+function MapBasemap({ mapType }) {
   const map = useGoogleMap()
 
   useEffect(() => {
@@ -128,16 +135,45 @@ function MapController({ lat, lng, hasPin, mapType }) {
     if (map) map.setMapTypeId(mapType)
   }, [map, mapType])
 
+  return null
+}
+
+// Slides the map to an externally selected point (autocomplete) and reports the
+// map centre back whenever the *user* finishes moving the map. A short window
+// after any programmatic move (and after mount) is ignored so we never
+// reverse-geocode a centre the user didn't choose.
+function GoogleCenterController({ center, recenterKey, onUserCenter }) {
+  const map = useGoogleMap()
+  const programmaticUntil = useRef(0)
+
+  // Arm an initial ignore window so the map's first settle (tile loading,
+  // invalidateSize, the autocomplete recenter) isn't mistaken for a user move.
   useEffect(() => {
-    if (!map || !hasPin) return
-    map.panTo({ lat, lng })
+    programmaticUntil.current = Date.now() + 1200
+  }, [])
+
+  useEffect(() => {
+    if (!map || recenterKey === 0) return
+    programmaticUntil.current = Date.now() + 800
+    map.panTo({ lat: center.lat, lng: center.lng })
     if ((map.getZoom() || 0) < 16) map.setZoom(16)
-  }, [map, lat, lng, hasPin])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, recenterKey])
+
+  useEffect(() => {
+    if (!map || !window.google) return
+    const listener = map.addListener('idle', () => {
+      if (Date.now() < programmaticUntil.current) return
+      const c = map.getCenter()
+      if (c) onUserCenter(c.lat(), c.lng())
+    })
+    return () => listener.remove()
+  }, [map, onUserCenter])
 
   return null
 }
 
-function GoogleCanvas({ lat, lng, hasPin, center, onPinDrag }) {
+function GoogleCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter }) {
   const [mapType, setMapType] = useState('roadmap')
   return (
     <div className="relative h-full w-full">
@@ -149,12 +185,14 @@ function GoogleCanvas({ lat, lng, hasPin, center, onPinDrag }) {
           mapTypeControl={false}
           streetViewControl={false}
           fullscreenControl={false}
+          clickableIcons={false}
           style={{ height: '100%', width: '100%' }}
         >
-          {hasPin && <PinMarker position={{ lat, lng }} onDragEnd={onPinDrag} />}
-          <MapController lat={lat} lng={lng} hasPin={hasPin} mapType={mapType} />
+          <MapBasemap mapType={mapType} />
+          <GoogleCenterController center={center} recenterKey={recenterKey} onUserCenter={onUserCenter} />
         </GoogleMap>
       </APIProvider>
+      <CenterPin color={PIN_COLOR} lifted={geocoding} />
       <BasemapSwitcher value={mapType} onChange={setMapType} />
       {mapType === 'esri' && (
         <span className="absolute bottom-0 left-0 z-[400] bg-white/80 dark:bg-black/60 px-1 text-[10px] text-text dark:text-dark-text">
@@ -169,13 +207,35 @@ function GoogleCanvas({ lat, lng, hasPin, center, onPinDrag }) {
 /* Leaflet engine (fallback when no browser Maps key is configured)    */
 /* ------------------------------------------------------------------ */
 
-function Recenter({ lat, lng }) {
+// Leaflet counterpart of GoogleCenterController: recenter on external select,
+// report the centre on user-driven moves, ignore programmatic/settle moves.
+function LeafletCenterController({ center, recenterKey, onUserCenter }) {
   const map = useLeafletMap()
+  const programmaticUntil = useRef(0)
+
+  // Arm an initial ignore window so the map's first settle (tile loading,
+  // invalidateSize, the autocomplete recenter) isn't mistaken for a user move.
   useEffect(() => {
-    if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
-      map.setView([lat, lng], Math.max(map.getZoom(), 15), { animate: true })
+    programmaticUntil.current = Date.now() + 1200
+  }, [])
+
+  useEffect(() => {
+    if (recenterKey === 0) return
+    programmaticUntil.current = Date.now() + 800
+    map.setView([center.lat, center.lng], Math.max(map.getZoom(), 16), { animate: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterKey])
+
+  useEffect(() => {
+    const handler = () => {
+      if (Date.now() < programmaticUntil.current) return
+      const c = map.getCenter()
+      onUserCenter(c.lat, c.lng)
     }
-  }, [lat, lng, map])
+    map.on('moveend', handler)
+    return () => map.off('moveend', handler)
+  }, [map, onUserCenter])
+
   return null
 }
 
@@ -203,41 +263,27 @@ function MapAutoSize() {
   return null
 }
 
-function LeafletCanvas({ lat, lng, hasPin, center, onPinDrag }) {
-  const markerRef = useRef(null)
+function LeafletCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter }) {
   return (
-    <MapContainer
-      center={[center.lat, center.lng]}
-      zoom={hasPin ? 16 : 13}
-      style={{ height: '100%', width: '100%' }}
-      scrollWheelZoom
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        subdomains="abcd"
-        maxZoom={20}
-        detectRetina
-      />
-      <MapAutoSize />
-      {hasPin && (
-        <LeafletMarker
-          ref={markerRef}
-          position={[lat, lng]}
-          icon={PIN_ICON}
-          draggable
-          eventHandlers={{
-            dragend: () => {
-              const m = markerRef.current
-              if (!m) return
-              const { lat: newLat, lng: newLng } = m.getLatLng()
-              onPinDrag(newLat, newLng)
-            },
-          }}
+    <div className="relative h-full w-full">
+      <MapContainer
+        center={[center.lat, center.lng]}
+        zoom={hasPin ? 16 : 13}
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          subdomains="abcd"
+          maxZoom={20}
+          detectRetina
         />
-      )}
-      <Recenter lat={lat} lng={lng} />
-    </MapContainer>
+        <MapAutoSize />
+        <LeafletCenterController center={center} recenterKey={recenterKey} onUserCenter={onUserCenter} />
+      </MapContainer>
+      <CenterPin color={PIN_COLOR} lifted={geocoding} />
+    </div>
   )
 }
 
@@ -253,6 +299,11 @@ function LeafletCanvas({ lat, lng, hasPin, center, onPinDrag }) {
  * browser key is configured (richest Katsina detail) and falls back to
  * OpenStreetMap/CARTO tiles otherwise.
  *
+ * Interaction: a pin is fixed at the centre of the map and the map pans
+ * underneath it. Whatever sits under the centre when you stop moving becomes
+ * the selected location; picking a search result slides the map so the result
+ * lands under the pin.
+ *
  * value: { address: string, lat: number, lng: number }
  * onChange: ({ address, lat, lng }) => void
  */
@@ -265,6 +316,10 @@ export default function LocationPicker({ value, onChange }) {
   const [predictions, setPredictions] = useState([])
   const [searching, setSearching] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
+  // Bumped only on an external selection (autocomplete) to ask the map to slide
+  // to the new point. The user's own panning never bumps it, so the map and the
+  // user never fight over the centre.
+  const [recenterKey, setRecenterKey] = useState(0)
   const sessionRef = useRef(`${Date.now()}-${Math.random()}`)
   const searchTimeout = useRef(null)
   const geocodeTimeout = useRef(null)
@@ -274,7 +329,8 @@ export default function LocationPicker({ value, onChange }) {
     if (geocodeTimeout.current) clearTimeout(geocodeTimeout.current)
   }, [])
 
-  const reverseGeocode = useCallback((newLat, newLng) => {
+  // Reverse-geocode the map centre once the user stops moving the map.
+  const handleCenterChange = useCallback((newLat, newLng) => {
     if (geocodeTimeout.current) clearTimeout(geocodeTimeout.current)
     setGeocoding(true)
     // Fallback string is >= 5 chars so backend validation (address.min(5))
@@ -334,6 +390,8 @@ export default function LocationPicker({ value, onChange }) {
           lng: payload.lng,
           address: payload.formattedAddress,
         })
+        // Slide the map so the result lands under the fixed centre pin.
+        setRecenterKey((k) => k + 1)
       }
     } catch {
       // ignore
@@ -383,9 +441,9 @@ export default function LocationPicker({ value, onChange }) {
 
       <div className="rounded-lg overflow-hidden border border-surface-muted dark:border-dark-surface-muted" style={{ height: 280 }}>
         {MAPS_KEY ? (
-          <GoogleCanvas lat={lat} lng={lng} hasPin={hasPin} center={center} onPinDrag={reverseGeocode} />
+          <GoogleCanvas center={center} recenterKey={recenterKey} hasPin={hasPin} geocoding={geocoding} onUserCenter={handleCenterChange} />
         ) : (
-          <LeafletCanvas lat={lat} lng={lng} hasPin={hasPin} center={center} onPinDrag={reverseGeocode} />
+          <LeafletCanvas center={center} recenterKey={recenterKey} hasPin={hasPin} geocoding={geocoding} onUserCenter={handleCenterChange} />
         )}
       </div>
 
@@ -397,7 +455,7 @@ export default function LocationPicker({ value, onChange }) {
           ) : address ? (
             <span className="text-text dark:text-dark-text">{address}</span>
           ) : (
-            <span className="text-muted dark:text-dark-muted">Search above or drag the pin to set location</span>
+            <span className="text-muted dark:text-dark-muted">Drag the map to place the pin, or search above</span>
           )}
           <div className="text-xs text-muted dark:text-dark-muted mt-0.5">
             {hasPin ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : 'No pin set'}

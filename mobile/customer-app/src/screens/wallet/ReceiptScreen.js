@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import ViewShot, { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
+import { captureAndShareWeb } from "../../lib/captureWeb";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { colors } from "../../theme";
@@ -127,6 +128,22 @@ export default function ReceiptScreen({ navigation, route }) {
   };
 
   const handleShare = async () => {
+    if (Platform.OS === "web") {
+      try {
+        await captureAndShareWeb("iprime-receipt-capture", {
+          fileName: `receipt-${transaction.reference || "iprime"}.png`,
+          shareTitle: t("wallet.receipt.shareDialogTitle"),
+          shareText: t("wallet.receipt.shareLine", { label: typeLabel, amount: formatNaira(transaction.amount) }),
+        });
+      } catch (err) {
+        Toast.show({
+          type: "error",
+          text1: t("wallet.receipt.couldntShare"),
+          text2: String(err?.message || err).slice(0, 80),
+        });
+      }
+      return;
+    }
     try {
       const uri = await captureRef(receiptRef, {
         format: "png",
@@ -190,6 +207,7 @@ export default function ReceiptScreen({ navigation, route }) {
           options={{ format: "png", quality: 1 }}
           style={{ backgroundColor: colors.background }}
         >
+          <View nativeID="iprime-receipt-capture">
           {/* Amount header */}
           <View style={{ alignItems: "center", paddingVertical: 32 }}>
             <View
@@ -235,6 +253,7 @@ export default function ReceiptScreen({ navigation, route }) {
           <Text style={{ textAlign: "center", fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>
             {t("wallet.receipt.footer")}
           </Text>
+          </View>
         </ViewShot>
 
         <View style={{ flexDirection: "row", gap: 12 }}>

@@ -61,6 +61,15 @@ export async function openTo(target) {
   const { lat, lng } = target;
   const labelEnc = encodeLabel(target.label);
 
+  // Web: custom schemes (google.navigation:, geo:, waze://) don't resolve in a
+  // browser, and an unhandled-scheme openURL can "succeed" without navigating —
+  // so go straight to the Google Maps web directions URL (opens a new tab).
+  if (Platform.OS === "web") {
+    const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+    const opened = await tryUrls([webUrl]);
+    return opened ? { ok: true, opened } : { ok: false };
+  }
+
   const candidates = Platform.OS === "ios"
     ? [
         // Google Maps iOS scheme (only fires if Google Maps is installed)
