@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { fetchAllCustomers, suspendCustomer, unsuspendCustomer } from '../store/slices/customersSlice'
 import { useDebounce } from '../lib/useDebounce'
 import { useFilters } from '../lib/useFilters'
 import { exportToCSV } from '../lib/exportToCSV'
 import { User, Phone, Mail, Search, Eye, Shield, ShieldAlert, Download } from 'lucide-react'
 import Pagination from '../components/Pagination'
+import ActionMenu from '../components/ActionMenu'
 
 const STATUS_COLORS = {
   ACTIVE: 'bg-success/10 text-success',
@@ -24,6 +25,7 @@ const KYC_COLORS = {
 
 export default function CustomersPage() {
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const { customers, total, page, loading } = useSelector((state) => state.customers)
   const { filters, updateFilter } = useFilters({ search: '', status: '', kycStatus: '' })
   const [selectedCustomer, setSelectedCustomer] = useState(null)
@@ -269,29 +271,27 @@ export default function CustomersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">{new Date(customer.createdAt).toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex gap-2">
-                        <Link to={`/customers/${customer.id}`} className="p-2 text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text inline-flex" title="View Details">
-                          <Eye size={18} />
-                        </Link>
-                        {customer.status !== 'SUSPENDED' && (
-                          <button onClick={() => openSuspendModal(customer)} className="p-2 text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text" title="Suspend">
-                            <ShieldAlert size={18} />
-                          </button>
-                        )}
-                        {customer.status === 'SUSPENDED' && (
-                          <button
-                            onClick={() => handleUnsuspend(customer.id)}
-                            disabled={actionLoading === customer.id}
-                            className="p-2 text-muted hover:text-text dark:text-dark-muted dark:hover:text-dark-text disabled:opacity-50 disabled:cursor-not-allowed"
-                            title="Unsuspend"
-                          >
-                            {actionLoading === customer.id ? (
-                              <div className="w-4 h-4 border-2 border-muted border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Shield size={18} />
-                            )}
-                          </button>
-                        )}
+                      <div className="flex">
+                        <ActionMenu
+                          align="left"
+                          actions={[
+                            { label: 'View Details', icon: Eye, onClick: () => navigate(`/customers/${customer.id}`) },
+                            {
+                              label: 'Suspend',
+                              icon: ShieldAlert,
+                              danger: true,
+                              hidden: customer.status === 'SUSPENDED',
+                              onClick: () => openSuspendModal(customer),
+                            },
+                            {
+                              label: 'Unsuspend',
+                              icon: Shield,
+                              disabled: actionLoading === customer.id,
+                              hidden: customer.status !== 'SUSPENDED',
+                              onClick: () => handleUnsuspend(customer.id),
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>

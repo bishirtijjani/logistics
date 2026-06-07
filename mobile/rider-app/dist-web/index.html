@@ -23,7 +23,14 @@
         flex: 1;
       }
     </style>
-  <link rel="preload" href="/_expo/static/css/web-be92a8f0a43fad1361872389a03bcfd7.css" as="style"><link rel="stylesheet" href="/_expo/static/css/web-be92a8f0a43fad1361872389a03bcfd7.css"><link rel="icon" href="/favicon.ico" /></head>
+  <link rel="preload" href="/_expo/static/css/web-be92a8f0a43fad1361872389a03bcfd7.css" as="style"><link rel="stylesheet" href="/_expo/static/css/web-be92a8f0a43fad1361872389a03bcfd7.css"><link rel="icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#EA580C" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  </head>
 
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
@@ -33,5 +40,13 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   <script src="/_expo/static/js/web/index-14f7710dd03cd46ecb85665699665a1c.js" defer></script>
-</body>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+    </script>
+  </body>
 </html>

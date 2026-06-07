@@ -1,0 +1,14 @@
+{
+  "name": "iPrime Rider",
+  "short_name": "iPrime Rider",
+  "description": "iPrime Rider — accept jobs, navigate, and get paid.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EA580C",
+  "theme_color": "#EA580C",
+  "icons": [
+    { "src": "/icon.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

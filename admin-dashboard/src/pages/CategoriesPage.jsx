@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'sonner'
+import { SlidersHorizontal, Pencil, Ban, Trash2 } from 'lucide-react'
+import ActionMenu from '../components/ActionMenu'
 import {
   fetchCategories,
   createCategory,
@@ -314,26 +316,28 @@ export default function CategoriesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openAttrEditor(cat)}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
-                        title="Edit attribute schema (axes & pack units)"
-                      >
-                        Attributes
-                      </button>
-                      <button
-                        onClick={() => openEdit(cat)}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => remove(cat)}
-                        className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border border-error/40 text-error hover:bg-error/10 transition-colors"
-                      >
-                        {(cat._count?.merchants ?? 0) > 0 ? 'Deactivate' : 'Delete'}
-                      </button>
+                    <div className="flex justify-end">
+                      <ActionMenu
+                        actions={[
+                          {
+                            label: 'Attributes',
+                            icon: SlidersHorizontal,
+                            onClick: () => openAttrEditor(cat),
+                            title: 'Edit attribute schema (axes & pack units)',
+                          },
+                          {
+                            label: 'Edit',
+                            icon: Pencil,
+                            onClick: () => openEdit(cat),
+                          },
+                          {
+                            label: (cat._count?.merchants ?? 0) > 0 ? 'Deactivate' : 'Delete',
+                            icon: (cat._count?.merchants ?? 0) > 0 ? Ban : Trash2,
+                            danger: true,
+                            onClick: () => remove(cat),
+                          },
+                        ]}
+                      />
                     </div>
                   </td>
                 </tr>

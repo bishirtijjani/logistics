@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
+import { chooseImageSource } from "../../lib/chooseImageSource";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
@@ -251,11 +252,12 @@ export default function CreateDisputeScreen() {
           {attachments.length < 5 && (
             <TouchableOpacity
               onPress={() =>
-                Alert.alert(t("support.attachPhoto", "Attach a photo"), undefined, [
-                  { text: t("photo.camera", "Camera"), onPress: addAttachment("camera") },
-                  { text: t("photo.library", "Photo Library"), onPress: addAttachment("gallery") },
-                  { text: t("photo.cancel", "Cancel"), style: "cancel" },
-                ])
+                chooseImageSource(addAttachment("camera"), addAttachment("gallery"), {
+                  title: t("support.attachPhoto", "Attach a photo"),
+                  camera: t("photo.camera", "Camera"),
+                  gallery: t("photo.library", "Photo Library"),
+                  cancel: t("photo.cancel", "Cancel"),
+                })
               }
               disabled={uploading}
               style={{

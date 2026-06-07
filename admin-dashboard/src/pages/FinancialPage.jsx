@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { API_URL } from '../lib/api'
 import { DollarSign, Check, X, Clock, RefreshCw } from 'lucide-react'
+import ActionMenu from '../components/ActionMenu'
 
 export default function FinancialPage() {
   const [activeTab, setActiveTab] = useState('pending')
@@ -123,14 +124,13 @@ export default function FinancialPage() {
                   <td className="px-4 py-3">{new Date(withdrawal.createdAt).toLocaleDateString()}</td>
                   {activeTab === 'pending' && (
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button onClick={() => handleApprove(withdrawal.id)} className="p-1 text-success hover:bg-success/10 rounded">
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleReject(withdrawal.id)} className="p-1 text-error hover:bg-error/10 rounded">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <ActionMenu
+                        align="left"
+                        actions={[
+                          { label: 'Approve', icon: Check, onClick: () => handleApprove(withdrawal.id) },
+                          { label: 'Reject', icon: X, danger: true, onClick: () => handleReject(withdrawal.id) },
+                        ]}
+                      />
                     </td>
                   )}
                 </tr>

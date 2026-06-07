@@ -17,6 +17,7 @@ import { fetchCategories } from '../store/slices/categoriesSlice'
 import { exportToCSV } from '../lib/exportToCSV'
 import Pagination from '../components/Pagination'
 import LocationPicker from '../components/LocationPicker'
+import ActionMenu from '../components/ActionMenu'
 import {
   Store, CheckCircle, XCircle, ShieldAlert, Shield, MoreVertical,
   Mail, Phone, DollarSign, MapPin, Eye, Edit2, Trash2, Download,
@@ -1337,19 +1338,16 @@ export default function MerchantsPage() {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <div className="flex gap-1">
-                            <button onClick={() => setDrawerMerchant(m)} className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors" title="View Details">
-                              <Eye size={16} />
-                            </button>
-                            <button onClick={() => navigate(`/merchants/${m.id}/products`)} className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-primary transition-colors" title="Products">
-                              <Package size={16} />
-                            </button>
-                            <button onClick={() => navigate(`/merchants/${m.id}/analytics`)} className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-primary transition-colors" title="Analytics">
-                              <BarChart2 size={16} />
-                            </button>
-                            <button onClick={() => setDeleteModal(m)} className="p-2 rounded-lg hover:bg-red-50 text-muted dark:text-dark-muted hover:text-red-500 transition-colors" title="Delete">
-                              <Trash2 size={16} />
-                            </button>
+                          <div className="flex">
+                            <ActionMenu
+                              align="left"
+                              actions={[
+                                { label: 'View Details', icon: Eye, onClick: () => setDrawerMerchant(m) },
+                                { label: 'Products', icon: Package, onClick: () => navigate(`/merchants/${m.id}/products`) },
+                                { label: 'Analytics', icon: BarChart2, onClick: () => navigate(`/merchants/${m.id}/analytics`) },
+                                { label: 'Delete', icon: Trash2, danger: true, onClick: () => setDeleteModal(m) },
+                              ]}
+                            />
                           </div>
                         </td>
                       </tr>

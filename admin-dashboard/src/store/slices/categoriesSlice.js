@@ -1,45 +1,72 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
+// Surface the backend's helpful message (e.g. "Category with slug 'furniture'
+// already exists") instead of axios's generic "Request failed with status code 409".
+// Re-throwing an Error keeps `.message` intact through both `.unwrap()` at the call
+// site and `action.error.message` in the rejected reducers.
+const backendError = (err) =>
+  new Error(err.response?.data?.message || err.message || 'Request failed')
+
 export const fetchCategories = createAsyncThunk(
   'categories/fetchAll',
   async (params = {}) => {
-    const response = await api.get('/admin/categories', { params })
-    return response.data
+    try {
+      const response = await api.get('/admin/categories', { params })
+      return response.data
+    } catch (err) {
+      throw backendError(err)
+    }
   }
 )
 
 export const createCategory = createAsyncThunk(
   'categories/create',
   async (payload) => {
-    const response = await api.post('/admin/categories', payload)
-    return response.data.data
+    try {
+      const response = await api.post('/admin/categories', payload)
+      return response.data.data
+    } catch (err) {
+      throw backendError(err)
+    }
   }
 )
 
 export const updateCategory = createAsyncThunk(
   'categories/update',
   async ({ categoryId, ...payload }) => {
-    const response = await api.put(`/admin/categories/${categoryId}`, payload)
-    return response.data.data
+    try {
+      const response = await api.put(`/admin/categories/${categoryId}`, payload)
+      return response.data.data
+    } catch (err) {
+      throw backendError(err)
+    }
   }
 )
 
 export const deleteCategory = createAsyncThunk(
   'categories/delete',
   async (categoryId) => {
-    const response = await api.delete(`/admin/categories/${categoryId}`)
-    return { categoryId, ...response.data.data }
+    try {
+      const response = await api.delete(`/admin/categories/${categoryId}`)
+      return { categoryId, ...response.data.data }
+    } catch (err) {
+      throw backendError(err)
+    }
   }
 )
 
 export const updateCategoryAttributeSchema = createAsyncThunk(
   'categories/updateAttributeSchema',
   async ({ categoryId, attributeSchema }) => {
-    const response = await api.patch(`/admin/categories/${categoryId}/attribute-schema`, {
-      attributeSchema,
-    })
-    return response.data.data
+    try {
+      const response = await api.patch(`/admin/categories/${categoryId}/attribute-schema`, {
+        attributeSchema,
+      })
+      return response.data.data
+    } catch (err) {
+      throw backendError(err)
+    }
   }
 )
 

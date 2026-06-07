@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -13,6 +14,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../theme";
 import { uploadToCloudinary } from "../services/cloudinary";
+import { chooseImageSource } from "../lib/chooseImageSource";
 
 /**
  * Single document upload tile.
@@ -59,37 +61,41 @@ export default function DocumentUploadTile({
   const pickAndUpload = async (source) => {
     if (busy || disabled) return;
 
-    // Request the right permission for the chosen source.
-    const perm =
-      source === "camera"
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Toast.show({
-        type: "error",
-        text1: "Permission denied",
-        text2:
-          source === "camera"
-            ? "Camera access is required to capture documents."
-            : "Photo library access is required to choose a document.",
-      });
-      return;
+    // On web the browser file dialog covers permission + source; skipping the
+    // awaited permission keeps the dialog inside the user gesture. On native,
+    // request the right permission for the chosen source first.
+    if (Platform.OS !== "web") {
+      const perm =
+        source === "camera"
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Toast.show({
+          type: "error",
+          text1: "Permission denied",
+          text2:
+            source === "camera"
+              ? "Camera access is required to capture documents."
+              : "Photo library access is required to choose a document.",
+        });
+        return;
+      }
     }
 
-    const result =
-      source === "camera"
-        ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.9,
-            allowsEditing: false,
-            exif: false,
-          })
-        : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.9,
-            allowsEditing: false,
-            exif: false,
-          });
+    const useCamera = source === "camera" && Platform.OS !== "web";
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 0.9,
+          allowsEditing: false,
+          exif: false,
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 0.9,
+          allowsEditing: false,
+          exif: false,
+        });
 
     if (result.canceled) return;
     const asset = result.assets?.[0];
@@ -134,11 +140,17 @@ export default function DocumentUploadTile({
   };
 
   const promptSource = () => {
-    Alert.alert(title, "Where would you like to get the image from?", [
-      { text: "Take photo", onPress: () => pickAndUpload("camera") },
-      { text: "Choose from gallery", onPress: () => pickAndUpload("gallery") },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    chooseImageSource(
+      () => pickAndUpload("camera"),
+      () => pickAndUpload("gallery"),
+      {
+        title,
+        message: "Where would you like to get the image from?",
+        camera: "Take photo",
+        gallery: "Choose from gallery",
+        cancel: "Cancel",
+      },
+    );
   };
 
   const hasImage = Boolean(secureUrl || localPreviewUri);

@@ -19,6 +19,7 @@ import Toast from "react-native-toast-message";
 import { colors } from "../../theme";
 import { createDispute } from "../../store/slices/supportSlice";
 import { pickImage, uploadAttachment } from "./supportUploads";
+import { chooseImageSource } from "../../lib/chooseImageSource";
 
 const DISPUTE_CATEGORIES = [
   { value: "ITEM_NOT_RECEIVED", label: "Item not received" },
@@ -303,11 +304,12 @@ export default function CreateDisputeScreen() {
           {attachments.length < 5 && (
             <TouchableOpacity
               onPress={() =>
-                Alert.alert(t("support.attachPhoto"), undefined, [
-                  { text: t("photo.camera"), onPress: addAttachment("camera") },
-                  { text: t("photo.library"), onPress: addAttachment("gallery") },
-                  { text: t("photo.cancel"), style: "cancel" },
-                ])
+                chooseImageSource(addAttachment("camera"), addAttachment("gallery"), {
+                  title: t("support.attachPhoto"),
+                  camera: t("photo.camera"),
+                  gallery: t("photo.library"),
+                  cancel: t("photo.cancel"),
+                })
               }
               disabled={uploading}
               accessibilityRole="button"

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { API_URL } from '../lib/api'
 import { Megaphone, Check, X, RefreshCw, Tag } from 'lucide-react'
+import ActionMenu from '../components/ActionMenu'
 
 export default function MarketingPage() {
   const [activeTab, setActiveTab] = useState('campaigns')
@@ -185,16 +186,24 @@ export default function MarketingPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {discount.status === 'PENDING' && (
-                          <div className="flex gap-2">
-                            <button onClick={() => handleApproveDiscount(discount.id)} className="p-1 text-success hover:bg-success/10 rounded">
-                              <Check className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleRejectDiscount(discount.id)} className="p-1 text-error hover:bg-error/10 rounded">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
+                        <ActionMenu
+                          align="left"
+                          actions={[
+                            {
+                              label: 'Approve',
+                              icon: Check,
+                              hidden: discount.status !== 'PENDING',
+                              onClick: () => handleApproveDiscount(discount.id),
+                            },
+                            {
+                              label: 'Reject',
+                              icon: X,
+                              danger: true,
+                              hidden: discount.status !== 'PENDING',
+                              onClick: () => handleRejectDiscount(discount.id),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}

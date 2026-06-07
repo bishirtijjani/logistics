@@ -10,6 +10,7 @@ import {
 } from '../store/slices/ridersSlice'
 import { exportToCSV } from '../lib/exportToCSV'
 import Pagination from '../components/Pagination'
+import ActionMenu from '../components/ActionMenu'
 import {
   Bike, Search, Eye, Check, X, Clock, Phone, Mail, Star, Package, MapPin,
   Power, ShieldCheck, Ban, FileText, ExternalLink, AlertTriangle, User,
@@ -225,7 +226,6 @@ function KpiCards({ stats, onPendingClick }) {
 
 function RowActions({ rider, actionLoading, onView, onReview, onSuspend, onUnsuspend, onForceOffline, compact }) {
   const busy = actionLoading === rider.id
-  const iconBtn = 'p-2 rounded-lg transition-colors disabled:opacity-50'
   if (compact) {
     // Mobile: labeled small buttons
     return (
@@ -250,35 +250,48 @@ function RowActions({ rider, actionLoading, onView, onReview, onSuspend, onUnsus
     )
   }
   return (
-    <div className="flex gap-1">
-      <button onClick={() => onView(rider)} title="View details" className={`${iconBtn} hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text`}>
-        <Eye size={16} />
-      </button>
-      {rider.status === 'PENDING_APPROVAL' && (
-        <>
-          <button disabled={busy} onClick={() => onReview(rider, 'approve')} title="Approve" className={`${iconBtn} hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted dark:text-dark-muted hover:text-emerald-600`}>
-            {busy ? <Spinner size={16} cls="border-emerald-500" /> : <Check size={16} />}
-          </button>
-          <button disabled={busy} onClick={() => onReview(rider, 'reject')} title="Reject" className={`${iconBtn} hover:bg-red-50 dark:hover:bg-red-900/20 text-muted dark:text-dark-muted hover:text-red-500`}>
-            <X size={16} />
-          </button>
-        </>
-      )}
-      {rider.status === 'APPROVED' && rider.availability !== 'OFFLINE' && (
-        <button onClick={() => onForceOffline(rider)} title="Force offline" className={`${iconBtn} hover:bg-amber-50 dark:hover:bg-amber-900/20 text-muted dark:text-dark-muted hover:text-amber-600`}>
-          <Power size={16} />
-        </button>
-      )}
-      {rider.status === 'APPROVED' && (
-        <button onClick={() => onSuspend(rider)} title="Suspend" className={`${iconBtn} hover:bg-red-50 dark:hover:bg-red-900/20 text-muted dark:text-dark-muted hover:text-red-500`}>
-          <Ban size={16} />
-        </button>
-      )}
-      {rider.status === 'SUSPENDED' && (
-        <button disabled={busy} onClick={() => onUnsuspend(rider)} title="Unsuspend" className={`${iconBtn} hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-muted dark:text-dark-muted hover:text-emerald-600`}>
-          {busy ? <Spinner size={16} cls="border-emerald-500" /> : <ShieldCheck size={16} />}
-        </button>
-      )}
+    <div className="flex">
+      <ActionMenu
+        align="left"
+        actions={[
+          { label: 'View details', icon: Eye, onClick: () => onView(rider) },
+          {
+            label: 'Approve',
+            icon: Check,
+            disabled: busy,
+            hidden: rider.status !== 'PENDING_APPROVAL',
+            onClick: () => onReview(rider, 'approve'),
+          },
+          {
+            label: 'Reject',
+            icon: X,
+            danger: true,
+            disabled: busy,
+            hidden: rider.status !== 'PENDING_APPROVAL',
+            onClick: () => onReview(rider, 'reject'),
+          },
+          {
+            label: 'Force offline',
+            icon: Power,
+            hidden: !(rider.status === 'APPROVED' && rider.availability !== 'OFFLINE'),
+            onClick: () => onForceOffline(rider),
+          },
+          {
+            label: 'Suspend',
+            icon: Ban,
+            danger: true,
+            hidden: rider.status !== 'APPROVED',
+            onClick: () => onSuspend(rider),
+          },
+          {
+            label: 'Unsuspend',
+            icon: ShieldCheck,
+            disabled: busy,
+            hidden: rider.status !== 'SUSPENDED',
+            onClick: () => onUnsuspend(rider),
+          },
+        ]}
+      />
     </div>
   )
 }

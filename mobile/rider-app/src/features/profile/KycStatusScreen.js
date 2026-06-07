@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { chooseImageSource } from "../../lib/chooseImageSource";
 import { useTranslation } from "react-i18next";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
@@ -373,11 +374,12 @@ export default function KycStatusScreen() {
 
             <TouchableOpacity
               onPress={() =>
-                Alert.alert(t("support.attachPhoto", "Attach a photo"), undefined, [
-                  { text: t("photo.camera", "Camera"), onPress: handlePick("camera") },
-                  { text: t("photo.library", "Photo Library"), onPress: handlePick("gallery") },
-                  { text: t("photo.cancel", "Cancel"), style: "cancel" },
-                ])
+                chooseImageSource(handlePick("camera"), handlePick("gallery"), {
+                  title: t("support.attachPhoto", "Attach a photo"),
+                  camera: t("photo.camera", "Camera"),
+                  gallery: t("photo.library", "Photo Library"),
+                  cancel: t("photo.cancel", "Cancel"),
+                })
               }
               disabled={uploading || submitting}
               style={{
