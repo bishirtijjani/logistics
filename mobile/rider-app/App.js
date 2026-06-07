@@ -23,6 +23,8 @@ import { registerForceLogout } from "./src/services/api";
 import { forceLogout as forceLogoutAction } from "./src/store/slices/authSlice";
 import { ThemeProvider, useTheme } from "./src/theme";
 import { useToastConfig } from "./src/components/toastShared";
+import AlertHost from "./src/components/AlertHost";
+import { installWebAlert } from "./src/lib/safeAlert";
 import { initSentry, captureError } from "./src/services/sentry";
 import { initAnalytics, track, EVENTS } from "./src/lib/analytics";
 import OfflineBanner from "./src/components/OfflineBanner";
@@ -33,6 +35,10 @@ import OfflineBanner from "./src/components/OfflineBanner";
 initSentry();
 initAnalytics();
 track(EVENTS.AppOpened);
+
+// Web only: route Alert.alert through a themed modal — RN-web's Alert.alert has
+// dead multi-button callbacks. No-op on native (real OS Alert is used there).
+installWebAlert();
 
 // Register the silent-refresh fallback so the api.js interceptor can flip the
 // auth state out from anywhere in the tree when the refresh token is
@@ -119,6 +125,7 @@ export default function App() {
               </ThemedRoot>
             </Provider>
             <ThemedToast />
+            <AlertHost />
             <ThemedStatusBar />
           </ThemeProvider>
         </ErrorBoundary>
