@@ -6,6 +6,7 @@
 import { Platform, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import api from "../../services/api";
+import { appendUploadFile } from "../../lib/uploadFile";
 
 export const pickImage = async (source) => {
   if (source === "camera") {
@@ -44,11 +45,7 @@ export const uploadAttachment = async (uri, kind) => {
   const type = match ? `image/${match[1]}` : "image/jpeg";
 
   const formData = new FormData();
-  formData.append("file", {
-    uri: Platform.OS === "ios" ? uri.replace("file://", "") : uri,
-    name: filename || "attachment.jpg",
-    type,
-  });
+  await appendUploadFile(formData, uri, { name: filename || "attachment.jpg", type });
   formData.append("api_key", sig.apiKey);
   formData.append("timestamp", sig.timestamp);
   formData.append("signature", sig.signature);
@@ -60,10 +57,12 @@ export const uploadAttachment = async (uri, kind) => {
     {
       method: "POST",
       body: formData,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "multipart/form-data",
-      },
+      // On web, fetch must set the multipart boundary itself, so don't pin
+      // Content-Type there; native RN keeps the explicit header it expects.
+      headers:
+        Platform.OS === "web"
+          ? { Accept: "application/json" }
+          : { Accept: "application/json", "Content-Type": "multipart/form-data" },
     },
   );
 

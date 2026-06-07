@@ -43,6 +43,7 @@ import { format } from "date-fns";
 import { showErrorToast, showSuccessToast } from "../utils/toast.js";
 import { CardSkeleton, TableSkeleton } from "../components/LoadingSkeleton.jsx";
 import NumberInput from "../components/NumberInput.jsx";
+import SearchableSelect from "../components/SearchableSelect.jsx";
 
 export default function EarningsPage() {
   const { user } = useSelector((state) => state.auth);
@@ -1800,27 +1801,21 @@ Thank you for your business!
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
                     Bank
                   </label>
-                  <select
+                  <SearchableSelect
                     value={bankForm.bankCode}
-                    onChange={(e) => {
+                    onChange={(bankCode) => {
                       dispatch(clearResolvedAccount());
-                      setBankForm({ ...bankForm, bankCode: e.target.value });
+                      setBankForm({ ...bankForm, bankCode });
                     }}
-                    disabled={banksLoading}
-                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-surface dark:bg-dark-surface dark:text-dark-text"
-                  >
-                    <option value="">
-                      {banksLoading ? "Loading banks…" : "Select a bank"}
-                    </option>
-                    {(Array.isArray(banks) ? banks : []).map((bank) => (
-                      <option
-                        key={bank.code || bank.bankCode}
-                        value={bank.code || bank.bankCode}
-                      >
-                        {bank.name || bank.bankName}
-                      </option>
-                    ))}
-                  </select>
+                    loading={banksLoading}
+                    placeholder="Select a bank"
+                    searchPlaceholder="Search banks…"
+                    emptyText="No banks match your search"
+                    options={(Array.isArray(banks) ? banks : []).map((bank) => ({
+                      value: bank.code || bank.bankCode,
+                      label: bank.name || bank.bankName,
+                    }))}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">

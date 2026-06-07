@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
+import { appendUploadFile } from '../../lib/uploadFile';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../services/api';
 import { colors } from '../../theme';
@@ -213,11 +214,7 @@ export default function CheckoutScreen() {
       const mime = match ? `image/${match[1].toLowerCase()}` : 'image/jpeg';
 
       const form = new FormData();
-      form.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-        name: filename,
-        type: mime,
-      });
+      await appendUploadFile(form, uri, { name: filename, type: mime });
       form.append('api_key', sig.apiKey);
       form.append('timestamp', String(sig.timestamp));
       form.append('signature', sig.signature);

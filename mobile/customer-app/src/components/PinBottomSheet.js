@@ -8,7 +8,7 @@ import {
   Dimensions,
   Vibration,
 } from "react-native";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "../lib/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme";
 import { InModalToast } from "./toastShared";

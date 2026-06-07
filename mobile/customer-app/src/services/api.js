@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../lib/storage';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Toast from 'react-native-toast-message';

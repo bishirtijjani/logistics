@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { appendUploadFile } from "../../lib/uploadFile";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { updateProfilePicture, getUploadSignature } from "../../store/slices/profileSlice";
@@ -84,12 +85,8 @@ export default function ProfilePhotoScreen({ navigation }) {
     const match = /\.(.+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : 'image/jpeg';
     
-    // Append file — keep full file:// URI; RN's FormData needs it to resolve the file.
-    formData.append('file', {
-      uri,
-      name: filename,
-      type,
-    });
+    // Append file (cross-platform: Blob on web, RN { uri } descriptor on native).
+    await appendUploadFile(formData, uri, { name: filename, type });
 
     formData.append('api_key', String(signatureData.apiKey));
     formData.append('timestamp', String(signatureData.timestamp));

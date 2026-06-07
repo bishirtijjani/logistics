@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "../../lib/storage";
 import api from "../../services/api";
 import { registerPushToken } from "../../services/notifications";
 import { clearOnboardingDraft } from "../../lib/onboardingPersistence";

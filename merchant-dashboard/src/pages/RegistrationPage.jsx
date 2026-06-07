@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { showErrorToast, showSuccessToast } from "../utils/toast.js";
+import SearchableSelect from "../components/SearchableSelect.jsx";
 
 export default function RegistrationPage() {
   const navigate = useNavigate();
@@ -597,11 +598,7 @@ export default function RegistrationPage() {
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-3">
                   Business Category
                 </label>
-                {categoriesLoading && categories.length === 0 ? (
-                  <div className="text-sm text-muted dark:text-dark-muted py-4">
-                    Loading categories…
-                  </div>
-                ) : categoriesError ? (
+                {categoriesError ? (
                   <div className="flex items-center gap-3 text-sm text-error">
                     <AlertCircle className="w-4 h-4" />
                     {categoriesError}
@@ -614,38 +611,23 @@ export default function RegistrationPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {categories.map((cat) => (
-                      <button
-                        type="button"
-                        key={cat.id}
-                        onClick={() =>
-                          setBusinessInfo({
-                            ...businessInfo,
-                            categoryId: cat.id,
-                          })
-                        }
-                        className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-                          businessInfo.categoryId === cat.id
-                            ? "border-primary bg-primary/10 dark:bg-primary/20"
-                            : "border-surface-muted dark:border-dark-surface-muted hover:border-primary/50 dark:hover:border-primary/50"
-                        }`}
-                      >
-                        <div
-                          className="w-8 h-8 rounded-lg mb-2"
-                          style={{ background: cat.color || "#7C3AED" }}
-                        />
-                        <div className="font-semibold text-text dark:text-dark-text">
-                          {cat.name}
-                        </div>
-                        {cat.description && (
-                          <div className="text-sm text-muted dark:text-dark-muted">
-                            {cat.description}
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  <SearchableSelect
+                    value={businessInfo.categoryId}
+                    onChange={(categoryId) =>
+                      setBusinessInfo({ ...businessInfo, categoryId })
+                    }
+                    loading={categoriesLoading && categories.length === 0}
+                    placeholder="Select your business category"
+                    searchPlaceholder="Search categories…"
+                    emptyText="No categories match your search"
+                    triggerClassName="w-full flex items-center justify-between gap-2 px-4 py-3 border border-surface-muted dark:border-dark-surface-muted rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none dark:bg-dark-surface-muted dark:text-dark-text text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                    options={categories.map((cat) => ({
+                      value: cat.id,
+                      label: cat.name,
+                      description: cat.description,
+                      color: cat.color || "#7C3AED",
+                    }))}
+                  />
                 )}
               </div>
 

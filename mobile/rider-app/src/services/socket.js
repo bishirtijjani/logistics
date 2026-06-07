@@ -11,7 +11,7 @@
  */
 
 import { io } from "socket.io-client";
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "../lib/storage";
 import { SOCKET_URL } from "./api";
 import Toast from "react-native-toast-message";
 

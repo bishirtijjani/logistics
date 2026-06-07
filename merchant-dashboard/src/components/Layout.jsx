@@ -229,9 +229,16 @@ export default function Layout() {
                 )}
               </button>
               {merchantProfile?.name && (
-                <div className="hidden sm:flex items-center gap-2 text-sm font-medium text-text dark:text-dark-text">
-                  <Store className="w-4 h-4 text-primary" />
-                  {merchantProfile.name}
+                <div className="hidden sm:flex items-center gap-2 text-text dark:text-dark-text">
+                  <Store className="w-4 h-4 text-primary flex-shrink-0" />
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-sm font-medium">{merchantProfile.name}</span>
+                    {merchantProfile.category?.name && (
+                      <span className="text-xs text-muted dark:text-dark-muted">
+                        {merchantProfile.category.name}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

@@ -15,6 +15,7 @@
  *   must be assigned to that request while it's PICKED_UP or IN_TRANSIT.
  */
 
+import { Platform } from "react-native";
 import api from "./api";
 import { newIdempotencyKey } from "./idempotency";
 
@@ -64,11 +65,20 @@ export async function uploadToCloudinary({ kind, localUri, requestId, mimeType =
       //    signature (folder, public_id, timestamp); anything else here is
       //    metadata Cloudinary ignores for signing.
       const form = new FormData();
-      form.append("file", {
-        uri: localUri,
-        name: `${sig.publicId}.jpg`,
-        type: mimeType,
-      });
+      if (Platform.OS === "web") {
+        // On web, `localUri` is a data:/blob: URL. Cloudinary needs a real Blob,
+        // not React Native's { uri, name, type } descriptor — so fetch the URL
+        // into a Blob and append that. Native keeps the RN descriptor below.
+        const blob = await fetch(localUri).then((r) => r.blob());
+        const ext = mimeType === "image/png" ? "png" : "jpg";
+        form.append("file", blob, `${sig.publicId}.${ext}`);
+      } else {
+        form.append("file", {
+          uri: localUri,
+          name: `${sig.publicId}.jpg`,
+          type: mimeType,
+        });
+      }
       form.append("api_key", String(sig.apiKey));
       form.append("timestamp", String(sig.timestamp));
       form.append("signature", String(sig.signature));

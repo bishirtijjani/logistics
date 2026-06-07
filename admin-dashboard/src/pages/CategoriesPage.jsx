@@ -313,26 +313,28 @@ export default function CategoriesPage() {
                       {cat.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => openAttrEditor(cat)}
-                      className="text-primary hover:underline text-sm mr-3"
-                      title="Edit attribute schema (axes & pack units)"
-                    >
-                      Attributes
-                    </button>
-                    <button
-                      onClick={() => openEdit(cat)}
-                      className="text-primary hover:underline text-sm mr-3"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => remove(cat)}
-                      className="text-error hover:underline text-sm"
-                    >
-                      {(cat._count?.merchants ?? 0) > 0 ? 'Deactivate' : 'Delete'}
-                    </button>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openAttrEditor(cat)}
+                        className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors"
+                        title="Edit attribute schema (axes & pack units)"
+                      >
+                        Attributes
+                      </button>
+                      <button
+                        onClick={() => openEdit(cat)}
+                        className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border border-primary/40 text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => remove(cat)}
+                        className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-md border border-error/40 text-error hover:bg-error/10 transition-colors"
+                      >
+                        {(cat._count?.merchants ?? 0) > 0 ? 'Deactivate' : 'Delete'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

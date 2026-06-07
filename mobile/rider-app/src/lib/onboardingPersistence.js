@@ -1,4 +1,4 @@
-import * as SecureStore from "expo-secure-store";
+import * as SecureStore from "./storage";
 
 const KEY = "rider.onboarding.draft.v1";
 
