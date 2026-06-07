@@ -21,6 +21,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import { appendUploadFile } from '../../lib/uploadFile';
+import { chooseImageSource } from '../../lib/chooseImageSource';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../services/api';
 import { colors } from '../../theme';
@@ -180,19 +181,23 @@ export default function CheckoutScreen() {
   //   2. POST multipart form to Cloudinary; persist the returned secure URL.
   const uploadPrescriptionFromSource = async (source) => {
     try {
-      const permission = source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          t('errors.FORBIDDEN'),
-          source === 'camera'
-            ? t('request.checkout.rxPermissionCamera')
-            : t('request.checkout.rxPermissionLibrary'),
-        );
-        return;
+      if (Platform.OS !== 'web') {
+        const permission = source === 'camera'
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert(
+            t('errors.FORBIDDEN'),
+            source === 'camera'
+              ? t('request.checkout.rxPermissionCamera')
+              : t('request.checkout.rxPermissionLibrary'),
+          );
+          return;
+        }
       }
-      const launcher = source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
+      const launcher = (source === 'camera' && Platform.OS !== 'web')
+        ? ImagePicker.launchCameraAsync
+        : ImagePicker.launchImageLibraryAsync;
       const result = await launcher({
         mediaTypes: ['images'],
         // Pharmacist needs the whole scrip — don't crop. Reasonable quality
@@ -240,11 +245,17 @@ export default function CheckoutScreen() {
   };
 
   const openPrescriptionPicker = () => {
-    Alert.alert(t('request.checkout.rxSectionTitle'), t('request.checkout.rxChoose'), [
-      { text: t('request.checkout.rxFromCamera'), onPress: () => uploadPrescriptionFromSource('camera') },
-      { text: t('request.checkout.rxFromGallery'), onPress: () => uploadPrescriptionFromSource('gallery') },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    chooseImageSource(
+      () => uploadPrescriptionFromSource('camera'),
+      () => uploadPrescriptionFromSource('gallery'),
+      {
+        title: t('request.checkout.rxSectionTitle'),
+        message: t('request.checkout.rxChoose'),
+        camera: t('request.checkout.rxFromCamera'),
+        gallery: t('request.checkout.rxFromGallery'),
+        cancel: t('common.cancel'),
+      },
+    );
   };
 
   const openPin = () => {

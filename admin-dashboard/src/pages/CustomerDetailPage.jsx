@@ -123,7 +123,7 @@ export default function CustomerDetailPage() {
       setWipeKycReason('')
       dispatch(fetchCustomerDetail(customerId))
     } else {
-      setWipeKycError(result.payload || 'Failed to wipe KYC')
+      setWipeKycError(result.error?.message || 'Failed to wipe KYC')
     }
   }
 
@@ -136,7 +136,7 @@ export default function CustomerDetailPage() {
       dispatch(fetchCustomerDetail(customerId))
       return { ok: true }
     }
-    return { ok: false, error: result.payload || 'Update failed' }
+    return { ok: false, error: result.error?.message || 'Update failed' }
   }
 
   if (detail.loading && !customer) {

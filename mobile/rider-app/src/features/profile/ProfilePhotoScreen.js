@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../theme";
 import { pickImage } from "../support/supportUploads";
+import { chooseImageSource } from "../../lib/chooseImageSource";
 import { uploadToCloudinary } from "../../services/cloudinary";
 import { updateProfilePicture, fetchProfile } from "../../store/slices/profileSlice";
 
@@ -80,11 +81,12 @@ export default function ProfilePhotoScreen() {
       <View style={{ flex: 1, alignItems: "center", paddingTop: 40, paddingHorizontal: 20 }}>
         <TouchableOpacity
           onPress={() =>
-            Alert.alert(t("photo.chooseSource", "Choose a source"), undefined, [
-              { text: t("photo.camera", "Camera"), onPress: onPick("camera") },
-              { text: t("photo.library", "Photo Library"), onPress: onPick("gallery") },
-              { text: t("photo.cancel", "Cancel"), style: "cancel" },
-            ])
+            chooseImageSource(onPick("camera"), onPick("gallery"), {
+              title: t("photo.chooseSource", "Choose a source"),
+              camera: t("photo.camera", "Camera"),
+              gallery: t("photo.library", "Photo Library"),
+              cancel: t("photo.cancel", "Cancel"),
+            })
           }
           activeOpacity={0.85}
           style={{

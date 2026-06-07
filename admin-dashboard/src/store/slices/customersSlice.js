@@ -34,25 +34,17 @@ export const unsuspendCustomer = createAsyncThunk(
 
 export const updateCustomer = createAsyncThunk(
   'customers/update',
-  async ({ customerId, changes }, { rejectWithValue }) => {
-    try {
-      const response = await api.patch(`/admin/customers/${customerId}`, changes)
-      return response.data.data
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || err.message)
-    }
+  async ({ customerId, changes }) => {
+    const response = await api.patch(`/admin/customers/${customerId}`, changes)
+    return response.data.data
   }
 )
 
 export const wipeCustomerKyc = createAsyncThunk(
   'customers/wipeKyc',
-  async ({ customerId, reason }, { rejectWithValue }) => {
-    try {
-      const response = await api.post(`/admin/customers/${customerId}/wipe-kyc`, { reason })
-      return response.data.data
-    } catch (err) {
-      return rejectWithValue(err.response?.data?.message || err.message)
-    }
+  async ({ customerId, reason }) => {
+    const response = await api.post(`/admin/customers/${customerId}/wipe-kyc`, { reason })
+    return response.data.data
   }
 )
 

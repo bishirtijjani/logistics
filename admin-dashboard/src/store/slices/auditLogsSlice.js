@@ -3,13 +3,9 @@ import api from '../../lib/api'
 
 export const fetchAuditLogs = createAsyncThunk(
   'auditLogs/fetchAuditLogs',
-  async (params, { rejectWithValue }) => {
-    try {
-      const response = await api.get('/admin/audit-logs', { params })
-      return response.data
-    } catch (error) {
-      return rejectWithValue(error.response?.data || error.message)
-    }
+  async (params) => {
+    const response = await api.get('/admin/audit-logs', { params })
+    return response.data
   }
 )
 
@@ -39,7 +35,7 @@ const auditLogsSlice = createSlice({
       })
       .addCase(fetchAuditLogs.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload
+        state.error = action.error.message
       })
   },
 })

@@ -7,12 +7,14 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { appendUploadFile } from "../../lib/uploadFile";
+import { chooseImageSource } from "../../lib/chooseImageSource";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { updateProfilePicture, getUploadSignature } from "../../store/slices/profileSlice";
@@ -32,6 +34,18 @@ export default function ProfilePhotoScreen({ navigation }) {
 
   const pickImage = async (source) => {
     let result;
+
+    if (Platform.OS === "web") {
+      // Browser file dialog — go straight to it within the click gesture.
+      const r = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!r.canceled && r.assets?.[0]) setLocalUri(r.assets[0].uri);
+      return;
+    }
 
     if (source === "camera") {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -69,11 +83,17 @@ export default function ProfilePhotoScreen({ navigation }) {
   };
 
   const showPickerOptions = () => {
-    Alert.alert(t("photo.title"), t("photo.chooseSource"), [
-      { text: t("photo.camera"), onPress: () => pickImage("camera") },
-      { text: t("photo.library"), onPress: () => pickImage("gallery") },
-      { text: t("photo.cancel"), style: "cancel" },
-    ]);
+    chooseImageSource(
+      () => pickImage("camera"),
+      () => pickImage("gallery"),
+      {
+        title: t("photo.title"),
+        message: t("photo.chooseSource"),
+        camera: t("photo.camera"),
+        gallery: t("photo.library"),
+        cancel: t("photo.cancel"),
+      },
+    );
   };
 
   const uploadToCloudinary = async (uri, signatureData) => {
