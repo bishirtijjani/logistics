@@ -21,6 +21,7 @@ const { prisma } = require('../config/database');
 const { logger } = require('../utils/logger');
 const { WALLET, NOTIFICATION, getUserRoom } = require('../sockets/events');
 const notificationService = require('./notification.service');
+const webpushService = require('./webpush.service');
 
 let _io = null;
 const setIO = (io) => { _io = io; };
@@ -127,7 +128,7 @@ const pushAndSocket = async (userId, payload) => {
   //     transaction called us (status update, refund, etc.)
   //   - Push delivery is best-effort by design — if it fails the user still
   //     has the in-app row + the socket event.
-  if (!silent && user?.fcmToken) {
+  if (!silent && user) {
     const prefs = user.notificationPreferences;
     const pushEnabled = prefs ? prefs.pushEnabled : true;
     const typeAllowed = (() => {
@@ -139,6 +140,27 @@ const pushAndSocket = async (userId, payload) => {
     })();
 
     if (pushEnabled && typeAllowed) {
+      // Web push — browser/PWA subscriptions (PushSubscription rows). Fires
+      // independently of fcmToken so web-only users still get tray alerts.
+      // Fire-and-forget; no-ops when VAPID isn't configured.
+      webpushService
+        .sendToUser(userId, {
+          title,
+          body,
+          data: {
+            type,
+            route: data.route || '',
+            requestId: requestId || '',
+            transactionId: transactionId || '',
+            notificationId: row?.id || '',
+            ...(data.otp ? { otp: String(data.otp) } : {}),
+            ...(data.kind ? { kind: String(data.kind) } : {}),
+          },
+        })
+        .catch((err) => logger.warn('Web push delivery failed (non-fatal)', { userId, error: err.message }));
+
+      // FCM / Expo (native devices) — only when a device token exists.
+      if (user.fcmToken) {
       const fcmToken = user.fcmToken;
       // intentionally not awaited
       notificationService
@@ -178,6 +200,7 @@ const pushAndSocket = async (userId, payload) => {
         .catch((err) => {
           logger.warn('Push delivery failed (non-fatal)', { userId, error: err.message });
         });
+      }
     }
   }
 

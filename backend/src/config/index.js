@@ -45,6 +45,15 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: isDev ? z.string().default('') : z.string().min(1),
   FIREBASE_CLIENT_EMAIL: isDev ? z.string().default('') : z.string().email(),
 
+  // Web Push (VAPID) — browser/PWA push notifications. Optional EVERYWHERE:
+  // when unset, the web-push channel no-ops (native FCM still works), so a
+  // fresh clone boots without keys. Generate a pair with
+  // `npx web-push generate-vapid-keys` and put them in the runtime .env.
+  // VAPID_SUBJECT must be a mailto: or https: URL identifying the sender.
+  VAPID_PUBLIC_KEY: z.string().optional().default(''),
+  VAPID_PRIVATE_KEY: z.string().optional().default(''),
+  VAPID_SUBJECT: z.string().optional().default('mailto:hello@iprime.ng'),
+
   // Cloudinary — required in production, optional in dev
   CLOUDINARY_CLOUD_NAME: isDev ? z.string().default('') : z.string().min(1),
   CLOUDINARY_API_KEY: isDev ? z.string().default('') : z.string().min(1),

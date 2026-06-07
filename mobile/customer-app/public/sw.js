@@ -53,3 +53,42 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(req).catch(() => caches.match("/index.html")));
   }
 });
+
+// --- Web Push ---
+// The backend (webpush.service) sends a JSON payload { title, body, data }.
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (_) {
+    payload = { title: "iPrime", body: event.data ? event.data.text() : "" };
+  }
+  const data = payload.data || {};
+  const options = {
+    body: payload.body || "",
+    icon: "/icon.png",
+    badge: "/icon.png",
+    data,
+    tag: data.notificationId || undefined,
+  };
+  event.waitUntil(self.registration.showNotification(payload.title || "iPrime", options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const targetUrl = new URL(data.route || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) {
+          // Hand the route to the running app so it can deep-link in-SPA.
+          client.postMessage({ type: "notification-click", data });
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+      return undefined;
+    })
+  );
+});

@@ -67,9 +67,17 @@ const configureAndroidChannels = async () => {
  * Safe to call multiple times — no-ops if permission denied.
  */
 export const registerPushToken = async () => {
-  // Push tokens require FCM/APNs, which aren't available in a browser. The web
-  // build receives realtime updates over socket.io instead, so skip cleanly.
-  if (Platform.OS === 'web') return null;
+  // On web there's no FCM/APNs — register a browser Push subscription instead.
+  // Dynamic import so the web-only module never loads into the native bundle.
+  if (Platform.OS === 'web') {
+    try {
+      const { registerWebPush } = await import('./webPush');
+      return await registerWebPush();
+    } catch (error) {
+      console.warn('[Notifications] web push registration failed:', error?.message);
+      return null;
+    }
+  }
   if (!Device.isDevice) return null;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();

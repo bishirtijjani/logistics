@@ -55,6 +55,7 @@ const settingsRoutes = require("./modules/settings/settings.routes");
 const categoryRoutes = require("./modules/category/category.routes");
 const searchRoutes = require("./modules/search/search.routes");
 const notificationRoutes = require("./modules/notification/notification.routes");
+const pushRoutes = require("./modules/push/push.routes");
 const addressRoutes = require("./modules/address/address.routes");
 const bannerRoutes = require("./modules/banner/banner.routes");
 const supportRoutes = require("./modules/support/support.routes");
@@ -131,6 +132,7 @@ const createApp = () => {
   app.use("/settings", settingsRoutes);
   app.use("/categories", categoryRoutes);
   app.use("/notifications", notificationRoutes);
+  app.use("/push", pushRoutes);
   app.use("/addresses", addressRoutes);
   app.use("/banners", bannerRoutes);
   app.use("/support", supportRoutes);

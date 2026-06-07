@@ -245,6 +245,7 @@ model User {
   raisedDisputes          Dispute[]                @relation("RaisedDisputes")
   resolvedDisputes        Dispute[]                @relation("ResolvedDisputes")
   supportMessages         SupportMessage[]
+  pushSubscriptions       PushSubscription[]
 
   @@index([phone])
   @@index([email])
@@ -1164,6 +1165,28 @@ model NotificationPreferences {
 
   @@index([userId])
   @@map("notification_preferences")
+}
+
+/// Web Push (browser / PWA) subscriptions — one row per browser push endpoint.
+/// Native devices use `User.fcmToken` (FCM); web PWAs register a browser
+/// PushManager subscription here. Pruned automatically when the push service
+/// reports the endpoint as gone (404/410).
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String /// client public key (base64url) from the browser subscription
+  auth      String /// auth secret (base64url) from the browser subscription
+  userAgent String?  @db.VarChar(500)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 /// Notification — in-app notification feed (Notification Center).
