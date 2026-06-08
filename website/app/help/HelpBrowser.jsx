@@ -35,7 +35,7 @@ export default function HelpBrowser({ roles, categories, guides }) {
   return (
     <div>
       <div className="relative mb-12">
-        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
         </svg>
         <input
@@ -70,7 +70,7 @@ export default function HelpBrowser({ roles, categories, guides }) {
                     if (items.length === 0) return null;
                     return (
                       <div key={cat.id}>
-                        <h3 className="text-[0.7rem] font-extrabold uppercase tracking-[0.18em] text-gray-400 mb-4">
+                        <h3 className="text-[0.7rem] font-extrabold uppercase tracking-[0.18em] text-gray-500 mb-4">
                           {cat.label}
                         </h3>
                         <div className="grid sm:grid-cols-2 gap-4">

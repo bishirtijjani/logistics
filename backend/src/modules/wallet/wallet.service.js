@@ -45,127 +45,19 @@ const getWallet = async (userId) => {
 };
 
 /**
- * Peer-to-peer transfer — atomic debit sender + credit recipient.
- */
-const transfer = async (senderId, { recipientPhone, amount, description }) => {
-  const reference = `P2P-${uuidv4()}`;
-
-  const result = await prisma.$transaction(async (tx) => {
-    const senderWallet = await tx.wallet.findUnique({ where: { userId: senderId } });
-    if (!senderWallet) throw AppError.notFound('Sender wallet not found');
-    if (senderWallet.isLocked) throw AppError.forbidden('Wallet is frozen');
-
-    const senderBalance = Number(senderWallet.balance);
-
-    const recipient = await tx.user.findUnique({
-      where: { phone: recipientPhone },
-      include: { wallet: true },
-    });
-
-    if (!recipient || !recipient.wallet) throw AppError.notFound('Recipient not found', { code: 'RECIPIENT_NOT_FOUND' });
-    if (recipient.id === senderId) throw AppError.badRequest('Cannot transfer to yourself', { code: 'TRANSFER_TO_SELF' });
-    // A frozen recipient must not receive inbound funds — the freeze is a fraud
-    // lever; silently crediting it would defeat the lockdown.
-    if (recipient.wallet.isLocked) throw AppError.forbidden('Recipient wallet is frozen', { code: 'RECIPIENT_WALLET_FROZEN' });
-
-    const recipientBalance = Number(recipient.wallet.balance);
-
-    // Conditional debit: the WHERE is evaluated under the row lock the UPDATE
-    // takes, so concurrent debits serialize and the balance can never go negative.
-    // A read-then-decrement overdraws under READ COMMITTED (two requests both
-    // read the old balance, both pass the check, both decrement).
-    const debit = await tx.wallet.updateMany({
-      where: { id: senderWallet.id, isLocked: false, balance: { gte: amount } },
-      data: { balance: { decrement: amount } },
-    });
-    if (debit.count !== 1) throw AppError.insufficientBalance();
-    await tx.wallet.update({ where: { id: recipient.wallet.id }, data: { balance: { increment: amount } } });
-
-    await tx.transaction.create({
-      data: {
-        reference: `${reference}-DEBIT`,
-        type: 'P2P_TRANSFER_SENT',
-        status: 'COMPLETED',
-        amount,
-        description: description || `Transfer to ${recipientPhone}`,
-        debitWalletId: senderWallet.id,
-        creditWalletId: recipient.wallet.id,
-        balanceBefore: senderBalance,
-        balanceAfter: senderBalance - amount,
-        metadata: {
-          recipientPhone,
-          recipientName: `${recipient.firstName} ${recipient.lastName}`,
-          recipientId: recipient.id,
-        },
-      },
-    });
-
-    const creditTx = await tx.transaction.create({
-      data: {
-        reference: `${reference}-CREDIT`,
-        type: 'P2P_TRANSFER_RECEIVED',
-        status: 'COMPLETED',
-        amount,
-        description: description || `Transfer from ${senderWallet.userId}`,
-        debitWalletId: senderWallet.id,
-        creditWalletId: recipient.wallet.id,
-        balanceBefore: recipientBalance,
-        balanceAfter: recipientBalance + amount,
-      },
-    });
-
-    return {
-      transactionRef: reference,
-      amount,
-      recipientPhone,
-      recipientName: `${recipient.firstName} ${recipient.lastName}`,
-      recipientId: recipient.id,
-      recipientWalletId: recipient.wallet.id,
-      newBalance: senderBalance - amount,
-      creditTransaction: creditTx,
-    };
-  });
-
-  logger.info('P2P transfer completed', { senderId, recipientPhone, amount, reference });
-
-  // EVERYTHING below is post-commit. The money already moved, so a failure here
-  // must NEVER surface as a 5xx — that would make the idempotency layer release
-  // the key and a client retry would debit + credit a SECOND time. Wrap it all,
-  // log only, and always return the committed `result`.
-  try {
-    const senderWallet = await prisma.wallet.findUnique({ where: { userId: senderId }, select: { balance: true } });
-    if (senderWallet) notifyService.balanceUpdated(senderId, { balance: Number(senderWallet.balance) });
-    // Defensive read — the wallet could have been deleted concurrently; never
-    // dereference .balance on a possibly-null row.
-    const recipientWallet = await prisma.wallet.findUnique({ where: { id: result.recipientWalletId }, select: { balance: true } });
-    if (recipientWallet) notifyService.balanceUpdated(result.recipientId, { balance: Number(recipientWallet.balance) });
-    notifyService.transferReceived(result.recipientId, { amount, senderName: 'A user', reference });
-
-    notifyService.onWalletEvent(senderId, {
-      kind: 'TRANSFER_SENT',
-      amount,
-      transactionId: `${reference}-DEBIT`,
-      route: '/wallet',
-    }).catch((err) => logger.warn('TRANSFER_SENT notification failed', { error: err.message }));
-    notifyService.onWalletEvent(result.recipientId, {
-      kind: 'TRANSFER_RECEIVED',
-      amount,
-      transactionId: result.creditTransaction?.reference || `${reference}-CREDIT`,
-      senderName: 'A user',
-      route: '/wallet',
-    }).catch((err) => logger.warn('TRANSFER_RECEIVED notification failed', { error: err.message }));
-  } catch (err) {
-    logger.warn('P2P post-commit notification failed (transfer already committed)', { reference, error: err.message });
-  }
-
-  return result;
-};
-
-/**
  * Withdraw to bank account — atomic debit + queue disbursement.
+ *
+ * A "transfer to any bank account" is the same financial operation as a
+ * withdrawal (debit the wallet, queue a KatPay payout to a NUBAN); the only
+ * difference is how it reads to the user. `opts.kind === 'transfer'` flavours
+ * the reference, ledger description, metadata and notification copy without
+ * forking the payout/reversal/retry machinery — the payment worker keys off
+ * `reference`/`status` and the WITHDRAWAL type, so transfers ride the exact
+ * same rails (including the failed-payout retry path) for free.
  */
-const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accountName, amount }) => {
-  const reference = `WIT-${uuidv4()}`;
+const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accountName, amount }, opts = {}) => {
+  const isTransfer = opts.kind === 'transfer';
+  const reference = `${isTransfer ? 'TRF' : 'WIT'}-${uuidv4()}`;
 
   const result = await prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } });
@@ -188,10 +80,12 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
         type: 'WITHDRAWAL',
         status: 'PROCESSING',
         amount,
-        description: `Withdrawal to ${bankName || bankCode} - ${accountNumber}`,
+        description: isTransfer
+          ? `Transfer to ${accountName || accountNumber}`
+          : `Withdrawal to ${bankName || bankCode} - ${accountNumber}`,
         debitWalletId: wallet.id,
         provider: 'KATPAY',
-        metadata: { bankCode, bankName, accountNumber, accountName },
+        metadata: { bankCode, bankName, accountNumber, accountName, ...(isTransfer ? { kind: 'transfer' } : {}) },
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -246,24 +140,31 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
     throw AppError.internal('Your withdrawal is processing — please check your wallet shortly.');
   }
 
-  logger.info('Withdrawal initiated', { userId, amount, reference });
+  logger.info(`${isTransfer ? 'Transfer' : 'Withdrawal'} initiated`, { userId, amount, reference });
 
   const freshWallet = await prisma.wallet.findUnique({ where: { userId }, select: { balance: true } });
   notifyService.balanceUpdated(userId, { balance: Number(freshWallet.balance) });
 
-  // Notification: withdrawal is PROCESSING here. We surface a "withdrawal
-  // initiated" entry; the payment worker will create another row when the
-  // payout actually clears.
+  // Notification: the payout is PROCESSING here. We surface an "initiated"
+  // entry; the payment worker will create another row when the payout clears.
   notifyService.onWalletEvent(userId, {
     kind: 'WALLET',
     amount,
     transactionId: reference,
     route: '/wallet',
-    description: `Withdrawal of ₦${Number(amount).toLocaleString('en-NG')} initiated`,
-  }).catch((err) => logger.warn('Withdrawal-initiated notification failed', { error: err.message }));
+    description: isTransfer
+      ? `Transfer of ₦${Number(amount).toLocaleString('en-NG')} to ${accountName || accountNumber} initiated`
+      : `Withdrawal of ₦${Number(amount).toLocaleString('en-NG')} initiated`,
+  }).catch((err) => logger.warn(`${isTransfer ? 'Transfer' : 'Withdrawal'}-initiated notification failed`, { error: err.message }));
 
   return result;
 };
+
+/**
+ * Transfer wallet funds to any bank account. Thin alias over `withdrawToBank` —
+ * see that function for why the two share a rail.
+ */
+const transferToBank = (userId, params) => withdrawToBank(userId, params, { kind: 'transfer' });
 
 /**
  * Process wallet funding from KatPay webhook.
@@ -551,7 +452,7 @@ const retryVirtualAccountProvisioning = async (userId) => {
 
 module.exports = {
   getWallet,
-  transfer,
+  transferToBank,
   withdrawToBank,
   fundWallet,
   initiateTransferPaymentFunding,

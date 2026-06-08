@@ -20,8 +20,8 @@ const getWallet = async (req, res, next) => {
 const transfer = async (req, res, next) => {
   try {
     await authService.verifyTransactionPin(req.user.id, req.body.pin);
-    const result = await walletService.transfer(req.user.id, req.body);
-    res.json(ApiResponse.success('Transfer successful', result));
+    const result = await walletService.transferToBank(req.user.id, req.body);
+    res.json(ApiResponse.success('Transfer processing', result));
   } catch (error) {
     next(error);
   }

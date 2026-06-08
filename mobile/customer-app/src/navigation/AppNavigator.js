@@ -18,6 +18,14 @@ import {
 import { subscribeSocketToStore } from "../services/notificationsBus";
 import { routeToScreen, parseDeepLink } from "../lib/notificationRoute";
 import {
+  parseIntentFromUrl,
+  setPendingIntent,
+  getPendingIntent,
+  clearPendingIntent,
+  hydratePendingIntent,
+  actionForIntent,
+} from "../lib/pendingIntent";
+import {
   isBiometricAvailable,
   isBiometricEnabled,
   authenticateWithBiometric,
@@ -166,15 +174,40 @@ export default function AppNavigator() {
   const currentRequestIdRef = useRef(currentRequestId);
   useEffect(() => { currentRequestIdRef.current = currentRequestId; }, [currentRequestId]);
 
+  // Mirror auth + biometric gate into refs so replayPendingIntent (called from
+  // async callbacks and onNavReady) reads current values without stale closures.
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => { isAuthenticatedRef.current = isAuthenticated; }, [isAuthenticated]);
+
   // Biometric gate states:
   //   'pending'  — checking whether to prompt
   //   'required' — user enabled biometrics; show locked screen + retry
   //   'passed'   — authenticated this session; main UI may render
   const [bioGate, setBioGate] = useState("pending");
+  const bioGateRef = useRef(bioGate);
+  useEffect(() => { bioGateRef.current = bioGate; }, [bioGate]);
 
   // Push-tap that arrived before NavigationContainer was ready. Replayed on
   // first render of the authenticated stack.
   const pendingActionRef = useRef(null);
+
+  // Navigate to a pending order intent (from a `?intent=` web entry link) once
+  // the user is authenticated, past the biometric gate, and the navigator is
+  // ready. Idempotent — clears the intent so it fires at most once. No-op when
+  // there's no intent (every normal native open), or when called too early
+  // (a later trigger — onNavReady or the post-login effect — will retry).
+  function replayPendingIntent() {
+    const intent = getPendingIntent();
+    if (!intent) return;
+    if (!isAuthenticatedRef.current || bioGateRef.current !== "passed") return;
+    if (!navigationRef.current?.isReady?.()) return;
+    const action = actionForIntent(intent);
+    clearPendingIntent();
+    if (!action) return;
+    try {
+      navigationRef.current.navigate(action.name, action.params);
+    } catch (_) {}
+  }
 
   useEffect(() => {
     dispatch(hydrateAuth());
@@ -213,11 +246,31 @@ export default function AppNavigator() {
       if (initialUrl) {
         const action = parseDeepLink(initialUrl);
         if (action) pendingActionRef.current = action;
+        // Marketing-site order intent (`?intent=food` etc.). On native opens
+        // there's no such param, so this stays null and nothing changes.
+        const intent = parseIntentFromUrl(initialUrl);
+        if (intent) setPendingIntent(intent);
       }
+      // Recover an intent persisted across a hard web reload that dropped the
+      // query string. If already signed in, fire it now; otherwise it waits
+      // for the post-login effect below.
+      await hydratePendingIntent();
+      replayPendingIntent();
     })();
 
     return () => sub.remove();
   }, []);
+
+  // Replay a pending order intent once the user signs in and clears the
+  // biometric gate — this is the logged-out → login → resume path. Deferred a
+  // tick because the isAuthenticated flip re-renders the navigator in the same
+  // commit, so the authenticated stack's screens must register first.
+  useEffect(() => {
+    if (!isAuthenticated || bioGate !== "passed") return undefined;
+    if (!getPendingIntent()) return undefined;
+    const id = setTimeout(() => replayPendingIntent(), 0);
+    return () => clearTimeout(id);
+  }, [isAuthenticated, bioGate]);
 
   // After hydration, decide whether the user must pass a biometric prompt
   // before seeing the main UI. Skipped entirely for unauthenticated users
@@ -411,6 +464,10 @@ export default function AppNavigator() {
       pendingActionRef.current = null;
       try { navigationRef.current.navigate(action.name, action.params); } catch (_) {}
     }
+
+    // Fire an order intent that was captured before the navigator was ready
+    // (already-authed cold start from a `?intent=` link).
+    replayPendingIntent();
   };
 
   const onNavStateChange = () => {
@@ -428,17 +485,7 @@ export default function AppNavigator() {
       onReady={onNavReady}
       onStateChange={onNavStateChange}
     >
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          // Opaque per-screen container so native-stack slide transitions
-          // don't reveal the previous screen through the incoming one. The
-          // navigation theme's `background` is intentionally transparent for
-          // BackgroundPattern (see theme/navigationTheme.js); this overrides
-          // that on the screen content layer only.
-          contentStyle: { backgroundColor: tokens.bg.canvas },
-        }}
-      >
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           // Main App
           <>

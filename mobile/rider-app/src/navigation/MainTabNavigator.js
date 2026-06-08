@@ -46,6 +46,11 @@ export default function MainTabNavigator() {
 
   return (
     <Tab.Navigator
+      // Opaque per-scene background. bottom-tabs does NOT apply the navigation
+      // theme's `background` to tab scenes — they're transparent by default — so
+      // without this, web tab switches briefly reveal the other tabs' content
+      // through the incoming screen. `sceneStyle` is the intended API for it.
+      sceneStyle={{ backgroundColor: tokens.bg.canvas }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: true,

@@ -13,15 +13,6 @@ const amountField = z.coerce
   .max(100_000_000, 'Amount exceeds the maximum allowed')
   .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'Amount cannot have more than 2 decimal places');
 
-const transferSchema = z.object({
-  recipientPhone: z
-    .string()
-    .regex(/^0[789][01]\d{8}$/, 'Invalid Nigerian phone number'),
-  amount: amountField,
-  description: z.string().max(200).optional(),
-  pin: z.string().length(6),
-});
-
 const withdrawSchema = z.object({
   bankCode: z.string().min(3).max(10),
   bankName: z.string().min(1).max(80).optional(),
@@ -30,6 +21,11 @@ const withdrawSchema = z.object({
   amount: amountField,
   pin: z.string().length(6),
 });
+
+// A transfer is a bank disbursement — same payload as a withdrawal (we route it
+// to the same rail in the service). Kept as a named export so the route reads
+// intentionally even though the shape is identical to withdrawSchema today.
+const transferSchema = withdrawSchema;
 
 const verifyAccountSchema = z.object({
   bankCode: z.string().min(3).max(10),

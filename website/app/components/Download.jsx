@@ -1,8 +1,6 @@
-"use client";
-
 import Image from "next/image";
-import { useState } from "react";
-import WaitlistModal from "./WaitlistModal";
+import { ArrowUpRight, Truck } from "lucide-react";
+import { APP_URL, RIDER_URL } from "../lib/links";
 
 const screens = [
   {
@@ -29,11 +27,6 @@ const screens = [
 ];
 
 export default function Download() {
-  const [modal, setModal] = useState({ open: false, platform: "UNKNOWN" });
-
-  const openWaitlist = (platform) =>
-    setModal({ open: true, platform });
-
   return (
     <section
       className="ui-section bg-text-primary text-white overflow-hidden relative"
@@ -42,53 +35,39 @@ export default function Download() {
       <div className="ui-container relative z-10">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="inline-flex font-mono text-[0.7rem] uppercase tracking-widest px-3.5 py-1.5 rounded-full text-accent bg-accent/15 font-extrabold border border-accent/30 mb-5">
-            Get the app
+            Get started
           </div>
 
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-[1.05] mb-6">
             Order, track, pay —{" "}
-            <span className="text-accent">in your pocket.</span>
+            <span className="text-accent">in your browser.</span>
           </h2>
 
           <p className="text-base md:text-lg text-white/60 font-medium leading-relaxed mb-8 max-w-xl mx-auto">
-            Available on iOS and Android. Sign up with your phone number and
-            place your first delivery in under two minutes.
+            No install needed — iPrime runs right on the web. Sign up with your
+            phone number and place your first delivery in under two minutes.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-4 justify-center items-center">
-            <button
-              type="button"
-              onClick={() => openWaitlist("IOS")}
-              aria-label="Join the iOS waitlist"
-              className="inline-block transition-transform hover:-translate-y-0.5 bg-transparent border-0 p-0 cursor-pointer"
+            <a
+              href={APP_URL}
+              className="ui-btn ui-btn-primary"
             >
-              <img
-                src="/images/ios-app-store-btn.svg"
-                alt="Download on the App Store"
-                width={150}
-                height={50}
-                className="h-[50px] w-auto"
-              />
-            </button>
+              Open the customer app
+              <ArrowUpRight size={18} strokeWidth={2.5} />
+            </a>
 
-            <button
-              type="button"
-              onClick={() => openWaitlist("ANDROID")}
-              aria-label="Join the Android waitlist"
-              className="inline-block transition-transform hover:-translate-y-0.5 bg-transparent border-0 p-0 cursor-pointer"
+            <a
+              href={RIDER_URL}
+              className="ui-btn bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:-translate-y-px"
             >
-              <img
-                src="/images/google-play-btn.svg"
-                alt="Get it on Google Play"
-                width={167}
-                height={50}
-                className="h-[50px] w-auto"
-              />
-            </button>
+              <Truck size={18} strokeWidth={2.5} />
+              Deliver with iPrime
+            </a>
           </div>
 
           <p className="text-xs text-white/40 font-semibold">
-            Coming soon — tap a button to join the launch waitlist.
+            Works on any phone or computer — iOS &amp; Android apps coming soon.
           </p>
         </div>
 
@@ -119,14 +98,6 @@ export default function Download() {
           </div>
         </div>
       </div>
-
-      <WaitlistModal
-        open={modal.open}
-        onClose={() => setModal((m) => ({ ...m, open: false }))}
-        role="CUSTOMER"
-        platform={modal.platform}
-        source="/#download"
-      />
     </section>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { Menu, X, ArrowRight, Truck } from "lucide-react";
+import { Menu, X, ArrowUpRight, Truck } from "lucide-react";
 import { useState, useEffect } from "react";
+import { APP_URL } from "../lib/links";
 
 const navLinks = [
   { name: "Features", href: "/#features" },
@@ -58,10 +59,10 @@ export default function Header() {
 
           <div className="flex gap-3 items-center shrink-0">
             <a
-              href="/#download"
+              href={APP_URL}
               className="ui-btn ui-btn-primary !px-5 !py-2.5 !text-[0.85rem]"
             >
-              Get the App
+              Open app
             </a>
 
             <button
@@ -98,12 +99,12 @@ export default function Header() {
 
         <div className="mt-auto flex flex-col gap-4">
           <a
-            href="/#download"
+            href={APP_URL}
             onClick={() => setIsMenuOpen(false)}
             className="ui-btn ui-btn-primary p-5 text-[1.1rem] font-extrabold rounded-2xl flex justify-center !w-full"
           >
-            Get the App
-            <ArrowRight size={22} className="ml-2" />
+            Open app
+            <ArrowUpRight size={22} className="ml-2" />
           </a>
         </div>
       </div>

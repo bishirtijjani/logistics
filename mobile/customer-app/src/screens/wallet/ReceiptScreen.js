@@ -36,17 +36,12 @@ const STATUS_COLOR = {
 function getRepeatTarget(transaction) {
   const meta = transaction?.metadata || {};
   switch (transaction?.type) {
-    case "P2P_TRANSFER_SENT":
-      return {
-        screen: "SendMoney",
-        params: {
-          recipientPhone: meta.recipientPhone,
-          amount: Number(transaction.amount),
-        },
-      };
     case "WITHDRAWAL":
+      // Transfers ride the WITHDRAWAL type tagged with metadata.kind; route a
+      // "repeat" back to whichever flow the user originally used so the prefill
+      // and copy match. Both screens take the same bank params.
       return {
-        screen: "Withdraw",
+        screen: meta.kind === "transfer" ? "SendMoney" : "Withdraw",
         params: {
           bankCode: meta.bankCode,
           bankName: meta.bankName,

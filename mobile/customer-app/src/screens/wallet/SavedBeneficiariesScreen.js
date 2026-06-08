@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -32,15 +32,14 @@ export default function SavedBeneficiariesScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { beneficiaries, isLoading } = useSelector((s) => s.wallet);
-  const [tab, setTab] = useState("phone"); // phone | bank
 
   useEffect(() => {
     dispatch(fetchBeneficiaries());
   }, [dispatch]);
 
-  const phoneBeneficiaries = beneficiaries.filter((b) => b.phone);
-  const bankBeneficiaries = beneficiaries.filter((b) => b.bankCode);
-  const list = tab === "phone" ? phoneBeneficiaries : bankBeneficiaries;
+  // Bank accounts only. Legacy phone (P2P) beneficiaries are no longer usable
+  // now that transfers go to bank accounts, so they're filtered out entirely.
+  const list = beneficiaries.filter((b) => b.bankCode && b.accountNumber);
 
   const handleDelete = (b) => {
     Alert.alert(
@@ -63,15 +62,12 @@ export default function SavedBeneficiariesScreen({ navigation }) {
   };
 
   const handleUse = (b) => {
-    if (tab === "phone") {
-      navigation.navigate("SendMoney", { prefillPhone: b.phone, prefillName: b.name });
-    } else {
-      navigation.navigate("Withdraw", {
-        prefillBank: { bankCode: b.bankCode, bankName: b.bankCode },
-        prefillAccount: b.accountNumber,
-        prefillName: b.accountName || b.name,
-      });
-    }
+    navigation.navigate("SendMoney", {
+      bankCode: b.bankCode,
+      bankName: b.bankName,
+      accountNumber: b.accountNumber,
+      accountName: b.accountName || b.name,
+    });
   };
 
   return (
@@ -92,44 +88,13 @@ export default function SavedBeneficiariesScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Tabs */}
-      <View style={{ flexDirection: "row", paddingHorizontal: 20, marginTop: 16, marginBottom: 8 }} accessibilityRole="tablist">
-        {["phone", "bank"].map((tabKey) => {
-          const selected = tab === tabKey;
-          const label = tabKey === "phone"
-            ? t("wallet.beneficiaries.tabPhone")
-            : t("wallet.beneficiaries.tabBank");
-          return (
-            <TouchableOpacity
-              key={tabKey}
-              onPress={() => setTab(tabKey)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected }}
-              accessibilityLabel={label}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                alignItems: "center",
-                borderRadius: 10,
-                backgroundColor: selected ? colors.primary : colors.surface,
-                marginRight: tabKey === "phone" ? 8 : 0,
-              }}
-            >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.textMuted }}>
-                {label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
       {isLoading && list.length === 0 ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} accessibilityLabel={t("common.loading")} />
       ) : list.length === 0 ? (
         <EmptyState
           icon="people-outline"
-          title={tab === "phone" ? t("wallet.beneficiaries.noPhoneTitle") : t("wallet.beneficiaries.noBankTitle")}
-          subtitle={tab === "phone" ? t("wallet.beneficiaries.noPhoneHint") : t("wallet.beneficiaries.noBankHint")}
+          title={t("wallet.beneficiaries.noBankTitle")}
+          subtitle={t("wallet.beneficiaries.noBankHint")}
         />
       ) : (
         <FlatList
@@ -152,14 +117,8 @@ export default function SavedBeneficiariesScreen({ navigation }) {
                   <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }} numberOfLines={1}>
                     {title}
                   </Text>
-                  {tab === "phone" ? (
-                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{item.phone}</Text>
-                  ) : (
-                    <>
-                      <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{item.accountNumber}</Text>
-                      <Text style={{ fontSize: 11, color: colors.primaryStrong, marginTop: 1 }}>{item.bankCode}</Text>
-                    </>
-                  )}
+                  <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{item.accountNumber}</Text>
+                  <Text style={{ fontSize: 11, color: colors.primaryStrong, marginTop: 1 }}>{item.bankName || item.bankCode}</Text>
                 </View>
 
                 {/* Actions */}
@@ -167,11 +126,11 @@ export default function SavedBeneficiariesScreen({ navigation }) {
                   <TouchableOpacity
                     onPress={() => handleUse(item)}
                     accessibilityRole="button"
-                    accessibilityLabel={tab === "phone" ? t("wallet.beneficiaries.send") : t("wallet.beneficiaries.withdraw")}
+                    accessibilityLabel={t("wallet.beneficiaries.send")}
                     style={{ backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
                   >
                     <Text style={{ color: colors.white, fontWeight: "700", fontSize: 12 }}>
-                      {tab === "phone" ? t("wallet.beneficiaries.send") : t("wallet.beneficiaries.withdraw")}
+                      {t("wallet.beneficiaries.send")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity

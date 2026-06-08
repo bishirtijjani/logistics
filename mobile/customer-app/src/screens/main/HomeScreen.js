@@ -35,7 +35,6 @@ import {
   MaterialCommunityIcons,
   FontAwesome5,
 } from "@expo/vector-icons";
-import Toast from "react-native-toast-message";
 
 // UNIFIED REQUEST ARCHITECTURE
 // Everything is a Request. The category list is data-driven from /categories;
@@ -133,7 +132,7 @@ const vtuServices = [
   {
     id: "v4",
     key: "transfer",
-    screen: null,
+    screen: "SendMoney",
     icon: "swap-horizontal-outline",
     color: "#059669",
     type: "Ionicons",
@@ -673,12 +672,6 @@ export default function HomeScreen({ navigation }) {
             const handlePress = (item) => {
               if (item.screen) {
                 navigation.navigate(item.screen);
-              } else if (item.key === "transfer") {
-                Toast.show({
-                  type: "info",
-                  text1: t("common.comingSoon"),
-                  text2: t("utility.transferComingSoon"),
-                });
               }
             };
             return (

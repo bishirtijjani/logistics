@@ -8,7 +8,10 @@ export function buildNavigationTheme(tokens, isDark) {
     colors: {
       ...base.colors,
       primary: tokens.brand.default,
-      background: 'transparent',
+      // Screen/canvas background for the navigators (the themed root View in
+      // App.js paints the same color behind everything). bottom-tabs ignores
+      // this and sets its scene background via `sceneStyle` instead.
+      background: tokens.bg.canvas,
       card: tokens.bg.surface,
       text: tokens.text.primary,
       border: tokens.border.default,

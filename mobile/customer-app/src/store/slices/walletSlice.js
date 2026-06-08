@@ -86,13 +86,16 @@ const pinErrorPayload = (error) => ({
   code: error?.code ?? null,
 });
 
+// Send money = transfer to any bank account. Same payload + rail as a
+// withdrawal on the backend (debit wallet → KatPay payout); kept as its own
+// thunk so the Send flow reads distinctly from Withdraw in the UI.
 export const sendMoney = createAsyncThunk(
   "wallet/sendMoney",
-  async ({ recipientPhone, amount, description, pin }, { rejectWithValue }) => {
+  async ({ bankCode, bankName, accountNumber, accountName, amount, pin }, { rejectWithValue }) => {
     try {
       const response = await api.post(
         "/wallet/transfer",
-        { recipientPhone, amount, description, pin },
+        { bankCode, bankName, accountNumber, accountName, amount, pin },
         { headers: { "Idempotency-Key": newIdempotencyKey() } },
       );
       return response.data;

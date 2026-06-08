@@ -37,7 +37,7 @@ export default function HelpSidebar({ roles, categories, guides, current }) {
                 key={r.id}
                 href={fg ? `/help/${fg.role}/${fg.slug}/` : "/help"}
                 className={`flex-1 text-center px-2 py-1.5 rounded-lg text-xs font-bold no-underline transition-colors ${
-                  active ? "bg-white shadow-sm text-accent" : "text-gray-500 hover:text-gray-800"
+                  active ? "bg-white shadow-sm text-accent" : "text-gray-600 hover:text-gray-900"
                 }`}
               >
                 {r.label.replace(/^For\s+/, "")}
@@ -62,7 +62,7 @@ export default function HelpSidebar({ roles, categories, guides, current }) {
         if (items.length === 0) return null;
         return (
           <div key={cat.id} className="mb-6">
-            <p className="text-[0.65rem] font-extrabold uppercase tracking-widest text-gray-400 mb-2">
+            <p className="text-[0.65rem] font-extrabold uppercase tracking-widest text-gray-500 mb-2">
               {cat.label}
             </p>
             <ul className="space-y-0.5">

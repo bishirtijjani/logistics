@@ -1,5 +1,6 @@
 import Header from "./components/Header";
 import Hero from "./components/Hero";
+import ProductShowcase from "./components/ProductShowcase";
 import Features from "./components/Features";
 import HowItWorks from "./components/HowItWorks";
 import Audience from "./components/Audience";
@@ -43,6 +44,7 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <Hero />
+        <ProductShowcase />
         <Features />
         <HowItWorks />
         <Audience />

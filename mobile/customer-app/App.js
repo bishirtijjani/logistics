@@ -23,7 +23,6 @@ import { ErrorBoundary } from "react-error-boundary";
 import { registerForceLogout } from "./src/services/api";
 import { forceLogout as forceLogoutAction } from "./src/store/slices/authSlice";
 import { ThemeProvider, useTheme } from "./src/theme";
-import BackgroundPattern from "./src/components/BackgroundPattern";
 import { useToastConfig } from "./src/components/toastShared";
 import AlertHost from "./src/components/AlertHost";
 import { installWebAlert } from "./src/lib/safeAlert";
@@ -48,10 +47,8 @@ LogBox.ignoreLogs(["ViewPropTypes will be removed"]);
 LogBox.ignoreAllLogs();
 
 // Themed toast — built inside ThemeProvider so the pill bg flips with mode.
-// Wrapped in a position:absolute + elevation View so on Android the toast
-// paints ABOVE the navigator (whose container in ThemedRoot uses elevation: 1
-// to sit above BackgroundPattern). Without the higher elevation here the
-// navigator's native layer would cover the toast.
+// Wrapped in an absolute-fill View with a high elevation/zIndex so the toast
+// paints ABOVE the navigator on both platforms.
 // `pointerEvents="box-none"` lets taps on empty area fall through to the
 // navigator underneath while the toast pill itself still receives swipes.
 // Sheets that mount their own RN-<Modal> stack a sibling <InModalToast />
@@ -75,21 +72,14 @@ function ThemedStatusBar() {
   return <StatusBar style={isDark ? "light" : "dark"} />;
 }
 
-// Root canvas: provides the app-wide background color and renders the
-// BackgroundPattern BEHIND its children. Because the navigation theme and
-// screen-level containers are transparent (see theme/index.js + navigationTheme.js),
-// the pattern shows through every screen — cards/headers keep their own opaque
-// fills and cover the pattern locally.
+// Root canvas: paints the app-wide background color behind every screen. The
+// navigators sit on top of it — native-stack inherits this color via the
+// navigation theme, and each bottom-tab scene sets the same color via its
+// `sceneStyle` (bottom-tabs doesn't read the theme background).
 function ThemedRoot({ children }) {
   const { tokens } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
-      {/* <BackgroundPattern /> — temporarily omitted, component preserved. */}
-      {/* Explicit zIndex/elevation keeps the navigator ABOVE the absolutely-
-          positioned pattern. RN otherwise renders absolute siblings on top of
-          relative ones regardless of source order. */}
-      <View style={{ flex: 1, zIndex: 1, elevation: 1 }}>{children}</View>
-    </View>
+    <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>{children}</View>
   );
 }
 

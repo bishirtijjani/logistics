@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
+import { useTheme } from "../theme";
 
 // Screens
 import HomeScreen from "../screens/main/HomeScreen";
@@ -16,6 +17,7 @@ const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
   const insets = useSafeAreaInsets();
+  const { tokens } = useTheme();
   // Cart badge = total units, not lines, since "3× Burger" should read as 3
   // items not 1. Pulled inline so the badge live-updates without rerendering
   // the whole tab navigator's screenOptions.
@@ -23,6 +25,11 @@ export default function MainTabNavigator() {
 
   return (
     <Tab.Navigator
+      // Opaque per-scene background. bottom-tabs does NOT apply the navigation
+      // theme's `background` to tab scenes — they're transparent by default — so
+      // without this, web tab switches briefly reveal the other tabs' content
+      // through the incoming screen. `sceneStyle` is the intended API for it.
+      sceneStyle={{ backgroundColor: tokens.bg.canvas }}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {

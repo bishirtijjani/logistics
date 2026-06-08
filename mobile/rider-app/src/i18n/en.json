@@ -715,8 +715,6 @@
     "data": "Data",
     "electricity": "Electricity",
     "cable": "Cable",
-    "transfer": "Transfer",
-    "transferComingSoon": "P2P transfers will be available soon!",
     "purchasing": "Processing…",
     "pickProvider": "Choose provider",
     "amount": "Amount",

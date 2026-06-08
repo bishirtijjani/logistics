@@ -26,10 +26,9 @@ export const colors = {
   primary:       light.brand.default,
   primaryStrong: light.brand.strong,
   dark:          light.bg.elevated,
-  // Outer screen containers read this; flipping to `transparent` lets the
-  // app-wide BackgroundPattern (mounted in App.js behind NavigationContainer)
-  // show through every screen without touching the screens individually.
-  // Cards / headers / modals still set their own opaque fills.
+  // Legacy outer-container background. Kept `transparent` so pre-migration
+  // screens inherit the opaque canvas painted by the navigator scene + the
+  // root View in App.js. Cards / headers / modals set their own opaque fills.
   background:    'transparent',
   surface:       light.bg.surface,
   surfaceMuted:  light.bg.surfaceMuted,
