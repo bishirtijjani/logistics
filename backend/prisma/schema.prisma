@@ -352,6 +352,7 @@ model Rider {
   status           RiderStatus       @default(PENDING_APPROVAL)
   availability     RiderAvailability @default(OFFLINE)
   suspensionReason String? /// Set when an admin suspends the rider; cleared on unsuspend
+  rejectionReason  String? /// Set when an admin rejects the application; cleared on re-upload / re-approval
 
   // Performance
   averageRating   Float   @default(0)

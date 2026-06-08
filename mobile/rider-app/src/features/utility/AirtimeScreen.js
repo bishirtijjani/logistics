@@ -289,7 +289,7 @@ export default function AirtimeScreen({ navigation }) {
         onClose={() => setShowPinSheet(false)}
         onConfirm={handlePinConfirm}
         onForgotPin={() => { setShowPinSheet(false); navigation.navigate("ChangePin"); }}
-        onSetupPin={() => navigation.navigate("ChangePin")}
+        onSetupPin={() => navigation.navigate("SetPin")}
         title={t("utility.airtimeScreen.pinTitle")}
         subtitle={t("utility.airtimeScreen.pinSubtitle", { amount: naira(amount), network: selectedNetwork?.networkName || "" })}
       />

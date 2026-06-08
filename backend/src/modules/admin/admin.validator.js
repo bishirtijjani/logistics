@@ -42,6 +42,7 @@ const getAuditLogsSchema = z.object({
 
 const reviewRiderSchema = z.object({
   decision: z.enum(['approve', 'reject']),
+  reason: z.string().max(500).optional(),
 });
 
 const suspendRiderSchema = z.object({

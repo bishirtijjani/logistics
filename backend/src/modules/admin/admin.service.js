@@ -37,33 +37,56 @@ const getPendingRiders = async ({ page = 1, limit = 20 }) => {
 /**
  * Approve or reject a rider.
  */
-const reviewRider = async (riderId, decision, adminUserId, ipAddress, userAgent) => {
+const reviewRider = async (riderId, decision, adminUserId, ipAddress, userAgent, reason) => {
   const rider = await prisma.rider.findUnique({ where: { id: riderId } });
   if (!rider) throw AppError.notFound('Rider not found');
   if (rider.status !== 'PENDING_APPROVAL') {
     throw AppError.badRequest('Rider already reviewed');
   }
 
-  const newStatus = decision === 'approve' ? 'APPROVED' : 'REJECTED';
+  const approved = decision === 'approve';
+  const newStatus = approved ? 'APPROVED' : 'REJECTED';
 
   const updated = await prisma.rider.update({
     where: { id: riderId },
-    data: { status: newStatus },
+    data: {
+      status: newStatus,
+      // Persist the reviewer's note on reject so the rider sees why in-app;
+      // always clear it on approve.
+      rejectionReason: approved ? null : (reason || null),
+    },
   });
 
   await createAuditLog(
     adminUserId,
-    decision === 'approve' ? 'APPROVE_RIDER' : 'REJECT_RIDER',
+    approved ? 'APPROVE_RIDER' : 'REJECT_RIDER',
     'RIDER',
     riderId,
-    { decision: newStatus },
+    { decision: newStatus, ...(reason && !approved ? { reason } : {}) },
     ipAddress,
     userAgent
   );
 
   logger.info('Rider reviewed', { riderId, decision: newStatus });
 
-  // TODO: Send push notification to rider
+  // Notify the rider so their app reflects the outcome without waiting for a
+  // manual refresh (the mobile notificationsBus refetches the rider profile on
+  // RIDER_APPROVED / RIDER_REJECTED, which drives the OnboardingHero stage).
+  try {
+    const notifyService = require('../../services/notify.service');
+    await notifyService.pushAndSocket(rider.userId, {
+      type: approved ? 'RIDER_APPROVED' : 'RIDER_REJECTED',
+      title: approved ? "You're approved!" : 'Application update',
+      body: approved
+        ? 'Welcome aboard. You can go online and start receiving offers now.'
+        : (reason
+            ? `Your application needs changes: ${reason}`
+            : "Your application wasn't approved. Open the app to update your documents."),
+      data: { route: '/home', kind: 'rider-status', status: newStatus },
+    });
+  } catch (err) {
+    logger.warn('Failed to notify rider of review outcome', { riderId, error: err.message });
+  }
 
   return updated;
 };

@@ -23,7 +23,8 @@
     "comingSoon": "Coming soon",
     "currency": "₦",
     "perKm": "/km",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "dismiss": "Dismiss"
   },
   "onboarding": {
     "stepLabel": "STEP 1 OF 4",
@@ -268,7 +269,10 @@
     },
     "package": "Package",
     "packageDescription": "Send or receive packages",
-    "shops": "Shops"
+    "shops": "Shops",
+    "pinPromptTitle": "Secure your wallet",
+    "pinPromptBody": "Set a 6-digit PIN to withdraw and pay bills.",
+    "pinPromptCta": "Set PIN"
   },
   "tabs": {
     "home": "Home",
@@ -1523,7 +1527,10 @@
       "week": "Week",
       "month": "Month",
       "allTime": "All time"
-    }
+    },
+    "onboardEmptyTitle": "No earnings yet",
+    "onboardEmptyBody": "Finish setting up your rider profile to start receiving jobs and earning.",
+    "onboardEmptyCta": "Get started"
   },
   "transactions": {
     "title": "Transactions",
@@ -1616,7 +1623,17 @@
       "security": "Security",
       "preferences": "Preferences",
       "support": "Support"
-    }
+    },
+    "kycNone": "Become a rider",
+    "kycNoneSub": "Start your application",
+    "kycDraft": "Finish your application",
+    "kycPending": "Application under review",
+    "kycPendingSub": "We'll notify you when approved",
+    "kycRejected": "Application needs changes",
+    "kycRejectedSub": "Update your documents and resubmit",
+    "badgeStart": "Start",
+    "badgeAction": "Action needed",
+    "badgePending": "Pending"
   },
   "vehicleInfo": {
     "title": "Vehicle details",
@@ -1649,7 +1666,11 @@
     "uploaded": "Document updated",
     "uploadFailed": "Upload failed",
     "expiredBanner": "One or more documents have expired. Re-upload to keep working.",
-    "expiringBanner": "Some documents expire within 14 days. Re-upload soon to avoid interruptions."
+    "expiringBanner": "Some documents expire within 14 days. Re-upload soon to avoid interruptions.",
+    "noApplicationTitle": "Start your rider application",
+    "noApplicationBody": "Apply to become a rider first — you'll add your documents as part of the application.",
+    "startApplication": "Become a rider",
+    "continueApplication": "Continue application"
   },
   "offline": {
     "banner": "You're offline — actions will retry when you reconnect.",
@@ -1688,5 +1709,24 @@
     "shareUnavailableSub": "Take a screenshot to share manually.",
     "shareFailed": "Couldn't share",
     "notFound": "Transaction not found"
+  },
+  "onboardingHero": {
+    "noneTitle": "Start earning as a rider",
+    "noneBody": "Deliver on your own schedule and cash out anytime. Set up your rider profile to start receiving jobs.",
+    "benefit1": "Get paid per delivery, withdraw anytime",
+    "benefit2": "Work the hours that suit you",
+    "benefit3": "Takes a few minutes to set up",
+    "noneCta": "Get started",
+    "draftTitle": "Finish your application",
+    "draftBody": "You're partway there. Pick up where you left off and start earning.",
+    "stepProgress": "Step {{n}} of 4",
+    "draftCta": "Continue application",
+    "pendingTitle": "Application under review",
+    "pendingBody": "We're reviewing your documents — usually within a few hours. We'll notify you the moment you're approved.",
+    "submitted": "Submitted",
+    "checkStatus": "Check status",
+    "rejectedTitle": "Your application needs changes",
+    "rejectedBody": "Some details couldn't be verified. Update the affected documents and resubmit to try again.",
+    "rejectedCta": "Update & resubmit"
   }
 }

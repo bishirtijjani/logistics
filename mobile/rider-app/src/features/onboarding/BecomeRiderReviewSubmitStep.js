@@ -68,7 +68,8 @@ function DocPreview({ label, url, tokens }) {
 
 /**
  * Final onboarding step. Read-only summary + Submit CTA.
- * On success, AppNavigator's role-gate routes to PendingApprovalScreen.
+ * On success, resets the stack to MainTabs (there's no onboarding wall anymore);
+ * the Home OnboardingHero then shows the PENDING ("under review") state.
  */
 export default function BecomeRiderReviewSubmitStep() {
   const { tokens } = useTheme();
@@ -96,8 +97,11 @@ export default function BecomeRiderReviewSubmitStep() {
         text1: t("onboarding.submittedToast", "Application submitted"),
         text2: t("onboarding.submittedToastSub", "We'll review it shortly."),
       });
-      // Refresh rider profile so AppNavigator's role gate flips to PENDING_APPROVAL.
+      // Refresh rider profile so the rider status reflects PENDING_APPROVAL.
       await dispatch(fetchRiderProfile());
+      // There's no onboarding wall to catch us anymore — return to Home, where
+      // the OnboardingHero now shows the "under review" (PENDING) state.
+      navigation.reset({ index: 0, routes: [{ name: "MainTabs" }] });
     } else {
       Toast.show({
         type: "error",

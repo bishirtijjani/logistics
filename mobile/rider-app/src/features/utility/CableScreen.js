@@ -225,7 +225,7 @@ export default function CableScreen({ navigation }) {
         onClose={() => setShowPinSheet(false)}
         onConfirm={handlePinConfirm}
         onForgotPin={() => { setShowPinSheet(false); navigation.navigate("ChangePin"); }}
-        onSetupPin={() => navigation.navigate("ChangePin")}
+        onSetupPin={() => navigation.navigate("SetPin")}
         title={t("utility.cableScreen.pinTitle")}
         subtitle={selectedPlan ? t("utility.cableScreen.pinSubtitle", { plan: selectedPlan.name, name: customerName }) : ""}
       />

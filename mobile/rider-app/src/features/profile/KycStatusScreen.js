@@ -33,6 +33,7 @@ import { pickImage } from "../support/supportUploads";
 import { reuploadRiderDocument } from "../../store/slices/profileSlice";
 import { fetchRiderProfile } from "../../store/slices/riderSlice";
 import DatePickerField from "../../components/DatePickerField";
+import { useOnboardingStage, ONBOARDING_STAGE } from "../../lib/useOnboardingStage";
 
 const WARN_WINDOW_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -129,6 +130,7 @@ export default function KycStatusScreen() {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const rider = useSelector((s) => s.rider?.rider) || {};
+  const { stage, resumeScreen } = useOnboardingStage();
 
   const [activeTile, setActiveTile] = useState(null); // the tile being re-uploaded
   const [submitting, setSubmitting] = useState(false);
@@ -146,6 +148,61 @@ export default function KycStatusScreen() {
       })),
     [rider],
   );
+
+  // No rider record yet (NONE / DRAFT — reachable via the /kyc deep link). Don't
+  // show uploadable tiles that would POST documents against a non-existent rider;
+  // point them at the application instead.
+  if (!rider.status) {
+    const start = () =>
+      navigation.navigate(stage === ONBOARDING_STAGE.DRAFT ? resumeScreen : "BecomeRiderPersonal");
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+        <View
+          style={{
+            flexDirection: "row", alignItems: "center",
+            paddingHorizontal: 14, paddingVertical: 12,
+            backgroundColor: tokens.bg.surface,
+            borderBottomWidth: 1, borderBottomColor: tokens.border.default,
+          }}
+        >
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={{ padding: 4 }}>
+            <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
+          </TouchableOpacity>
+          <Text accessibilityRole="header" style={{ marginLeft: 10, fontSize: 17, fontWeight: "800", color: tokens.text.primary }}>
+            {t("kyc.title", "KYC documents")}
+          </Text>
+        </View>
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 28 }}>
+          <View
+            style={{
+              width: 72, height: 72, borderRadius: 36,
+              backgroundColor: tokens.brand.soft,
+              alignItems: "center", justifyContent: "center", marginBottom: 18,
+            }}
+          >
+            <Ionicons name="shield-checkmark-outline" size={32} color={tokens.brand.default} />
+          </View>
+          <Text style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginBottom: 8, textAlign: "center" }}>
+            {t("kyc.noApplicationTitle", "Start your rider application")}
+          </Text>
+          <Text style={{ fontSize: 14, color: tokens.text.muted, textAlign: "center", lineHeight: 20, marginBottom: 22 }}>
+            {t("kyc.noApplicationBody", "Apply to become a rider first — you'll add your documents as part of the application.")}
+          </Text>
+          <TouchableOpacity
+            onPress={start}
+            accessibilityRole="button"
+            style={{ paddingHorizontal: 22, paddingVertical: 14, borderRadius: 14, backgroundColor: tokens.brand.default }}
+          >
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 15 }}>
+              {stage === ONBOARDING_STAGE.DRAFT
+                ? t("kyc.continueApplication", "Continue application")
+                : t("kyc.startApplication", "Become a rider")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const anyExpiring = tiles.some((d) => d.state === "expiring");
   const anyExpired = tiles.some((d) => d.state === "expired");

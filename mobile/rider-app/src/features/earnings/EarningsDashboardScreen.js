@@ -16,6 +16,7 @@ import { useT } from "../../i18n/useT";
 import { formatNaira } from "../../lib/formatters";
 import { fetchRiderEarnings } from "../../store/slices/earningsSlice";
 import { fetchWallet } from "../../store/slices/walletSlice";
+import { useOnboardingStage } from "../../lib/useOnboardingStage";
 import EarningsChart from "./EarningsChart";
 
 const TABS = [
@@ -36,6 +37,7 @@ export default function EarningsDashboardScreen() {
   const averageRating = useSelector((s) => s.earnings?.averageRating) || 0;
   const isLoading = useSelector((s) => s.earnings?.isLoading);
   const walletBalance = useSelector((s) => s.wallet?.balance) || 0;
+  const { isApproved } = useOnboardingStage();
 
   const [activeTab, setActiveTab] = useState("today");
   const [refreshing, setRefreshing] = useState(false);
@@ -58,6 +60,63 @@ export default function EarningsDashboardScreen() {
   }, [dispatch]);
 
   const active = summary[activeTab] || { amount: 0, count: 0 };
+
+  // Not yet an approved rider → there can be no earnings. Show an empty state
+  // that points back to Home, where the OnboardingHero drives the next step.
+  if (!isApproved) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+        <ScrollView contentContainerStyle={{ padding: 20, flexGrow: 1 }}>
+          <Text
+            accessibilityRole="header"
+            style={{
+              fontSize: 26, fontWeight: "800", color: tokens.text.primary,
+              letterSpacing: -0.5, marginBottom: 18,
+            }}
+          >
+            {t("earnings.title", "Earnings")}
+          </Text>
+          <View
+            style={{
+              flex: 1, alignItems: "center", justifyContent: "center",
+              paddingHorizontal: 8, paddingVertical: 40,
+            }}
+          >
+            <View
+              style={{
+                width: 72, height: 72, borderRadius: 36,
+                backgroundColor: tokens.brand.soft,
+                alignItems: "center", justifyContent: "center", marginBottom: 18,
+              }}
+            >
+              <Ionicons name="stats-chart-outline" size={32} color={tokens.brand.default} />
+            </View>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginBottom: 8, textAlign: "center" }}>
+              {t("earnings.onboardEmptyTitle", "No earnings yet")}
+            </Text>
+            <Text style={{ fontSize: 14, color: tokens.text.muted, textAlign: "center", lineHeight: 20, marginBottom: 22 }}>
+              {t(
+                "earnings.onboardEmptyBody",
+                "Finish setting up your rider profile to start receiving jobs and earning.",
+              )}
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("MainTabs", { screen: "HomeTab" })}
+              accessibilityRole="button"
+              style={{
+                paddingHorizontal: 22, paddingVertical: 14, borderRadius: 14,
+                backgroundColor: tokens.brand.default,
+              }}
+            >
+              <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 15 }}>
+                {t("earnings.onboardEmptyCta", "Get started")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>

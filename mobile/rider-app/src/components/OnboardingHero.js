@@ -7,7 +7,6 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../theme";
 import { fetchRiderProfile } from "../store/slices/riderSlice";
 import { fetchProfile } from "../store/slices/profileSlice";
-import { onboardingStepSet } from "../store/slices/onboardingSlice";
 import { useOnboardingStage, ONBOARDING_STAGE } from "../lib/useOnboardingStage";
 
 /**
@@ -50,10 +49,10 @@ export default function OnboardingHero() {
 
   const goToStart = () => navigation.navigate("BecomeRiderPersonal");
   const goToResume = () => navigation.navigate(resumeScreen);
-  const goToFixDocs = () => {
-    dispatch(onboardingStepSet(2)); // jump back to Documents with the draft intact
-    navigation.navigate("BecomeRiderDocuments");
-  };
+  // A REJECTED rider already has a Rider record, so re-submitting via
+  // POST /rider/register would 409. Recovery goes through KycStatus, which
+  // re-uploads documents in place via POST /rider/documents.
+  const goToFixDocs = () => navigation.navigate("KycStatus");
 
   // ── PENDING ───────────────────────────────────────────────────────────────
   if (stage === ONBOARDING_STAGE.PENDING) {

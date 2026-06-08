@@ -6,6 +6,7 @@ import {
   RefreshControl,
   AppState,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,6 +20,8 @@ import { useTheme } from "../../theme";
 import AvailabilityToggle from "../../components/AvailabilityToggle";
 import LocationServicesEnabledBanner from "../../components/LocationServicesEnabledBanner";
 import EarningsTodaySnapshot from "../../components/EarningsTodaySnapshot";
+import OnboardingHero from "../../components/OnboardingHero";
+import { useOnboardingStage } from "../../lib/useOnboardingStage";
 import {
   goOnline,
   goOffline,
@@ -114,6 +117,14 @@ function HomeBody({
   const backgroundedAtRef = useRef(null);
   const fourHourTimerRef = useRef(null);
   const lastForceOfflineHandledRef = useRef(null);
+
+  // Onboarding stage drives the whole Home layout: not-yet-approved riders see
+  // the OnboardingHero instead of the availability toggle.
+  const { isApproved } = useOnboardingStage();
+  const hasPinSet = useSelector((s) => s.profile?.profile?.hasPinSet);
+  const [pinPromptDismissed, setPinPromptDismissed] = useState(false);
+  // PIN setup is deferred out of onboarding; nudge once approved if still unset.
+  const showPinPrompt = isApproved && hasPinSet === false && !pinPromptDismissed;
 
   // ── Toast on force-offline events from server kill-switch ──────────────
   useEffect(() => {
@@ -257,77 +268,138 @@ function HomeBody({
         </Text>
       </View>
 
-      {/* Permission / services banner — self-renders only when needed */}
-      <LocationServicesEnabledBanner />
+      {!isApproved ? (
+        /* Not yet approved → reward-first onboarding nudge instead of the
+           availability toggle. Pull-to-refresh re-fetches the rider profile so
+           an approval flips this into the live Home automatically. */
+        <OnboardingHero />
+      ) : (
+        <>
+          {/* Permission / services banner — self-renders only when needed */}
+          <LocationServicesEnabledBanner />
 
-      {/* ONLINE banner — clear reminder of the foreground-only constraint */}
-      {isOnline ? (
-        <View
-          style={{
-            marginTop: 12,
-            padding: 14,
-            borderRadius: 14,
-            backgroundColor: tokens.brand.soft,
-            borderWidth: 1,
-            borderColor: tokens.brand.softBorder,
-            flexDirection: "row",
-            alignItems: "center",
-          }}
-        >
-          <Ionicons name="information-circle" size={20} color={tokens.brand.strong} />
-          <Text style={{ marginLeft: 10, flex: 1, fontSize: 12, color: tokens.text.primary, lineHeight: 17 }}>
-            {t(
-              "home.onlineBanner",
-              "Keep this screen visible to receive jobs. The screen will stay on while you're online.",
-            )}
-          </Text>
-        </View>
-      ) : null}
+          {/* PIN setup nudge — deferred from onboarding, dismissible. The wallet
+              flow also guards PIN just-in-time (usePinGuard), so this is a gentle
+              prompt, not a gate. */}
+          {showPinPrompt ? (
+            <View
+              style={{
+                marginTop: 12,
+                padding: 14,
+                borderRadius: 14,
+                backgroundColor: tokens.bg.surface,
+                borderWidth: 1,
+                borderColor: tokens.border.default,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="lock-closed-outline" size={20} color={tokens.brand.default} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.primary }}>
+                  {t("home.pinPromptTitle", "Secure your wallet")}
+                </Text>
+                <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                  {t("home.pinPromptBody", "Set a 6-digit PIN to withdraw and pay bills.")}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("SetPin", { nextScreen: "EnableBiometric" })}
+                accessibilityRole="button"
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 10,
+                  backgroundColor: tokens.brand.default,
+                  marginLeft: 8,
+                }}
+              >
+                <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 12 }}>
+                  {t("home.pinPromptCta", "Set PIN")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setPinPromptDismissed(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t("common.dismiss", "Dismiss")}
+                hitSlop={8}
+                style={{ marginLeft: 6 }}
+              >
+                <Ionicons name="close" size={18} color={tokens.text.muted} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
-      {/* Big toggle */}
-      <View style={{ marginTop: 16 }}>
-        <AvailabilityToggle
-          availability={availability}
-          busy={busy}
-          onPress={onToggle}
-        />
-      </View>
+          {/* ONLINE banner — clear reminder of the foreground-only constraint */}
+          {isOnline ? (
+            <View
+              style={{
+                marginTop: 12,
+                padding: 14,
+                borderRadius: 14,
+                backgroundColor: tokens.brand.soft,
+                borderWidth: 1,
+                borderColor: tokens.brand.softBorder,
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Ionicons name="information-circle" size={20} color={tokens.brand.strong} />
+              <Text style={{ marginLeft: 10, flex: 1, fontSize: 12, color: tokens.text.primary, lineHeight: 17 }}>
+                {t(
+                  "home.onlineBanner",
+                  "Keep this screen visible to receive jobs. The screen will stay on while you're online.",
+                )}
+              </Text>
+            </View>
+          ) : null}
 
-      {/* Last fix diagnostic — only when ONLINE */}
-      {isOnline && lastFix ? (
-        <Text style={{ marginTop: 8, fontSize: 11, color: tokens.text.placeholder, textAlign: "right" }}>
-          Last fix · {formatLastFix(lastFix)}
-        </Text>
-      ) : null}
+          {/* Big toggle */}
+          <View style={{ marginTop: 16 }}>
+            <AvailabilityToggle
+              availability={availability}
+              busy={busy}
+              onPress={onToggle}
+            />
+          </View>
 
-      {/* Earnings snapshot */}
-      <EarningsTodaySnapshot onSeeAll={() => navigation.navigate("EarningsTab")} />
+          {/* Last fix diagnostic — only when ONLINE */}
+          {isOnline && lastFix ? (
+            <Text style={{ marginTop: 8, fontSize: 11, color: tokens.text.placeholder, textAlign: "right" }}>
+              Last fix · {formatLastFix(lastFix)}
+            </Text>
+          ) : null}
 
-      {/* Performance deep link — Phase 7 will register the target */}
-      <View
-        style={{
-          marginTop: 16,
-          borderRadius: 14,
-          backgroundColor: tokens.bg.surface,
-          borderWidth: 1,
-          borderColor: tokens.border.default,
-          paddingHorizontal: 16,
-          paddingVertical: 14,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
-      >
-        <Ionicons name="trophy-outline" size={22} color={tokens.brand.default} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>
-            {t("home.performanceTitle", "Your performance")}
-          </Text>
-          <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
-            {t("home.performanceBody", "Acceptance rate, on-time %, ratings.")}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
-      </View>
+          {/* Earnings snapshot */}
+          <EarningsTodaySnapshot onSeeAll={() => navigation.navigate("EarningsTab")} />
+
+          {/* Performance deep link — Phase 7 will register the target */}
+          <View
+            style={{
+              marginTop: 16,
+              borderRadius: 14,
+              backgroundColor: tokens.bg.surface,
+              borderWidth: 1,
+              borderColor: tokens.border.default,
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+              flexDirection: "row",
+              alignItems: "center",
+            }}
+          >
+            <Ionicons name="trophy-outline" size={22} color={tokens.brand.default} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>
+                {t("home.performanceTitle", "Your performance")}
+              </Text>
+              <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                {t("home.performanceBody", "Acceptance rate, on-time %, ratings.")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }

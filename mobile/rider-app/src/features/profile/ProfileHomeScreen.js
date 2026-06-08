@@ -24,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme";
 import { logout } from "../../store/slices/authSlice";
 import { fetchPerformance } from "../../store/slices/profileSlice";
+import { useOnboardingStage, ONBOARDING_STAGE } from "../../lib/useOnboardingStage";
 
 export default function ProfileHomeScreen() {
   const navigation = useNavigation();
@@ -34,10 +35,56 @@ export default function ProfileHomeScreen() {
   const profile = useSelector((s) => s.profile?.profile);
   const rider = useSelector((s) => s.rider?.rider);
   const performance = useSelector((s) => s.profile?.performance);
+  const { stage, step, resumeScreen } = useOnboardingStage();
 
   useEffect(() => {
     if (!performance) dispatch(fetchPerformance()).catch?.(() => {});
   }, [performance, dispatch]);
+
+  // The KYC row doubles as the onboarding-status surface on the Me tab: its
+  // label, sub-text, badge and destination all reflect where the rider is in
+  // the join journey, so a not-yet-onboarded rider is always nudged forward.
+  const kyc = (() => {
+    switch (stage) {
+      case ONBOARDING_STAGE.NONE:
+        return {
+          label: t("profile.kycNone", "Become a rider"),
+          sub: t("profile.kycNoneSub", "Start your application"),
+          badge: { text: t("profile.badgeStart", "Start"), tone: "brand" },
+          onPress: () => navigation.navigate("BecomeRiderPersonal"),
+        };
+      case ONBOARDING_STAGE.DRAFT:
+        return {
+          label: t("profile.kycDraft", "Finish your application"),
+          sub: t("onboardingHero.stepProgress", "Step {{n}} of 4", { n: Math.min((step || 0) + 1, 4) }),
+          badge: { text: t("profile.badgeAction", "Action needed"), tone: "warning" },
+          onPress: () => navigation.navigate(resumeScreen),
+        };
+      case ONBOARDING_STAGE.PENDING:
+        return {
+          label: t("profile.kycPending", "Application under review"),
+          sub: t("profile.kycPendingSub", "We'll notify you when approved"),
+          badge: { text: t("profile.badgePending", "Pending"), tone: "muted" },
+          onPress: () => navigation.navigate("KycStatus"),
+        };
+      case ONBOARDING_STAGE.REJECTED:
+        return {
+          label: t("profile.kycRejected", "Application needs changes"),
+          sub: t("profile.kycRejectedSub", "Update your documents and resubmit"),
+          badge: { text: t("profile.badgeAction", "Action needed"), tone: "error" },
+          // Re-uploads go through KycStatus (POST /rider/documents) — the register
+          // flow would 409 for an existing (rejected) rider record.
+          onPress: () => navigation.navigate("KycStatus"),
+        };
+      default: // APPROVED
+        return {
+          label: t("profile.kyc", "KYC documents"),
+          sub: t("profile.kycSub", "ID, licence, insurance"),
+          badge: null,
+          onPress: () => navigation.navigate("KycStatus"),
+        };
+    }
+  })();
 
   const fullName = [profile?.firstName || user?.firstName, profile?.lastName || user?.lastName]
     .filter(Boolean).join(" ") || profile?.name || user?.name || "Rider";
@@ -138,7 +185,7 @@ export default function ProfileHomeScreen() {
           <Divider tokens={tokens} />
           <Row tokens={tokens} icon="bicycle-outline" label={t("profile.vehicle", "Vehicle")} sub={vehicle} onPress={() => navigation.navigate("VehicleInfo")} />
           <Divider tokens={tokens} />
-          <Row tokens={tokens} icon="shield-checkmark-outline" label={t("profile.kyc", "KYC documents")} sub={t("profile.kycSub", "ID, licence, insurance")} onPress={() => navigation.navigate("KycStatus")} />
+          <Row tokens={tokens} icon="shield-checkmark-outline" label={kyc.label} sub={kyc.sub} badge={kyc.badge} onPress={kyc.onPress} />
           <Divider tokens={tokens} />
           <Row tokens={tokens} icon="trending-up-outline" label={t("profile.performance", "Performance")} sub={t("profile.performanceSub", "Rating, acceptance, on-time")} onPress={() => navigation.navigate("Performance")} />
         </Card>
@@ -240,7 +287,7 @@ function Card({ tokens, children }) {
   );
 }
 
-function Row({ tokens, icon, label, sub, onPress }) {
+function Row({ tokens, icon, label, sub, onPress, badge }) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -265,8 +312,30 @@ function Row({ tokens, icon, label, sub, onPress }) {
           <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }} numberOfLines={1}>{sub}</Text>
         ) : null}
       </View>
+      {badge ? <Badge tokens={tokens} badge={badge} /> : null}
       <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
     </TouchableOpacity>
+  );
+}
+
+function Badge({ tokens, badge }) {
+  const tones = {
+    brand: { bg: tokens.brand.soft, color: tokens.brand.strong },
+    warning: { bg: tokens.status.warningSoft, color: tokens.status.warningStrong },
+    error: { bg: tokens.status.errorSoft, color: tokens.status.errorStrong },
+    muted: { bg: tokens.bg.surfaceMuted, color: tokens.text.muted },
+  };
+  const tone = tones[badge.tone] || tones.muted;
+  return (
+    <View
+      style={{
+        backgroundColor: tone.bg,
+        paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+        marginRight: 6,
+      }}
+    >
+      <Text style={{ fontSize: 10, fontWeight: "800", color: tone.color }}>{badge.text}</Text>
+    </View>
   );
 }
 

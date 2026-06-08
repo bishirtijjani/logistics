@@ -18,7 +18,7 @@ const getPendingRiders = async (req, res, next) => {
 const reviewRider = async (req, res, next) => {
   try {
     const result = await adminService.reviewRider(
-      req.params.riderId, req.body.decision, req.user.id, req.ip, req.headers['user-agent']
+      req.params.riderId, req.body.decision, req.user.id, req.ip, req.headers['user-agent'], req.body.reason
     );
     res.json(ApiResponse.success('Rider reviewed', result));
   } catch (error) {

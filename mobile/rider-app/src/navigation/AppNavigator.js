@@ -41,8 +41,6 @@ import OtpVerificationScreen from "../features/auth/OtpVerificationScreen";
 import ForgotPasswordScreen from "../features/auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../features/auth/ResetPasswordScreen";
 
-import PendingApprovalScreen from "../features/onboarding/PendingApprovalScreen";
-import RejectedScreen from "../features/onboarding/RejectedScreen";
 import SuspendedScreen from "../features/onboarding/SuspendedScreen";
 import SetTransactionPinScreen from "../features/onboarding/SetTransactionPinScreen";
 import EnableBiometricScreen from "../features/onboarding/EnableBiometricScreen";
@@ -178,10 +176,7 @@ export default function AppNavigator() {
   const dispatch = useDispatch();
   const { isAuthenticated, isHydrating, user } = useSelector((state) => state.auth);
   const riderStatus = useSelector((s) => s.rider?.rider?.status);
-  const riderLoading = useSelector((s) => s.rider?.isLoading);
-  const riderProfile = useSelector((s) => s.rider?.rider);
-  const hasPinSet = useSelector((s) => s.profile?.profile?.hasPinSet);
-  const profileLoaded = useSelector((s) => !!s.profile?.profile);
+  const riderResolved = useSelector((s) => s.rider?.hasLoadedOnce);
   const { tokens, isDark } = useTheme();
   const navigationTheme = useMemo(
     () => buildNavigationTheme(tokens, isDark),
@@ -465,30 +460,12 @@ export default function AppNavigator() {
     );
   }
 
-  // ── Role + status gating ──────────────────────────────────────────────────
-  const role = user?.role;
-  const needsBecomeRider = isAuthenticated && role !== "RIDER";
-  // For a RIDER, hold in a spinner until the rider profile has loaded at least
-  // once. Without this, role==="RIDER" + riderStatus===undefined would slip past
-  // the gating checks and route directly to SetPin/MainTabs — wrong if the
-  // server actually replies with PENDING_APPROVAL.
-  const isRiderAwaitingProfile =
-    isAuthenticated && role === "RIDER" && !riderProfile && riderLoading !== false;
-  const isPending = role === "RIDER" && riderStatus === RIDER_STATUS.PENDING_APPROVAL;
-  const isRejected = role === "RIDER" && riderStatus === RIDER_STATUS.REJECTED;
-  const isSuspended = role === "RIDER" && riderStatus === RIDER_STATUS.SUSPENDED;
-  const isApproved = role === "RIDER" && riderStatus === RIDER_STATUS.APPROVED;
-  // After APPROVED, gate the main app on having a PIN set. Wait for profile to
-  // actually load before deciding — undefined hasPinSet must not flip the gate.
-  const needsPin = isApproved && profileLoaded && hasPinSet === false;
-
-  // Hold in a spinner if we're authed as a RIDER but haven't loaded either:
-  //   (a) the rider profile (drives status routing), or
-  //   (b) the user profile (drives PIN routing post-approval).
-  // Without this, undefined values race the gating chain and route incorrectly.
-  const needsLoadingGate =
-    isRiderAwaitingProfile || (isApproved && !profileLoaded);
-  if (needsLoadingGate) {
+  // Hold a spinner until the rider profile fetch has settled at least once, so
+  // the rider's status is known before we choose a stack. This is a thin gate
+  // (it releases on a 404 too, so a fresh sign-up never hangs) — it exists only
+  // to stop a returning SUSPENDED rider from flashing MainTabs, and an already-
+  // approved rider from flashing the onboarding nudge, before status resolves.
+  if (isAuthenticated && bioGate === "passed" && !riderResolved) {
     return (
       <View
         style={{
@@ -506,6 +483,15 @@ export default function AppNavigator() {
       </View>
     );
   }
+
+  // ── Role + status gating ──────────────────────────────────────────────────
+  // The only hard walls left are: not-authenticated (must log in) and SUSPENDED
+  // (a ban). Every other state — no rider record, mid-application, pending
+  // review, rejected, or approved-without-a-PIN — now lands in MainTabs, where
+  // the OnboardingHero + Me-tab nudges drive the rider to finish at their own
+  // pace. A fresh sign-up gets a 404 from GET /rider/profile (no rider record),
+  // so riderStatus is simply undefined and we route straight into the app.
+  const isSuspended = riderStatus === RIDER_STATUS.SUSPENDED;
 
   return (
     <NavigationContainer
@@ -528,38 +514,29 @@ export default function AppNavigator() {
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           </Stack.Group>
         ) : isSuspended ? (
-          <Stack.Screen name="Suspended" component={SuspendedScreen} />
-        ) : isRejected ? (
           <Stack.Group>
-            <Stack.Screen name="Rejected" component={RejectedScreen} />
-            <Stack.Screen name="BecomeRiderPersonal" component={BecomeRiderPersonalStep} />
-            <Stack.Screen name="BecomeRiderVehicle" component={BecomeRiderVehicleStep} />
-            <Stack.Screen name="BecomeRiderDocuments" component={BecomeRiderDocumentsStep} />
-            <Stack.Screen name="BecomeRiderReview" component={BecomeRiderReviewSubmitStep} />
-            <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
-          </Stack.Group>
-        ) : isPending ? (
-          <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
-        ) : needsBecomeRider ? (
-          <Stack.Group>
-            <Stack.Screen name="BecomeRiderPersonal" component={BecomeRiderPersonalStep} />
-            <Stack.Screen name="BecomeRiderVehicle" component={BecomeRiderVehicleStep} />
-            <Stack.Screen name="BecomeRiderDocuments" component={BecomeRiderDocumentsStep} />
-            <Stack.Screen name="BecomeRiderReview" component={BecomeRiderReviewSubmitStep} />
-            <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
-          </Stack.Group>
-        ) : needsPin ? (
-          <Stack.Group>
-            <Stack.Screen
-              name="SetPin"
-              component={SetTransactionPinScreen}
-              initialParams={{ nextScreen: "EnableBiometric" }}
-            />
-            <Stack.Screen name="EnableBiometric" component={EnableBiometricScreen} />
+            <Stack.Screen name="Suspended" component={SuspendedScreen} />
+            {/* Suspended riders are walled off from the app, but must still be
+                able to appeal — register the support-ticket screens their CTA
+                navigates to. */}
+            <Stack.Screen name="CreateTicket" component={CreateTicketScreen} />
+            <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
           </Stack.Group>
         ) : (
           <Stack.Group>
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+            {/* Become-Rider application — reachable from the Home hero / Me tab,
+                no longer a wall in front of the app. */}
+            <Stack.Screen name="BecomeRiderPersonal" component={BecomeRiderPersonalStep} />
+            <Stack.Screen name="BecomeRiderVehicle" component={BecomeRiderVehicleStep} />
+            <Stack.Screen name="BecomeRiderDocuments" component={BecomeRiderDocumentsStep} />
+            <Stack.Screen name="BecomeRiderReview" component={BecomeRiderReviewSubmitStep} />
+            {/* PIN + biometric setup — prompted post-approval, not forced. SetPin
+                is registered WITHOUT a nextScreen so the wallet just-in-time
+                guard (usePinGuard) gets goBack; the post-approval prompt passes
+                nextScreen: "EnableBiometric" explicitly. */}
+            <Stack.Screen name="SetPin" component={SetTransactionPinScreen} />
+            <Stack.Screen name="EnableBiometric" component={EnableBiometricScreen} />
             <Stack.Screen
               name="TripCockpit"
               component={TripCockpitScreen}

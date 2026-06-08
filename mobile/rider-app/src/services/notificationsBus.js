@@ -31,9 +31,10 @@ import { fetchProfile } from "../store/slices/profileSlice";
 
 const SYSTEM_FORCE_OFFLINE = "SYSTEM_FORCE_OFFLINE";
 
-// Notification types that should trigger a refresh of the rider profile so
-// the navigation gates (PendingApproval / Rejected / Suspended → Main) flip
-// immediately on the rider's screen rather than waiting for a re-launch.
+// Notification types that should trigger a refresh of the rider profile so the
+// onboarding stage (useOnboardingStage → OnboardingHero / Me-tab KYC row) and
+// the SUSPENDED wall update immediately on the rider's screen rather than
+// waiting for a re-launch.
 const PROFILE_REFRESH_TYPES = new Set([
   "RIDER_APPROVED",
   "RIDER_REJECTED",

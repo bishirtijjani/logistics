@@ -136,6 +136,11 @@ const initialState = {
   performance: null,
   lastForceOfflineReason: null,
   isLoading: false,
+  // True once the rider profile fetch has settled at least once (fulfilled OR
+  // rejected — a 404 for a non-rider counts). AppNavigator holds a spinner until
+  // this flips so the rider's status (incl. SUSPENDED) is known before we pick a
+  // stack — without it, a returning SUSPENDED rider flashes MainTabs first.
+  hasLoadedOnce: false,
   isTogglingAvailability: false,
   availabilityError: null,
   error: null,
@@ -167,6 +172,7 @@ const slice = createSlice({
       })
       .addCase(fetchRiderProfile.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.hasLoadedOnce = true;
         state.rider = action.payload;
         if (action.payload?.availability) {
           state.availability = action.payload.availability;
@@ -174,6 +180,9 @@ const slice = createSlice({
       })
       .addCase(fetchRiderProfile.rejected, (state, action) => {
         state.isLoading = false;
+        // A 404 (no rider record yet) still counts as "resolved" — the rider is
+        // simply a fresh sign-up, not in an indeterminate state.
+        state.hasLoadedOnce = true;
         state.error = action.payload;
       });
 

@@ -256,7 +256,7 @@ export default function DataScreen({ navigation }) {
         onClose={() => setShowPinSheet(false)}
         onConfirm={handlePinConfirm}
         onForgotPin={() => { setShowPinSheet(false); navigation.navigate("ChangePin"); }}
-        onSetupPin={() => navigation.navigate("ChangePin")}
+        onSetupPin={() => navigation.navigate("SetPin")}
         title={t("utility.dataScreen.pinTitle")}
         subtitle={selectedPlan ? t("utility.dataScreen.pinSubtitle", { plan: selectedPlan.name, phone }) : ""}
       />

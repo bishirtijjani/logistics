@@ -302,7 +302,7 @@ export default function ElectricityScreen({ navigation }) {
         onClose={() => setShowPinSheet(false)}
         onConfirm={handlePinConfirm}
         onForgotPin={() => { setShowPinSheet(false); navigation.navigate("ChangePin"); }}
-        onSetupPin={() => navigation.navigate("ChangePin")}
+        onSetupPin={() => navigation.navigate("SetPin")}
         title={t("utility.electricityScreen.pinTitle")}
         subtitle={t("utility.electricityScreen.pinSubtitle", { amount: naira(amount), disco: selectedDisco?.networkName || "" })}
       />

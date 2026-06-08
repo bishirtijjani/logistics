@@ -63,6 +63,7 @@ export function useOnboardingStage() {
   const rejectionReason = useSelector((s) => s.rider?.rider?.rejectionReason);
   const draft = useSelector((s) => s.onboarding?.draft);
   const step = useSelector((s) => s.onboarding?.step) ?? 0;
+  const submitStatus = useSelector((s) => s.onboarding?.status);
 
   let stage;
   switch (riderStatus) {
@@ -79,8 +80,15 @@ export function useOnboardingStage() {
       stage = ONBOARDING_STAGE.REJECTED;
       break;
     default:
-      // No rider record yet (GET /rider/profile 404s for a fresh sign-up).
-      stage = draftStarted(draft) ? ONBOARDING_STAGE.DRAFT : ONBOARDING_STAGE.NONE;
+      if (submitStatus === "submitted") {
+        // Application was just submitted but the rider-profile refetch hasn't
+        // landed yet (or failed). The draft is already cleared, so without this
+        // we'd flash NONE ("Get started") at someone who just applied.
+        stage = ONBOARDING_STAGE.PENDING;
+      } else {
+        // No rider record yet (GET /rider/profile 404s for a fresh sign-up).
+        stage = draftStarted(draft) ? ONBOARDING_STAGE.DRAFT : ONBOARDING_STAGE.NONE;
+      }
   }
 
   return {

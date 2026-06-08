@@ -708,6 +708,14 @@ const reuploadDocument = async (userId, { kind, url, expiresAt }) => {
   // the 14-day window stops emitting expiry pushes.
   data.lastDocExpiryNoticeAt = null;
 
+  // A REJECTED rider who re-uploads the offending document goes straight back
+  // into the review queue, and the stale rejection note is cleared. This is the
+  // recovery path (the register endpoint 409s for an existing rider record).
+  if (rider.status === 'REJECTED') {
+    data.status = 'PENDING_APPROVAL';
+    data.rejectionReason = null;
+  }
+
   const updated = await prisma.rider.update({
     where: { id: rider.id },
     data,
