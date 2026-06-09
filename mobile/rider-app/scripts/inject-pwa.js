@@ -47,11 +47,38 @@ const swReg = `
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function () {});
+          // updateViaCache:'none' => the browser always revalidates sw.js (and
+          // its imports) against the network, so a new deploy is detected.
+          navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
+            var reloaded = false;
+            var pending = false;
+            function applyUpdate() {
+              // Don't yank the page out from under someone mid-action: if the
+              // tab is in the foreground, wait until they leave and come back.
+              // If it's already hidden, refresh now so they return updated.
+              if (document.visibilityState === 'visible') { pending = true; }
+              else if (!reloaded) { reloaded = true; window.location.reload(); }
+            }
+            function watch(worker) {
+              if (!worker) return;
+              worker.addEventListener('statechange', function () {
+                // 'installed' + an existing controller => a NEW deploy is ready
+                // (not the first install), so swap the running tab to it.
+                if (worker.state === 'installed' && navigator.serviceWorker.controller) applyUpdate();
+              });
+            }
+            watch(reg.installing);
+            reg.addEventListener('updatefound', function () { watch(reg.installing); });
+            document.addEventListener('visibilitychange', function () {
+              if (document.visibilityState !== 'visible') return;
+              if (pending && !reloaded) { reloaded = true; window.location.reload(); return; }
+              reg.update(); // re-check for a fresh deploy each time the app is reopened
+            });
+          }).catch(function () {});
         });
       }
     </script>`;
-if (!html.includes("serviceWorker.register('/sw.js')")) {
+if (!html.includes("serviceWorker.register('/sw.js'")) {
   html = html.replace("</body>", `${swReg}\n  </body>`);
 }
 
