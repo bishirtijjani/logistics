@@ -43,10 +43,15 @@ const MerchantBrowseScreen = () => {
         params.append('lng', lng);
         params.append('radius', '10');
       }
-      params.append('openNow', 'true');
-
+      // Intentionally NOT filtering by openNow: closed merchants are still shown
+      // (dimmed, with a "Closed" badge) so customers can browse menus and see who
+      // exists, instead of an empty list outside business hours. Open shops sort
+      // first so they stay the primary call to action.
       const response = await api.get(`/merchants?${params.toString()}`);
-      setMerchants(response?.data || []);
+      const list = response?.data || [];
+      setMerchants(
+        [...list].sort((a, b) => Number(b.isOpen) - Number(a.isOpen))
+      );
     } catch (error) {
       Toast.show({
         type: 'error',
@@ -72,7 +77,7 @@ const MerchantBrowseScreen = () => {
 
   const renderMerchant = ({ item }) => (
     <TouchableOpacity
-      style={styles.merchantCard}
+      style={[styles.merchantCard, !item.isOpen && styles.merchantCardClosed]}
       onPress={() => navigation.navigate('MerchantMenu', { merchantId: item.id, categorySlug })}
       activeOpacity={0.7}
       accessibilityRole="button"
@@ -223,6 +228,11 @@ const styles = {
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  // Closed merchants stay visible but dimmed so they read as inactive while the
+  // open ones (sorted first) remain the primary choice.
+  merchantCardClosed: {
+    opacity: 0.55,
   },
   coverImage: {
     width: '100%',
