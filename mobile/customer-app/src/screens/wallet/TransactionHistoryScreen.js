@@ -325,7 +325,7 @@ export default function TransactionHistoryScreen({ navigation }) {
       {/* Transaction List */}
       <FlatList
         data={transactions}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, i) => item.id || item.reference || `tx-${i}`}
         renderItem={renderTransactionItem}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

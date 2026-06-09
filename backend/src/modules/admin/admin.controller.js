@@ -90,6 +90,47 @@ const getCustomerById = async (req, res, next) => {
   }
 };
 
+const getCustomerStats = async (req, res, next) => {
+  try {
+    const stats = await adminService.getCustomerStats();
+    res.json(ApiResponse.success('Customer stats', stats));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// TEMPORARY testing aid - reveal a customer's PIN (audit-logged).
+const getCustomerPin = async (req, res, next) => {
+  try {
+    const result = await adminService.getCustomerPin(
+      req.params.customerId,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Customer PIN', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+// TEMPORARY testing aid - set/reset a customer's PIN (audit-logged).
+const setCustomerPin = async (req, res, next) => {
+  try {
+    const result = await adminService.setCustomerPin(
+      req.params.customerId,
+      req.body.pin,
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Customer PIN updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCustomerRequests = async (req, res, next) => {
   try {
     const { requests, total, page, limit } = await adminService.getCustomerRequests({
@@ -846,6 +887,9 @@ module.exports = {
   updateCustomer,
   wipeCustomerKyc,
   getCustomerById,
+  getCustomerStats,
+  getCustomerPin,
+  setCustomerPin,
   getCustomerRequests,
   getCustomerTransactions,
   getCustomerAddresses,

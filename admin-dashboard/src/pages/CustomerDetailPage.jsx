@@ -10,6 +10,9 @@ import {
   unsuspendCustomer,
   updateCustomer,
   wipeCustomerKyc,
+  fetchCustomerPin,
+  setCustomerPin,
+  clearCustomerPin,
   clearCustomerDetail,
 } from '../store/slices/customersSlice'
 import {
@@ -30,6 +33,10 @@ import {
   XCircle,
   Pencil,
   Eraser,
+  KeyRound,
+  Eye,
+  EyeOff,
+  Copy,
 } from 'lucide-react'
 import Pagination from '../components/Pagination'
 
@@ -75,11 +82,12 @@ const TABS = [
 export default function CustomerDetailPage() {
   const { customerId } = useParams()
   const dispatch = useDispatch()
-  const { detail, requests, transactions, addresses } = useSelector((state) => state.customers)
+  const { detail, requests, transactions, addresses, pin } = useSelector((state) => state.customers)
   const [activeTab, setActiveTab] = useState('requests')
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showWipeKycModal, setShowWipeKycModal] = useState(false)
+  const [showPinModal, setShowPinModal] = useState(false)
   const [suspendReason, setSuspendReason] = useState('')
   const [wipeKycReason, setWipeKycReason] = useState('')
   const [wipeKycError, setWipeKycError] = useState(null)
@@ -125,6 +133,23 @@ export default function CustomerDetailPage() {
     } else {
       setWipeKycError(result.error?.message || 'Failed to wipe KYC')
     }
+  }
+
+  const handleRevealPin = () => {
+    dispatch(fetchCustomerPin(customerId))
+  }
+
+  const handleHidePin = () => {
+    dispatch(clearCustomerPin())
+  }
+
+  const handleSetPin = async (newPin, reason) => {
+    const result = await dispatch(setCustomerPin({ customerId, pin: newPin, reason: reason || undefined }))
+    if (result.meta.requestStatus === 'fulfilled') {
+      setShowPinModal(false)
+      return { ok: true }
+    }
+    return { ok: false, error: result.error?.message || 'Failed to set PIN' }
   }
 
   const handleSaveEdit = async (changes) => {
@@ -265,6 +290,99 @@ export default function CustomerDetailPage() {
         </Card>
       </div>
 
+      {/* Security & PIN - TEMPORARY testing aid (remove once PIN testing is done). */}
+      <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <h2 className="text-sm font-semibold text-text dark:text-dark-text flex items-center gap-2">
+            <KeyRound size={16} className="text-primary" /> Security &amp; Transaction PIN
+          </h2>
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+            Testing only
+          </span>
+        </div>
+        <p className="text-xs text-muted dark:text-dark-muted mb-4">
+          Viewing and setting PINs is a temporary aid for debugging complaints. Every reveal and change is audit-logged.
+        </p>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+          <div className="flex items-start gap-3 min-w-0">
+            <Shield size={16} className="text-muted dark:text-dark-muted mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs text-muted dark:text-dark-muted">PIN status</p>
+              <p className="text-sm text-text dark:text-dark-text">
+                {customer.hasPinSet ? 'Set' : 'Not set'}
+                {customer.hasPinSet && (
+                  <span className="text-muted dark:text-dark-muted">
+                    {' · '}{customer.pinSetByUser ? 'chosen by customer' : 'default / not user-set'}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* Revealed value / reveal action */}
+          <div className="flex-1 min-w-0">
+            {pin?.data ? (
+              pin.data.pin ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1.5 rounded-lg bg-surface-muted dark:bg-dark-surface-muted font-mono text-lg tracking-[0.3em] text-text dark:text-dark-text">
+                    {pin.data.pin}
+                  </span>
+                  <button
+                    onClick={() => navigator.clipboard?.writeText(pin.data.pin)}
+                    className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted"
+                    title="Copy PIN"
+                  >
+                    <Copy size={15} />
+                  </button>
+                  <button
+                    onClick={handleHidePin}
+                    className="p-2 rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted"
+                    title="Hide"
+                  >
+                    <EyeOff size={15} />
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  No stored plaintext for this customer. Their PIN was set before this tool shipped, or changed in-app.
+                  Use <span className="font-medium">Set / Reset PIN</span> to assign a known one.
+                </p>
+              )
+            ) : (
+              <p className="text-xs text-muted dark:text-dark-muted">
+                {customer.hasPinSet ? 'Reveal shows the last-set PIN (if captured).' : 'No PIN set yet.'}
+              </p>
+            )}
+            {pin?.error && <p className="text-sm text-error mt-1">{pin.error}</p>}
+          </div>
+
+          <div className="flex gap-2 shrink-0">
+            {customer.hasPinSet && !pin?.data && (
+              <button
+                onClick={handleRevealPin}
+                disabled={pin?.loading}
+                className="px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-text dark:text-dark-text flex items-center gap-2 text-sm disabled:opacity-50"
+              >
+                {pin?.loading ? (
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Eye size={16} />
+                )}
+                Reveal PIN
+              </button>
+            )}
+            <button
+              onClick={() => setShowPinModal(true)}
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2 text-sm"
+            >
+              <KeyRound size={16} />
+              {customer.hasPinSet ? 'Reset PIN' : 'Set PIN'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm overflow-hidden">
         <div className="flex border-b border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
@@ -313,6 +431,15 @@ export default function CustomerDetailPage() {
           onClose={() => setShowEditModal(false)}
           onSave={handleSaveEdit}
           saving={actionLoading === 'edit'}
+        />
+      )}
+
+      {showPinModal && (
+        <SetPinModal
+          customer={customer}
+          onClose={() => setShowPinModal(false)}
+          onSave={handleSetPin}
+          saving={pin?.saving}
         />
       )}
 
@@ -714,6 +841,101 @@ function Field({ label, children }) {
       <span className="block text-xs text-muted dark:text-dark-muted mb-1">{label}</span>
       {children}
     </label>
+  )
+}
+
+// TEMPORARY testing aid: admin assigns a known 6-digit PIN to the customer.
+function SetPinModal({ customer, onClose, onSave, saving }) {
+  const [pinValue, setPinValue] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    if (!/^\d{6}$/.test(pinValue)) {
+      setError('PIN must be exactly 6 digits.')
+      return
+    }
+    if (pinValue !== confirm) {
+      setError('PINs do not match.')
+      return
+    }
+    const result = await onSave(pinValue, reason.trim())
+    if (!result?.ok) setError(result?.error || 'Failed to set PIN')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md">
+        <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-1">
+          {customer.hasPinSet ? 'Reset transaction PIN' : 'Set transaction PIN'}
+        </h3>
+        <p className="text-sm text-muted dark:text-dark-muted mb-4">
+          This sets <span className="font-medium">{customer.firstName} {customer.lastName}</span>'s 6-digit PIN. They can use it
+          immediately, and can change it themselves later. Action is audit-logged.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Field label="New 6-digit PIN">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              value={pinValue}
+              onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="••••••"
+              className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-mono tracking-[0.3em]"
+            />
+          </Field>
+          <Field label="Confirm PIN">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="••••••"
+              className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm font-mono tracking-[0.3em]"
+            />
+          </Field>
+          <Field label="Reason (optional)">
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. customer reported forgotten PIN"
+              className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+            />
+          </Field>
+
+          {error && <p className="text-sm text-error">{error}</p>}
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full sm:w-auto px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-text dark:text-dark-text"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save PIN'
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
 

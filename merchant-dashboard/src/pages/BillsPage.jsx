@@ -31,7 +31,7 @@ const CABLE_PROVIDERS = [
 const NETWORK_COLORS = { MTN: '#FFCC00', GLO: '#00AA00', '9MOBILE': '#0066CC', AIRTEL: '#FF0000', SMILE: '#1E90FF' }
 const AIRTIME_QUICK = [100, 200, 500, 1000, 2000, 5000]
 const ELEC_QUICK = [1000, 2000, 5000, 10000, 20000]
-const MIN_AIRTIME = 50
+const MIN_AIRTIME = 100 // Provider floor; buys below this hang in PROCESSING.
 const MIN_ELEC = 500
 
 const TABS = [
@@ -234,6 +234,7 @@ function AirtimeTab({ balance, naira, requestPin, dispatch }) {
           <label className={labelCls}>Amount</label>
           <input className={inputCls} inputMode="numeric" placeholder="Enter amount"
             value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))} />
+          <p className="text-xs text-muted dark:text-dark-muted mt-1">Minimum {naira(MIN_AIRTIME)}</p>
           <div className="flex flex-wrap gap-2 mt-2">
             {AIRTIME_QUICK.map((v) => (
               <button key={v} type="button" onClick={() => setAmount(String(v))}

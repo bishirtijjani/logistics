@@ -83,18 +83,28 @@ export default function ChangePinScreen({ navigation }) {
   };
 
   const handleSubmit = async (oldPin, newPinValue) => {
-    const result = await dispatch(
-      changeTransactionPin({ currentPin: oldPin, newPin: newPinValue }),
-    );
-    if (changeTransactionPin.fulfilled.match(result)) {
+    try {
+      await dispatch(
+        changeTransactionPin({ currentPin: oldPin, newPin: newPinValue }),
+      ).unwrap();
       Toast.show({
         type: "success",
         text1: t("changePin.success"),
-        text2: t("auth.pinSetToastSub"),
+        // Distinct from the first-time "PIN created" copy so a change reads
+        // as a change, not a fresh setup.
+        text2: t("changePin.successSub"),
       });
       navigation.goBack();
-    } else {
-      // Reset on failure
+    } catch (err) {
+      // The rejected payload is the server message string (e.g. "Incorrect
+      // PIN" when the current PIN is wrong). Surface it instead of silently
+      // bouncing back to step 1 with no feedback.
+      const msg = typeof err === "string" ? err : err?.message;
+      Toast.show({
+        type: "error",
+        text1: t("changePin.failed"),
+        text2: msg || t("changePin.currentWrong"),
+      });
       setStep("current");
       setCurrentPin("");
       setNewPin("");

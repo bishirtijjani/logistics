@@ -425,7 +425,9 @@ const setTransactionPin = async (userId, pin) => {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { transactionPin: hashedPin, transactionPinSetByUser: true },
+    // transactionPinPlain is a TEMPORARY testing aid so admins can debug PIN
+    // complaints. Remove it (and the column) once testing wraps up.
+    data: { transactionPin: hashedPin, transactionPinPlain: pin, transactionPinSetByUser: true },
   });
 
   logger.info("Transaction PIN set", { userId });
@@ -441,7 +443,8 @@ const changeTransactionPin = async (userId, currentPin, newPin) => {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { transactionPin: hashedPin, transactionPinSetByUser: true },
+    // transactionPinPlain: TEMPORARY testing aid (see setTransactionPin).
+    data: { transactionPin: hashedPin, transactionPinPlain: newPin, transactionPinSetByUser: true },
   });
 
   logger.info("Transaction PIN changed", { userId });

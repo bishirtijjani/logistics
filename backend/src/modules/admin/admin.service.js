@@ -2,8 +2,12 @@
  * Admin service - rider approvals, user management, transaction oversight, request management, merchant management.
  */
 
+const bcrypt = require('bcryptjs');
 const { prisma } = require('../../config/database');
 const { Prisma } = require('@prisma/client');
+
+// Matches auth.service SALT_ROUNDS so admin-set PINs hash identically.
+const PIN_SALT_ROUNDS = 12;
 const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
@@ -347,6 +351,8 @@ const getCustomerById = async (customerId) => {
       bvnHash: true,
       role: true,
       status: true,
+      transactionPin: true,
+      transactionPinSetByUser: true,
       deletedAt: true,
       createdAt: true,
       updatedAt: true,
@@ -376,12 +382,97 @@ const getCustomerById = async (customerId) => {
       : Promise.resolve(0),
   ]);
 
-  const { bvnHash, ...safeUser } = user;
+  // Never leak the PIN hash; expose only whether one is set and who set it.
+  // The plaintext lives behind the dedicated, audited reveal endpoint.
+  const { bvnHash, transactionPin, transactionPinSetByUser, ...safeUser } = user;
   return {
     ...safeUser,
     hasBvn: !!bvnHash,
+    hasPinSet: !!transactionPin,
+    pinSetByUser: !!transactionPinSetByUser,
     counts: { requests: requestCount, addresses: addressCount, transactions: transactionCount },
   };
+};
+
+/**
+ * Roster-level customer counts for the management dashboard KPI cards.
+ */
+const getCustomerStats = async () => {
+  const base = { role: 'CUSTOMER', deletedAt: null };
+  const [total, active, suspended, kycVerified, kycPending] = await Promise.all([
+    prisma.user.count({ where: base }),
+    prisma.user.count({ where: { ...base, status: 'ACTIVE' } }),
+    prisma.user.count({ where: { ...base, status: 'SUSPENDED' } }),
+    prisma.user.count({ where: { ...base, kycStatus: 'VERIFIED' } }),
+    prisma.user.count({ where: { ...base, kycStatus: 'PENDING' } }),
+  ]);
+  return { total, active, suspended, kycVerified, kycPending };
+};
+
+/**
+ * TEMPORARY testing aid: reveal a customer's last-set plaintext PIN so admins
+ * can debug PIN complaints. Every reveal is audit-logged. Remove this (and the
+ * transactionPinPlain column) once testing is done.
+ */
+const getCustomerPin = async (customerId, adminUserId, ipAddress, userAgent) => {
+  const user = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true, transactionPin: true, transactionPinPlain: true, transactionPinSetByUser: true },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+
+  await createAuditLog(
+    adminUserId,
+    'VIEW_CUSTOMER_PIN',
+    'CUSTOMER',
+    customerId,
+    { hadPin: !!user.transactionPin, plaintextAvailable: !!user.transactionPinPlain },
+    ipAddress,
+    userAgent,
+  );
+
+  logger.warn('Customer PIN revealed by admin', { customerId, adminUserId });
+
+  return {
+    hasPinSet: !!user.transactionPin,
+    pinSetByUser: !!user.transactionPinSetByUser,
+    // null when a PIN exists but predates plaintext capture (set before this
+    // testing aid shipped) - the UI explains that case.
+    pin: user.transactionPinPlain || null,
+  };
+};
+
+/**
+ * TEMPORARY testing aid: set/reset a customer's transaction PIN on their behalf.
+ * Hashes the new PIN (so it works in the apps) and stores the plaintext mirror.
+ * Audit-logged. Remove once testing is done.
+ */
+const setCustomerPin = async (customerId, pin, reason, adminUserId, ipAddress, userAgent) => {
+  const user = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true, transactionPin: true },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+
+  const hashedPin = await bcrypt.hash(pin, PIN_SALT_ROUNDS);
+  await prisma.user.update({
+    where: { id: customerId },
+    data: { transactionPin: hashedPin, transactionPinPlain: pin, transactionPinSetByUser: true },
+  });
+
+  await createAuditLog(
+    adminUserId,
+    'SET_CUSTOMER_PIN',
+    'CUSTOMER',
+    customerId,
+    { replacedExisting: !!user.transactionPin, reason: reason || null },
+    ipAddress,
+    userAgent,
+  );
+
+  logger.warn('Customer PIN set by admin', { customerId, adminUserId, reason });
+
+  return { hasPinSet: true, pinSetByUser: true, pin };
 };
 
 /**
@@ -2710,6 +2801,9 @@ module.exports = {
   updateCustomer,
   wipeCustomerKyc,
   getCustomerById,
+  getCustomerStats,
+  getCustomerPin,
+  setCustomerPin,
   getCustomerRequests,
   getCustomerTransactions,
   getCustomerAddresses,

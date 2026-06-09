@@ -31,7 +31,9 @@ export default function AirtimeScreen({ navigation }) {
   const { plans, isLoading, recentRecipients } = useSelector((state) => state.utility);
 
   const requirePin = usePinGuard();
-  const minAmount = Number(usePlatformSetting("utility.minAirtimeAmount", 50));
+  // ₦100 is the provider's hard floor (buys below it hang in PROCESSING), so
+  // clamp the configurable setting up to it - never below.
+  const minAmount = Math.max(100, Number(usePlatformSetting("utility.minAirtimeAmount", 100)) || 100);
   const quickAmountsSetting = usePlatformSetting("utility.airtimeQuickAmounts", null);
   const QUICK_AMOUNTS = Array.isArray(quickAmountsSetting) && quickAmountsSetting.length > 0
     ? quickAmountsSetting.map(Number)
@@ -228,7 +230,11 @@ export default function AirtimeScreen({ navigation }) {
         </View>
         {fieldErrors.amount ? (
           <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.amount}</Text>
-        ) : null}
+        ) : (
+          <Text style={{ fontSize: 12, color: tokens.text.muted, marginBottom: 8, paddingLeft: 4 }}>
+            {t("utility.airtimeScreen.minHint", { amount: naira(minAmount) })}
+          </Text>
+        )}
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
           {QUICK_AMOUNTS.map((value) => {
             const selected = Number(amount) === value;

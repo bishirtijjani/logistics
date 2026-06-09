@@ -24,6 +24,7 @@ const {
   updateCustomerStatusSchema,
   updateCustomerSchema,
   wipeCustomerKycSchema,
+  setCustomerPinSchema,
   listPendingRidersSchema,
   transactionOverviewSchema,
   listAllRequestsSchema,
@@ -123,10 +124,15 @@ router.get('/riders/:riderId/deliveries', validate(paginationSchema, 'query'), a
 
 // Customer management
 router.get('/customers', validate(listAllCustomersSchema, 'query'), adminController.getAllCustomers);
+// Static path must precede the /:customerId param route so "stats" isn't read as an id.
+router.get('/customers/stats', adminController.getCustomerStats);
 router.get('/customers/:customerId', adminController.getCustomerById);
 router.get('/customers/:customerId/requests', validate(customerRequestsSchema, 'query'), adminController.getCustomerRequests);
 router.get('/customers/:customerId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getCustomerTransactions);
 router.get('/customers/:customerId/addresses', adminController.getCustomerAddresses);
+// TEMPORARY testing aid: reveal/set a customer's transaction PIN (audit-logged).
+router.get('/customers/:customerId/pin', adminController.getCustomerPin);
+router.put('/customers/:customerId/pin', validate(setCustomerPinSchema), adminController.setCustomerPin);
 router.patch('/customers/:customerId/status', validate(updateCustomerStatusSchema), adminController.updateCustomerStatus);
 router.patch('/customers/:customerId', validate(updateCustomerSchema), adminController.updateCustomer);
 router.post('/customers/:customerId/wipe-kyc', validate(wipeCustomerKycSchema), adminController.wipeCustomerKyc);

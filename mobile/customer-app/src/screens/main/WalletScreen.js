@@ -222,14 +222,14 @@ export default function WalletScreen({ navigation }) {
               fill={false}
             />
           ) : (
-            recent.map((tx) => {
+            recent.map((tx, i) => {
               const isCredit = CREDIT_TYPES.includes(tx.type);
               const meta = TX_ICON[tx.type] || { icon: "swap-horizontal", color: tokens.text.muted };
               const title = txTitle(tx);
               const amountText = `${isCredit ? "+" : "-"}${formatNaira(tx.amount)}`;
               return (
                 <View
-                  key={tx.id}
+                  key={tx.id || tx.reference || `tx-${i}`}
                   accessible
                   accessibilityLabel={`${title}. ${amountText}. ${formatDate(tx.createdAt)}`}
                   style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 14, marginBottom: 10 }}

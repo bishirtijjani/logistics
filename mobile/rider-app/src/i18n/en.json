@@ -742,6 +742,7 @@
       "errSelectNetwork": "Please select a network",
       "errInvalidPhone": "Enter a valid phone number",
       "errMinAmount": "Minimum airtime is {{amount}}",
+      "minHint": "Minimum {{amount}}",
       "errInsufficientBalance": "Insufficient wallet balance"
     },
     "dataScreen": {
@@ -1056,6 +1057,9 @@
     "submit": "Change PIN",
     "submitting": "Changing PIN…",
     "success": "PIN changed",
+    "successSub": "Your transaction PIN has been updated.",
+    "failed": "Couldn't change PIN",
+    "currentWrong": "Your current PIN is incorrect",
     "currentRequired": "Enter your current PIN",
     "newRequired": "Enter your new PIN",
     "mismatch": "PINs don't match"

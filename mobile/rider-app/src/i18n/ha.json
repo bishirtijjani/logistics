@@ -664,6 +664,7 @@
       "errSelectNetwork": "Zaɓi hanyar sadarwa",
       "errInvalidPhone": "Shigar da lambar waya da ta dace",
       "errMinAmount": "Mafi ƙanƙancin airtime shine {{amount}}",
+      "minHint": "Mafi ƙanƙanta {{amount}}",
       "errInsufficientBalance": "Ma'auni bai isa ba"
     },
     "dataScreen": {
@@ -978,6 +979,9 @@
     "submit": "Canza PIN",
     "submitting": "Ana canzawa…",
     "success": "An canza PIN",
+    "successSub": "An sabunta PIN ɗinka na mu'amalla.",
+    "failed": "An kasa canza PIN",
+    "currentWrong": "PIN ɗinka na yanzu ba daidai ba ne",
     "currentRequired": "Shigar da PIN ɗinka na yanzu",
     "newRequired": "Shigar da sabuwar PIN",
     "mismatch": "PINs ba su dace ba"

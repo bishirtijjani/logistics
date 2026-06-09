@@ -12,7 +12,10 @@ const getPlansSchema = z.object({
 const buyAirtimeSchema = z.object({
   phone,
   networkId: z.coerce.number().int().min(1),
-  amount: z.coerce.number().int().min(50).max(50000),
+  // Provider floor is ₦100. Anything below that is accepted by the upstream
+  // API but never fulfils, leaving the payment stuck in PROCESSING - so we
+  // reject it here, before the wallet is debited and the job is queued.
+  amount: z.coerce.number().int().min(100).max(50000),
   pin,
 });
 

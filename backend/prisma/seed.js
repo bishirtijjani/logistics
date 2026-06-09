@@ -561,7 +561,7 @@ async function main() {
     { key: 'wallet.withdrawQuickAmounts', value: [1000, 5000, 10000, 20000], description: 'Quick-amount chips on Withdraw screen' },
     { key: 'utility.minElectricityAmount', value: 500, description: 'Minimum electricity payment in NGN' },
     { key: 'utility.electricityQuickAmounts', value: [1000, 2000, 5000, 10000, 20000], description: 'Quick-amount chips on Electricity screen' },
-    { key: 'utility.minAirtimeAmount', value: 50, description: 'Minimum airtime purchase in NGN' },
+    { key: 'utility.minAirtimeAmount', value: 100, description: 'Minimum airtime purchase in NGN (provider floor; below this hangs in PROCESSING)' },
     { key: 'utility.airtimeQuickAmounts', value: [100, 200, 500, 1000, 2000, 5000], description: 'Quick-amount chips on Airtime screen' },
     { key: 'auth.otpTtlSeconds', value: 600, description: 'OTP validity in seconds (10 min)' },
     { key: 'auth.pinMaxAttempts', value: 5, description: 'Max wrong PIN attempts before lockout' },

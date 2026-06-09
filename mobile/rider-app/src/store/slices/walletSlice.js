@@ -77,8 +77,12 @@ export const fetchTransactions = createAsyncThunk(
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
       if (q) params.append("q", q);
+      // The response interceptor unwraps to the API envelope
+      // ({ success, message, data: [...rows], meta: { page, limit, total } }),
+      // so return the whole envelope (plus the requested page); the reducer
+      // reads `data` (the rows) and `meta` (pagination).
       const envelope = await api.get(`/wallet/transactions?${params.toString()}`);
-      return { ...(envelope?.data || envelope || {}), page };
+      return { ...(envelope || {}), page };
     } catch (err) {
       return rejectWithValue(err?.message || "Failed to load transactions");
     }
@@ -313,8 +317,10 @@ const slice = createSlice({
         // Stale-response guard for filter changes mid-flight.
         if (action.meta.requestId !== state.latestTxFetchId) return;
         state.isLoading = false;
-        const { transactions, pagination, page } = action.payload || {};
-        const list = Array.isArray(transactions) ? transactions : (action.payload?.data?.transactions || []);
+        const { data, meta: pageMeta, page } = action.payload || {};
+        // Rows arrive as `data` (an array) with pagination under `meta`.
+        // Tolerate a nested { transactions } shape as a fallback.
+        const list = Array.isArray(data) ? data : (data?.transactions || []);
         if (page === 1) {
           state.transactions = list;
         } else {
@@ -333,7 +339,7 @@ const slice = createSlice({
           });
           state.transactions = [...state.transactions, ...additions];
         }
-        state.total = pagination?.total ?? action.payload?.total ?? 0;
+        state.total = pageMeta?.total ?? action.payload?.total ?? 0;
       })
       .addCase(fetchTransactions.rejected, (state, action) => {
         if (action.meta.requestId !== state.latestTxFetchId) return;

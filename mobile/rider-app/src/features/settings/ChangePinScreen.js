@@ -90,10 +90,23 @@ export default function ChangePinScreen() {
   const handleSubmit = async (oldPin, newPinValue) => {
     try {
       await dispatch(changeTransactionPin({ currentPin: oldPin, newPin: newPinValue })).unwrap();
-      Toast.show({ type: "success", text1: t("changePin.success", "PIN changed") });
+      Toast.show({
+        type: "success",
+        text1: t("changePin.success", "PIN changed"),
+        // Distinct from the first-time "PIN created" copy so a change reads
+        // as a change, not a fresh setup.
+        text2: t("changePin.successSub", "Your transaction PIN has been updated."),
+      });
       navigation.goBack();
     } catch (err) {
-      Toast.show({ type: "error", text1: err?.message || t("changePin.failed", "Couldn't change PIN") });
+      // Rejected payload is the server message string (e.g. "Incorrect PIN"),
+      // so reach for the string itself before err.message.
+      const msg = typeof err === "string" ? err : err?.message;
+      Toast.show({
+        type: "error",
+        text1: t("changePin.failed", "Couldn't change PIN"),
+        text2: msg || t("changePin.currentWrong", "Your current PIN is incorrect"),
+      });
       setStep("current");
       setCurrentPin("");
       setNewPin("");

@@ -64,6 +64,12 @@ const wipeCustomerKycSchema = z.object({
   reason: z.string().min(1, 'Reason is required').max(500),
 });
 
+// TEMPORARY testing aid: admin sets a customer's 6-digit transaction PIN.
+const setCustomerPinSchema = z.object({
+  pin: z.string().regex(/^\d{6}$/, 'PIN must be exactly 6 digits'),
+  reason: z.string().max(500).optional(),
+});
+
 const updateCustomerSchema = z
   .object({
     firstName: z.string().min(1).max(50).optional(),
@@ -352,6 +358,7 @@ module.exports = {
   updateCustomerStatusSchema,
   updateCustomerSchema,
   wipeCustomerKycSchema,
+  setCustomerPinSchema,
   listPendingRidersSchema,
   listAllCustomersSchema,
   paginationSchema,
