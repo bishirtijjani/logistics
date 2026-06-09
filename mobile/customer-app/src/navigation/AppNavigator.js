@@ -394,7 +394,7 @@ export default function AppNavigator() {
           backgroundColor: "transparent",
         }}
       >
-        <ActivityIndicator size="large" color="#EA580C" />
+        <ActivityIndicator size="large" color={tokens.brand.default} />
       </View>
     );
   }
@@ -410,15 +410,15 @@ export default function AppNavigator() {
           paddingHorizontal: 32,
         }}
       >
-        <Ionicons name="finger-print" size={72} color="#EA580C" />
-        <Text style={{ marginTop: 24, fontSize: 22, fontWeight: "800", color: "#111827" }}>
+        <Ionicons name="finger-print" size={72} color={tokens.brand.default} />
+        <Text style={{ marginTop: 24, fontSize: 22, fontWeight: "800", color: tokens.text.primary }}>
           Locked
         </Text>
         <Text
           style={{
             marginTop: 8,
             fontSize: 14,
-            color: "#6B7280",
+            color: tokens.text.muted,
             textAlign: "center",
             lineHeight: 20,
           }}
@@ -429,13 +429,13 @@ export default function AppNavigator() {
           onPress={retryBiometric}
           style={{
             marginTop: 28,
-            backgroundColor: "#EA580C",
+            backgroundColor: tokens.brand.default,
             paddingVertical: 14,
             paddingHorizontal: 32,
             borderRadius: 14,
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+          <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 15 }}>
             Use biometrics
           </Text>
         </TouchableOpacity>
@@ -443,7 +443,7 @@ export default function AppNavigator() {
           onPress={() => dispatch(logout())}
           style={{ marginTop: 16, paddingVertical: 10 }}
         >
-          <Text style={{ color: "#6B7280", fontWeight: "600", fontSize: 14 }}>
+          <Text style={{ color: tokens.text.muted, fontWeight: "600", fontSize: 14 }}>
             Sign out instead
           </Text>
         </TouchableOpacity>

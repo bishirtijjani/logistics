@@ -11,7 +11,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import {
   fetchMyTickets,
   fetchMyDisputes,
@@ -20,33 +20,35 @@ import SkeletonLoader from "../../components/SkeletonLoader";
 import EmptyState from "../../components/EmptyState";
 import ErrorState from "../../components/ErrorState";
 
-const ticketStatusColor = (status) => {
-  switch (status) {
-    case "OPEN": return "#DC2626";
-    case "IN_PROGRESS": return "#D97706";
-    case "PENDING_USER": return "#B45309";
-    case "RESOLVED": return "#059669";
-    case "CLOSED": return "#6B7280";
-    default: return colors.textMuted;
-  }
-};
-
-const disputeStatusColor = (status) => {
-  switch (status) {
-    case "OPEN": return "#DC2626";
-    case "UNDER_REVIEW": return "#D97706";
-    case "AWAITING_RESPONSE": return "#B45309";
-    case "RESOLVED": return "#059669";
-    case "REJECTED": return "#6B7280";
-    default: return colors.textMuted;
-  }
-};
-
 export default function MyTicketsScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState("tickets");
+
+  const ticketStatusColor = (status) => {
+    switch (status) {
+      case "OPEN": return tokens.status.errorStrong;
+      case "IN_PROGRESS": return tokens.status.warning;
+      case "PENDING_USER": return tokens.status.warningStrong;
+      case "RESOLVED": return tokens.status.successStrong;
+      case "CLOSED": return tokens.text.muted;
+      default: return tokens.text.muted;
+    }
+  };
+
+  const disputeStatusColor = (status) => {
+    switch (status) {
+      case "OPEN": return tokens.status.errorStrong;
+      case "UNDER_REVIEW": return tokens.status.warning;
+      case "AWAITING_RESPONSE": return tokens.status.warningStrong;
+      case "RESOLVED": return tokens.status.successStrong;
+      case "REJECTED": return tokens.text.muted;
+      default: return tokens.text.muted;
+    }
+  };
+
   const {
     tickets,
     ticketsLoading,
@@ -72,24 +74,24 @@ export default function MyTicketsScreen() {
       accessibilityRole="button"
       accessibilityLabel={t("a11y.openTicket", { number: item.number })}
       style={{
-        backgroundColor: colors.surface,
+        backgroundColor: tokens.bg.surface,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: tokens.border.default,
         borderRadius: 14,
         padding: 14,
         marginBottom: 10,
       }}
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-        <Text style={{ fontSize: 11, color: colors.textMuted }}>#{item.number}</Text>
+        <Text style={{ fontSize: 11, color: tokens.text.muted }}>#{item.number}</Text>
         <Text style={{ fontSize: 11, fontWeight: "700", color: ticketStatusColor(item.status) }}>
           {item.status.replace(/_/g, " ")}
         </Text>
       </View>
-      <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }} numberOfLines={1}>
+      <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }} numberOfLines={1}>
         {item.subject}
       </Text>
-      <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
+      <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 4 }}>
         {item.category} · {new Date(item.lastActivityAt).toLocaleDateString()}
       </Text>
     </TouchableOpacity>
@@ -101,31 +103,31 @@ export default function MyTicketsScreen() {
       accessibilityRole="button"
       accessibilityLabel={t("a11y.openDispute", { number: item.number })}
       style={{
-        backgroundColor: colors.surface,
+        backgroundColor: tokens.bg.surface,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: tokens.border.default,
         borderRadius: 14,
         padding: 14,
         marginBottom: 10,
       }}
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-        <Text style={{ fontSize: 11, color: colors.textMuted }}>
+        <Text style={{ fontSize: 11, color: tokens.text.muted }}>
           {t("support.disputeNumber")} #{item.number}
         </Text>
         <Text style={{ fontSize: 11, fontWeight: "700", color: disputeStatusColor(item.status) }}>
           {item.status.replace(/_/g, " ")}
         </Text>
       </View>
-      <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }} numberOfLines={1}>
+      <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }} numberOfLines={1}>
         {item.reason}
       </Text>
-      <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
+      <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 4 }}>
         {item.category.replace(/_/g, " ")} ·{" "}
         {new Date(item.lastActivityAt).toLocaleDateString()}
       </Text>
       {item.refundAmount && (
-        <Text style={{ fontSize: 12, color: "#059669", marginTop: 4, fontWeight: "600" }}>
+        <Text style={{ fontSize: 12, color: tokens.status.successStrong, marginTop: 4, fontWeight: "600" }}>
           ₦{Number(item.refundAmount).toLocaleString("en-NG")} {t("support.refundedToWallet")}
         </Text>
       )}
@@ -137,9 +139,9 @@ export default function MyTicketsScreen() {
   const error = activeTab === "tickets" ? ticketsError : disputesError;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -159,16 +161,16 @@ export default function MyTicketsScreen() {
               width: 40,
               height: 40,
               borderRadius: 12,
-              backgroundColor: colors.surfaceMuted,
+              backgroundColor: tokens.bg.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
               marginRight: 14,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
           </TouchableOpacity>
           <Text
-            style={{ fontSize: 20, fontWeight: "900", color: colors.text }}
+            style={{ fontSize: 20, fontWeight: "900", color: tokens.text.primary }}
             accessibilityRole="header"
           >
             {t("support.myTickets")}
@@ -180,7 +182,7 @@ export default function MyTicketsScreen() {
           accessibilityRole="button"
           accessibilityLabel={t("a11y.retry")}
         >
-          <Ionicons name="refresh" size={20} color={colors.text} />
+          <Ionicons name="refresh" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -207,7 +209,7 @@ export default function MyTicketsScreen() {
                 flex: 1,
                 paddingVertical: 10,
                 borderBottomWidth: 2,
-                borderBottomColor: isActive ? colors.primary : colors.border,
+                borderBottomColor: isActive ? tokens.brand.default : tokens.border.default,
                 alignItems: "center",
               }}
             >
@@ -215,7 +217,7 @@ export default function MyTicketsScreen() {
                 style={{
                   fontSize: 14,
                   fontWeight: "700",
-                  color: isActive ? colors.primaryStrong : colors.textMuted,
+                  color: isActive ? tokens.brand.strong : tokens.text.muted,
                 }}
               >
                 {tab.label} {tab.count > 0 ? `(${tab.count})` : ""}
@@ -232,7 +234,7 @@ export default function MyTicketsScreen() {
             accessibilityRole="button"
             accessibilityLabel={t("a11y.newTicket")}
             style={{
-              backgroundColor: colors.primary,
+              backgroundColor: tokens.brand.default,
               borderRadius: 12,
               paddingVertical: 12,
               alignItems: "center",
@@ -241,8 +243,8 @@ export default function MyTicketsScreen() {
               gap: 8,
             }}
           >
-            <Ionicons name="add-circle-outline" size={18} color="#fff" />
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+            <Ionicons name="add-circle-outline" size={18} color={tokens.text.onBrand} />
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 14 }}>
               {t("support.createTicket")}
             </Text>
           </TouchableOpacity>

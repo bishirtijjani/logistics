@@ -33,7 +33,7 @@ import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/nativ
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import {
   fetchAddresses,
   createAddress,
@@ -49,6 +49,7 @@ export default function SavedAddressesScreen() {
   const route = useRoute();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { list, isLoading, isMutating, isLoaded } = useSelector((s) => s.addresses);
 
   // Picker mode - when set, taps return via callback rather than editing.
@@ -170,40 +171,40 @@ export default function SavedAddressesScreen() {
       onPress={() => (pickerMode ? handlePickerTap(item) : null)}
       activeOpacity={pickerMode ? 0.8 : 1}
       style={{
-        backgroundColor: colors.surface,
+        backgroundColor: tokens.bg.surface,
         borderRadius: 14,
         padding: 14,
         marginBottom: 10,
         borderWidth: 1,
-        borderColor: item.isDefault ? colors.primary : colors.border,
+        borderColor: item.isDefault ? tokens.brand.default : tokens.border.default,
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
         <View
           style={{
             width: 38, height: 38, borderRadius: 19,
-            backgroundColor: `${colors.primary}20`,
+            backgroundColor: `${tokens.brand.default}20`,
             alignItems: "center", justifyContent: "center", marginRight: 12,
           }}
         >
-          <Ionicons name={item.label === "Home" ? "home" : item.label === "Work" ? "briefcase" : "location"} size={18} color={colors.primary} />
+          <Ionicons name={item.label === "Home" ? "home" : item.label === "Work" ? "briefcase" : "location"} size={18} color={tokens.brand.default} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: colors.text }}>{item.label}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: tokens.text.primary }}>{item.label}</Text>
             {item.isDefault && (
-              <View style={{ marginLeft: 8, backgroundColor: `${colors.primary}20`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
-                <Text style={{ fontSize: 10, fontWeight: "700", color: colors.primary }}>DEFAULT</Text>
+              <View style={{ marginLeft: 8, backgroundColor: `${tokens.brand.default}20`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
+                <Text style={{ fontSize: 10, fontWeight: "700", color: tokens.brand.default }}>DEFAULT</Text>
               </View>
             )}
           </View>
-          <Text numberOfLines={2} style={{ fontSize: 13, color: colors.textMuted, marginTop: 3 }}>
+          <Text numberOfLines={2} style={{ fontSize: 13, color: tokens.text.muted, marginTop: 3 }}>
             {item.address}
           </Text>
         </View>
         {!pickerMode && (
           <TouchableOpacity onPress={() => openLocationPicker(item)} style={{ padding: 6 }} hitSlop={8}>
-            <Ionicons name="create-outline" size={20} color={colors.textMuted} />
+            <Ionicons name="create-outline" size={20} color={tokens.text.muted} />
           </TouchableOpacity>
         )}
       </View>
@@ -213,16 +214,16 @@ export default function SavedAddressesScreen() {
           {!item.isDefault && (
             <TouchableOpacity
               onPress={() => dispatch(setDefaultAddress(item.id))}
-              style={{ flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: "center", backgroundColor: colors.surfaceMuted }}
+              style={{ flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: "center", backgroundColor: tokens.bg.surfaceMuted }}
             >
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.text }}>Make default</Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.primary }}>Make default</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
             onPress={() => handleDelete(item)}
-            style={{ flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: "center", backgroundColor: "#FEE2E2" }}
+            style={{ flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: "center", backgroundColor: tokens.status.errorSoft }}
           >
-            <Text style={{ fontSize: 12, fontWeight: "700", color: "#DC2626" }}>Delete</Text>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.status.errorStrong }}>Delete</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -253,19 +254,19 @@ export default function SavedAddressesScreen() {
   const renderEmpty = () =>
     isLoading ? null : (
       <View style={{ alignItems: "center", paddingVertical: 48, paddingHorizontal: 24 }}>
-        <Ionicons name="location-outline" size={48} color={colors.textMuted} />
-        <Text style={{ marginTop: 12, fontWeight: "800", fontSize: 16, color: colors.text }}>
+        <Ionicons name="location-outline" size={48} color={tokens.text.muted} />
+        <Text style={{ marginTop: 12, fontWeight: "800", fontSize: 16, color: tokens.text.primary }}>
           No saved addresses yet
         </Text>
-        <Text style={{ marginTop: 6, fontSize: 13, color: colors.textMuted, textAlign: "center", lineHeight: 19 }}>
+        <Text style={{ marginTop: 6, fontSize: 13, color: tokens.text.muted, textAlign: "center", lineHeight: 19 }}>
           Save your Home and Work addresses to speed up future deliveries.
         </Text>
         {pickerMode && (
           <TouchableOpacity
             onPress={pickOneOffLocation}
-            style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: colors.primary }}
+            style={{ marginTop: 20, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: tokens.brand.default }}
           >
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 13 }}>
               Pick a location on the map
             </Text>
           </TouchableOpacity>
@@ -274,9 +275,9 @@ export default function SavedAddressesScreen() {
     );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -284,11 +285,11 @@ export default function SavedAddressesScreen() {
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
-            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: colors.surfaceMuted, alignItems: "center", justifyContent: "center", marginRight: 14 }}
+            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tokens.bg.surfaceMuted, alignItems: "center", justifyContent: "center", marginRight: 14 }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "900", color: colors.text, letterSpacing: -0.5 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "900", color: tokens.text.primary, letterSpacing: -0.5 }}>
             {pickerMode ? t("request.pickAddress") : t("addresses.title")}
           </Text>
         </View>
@@ -296,10 +297,10 @@ export default function SavedAddressesScreen() {
           onPress={() => openLocationPicker(null)}
           accessibilityRole="button"
           accessibilityLabel={t("addresses.addCta")}
-          style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: colors.primary }}
+          style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: tokens.brand.default }}
         >
-          <Ionicons name="add" size={16} color="#fff" />
-          <Text style={{ marginLeft: 4, fontSize: 13, fontWeight: "700", color: "#fff" }}>{t("common.next")}</Text>
+          <Ionicons name="add" size={16} color={tokens.text.onBrand} />
+          <Text style={{ marginLeft: 4, fontSize: 13, fontWeight: "700", color: tokens.text.onBrand }}>{t("common.next")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -310,15 +311,15 @@ export default function SavedAddressesScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 30 }}
         ListEmptyComponent={renderEmpty}
         ListHeaderComponent={
-          isLoading && list.length === 0 ? <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} /> : null
+          isLoading && list.length === 0 ? <ActivityIndicator color={tokens.brand.default} style={{ marginTop: 24 }} /> : null
         }
         ListFooterComponent={
           pickerMode && list.length > 0 ? (
             <TouchableOpacity
               onPress={pickOneOffLocation}
-              style={{ marginTop: 6, paddingVertical: 12, borderRadius: 12, alignItems: "center", borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.border }}
+              style={{ marginTop: 6, paddingVertical: 12, borderRadius: 12, alignItems: "center", borderWidth: 1.5, borderStyle: "dashed", borderColor: tokens.border.default }}
             >
-              <Text style={{ fontWeight: "700", color: colors.primary, fontSize: 13 }}>
+              <Text style={{ fontWeight: "700", color: tokens.brand.default, fontSize: 13 }}>
                 <Ionicons name="map-outline" size={13} />  Pick a one-off location
               </Text>
             </TouchableOpacity>
@@ -328,27 +329,27 @@ export default function SavedAddressesScreen() {
 
       {/* Label + default modal - used both for new entries and edits. */}
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
-        <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: "flex-end", backgroundColor: tokens.overlay.scrim }}>
+          <View style={{ backgroundColor: tokens.bg.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 }}>
             <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-              <Text style={{ flex: 1, fontSize: 18, fontWeight: "800", color: colors.text }}>
+              <Text style={{ flex: 1, fontSize: 18, fontWeight: "800", color: tokens.text.primary }}>
                 {editing?.id ? "Edit address" : "New address"}
               </Text>
               <TouchableOpacity onPress={() => setEditing(null)}>
-                <Ionicons name="close" size={22} color={colors.textMuted} />
+                <Ionicons name="close" size={22} color={tokens.text.muted} />
               </TouchableOpacity>
             </View>
 
-            <View style={{ backgroundColor: colors.surfaceMuted, borderRadius: 12, padding: 12, marginBottom: 14 }}>
+            <View style={{ backgroundColor: tokens.bg.surfaceMuted, borderRadius: 12, padding: 12, marginBottom: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Ionicons name="location" size={16} color={colors.primary} />
-                <Text numberOfLines={2} style={{ marginLeft: 8, flex: 1, fontSize: 13, color: colors.text }}>
+                <Ionicons name="location" size={16} color={tokens.brand.default} />
+                <Text numberOfLines={2} style={{ marginLeft: 8, flex: 1, fontSize: 13, color: tokens.text.primary }}>
                   {editing?.address || "-"}
                 </Text>
               </View>
             </View>
 
-            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, textTransform: "uppercase", marginBottom: 6 }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, textTransform: "uppercase", marginBottom: 6 }}>
               Label
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 10 }}>
@@ -360,10 +361,10 @@ export default function SavedAddressesScreen() {
                     marginRight: 8, marginBottom: 8,
                     paddingHorizontal: 12, paddingVertical: 6,
                     borderRadius: 999,
-                    backgroundColor: labelDraft === s ? colors.primary : colors.surfaceMuted,
+                    backgroundColor: labelDraft === s ? tokens.brand.default : tokens.bg.surfaceMuted,
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: labelDraft === s ? "#fff" : colors.text }}>{s}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: labelDraft === s ? tokens.text.onBrand : tokens.text.primary }}>{s}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -371,9 +372,9 @@ export default function SavedAddressesScreen() {
               value={labelDraft}
               onChangeText={setLabelDraft}
               placeholder="Custom label"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={tokens.text.muted}
               maxLength={60}
-              style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.text, marginBottom: 14 }}
+              style={{ borderWidth: 1, borderColor: tokens.border.default, borderRadius: 10, padding: 12, fontSize: 14, color: tokens.text.primary, marginBottom: 14 }}
             />
 
             <TouchableOpacity
@@ -383,25 +384,25 @@ export default function SavedAddressesScreen() {
               <View
                 style={{
                   width: 22, height: 22, borderRadius: 6,
-                  borderWidth: 2, borderColor: isDefaultDraft ? colors.primary : colors.border,
-                  backgroundColor: isDefaultDraft ? colors.primary : "transparent",
+                  borderWidth: 2, borderColor: isDefaultDraft ? tokens.brand.default : tokens.border.default,
+                  backgroundColor: isDefaultDraft ? tokens.brand.default : "transparent",
                   alignItems: "center", justifyContent: "center", marginRight: 10,
                 }}
               >
-                {isDefaultDraft && <Ionicons name="checkmark" size={14} color="#fff" />}
+                {isDefaultDraft && <Ionicons name="checkmark" size={14} color={tokens.text.onBrand} />}
               </View>
-              <Text style={{ fontSize: 14, color: colors.text }}>Set as default address</Text>
+              <Text style={{ fontSize: 14, color: tokens.text.primary }}>Set as default address</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={saveEdit}
               disabled={isMutating}
-              style={{ backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: "center" }}
+              style={{ backgroundColor: tokens.brand.default, paddingVertical: 14, borderRadius: 12, alignItems: "center" }}
             >
               {isMutating ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={tokens.text.onBrand} />
               ) : (
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+                <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 15 }}>
                   {editing?.id ? "Save changes" : "Save address"}
                 </Text>
               )}

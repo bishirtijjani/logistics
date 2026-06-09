@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import SupportThread from "./SupportThread";
 import {
   fetchTicketDetail,
@@ -24,23 +24,24 @@ import {
   clearTicketDetail,
 } from "../../store/slices/supportSlice";
 
-const statusColor = (status) => {
-  switch (status) {
-    case "OPEN": return "#DC2626";
-    case "IN_PROGRESS": return "#D97706";
-    case "PENDING_USER": return "#B45309";
-    case "RESOLVED": return "#059669";
-    case "CLOSED": return "#6B7280";
-    default: return colors.textMuted;
-  }
-};
-
 export default function TicketDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { ticketId } = route.params || {};
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
+
+  const statusColor = (status) => {
+    switch (status) {
+      case "OPEN": return tokens.status.errorStrong;
+      case "IN_PROGRESS": return tokens.status.warning;
+      case "PENDING_USER": return tokens.status.warningStrong;
+      case "RESOLVED": return tokens.status.successStrong;
+      case "CLOSED": return tokens.text.muted;
+      default: return tokens.text.muted;
+    }
+  };
   const { ticketDetail, ticketDetailLoading } = useSelector((s) => s.support);
   const currentUserId = useSelector((s) => s.auth.user?.id);
 
@@ -90,9 +91,9 @@ export default function TicketDetailScreen() {
 
   if (ticketDetailLoading || !ticketDetail) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={tokens.brand.default} />
         </View>
       </SafeAreaView>
     );
@@ -101,9 +102,9 @@ export default function TicketDetailScreen() {
   const isClosed = ticketDetail.status === "CLOSED";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -123,20 +124,20 @@ export default function TicketDetailScreen() {
               width: 40,
               height: 40,
               borderRadius: 12,
-              backgroundColor: colors.surfaceMuted,
+              backgroundColor: tokens.bg.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
               marginRight: 14,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 11, color: colors.textMuted }}>
+            <Text style={{ fontSize: 11, color: tokens.text.muted }}>
               {t("support.ticketNumber")} #{ticketDetail.number}
             </Text>
             <Text
-              style={{ fontSize: 16, fontWeight: "800", color: colors.text }}
+              style={{ fontSize: 16, fontWeight: "800", color: tokens.text.primary }}
               numberOfLines={1}
               accessibilityRole="header"
             >
@@ -152,7 +153,7 @@ export default function TicketDetailScreen() {
             borderRadius: 10,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
+          <Text style={{ color: tokens.text.onElevated, fontSize: 10, fontWeight: "700" }}>
             {ticketDetail.status.replace(/_/g, " ")}
           </Text>
         </View>
@@ -163,11 +164,11 @@ export default function TicketDetailScreen() {
           marginHorizontal: 20,
           marginBottom: 8,
           padding: 12,
-          backgroundColor: colors.surfaceMuted,
+          backgroundColor: tokens.bg.surfaceMuted,
           borderRadius: 12,
         }}
       >
-        <Text style={{ fontSize: 13, color: colors.text, lineHeight: 18 }}>
+        <Text style={{ fontSize: 13, color: tokens.text.primary, lineHeight: 18 }}>
           {ticketDetail.description}
         </Text>
         {Array.isArray(ticketDetail.attachmentUrls) &&
@@ -203,14 +204,14 @@ export default function TicketDetailScreen() {
             marginHorizontal: 20,
             marginBottom: 8,
             padding: 12,
-            backgroundColor: "#D1FAE5",
+            backgroundColor: tokens.status.successSoft,
             borderRadius: 12,
           }}
         >
-          <Text style={{ fontSize: 12, fontWeight: "700", color: "#065F46" }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.status.successStrong }}>
             {t("support.resolution")}
           </Text>
-          <Text style={{ fontSize: 13, color: "#064E3B", marginTop: 4 }}>
+          <Text style={{ fontSize: 13, color: tokens.status.successStrong, marginTop: 4 }}>
             {ticketDetail.resolution}
           </Text>
         </View>
@@ -236,10 +237,10 @@ export default function TicketDetailScreen() {
             paddingVertical: 10,
             alignItems: "center",
             borderTopWidth: 1,
-            borderTopColor: colors.border,
+            borderTopColor: tokens.border.default,
           }}
         >
-          <Text style={{ color: colors.errorStrong, fontSize: 13, fontWeight: "600" }}>
+          <Text style={{ color: tokens.status.errorStrong, fontSize: 13, fontWeight: "600" }}>
             {closing ? "…" : t("support.closeTicket")}
           </Text>
         </TouchableOpacity>

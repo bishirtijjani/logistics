@@ -1,10 +1,11 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../theme";
+import { useTheme } from "../theme";
 
 // Brand identity shown atop the auth screens (login / register).
 export default function AuthBrandMark({ style }) {
+  const { tokens } = useTheme();
   return (
     <View
       style={[
@@ -20,19 +21,19 @@ export default function AuthBrandMark({ style }) {
           width: 44,
           height: 44,
           borderRadius: 14,
-          backgroundColor: colors.primary,
+          backgroundColor: tokens.brand.default,
           alignItems: "center",
           justifyContent: "center",
           marginRight: 10,
         }}
       >
-        <Ionicons name="bicycle" size={24} color={colors.white} />
+        <Ionicons name="bicycle" size={24} color={tokens.text.onBrand} />
       </View>
       <Text
         style={{
           fontSize: 22,
           fontWeight: "900",
-          color: colors.text,
+          color: tokens.text.primary,
           letterSpacing: -0.5,
         }}
       >
@@ -41,7 +42,7 @@ export default function AuthBrandMark({ style }) {
       <View
         style={{
           marginLeft: 8,
-          backgroundColor: colors.primary + "1A",
+          backgroundColor: tokens.brand.default + "1A",
           paddingHorizontal: 8,
           paddingVertical: 3,
           borderRadius: 999,
@@ -51,7 +52,7 @@ export default function AuthBrandMark({ style }) {
           style={{
             fontSize: 11,
             fontWeight: "800",
-            color: colors.primaryStrong,
+            color: tokens.brand.strong,
             letterSpacing: 0.5,
           }}
         >

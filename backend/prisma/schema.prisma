@@ -639,6 +639,12 @@ model Merchant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// Full-text search vector, generated and maintained by Postgres from
+  /// name (weight A) + description (weight B). Created in the
+  /// search_fts_hybrid migration; declared Unsupported so Prisma keeps it
+  /// on diff. Never written from application code.
+  search_vector Unsupported("tsvector")?
+
   // Relations
   requests          Request[]
   products          Product[]
@@ -650,6 +656,7 @@ model Merchant {
   @@index([status])
   @@index([isActive, isOpen])
   @@index([lat, lng])
+  @@index([search_vector], type: Gin)
   @@map("merchants")
 }
 
@@ -828,6 +835,12 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// Full-text search vector, generated and maintained by Postgres from
+  /// name (A) + description (B) + category (C). Created in the
+  /// search_fts_hybrid migration; declared Unsupported so Prisma keeps it
+  /// on diff. Never written from application code.
+  search_vector Unsupported("tsvector")?
+
   // Relations
   variants     ProductVariant[]
   optionGroups ProductOptionGroup[]
@@ -835,6 +848,7 @@ model Product {
 
   @@index([merchantId])
   @@index([category])
+  @@index([search_vector], type: Gin)
   @@map("products")
 }
 

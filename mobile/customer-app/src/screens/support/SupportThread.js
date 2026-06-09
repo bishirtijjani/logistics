@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 const initials = (u) =>
   `${u?.firstName?.[0] || ""}${u?.lastName?.[0] || ""}`.toUpperCase() || "?";
@@ -27,6 +27,7 @@ const roleLabelKey = (role) => {
 
 function MessageBubble({ message, currentUserId }) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const isMine = message.fromUserId === currentUserId;
   const isInternal = message.isInternal;
   const senderName = isMine
@@ -46,13 +47,13 @@ function MessageBubble({ message, currentUserId }) {
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: colors.surfaceMuted,
+          backgroundColor: tokens.bg.surfaceMuted,
           alignItems: "center",
           justifyContent: "center",
           marginHorizontal: 8,
         }}
       >
-        <Text style={{ fontSize: 11, fontWeight: "700", color: colors.text }}>
+        <Text style={{ fontSize: 11, fontWeight: "700", color: tokens.text.primary }}>
           {initials(message.fromUser)}
         </Text>
       </View>
@@ -70,16 +71,16 @@ function MessageBubble({ message, currentUserId }) {
           }}
         >
           <Text
-            style={{ fontSize: 11, color: colors.textMuted, fontWeight: "600" }}
+            style={{ fontSize: 11, color: tokens.text.muted, fontWeight: "600" }}
             accessibilityRole="text"
           >
             {senderName}
           </Text>
-          <Text style={{ fontSize: 10, color: colors.textMuted, marginLeft: 6 }}>
+          <Text style={{ fontSize: 10, color: tokens.text.muted, marginLeft: 6 }}>
             · {roleText}
           </Text>
           {isInternal && (
-            <Text style={{ fontSize: 10, color: "#92400E", marginLeft: 6 }}>
+            <Text style={{ fontSize: 10, color: tokens.status.warningStrong, marginLeft: 6 }}>
               · {t("support.thread.internalTag")}
             </Text>
           )}
@@ -87,11 +88,11 @@ function MessageBubble({ message, currentUserId }) {
         <View
           style={{
             backgroundColor: isInternal
-              ? "#FEF3C7"
+              ? tokens.status.warningSoft
               : isMine
-                ? colors.primary
-                : colors.surface,
-            borderColor: isInternal ? "#FCD34D" : colors.border,
+                ? tokens.brand.default
+                : tokens.bg.surface,
+            borderColor: isInternal ? tokens.status.warning : tokens.border.default,
             borderWidth: isInternal ? 1 : 0,
             borderRadius: 14,
             paddingHorizontal: 12,
@@ -101,7 +102,7 @@ function MessageBubble({ message, currentUserId }) {
           <Text
             style={{
               fontSize: 14,
-              color: isMine && !isInternal ? "#fff" : colors.text,
+              color: isMine && !isInternal ? tokens.text.onBrand : tokens.text.primary,
               lineHeight: 20,
             }}
           >
@@ -121,7 +122,7 @@ function MessageBubble({ message, currentUserId }) {
                   height: 60,
                   borderRadius: 8,
                   overflow: "hidden",
-                  backgroundColor: colors.surfaceMuted,
+                  backgroundColor: tokens.bg.surfaceMuted,
                 }}
               >
                 <Image source={{ uri: url }} style={{ width: 60, height: 60 }} />
@@ -129,7 +130,7 @@ function MessageBubble({ message, currentUserId }) {
             ))}
           </View>
         )}
-        <Text style={{ fontSize: 10, color: colors.textMuted, marginTop: 3 }}>
+        <Text style={{ fontSize: 10, color: tokens.text.muted, marginTop: 3 }}>
           {new Date(message.createdAt).toLocaleString()}
         </Text>
       </View>
@@ -146,6 +147,7 @@ export default function SupportThread({
   placeholder,
 }) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const [body, setBody] = useState("");
   const listRef = useRef(null);
   const resolvedPlaceholder = placeholder || t("support.thread.messagePh");
@@ -177,7 +179,7 @@ export default function SupportThread({
         )}
         ListEmptyComponent={
           <View style={{ padding: 32, alignItems: "center" }}>
-            <Text style={{ fontSize: 13, color: colors.textMuted }}>
+            <Text style={{ fontSize: 13, color: tokens.text.muted }}>
               {t("support.thread.noMessages")}
             </Text>
           </View>
@@ -197,15 +199,15 @@ export default function SupportThread({
               paddingHorizontal: 12,
               paddingVertical: 10,
               borderTopWidth: 1,
-              borderTopColor: colors.border,
-              backgroundColor: colors.surface,
+              borderTopColor: tokens.border.default,
+              backgroundColor: tokens.bg.surface,
             }}
           >
             <TextInput
               value={body}
               onChangeText={setBody}
               placeholder={resolvedPlaceholder}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={tokens.text.muted}
               multiline
               maxLength={2000}
               accessibilityLabel={resolvedPlaceholder}
@@ -215,10 +217,10 @@ export default function SupportThread({
                 maxHeight: 120,
                 paddingHorizontal: 14,
                 paddingVertical: 10,
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: tokens.bg.surfaceMuted,
                 borderRadius: 20,
                 fontSize: 14,
-                color: colors.text,
+                color: tokens.text.primary,
               }}
             />
             <TouchableOpacity
@@ -231,7 +233,7 @@ export default function SupportThread({
                 width: 40,
                 height: 40,
                 borderRadius: 20,
-                backgroundColor: colors.primary,
+                backgroundColor: tokens.brand.default,
                 alignItems: "center",
                 justifyContent: "center",
                 marginLeft: 8,
@@ -239,9 +241,9 @@ export default function SupportThread({
               }}
             >
               {posting ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color={tokens.text.onBrand} size="small" />
               ) : (
-                <Ionicons name="send" size={18} color="#fff" />
+                <Ionicons name="send" size={18} color={tokens.text.onBrand} />
               )}
             </TouchableOpacity>
           </View>

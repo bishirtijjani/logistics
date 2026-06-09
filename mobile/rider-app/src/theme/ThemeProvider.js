@@ -11,7 +11,10 @@ const resolveSystemScheme = () =>
   Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
 
 export function ThemeProvider({ children }) {
-  const [mode, setModeState] = useState('system');
+  // Default to light for users with no saved preference. A persisted choice
+  // (set via the theme switcher) still wins after hydration, and the user can
+  // pick 'system' to track the OS.
+  const [mode, setModeState] = useState('light');
   const [systemScheme, setSystemScheme] = useState(resolveSystemScheme);
   const [hydrated, setHydrated] = useState(false);
 
@@ -24,7 +27,7 @@ export function ThemeProvider({ children }) {
           setModeState(stored);
         }
       } catch (_) {
-        // Storage read failure is non-fatal - we just stick with 'system'.
+        // Storage read failure is non-fatal - we just stick with 'light'.
       } finally {
         if (!cancelled) setHydrated(true);
       }

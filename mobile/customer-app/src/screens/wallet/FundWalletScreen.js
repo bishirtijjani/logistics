@@ -12,12 +12,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import { fetchWallet, retryProvisioning } from "../../store/slices/walletSlice";
 import { fetchProfile } from "../../store/slices/profileSlice";
 
 export default function FundWalletScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens } = useTheme();
   const { t } = useTranslation();
   const { accountNumber, bankName, isLoading } = useSelector((state) => state.wallet);
   const { profile } = useSelector((state) => state.profile);
@@ -113,7 +114,7 @@ export default function FundWalletScreen({ navigation }) {
   }, [showProvisioning]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -123,9 +124,9 @@ export default function FundWalletScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: tokens.text.primary }}>
             {t("wallet.fundTitle")}
           </Text>
         </View>
@@ -135,22 +136,22 @@ export default function FundWalletScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.default} />
         }
       >
         {showInitialLoader ? (
           <View style={{ paddingVertical: 80, alignItems: "center" }}>
-            <ActivityIndicator color={colors.primary} size="large" />
+            <ActivityIndicator color={tokens.brand.default} size="large" />
           </View>
         ) : showVerifyCta ? (
           <View
             style={{
-              backgroundColor: "#FFF7ED",
+              backgroundColor: tokens.brand.soft,
               borderRadius: 20,
               padding: 24,
               marginTop: 8,
               borderWidth: 1,
-              borderColor: "#FED7AA",
+              borderColor: tokens.brand.softBorder,
             }}
           >
             <View
@@ -158,21 +159,21 @@ export default function FundWalletScreen({ navigation }) {
                 width: 56,
                 height: 56,
                 borderRadius: 28,
-                backgroundColor: colors.primary + "20",
+                backgroundColor: tokens.brand.soft,
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 16,
               }}
             >
-              <Ionicons name="shield-checkmark" size={28} color={colors.primary} />
+              <Ionicons name="shield-checkmark" size={28} color={tokens.brand.default} />
             </View>
             <Text
               accessibilityRole="header"
-              style={{ fontSize: 18, fontWeight: "800", color: colors.text, marginBottom: 8 }}
+              style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginBottom: 8 }}
             >
               {t("wallet.fund_.notReadyTitle")}
             </Text>
-            <Text style={{ fontSize: 14, color: colors.textMuted, lineHeight: 20, marginBottom: 20 }}>
+            <Text style={{ fontSize: 14, color: tokens.text.muted, lineHeight: 20, marginBottom: 20 }}>
               {t("wallet.fund_.notReadyBody")}
             </Text>
             <TouchableOpacity
@@ -180,7 +181,7 @@ export default function FundWalletScreen({ navigation }) {
               accessibilityRole="button"
               accessibilityLabel={t("wallet.fund_.verifyCta")}
               style={{
-                backgroundColor: colors.primary,
+                backgroundColor: tokens.brand.default,
                 paddingVertical: 14,
                 borderRadius: 14,
                 alignItems: "center",
@@ -188,32 +189,32 @@ export default function FundWalletScreen({ navigation }) {
                 justifyContent: "center",
               }}
             >
-              <Text style={{ color: colors.white, fontSize: 15, fontWeight: "700", marginRight: 8 }}>
+              <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "700", marginRight: 8 }}>
                 {t("wallet.fund_.verifyCta")}
               </Text>
-              <Ionicons name="arrow-forward" size={18} color={colors.white} />
+              <Ionicons name="arrow-forward" size={18} color={tokens.text.onBrand} />
             </TouchableOpacity>
           </View>
         ) : showProvisioning ? (
           <View
             style={{
-              backgroundColor: "#FFF7ED",
+              backgroundColor: tokens.brand.soft,
               borderRadius: 20,
               padding: 24,
               marginTop: 8,
               borderWidth: 1,
-              borderColor: "#FED7AA",
+              borderColor: tokens.brand.softBorder,
               alignItems: "center",
             }}
           >
-            <ActivityIndicator color={colors.primary} size="large" style={{ marginBottom: 16 }} />
+            <ActivityIndicator color={tokens.brand.default} size="large" style={{ marginBottom: 16 }} />
             <Text
               accessibilityRole="header"
-              style={{ fontSize: 18, fontWeight: "800", color: colors.text, marginBottom: 8, textAlign: "center" }}
+              style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginBottom: 8, textAlign: "center" }}
             >
               {t("wallet.fund_.provisioningTitle")}
             </Text>
-            <Text style={{ fontSize: 14, color: colors.textMuted, lineHeight: 20, textAlign: "center", marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, color: tokens.text.muted, lineHeight: 20, textAlign: "center", marginBottom: 16 }}>
               {t("wallet.fund_.provisioningBody")}
             </Text>
             <TouchableOpacity
@@ -224,11 +225,11 @@ export default function FundWalletScreen({ navigation }) {
                 paddingVertical: 10,
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: colors.primary,
+                borderColor: tokens.brand.default,
                 opacity: isRetrying ? 0.5 : 1,
               }}
             >
-              <Text style={{ color: colors.primaryStrong, fontWeight: "700", fontSize: 13 }}>
+              <Text style={{ color: tokens.brand.strong, fontWeight: "700", fontSize: 13 }}>
                 {isRetrying ? "Retrying..." : "Retry now"}
               </Text>
             </TouchableOpacity>
@@ -238,7 +239,7 @@ export default function FundWalletScreen({ navigation }) {
             {/* Virtual Account Card */}
             <View
               style={{
-                backgroundColor: colors.dark,
+                backgroundColor: tokens.bg.elevated,
                 borderRadius: 24,
                 padding: 24,
                 marginTop: 8,
@@ -250,19 +251,19 @@ export default function FundWalletScreen({ navigation }) {
                     width: 48,
                     height: 48,
                     borderRadius: 24,
-                    backgroundColor: colors.primary,
+                    backgroundColor: tokens.brand.default,
                     alignItems: "center",
                     justifyContent: "center",
                     marginRight: 16,
                   }}
                 >
-                  <Ionicons name="card" size={24} color={colors.white} />
+                  <Ionicons name="card" size={24} color={tokens.text.onBrand} />
                 </View>
                 <View>
-                  <Text style={{ fontSize: 16, fontWeight: "700", color: colors.white }}>
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: tokens.text.onElevated }}>
                     {t("wallet.fund_.vAccountTitle")}
                   </Text>
-                  <Text style={{ fontSize: 13, color: colors.textMuted }}>
+                  <Text style={{ fontSize: 13, color: tokens.text.muted }}>
                     {t("wallet.fund_.vAccountSubtitle")}
                   </Text>
                 </View>
@@ -277,7 +278,7 @@ export default function FundWalletScreen({ navigation }) {
                   marginBottom: 16,
                 }}
               >
-                <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 8 }}>
                   {t("wallet.fund_.accountNumber")}
                 </Text>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -286,25 +287,25 @@ export default function FundWalletScreen({ navigation }) {
                       flex: 1,
                       fontSize: 28,
                       fontWeight: "900",
-                      color: colors.white,
+                      color: tokens.text.onElevated,
                       letterSpacing: 2,
                     }}
                     accessibilityLabel={`${t("wallet.fund_.accountNumber")} ${accountNumber}`}
                   >
-                    {isLoading ? <ActivityIndicator color={colors.white} /> : accountNumber}
+                    {isLoading ? <ActivityIndicator color={tokens.text.onElevated} /> : accountNumber}
                   </Text>
                   <TouchableOpacity
                     onPress={() => copyToClipboard(accountNumber)}
                     accessibilityRole="button"
                     accessibilityLabel={copied ? t("wallet.fund_.copied") : t("wallet.fund_.copy")}
                     style={{
-                      backgroundColor: colors.primary,
+                      backgroundColor: tokens.brand.default,
                       paddingHorizontal: 16,
                       paddingVertical: 10,
                       borderRadius: 12,
                     }}
                   >
-                    <Text style={{ color: colors.white, fontSize: 13, fontWeight: "700" }}>
+                    <Text style={{ color: tokens.text.onBrand, fontSize: 13, fontWeight: "700" }}>
                       {copied ? t("wallet.fund_.copied") : t("wallet.fund_.copy")}
                     </Text>
                   </TouchableOpacity>
@@ -321,8 +322,8 @@ export default function FundWalletScreen({ navigation }) {
                   padding: 16,
                 }}
               >
-                <Ionicons name="business" size={20} color={colors.primary} />
-                <Text style={{ marginLeft: 12, fontSize: 15, fontWeight: "600", color: colors.white }}>
+                <Ionicons name="business" size={20} color={tokens.brand.default} />
+                <Text style={{ marginLeft: 12, fontSize: 15, fontWeight: "600", color: tokens.text.onElevated }}>
                   {bankName || t("wallet.fund_.fallbackBank")}
                 </Text>
               </View>
@@ -331,7 +332,7 @@ export default function FundWalletScreen({ navigation }) {
             {/* Instructions */}
             <Text
               accessibilityRole="header"
-              style={{ fontSize: 16, fontWeight: "800", color: colors.text, marginTop: 24, marginBottom: 16 }}
+              style={{ fontSize: 16, fontWeight: "800", color: tokens.text.primary, marginTop: 24, marginBottom: 16 }}
             >
               {t("wallet.fund_.howTo")}
             </Text>
@@ -343,19 +344,19 @@ export default function FundWalletScreen({ navigation }) {
                     width: 40,
                     height: 40,
                     borderRadius: 20,
-                    backgroundColor: colors.primary + "15",
+                    backgroundColor: tokens.brand.soft,
                     alignItems: "center",
                     justifyContent: "center",
                     marginRight: 16,
                   }}
                 >
-                  <Ionicons name={step.icon} size={20} color={colors.primary} />
+                  <Ionicons name={step.icon} size={20} color={tokens.brand.default} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>
                     {index + 1}. {step.title}
                   </Text>
-                  <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{step.desc}</Text>
+                  <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 2 }}>{step.desc}</Text>
                 </View>
               </View>
             ))}
@@ -363,21 +364,21 @@ export default function FundWalletScreen({ navigation }) {
             {/* Important Notice */}
             <View
               style={{
-                backgroundColor: "#FFF7ED",
+                backgroundColor: tokens.brand.soft,
                 borderRadius: 16,
                 padding: 16,
                 marginTop: 8,
                 borderWidth: 1,
-                borderColor: "#FED7AA",
+                borderColor: tokens.brand.softBorder,
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
-                <Ionicons name="information-circle" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                <Ionicons name="information-circle" size={20} color={tokens.brand.default} style={{ marginRight: 8 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text, marginBottom: 4 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary, marginBottom: 4 }}>
                     {t("wallet.fund_.importantTitle")}
                   </Text>
-                  <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 18 }}>
+                  <Text style={{ fontSize: 13, color: tokens.text.muted, lineHeight: 18 }}>
                     {t("wallet.fund_.importantBody")}
                   </Text>
                 </View>

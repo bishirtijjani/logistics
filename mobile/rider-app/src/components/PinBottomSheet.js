@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import * as SecureStore from "../lib/storage";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../theme";
+import { useTheme } from "../theme";
 import { InModalToast } from "./toastShared";
 
 const { height } = Dimensions.get("window");
@@ -53,6 +53,7 @@ export default function PinBottomSheet({
   onForgotPin,
   onSetupPin,
 }) {
+  const { tokens } = useTheme();
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [needsSetup, setNeedsSetup] = useState(false);
@@ -200,9 +201,9 @@ export default function PinBottomSheet({
       {Array.from({ length: PIN_LENGTH }).map((_, index) => (
         <View
           key={index}
-          style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, marginHorizontal: 8, alignItems: 'center', justifyContent: 'center', borderColor: error ? '#EF4444' : index < pin.length ? '#EA580C' : '#E5E7EB', backgroundColor: index < pin.length ? 'rgba(234,88,12,0.2)' : 'transparent' }}
+          style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, marginHorizontal: 8, alignItems: 'center', justifyContent: 'center', borderColor: error ? tokens.status.error : index < pin.length ? tokens.brand.default : tokens.border.default, backgroundColor: index < pin.length ? tokens.brand.soft : 'transparent' }}
         >
-          {index < pin.length && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />}
+          {index < pin.length && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tokens.brand.default }} />}
         </View>
       ))}
     </View>
@@ -225,16 +226,16 @@ export default function PinBottomSheet({
               return (
                 <TouchableOpacity
                   key={key}
-                  style={{ width: 80, height: 56, borderRadius: 12, backgroundColor: disabled ? '#F3F4F6' : '#fff', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.6 : 1 }}
+                  style={{ width: 80, height: 56, borderRadius: 12, backgroundColor: disabled ? tokens.bg.surfaceMuted : tokens.bg.surface, alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.6 : 1 }}
                   onPress={() => handleKeyPress(key)}
                   disabled={disabled}
                 >
                   {key === "backspace" ? (
-                    <Ionicons name="backspace-outline" size={24} color={colors.text} />
+                    <Ionicons name="backspace-outline" size={24} color={tokens.text.primary} />
                   ) : key === "forgot" ? (
-                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.primary }}>Forgot?</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: tokens.brand.default }}>Forgot?</Text>
                   ) : (
-                    <Text style={{ fontSize: 24, fontWeight: '600', color: colors.text }}>{key}</Text>
+                    <Text style={{ fontSize: 24, fontWeight: '600', color: tokens.text.primary }}>{key}</Text>
                   )}
                 </TouchableOpacity>
               );
@@ -249,9 +250,9 @@ export default function PinBottomSheet({
     if (!isLocked) return null;
     const remaining = lockedUntil - now;
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: colors.error + "15" }}>
-        <Ionicons name="lock-closed" size={16} color={colors.error} />
-        <Text style={{ marginLeft: 8, fontSize: 13, fontWeight: '600', flex: 1, color: colors.error }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: tokens.status.errorSoft }}>
+        <Ionicons name="lock-closed" size={16} color={tokens.status.error} />
+        <Text style={{ marginLeft: 8, fontSize: 13, fontWeight: '600', flex: 1, color: tokens.status.error }}>
           PIN locked. Try again in {formatCountdown(remaining)}.
         </Text>
       </View>
@@ -261,20 +262,20 @@ export default function PinBottomSheet({
   return (
     <Modal visible={isVisible} transparent animationType="none" onRequestClose={onClose}>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.5)" }} onPress={onClose} activeOpacity={1} />
+        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: tokens.overlay.scrim }} onPress={onClose} activeOpacity={1} />
 
         <Animated.View
-          style={{ backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 24, paddingBottom: 32, maxHeight: height * 0.85, transform: [{ translateY: slideAnimation }] }}
+          style={{ backgroundColor: tokens.bg.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 24, paddingBottom: 32, maxHeight: height * 0.85, transform: [{ translateY: slideAnimation }] }}
         >
           {/* Handle */}
-          <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 16 }} />
+          <View style={{ width: 40, height: 4, backgroundColor: tokens.border.default, borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 16 }} />
 
           {/* Header */}
           <View style={{ alignItems: 'center', marginBottom: 24, position: 'relative' }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', marginBottom: 8, color: colors.text }}>{title}</Text>
-            <Text style={{ fontSize: 14, textAlign: 'center', color: colors.textMuted }}>{subtitle}</Text>
+            <Text style={{ fontSize: 20, fontWeight: '800', marginBottom: 8, color: tokens.text.primary }}>{title}</Text>
+            <Text style={{ fontSize: 14, textAlign: 'center', color: tokens.text.muted }}>{subtitle}</Text>
             <TouchableOpacity style={{ position: 'absolute', right: 0, top: 0, padding: 4 }} onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.textMuted} />
+              <Ionicons name="close" size={24} color={tokens.text.muted} />
             </TouchableOpacity>
           </View>
 
@@ -285,14 +286,14 @@ export default function PinBottomSheet({
               the SetPin screen. The keypad is disabled (handleKeyPress + the
               `disabled` flag below) while this is visible. */}
           {needsSetup ? (
-            <View style={{ borderRadius: 12, padding: 14, marginBottom: 16, backgroundColor: colors.primary + "12", borderWidth: 1, borderColor: colors.primary + "33" }}>
+            <View style={{ borderRadius: 12, padding: 14, marginBottom: 16, backgroundColor: tokens.brand.soft, borderWidth: 1, borderColor: tokens.brand.softBorder }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
-                <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '800', color: colors.text, flex: 1 }}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={tokens.brand.default} />
+                <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '800', color: tokens.text.primary, flex: 1 }}>
                   Set up your transaction PIN
                 </Text>
               </View>
-              <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 12 }}>
+              <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 12 }}>
                 {error || "You need a 6-digit PIN to authorize this. It only takes a moment."}
               </Text>
               <TouchableOpacity
@@ -300,11 +301,11 @@ export default function PinBottomSheet({
                   onClose?.();
                   onSetupPin?.();
                 }}
-                style={{ backgroundColor: colors.primary, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
+                style={{ backgroundColor: tokens.brand.default, paddingVertical: 12, borderRadius: 10, alignItems: 'center' }}
                 accessibilityRole="button"
                 accessibilityLabel="Set up PIN"
               >
-                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>Set up PIN</Text>
+                <Text style={{ color: tokens.text.onBrand, fontWeight: '800', fontSize: 14 }}>Set up PIN</Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -312,9 +313,9 @@ export default function PinBottomSheet({
           {/* Error (only when not displaying the lock banner or setup prompt) */}
           {!isLocked && !needsSetup && error ? (
             <Animated.View style={{ transform: [{ translateX: shakeAnimation }] }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: colors.error + "15" }}>
-                <Ionicons name="alert-circle" size={16} color={colors.error} />
-                <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '500', flex: 1, color: colors.error }}>{error}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: tokens.status.errorSoft }}>
+                <Ionicons name="alert-circle" size={16} color={tokens.status.error} />
+                <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '500', flex: 1, color: tokens.status.error }}>{error}</Text>
               </View>
             </Animated.View>
           ) : null}
@@ -329,7 +330,7 @@ export default function PinBottomSheet({
 
           {/* Cancel Button */}
           <TouchableOpacity style={{ alignItems: 'center', paddingVertical: 12 }} onPress={onClose}>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: colors.textMuted }}>Cancel</Text>
+            <Text style={{ fontSize: 16, fontWeight: '600', color: tokens.text.muted }}>Cancel</Text>
           </TouchableOpacity>
         </Animated.View>
         <InModalToast />

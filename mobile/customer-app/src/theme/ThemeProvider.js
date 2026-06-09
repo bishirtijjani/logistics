@@ -14,7 +14,10 @@ export function ThemeProvider({ children }) {
   // `mode` is the user's choice: 'light' | 'dark' | 'system'.
   // `systemScheme` is the OS-reported scheme. The active scheme is derived from
   // both: if mode === 'system', track the OS; otherwise the mode IS the scheme.
-  const [mode, setModeState] = useState('system');
+  // Default to light for users with no saved preference; a persisted choice
+  // (set via the theme switcher) still wins after hydration, and the user can
+  // pick 'system' to track the OS.
+  const [mode, setModeState] = useState('light');
   const [systemScheme, setSystemScheme] = useState(resolveSystemScheme);
   const [hydrated, setHydrated] = useState(false);
 
@@ -32,7 +35,7 @@ export function ThemeProvider({ children }) {
           setModeState(stored);
         }
       } catch (_) {
-        // Storage read failure is non-fatal - we just stick with 'system'.
+        // Storage read failure is non-fatal - we just stick with 'light'.
       } finally {
         if (!cancelled) setHydrated(true);
       }

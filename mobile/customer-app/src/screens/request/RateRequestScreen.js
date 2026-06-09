@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
-import { colors } from '../../theme';
+import { useTheme } from '../../theme';
 import { rateRequest } from '../../store/slices/requestSlice';
 
 export default function RateRequestScreen() {
@@ -19,6 +19,7 @@ export default function RateRequestScreen() {
   const { params } = useRoute();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const { isRating } = useSelector((s) => s.request);
 
   const request = params?.request || {};
@@ -52,16 +53,16 @@ export default function RateRequestScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-      <View style={{ flexDirection: 'row', padding: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'center' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
+      <View style={{ flexDirection: 'row', padding: 14, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default, alignItems: 'center' }}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+          <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
         </TouchableOpacity>
-        <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: colors.text }}>
+        <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: tokens.text.primary }}>
           {t('rate.title')}
         </Text>
         <View style={{ width: 22 }} />
@@ -93,9 +94,9 @@ export default function RateRequestScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('rate.submit')}
           accessibilityState={{ disabled: isRating, busy: isRating }}
-          style={{ backgroundColor: colors.primary, padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 12, opacity: isRating ? 0.6 : 1 }}
+          style={{ backgroundColor: tokens.brand.default, padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 12, opacity: isRating ? 0.6 : 1 }}
         >
-          {isRating ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '700' }}>{t('rate.submit')}</Text>}
+          {isRating ? <ActivityIndicator color={tokens.text.onBrand} /> : <Text style={{ color: tokens.text.onBrand, fontWeight: '700' }}>{t('rate.submit')}</Text>}
         </TouchableOpacity>
 
         {request.id && (
@@ -104,7 +105,7 @@ export default function RateRequestScreen() {
             accessibilityRole="button"
             style={{ paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
           >
-            <Text style={{ color: colors.error, fontWeight: '600', fontSize: 13 }}>
+            <Text style={{ color: tokens.status.error, fontWeight: '600', fontSize: 13 }}>
               {t('support.somethingWrong')}
             </Text>
           </TouchableOpacity>
@@ -115,9 +116,10 @@ export default function RateRequestScreen() {
 }
 
 function RatingBlock({ title, score, setScore, comment, setComment, t }) {
+  const { tokens } = useTheme();
   return (
     <View style={{ marginBottom: 18 }}>
-      <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>{title}</Text>
+      <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary, marginBottom: 8 }}>{title}</Text>
       <View style={{ flexDirection: 'row', marginBottom: 8 }} accessibilityRole="radiogroup">
         {[1, 2, 3, 4, 5].map((n) => (
           <TouchableOpacity
@@ -128,18 +130,18 @@ function RatingBlock({ title, score, setScore, comment, setComment, t }) {
             accessibilityLabel={t('rate.starLabel', { count: n })}
             accessibilityState={{ selected: n === score }}
           >
-            <Ionicons name={n <= score ? 'star' : 'star-outline'} size={32} color={n <= score ? '#FFA500' : colors.textMuted} />
+            <Ionicons name={n <= score ? 'star' : 'star-outline'} size={32} color={n <= score ? '#FFA500' : tokens.text.muted} />
           </TouchableOpacity>
         ))}
       </View>
       <TextInput
         placeholder={t('rate.commentPh')}
         accessibilityLabel={t('rate.commentPh')}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={tokens.text.muted}
         value={comment}
         onChangeText={(text) => text.length <= 250 && setComment(text)}
         multiline
-        style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, fontSize: 14, color: colors.text, borderWidth: 1, borderColor: colors.border, minHeight: 60, textAlignVertical: 'top' }}
+        style={{ backgroundColor: tokens.bg.surface, borderRadius: 10, padding: 12, fontSize: 14, color: tokens.text.primary, borderWidth: 1, borderColor: tokens.border.default, minHeight: 60, textAlignVertical: 'top' }}
       />
     </View>
   );

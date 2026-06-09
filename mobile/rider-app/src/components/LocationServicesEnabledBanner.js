@@ -99,7 +99,7 @@ export default function LocationServicesEnabledBanner() {
           marginLeft: 8,
         }}
       >
-        <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>Fix</Text>
+        <Text style={{ color: tokens.text.onBrand, fontSize: 12, fontWeight: "700" }}>Fix</Text>
       </TouchableOpacity>
     </View>
   );

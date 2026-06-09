@@ -17,7 +17,7 @@ import { verifyOtp, clearError } from "../../store/slices/authSlice";
 import api from "../../services/api";
 import AuthErrorBanner from "../../components/AuthErrorBanner";
 import AuthBrandMark from "../../components/AuthBrandMark";
-import { colors, light } from "../../theme";
+import { useTheme } from "../../theme";
 
 const RESEND_COOLDOWN = 60;
 
@@ -29,6 +29,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
   const [isResending, setIsResending] = useState(false);
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const { isLoading } = useSelector((state) => state.auth);
 
   // Countdown timer
@@ -104,9 +105,9 @@ export default function OtpVerificationScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: light.bg.canvas }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
     >
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -124,7 +125,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}
             >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
+              <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
             </TouchableOpacity>
             <AuthBrandMark style={{ marginBottom: 0, marginLeft: 16 }} />
           </View>
@@ -135,7 +136,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
               style={{
                 fontSize: 38,
                 fontWeight: "900",
-                color: colors.text,
+                color: tokens.text.primary,
                 letterSpacing: -1.5,
                 marginBottom: 8,
                 lineHeight: 44,
@@ -143,7 +144,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
             >
               {t("auth.otpTitle")}
             </Text>
-            <Text style={{ fontSize: 15, color: colors.textMuted, lineHeight: 22 }}>
+            <Text style={{ fontSize: 15, color: tokens.text.muted, lineHeight: 22 }}>
               {t("auth.otpSubtitle", { email })}
             </Text>
           </View>
@@ -155,26 +156,26 @@ export default function OtpVerificationScreen({ route, navigation }) {
               accessibilityLabel={t("auth.otpTitle")}
               accessibilityHint={t("auth.form.otpInvalid")}
               style={{
-                backgroundColor: colors.surface,
+                backgroundColor: tokens.bg.surface,
                 borderWidth: 1.5,
-                borderColor: colors.border,
+                borderColor: tokens.border.default,
                 textAlign: "center",
                 padding: 20,
                 borderRadius: 16,
-                color: colors.text,
+                color: tokens.text.primary,
                 fontSize: 32,
                 fontWeight: "900",
                 letterSpacing: 12,
               }}
               placeholder="000000"
-              placeholderTextColor={colors.border}
+              placeholderTextColor={tokens.text.placeholder}
               keyboardType="numeric"
               maxLength={6}
               value={code}
               onChangeText={setCode}
               editable={!isLoading}
               autoComplete="one-time-code"
-              selectionColor={colors.primary}
+              selectionColor={tokens.brand.default}
               onSubmitEditing={handleVerify}
               returnKeyType="done"
               autoFocus
@@ -187,7 +188,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
               padding: 16,
               borderRadius: 16,
               alignItems: "center",
-              backgroundColor: isLoading ? "#EA580CB3" : colors.primary,
+              backgroundColor: isLoading ? tokens.brand.strong : tokens.brand.default,
             }}
             onPress={handleVerify}
             disabled={isLoading}
@@ -197,9 +198,9 @@ export default function OtpVerificationScreen({ route, navigation }) {
             accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={tokens.text.onBrand} />
             ) : (
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+              <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "800" }}>
                 {isReset ? t("common.continue") : t("common.confirm")}
               </Text>
             )}
@@ -212,7 +213,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
               marginTop: 20,
             }}
           >
-            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+            <Text style={{ color: tokens.text.muted, fontSize: 14 }}>
               {t("auth.otpResend")}{" "}
             </Text>
             <TouchableOpacity
@@ -226,7 +227,7 @@ export default function OtpVerificationScreen({ route, navigation }) {
                 style={{
                   fontSize: 14,
                   fontWeight: "700",
-                  color: countdown > 0 ? colors.textMuted : colors.primary,
+                  color: countdown > 0 ? tokens.text.muted : tokens.brand.default,
                 }}
               >
                 {isResending

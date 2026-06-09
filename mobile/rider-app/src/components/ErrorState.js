@@ -12,11 +12,11 @@
  *   if (error) return <ErrorState message={tError(error)} onRetry={refetch} />;
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 const ErrorState = ({
   title,
@@ -27,6 +27,8 @@ const ErrorState = ({
   fill = true,
 }) => {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const resolvedTitle = title || t('states.errorTitle');
   const retryLabel = t('common.retry');
 
@@ -37,7 +39,7 @@ const ErrorState = ({
       accessibilityLabel={`${resolvedTitle}. ${message || ''}`.trim()}
     >
       <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={28} color={colors.error} />
+        <Ionicons name={icon} size={28} color={tokens.status.error} />
       </View>
       <Text style={styles.title}>{resolvedTitle}</Text>
       {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -48,7 +50,7 @@ const ErrorState = ({
           accessibilityRole="button"
           accessibilityLabel={retryLabel}
         >
-          <Ionicons name="refresh" size={16} color={colors.primary} />
+          <Ionicons name="refresh" size={16} color={tokens.brand.default} />
           <Text style={styles.retryText}>{retryLabel}</Text>
         </TouchableOpacity>
       ) : null}
@@ -56,7 +58,7 @@ const ErrorState = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (tokens) => StyleSheet.create({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: tokens.status.errorSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -75,13 +77,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: tokens.text.primary,
     textAlign: 'center',
     marginBottom: 4,
   },
   message: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: tokens.text.muted,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -93,11 +95,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: colors.primary,
+    borderColor: tokens.brand.default,
     gap: 6,
   },
   retryText: {
-    color: colors.primary,
+    color: tokens.brand.default,
     fontWeight: '700',
     fontSize: 13,
   },

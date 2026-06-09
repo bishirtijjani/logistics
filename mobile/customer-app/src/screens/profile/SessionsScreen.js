@@ -11,10 +11,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import api from "../../services/api";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import Toast from "react-native-toast-message";
 
 export default function SessionsScreen({ navigation }) {
+  const { tokens } = useTheme();
   const { t, i18n } = useTranslation();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,8 +87,8 @@ export default function SessionsScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
         <TouchableOpacity
@@ -95,9 +96,9 @@ export default function SessionsScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
         </TouchableOpacity>
-        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: tokens.text.primary, marginLeft: 16, letterSpacing: -0.5 }}>
           {t("sessions.title")}
         </Text>
       </View>
@@ -105,18 +106,18 @@ export default function SessionsScreen({ navigation }) {
       {sessions.length > 1 && (
         <TouchableOpacity
           onPress={revokeOthers}
-          style={{ marginHorizontal: 20, marginTop: 8, marginBottom: 4, backgroundColor: "#FEE2E2", borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center" }}
+          style={{ marginHorizontal: 20, marginTop: 8, marginBottom: 4, backgroundColor: tokens.status.errorSoft, borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center" }}
         >
-          <Ionicons name="log-out-outline" size={18} color="#DC2626" />
-          <Text style={{ color: "#DC2626", fontWeight: "700", fontSize: 13, marginLeft: 8 }}>Sign out all other devices</Text>
+          <Ionicons name="log-out-outline" size={18} color={tokens.status.errorStrong} />
+          <Text style={{ color: tokens.status.errorStrong, fontWeight: "700", fontSize: 13, marginLeft: 8 }}>Sign out all other devices</Text>
         </TouchableOpacity>
       )}
 
       {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        <ActivityIndicator color={tokens.brand.default} style={{ marginTop: 40 }} />
       ) : sessions.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: colors.textMuted }}>No active sessions</Text>
+          <Text style={{ color: tokens.text.muted }}>No active sessions</Text>
         </View>
       ) : (
         <FlatList
@@ -126,12 +127,12 @@ export default function SessionsScreen({ navigation }) {
           renderItem={({ item }) => (
             <View
               style={{
-                backgroundColor: colors.surface,
+                backgroundColor: tokens.bg.surface,
                 borderRadius: 16,
                 padding: 16,
                 marginBottom: 10,
                 borderWidth: item.isCurrent ? 1.5 : 0,
-                borderColor: item.isCurrent ? colors.primary : "transparent",
+                borderColor: item.isCurrent ? tokens.brand.default : "transparent",
               }}
             >
               <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
@@ -140,7 +141,7 @@ export default function SessionsScreen({ navigation }) {
                     width: 42,
                     height: 42,
                     borderRadius: 21,
-                    backgroundColor: item.isCurrent ? colors.primary + "20" : colors.border,
+                    backgroundColor: item.isCurrent ? tokens.brand.default + "20" : tokens.border.default,
                     alignItems: "center",
                     justifyContent: "center",
                     marginRight: 12,
@@ -149,30 +150,30 @@ export default function SessionsScreen({ navigation }) {
                   <Ionicons
                     name="phone-portrait-outline"
                     size={20}
-                    color={item.isCurrent ? colors.primary : colors.textMuted}
+                    color={item.isCurrent ? tokens.brand.default : tokens.text.muted}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>
                       {item.deviceName || item.userAgent?.split(" ")[0] || "Unknown device"}
                     </Text>
                     {item.isCurrent && (
-                      <View style={{ marginLeft: 8, backgroundColor: colors.primary + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                        <Text style={{ fontSize: 10, fontWeight: "700", color: colors.primaryStrong }}>THIS DEVICE</Text>
+                      <View style={{ marginLeft: 8, backgroundColor: tokens.brand.default + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: tokens.brand.strong }}>THIS DEVICE</Text>
                       </View>
                     )}
                   </View>
                   {item.deviceModel ? (
-                    <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
+                    <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: 2 }}>
                       {item.deviceModel}
                     </Text>
                   ) : null}
-                  <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
+                  <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: 2 }}>
                     Last active: {formatDate(item.lastUsedAt || item.createdAt)}
                   </Text>
                   {item.ipAddress ? (
-                    <Text style={{ fontSize: 11, color: colors.textMuted }}>{item.ipAddress}</Text>
+                    <Text style={{ fontSize: 11, color: tokens.text.muted }}>{item.ipAddress}</Text>
                   ) : null}
                 </View>
                 {!item.isCurrent && (
@@ -182,9 +183,9 @@ export default function SessionsScreen({ navigation }) {
                     style={{ padding: 4 }}
                   >
                     {revoking === item.id ? (
-                      <ActivityIndicator size="small" color="#DC2626" />
+                      <ActivityIndicator size="small" color={tokens.status.errorStrong} />
                     ) : (
-                      <Ionicons name="close-circle-outline" size={22} color="#DC2626" />
+                      <Ionicons name="close-circle-outline" size={22} color={tokens.status.errorStrong} />
                     )}
                   </TouchableOpacity>
                 )}

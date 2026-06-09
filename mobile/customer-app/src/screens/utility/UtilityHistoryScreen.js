@@ -11,26 +11,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import { fetchUtilityHistory, fetchUtilityPayment } from "../../store/slices/utilitySlice";
 import EmptyState from "../../components/EmptyState";
 import SkeletonLoader from "../../components/SkeletonLoader";
-
-const UTILITY_TYPES = {
-  AIRTIME:       { icon: "call",   color: colors.primary,  labelKey: "utility.airtime" },
-  DATA:          { icon: "wifi",   color: colors.primary,  labelKey: "utility.data" },
-  ELECTRICITY:   { icon: "flash",  color: "#F59E0B",       labelKey: "utility.electricity" },
-  CABLE:         { icon: "tv",     color: "#6366F1",       labelKey: "utility.cable" },
-  EDUCATION_PIN: { icon: "school", color: "#059669",       labelKey: null },
-};
-
-const STATUS_COLORS = {
-  COMPLETED: { bg: colors.success + "20", text: colors.success },
-  PENDING:    { bg: "#FEF3C7", text: "#D97706" },
-  PROCESSING: { bg: "#FEF3C7", text: "#D97706" },
-  FAILED:    { bg: colors.error + "20", text: colors.error },
-  REFUNDED:  { bg: (colors.info || "#3B82F6") + "20", text: colors.info || "#3B82F6" },
-};
 
 const FILTERS = [
   { key: null,           tabKey: "tabAll" },
@@ -47,9 +31,26 @@ const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
 export default function UtilityHistoryScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens } = useTheme();
   const { t, i18n } = useTranslation();
   const { history, isLoading, total } = useSelector((state) => state.utility);
   const [refreshing, setRefreshing] = useState(false);
+
+  const UTILITY_TYPES = useMemo(() => ({
+    AIRTIME:       { icon: "call",   color: tokens.category.airtime,     labelKey: "utility.airtime" },
+    DATA:          { icon: "wifi",   color: tokens.category.data,        labelKey: "utility.data" },
+    ELECTRICITY:   { icon: "flash",  color: tokens.status.warning,       labelKey: "utility.electricity" },
+    CABLE:         { icon: "tv",     color: tokens.status.info,          labelKey: "utility.cable" },
+    EDUCATION_PIN: { icon: "school", color: tokens.status.successStrong, labelKey: null },
+  }), [tokens]);
+
+  const STATUS_COLORS = useMemo(() => ({
+    COMPLETED:  { bg: tokens.status.successSoft, text: tokens.status.success },
+    PENDING:    { bg: tokens.status.warningSoft, text: tokens.status.warning },
+    PROCESSING: { bg: tokens.status.warningSoft, text: tokens.status.warning },
+    FAILED:     { bg: tokens.status.errorSoft,   text: tokens.status.error },
+    REFUNDED:   { bg: tokens.status.infoSoft,    text: tokens.status.info },
+  }), [tokens]);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState(null);
   const pollRef = useRef(null);
@@ -109,9 +110,9 @@ export default function UtilityHistoryScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    const meta = UTILITY_TYPES[item.type] || { icon: "receipt", color: colors.textMuted, labelKey: null };
+    const meta = UTILITY_TYPES[item.type] || { icon: "receipt", color: tokens.text.muted, labelKey: null };
     const typeLabel = meta.labelKey ? t(meta.labelKey) : item.type;
-    const statusColor = STATUS_COLORS[item.status] || { bg: colors.surface, text: colors.text };
+    const statusColor = STATUS_COLORS[item.status] || { bg: tokens.bg.surface, text: tokens.text.primary };
     const recipient = item.phoneNumber || item.meterNumber || "-";
     const amountText = naira(item.amount);
 
@@ -124,7 +125,7 @@ export default function UtilityHistoryScreen({ navigation }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: colors.surface,
+          backgroundColor: tokens.bg.surface,
           borderRadius: 16,
           padding: 16,
           marginBottom: 12,
@@ -136,7 +137,7 @@ export default function UtilityHistoryScreen({ navigation }) {
 
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>{typeLabel}</Text>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>{typeLabel}</Text>
             <View
               style={{
                 backgroundColor: statusColor.bg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
@@ -146,25 +147,25 @@ export default function UtilityHistoryScreen({ navigation }) {
               <Text style={{ fontSize: 10, fontWeight: "700", color: statusColor.text }}>{item.status}</Text>
             </View>
           </View>
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>
+          <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 2 }}>
             {recipient} • {formatDate(item.createdAt)}
           </Text>
           {item.token ? (
-            <Text style={{ fontSize: 12, color: colors.primaryStrong, fontWeight: "700", marginTop: 4 }}>
+            <Text style={{ fontSize: 12, color: tokens.brand.strong, fontWeight: "700", marginTop: 4 }}>
               {t("utility.result.tokenLabel")}: {item.token}
             </Text>
           ) : null}
         </View>
 
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={{ fontSize: 16, fontWeight: "800", color: colors.text }}>{amountText}</Text>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: tokens.text.primary }}>{amountText}</Text>
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -174,9 +175,9 @@ export default function UtilityHistoryScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: tokens.text.primary }}>
             {t("utility.history.title")}
           </Text>
         </View>
@@ -201,13 +202,13 @@ export default function UtilityHistoryScreen({ navigation }) {
               accessibilityState={{ selected: active }}
               accessibilityLabel={label}
               style={{
-                backgroundColor: active ? colors.primary : colors.surface,
+                backgroundColor: active ? tokens.brand.default : tokens.bg.surface,
                 borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8,
                 marginRight: 8, borderWidth: 1,
-                borderColor: active ? colors.primary : colors.border,
+                borderColor: active ? tokens.brand.default : tokens.border.default,
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: active ? "#fff" : colors.text }}>{label}</Text>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: active ? tokens.text.onBrand : tokens.text.primary }}>{label}</Text>
             </TouchableOpacity>
           );
         })}

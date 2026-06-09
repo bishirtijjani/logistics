@@ -16,7 +16,7 @@ import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import { createDispute } from "../../store/slices/supportSlice";
 import { pickImage, uploadAttachment } from "./supportUploads";
 import { chooseImageSource } from "../../lib/chooseImageSource";
@@ -38,6 +38,7 @@ export default function CreateDisputeScreen() {
   const { requestId } = route.params || {};
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
 
   const [category, setCategory] = useState("ITEM_NOT_RECEIVED");
   const [reason, setReason] = useState("");
@@ -93,8 +94,8 @@ export default function CreateDisputeScreen() {
 
   if (!requestId) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-        <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+        <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
         <View
           style={{
             flexDirection: "row",
@@ -111,19 +112,19 @@ export default function CreateDisputeScreen() {
               width: 40,
               height: 40,
               borderRadius: 12,
-              backgroundColor: colors.surfaceMuted,
+              backgroundColor: tokens.bg.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
           </TouchableOpacity>
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <Ionicons name="information-circle-outline" size={48} color={colors.textMuted} />
+          <Ionicons name="information-circle-outline" size={48} color={tokens.text.muted} />
           <Text
             style={{
-              color: colors.textMuted,
+              color: tokens.text.muted,
               textAlign: "center",
               marginTop: 12,
               fontSize: 14,
@@ -137,9 +138,9 @@ export default function CreateDisputeScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -157,16 +158,16 @@ export default function CreateDisputeScreen() {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
-          style={{ fontSize: 20, fontWeight: "900", color: colors.text }}
+          style={{ fontSize: 20, fontWeight: "900", color: tokens.text.primary }}
           accessibilityRole="header"
         >
           {t("support.reportIssue")}
@@ -179,20 +180,20 @@ export default function CreateDisputeScreen() {
       >
         <View
           style={{
-            backgroundColor: "#FEF3C7",
+            backgroundColor: tokens.status.warningSoft,
             borderRadius: 12,
             padding: 12,
             marginBottom: 16,
             flexDirection: "row",
           }}
         >
-          <Ionicons name="warning-outline" size={18} color="#92400E" style={{ marginRight: 8 }} />
-          <Text style={{ flex: 1, fontSize: 12, color: "#92400E", lineHeight: 18 }}>
+          <Ionicons name="warning-outline" size={18} color={tokens.status.warningStrong} style={{ marginRight: 8 }} />
+          <Text style={{ flex: 1, fontSize: 12, color: tokens.status.warningStrong, lineHeight: 18 }}>
             {t("support.disputeIntro")}
           </Text>
         </View>
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.category")}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -209,12 +210,12 @@ export default function CreateDisputeScreen() {
                   paddingHorizontal: 12,
                   paddingVertical: 8,
                   borderRadius: 18,
-                  backgroundColor: active ? colors.primary : colors.surface,
+                  backgroundColor: active ? tokens.brand.default : tokens.bg.surface,
                   borderWidth: 1,
-                  borderColor: active ? colors.primary : colors.border,
+                  borderColor: active ? tokens.brand.default : tokens.border.default,
                 }}
               >
-                <Text style={{ fontSize: 12, color: active ? "#fff" : colors.text, fontWeight: "600" }}>
+                <Text style={{ fontSize: 12, color: active ? tokens.text.onBrand : tokens.text.primary, fontWeight: "600" }}>
                   {c.label}
                 </Text>
               </TouchableOpacity>
@@ -222,7 +223,7 @@ export default function CreateDisputeScreen() {
           })}
         </View>
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.reason")}
         </Text>
         <TextInput
@@ -230,22 +231,22 @@ export default function CreateDisputeScreen() {
           onChangeText={setReason}
           maxLength={200}
           placeholder={t("support.reasonPlaceholder")}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={tokens.text.muted}
           accessibilityLabel={t("support.reason")}
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: tokens.bg.surface,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: tokens.border.default,
             borderRadius: 12,
             paddingHorizontal: 14,
             paddingVertical: 12,
             fontSize: 14,
-            color: colors.text,
+            color: tokens.text.primary,
             marginBottom: 16,
           }}
         />
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.description")}
         </Text>
         <TextInput
@@ -254,27 +255,27 @@ export default function CreateDisputeScreen() {
           multiline
           maxLength={5000}
           placeholder={t("support.disputeDescriptionPlaceholder")}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={tokens.text.muted}
           accessibilityLabel={t("support.description")}
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: tokens.bg.surface,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: tokens.border.default,
             borderRadius: 12,
             paddingHorizontal: 14,
             paddingVertical: 12,
             fontSize: 14,
-            color: colors.text,
+            color: tokens.text.primary,
             minHeight: 120,
             textAlignVertical: "top",
             marginBottom: 16,
           }}
         />
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.evidence")}
         </Text>
-        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 11, color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.evidenceHint")}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -292,12 +293,12 @@ export default function CreateDisputeScreen() {
                   width: 22,
                   height: 22,
                   borderRadius: 11,
-                  backgroundColor: "rgba(0,0,0,0.65)",
+                  backgroundColor: tokens.overlay.scrim,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                <Ionicons name="close" size={14} color="#fff" />
+                <Ionicons name="close" size={14} color={tokens.text.onElevated} />
               </TouchableOpacity>
             </View>
           ))}
@@ -320,17 +321,17 @@ export default function CreateDisputeScreen() {
                 height: 72,
                 borderRadius: 10,
                 borderWidth: 2,
-                borderColor: colors.border,
+                borderColor: tokens.border.default,
                 borderStyle: "dashed",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: tokens.bg.surfaceMuted,
               }}
             >
               {uploading ? (
-                <ActivityIndicator color={colors.primary} />
+                <ActivityIndicator color={tokens.brand.default} />
               ) : (
-                <Ionicons name="camera-outline" size={24} color={colors.textMuted} />
+                <Ionicons name="camera-outline" size={24} color={tokens.text.muted} />
               )}
             </TouchableOpacity>
           )}
@@ -343,7 +344,7 @@ export default function CreateDisputeScreen() {
           accessibilityLabel={t("support.fileDispute")}
           accessibilityState={{ disabled: submitting, busy: submitting }}
           style={{
-            backgroundColor: colors.primary,
+            backgroundColor: tokens.brand.default,
             borderRadius: 14,
             paddingVertical: 14,
             alignItems: "center",
@@ -351,9 +352,9 @@ export default function CreateDisputeScreen() {
           }}
         >
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={tokens.text.onBrand} />
           ) : (
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 15 }}>
               {t("support.fileDispute")}
             </Text>
           )}

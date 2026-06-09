@@ -16,7 +16,7 @@ import { useDispatch } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import { createTicket } from "../../store/slices/supportSlice";
 import { pickImage, uploadAttachment } from "./supportUploads";
 import { chooseImageSource } from "../../lib/chooseImageSource";
@@ -42,6 +42,7 @@ export default function CreateTicketScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
 
   const [category, setCategory] = useState("OTHER");
   const [priority, setPriority] = useState("MEDIUM");
@@ -97,9 +98,9 @@ export default function CreateTicketScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -117,16 +118,16 @@ export default function CreateTicketScreen() {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
-          style={{ fontSize: 20, fontWeight: "900", color: colors.text }}
+          style={{ fontSize: 20, fontWeight: "900", color: tokens.text.primary }}
           accessibilityRole="header"
         >
           {t("support.createTicketTitle")}
@@ -137,7 +138,7 @@ export default function CreateTicketScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 48 }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.category")}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -154,12 +155,12 @@ export default function CreateTicketScreen() {
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   borderRadius: 18,
-                  backgroundColor: active ? colors.primary : colors.surface,
+                  backgroundColor: active ? tokens.brand.default : tokens.bg.surface,
                   borderWidth: 1,
-                  borderColor: active ? colors.primary : colors.border,
+                  borderColor: active ? tokens.brand.default : tokens.border.default,
                 }}
               >
-                <Text style={{ fontSize: 13, color: active ? "#fff" : colors.text, fontWeight: "600" }}>
+                <Text style={{ fontSize: 13, color: active ? tokens.text.onBrand : tokens.text.primary, fontWeight: "600" }}>
                   {c.label}
                 </Text>
               </TouchableOpacity>
@@ -167,7 +168,7 @@ export default function CreateTicketScreen() {
           })}
         </View>
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.priority")}
         </Text>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
@@ -184,13 +185,13 @@ export default function CreateTicketScreen() {
                   flex: 1,
                   paddingVertical: 10,
                   borderRadius: 12,
-                  backgroundColor: active ? colors.primary : colors.surface,
+                  backgroundColor: active ? tokens.brand.default : tokens.bg.surface,
                   borderWidth: 1,
-                  borderColor: active ? colors.primary : colors.border,
+                  borderColor: active ? tokens.brand.default : tokens.border.default,
                   alignItems: "center",
                 }}
               >
-                <Text style={{ fontSize: 12, color: active ? "#fff" : colors.text, fontWeight: "600" }}>
+                <Text style={{ fontSize: 12, color: active ? tokens.text.onBrand : tokens.text.primary, fontWeight: "600" }}>
                   {p.label}
                 </Text>
               </TouchableOpacity>
@@ -198,7 +199,7 @@ export default function CreateTicketScreen() {
           })}
         </View>
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.subject")}
         </Text>
         <TextInput
@@ -206,22 +207,22 @@ export default function CreateTicketScreen() {
           onChangeText={setSubject}
           maxLength={200}
           placeholder={t("support.subjectPlaceholder")}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={tokens.text.muted}
           accessibilityLabel={t("support.subject")}
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: tokens.bg.surface,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: tokens.border.default,
             borderRadius: 12,
             paddingHorizontal: 14,
             paddingVertical: 12,
             fontSize: 14,
-            color: colors.text,
+            color: tokens.text.primary,
             marginBottom: 16,
           }}
         />
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.description")}
         </Text>
         <TextInput
@@ -231,24 +232,24 @@ export default function CreateTicketScreen() {
           maxLength={5000}
           numberOfLines={6}
           placeholder={t("support.descriptionPlaceholder")}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={tokens.text.muted}
           accessibilityLabel={t("support.description")}
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: tokens.bg.surface,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: tokens.border.default,
             borderRadius: 12,
             paddingHorizontal: 14,
             paddingVertical: 12,
             fontSize: 14,
-            color: colors.text,
+            color: tokens.text.primary,
             minHeight: 120,
             textAlignVertical: "top",
             marginBottom: 16,
           }}
         />
 
-        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>
           {t("support.attachments")}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -274,7 +275,7 @@ export default function CreateTicketScreen() {
                   justifyContent: "center",
                 }}
               >
-                <Ionicons name="close" size={14} color="#fff" />
+                <Ionicons name="close" size={14} color={tokens.text.onElevated} />
               </TouchableOpacity>
             </View>
           ))}
@@ -297,17 +298,17 @@ export default function CreateTicketScreen() {
                 height: 72,
                 borderRadius: 10,
                 borderWidth: 2,
-                borderColor: colors.border,
+                borderColor: tokens.border.default,
                 borderStyle: "dashed",
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: tokens.bg.surfaceMuted,
               }}
             >
               {uploading ? (
-                <ActivityIndicator color={colors.primary} />
+                <ActivityIndicator color={tokens.brand.default} />
               ) : (
-                <Ionicons name="camera-outline" size={24} color={colors.textMuted} />
+                <Ionicons name="camera-outline" size={24} color={tokens.text.muted} />
               )}
             </TouchableOpacity>
           )}
@@ -320,7 +321,7 @@ export default function CreateTicketScreen() {
           accessibilityLabel={t("support.submit")}
           accessibilityState={{ disabled: submitting, busy: submitting }}
           style={{
-            backgroundColor: colors.primary,
+            backgroundColor: tokens.brand.default,
             borderRadius: 14,
             paddingVertical: 14,
             alignItems: "center",
@@ -328,9 +329,9 @@ export default function CreateTicketScreen() {
           }}
         >
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={tokens.text.onBrand} />
           ) : (
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 15 }}>
               {t("support.submit")}
             </Text>
           )}

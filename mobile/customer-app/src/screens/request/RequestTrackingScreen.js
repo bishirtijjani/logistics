@@ -33,7 +33,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import socketService from '../../services/socket';
-import { colors } from '../../theme';
+import { useTheme } from '../../theme';
 import {
   fetchRequestById,
   fetchActiveRoute,
@@ -48,7 +48,7 @@ import {
   appendMessageFromSocket,
   clearTrackingState,
 } from '../../store/slices/requestSlice';
-import { statusTimeline, statusDisplay, STATUS, isActive, substitutionLabel } from '../../lib/requestStatus';
+import { statusTimeline, statusDisplay, statusToneColors, STATUS, isActive, substitutionLabel } from '../../lib/requestStatus';
 import { decodePolyline } from '../../lib/polyline';
 
 const STEP_ICON = {
@@ -89,6 +89,7 @@ const RequestTrackingScreen = () => {
   const route = useRoute();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { requestId } = route.params;
   const {
     currentRequest, isLoading,
@@ -266,9 +267,9 @@ const RequestTrackingScreen = () => {
 
   if (isLoading && !currentRequest) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} accessibilityLabel={t('common.loading')} />
-        <Text style={{ marginTop: 16, fontSize: 16, color: colors.textMuted }}>{t('common.loading')}</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: tokens.bg.canvas }}>
+        <ActivityIndicator size="large" color={tokens.brand.default} accessibilityLabel={t('common.loading')} />
+        <Text style={{ marginTop: 16, fontSize: 16, color: tokens.text.muted }}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -276,18 +277,18 @@ const RequestTrackingScreen = () => {
   if (!currentRequest) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-        <Ionicons name="alert-circle-outline" size={64} color={colors.textMuted} />
-        <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8, color: colors.text }}>
+        <Ionicons name="alert-circle-outline" size={64} color={tokens.text.muted} />
+        <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8, color: tokens.text.primary }}>
           {t('errors.REQUEST_NOT_FOUND')}
         </Text>
-        <Text style={{ fontSize: 14, marginBottom: 24, color: colors.textMuted }}>{t('errors.NOT_FOUND')}</Text>
+        <Text style={{ fontSize: 14, marginBottom: 24, color: tokens.text.muted }}>{t('errors.NOT_FOUND')}</Text>
         <TouchableOpacity
-          style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, backgroundColor: colors.primary }}
+          style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, backgroundColor: tokens.brand.default }}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('common.back')}</Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: tokens.text.onBrand }}>{t('common.back')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -305,6 +306,7 @@ const RequestTrackingScreen = () => {
   }));
   const currentStepIndex = timeline.findIndex((step) => step.key === currentRequest.status);
   const pill = statusDisplay(currentRequest.status, currentRequest.type, categorySlug);
+  const pillColors = statusToneColors(pill.tone, tokens);
 
   const canCancelLocally = ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'RIDER_ASSIGNED', 'RIDER_EN_ROUTE'].includes(currentRequest.status);
   const canRate = ['DELIVERED', 'SETTLED'].includes(currentRequest.status) && !currentRequest.rating;
@@ -321,17 +323,17 @@ const RequestTrackingScreen = () => {
     || (activeRoute?.riderLat != null ? { lat: activeRoute.riderLat, lng: activeRoute.riderLng } : null);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={{ padding: 8 }}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
         </TouchableOpacity>
-        <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '600', color: colors.text }}>
+        <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '600', color: tokens.text.primary }}>
           {t('request.tracking.title')}
         </Text>
         {showChatButton ? (
@@ -341,7 +343,7 @@ const RequestTrackingScreen = () => {
             accessibilityRole="button"
             accessibilityLabel={t('a11y.openChat')}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.primary} />
+            <Ionicons name="chatbubble-ellipses-outline" size={24} color={tokens.brand.default} />
           </TouchableOpacity>
         ) : (
           <View style={{ width: 40 }} />
@@ -351,11 +353,11 @@ const RequestTrackingScreen = () => {
       {/* Connection quality pill - only when socket has been down ≥3s. */}
       {showReconnect && (
         <View
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#FEF3C7', borderBottomWidth: 1, borderBottomColor: '#FDE68A' }}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 12, backgroundColor: tokens.status.warningSoft, borderBottomWidth: 1, borderBottomColor: tokens.status.warning }}
           accessibilityLiveRegion="polite"
         >
-          <ActivityIndicator size="small" color="#92400E" />
-          <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '700', color: '#92400E' }}>
+          <ActivityIndicator size="small" color={tokens.status.warningStrong} />
+          <Text style={{ marginLeft: 8, fontSize: 12, fontWeight: '700', color: tokens.status.warningStrong }}>
             {t('request.tracking.reconnecting')}
           </Text>
         </View>
@@ -364,15 +366,15 @@ const RequestTrackingScreen = () => {
       <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Searching banner */}
         {showSearching && (
-          <View style={{ marginBottom: 16, backgroundColor: '#FFF7ED', borderColor: '#FB923C', borderWidth: 1, borderRadius: 12, padding: 14 }}>
+          <View style={{ marginBottom: 16, backgroundColor: tokens.brand.soft, borderColor: tokens.brand.softBorder, borderWidth: 1, borderRadius: 12, padding: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ActivityIndicator color="#EA580C" />
-              <Text style={{ marginLeft: 10, fontWeight: '700', color: '#EA580C', fontSize: 14 }}>
+              <ActivityIndicator color={tokens.brand.default} />
+              <Text style={{ marginLeft: 10, fontWeight: '700', color: tokens.brand.default, fontSize: 14 }}>
                 {t('request.tracking.searchingTitle')}
               </Text>
             </View>
             {matchingStatus && (
-              <Text style={{ marginTop: 6, fontSize: 12, color: '#9A3412' }}>
+              <Text style={{ marginTop: 6, fontSize: 12, color: tokens.brand.strong }}>
                 {t('request.tracking.searchingAttempt', {
                   attempt: matchingStatus.attempt,
                   total: matchingStatus.totalAttempts,
@@ -383,7 +385,7 @@ const RequestTrackingScreen = () => {
                   : ''}
               </Text>
             )}
-            <Text style={{ marginTop: 4, fontSize: 12, color: colors.textMuted }}>
+            <Text style={{ marginTop: 4, fontSize: 12, color: tokens.text.muted }}>
               {t('request.tracking.searchingHint')}
             </Text>
           </View>
@@ -393,11 +395,11 @@ const RequestTrackingScreen = () => {
         {showEtaChip && (
           <View style={{ marginBottom: 16, flexDirection: 'row' }}>
             <View
-              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#DCFCE7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }}
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.status.successSoft, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 }}
               accessibilityLiveRegion="polite"
             >
-              <Ionicons name="bicycle" size={14} color="#15803D" />
-              <Text style={{ marginLeft: 6, color: '#15803D', fontWeight: '700', fontSize: 13 }}>
+              <Ionicons name="bicycle" size={14} color={tokens.status.successStrong} />
+              <Text style={{ marginLeft: 6, color: tokens.status.successStrong, fontWeight: '700', fontSize: 13 }}>
                 {t('request.tracking.etaArrives', { eta: formatEta(etaSeconds) })}
                 {riderEta?.nextCheckpoint === 'PICKUP' ? ` ${t('request.tracking.etaPickup')}` : ''}
               </Text>
@@ -407,20 +409,20 @@ const RequestTrackingScreen = () => {
 
         {/* Status Timeline */}
         <View style={{ marginBottom: 24 }}>
-          <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
             {t('request.tracking.orderStatus')}
           </Text>
-          <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
-            <View style={{ alignSelf: 'center', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999, backgroundColor: pill.bg, marginBottom: 18 }}>
-              <Text style={{ color: pill.color, fontWeight: '700', fontSize: 14 }}>{pill.label}</Text>
+          <View style={{ borderRadius: 12, padding: 16, backgroundColor: tokens.bg.surface }}>
+            <View style={{ alignSelf: 'center', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999, backgroundColor: pillColors.bg, marginBottom: 18 }}>
+              <Text style={{ color: pillColors.color, fontWeight: '700', fontSize: 14 }}>{pill.label}</Text>
             </View>
             {currentRequest.status === 'CANCELLED' ? (
               <View>
-                <Text style={{ textAlign: 'center', color: colors.textMuted }}>
+                <Text style={{ textAlign: 'center', color: tokens.text.muted }}>
                   {currentRequest.cancellationReason || t('errors.CANCELLED') || pill.label}
                 </Text>
                 {Number(currentRequest.cancellationFee) > 0 && (
-                  <Text style={{ textAlign: 'center', color: colors.textMuted, fontSize: 12, marginTop: 6 }}>
+                  <Text style={{ textAlign: 'center', color: tokens.text.muted, fontSize: 12, marginTop: 6 }}>
                     {t('request.tracking.cancelFeeLabel')}: ₦{Number(currentRequest.cancellationFee).toLocaleString()}
                   </Text>
                 )}
@@ -437,18 +439,18 @@ const RequestTrackingScreen = () => {
                           style={{
                             width: 32, height: 32, borderRadius: 16,
                             alignItems: 'center', justifyContent: 'center',
-                            backgroundColor: isCompleted ? colors.primary : colors.border,
+                            backgroundColor: isCompleted ? tokens.brand.default : tokens.border.default,
                             borderWidth: isCurrent ? 2 : 0,
-                            borderColor: isCurrent ? colors.primary + '40' : undefined,
+                            borderColor: isCurrent ? tokens.brand.default + '40' : undefined,
                           }}
                         >
-                          <Ionicons name={step.icon} size={16} color={isCompleted ? '#fff' : colors.textMuted} />
+                          <Ionicons name={step.icon} size={16} color={isCompleted ? tokens.text.onBrand : tokens.text.muted} />
                         </View>
                         {index < timeline.length - 1 && (
-                          <View style={{ width: 2, height: 24, marginTop: 4, backgroundColor: index < currentStepIndex ? colors.primary : colors.border }} />
+                          <View style={{ width: 2, height: 24, marginTop: 4, backgroundColor: index < currentStepIndex ? tokens.brand.default : tokens.border.default }} />
                         )}
                       </View>
-                      <Text style={{ fontSize: 14, color: isCompleted ? colors.text : colors.textMuted, fontWeight: isCompleted ? '500' : 'normal' }}>
+                      <Text style={{ fontSize: 14, color: isCompleted ? tokens.text.primary : tokens.text.muted, fontWeight: isCompleted ? '500' : 'normal' }}>
                         {step.label}
                       </Text>
                     </View>
@@ -462,30 +464,30 @@ const RequestTrackingScreen = () => {
         {/* Items */}
         {items.length > 0 && (
           <View style={{ marginBottom: 24 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>
+            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.items')}
             </Text>
-            <View style={{ borderRadius: 12, backgroundColor: colors.surface }}>
+            <View style={{ borderRadius: 12, backgroundColor: tokens.bg.surface }}>
               {items.map((it, idx) => {
                 const variantAttrs = it.variant?.attributes || {};
                 const variantSummary = Object.values(variantAttrs).join(' / ') || it.variant?.packLabel || '';
                 const groups = Array.isArray(it.selectedOptions) ? it.selectedOptions : [];
                 const subText = substitutionLabel(it.substitution, t);
                 return (
-                  <View key={it.id} style={{ padding: 12, borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: colors.border }}>
+                  <View key={it.id} style={{ padding: 12, borderTopWidth: idx === 0 ? 0 : 1, borderTopColor: tokens.border.default }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ flex: 1, fontWeight: '600', color: colors.text }}>
+                      <Text style={{ flex: 1, fontWeight: '600', color: tokens.text.primary }}>
                         {it.quantity}× {it.name}{variantSummary ? ` · ${variantSummary}` : ''}
                       </Text>
-                      <Text style={{ color: colors.text, fontWeight: '600' }}>{money(it.lineTotal)}</Text>
+                      <Text style={{ color: tokens.text.primary, fontWeight: '600' }}>{money(it.lineTotal)}</Text>
                     </View>
                     {groups.map((g) => (
-                      <Text key={g.groupId} style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                      <Text key={g.groupId} style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
                         {g.groupName}: {(g.items || []).map((i) => i.itemName).join(', ')}
                       </Text>
                     ))}
                     {it.specialInstructions ? (
-                      <Text style={{ fontSize: 12, fontStyle: 'italic', color: colors.textMuted, marginTop: 4 }}>
+                      <Text style={{ fontSize: 12, fontStyle: 'italic', color: tokens.text.muted, marginTop: 4 }}>
                         “{it.specialInstructions}”
                       </Text>
                     ) : null}
@@ -494,9 +496,9 @@ const RequestTrackingScreen = () => {
                         when reading status updates. */}
                     {subText ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
-                          <Ionicons name="swap-horizontal" size={11} color="#7C3AED" />
-                          <Text style={{ color: '#7C3AED', fontSize: 11, fontWeight: '700', marginLeft: 4 }}>{subText}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.category.groceries.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+                          <Ionicons name="swap-horizontal" size={11} color={tokens.category.groceries.icon} />
+                          <Text style={{ color: tokens.category.groceries.icon, fontSize: 11, fontWeight: '700', marginLeft: 4 }}>{subText}</Text>
                         </View>
                       </View>
                     ) : null}
@@ -514,28 +516,28 @@ const RequestTrackingScreen = () => {
           <View
             style={{
               marginBottom: 24, padding: 14, borderRadius: 14,
-              backgroundColor: '#EFF6FF', borderWidth: 2, borderColor: '#BFDBFE',
+              backgroundColor: tokens.status.infoSoft, borderWidth: 2, borderColor: tokens.status.infoSoftBorder,
             }}
             accessibilityLiveRegion="polite"
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-              <Ionicons name="key-outline" size={20} color="#1D4ED8" />
-              <Text style={{ marginLeft: 8, fontWeight: '800', color: '#1E3A8A', fontSize: 14 }}>
+              <Ionicons name="key-outline" size={20} color={tokens.status.infoStrong} />
+              <Text style={{ marginLeft: 8, fontWeight: '800', color: tokens.status.infoStrong, fontSize: 14 }}>
                 {t('request.tracking.podOtpTitle')}
               </Text>
             </View>
-            <Text style={{ fontSize: 13, color: '#1E3A8A', marginBottom: 10 }}>
+            <Text style={{ fontSize: 13, color: tokens.status.infoStrong, marginBottom: 10 }}>
               {t('request.tracking.podOtpBody')}
             </Text>
             <View
               style={{
                 alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8,
-                borderRadius: 10, backgroundColor: '#1D4ED8',
+                borderRadius: 10, backgroundColor: tokens.status.info,
               }}
             >
               <Text
                 accessibilityLabel={t('request.tracking.podOtpCodeAria', { code: podOtpFromNotifications.split('').join(' ') })}
-                style={{ fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: 6 }}
+                style={{ fontSize: 30, fontWeight: '900', color: tokens.text.onBrand, letterSpacing: 6 }}
               >
                 {podOtpFromNotifications}
               </Text>
@@ -546,10 +548,10 @@ const RequestTrackingScreen = () => {
         {/* Phase 5 - POD photo card (post-delivery). Shows the rider's
             doorstep proof so the customer can verify. */}
         {currentRequest.podPhotoUrl && ['DELIVERED', 'SETTLED'].includes(currentRequest.status) ? (
-          <View style={{ marginBottom: 24, padding: 12, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+          <View style={{ marginBottom: 24, padding: 12, borderRadius: 12, backgroundColor: tokens.bg.surface, borderWidth: 1, borderColor: tokens.border.default }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              <Ionicons name="camera-outline" size={18} color={colors.success} />
-              <Text style={{ marginLeft: 8, fontWeight: '700', color: colors.text }}>
+              <Ionicons name="camera-outline" size={18} color={tokens.status.success} />
+              <Text style={{ marginLeft: 8, fontWeight: '700', color: tokens.text.primary }}>
                 {t('request.tracking.podPhotoTitle')}
               </Text>
             </View>
@@ -559,7 +561,7 @@ const RequestTrackingScreen = () => {
               accessibilityLabel={t('request.tracking.podPhotoAria')}
               style={{ borderRadius: 10, overflow: 'hidden' }}
             >
-              <View style={{ width: '100%', aspectRatio: 4 / 3, backgroundColor: '#f3f4f6' }}>
+              <View style={{ width: '100%', aspectRatio: 4 / 3, backgroundColor: tokens.bg.surfaceMuted }}>
                 <Image
                   source={{ uri: currentRequest.podPhotoUrl }}
                   style={{ width: '100%', height: '100%' }}
@@ -573,11 +575,11 @@ const RequestTrackingScreen = () => {
         {/* Phase 8 - prescription attached banner. Persisted on the Request
             row and visible to the customer for the lifetime of the order. */}
         {currentRequest.prescriptionUrl ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, padding: 12, borderRadius: 12, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A' }}>
-            <Ionicons name="medkit" size={20} color="#B45309" />
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, padding: 12, borderRadius: 12, backgroundColor: tokens.status.warningSoft, borderWidth: 1, borderColor: tokens.status.warning }}>
+            <Ionicons name="medkit" size={20} color={tokens.status.warningStrong} />
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={{ fontWeight: '700', color: '#92400E' }}>{t('request.tracking.rxAttachedTitle')}</Text>
-              <Text style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>
+              <Text style={{ fontWeight: '700', color: tokens.status.warningStrong }}>{t('request.tracking.rxAttachedTitle')}</Text>
+              <Text style={{ fontSize: 12, color: tokens.status.warningStrong, marginTop: 2 }}>
                 {t('request.tracking.rxAttachedSub')}
               </Text>
             </View>
@@ -587,7 +589,7 @@ const RequestTrackingScreen = () => {
               accessibilityRole="button"
               accessibilityLabel={t('request.tracking.view')}
             >
-              <Text style={{ color: '#92400E', fontWeight: '800' }}>{t('request.tracking.view')}</Text>
+              <Text style={{ color: tokens.status.warningStrong, fontWeight: '800' }}>{t('request.tracking.view')}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -595,41 +597,41 @@ const RequestTrackingScreen = () => {
         {/* Package details */}
         {pkg && (
           <View style={{ marginBottom: 24 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>
+            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.package')}
             </Text>
-            <View style={{ borderRadius: 12, padding: 12, backgroundColor: colors.surface }}>
-              <Text style={{ color: colors.text, fontWeight: '500' }}>
+            <View style={{ borderRadius: 12, padding: 12, backgroundColor: tokens.bg.surface }}>
+              <Text style={{ color: tokens.text.primary, fontWeight: '500' }}>
                 {pkg.size} · {pkg.description || t('request.tracking.noDescription')}
               </Text>
               <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ color: colors.textMuted, fontSize: 12, flex: 1 }}>
+                <Text style={{ color: tokens.text.muted, fontSize: 12, flex: 1 }}>
                   {t('request.tracking.from')} {pkg.senderName} ({pkg.senderPhone})
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleCall(pkg.senderPhone)}
-                  style={{ padding: 6, borderRadius: 18, backgroundColor: 'rgba(59,130,246,0.15)' }}
+                  style={{ padding: 6, borderRadius: 18, backgroundColor: tokens.status.infoSoft }}
                   accessibilityRole="button"
                   accessibilityLabel={`${t('a11y.callMerchant')} ${pkg.senderName}`}
                 >
-                  <Ionicons name="call" size={16} color={colors.primary} />
+                  <Ionicons name="call" size={16} color={tokens.brand.default} />
                 </TouchableOpacity>
               </View>
               <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={{ color: colors.textMuted, fontSize: 12, flex: 1 }}>
+                <Text style={{ color: tokens.text.muted, fontSize: 12, flex: 1 }}>
                   {t('request.tracking.to')} {pkg.recipientName} ({pkg.recipientPhone})
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleCall(pkg.recipientPhone)}
-                  style={{ padding: 6, borderRadius: 18, backgroundColor: 'rgba(59,130,246,0.15)' }}
+                  style={{ padding: 6, borderRadius: 18, backgroundColor: tokens.status.infoSoft }}
                   accessibilityRole="button"
                   accessibilityLabel={`${t('a11y.callMerchant')} ${pkg.recipientName}`}
                 >
-                  <Ionicons name="call" size={16} color={colors.primary} />
+                  <Ionicons name="call" size={16} color={tokens.brand.default} />
                 </TouchableOpacity>
               </View>
               {pkg.instructions ? (
-                <Text style={{ color: colors.textMuted, fontStyle: 'italic', fontSize: 12, marginTop: 6 }}>
+                <Text style={{ color: tokens.text.muted, fontStyle: 'italic', fontSize: 12, marginTop: 6 }}>
                   “{pkg.instructions}”
                 </Text>
               ) : null}
@@ -640,27 +642,27 @@ const RequestTrackingScreen = () => {
         {/* Merchant */}
         {currentRequest.merchant && (
           <View style={{ marginBottom: 24 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>
+            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.merchant')}
             </Text>
-            <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
+            <View style={{ borderRadius: 12, padding: 16, backgroundColor: tokens.bg.surface }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <Ionicons name="storefront-outline" size={20} color={colors.primary} />
-                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: colors.text, flex: 1 }}>{currentRequest.merchant.name}</Text>
+                <Ionicons name="storefront-outline" size={20} color={tokens.brand.default} />
+                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: tokens.text.primary, flex: 1 }}>{currentRequest.merchant.name}</Text>
                 {currentRequest.merchant.phone ? (
                   <TouchableOpacity
                     onPress={() => handleCall(currentRequest.merchant.phone)}
-                    style={{ padding: 8, borderRadius: 20, backgroundColor: 'rgba(59,130,246,0.15)' }}
+                    style={{ padding: 8, borderRadius: 20, backgroundColor: tokens.status.infoSoft }}
                     accessibilityRole="button"
                     accessibilityLabel={t('a11y.callMerchant')}
                   >
-                    <Ionicons name="call" size={18} color={colors.primary} />
+                    <Ionicons name="call" size={18} color={tokens.brand.default} />
                   </TouchableOpacity>
                 ) : null}
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="location-outline" size={18} color={colors.textMuted} />
-                <Text style={{ fontSize: 13, marginLeft: 8, color: colors.textMuted, flex: 1 }}>{currentRequest.pickupAddress}</Text>
+                <Ionicons name="location-outline" size={18} color={tokens.text.muted} />
+                <Text style={{ fontSize: 13, marginLeft: 8, color: tokens.text.muted, flex: 1 }}>{currentRequest.pickupAddress}</Text>
               </View>
             </View>
           </View>
@@ -669,28 +671,28 @@ const RequestTrackingScreen = () => {
         {/* Rider */}
         {currentRequest.rider && (
           <View style={{ marginBottom: 24 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>
+            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.rider')}
             </Text>
-            <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
+            <View style={{ borderRadius: 12, padding: 16, backgroundColor: tokens.bg.surface }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <Ionicons name="person-outline" size={20} color={colors.primary} />
-                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: colors.text }}>
+                <Ionicons name="person-outline" size={20} color={tokens.brand.default} />
+                <Text style={{ fontSize: 14, fontWeight: '600', marginLeft: 12, color: tokens.text.primary }}>
                   {currentRequest.rider.user.firstName} {currentRequest.rider.user.lastName}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="call-outline" size={18} color={colors.textMuted} />
-                <Text style={{ fontSize: 13, marginLeft: 8, color: colors.textMuted, flex: 1 }}>
+                <Ionicons name="call-outline" size={18} color={tokens.text.muted} />
+                <Text style={{ fontSize: 13, marginLeft: 8, color: tokens.text.muted, flex: 1 }}>
                   {currentRequest.rider.user.phone}
                 </Text>
                 <TouchableOpacity
-                  style={{ padding: 8, borderRadius: 20, backgroundColor: 'rgba(59, 130, 246, 0.15)' }}
+                  style={{ padding: 8, borderRadius: 20, backgroundColor: tokens.status.infoSoft }}
                   onPress={() => handleCall(currentRequest.rider.user.phone)}
                   accessibilityRole="button"
                   accessibilityLabel={t('a11y.callRider')}
                 >
-                  <Ionicons name="call" size={18} color={colors.primary} />
+                  <Ionicons name="call" size={18} color={tokens.brand.default} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -700,10 +702,10 @@ const RequestTrackingScreen = () => {
         {/* Live map with polyline */}
         {currentRequest.rider && riderLocation && (
           <View style={{ marginBottom: 24 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>
+            <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.liveTracking')}
             </Text>
-            <View style={{ height: 240, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.background }}>
+            <View style={{ height: 240, borderRadius: 12, overflow: 'hidden', backgroundColor: tokens.bg.canvas }}>
               <MapView
                 style={{ width: '100%', height: '100%' }}
                 initialRegion={{
@@ -716,7 +718,7 @@ const RequestTrackingScreen = () => {
                 {polylinePoints.length > 1 && (
                   <Polyline
                     coordinates={polylinePoints}
-                    strokeColor={colors.primary}
+                    strokeColor={tokens.brand.default}
                     strokeWidth={4}
                   />
                 )}
@@ -725,8 +727,8 @@ const RequestTrackingScreen = () => {
                   title={t('request.tracking.markerRider')}
                   description={`${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`}
                 >
-                  <View style={{ borderRadius: 12, padding: 8, backgroundColor: colors.surface, elevation: 4 }}>
-                    <Ionicons name="bicycle" size={22} color={colors.primary} />
+                  <View style={{ borderRadius: 12, padding: 8, backgroundColor: tokens.bg.surface, elevation: 4 }}>
+                    <Ionicons name="bicycle" size={22} color={tokens.brand.default} />
                   </View>
                 </Marker>
                 {currentRequest.pickupLat && currentRequest.pickupLng && (
@@ -735,8 +737,8 @@ const RequestTrackingScreen = () => {
                     title={t('request.tracking.markerPickup')}
                     description={currentRequest.pickupAddress}
                   >
-                    <View style={{ borderRadius: 12, padding: 6, backgroundColor: colors.surface, elevation: 4 }}>
-                      <Ionicons name="storefront" size={18} color="#15803D" />
+                    <View style={{ borderRadius: 12, padding: 6, backgroundColor: tokens.bg.surface, elevation: 4 }}>
+                      <Ionicons name="storefront" size={18} color={tokens.status.successStrong} />
                     </View>
                   </Marker>
                 )}
@@ -746,8 +748,8 @@ const RequestTrackingScreen = () => {
                     title={t('request.tracking.markerDropoff')}
                     description={currentRequest.dropoffAddress}
                   >
-                    <View style={{ borderRadius: 12, padding: 6, backgroundColor: colors.surface, elevation: 4 }}>
-                      <Ionicons name="home" size={18} color={colors.error} />
+                    <View style={{ borderRadius: 12, padding: 6, backgroundColor: tokens.bg.surface, elevation: 4 }}>
+                      <Ionicons name="home" size={18} color={tokens.status.error} />
                     </View>
                   </Marker>
                 )}
@@ -758,21 +760,21 @@ const RequestTrackingScreen = () => {
 
         {/* Order Details */}
         <View style={{ marginBottom: 24 }}>
-          <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
             {t('request.tracking.orderDetails')}
           </Text>
-          <View style={{ borderRadius: 12, padding: 16, backgroundColor: colors.surface }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 14, color: colors.textMuted }}>{t('request.tracking.orderIdLabel')}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>#{currentRequest.id.slice(0, 8)}</Text>
+          <View style={{ borderRadius: 12, padding: 16, backgroundColor: tokens.bg.surface }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
+              <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t('request.tracking.orderIdLabel')}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: tokens.text.primary }}>#{currentRequest.id.slice(0, 8)}</Text>
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Text style={{ fontSize: 14, color: colors.textMuted }}>{t('request.tracking.totalLabel')}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text }}>{money(currentRequest.total)}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
+              <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t('request.tracking.totalLabel')}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: tokens.text.primary }}>{money(currentRequest.total)}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-              <Text style={{ fontSize: 14, color: colors.textMuted }}>{t('request.tracking.deliveryAddressLabel')}</Text>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: colors.text, flex: 1, textAlign: 'right' }} numberOfLines={2}>
+              <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t('request.tracking.deliveryAddressLabel')}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: tokens.text.primary, flex: 1, textAlign: 'right' }} numberOfLines={2}>
                 {currentRequest.dropoffAddress}
               </Text>
             </View>
@@ -783,22 +785,22 @@ const RequestTrackingScreen = () => {
         <View style={{ marginBottom: 24 }}>
           {canCancelLocally && (
             <TouchableOpacity
-              style={{ paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: '#EF4444' }}
+              style={{ paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: tokens.status.error }}
               onPress={openCancelModal}
               accessibilityRole="button"
               accessibilityLabel={t('request.tracking.cancel')}
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>{t('request.tracking.cancel')}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: tokens.text.onBrand }}>{t('request.tracking.cancel')}</Text>
             </TouchableOpacity>
           )}
           {canRate && (
             <TouchableOpacity
-              style={{ paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: colors.primary }}
+              style={{ paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 12, backgroundColor: tokens.brand.default }}
               onPress={openRate}
               accessibilityRole="button"
               accessibilityLabel={t('request.tracking.rateOrder')}
             >
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>{t('request.tracking.rateOrder')}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: tokens.text.onBrand }}>{t('request.tracking.rateOrder')}</Text>
             </TouchableOpacity>
           )}
           {canReportIssue && (
@@ -810,13 +812,13 @@ const RequestTrackingScreen = () => {
                 marginBottom: 12,
                 backgroundColor: 'transparent',
                 borderWidth: 1.5,
-                borderColor: colors.border,
+                borderColor: tokens.border.default,
               }}
               onPress={() => navigation.navigate('CreateDispute', { requestId: currentRequest.id })}
               accessibilityRole="button"
               accessibilityLabel={t('support.reportIssue')}
             >
-              <Text style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary }}>
                 {t('support.reportIssue')}
               </Text>
             </TouchableOpacity>
@@ -826,31 +828,31 @@ const RequestTrackingScreen = () => {
 
       {/* Cancel-with-fee modal */}
       <Modal visible={cancelModalVisible} transparent animationType="fade" onRequestClose={() => setCancelModalVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 22 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 6 }}>
+        <View style={{ flex: 1, backgroundColor: tokens.overlay.scrim, justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: tokens.bg.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 22 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: '800', color: tokens.text.primary, marginBottom: 6 }}>
               {t('request.tracking.cancelTitle')}
             </Text>
             {cancelQuoteLoading ? (
-              <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} accessibilityLabel={t('common.loading')} />
+              <ActivityIndicator color={tokens.brand.default} style={{ marginVertical: 24 }} accessibilityLabel={t('common.loading')} />
             ) : cancelQuote ? (
               <>
                 {!cancelQuote.allowed ? (
-                  <Text style={{ color: colors.textMuted, marginBottom: 16 }}>
+                  <Text style={{ color: tokens.text.muted, marginBottom: 16 }}>
                     {t('request.tracking.cancelNotAllowed')}
                   </Text>
                 ) : cancelQuote.fee > 0 ? (
                   <>
-                    <Text style={{ color: colors.textMuted, marginBottom: 14 }}>
+                    <Text style={{ color: tokens.text.muted, marginBottom: 14 }}>
                       {t('request.tracking.cancelFeeIntro')}
                     </Text>
-                    <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 14, marginBottom: 16 }}>
-                      <Row label={t('request.tracking.cancelFeeLabel')} value={money(cancelQuote.fee)} />
-                      <Row label={t('request.tracking.cancelRefundLabel')} value={money(cancelQuote.refundAmount)} bold />
+                    <View style={{ backgroundColor: tokens.bg.surfaceMuted, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+                      <Row label={t('request.tracking.cancelFeeLabel')} value={money(cancelQuote.fee)} tokens={tokens} />
+                      <Row label={t('request.tracking.cancelRefundLabel')} value={money(cancelQuote.refundAmount)} bold tokens={tokens} />
                     </View>
                   </>
                 ) : (
-                  <Text style={{ color: colors.textMuted, marginBottom: 16 }}>
+                  <Text style={{ color: tokens.text.muted, marginBottom: 16 }}>
                     {t('request.tracking.cancelFreeBody', { amount: money(cancelQuote.refundAmount) })}
                   </Text>
                 )}
@@ -858,22 +860,22 @@ const RequestTrackingScreen = () => {
                 <View style={{ flexDirection: 'row', gap: 10 }}>
                   <TouchableOpacity
                     onPress={() => setCancelModalVisible(false)}
-                    style={{ flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', backgroundColor: '#F3F4F6' }}
+                    style={{ flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', backgroundColor: tokens.bg.surfaceMuted }}
                     accessibilityRole="button"
                     accessibilityLabel={t('request.tracking.keepOrder')}
                   >
-                    <Text style={{ color: colors.text, fontWeight: '700' }}>{t('request.tracking.keepOrder')}</Text>
+                    <Text style={{ color: tokens.text.primary, fontWeight: '700' }}>{t('request.tracking.keepOrder')}</Text>
                   </TouchableOpacity>
                   {cancelQuote.allowed && (
                     <TouchableOpacity
                       onPress={confirmCancel}
                       disabled={cancelling}
-                      style={{ flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', backgroundColor: cancelling ? '#FCA5A5' : '#EF4444' }}
+                      style={{ flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', backgroundColor: cancelling ? tokens.status.errorStrong : tokens.status.error }}
                       accessibilityRole="button"
                       accessibilityState={{ disabled: cancelling, busy: cancelling }}
                       accessibilityLabel={cancelQuote.fee > 0 ? t('request.tracking.payFeeAndCancel') : t('request.tracking.cancel')}
                     >
-                      <Text style={{ color: '#fff', fontWeight: '700' }}>
+                      <Text style={{ color: tokens.text.onBrand, fontWeight: '700' }}>
                         {cancelling
                           ? t('request.tracking.cancelling')
                           : cancelQuote.fee > 0
@@ -885,7 +887,7 @@ const RequestTrackingScreen = () => {
                 </View>
               </>
             ) : (
-              <Text style={{ color: colors.error, marginBottom: 14 }}>{t('request.tracking.cancelFailed')}</Text>
+              <Text style={{ color: tokens.status.errorStrong, marginBottom: 14 }}>{t('request.tracking.cancelFailed')}</Text>
             )}
           </View>
         </View>
@@ -893,14 +895,14 @@ const RequestTrackingScreen = () => {
 
       {/* In-app chat sheet */}
       <Modal visible={chatVisible} transparent animationType="slide" onRequestClose={() => setChatVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <View style={{ flex: 1, backgroundColor: tokens.overlay.scrim, justifyContent: 'flex-end' }}>
           <KeyboardAvoidingView
             behavior="padding"
-            style={{ backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%' }}
+            style={{ backgroundColor: tokens.bg.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, height: '70%' }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-              <Ionicons name="chatbubble-ellipses" size={20} color={colors.primary} />
-              <Text accessibilityRole="header" style={{ marginLeft: 8, fontWeight: '800', color: colors.text, flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
+              <Ionicons name="chatbubble-ellipses" size={20} color={tokens.brand.default} />
+              <Text accessibilityRole="header" style={{ marginLeft: 8, fontWeight: '800', color: tokens.text.primary, flex: 1 }}>
                 {t('request.tracking.chatTitle')}
               </Text>
               <TouchableOpacity
@@ -908,7 +910,7 @@ const RequestTrackingScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel={t('common.close')}
               >
-                <Ionicons name="close" size={22} color={colors.textMuted} />
+                <Ionicons name="close" size={22} color={tokens.text.muted} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -916,22 +918,22 @@ const RequestTrackingScreen = () => {
               data={messages}
               keyExtractor={(m) => m.id}
               contentContainerStyle={{ padding: 14, paddingBottom: 20 }}
-              renderItem={({ item }) => <ChatBubble message={item} currentUserId={currentRequest.customerId} />}
+              renderItem={({ item }) => <ChatBubble message={item} currentUserId={currentRequest.customerId} tokens={tokens} />}
               onContentSizeChange={() => chatListRef.current?.scrollToEnd?.({ animated: false })}
               ListEmptyComponent={
-                <Text style={{ textAlign: 'center', color: colors.textMuted, marginTop: 24 }}>
+                <Text style={{ textAlign: 'center', color: tokens.text.muted, marginTop: 24 }}>
                   {t('request.tracking.noMessagesYet')}
                 </Text>
               }
             />
-            <View style={{ flexDirection: 'row', padding: 10, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', padding: 10, borderTopWidth: 1, borderTopColor: tokens.border.default, alignItems: 'center' }}>
               <TextInput
                 value={chatDraft}
                 onChangeText={setChatDraft}
                 placeholder={t('request.tracking.messagePlaceholder')}
                 accessibilityLabel={t('request.tracking.messagePlaceholder')}
-                placeholderTextColor={colors.textMuted}
-                style={{ flex: 1, backgroundColor: '#F3F4F6', borderRadius: 22, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.text }}
+                placeholderTextColor={tokens.text.placeholder}
+                style={{ flex: 1, backgroundColor: tokens.bg.surfaceMuted, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: tokens.text.primary }}
                 multiline
               />
               <TouchableOpacity
@@ -940,9 +942,9 @@ const RequestTrackingScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel={t('a11y.sendMessage')}
                 accessibilityState={{ disabled: !chatDraft.trim() || chatSending, busy: chatSending }}
-                style={{ marginLeft: 8, padding: 10, borderRadius: 22, backgroundColor: (!chatDraft.trim() || chatSending) ? colors.border : colors.primary }}
+                style={{ marginLeft: 8, padding: 10, borderRadius: 22, backgroundColor: (!chatDraft.trim() || chatSending) ? tokens.border.default : tokens.brand.default }}
               >
-                <Ionicons name="send" size={18} color="#fff" />
+                <Ionicons name="send" size={18} color={tokens.text.onBrand} />
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -952,14 +954,14 @@ const RequestTrackingScreen = () => {
   );
 };
 
-const ChatBubble = ({ message, currentUserId }) => {
+const ChatBubble = ({ message, currentUserId, tokens }) => {
   const isMine = message.fromUserId === currentUserId;
   return (
     <View style={{ flexDirection: 'row', justifyContent: isMine ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
       <View
         style={{
           maxWidth: '78%',
-          backgroundColor: isMine ? colors.primary : '#F3F4F6',
+          backgroundColor: isMine ? tokens.brand.default : tokens.bg.surfaceMuted,
           paddingHorizontal: 12,
           paddingVertical: 8,
           borderRadius: 14,
@@ -968,20 +970,20 @@ const ChatBubble = ({ message, currentUserId }) => {
         }}
       >
         {!isMine && message.fromUser && (
-          <Text style={{ fontSize: 11, fontWeight: '700', color: '#374151', marginBottom: 2 }}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: tokens.text.muted, marginBottom: 2 }}>
             {message.fromUser.firstName} {message.fromUser.lastName?.[0] || ''}
           </Text>
         )}
-        <Text style={{ color: isMine ? '#fff' : colors.text, fontSize: 14 }}>{message.body}</Text>
+        <Text style={{ color: isMine ? tokens.text.onBrand : tokens.text.primary, fontSize: 14 }}>{message.body}</Text>
       </View>
     </View>
   );
 };
 
-const Row = ({ label, value, bold }) => (
+const Row = ({ label, value, bold, tokens }) => (
   <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-    <Text style={{ color: colors.textMuted, fontWeight: bold ? '700' : '400' }}>{label}</Text>
-    <Text style={{ color: colors.text, fontWeight: bold ? '700' : '500' }}>{value}</Text>
+    <Text style={{ color: tokens.text.muted, fontWeight: bold ? '700' : '400' }}>{label}</Text>
+    <Text style={{ color: tokens.text.primary, fontWeight: bold ? '700' : '500' }}>{value}</Text>
   </View>
 );
 

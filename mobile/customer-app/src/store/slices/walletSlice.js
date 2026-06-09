@@ -290,7 +290,8 @@ const walletSlice = createSlice({
     // Banks
     builder
       .addCase(fetchBanks.fulfilled, (state, action) => {
-        state.banks = action.payload?.data ?? action.payload ?? [];
+        const raw = action.payload?.data ?? action.payload ?? [];
+        state.banks = Array.isArray(raw) ? raw : raw.banks || raw.items || [];
       });
 
     // Send money

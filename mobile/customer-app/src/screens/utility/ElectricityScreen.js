@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { usePinGuard } from "../../lib/usePinGuard";
 import { payElectricity, fetchPlans, validateMeter, clearValidation } from "../../store/slices/utilitySlice";
@@ -18,6 +18,7 @@ const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
 export default function ElectricityScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, isValidating, validationResult } = useSelector((state) => state.utility);
   const requirePin = usePinGuard();
@@ -105,7 +106,7 @@ export default function ElectricityScreen({ navigation }) {
   const customerName = validationResult?.Customer_Name || validationResult?.name || t("utility.verified");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
@@ -114,9 +115,9 @@ export default function ElectricityScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: tokens.text.primary }}>
             {t("utility.electricityScreen.title")}
           </Text>
         </View>
@@ -124,9 +125,9 @@ export default function ElectricityScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}>
         {/* Disco Selection */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.electricityScreen.selectDisco")}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 12 }}>{t("utility.electricityScreen.selectDisco")}</Text>
         {isLoading && !discos.length ? (
-          <ActivityIndicator color={colors.primary} style={{ marginBottom: 20 }} accessibilityLabel={t("common.loading")} />
+          <ActivityIndicator color={tokens.brand.default} style={{ marginBottom: 20 }} accessibilityLabel={t("common.loading")} />
         ) : (
           <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: fieldErrors.disco ? 4 : 20 }}>
             {discos.map((d) => {
@@ -139,24 +140,24 @@ export default function ElectricityScreen({ navigation }) {
                   accessibilityState={{ selected }}
                   accessibilityLabel={d.networkName}
                   style={{
-                    backgroundColor: selected ? colors.primary : colors.surface,
+                    backgroundColor: selected ? tokens.brand.default : tokens.bg.surface,
                     borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
                     marginRight: 8, marginBottom: 8, borderWidth: 2,
-                    borderColor: selected ? colors.primary : colors.border,
+                    borderColor: selected ? tokens.brand.default : tokens.border.default,
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.text }}>{d.networkName}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{d.networkName}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         )}
         {fieldErrors.disco ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.disco}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.disco}</Text>
         ) : null}
 
         {/* Meter Type */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.electricityScreen.meterType")}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 12 }}>{t("utility.electricityScreen.meterType")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 20 }} accessibilityRole="radiogroup">
           {["PREPAID", "POSTPAID"].map((type) => {
             const selected = meterType === type;
@@ -170,33 +171,33 @@ export default function ElectricityScreen({ navigation }) {
                 accessibilityLabel={label}
                 style={{
                   flex: 1, marginRight: type === "PREPAID" ? 8 : 0,
-                  backgroundColor: selected ? colors.primary : colors.surface,
+                  backgroundColor: selected ? tokens.brand.default : tokens.bg.surface,
                   borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 2,
-                  borderColor: selected ? colors.primary : colors.border,
+                  borderColor: selected ? tokens.brand.default : tokens.border.default,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? colors.white : colors.text }}>{label}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         {/* Meter Number */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.electricityScreen.meterLabel")}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.electricityScreen.meterLabel")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.meter ? colors.error : (meterValidated ? "#22C55E" : colors.border), paddingHorizontal: 16, marginRight: 8 }}>
-            <Ionicons name="flash-outline" size={20} color={colors.textMuted} />
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.meter ? tokens.status.error : (meterValidated ? tokens.status.success : tokens.border.default), paddingHorizontal: 16, marginRight: 8 }}>
+            <Ionicons name="flash-outline" size={20} color={tokens.text.muted} />
             <TextInput
               value={meterNumber}
               onChangeText={(text) => { setMeterNumber(text.replace(/[^0-9]/g, "")); setMeterValidated(false); dispatch(clearValidation()); clearField("meter"); }}
               onBlur={handleMeterBlur}
               placeholder={t("utility.electricityScreen.meterPh")}
               accessibilityLabel={t("utility.electricityScreen.meterLabel")}
-              placeholderTextColor={colors.textLight}
+              placeholderTextColor={tokens.text.placeholder}
               keyboardType="number-pad"
-              style={{ flex: 1, fontSize: 15, fontWeight: "600", color: colors.text, paddingVertical: 16, marginLeft: 12 }}
+              style={{ flex: 1, fontSize: 15, fontWeight: "600", color: tokens.text.primary, paddingVertical: 16, marginLeft: 12 }}
             />
-            {meterValidated && <Ionicons name="checkmark-circle" size={20} color="#22C55E" />}
+            {meterValidated && <Ionicons name="checkmark-circle" size={20} color={tokens.status.success} />}
           </View>
           <TouchableOpacity
             onPress={handleValidateMeter}
@@ -204,58 +205,58 @@ export default function ElectricityScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("utility.electricityScreen.verify")}
             accessibilityState={{ disabled: isValidating, busy: isValidating }}
-            style={{ backgroundColor: colors.primary, borderRadius: 16, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}
+            style={{ backgroundColor: tokens.brand.default, borderRadius: 16, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}
           >
-            {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{t("utility.electricityScreen.verify")}</Text>}
+            {isValidating ? <ActivityIndicator size="small" color={tokens.text.onBrand} /> : <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 13 }}>{t("utility.electricityScreen.verify")}</Text>}
           </TouchableOpacity>
         </View>
         {fieldErrors.meter ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.meter}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.meter}</Text>
         ) : null}
 
         {validationResult && (
-          <View style={{ backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, color: "#059669", fontWeight: "600" }}>{customerName}</Text>
-            {validationResult.Address ? <Text style={{ fontSize: 12, color: "#059669", marginTop: 2 }}>{validationResult.Address}</Text> : null}
+          <View style={{ backgroundColor: tokens.status.successSoft, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, color: tokens.status.successStrong, fontWeight: "600" }}>{customerName}</Text>
+            {validationResult.Address ? <Text style={{ fontSize: 12, color: tokens.status.successStrong, marginTop: 2 }}>{validationResult.Address}</Text> : null}
           </View>
         )}
 
         {/* Phone */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.airtimeScreen.phoneLabel")}</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.phone ? colors.error : colors.border, paddingHorizontal: 16, marginBottom: fieldErrors.phone ? 4 : 20 }}>
-          <Ionicons name="call-outline" size={20} color={colors.textMuted} />
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.airtimeScreen.phoneLabel")}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.phone ? tokens.status.error : tokens.border.default, paddingHorizontal: 16, marginBottom: fieldErrors.phone ? 4 : 20 }}>
+          <Ionicons name="call-outline" size={20} color={tokens.text.muted} />
           <TextInput
             value={phone}
             onChangeText={(text) => { setPhone(text.replace(/[^0-9]/g, "")); clearField("phone"); }}
             placeholder="080XXXXXXXX"
             accessibilityLabel={t("utility.airtimeScreen.phoneLabel")}
-            placeholderTextColor={colors.textLight}
+            placeholderTextColor={tokens.text.placeholder}
             keyboardType="phone-pad"
             maxLength={11}
-            style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.text, paddingVertical: 16, marginLeft: 12 }}
+            style={{ flex: 1, fontSize: 16, fontWeight: "600", color: tokens.text.primary, paddingVertical: 16, marginLeft: 12 }}
           />
         </View>
         {fieldErrors.phone ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.phone}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.phone}</Text>
         ) : null}
 
         {/* Amount */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.electricityScreen.amountLabel")}</Text>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.amount ? colors.error : colors.border, paddingHorizontal: 16, marginBottom: fieldErrors.amount ? 4 : 12 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.electricityScreen.amountLabel")}</Text>
+        <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.amount ? tokens.status.error : tokens.border.default, paddingHorizontal: 16, marginBottom: fieldErrors.amount ? 4 : 12 }}>
           <TextInput
             value={amount}
             onChangeText={(text) => { setAmount(text.replace(/[^0-9]/g, "")); clearField("amount"); }}
             placeholder={t("utility.electricityScreen.amountPh")}
             accessibilityLabel={t("utility.electricityScreen.amountLabel")}
-            placeholderTextColor={colors.textLight}
+            placeholderTextColor={tokens.text.placeholder}
             keyboardType="number-pad"
-            style={{ fontSize: 24, fontWeight: "700", color: colors.text, paddingVertical: 16 }}
+            style={{ fontSize: 24, fontWeight: "700", color: tokens.text.primary, paddingVertical: 16 }}
           />
         </View>
         {fieldErrors.amount ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.amount}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 8, paddingLeft: 4 }}>{fieldErrors.amount}</Text>
         ) : null}
-        <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8, paddingLeft: 4 }}>
+        <Text style={{ fontSize: 11, color: tokens.text.muted, marginBottom: 8, paddingLeft: 4 }}>
           {t("utility.electricityScreen.minHint", { amount: naira(minAmount) })}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
@@ -268,28 +269,28 @@ export default function ElectricityScreen({ navigation }) {
                 accessibilityRole="button"
                 accessibilityLabel={naira(value)}
                 accessibilityState={{ selected }}
-                style={{ backgroundColor: selected ? colors.primary : colors.surface, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: selected ? colors.primary : colors.border }}
+                style={{ backgroundColor: selected ? tokens.brand.default : tokens.bg.surface, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: selected ? tokens.brand.default : tokens.border.default }}
               >
-                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.text }}>{naira(value)}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{naira(value)}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
       </ScrollView>
 
-      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: colors.border }}>
+      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: tokens.bg.canvas, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
         <TouchableOpacity
           onPress={handlePurchase}
           disabled={isLoading}
           accessibilityRole="button"
           accessibilityLabel={amount ? t("utility.electricityScreen.payCta", { amount: naira(amount) }) : t("utility.electricityScreen.enterAmountCta")}
           accessibilityState={{ disabled: isLoading, busy: isLoading }}
-          style={{ backgroundColor: amount ? colors.primary : colors.textLight, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
+          style={{ backgroundColor: amount ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={colors.white} accessibilityLabel={t("common.loading")} />
+            <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
-            <Text style={{ color: colors.white, fontSize: 16, fontWeight: "800" }}>
+            <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
               {amount ? t("utility.electricityScreen.payCta", { amount: naira(amount) }) : t("utility.electricityScreen.enterAmountCta")}
             </Text>
           )}

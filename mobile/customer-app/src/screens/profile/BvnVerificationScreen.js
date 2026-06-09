@@ -20,7 +20,7 @@ import Toast from "react-native-toast-message";
 import FormInput from "../../components/FormInput";
 import BvnConfirmSheet from "../../components/BvnConfirmSheet";
 import { verifyBvn, requestKycPhoneOtp } from "../../store/slices/profileSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 // Step 1 schema - full KYC details. OTP isn't collected yet because we haven't
 // SMSed one. Submitting this triggers requestKycPhoneOtp(bvnPhone) which sends
@@ -43,6 +43,7 @@ const RESEND_COOLDOWN = 60;
 export default function BvnVerificationScreen({ navigation, route }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { profile, isUpdating } = useSelector((state) => state.profile);
   // Recovery mode: caller (FundWallet) detected the user is verified but has
   // no NUBAN/phone, and routed here to re-submit. We need to render the form
@@ -246,11 +247,11 @@ export default function BvnVerificationScreen({ navigation, route }) {
 
     return (
       <SafeAreaView
-        style={{ flex: 1, backgroundColor: colors.background }}
+        style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
         edges={["top"]}
       >
-        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-        <View style={{ height: 4, backgroundColor: colors.primary }} />
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+        <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
         <View
           style={{
             flexDirection: "row",
@@ -265,19 +266,19 @@ export default function BvnVerificationScreen({ navigation, route }) {
               width: 40,
               height: 40,
               borderRadius: 12,
-              backgroundColor: colors.surfaceMuted,
+              backgroundColor: tokens.bg.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
               marginRight: 14,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
           </TouchableOpacity>
           <Text
             style={{
               fontSize: 20,
               fontWeight: "900",
-              color: colors.text,
+              color: tokens.text.primary,
               letterSpacing: -0.5,
             }}
           >
@@ -294,19 +295,19 @@ export default function BvnVerificationScreen({ navigation, route }) {
               width: 80,
               height: 80,
               borderRadius: 40,
-              backgroundColor: "#D1FAE5",
+              backgroundColor: tokens.status.successSoft,
               alignItems: "center",
               justifyContent: "center",
               marginBottom: 20,
             }}
           >
-            <Ionicons name="checkmark-circle" size={44} color="#059669" />
+            <Ionicons name="checkmark-circle" size={44} color={tokens.status.successStrong} />
           </View>
           <Text
             style={{
               fontSize: 22,
               fontWeight: "900",
-              color: colors.text,
+              color: tokens.text.primary,
               marginBottom: 8,
               textAlign: "center",
             }}
@@ -316,7 +317,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
           <Text
             style={{
               fontSize: 14,
-              color: colors.textMuted,
+              color: tokens.text.muted,
               textAlign: "center",
               lineHeight: 20,
               marginBottom: 28,
@@ -331,18 +332,18 @@ export default function BvnVerificationScreen({ navigation, route }) {
             <View
               style={{
                 width: "100%",
-                backgroundColor: colors.surface,
+                backgroundColor: tokens.bg.surface,
                 borderRadius: 18,
                 padding: 20,
                 borderWidth: 1.5,
-                borderColor: colors.border,
+                borderColor: tokens.border.default,
               }}
             >
               <Text
                 style={{
                   fontSize: 12,
                   fontWeight: "700",
-                  color: colors.textMuted,
+                  color: tokens.text.muted,
                   letterSpacing: 1,
                   textTransform: "uppercase",
                   marginBottom: 8,
@@ -351,24 +352,24 @@ export default function BvnVerificationScreen({ navigation, route }) {
                 Your wallet account
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-                <Text style={{ flex: 1, fontSize: 24, fontWeight: "900", color: colors.text, letterSpacing: 1 }}>
+                <Text style={{ flex: 1, fontSize: 24, fontWeight: "900", color: tokens.text.primary, letterSpacing: 1 }}>
                   {nuban}
                 </Text>
                 <TouchableOpacity onPress={() => copyAccountNumber(nuban)} style={{ padding: 8 }}>
-                  <Ionicons name="copy-outline" size={20} color={colors.primary} />
+                  <Ionicons name="copy-outline" size={20} color={tokens.brand.default} />
                 </TouchableOpacity>
               </View>
-              <Text style={{ fontSize: 14, color: colors.text, fontWeight: "600", marginBottom: 4 }}>
+              <Text style={{ fontSize: 14, color: tokens.text.primary, fontWeight: "600", marginBottom: 4 }}>
                 {wallet.virtualAccountBank || "-"}
               </Text>
-              <Text style={{ fontSize: 13, color: colors.textMuted }}>
+              <Text style={{ fontSize: 13, color: tokens.text.muted }}>
                 {wallet.virtualAccountName || "-"}
               </Text>
               <Text
                 style={{
                   marginTop: 16,
                   fontSize: 12,
-                  color: colors.textMuted,
+                  color: tokens.text.muted,
                   lineHeight: 18,
                 }}
               >
@@ -379,19 +380,19 @@ export default function BvnVerificationScreen({ navigation, route }) {
             <View
               style={{
                 width: "100%",
-                backgroundColor: "#FEF3C7",
+                backgroundColor: tokens.status.warningSoft,
                 borderRadius: 18,
                 padding: 20,
                 borderWidth: 1,
-                borderColor: "#FDE68A",
+                borderColor: tokens.status.warning,
                 alignItems: "center",
               }}
             >
-              <ActivityIndicator color="#B45309" />
-              <Text style={{ marginTop: 12, fontSize: 13, color: "#92400E", fontWeight: "600", textAlign: "center" }}>
+              <ActivityIndicator color={tokens.status.warningStrong} />
+              <Text style={{ marginTop: 12, fontSize: 13, color: tokens.status.warningStrong, fontWeight: "600", textAlign: "center" }}>
                 Setting up your wallet account…
               </Text>
-              <Text style={{ marginTop: 6, fontSize: 12, color: "#92400E", textAlign: "center", lineHeight: 18 }}>
+              <Text style={{ marginTop: 6, fontSize: 12, color: tokens.status.warningStrong, textAlign: "center", lineHeight: 18 }}>
                 We'll notify you the moment it's ready (usually a few seconds).
               </Text>
             </View>
@@ -401,7 +402,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
             onPress={() => navigation.goBack()}
             style={{
               marginTop: 28,
-              backgroundColor: colors.primary,
+              backgroundColor: tokens.brand.default,
               paddingVertical: 14,
               paddingHorizontal: 32,
               borderRadius: 14,
@@ -409,7 +410,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
               alignItems: "center",
             }}
           >
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 15 }}>
               Done
             </Text>
           </TouchableOpacity>
@@ -431,11 +432,11 @@ export default function BvnVerificationScreen({ navigation, route }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -454,20 +455,20 @@ export default function BvnVerificationScreen({ navigation, route }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -490,22 +491,22 @@ export default function BvnVerificationScreen({ navigation, route }) {
               {needsRecovery && (
                 <View
                   style={{
-                    backgroundColor: "#FEF3C7",
+                    backgroundColor: tokens.status.warningSoft,
                     borderRadius: 16,
                     padding: 16,
                     marginBottom: 16,
                     borderWidth: 1,
-                    borderColor: "#FCD34D",
+                    borderColor: tokens.status.warning,
                     flexDirection: "row",
                     alignItems: "flex-start",
                   }}
                 >
-                  <Ionicons name="warning" size={20} color="#B45309" style={{ marginRight: 10, marginTop: 1 }} />
+                  <Ionicons name="warning" size={20} color={tokens.status.warningStrong} style={{ marginRight: 10, marginTop: 1 }} />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "800", color: "#92400E", marginBottom: 4 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "800", color: tokens.status.warningStrong, marginBottom: 4 }}>
                       Finish setting up your wallet
                     </Text>
-                    <Text style={{ fontSize: 12, lineHeight: 18, color: "#92400E" }}>
+                    <Text style={{ fontSize: 12, lineHeight: 18, color: tokens.status.warningStrong }}>
                       Your identity is verified, but we still need the phone number linked to your BVN to
                       create your wallet account. Please re-enter the same BVN you used before, plus your
                       BVN-linked phone.
@@ -516,12 +517,12 @@ export default function BvnVerificationScreen({ navigation, route }) {
               {/* Info Banner */}
               <View
                 style={{
-                  backgroundColor: "#EFF6FF",
+                  backgroundColor: tokens.status.infoSoft,
                   borderRadius: 16,
                   padding: 16,
                   marginBottom: 24,
                   borderWidth: 1,
-                  borderColor: "#BFDBFE",
+                  borderColor: tokens.status.infoSoftBorder,
                 }}
               >
                 <View
@@ -534,14 +535,14 @@ export default function BvnVerificationScreen({ navigation, route }) {
                   <Ionicons
                     name="shield-checkmark"
                     size={22}
-                    color="#2563EB"
+                    color={tokens.status.info}
                     style={{ marginRight: 8 }}
                   />
                   <Text
                     style={{
                       fontSize: 15,
                       fontWeight: "800",
-                      color: colors.text,
+                      color: tokens.text.primary,
                     }}
                   >
                     Why we need your BVN
@@ -550,7 +551,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
                 <Text
                   style={{
                     fontSize: 13,
-                    color: colors.textMuted,
+                    color: tokens.text.muted,
                     lineHeight: 20,
                   }}
                 >
@@ -636,7 +637,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
               <Text
                 style={{
                   fontSize: 12,
-                  color: colors.textMuted,
+                  color: tokens.text.muted,
                   lineHeight: 18,
                   marginTop: -4,
                   marginBottom: 12,
@@ -660,13 +661,13 @@ export default function BvnVerificationScreen({ navigation, route }) {
                 <Ionicons
                   name="lock-closed"
                   size={14}
-                  color={colors.textLight}
+                  color={tokens.text.placeholder}
                   style={{ marginRight: 6, marginTop: 2 }}
                 />
                 <Text
                   style={{
                     fontSize: 12,
-                    color: colors.textMuted,
+                    color: tokens.text.muted,
                     flex: 1,
                     lineHeight: 18,
                   }}
@@ -682,16 +683,16 @@ export default function BvnVerificationScreen({ navigation, route }) {
                   padding: 16,
                   borderRadius: 16,
                   alignItems: "center",
-                  backgroundColor: isRequestingOtp ? "#EA580CB3" : colors.primary,
+                  backgroundColor: isRequestingOtp ? tokens.brand.strong : tokens.brand.default,
                 }}
                 onPress={handleSubmit(onSubmitDetails)}
                 disabled={isRequestingOtp}
                 activeOpacity={0.8}
               >
                 {isRequestingOtp ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={tokens.text.onBrand} />
                 ) : (
-                  <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+                  <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "800" }}>
                     {phoneOtpEnabled ? "Send verification code" : "Review & confirm"}
                   </Text>
                 )}
@@ -701,12 +702,12 @@ export default function BvnVerificationScreen({ navigation, route }) {
             <>
               <View
                 style={{
-                  backgroundColor: "#EFF6FF",
+                  backgroundColor: tokens.status.infoSoft,
                   borderRadius: 16,
                   padding: 16,
                   marginBottom: 24,
                   borderWidth: 1,
-                  borderColor: "#BFDBFE",
+                  borderColor: tokens.status.infoSoftBorder,
                 }}
               >
                 <View
@@ -719,16 +720,16 @@ export default function BvnVerificationScreen({ navigation, route }) {
                   <Ionicons
                     name="chatbox-ellipses"
                     size={22}
-                    color="#2563EB"
+                    color={tokens.status.info}
                     style={{ marginRight: 8 }}
                   />
-                  <Text style={{ fontSize: 15, fontWeight: "800", color: colors.text }}>
+                  <Text style={{ fontSize: 15, fontWeight: "800", color: tokens.text.primary }}>
                     Enter your verification code
                   </Text>
                 </View>
-                <Text style={{ fontSize: 13, color: colors.textMuted, lineHeight: 20 }}>
+                <Text style={{ fontSize: 13, color: tokens.text.muted, lineHeight: 20 }}>
                   We sent a 6-digit code to{" "}
-                  <Text style={{ fontWeight: "700", color: colors.text }}>
+                  <Text style={{ fontWeight: "700", color: tokens.text.primary }}>
                     {kycDraft?.bvnPhone || getValues("bvnPhone")}
                   </Text>
                   . It expires in 10 minutes.
@@ -769,7 +770,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
                   accessibilityLabel="Edit phone number"
                   disabled={isUpdating}
                 >
-                  <Text style={{ fontSize: 13, color: colors.primaryStrong, fontWeight: "700" }}>
+                  <Text style={{ fontSize: 13, color: tokens.brand.strong, fontWeight: "700" }}>
                     Wrong number? Edit
                   </Text>
                 </TouchableOpacity>
@@ -784,7 +785,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
                     style={{
                       fontSize: 13,
                       fontWeight: "700",
-                      color: resendIn > 0 ? colors.textMuted : colors.primary,
+                      color: resendIn > 0 ? tokens.text.muted : tokens.brand.default,
                     }}
                   >
                     {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
@@ -798,16 +799,16 @@ export default function BvnVerificationScreen({ navigation, route }) {
                   padding: 16,
                   borderRadius: 16,
                   alignItems: "center",
-                  backgroundColor: isUpdating ? "#EA580CB3" : colors.primary,
+                  backgroundColor: isUpdating ? tokens.brand.strong : tokens.brand.default,
                 }}
                 onPress={onSubmitOtp}
                 disabled={isUpdating}
                 activeOpacity={0.8}
               >
                 {isUpdating ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={tokens.text.onBrand} />
                 ) : (
-                  <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+                  <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "800" }}>
                     Verify & activate wallet
                   </Text>
                 )}

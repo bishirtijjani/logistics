@@ -219,7 +219,7 @@ export default function BecomeRiderVehicleStep({ navigation }) {
             backgroundColor: tokens.brand.default,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+          <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "800" }}>
             {t("common.continue", "Continue")}
           </Text>
         </TouchableOpacity>

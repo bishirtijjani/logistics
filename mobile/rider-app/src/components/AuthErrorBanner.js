@@ -4,11 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { clearError } from "../store/slices/authSlice";
-import { colors } from "../theme";
+import { useTheme } from "../theme";
 
 export default function AuthErrorBanner() {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const error = useSelector((state) => state.auth.error);
 
   if (!error) return null;
@@ -20,8 +21,8 @@ export default function AuthErrorBanner() {
       style={{
         flexDirection: "row",
         alignItems: "flex-start",
-        backgroundColor: "#FEF2F2",
-        borderColor: colors.error,
+        backgroundColor: tokens.status.errorSoft,
+        borderColor: tokens.status.error,
         borderWidth: 1,
         borderRadius: 12,
         padding: 12,
@@ -31,13 +32,13 @@ export default function AuthErrorBanner() {
       <Ionicons
         name="alert-circle"
         size={18}
-        color={colors.error}
+        color={tokens.status.error}
         style={{ marginRight: 8, marginTop: 1 }}
       />
       <Text
         style={{
           flex: 1,
-          color: colors.errorStrong,
+          color: tokens.status.errorStrong,
           fontSize: 13,
           fontWeight: "500",
           lineHeight: 18,
@@ -52,7 +53,7 @@ export default function AuthErrorBanner() {
         accessibilityLabel={t("a11y.close")}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons name="close" size={16} color={colors.error} />
+        <Ionicons name="close" size={16} color={tokens.status.error} />
       </TouchableOpacity>
     </View>
   );

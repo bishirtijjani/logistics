@@ -6,32 +6,33 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../theme";
+import { useTheme } from "../theme";
 
 const FormInput = forwardRef(
   ({ label, icon, error, secureTextEntry, ...props }, ref) => {
+    const { tokens } = useTheme();
     const [isFocused, setIsFocused] = useState(false);
     const [isPasswordHidden, setIsPasswordHidden] = useState(secureTextEntry);
 
     return (
       <View style={{ marginBottom: 20 }}>
-        {label && <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 6, marginLeft: 2, color: colors.textMuted }}>{label}</Text>}
+        {label && <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 6, marginLeft: 2, color: tokens.text.muted }}>{label}</Text>}
         <View
-          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 16, borderRadius: 12, borderWidth: 2, borderColor: error ? '#EF4444' : isFocused ? '#EA580C' : '#E5E7EB' }}
+          style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.bg.surface, paddingHorizontal: 16, borderRadius: 12, borderWidth: 2, borderColor: error ? tokens.status.error : isFocused ? tokens.brand.default : tokens.border.default }}
         >
           {icon && (
             <Ionicons
               name={icon}
               size={18}
-              color={isFocused ? colors.primary : "#D1D5DB"}
+              color={isFocused ? tokens.brand.default : tokens.border.strong}
               style={{ marginRight: 10 }}
             />
           )}
           <TextInput
             ref={ref}
-            style={{ flex: 1, paddingVertical: 16, fontSize: 16, fontWeight: '500', color: colors.text }}
-            placeholderTextColor="#D1D5DB"
-            selectionColor={colors.primary}
+            style={{ flex: 1, paddingVertical: 16, fontSize: 16, fontWeight: '500', color: tokens.text.primary }}
+            placeholderTextColor={tokens.border.strong}
+            selectionColor={tokens.brand.default}
             secureTextEntry={isPasswordHidden}
             onFocus={(e) => {
               setIsFocused(true);
@@ -51,12 +52,12 @@ const FormInput = forwardRef(
               <Ionicons
                 name={isPasswordHidden ? "eye-off-outline" : "eye-outline"}
                 size={20}
-                color={isFocused ? colors.primary : "#D1D5DB"}
+                color={isFocused ? tokens.brand.default : tokens.border.strong}
               />
             </TouchableOpacity>
           )}
         </View>
-        {error && <Text style={{ fontSize: 12, marginTop: 6, marginLeft: 2, fontWeight: '500', color: colors.error }}>{error}</Text>}
+        {error && <Text style={{ fontSize: 12, marginTop: 6, marginLeft: 2, fontWeight: '500', color: tokens.status.error }}>{error}</Text>}
       </View>
     );
   },

@@ -14,7 +14,7 @@ import * as Sharing from "expo-sharing";
 import { captureAndShareWeb } from "../../lib/captureWeb";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 const CREDIT_TYPES = [
   "WALLET_FUNDING",
@@ -25,13 +25,6 @@ const CREDIT_TYPES = [
   "RIDER_EARNING",
   "MERCHANT_EARNING",
 ];
-
-const STATUS_COLOR = {
-  COMPLETED: "#16A34A",
-  PROCESSING: "#D97706",
-  FAILED: "#DC2626",
-  PENDING: "#D97706",
-};
 
 function getRepeatTarget(transaction) {
   const meta = transaction?.metadata || {};
@@ -65,6 +58,7 @@ function formatNaira(amount) {
 }
 
 function Row({ label, value, mono }) {
+  const { tokens } = useTheme();
   return (
     <View
       style={{
@@ -73,15 +67,15 @@ function Row({ label, value, mono }) {
         alignItems: "center",
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        borderBottomColor: tokens.border.default,
       }}
     >
-      <Text style={{ fontSize: 13, color: colors.textMuted }}>{label}</Text>
+      <Text style={{ fontSize: 13, color: tokens.text.muted }}>{label}</Text>
       <Text
         style={{
           fontSize: 13,
           fontWeight: "600",
-          color: colors.text,
+          color: tokens.text.primary,
           fontVariant: mono ? ["tabular-nums"] : undefined,
           maxWidth: "60%",
           textAlign: "right",
@@ -95,13 +89,21 @@ function Row({ label, value, mono }) {
 
 export default function ReceiptScreen({ navigation, route }) {
   const { t, i18n } = useTranslation();
+  const { tokens } = useTheme();
   const { transaction } = route.params ?? {};
   const receiptRef = useRef(null);
 
+  const STATUS_COLOR = {
+    COMPLETED: tokens.status.success,
+    PROCESSING: tokens.status.warning,
+    FAILED: tokens.status.errorStrong,
+    PENDING: tokens.status.warning,
+  };
+
   if (!transaction) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: colors.textMuted }}>{t("wallet.receipt.noData")}</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: tokens.text.muted }}>{t("wallet.receipt.noData")}</Text>
       </SafeAreaView>
     );
   }
@@ -112,7 +114,7 @@ export default function ReceiptScreen({ navigation, route }) {
   const typeLabel = translatedLabel === labelKey
     ? (transaction.type?.replace(/_/g, " ") || "")
     : translatedLabel;
-  const statusColor = STATUS_COLOR[transaction.status] || colors.textMuted;
+  const statusColor = STATUS_COLOR[transaction.status] || tokens.text.muted;
   const repeatTarget = getRepeatTarget(transaction);
 
   const formatDateTime = (d) => {
@@ -180,8 +182,8 @@ export default function ReceiptScreen({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
         <TouchableOpacity
@@ -189,9 +191,9 @@ export default function ReceiptScreen({ navigation, route }) {
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
         </TouchableOpacity>
-        <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "900", color: tokens.text.primary, marginLeft: 16, letterSpacing: -0.5 }}>
           {t("wallet.receipt.title")}
         </Text>
       </View>
@@ -200,7 +202,7 @@ export default function ReceiptScreen({ navigation, route }) {
         <ViewShot
           ref={receiptRef}
           options={{ format: "png", quality: 1 }}
-          style={{ backgroundColor: colors.background }}
+          style={{ backgroundColor: tokens.bg.canvas }}
         >
           <View nativeID="iprime-receipt-capture">
           {/* Amount header */}
@@ -208,21 +210,21 @@ export default function ReceiptScreen({ navigation, route }) {
             <View
               style={{
                 width: 72, height: 72, borderRadius: 36,
-                backgroundColor: (isCredit ? "#16A34A" : colors.primary) + "20",
+                backgroundColor: (isCredit ? tokens.status.success : tokens.brand.default) + "20",
                 alignItems: "center", justifyContent: "center", marginBottom: 16,
               }}
             >
               <Ionicons
                 name={isCredit ? "arrow-down-circle" : "arrow-up-circle"}
                 size={40}
-                color={isCredit ? "#16A34A" : colors.primary}
+                color={isCredit ? tokens.status.success : tokens.brand.default}
               />
             </View>
-            <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 6 }}>{typeLabel}</Text>
+            <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 6 }}>{typeLabel}</Text>
             <Text
               style={{
                 fontSize: 38, fontWeight: "900", letterSpacing: -1,
-                color: isCredit ? "#16A34A" : colors.text,
+                color: isCredit ? tokens.status.success : tokens.text.primary,
               }}
             >
               {isCredit ? "+" : "-"}{formatNaira(transaction.amount)}
@@ -233,7 +235,7 @@ export default function ReceiptScreen({ navigation, route }) {
             </View>
           </View>
 
-          <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 4, marginBottom: 20 }}>
+          <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 4, marginBottom: 20 }}>
             <Row label={t("wallet.receipt.reference")} value={transaction.reference} mono />
             {transaction.description ? <Row label={t("wallet.receipt.description")} value={transaction.description} /> : null}
             {transaction.balanceBefore !== undefined && transaction.balanceBefore !== null ? (
@@ -245,7 +247,7 @@ export default function ReceiptScreen({ navigation, route }) {
             <Row label={t("wallet.receipt.date")} value={formatDateTime(transaction.createdAt)} />
           </View>
 
-          <Text style={{ textAlign: "center", fontSize: 11, color: colors.textMuted, marginBottom: 4 }}>
+          <Text style={{ textAlign: "center", fontSize: 11, color: tokens.text.muted, marginBottom: 4 }}>
             {t("wallet.receipt.footer")}
           </Text>
           </View>
@@ -256,19 +258,19 @@ export default function ReceiptScreen({ navigation, route }) {
             onPress={handleCopy}
             accessibilityRole="button"
             accessibilityLabel={t("wallet.receipt.copyRef")}
-            style={{ flex: 1, backgroundColor: colors.surface, paddingVertical: 14, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
+            style={{ flex: 1, backgroundColor: tokens.bg.surface, paddingVertical: 14, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
           >
-            <Ionicons name="copy-outline" size={18} color={colors.text} />
-            <Text style={{ fontWeight: "700", color: colors.text, marginLeft: 8 }}>{t("wallet.receipt.copyRef")}</Text>
+            <Ionicons name="copy-outline" size={18} color={tokens.text.primary} />
+            <Text style={{ fontWeight: "700", color: tokens.text.primary, marginLeft: 8 }}>{t("wallet.receipt.copyRef")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleShare}
             accessibilityRole="button"
             accessibilityLabel={t("wallet.receipt.share")}
-            style={{ flex: 1, backgroundColor: colors.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
+            style={{ flex: 1, backgroundColor: tokens.brand.default, paddingVertical: 14, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
           >
-            <Ionicons name="share-outline" size={18} color={colors.white} />
-            <Text style={{ fontWeight: "700", color: colors.white, marginLeft: 8 }}>{t("wallet.receipt.share")}</Text>
+            <Ionicons name="share-outline" size={18} color={tokens.text.onBrand} />
+            <Text style={{ fontWeight: "700", color: tokens.text.onBrand, marginLeft: 8 }}>{t("wallet.receipt.share")}</Text>
           </TouchableOpacity>
         </View>
 
@@ -277,10 +279,10 @@ export default function ReceiptScreen({ navigation, route }) {
             onPress={handleRepeat}
             accessibilityRole="button"
             accessibilityLabel={t("wallet.receipt.repeat")}
-            style={{ marginTop: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
+            style={{ marginTop: 12, backgroundColor: tokens.bg.surface, borderWidth: 1, borderColor: tokens.brand.default, paddingVertical: 14, borderRadius: 14, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
           >
-            <Ionicons name="refresh" size={18} color={colors.primary} />
-            <Text style={{ fontWeight: "700", color: colors.primary, marginLeft: 8 }}>
+            <Ionicons name="refresh" size={18} color={tokens.brand.default} />
+            <Text style={{ fontWeight: "700", color: tokens.brand.default, marginLeft: 8 }}>
               {t("wallet.receipt.repeat")}
             </Text>
           </TouchableOpacity>

@@ -12,11 +12,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import api from "../../services/api";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import Toast from "react-native-toast-message";
 
 export default function PhoneChangeScreen({ navigation }) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const [step, setStep] = useState("request"); // request | verify
   const [newPhone, setNewPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -65,8 +66,8 @@ export default function PhoneChangeScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-        <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+        <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
           <TouchableOpacity
@@ -74,9 +75,9 @@ export default function PhoneChangeScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: tokens.text.primary, marginLeft: 16, letterSpacing: -0.5 }}>
             {t("phoneChange.title")}
           </Text>
         </View>
@@ -84,85 +85,85 @@ export default function PhoneChangeScreen({ navigation }) {
         <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           {step === "request" ? (
             <>
-              <Text style={{ fontSize: 14, color: colors.textMuted, marginBottom: 28, lineHeight: 20 }}>
+              <Text style={{ fontSize: 14, color: tokens.text.muted, marginBottom: 28, lineHeight: 20 }}>
                 Enter your new phone number and current password. We'll send an OTP to verify the new number.
               </Text>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 6, letterSpacing: 0.8 }}>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6, letterSpacing: 0.8 }}>
                 NEW PHONE NUMBER
               </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 16, borderWidth: 1.5, borderColor: newPhone ? colors.primary : colors.border }}>
-                <Ionicons name="call-outline" size={18} color={colors.textMuted} />
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 16, borderWidth: 1.5, borderColor: newPhone ? tokens.brand.default : tokens.border.default }}>
+                <Ionicons name="call-outline" size={18} color={tokens.text.muted} />
                 <TextInput
                   value={newPhone}
                   onChangeText={setNewPhone}
                   placeholder="08012345678"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={tokens.text.muted}
                   keyboardType="phone-pad"
-                  style={{ flex: 1, paddingVertical: 14, paddingLeft: 10, fontSize: 15, color: colors.text }}
+                  style={{ flex: 1, paddingVertical: 14, paddingLeft: 10, fontSize: 15, color: tokens.text.primary }}
                 />
               </View>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 6, letterSpacing: 0.8 }}>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6, letterSpacing: 0.8 }}>
                 CURRENT PASSWORD
               </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 32, borderWidth: 1.5, borderColor: password ? colors.primary : colors.border }}>
-                <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} />
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 32, borderWidth: 1.5, borderColor: password ? tokens.brand.default : tokens.border.default }}>
+                <Ionicons name="lock-closed-outline" size={18} color={tokens.text.muted} />
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
                   placeholder="Your password"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={tokens.text.muted}
                   secureTextEntry={!showPassword}
-                  style={{ flex: 1, paddingVertical: 14, paddingLeft: 10, fontSize: 15, color: colors.text }}
+                  style={{ flex: 1, paddingVertical: 14, paddingLeft: 10, fontSize: 15, color: tokens.text.primary }}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textMuted} />
+                  <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={tokens.text.muted} />
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity
                 onPress={handleRequest}
                 disabled={loading}
-                style={{ backgroundColor: colors.primary, paddingVertical: 15, borderRadius: 14, alignItems: "center" }}
+                style={{ backgroundColor: tokens.brand.default, paddingVertical: 15, borderRadius: 14, alignItems: "center" }}
               >
                 {loading ? (
-                  <ActivityIndicator color={colors.white} />
+                  <ActivityIndicator color={tokens.text.onBrand} />
                 ) : (
-                  <Text style={{ color: colors.white, fontWeight: "800", fontSize: 16 }}>Send OTP</Text>
+                  <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 16 }}>Send OTP</Text>
                 )}
               </TouchableOpacity>
             </>
           ) : (
             <>
-              <Text style={{ fontSize: 14, color: colors.textMuted, marginBottom: 28, lineHeight: 20 }}>
-                Enter the OTP sent to <Text style={{ fontWeight: "700", color: colors.text }}>{newPhone}</Text>.
+              <Text style={{ fontSize: 14, color: tokens.text.muted, marginBottom: 28, lineHeight: 20 }}>
+                Enter the OTP sent to <Text style={{ fontWeight: "700", color: tokens.text.primary }}>{newPhone}</Text>.
               </Text>
 
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 6, letterSpacing: 0.8 }}>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6, letterSpacing: 0.8 }}>
                 OTP CODE
               </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 32, borderWidth: 1.5, borderColor: otp ? colors.primary : colors.border }}>
-                <Ionicons name="key-outline" size={18} color={colors.textMuted} />
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 32, borderWidth: 1.5, borderColor: otp ? tokens.brand.default : tokens.border.default }}>
+                <Ionicons name="key-outline" size={18} color={tokens.text.muted} />
                 <TextInput
                   value={otp}
                   onChangeText={setOtp}
                   placeholder="Enter OTP"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={tokens.text.muted}
                   keyboardType="numeric"
-                  style={{ flex: 1, paddingVertical: 14, paddingLeft: 10, fontSize: 18, letterSpacing: 4, color: colors.text }}
+                  style={{ flex: 1, paddingVertical: 14, paddingLeft: 10, fontSize: 18, letterSpacing: 4, color: tokens.text.primary }}
                 />
               </View>
 
               <TouchableOpacity
                 onPress={handleVerify}
                 disabled={loading}
-                style={{ backgroundColor: colors.primary, paddingVertical: 15, borderRadius: 14, alignItems: "center" }}
+                style={{ backgroundColor: tokens.brand.default, paddingVertical: 15, borderRadius: 14, alignItems: "center" }}
               >
                 {loading ? (
-                  <ActivityIndicator color={colors.white} />
+                  <ActivityIndicator color={tokens.text.onBrand} />
                 ) : (
-                  <Text style={{ color: colors.white, fontWeight: "800", fontSize: 16 }}>Confirm Change</Text>
+                  <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 16 }}>Confirm Change</Text>
                 )}
               </TouchableOpacity>
             </>

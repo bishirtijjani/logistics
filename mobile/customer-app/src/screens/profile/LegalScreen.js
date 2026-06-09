@@ -10,10 +10,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 export default function LegalScreen({ navigation }) {
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   // Public legal docs are hosted on the marketing site (see /website in this
   // repo, route /legal/[slug]). The URLs are referenced from the App Store
   // privacy questionnaire and the Play Console data-safety form, so they
@@ -34,11 +35,14 @@ export default function LegalScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -56,20 +60,20 @@ export default function LegalScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -84,10 +88,10 @@ export default function LegalScreen({ navigation }) {
         <View
           style={{
             marginHorizontal: 20,
-            backgroundColor: colors.surface,
+            backgroundColor: tokens.bg.surface,
             borderRadius: 18,
             borderWidth: 1.5,
-            borderColor: colors.border,
+            borderColor: tokens.border.default,
             overflow: "hidden",
           }}
         >
@@ -105,28 +109,28 @@ export default function LegalScreen({ navigation }) {
                 paddingHorizontal: 16,
                 paddingVertical: 14,
                 borderBottomWidth: index < items.length - 1 ? 1 : 0,
-                borderBottomColor: colors.border,
+                borderBottomColor: tokens.border.default,
               }}
             >
               <View
                 style={{
                   width: 38,
                   height: 38,
-                  backgroundColor: colors.surfaceMuted,
+                  backgroundColor: tokens.bg.surfaceMuted,
                   borderRadius: 11,
                   alignItems: "center",
                   justifyContent: "center",
                   marginRight: 14,
                 }}
               >
-                <Ionicons name={item.icon} size={19} color={colors.text} />
+                <Ionicons name={item.icon} size={19} color={tokens.text.primary} />
               </View>
               <Text
                 style={{
                   flex: 1,
                   fontSize: 15,
                   fontWeight: "600",
-                  color: colors.text,
+                  color: tokens.text.primary,
                 }}
               >
                 {item.label}
@@ -134,7 +138,7 @@ export default function LegalScreen({ navigation }) {
               <Ionicons
                 name="open-outline"
                 size={17}
-                color={colors.textLight}
+                color={tokens.text.placeholder}
               />
             </TouchableOpacity>
           ))}
@@ -143,7 +147,7 @@ export default function LegalScreen({ navigation }) {
         <Text
           style={{
             fontSize: 12,
-            color: colors.textMuted,
+            color: tokens.text.muted,
             textAlign: "center",
             marginTop: 24,
             marginHorizontal: 20,

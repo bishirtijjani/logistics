@@ -158,8 +158,8 @@ export default function AirtimeScreen({ navigation }) {
                   borderColor: selectedNetwork?.id === n.id ? tokens.brand.default : tokens.border.default,
                 }}
               >
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: NETWORK_COLORS[n.networkName] || "#999", marginRight: 8 }} />
-                <Text style={{ fontSize: 14, fontWeight: "700", color: selectedNetwork?.id === n.id ? "#FFFFFF" : tokens.text.primary }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: NETWORK_COLORS[n.networkName] || tokens.text.placeholder, marginRight: 8 }} />
+                <Text style={{ fontSize: 14, fontWeight: "700", color: selectedNetwork?.id === n.id ? tokens.text.onBrand : tokens.text.primary }}>
                   {n.networkName}
                 </Text>
               </TouchableOpacity>
@@ -241,7 +241,7 @@ export default function AirtimeScreen({ navigation }) {
                 accessibilityState={{ selected }}
                 style={{ backgroundColor: selected ? tokens.brand.default : tokens.bg.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: selected ? tokens.brand.default : tokens.border.default }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? "#FFFFFF" : tokens.text.primary }}>₦{value}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>₦{value}</Text>
               </TouchableOpacity>
             );
           })}
@@ -275,9 +275,9 @@ export default function AirtimeScreen({ navigation }) {
           style={{ backgroundColor: amount ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" accessibilityLabel={t("common.loading")} />
+            <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "800" }}>
+            <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
               {amount ? t("utility.airtimeScreen.payCta", { amount: naira(amount) }) : t("utility.airtimeScreen.enterAmountCta")}
             </Text>
           )}

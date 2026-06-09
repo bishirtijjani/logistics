@@ -146,7 +146,7 @@ export default function DataScreen({ navigation }) {
               }}
             >
               <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: NETWORK_COLORS[n.networkName] || "#999", marginRight: 8 }} />
-              <Text style={{ fontSize: 14, fontWeight: "700", color: selectedNetwork?.id === n.id ? "#FFFFFF" : tokens.text.primary }}>{n.networkName}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: selectedNetwork?.id === n.id ? tokens.text.onBrand : tokens.text.primary }}>{n.networkName}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -215,7 +215,7 @@ export default function DataScreen({ navigation }) {
                 }}
               >
                 <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: selectedPlan?.id === plan.id ? tokens.brand.default : tokens.bg.surfaceMuted, alignItems: "center", justifyContent: "center", marginRight: 16 }}>
-                  <Ionicons name="wifi" size={24} color={selectedPlan?.id === plan.id ? "#FFFFFF" : tokens.text.primary} />
+                  <Ionicons name="wifi" size={24} color={selectedPlan?.id === plan.id ? tokens.text.onBrand : tokens.text.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>{plan.name}</Text>
@@ -242,9 +242,9 @@ export default function DataScreen({ navigation }) {
           style={{ backgroundColor: selectedPlan ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" accessibilityLabel={t("common.loading")} />
+            <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "800" }}>
+            <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
               {selectedPlan ? naira(selectedPlan.sellingPrice) : t("utility.dataScreen.selectPlan")}
             </Text>
           )}

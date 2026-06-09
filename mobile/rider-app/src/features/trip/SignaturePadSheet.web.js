@@ -220,7 +220,7 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
               height: "100%",
               touchAction: "none",
               borderRadius: 12,
-              border: "2px dashed #d1d5db",
+              border: `2px dashed ${tokens.border.strong}`,
               backgroundColor: "#ffffff",
             }}
           />

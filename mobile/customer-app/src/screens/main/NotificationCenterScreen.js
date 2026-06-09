@@ -21,7 +21,7 @@ import {
 } from '../../store/slices/notificationsSlice';
 import { routeToScreen } from '../../lib/notificationRoute';
 import EmptyState from '../../components/EmptyState';
-import { colors } from '../../theme';
+import { useTheme } from '../../theme';
 
 const ICON_BY_TYPE = {
   REQUEST_STATUS: 'cube-outline',
@@ -35,6 +35,7 @@ const ICON_BY_TYPE = {
 export default function NotificationCenterScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const { tokens } = useTheme();
   const { t, i18n } = useTranslation();
   const { list, isLoading, page, total, unreadCount } = useSelector((s) => s.notifications);
 
@@ -85,35 +86,35 @@ export default function NotificationCenterScreen() {
           alignItems: 'flex-start',
           paddingVertical: 14,
           paddingHorizontal: 16,
-          backgroundColor: unread ? '#FFF7ED' : colors.surface,
+          backgroundColor: unread ? tokens.brand.soft : tokens.bg.surface,
           borderBottomWidth: 1,
-          borderBottomColor: colors.border,
+          borderBottomColor: tokens.border.default,
         }}
       >
         <View
           style={{
             width: 38, height: 38, borderRadius: 19, marginRight: 12,
-            backgroundColor: unread ? `${colors.primary}20` : '#F3F4F6',
+            backgroundColor: unread ? tokens.brand.soft : tokens.bg.surfaceMuted,
             alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <Ionicons name={icon} size={20} color={unread ? colors.primary : '#6B7280'} />
+          <Ionicons name={icon} size={20} color={unread ? tokens.brand.default : tokens.text.muted} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.text, flex: 1 }} numberOfLines={1}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: tokens.text.primary, flex: 1 }} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={{ fontSize: 11, color: colors.textMuted, marginLeft: 8 }}>
+            <Text style={{ fontSize: 11, color: tokens.text.muted, marginLeft: 8 }}>
               {formatRelative(item.createdAt)}
             </Text>
           </View>
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 3 }} numberOfLines={3}>
+          <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 3 }} numberOfLines={3}>
             {item.body}
           </Text>
         </View>
         {unread && (
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary, marginTop: 6, marginLeft: 6 }} />
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tokens.brand.default, marginTop: 6, marginLeft: 6 }} />
         )}
       </TouchableOpacity>
     );
@@ -130,14 +131,14 @@ export default function NotificationCenterScreen() {
     );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
       {/* Header */}
       <View
         style={{
           flexDirection: 'row', alignItems: 'center',
           paddingHorizontal: 16, paddingVertical: 14,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1, borderBottomColor: colors.border,
+          backgroundColor: tokens.bg.surface,
+          borderBottomWidth: 1, borderBottomColor: tokens.border.default,
         }}
       >
         <TouchableOpacity
@@ -146,9 +147,9 @@ export default function NotificationCenterScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+          <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
         </TouchableOpacity>
-        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: colors.text }}>
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 17, fontWeight: '800', color: tokens.text.primary }}>
           {t('notificationCenter.title')}
         </Text>
         <TouchableOpacity
@@ -161,7 +162,7 @@ export default function NotificationCenterScreen() {
           <Text
             style={{
               fontSize: 13, fontWeight: '700',
-              color: unreadCount === 0 ? colors.textMuted : colors.primary,
+              color: unreadCount === 0 ? tokens.text.muted : tokens.brand.default,
             }}
           >
             {t('notificationCenter.markAllRead')}
@@ -177,7 +178,7 @@ export default function NotificationCenterScreen() {
           <RefreshControl
             refreshing={isLoading && page === 1}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
+            tintColor={tokens.brand.default}
           />
         }
         onEndReached={onEndReached}
@@ -185,7 +186,7 @@ export default function NotificationCenterScreen() {
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={
           isLoading && list.length > 0 ? (
-            <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
+            <ActivityIndicator color={tokens.brand.default} style={{ marginVertical: 16 }} />
           ) : null
         }
       />

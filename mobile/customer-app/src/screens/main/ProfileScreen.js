@@ -10,11 +10,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { logout } from "../../store/slices/authSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 export default function ProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { tokens, isDark } = useTheme();
 
   const menuItems = [
     { icon: "person-outline", label: "Personal Information" },
@@ -26,11 +27,14 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -44,7 +48,7 @@ export default function ProfileScreen() {
             style={{
               fontSize: 28,
               fontWeight: "900",
-              color: colors.text,
+              color: tokens.text.primary,
               letterSpacing: -1,
               marginBottom: 24,
             }}
@@ -57,7 +61,7 @@ export default function ProfileScreen() {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.dark,
+              backgroundColor: tokens.bg.elevated,
               borderRadius: 20,
               padding: 18,
             }}
@@ -66,7 +70,7 @@ export default function ProfileScreen() {
               style={{
                 width: 56,
                 height: 56,
-                backgroundColor: colors.primary,
+                backgroundColor: tokens.brand.default,
                 borderRadius: 28,
                 alignItems: "center",
                 justifyContent: "center",
@@ -74,7 +78,7 @@ export default function ProfileScreen() {
               }}
             >
               <Text
-                style={{ color: colors.white, fontSize: 22, fontWeight: "900" }}
+                style={{ color: tokens.text.onElevated, fontSize: 22, fontWeight: "900" }}
               >
                 {user?.firstName?.[0]?.toUpperCase() || "?"}
               </Text>
@@ -82,7 +86,7 @@ export default function ProfileScreen() {
             <View style={{ flex: 1 }}>
               <Text
                 style={{
-                  color: colors.white,
+                  color: tokens.text.onElevated,
                   fontSize: 17,
                   fontWeight: "800",
                   marginBottom: 2,
@@ -90,7 +94,7 @@ export default function ProfileScreen() {
               >
                 {user?.firstName} {user?.lastName}
               </Text>
-              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+              <Text style={{ color: tokens.text.muted, fontSize: 13 }}>
                 {user?.email}
               </Text>
             </View>
@@ -101,7 +105,7 @@ export default function ProfileScreen() {
                 borderRadius: 12,
               }}
             >
-              <Ionicons name="create-outline" size={18} color={colors.white} />
+              <Ionicons name="create-outline" size={18} color={tokens.text.onElevated} />
             </TouchableOpacity>
           </View>
         </View>
@@ -112,7 +116,7 @@ export default function ProfileScreen() {
             style={{
               fontSize: 19,
               fontWeight: "900",
-              color: colors.text,
+              color: tokens.text.primary,
               letterSpacing: -0.5,
               marginBottom: 14,
             }}
@@ -121,10 +125,10 @@ export default function ProfileScreen() {
           </Text>
           <View
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: tokens.bg.surface,
               borderRadius: 18,
               borderWidth: 1.5,
-              borderColor: colors.border,
+              borderColor: tokens.border.default,
               overflow: "hidden",
             }}
           >
@@ -137,28 +141,28 @@ export default function ProfileScreen() {
                   paddingHorizontal: 18,
                   paddingVertical: 16,
                   borderBottomWidth: index < menuItems.length - 1 ? 1 : 0,
-                  borderBottomColor: colors.border,
+                  borderBottomColor: tokens.border.default,
                 }}
               >
                 <View
                   style={{
                     width: 38,
                     height: 38,
-                    backgroundColor: colors.surfaceMuted,
+                    backgroundColor: tokens.bg.surfaceMuted,
                     borderRadius: 11,
                     alignItems: "center",
                     justifyContent: "center",
                     marginRight: 14,
                   }}
                 >
-                  <Ionicons name={item.icon} size={20} color={colors.text} />
+                  <Ionicons name={item.icon} size={20} color={tokens.text.primary} />
                 </View>
                 <Text
                   style={{
                     flex: 1,
                     fontSize: 15,
                     fontWeight: "600",
-                    color: colors.text,
+                    color: tokens.text.primary,
                   }}
                 >
                   {item.label}
@@ -166,7 +170,7 @@ export default function ProfileScreen() {
                 <Ionicons
                   name="chevron-forward"
                   size={18}
-                  color={colors.textMuted}
+                  color={tokens.text.muted}
                 />
               </TouchableOpacity>
             ))}
@@ -178,20 +182,20 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => dispatch(logout())}
             style={{
-              backgroundColor: "#FEE2E2",
+              backgroundColor: tokens.status.errorSoft,
               paddingVertical: 16,
               borderRadius: 16,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
               borderWidth: 1.5,
-              borderColor: "#FECACA",
+              borderColor: tokens.status.errorSoftBorder,
             }}
           >
-            <Ionicons name="log-out-outline" size={20} color={colors.error} />
+            <Ionicons name="log-out-outline" size={20} color={tokens.status.error} />
             <Text
               style={{
-                color: colors.error,
+                color: tokens.status.error,
                 fontWeight: "800",
                 fontSize: 15,
                 marginLeft: 8,

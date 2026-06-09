@@ -13,13 +13,14 @@ import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { setTransactionPin } from "../../store/slices/profileSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 const PIN_LENGTH = 6;
 
 export default function SetPinScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { isUpdating } = useSelector((state) => state.profile);
   const [step, setStep] = useState("enter"); // "enter" | "confirm"
   const [pin, setPin] = useState("");
@@ -75,11 +76,14 @@ export default function SetPinScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -96,7 +100,7 @@ export default function SetPinScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
@@ -104,14 +108,14 @@ export default function SetPinScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -133,13 +137,13 @@ export default function SetPinScreen({ navigation }) {
             width: 72,
             height: 72,
             borderRadius: 36,
-            backgroundColor: colors.dark,
+            backgroundColor: tokens.bg.elevated,
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 24,
           }}
         >
-          <Ionicons name="keypad" size={32} color={colors.primary} />
+          <Ionicons name="keypad" size={32} color={tokens.brand.default} />
         </View>
 
         <Text
@@ -147,7 +151,7 @@ export default function SetPinScreen({ navigation }) {
           style={{
             fontSize: 22,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             marginBottom: 8,
             textAlign: "center",
           }}
@@ -157,7 +161,7 @@ export default function SetPinScreen({ navigation }) {
         <Text
           style={{
             fontSize: 14,
-            color: colors.textMuted,
+            color: tokens.text.muted,
             textAlign: "center",
             marginBottom: 36,
             lineHeight: 20,
@@ -183,7 +187,9 @@ export default function SetPinScreen({ navigation }) {
                 borderRadius: 9,
                 marginHorizontal: 8,
                 backgroundColor:
-                  i < currentValue.length ? colors.primary : colors.border,
+                  i < currentValue.length
+                    ? tokens.brand.default
+                    : tokens.border.default,
               }}
             />
           ))}
@@ -220,7 +226,7 @@ export default function SetPinScreen({ navigation }) {
           <Text
             style={{
               fontSize: 13,
-              color: colors.textMuted,
+              color: tokens.text.muted,
               fontWeight: "600",
             }}
           >
@@ -240,7 +246,7 @@ export default function SetPinScreen({ navigation }) {
               width: 32,
               height: 4,
               borderRadius: 2,
-              backgroundColor: colors.primary,
+              backgroundColor: tokens.brand.default,
               marginHorizontal: 3,
             }}
           />
@@ -250,7 +256,7 @@ export default function SetPinScreen({ navigation }) {
               height: 4,
               borderRadius: 2,
               backgroundColor:
-                step === "confirm" ? colors.primary : colors.border,
+                step === "confirm" ? tokens.brand.default : tokens.border.default,
               marginHorizontal: 3,
             }}
           />
@@ -259,7 +265,7 @@ export default function SetPinScreen({ navigation }) {
         {isUpdating && (
           <ActivityIndicator
             size="large"
-            color={colors.primary}
+            color={tokens.brand.default}
             style={{ marginTop: 24 }}
           />
         )}

@@ -25,23 +25,24 @@ import { fetchCategories } from "../../store/slices/categoriesSlice";
 import SkeletonLoader from "../../components/SkeletonLoader";
 import EmptyState from "../../components/EmptyState";
 import { resolveCategoryIcon } from "../../lib/categoryIcons";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 // Slugs that live on the home grid - exclude them from Shops so we don't
 // duplicate. Stays in sync with HomeScreen's HOME_CATEGORY_SLUGS by value
 // (small enough not to warrant a shared constant).
 const HOME_CATEGORY_SLUGS = new Set(["restaurant", "grocery", "pharmacy"]);
 
-const tintBackground = (hex) => {
-  if (!hex || typeof hex !== "string") return "#F3F4F6";
+const tintBackground = (hex, fallback) => {
+  if (!hex || typeof hex !== "string") return fallback;
   if (/^#[0-9a-fA-F]{6}$/.test(hex)) return `${hex}14`;
-  return "#F3F4F6";
+  return fallback;
 };
 
 export default function ShopsScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const { list: categories, loading, error } = useSelector((s) => s.categories);
   const { latitude, longitude } = useSelector((s) => s.location);
 
@@ -71,16 +72,16 @@ export default function ShopsScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 16,
           paddingVertical: 14,
-          backgroundColor: colors.surface,
+          backgroundColor: tokens.bg.surface,
           borderBottomWidth: 1,
-          borderBottomColor: colors.border,
+          borderBottomColor: tokens.border.default,
         }}
       >
         <TouchableOpacity
@@ -89,16 +90,16 @@ export default function ShopsScreen() {
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+          <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text
             accessibilityRole="header"
-            style={{ fontSize: 17, fontWeight: "800", color: colors.text }}
+            style={{ fontSize: 17, fontWeight: "800", color: tokens.text.primary }}
           >
             {t("shops.title")}
           </Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+          <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
             {t("shops.subtitle")}
           </Text>
         </View>
@@ -107,7 +108,7 @@ export default function ShopsScreen() {
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 48 }}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={tokens.brand.default} />
         }
       >
         {loading && shopCategories.length === 0 ? (
@@ -134,7 +135,7 @@ export default function ShopsScreen() {
           <View style={{ gap: 12 }}>
             {shopCategories.map((cat) => {
               const iconName = resolveCategoryIcon(cat);
-              const color = cat.color || "#7C3AED";
+              const color = cat.color || tokens.category.groceries.icon;
               return (
                 <TouchableOpacity
                   key={cat.id}
@@ -144,11 +145,11 @@ export default function ShopsScreen() {
                   style={{
                     flexDirection: "row",
                     alignItems: "center",
-                    backgroundColor: colors.surface,
+                    backgroundColor: tokens.bg.surface,
                     borderRadius: 18,
                     padding: 14,
                     borderWidth: 1.5,
-                    borderColor: colors.border,
+                    borderColor: tokens.border.default,
                   }}
                 >
                   <View
@@ -156,7 +157,7 @@ export default function ShopsScreen() {
                       width: 52,
                       height: 52,
                       borderRadius: 14,
-                      backgroundColor: tintBackground(color),
+                      backgroundColor: tintBackground(color, tokens.bg.surfaceMuted),
                       alignItems: "center",
                       justifyContent: "center",
                       marginRight: 14,
@@ -168,21 +169,21 @@ export default function ShopsScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text
-                      style={{ fontSize: 15, fontWeight: "800", color: colors.text, letterSpacing: -0.3 }}
+                      style={{ fontSize: 15, fontWeight: "800", color: tokens.text.primary, letterSpacing: -0.3 }}
                       numberOfLines={1}
                     >
                       {cat.name}
                     </Text>
                     {cat.description ? (
                       <Text
-                        style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}
+                        style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}
                         numberOfLines={1}
                       >
                         {cat.description}
                       </Text>
                     ) : null}
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
                 </TouchableOpacity>
               );
             })}

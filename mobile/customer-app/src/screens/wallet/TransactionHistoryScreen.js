@@ -11,20 +11,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import { fetchTransactions } from "../../store/slices/walletSlice";
 import EmptyState from "../../components/EmptyState";
 import SkeletonLoader from "../../components/SkeletonLoader";
-
-// Tx type metadata. `labelKey` resolves to a localized string at render.
-const TRANSACTION_TYPES = {
-  FUNDING:           { icon: "add-circle",       color: colors.success, labelKey: "wallet.tx.labelFunding"    },
-  P2P_TRANSFER:      { icon: "swap-horizontal",  color: colors.primary, labelKey: "wallet.tx.labelTransfer"   },
-  WITHDRAWAL:        { icon: "arrow-down-circle",color: colors.error,   labelKey: "wallet.tx.labelWithdrawal" },
-  DELIVERY_PAYMENT:  { icon: "bicycle",          color: colors.error,   labelKey: "wallet.tx.labelDelivery"   },
-  UTILITY_PAYMENT:   { icon: "flash",            color: colors.error,   labelKey: "wallet.tx.labelUtility"    },
-  REFUND:            { icon: "return-up-back",   color: colors.success, labelKey: "wallet.tx.labelRefund"     },
-};
 
 const RANGES = [
   { key: "all", labelKey: "wallet.tx.rangeAll", days: null },
@@ -46,7 +36,19 @@ function computeRange(rangeKey) {
 
 export default function TransactionHistoryScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens } = useTheme();
   const { t, i18n } = useTranslation();
+
+  // Tx type metadata. `labelKey` resolves to a localized string at render.
+  const TRANSACTION_TYPES = {
+    FUNDING:           { icon: "add-circle",       color: tokens.status.success, labelKey: "wallet.tx.labelFunding"    },
+    P2P_TRANSFER:      { icon: "swap-horizontal",  color: tokens.brand.default,  labelKey: "wallet.tx.labelTransfer"   },
+    WITHDRAWAL:        { icon: "arrow-down-circle",color: tokens.status.error,   labelKey: "wallet.tx.labelWithdrawal" },
+    DELIVERY_PAYMENT:  { icon: "bicycle",          color: tokens.status.error,   labelKey: "wallet.tx.labelDelivery"   },
+    UTILITY_PAYMENT:   { icon: "flash",            color: tokens.status.error,   labelKey: "wallet.tx.labelUtility"    },
+    REFUND:            { icon: "return-up-back",   color: tokens.status.success, labelKey: "wallet.tx.labelRefund"     },
+  };
+
   const { transactions, isLoading, total } = useSelector((state) => state.wallet);
   const [activeTab, setActiveTab] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,7 +116,7 @@ export default function TransactionHistoryScreen({ navigation }) {
   }, [rangeKey, searchQ]);
 
   const renderTransactionItem = ({ item }) => {
-    const meta = TRANSACTION_TYPES[item.type] || { icon: "help-circle", color: colors.textMuted, labelKey: null };
+    const meta = TRANSACTION_TYPES[item.type] || { icon: "help-circle", color: tokens.text.muted, labelKey: null };
     const fallbackLabel = item.type;
     const txLabel = meta.labelKey ? t(meta.labelKey) : fallbackLabel;
     const isCredit = ["FUNDING", "P2P_TRANSFER", "REFUND", "DELIVERY_EARNING"].includes(item.type);
@@ -129,7 +131,7 @@ export default function TransactionHistoryScreen({ navigation }) {
         style={{
           flexDirection: "row",
           alignItems: "center",
-          backgroundColor: colors.surface,
+          backgroundColor: tokens.bg.surface,
           borderRadius: 16,
           padding: 16,
           marginBottom: 12,
@@ -147,28 +149,28 @@ export default function TransactionHistoryScreen({ navigation }) {
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>{title}</Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{formatDate(item.createdAt)}</Text>
+          <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>{title}</Text>
+          <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>{formatDate(item.createdAt)}</Text>
         </View>
 
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={{ fontSize: 16, fontWeight: "800", color: isCredit ? colors.success : colors.text }}>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: isCredit ? tokens.status.success : tokens.text.primary }}>
             {amountText}
           </Text>
           <View
             style={{
               backgroundColor:
-                item.status === "COMPLETED" ? colors.success + "20"
-                : item.status === "PENDING" ? "#FEF3C7"
-                : colors.error + "20",
+                item.status === "COMPLETED" ? tokens.status.success + "20"
+                : item.status === "PENDING" ? tokens.status.warningSoft
+                : tokens.status.error + "20",
               paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginTop: 4,
             }}
           >
             <Text style={{
               fontSize: 10, fontWeight: "700",
-              color: item.status === "COMPLETED" ? colors.success
-                   : item.status === "PENDING" ? "#D97706"
-                   : colors.error,
+              color: item.status === "COMPLETED" ? tokens.status.success
+                   : item.status === "PENDING" ? tokens.status.warning
+                   : tokens.status.error,
             }}>
               {item.status}
             </Text>
@@ -194,7 +196,7 @@ export default function TransactionHistoryScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       {/* Header */}
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -205,9 +207,9 @@ export default function TransactionHistoryScreen({ navigation }) {
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}
             >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
+              <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
             </TouchableOpacity>
-            <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+            <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: tokens.text.primary }}>
               {t("wallet.history")}
             </Text>
           </View>
@@ -217,7 +219,7 @@ export default function TransactionHistoryScreen({ navigation }) {
               paddingHorizontal: 12,
               paddingVertical: 8,
               borderRadius: 12,
-              backgroundColor: filtersOpen || filterChipCount > 0 ? colors.primary + "20" : colors.surface,
+              backgroundColor: filtersOpen || filterChipCount > 0 ? tokens.brand.default + "20" : tokens.bg.surface,
               flexDirection: "row",
               alignItems: "center",
             }}
@@ -228,11 +230,11 @@ export default function TransactionHistoryScreen({ navigation }) {
             <Ionicons
               name="options-outline"
               size={18}
-              color={filtersOpen || filterChipCount > 0 ? colors.primary : colors.text}
+              color={filtersOpen || filterChipCount > 0 ? tokens.brand.default : tokens.text.primary}
             />
             {filterChipCount > 0 ? (
-              <View style={{ marginLeft: 6, width: 18, height: 18, borderRadius: 9, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 11, fontWeight: "800", color: colors.white }}>{filterChipCount}</Text>
+              <View style={{ marginLeft: 6, width: 18, height: 18, borderRadius: 9, backgroundColor: tokens.brand.default, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 11, fontWeight: "800", color: tokens.text.onBrand }}>{filterChipCount}</Text>
               </View>
             ) : null}
           </TouchableOpacity>
@@ -243,17 +245,17 @@ export default function TransactionHistoryScreen({ navigation }) {
       {filtersOpen ? (
         <View style={{ paddingHorizontal: 20, marginBottom: 8 }}>
           {/* Reference search */}
-          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 12, paddingHorizontal: 12, marginBottom: 10 }}>
-            <Ionicons name="search" size={18} color={colors.textMuted} />
+          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 12, paddingHorizontal: 12, marginBottom: 10 }}>
+            <Ionicons name="search" size={18} color={tokens.text.muted} />
             <TextInput
               value={searchInput}
               onChangeText={setSearchInput}
               placeholder={t("wallet.tx.searchPh")}
               accessibilityLabel={t("wallet.tx.searchPh")}
-              placeholderTextColor={colors.textLight}
+              placeholderTextColor={tokens.text.placeholder}
               autoCapitalize="none"
               autoCorrect={false}
-              style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, color: colors.text }}
+              style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, color: tokens.text.primary }}
             />
             {searchInput ? (
               <TouchableOpacity
@@ -261,7 +263,7 @@ export default function TransactionHistoryScreen({ navigation }) {
                 accessibilityRole="button"
                 accessibilityLabel={t("wallet.tx.clearSearch")}
               >
-                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                <Ionicons name="close-circle" size={18} color={tokens.text.muted} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -280,11 +282,11 @@ export default function TransactionHistoryScreen({ navigation }) {
                   accessibilityState={{ selected }}
                   style={{
                     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16,
-                    backgroundColor: selected ? colors.primary : colors.surface,
+                    backgroundColor: selected ? tokens.brand.default : tokens.bg.surface,
                     marginRight: 8, marginBottom: 8,
                   }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: selected ? colors.white : colors.textMuted }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.muted }}>
                     {label}
                   </Text>
                 </TouchableOpacity>
@@ -308,11 +310,11 @@ export default function TransactionHistoryScreen({ navigation }) {
               accessibilityLabel={label}
               style={{
                 paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-                backgroundColor: selected ? colors.primary : colors.surface,
+                backgroundColor: selected ? tokens.brand.default : tokens.bg.surface,
                 marginRight: 8,
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.textMuted }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.muted }}>
                 {label}
               </Text>
             </TouchableOpacity>

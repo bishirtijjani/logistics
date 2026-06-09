@@ -18,7 +18,7 @@ import { z } from "zod";
 import Toast from "react-native-toast-message";
 import FormInput from "../../components/FormInput";
 import { updateProfile, fetchProfile } from "../../store/slices/profileSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 const schema = z.object({
   firstName: z.string().min(2, "At least 2 characters").max(50),
@@ -38,6 +38,7 @@ const schema = z.object({
 export default function EditProfileScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { profile, isUpdating } = useSelector((state) => state.profile);
 
   const {
@@ -93,11 +94,14 @@ export default function EditProfileScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -116,20 +120,20 @@ export default function EditProfileScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
             flex: 1,
           }}
@@ -154,7 +158,7 @@ export default function EditProfileScreen({ navigation }) {
               style={{
                 fontSize: 13,
                 fontWeight: "600",
-                color: colors.textMuted,
+                color: tokens.text.muted,
                 marginBottom: 6,
               }}
             >
@@ -162,7 +166,7 @@ export default function EditProfileScreen({ navigation }) {
             </Text>
             <View
               style={{
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: tokens.bg.surfaceMuted,
                 borderRadius: 14,
                 paddingHorizontal: 16,
                 paddingVertical: 14,
@@ -173,24 +177,24 @@ export default function EditProfileScreen({ navigation }) {
               <Ionicons
                 name="mail-outline"
                 size={18}
-                color={colors.textLight}
+                color={tokens.text.placeholder}
                 style={{ marginRight: 10 }}
               />
               <Text
                 style={{
                   fontSize: 15,
-                  color: colors.textMuted,
+                  color: tokens.text.muted,
                   flex: 1,
                 }}
               >
                 {profile?.email || "-"}
               </Text>
-              <Ionicons name="lock-closed" size={14} color={colors.textLight} />
+              <Ionicons name="lock-closed" size={14} color={tokens.text.placeholder} />
             </View>
             <Text
               style={{
                 fontSize: 11,
-                color: colors.textMuted,
+                color: tokens.text.muted,
                 marginTop: 4,
                 marginLeft: 4,
               }}
@@ -293,16 +297,24 @@ export default function EditProfileScreen({ navigation }) {
               alignItems: "center",
               marginTop: 16,
               backgroundColor:
-                !isDirty || isUpdating ? "#9CA3AF" : colors.primary,
+                !isDirty || isUpdating
+                  ? tokens.text.placeholder
+                  : tokens.brand.default,
             }}
             onPress={handleSubmit(onSubmit)}
             disabled={!isDirty || isUpdating}
             activeOpacity={0.8}
           >
             {isUpdating ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={tokens.text.onBrand} />
             ) : (
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+              <Text
+                style={{
+                  color: tokens.text.onBrand,
+                  fontSize: 15,
+                  fontWeight: "800",
+                }}
+              >
                 Save Changes
               </Text>
             )}

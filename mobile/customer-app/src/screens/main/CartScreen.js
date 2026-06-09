@@ -14,7 +14,7 @@
  * the last line.
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Image, StyleSheet, Alert, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +23,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import EmptyState from "../../components/EmptyState";
 import { substitutionLabel } from "../../lib/requestStatus";
 import { computeCartTotal } from "../../lib/cart";
@@ -36,6 +36,8 @@ export default function CartScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const cart = useSelector(selectCart);
   const [editingLineId, setEditingLineId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -112,7 +114,7 @@ export default function CartScreen() {
         accessibilityRole="button"
         accessibilityLabel={t("a11y.back")}
       >
-        <Ionicons name="arrow-back" size={22} color={colors.text} />
+        <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
       </TouchableOpacity>
       <View style={{ flex: 1 }}>
         <Text accessibilityRole="header" style={styles.title}>
@@ -131,7 +133,7 @@ export default function CartScreen() {
           accessibilityLabel={t("cart.clearCta")}
           style={{ padding: 6 }}
         >
-          <Ionicons name="trash-outline" size={20} color={colors.textMuted} />
+          <Ionicons name="trash-outline" size={20} color={tokens.text.muted} />
         </TouchableOpacity>
       )}
     </View>
@@ -139,7 +141,7 @@ export default function CartScreen() {
 
   if (lines.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
         {renderHeader()}
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
@@ -147,8 +149,8 @@ export default function CartScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.primary}
-              colors={[colors.primary]}
+              tintColor={tokens.brand.default}
+              colors={[tokens.brand.default]}
             />
           }
         >
@@ -166,7 +168,7 @@ export default function CartScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       {renderHeader()}
 
       <ScrollView
@@ -175,8 +177,8 @@ export default function CartScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+            tintColor={tokens.brand.default}
+            colors={[tokens.brand.default]}
           />
         }
       >
@@ -186,7 +188,7 @@ export default function CartScreen() {
               <Image source={{ uri: line.imageUrl }} style={styles.thumb} />
             ) : (
               <View style={[styles.thumb, styles.thumbFallback]}>
-                <Ionicons name="fast-food-outline" size={24} color={colors.textMuted} />
+                <Ionicons name="fast-food-outline" size={24} color={tokens.text.muted} />
               </View>
             )}
             <View style={{ flex: 1, marginLeft: 12 }}>
@@ -207,7 +209,7 @@ export default function CartScreen() {
               <View style={styles.chipsRow}>
                 {isGrocery && line.substitution ? (
                   <View style={styles.subChip}>
-                    <Ionicons name="swap-horizontal" size={11} color="#7C3AED" />
+                    <Ionicons name="swap-horizontal" size={11} color={tokens.category.groceries.icon} />
                     <Text style={styles.subChipText}>
                       {substitutionLabel(line.substitution, t)}
                     </Text>
@@ -215,7 +217,7 @@ export default function CartScreen() {
                 ) : null}
                 {line.requiresPrescription ? (
                   <View style={styles.rxChip}>
-                    <Ionicons name="medkit-outline" size={11} color="#B45309" />
+                    <Ionicons name="medkit-outline" size={11} color={tokens.status.warningStrong} />
                     <Text style={styles.rxChipText}>{t("merchant.rx")}</Text>
                   </View>
                 ) : null}
@@ -233,9 +235,9 @@ export default function CartScreen() {
                   accessibilityState={{ disabled: editingLineId === line.lineId }}
                 >
                   {editingLineId === line.lineId ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
+                    <ActivityIndicator size="small" color={tokens.brand.default} />
                   ) : (
-                    <Ionicons name="pencil" size={14} color={colors.primary} />
+                    <Ionicons name="pencil" size={14} color={tokens.brand.default} />
                   )}
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -244,7 +246,7 @@ export default function CartScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={t("a11y.removeItem")}
                 >
-                  <Ionicons name="trash" size={14} color="#DC2626" />
+                  <Ionicons name="trash" size={14} color={tokens.status.errorStrong} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -270,66 +272,66 @@ export default function CartScreen() {
           accessibilityLabel={t("cart.checkoutCta")}
         >
           <Text style={styles.checkoutText}>{t("cart.checkoutCta")}</Text>
-          <Ionicons name="arrow-forward" size={16} color="#fff" style={{ marginLeft: 6 }} />
+          <Ionicons name="arrow-forward" size={16} color={tokens.text.onBrand} style={{ marginLeft: 6 }} />
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tokens) => StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: tokens.bg.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: tokens.border.default,
   },
-  title: { fontSize: 17, fontWeight: "800", color: colors.text },
-  subtitle: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  title: { fontSize: 17, fontWeight: "800", color: tokens.text.primary },
+  subtitle: { fontSize: 12, color: tokens.text.muted, marginTop: 2 },
 
   card: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: colors.surface,
+    backgroundColor: tokens.bg.surface,
     borderRadius: 16,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: tokens.border.default,
   },
-  thumb: { width: 56, height: 56, borderRadius: 12, backgroundColor: colors.surfaceMuted },
+  thumb: { width: 56, height: 56, borderRadius: 12, backgroundColor: tokens.bg.surfaceMuted },
   thumbFallback: { alignItems: "center", justifyContent: "center" },
-  lineName: { fontSize: 14, color: colors.text, fontWeight: "700" },
-  lineOpt: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  lineInstructions: { fontSize: 12, fontStyle: "italic", color: colors.textMuted, marginTop: 2 },
-  linePrice: { fontSize: 14, color: colors.text, fontWeight: "700" },
+  lineName: { fontSize: 14, color: tokens.text.primary, fontWeight: "700" },
+  lineOpt: { fontSize: 12, color: tokens.text.muted, marginTop: 2 },
+  lineInstructions: { fontSize: 12, fontStyle: "italic", color: tokens.text.muted, marginTop: 2 },
+  linePrice: { fontSize: 14, color: tokens.text.primary, fontWeight: "700" },
   lineBtn: { padding: 6 },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 6 },
   subChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3E8FF",
+    backgroundColor: tokens.category.groceries.bg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     marginRight: 6,
     marginTop: 2,
   },
-  subChipText: { color: "#7C3AED", fontSize: 11, fontWeight: "700", marginLeft: 4 },
+  subChipText: { color: tokens.category.groceries.icon, fontSize: 11, fontWeight: "700", marginLeft: 4 },
   rxChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEF3C7",
+    backgroundColor: tokens.status.warningSoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     marginRight: 6,
     marginTop: 2,
   },
-  rxChipText: { color: "#B45309", fontSize: 11, fontWeight: "700", marginLeft: 4 },
+  rxChipText: { color: tokens.status.warningStrong, fontSize: 11, fontWeight: "700", marginLeft: 4 },
 
   totalsRow: {
     flexDirection: "row",
@@ -338,33 +340,33 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: tokens.border.default,
   },
-  totalsLabel: { fontSize: 14, color: colors.textMuted, fontWeight: "600" },
-  totalsValue: { fontSize: 16, color: colors.text, fontWeight: "800" },
-  totalsHint: { fontSize: 11, color: colors.textMuted, marginTop: 6 },
+  totalsLabel: { fontSize: 14, color: tokens.text.muted, fontWeight: "600" },
+  totalsValue: { fontSize: 16, color: tokens.text.primary, fontWeight: "800" },
+  totalsHint: { fontSize: 11, color: tokens.text.muted, marginTop: 6 },
 
   footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.surface,
+    backgroundColor: tokens.bg.surface,
     padding: 14,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: tokens.border.default,
     flexDirection: "row",
     alignItems: "center",
   },
-  fCount: { fontSize: 12, color: colors.textMuted },
-  fTotal: { fontSize: 18, fontWeight: "800", color: colors.text },
+  fCount: { fontSize: 12, color: tokens.text.muted },
+  fTotal: { fontSize: 18, fontWeight: "800", color: tokens.text.primary },
   checkoutBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: tokens.brand.default,
     paddingHorizontal: 18,
     paddingVertical: 13,
     borderRadius: 12,
   },
-  checkoutText: { color: "#fff", fontWeight: "800", fontSize: 14 },
+  checkoutText: { color: tokens.text.onBrand, fontWeight: "800", fontSize: 14 },
 });

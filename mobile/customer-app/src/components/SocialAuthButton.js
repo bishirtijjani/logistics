@@ -1,7 +1,7 @@
 import React from "react";
 import { TouchableOpacity, Text, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../theme";
+import { useTheme } from "../theme";
 
 export default function SocialAuthButton({
   onPress,
@@ -10,6 +10,7 @@ export default function SocialAuthButton({
   isLoading,
   color = "#DB4437",
 }) {
+  const { tokens } = useTheme();
   return (
     <TouchableOpacity
       style={{
@@ -19,9 +20,9 @@ export default function SocialAuthButton({
         justifyContent: "center",
         padding: 16,
         borderRadius: 16,
-        backgroundColor: colors.surface,
+        backgroundColor: tokens.bg.surface,
         borderWidth: 1.5,
-        borderColor: colors.border,
+        borderColor: tokens.border.default,
         marginTop: 12,
       }}
       onPress={onPress}
@@ -29,7 +30,7 @@ export default function SocialAuthButton({
       activeOpacity={0.7}
     >
       {isLoading ? (
-        <ActivityIndicator color={colors.text} />
+        <ActivityIndicator color={tokens.text.primary} />
       ) : (
         <>
           <Ionicons
@@ -38,7 +39,7 @@ export default function SocialAuthButton({
             color={color}
             style={{ marginRight: 10 }}
           />
-          <Text style={{ color: colors.text, fontWeight: "600", fontSize: 15 }}>
+          <Text style={{ color: tokens.text.primary, fontWeight: "600", fontSize: 15 }}>
             Continue with {text}
           </Text>
         </>

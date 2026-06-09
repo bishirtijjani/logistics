@@ -4,17 +4,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 export default function AboutScreen({ navigation }) {
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -32,20 +36,20 @@ export default function AboutScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -66,20 +70,20 @@ export default function AboutScreen({ navigation }) {
             width: 88,
             height: 88,
             borderRadius: 22,
-            backgroundColor: colors.dark,
+            backgroundColor: tokens.bg.elevated,
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 20,
           }}
         >
-          <Ionicons name="cube" size={42} color={colors.primary} />
+          <Ionicons name="cube" size={42} color={tokens.brand.default} />
         </View>
 
         <Text
           style={{
             fontSize: 24,
             fontFamily: "Roboto_700Bold",
-            color: colors.text,
+            color: tokens.text.primary,
             marginBottom: 4,
           }}
         >
@@ -88,7 +92,7 @@ export default function AboutScreen({ navigation }) {
         <Text
           style={{
             fontSize: 14,
-            color: colors.textMuted,
+            color: tokens.text.muted,
             marginBottom: 24,
           }}
         >
@@ -98,7 +102,7 @@ export default function AboutScreen({ navigation }) {
         <Text
           style={{
             fontSize: 14,
-            color: colors.textMuted,
+            color: tokens.text.muted,
             textAlign: "center",
             lineHeight: 22,
             marginBottom: 32,
@@ -109,10 +113,10 @@ export default function AboutScreen({ navigation }) {
 
         <View
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: tokens.bg.surface,
             borderRadius: 18,
             borderWidth: 1.5,
-            borderColor: colors.border,
+            borderColor: tokens.border.default,
             width: "100%",
             padding: 16,
           }}
@@ -129,13 +133,13 @@ export default function AboutScreen({ navigation }) {
                 justifyContent: "space-between",
                 paddingVertical: 8,
                 borderBottomWidth: index < 2 ? 1 : 0,
-                borderBottomColor: colors.border,
+                borderBottomColor: tokens.border.default,
               }}
             >
               <Text
                 style={{
                   fontSize: 13,
-                  color: colors.textMuted,
+                  color: tokens.text.muted,
                   fontWeight: "600",
                 }}
               >
@@ -144,7 +148,7 @@ export default function AboutScreen({ navigation }) {
               <Text
                 style={{
                   fontSize: 13,
-                  color: colors.text,
+                  color: tokens.text.primary,
                   fontWeight: "600",
                 }}
               >
@@ -158,7 +162,7 @@ export default function AboutScreen({ navigation }) {
       <Text
         style={{
           textAlign: "center",
-          color: colors.textMuted,
+          color: tokens.text.muted,
           fontSize: 12,
           paddingBottom: 24,
         }}

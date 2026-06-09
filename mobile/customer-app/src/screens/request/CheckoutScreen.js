@@ -24,7 +24,7 @@ import { appendUploadFile } from '../../lib/uploadFile';
 import { chooseImageSource } from '../../lib/chooseImageSource';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../../services/api';
-import { colors } from '../../theme';
+import { useTheme } from '../../theme';
 import { createRequest } from '../../store/slices/requestSlice';
 import { fetchWallet } from '../../store/slices/walletSlice';
 import { clearCart, selectCart } from '../../store/slices/cartSlice';
@@ -42,6 +42,7 @@ export default function CheckoutScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   // Cart, merchant identity, and pickup metadata all come from Redux now.
   // The previous shape (route.params.cart/merchantId/pickupLat/...) is dead.
   const cartState = useSelector(selectCart);
@@ -320,24 +321,24 @@ export default function CheckoutScreen() {
 
   if (isCreating || confirming) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} accessibilityLabel={t('common.loading')} />
-        <Text style={{ marginTop: 12, color: colors.textMuted }}>{t('request.checkout.placingOrder')}</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: tokens.bg.canvas }}>
+        <ActivityIndicator size="large" color={tokens.brand.default} accessibilityLabel={t('common.loading')} />
+        <Text style={{ marginTop: 12, color: tokens.text.muted }}>{t('request.checkout.placingOrder')}</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+          <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
         </TouchableOpacity>
-        <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: colors.text }}>
+        <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: tokens.text.primary }}>
           {t('request.checkout.title')}
         </Text>
         <View style={{ width: 22 }} />
@@ -345,26 +346,26 @@ export default function CheckoutScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         {/* Cart */}
-        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary, marginBottom: 8 }}>
           {t('request.checkout.summary')}
         </Text>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+        <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 12, marginBottom: 16 }}>
           {cart.map((line) => (
-            <View key={line.lineId} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <View key={line.lineId} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ flex: 1, fontWeight: '500', color: colors.text }}>
+                <Text style={{ flex: 1, fontWeight: '500', color: tokens.text.primary }}>
                   {line.quantity}× {line.name}
                   {line.variantSummary ? ` · ${line.variantSummary}` : ''}
                 </Text>
-                <Text style={{ color: colors.text, fontWeight: '600' }}>{money(line.lineTotal)}</Text>
+                <Text style={{ color: tokens.text.primary, fontWeight: '600' }}>{money(line.lineTotal)}</Text>
               </View>
               {(line.selectedOptions || []).map((g) => (
-                <Text key={g.groupId} style={{ fontSize: 12, color: colors.textMuted }}>
+                <Text key={g.groupId} style={{ fontSize: 12, color: tokens.text.muted }}>
                   {g.groupName}: {g.items.map((i) => i.itemName).join(', ')}
                 </Text>
               ))}
               {line.specialInstructions ? (
-                <Text style={{ fontSize: 12, fontStyle: 'italic', color: colors.textMuted }}>
+                <Text style={{ fontSize: 12, fontStyle: 'italic', color: tokens.text.muted }}>
                   “{line.specialInstructions}”
                 </Text>
               ) : null}
@@ -372,17 +373,17 @@ export default function CheckoutScreen() {
               {(line.substitution || line.requiresPrescription) && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
                   {line.substitution ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3E8FF', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginRight: 6 }}>
-                      <Ionicons name="swap-horizontal" size={11} color="#7C3AED" />
-                      <Text style={{ color: '#7C3AED', fontSize: 11, fontWeight: '700', marginLeft: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.category.groceries.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginRight: 6 }}>
+                      <Ionicons name="swap-horizontal" size={11} color={tokens.category.groceries.icon} />
+                      <Text style={{ color: tokens.category.groceries.icon, fontSize: 11, fontWeight: '700', marginLeft: 4 }}>
                         {substitutionLabel(line.substitution, t)}
                       </Text>
                     </View>
                   ) : null}
                   {line.requiresPrescription ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF3C7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
-                      <Ionicons name="medkit-outline" size={11} color="#B45309" />
-                      <Text style={{ color: '#B45309', fontSize: 11, fontWeight: '700', marginLeft: 4 }}>{t('merchant.rx')}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.status.warningSoft, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
+                      <Ionicons name="medkit-outline" size={11} color={tokens.status.warningStrong} />
+                      <Text style={{ color: tokens.status.warningStrong, fontSize: 11, fontWeight: '700', marginLeft: 4 }}>{t('merchant.rx')}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -396,20 +397,20 @@ export default function CheckoutScreen() {
             at order-create time, so this is UX gating, not authoritative. */}
         {rxRequired && (
           <>
-            <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary, marginBottom: 8 }}>
               {t('request.checkout.rxSectionTitle')}
             </Text>
-            <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+            <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 14, marginBottom: 16 }}>
               {rxUrl ? (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Image
                     source={{ uri: rxUrl }}
-                    style={{ width: 56, height: 56, borderRadius: 8, marginRight: 12, backgroundColor: '#F3F4F6' }}
+                    style={{ width: 56, height: 56, borderRadius: 8, marginRight: 12, backgroundColor: tokens.bg.surfaceMuted }}
                     accessibilityLabel={t('request.checkout.rxAttached')}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '700', color: colors.text }}>{t('request.checkout.rxAttached')}</Text>
-                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                    <Text style={{ fontWeight: '700', color: tokens.text.primary }}>{t('request.checkout.rxAttached')}</Text>
+                    <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
                       {t('request.checkout.rxSectionHint')}
                     </Text>
                   </View>
@@ -421,7 +422,7 @@ export default function CheckoutScreen() {
                     accessibilityLabel={t('request.checkout.rxReplace')}
                     accessibilityState={{ disabled: rxUploading, busy: rxUploading }}
                   >
-                    <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                    <Text style={{ color: tokens.brand.default, fontWeight: '700' }}>
                       {rxUploading ? t('request.checkout.rxUploading') : t('request.checkout.rxReplace')}
                     </Text>
                   </TouchableOpacity>
@@ -433,15 +434,15 @@ export default function CheckoutScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={t('request.checkout.rxUpload')}
                   accessibilityState={{ disabled: rxUploading, busy: rxUploading }}
-                  style={{ alignItems: 'center', paddingVertical: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: '#B45309', borderRadius: 10, backgroundColor: '#FFFBEB' }}
+                  style={{ alignItems: 'center', paddingVertical: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: tokens.status.warningStrong, borderRadius: 10, backgroundColor: tokens.status.warningSoft }}
                 >
                   {rxUploading ? (
-                    <ActivityIndicator color="#B45309" />
+                    <ActivityIndicator color={tokens.status.warningStrong} />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={24} color="#B45309" />
-                      <Text style={{ marginTop: 6, fontWeight: '700', color: '#92400E' }}>{t('request.checkout.rxUpload')}</Text>
-                      <Text style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>
+                      <Ionicons name="cloud-upload-outline" size={24} color={tokens.status.warningStrong} />
+                      <Text style={{ marginTop: 6, fontWeight: '700', color: tokens.status.warningStrong }}>{t('request.checkout.rxUpload')}</Text>
+                      <Text style={{ fontSize: 12, color: tokens.status.warningStrong, marginTop: 2 }}>
                         {t('request.checkout.rxSectionHint')}
                       </Text>
                     </>
@@ -453,52 +454,52 @@ export default function CheckoutScreen() {
         )}
 
         {/* Address */}
-        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary, marginBottom: 8 }}>
           {t('request.checkout.deliverTo')}
         </Text>
         <TouchableOpacity
           onPress={pickAddress}
-          style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}
+          style={{ backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 14, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}
           accessibilityRole="button"
           accessibilityLabel={t('request.checkout.deliverTo')}
           accessibilityHint={selectedAddress?.address || t('request.pickAddress')}
         >
-          <Ionicons name={selectedAddress ? 'location' : 'add-circle-outline'} size={22} color={colors.primary} />
+          <Ionicons name={selectedAddress ? 'location' : 'add-circle-outline'} size={22} color={tokens.brand.default} />
           <View style={{ flex: 1, marginLeft: 12 }}>
             {selectedAddress ? (
               <>
-                <Text style={{ fontWeight: '600', color: colors.text }}>{selectedAddress.label || t('request.addAddress')}</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 12 }} numberOfLines={1}>{selectedAddress.address}</Text>
+                <Text style={{ fontWeight: '600', color: tokens.text.primary }}>{selectedAddress.label || t('request.addAddress')}</Text>
+                <Text style={{ color: tokens.text.muted, fontSize: 12 }} numberOfLines={1}>{selectedAddress.address}</Text>
               </>
             ) : (
-              <Text style={{ color: colors.primaryStrong, fontWeight: '600' }}>{t('request.pickAddress')}</Text>
+              <Text style={{ color: tokens.brand.strong, fontWeight: '600' }}>{t('request.pickAddress')}</Text>
             )}
           </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
         </TouchableOpacity>
 
         {/* Quote breakdown */}
-        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary, marginBottom: 8 }}>
           {t('request.checkout.costBreakdown')}
         </Text>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14 }}>
+        <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 14 }}>
           {!selectedAddress ? (
-            <Text style={{ color: colors.textMuted, textAlign: 'center', paddingVertical: 10 }}>
+            <Text style={{ color: tokens.text.muted, textAlign: 'center', paddingVertical: 10 }}>
               {t('request.checkout.needAddress')}
             </Text>
           ) : quoting || !quote ? (
-            <ActivityIndicator color={colors.primary} accessibilityLabel={t('common.loading')} />
+            <ActivityIndicator color={tokens.brand.default} accessibilityLabel={t('common.loading')} />
           ) : (
             <>
               <Row label={t('request.checkout.subtotal')} value={money(quote.subtotal)} />
               <Row label={t('request.checkout.deliveryFee')} value={money(quote.deliveryFee)} />
               <Row label={t('request.checkout.platformFee')} value={money(quote.platformFee)} />
               {Number(quote.tax) > 0 && <Row label={t('request.checkout.tax')} value={money(quote.tax)} />}
-              <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={{ fontWeight: '700', color: colors.text }}>{t('request.checkout.total')}</Text>
-                <Text style={{ fontWeight: '700', color: colors.primary }}>{money(quote.total)}</Text>
+              <View style={{ borderTopWidth: 1, borderTopColor: tokens.border.default, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ fontWeight: '700', color: tokens.text.primary }}>{t('request.checkout.total')}</Text>
+                <Text style={{ fontWeight: '700', color: tokens.brand.default }}>{money(quote.total)}</Text>
               </View>
-              <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 6 }}>
+              <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: 6 }}>
                 {t('request.checkout.etaLine', { minutes: quote.estimatedMinutes, km: quote.distanceKm })}
               </Text>
               <QuoteCountdown
@@ -512,7 +513,7 @@ export default function CheckoutScreen() {
         </View>
       </ScrollView>
 
-      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border }}>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: tokens.bg.surface, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
         <TouchableOpacity
           onPress={openPin}
           disabled={!quote || !selectedAddress || quoting || quoteExpired || (rxRequired && !rxUrl)}
@@ -520,11 +521,11 @@ export default function CheckoutScreen() {
           accessibilityLabel={t('request.checkout.place')}
           accessibilityState={{ disabled: !quote || !selectedAddress || quoting || quoteExpired || (rxRequired && !rxUrl) }}
           style={{
-            backgroundColor: !quote || !selectedAddress || quoting || quoteExpired || (rxRequired && !rxUrl) ? colors.border : colors.primary,
+            backgroundColor: !quote || !selectedAddress || quoting || quoteExpired || (rxRequired && !rxUrl) ? tokens.border.default : tokens.brand.default,
             paddingVertical: 14, borderRadius: 12, alignItems: 'center',
           }}
         >
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+          <Text style={{ color: tokens.text.onBrand, fontWeight: '700', fontSize: 16 }}>
             {quoteExpired
               ? t('request.checkout.quoteExpired')
               : rxRequired && !rxUrl
@@ -552,9 +553,10 @@ export default function CheckoutScreen() {
 
 const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const seconds = Math.ceil(msUntilExpiry / 1000);
   const warn = msUntilExpiry > 0 && msUntilExpiry <= QUOTE_WARN_MS;
-  const color = expired ? colors.error : warn ? '#EA580C' : colors.textMuted;
+  const color = expired ? tokens.status.error : warn ? tokens.brand.default : tokens.text.muted;
   const label = expired
     ? t('request.checkout.quoteExpired')
     : msUntilExpiry > 60_000
@@ -572,7 +574,7 @@ const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
         accessibilityLabel={t('request.checkout.refresh')}
         accessibilityState={{ disabled: refreshing, busy: refreshing }}
       >
-        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryStrong }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: tokens.brand.strong }}>
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </Text>
       </TouchableOpacity>
@@ -580,9 +582,12 @@ const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
   );
 };
 
-const Row = ({ label, value }) => (
-  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-    <Text style={{ color: colors.textMuted }}>{label}</Text>
-    <Text style={{ color: colors.text }}>{value}</Text>
-  </View>
-);
+const Row = ({ label, value }) => {
+  const { tokens } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+      <Text style={{ color: tokens.text.muted }}>{label}</Text>
+      <Text style={{ color: tokens.text.primary }}>{value}</Text>
+    </View>
+  );
+};

@@ -19,10 +19,11 @@ import FormInput from "../../components/FormInput";
 import AuthErrorBanner from "../../components/AuthErrorBanner";
 import AuthBrandMark from "../../components/AuthBrandMark";
 import { requestPasswordReset, clearError } from "../../store/slices/authSlice";
-import { colors, light } from "../../theme";
+import { useTheme } from "../../theme";
 
 export default function ForgotPasswordScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens } = useTheme();
   const { t } = useTranslation();
   const { isLoading } = useSelector((state) => state.auth);
 
@@ -67,9 +68,9 @@ export default function ForgotPasswordScreen({ navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: light.bg.canvas }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
     >
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -87,7 +88,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}
             >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
+              <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
             </TouchableOpacity>
             <AuthBrandMark style={{ marginBottom: 0, marginLeft: 16 }} />
           </View>
@@ -98,7 +99,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               style={{
                 fontSize: 38,
                 fontWeight: "900",
-                color: colors.text,
+                color: tokens.text.primary,
                 letterSpacing: -1.5,
                 marginBottom: 8,
                 lineHeight: 44,
@@ -106,7 +107,7 @@ export default function ForgotPasswordScreen({ navigation }) {
             >
               {t("auth.forgotTitle")}
             </Text>
-            <Text style={{ fontSize: 15, color: colors.textMuted }}>
+            <Text style={{ fontSize: 15, color: tokens.text.muted }}>
               {t("auth.forgotSubtitle")}
             </Text>
           </View>
@@ -141,7 +142,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               borderRadius: 16,
               alignItems: "center",
               marginTop: 4,
-              backgroundColor: isLoading ? "#EA580CB3" : colors.primary,
+              backgroundColor: isLoading ? "#EA580CB3" : tokens.brand.default,
             }}
             onPress={handleSubmit(onSubmit)}
             disabled={isLoading}
@@ -151,9 +152,9 @@ export default function ForgotPasswordScreen({ navigation }) {
             accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={tokens.text.onBrand} />
             ) : (
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+              <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "800" }}>
                 {t("auth.forgotCta")}
               </Text>
             )}
@@ -166,7 +167,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               marginTop: 20,
             }}
           >
-            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
+            <Text style={{ color: tokens.text.muted, fontSize: 14 }}>
               {t("auth.rememberPassword")}{" "}
             </Text>
             <TouchableOpacity
@@ -175,7 +176,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               accessibilityLabel={t("auth.signIn")}
             >
               <Text
-                style={{ color: colors.primary, fontSize: 14, fontWeight: "700" }}
+                style={{ color: tokens.brand.default, fontSize: 14, fontWeight: "700" }}
               >
                 {t("auth.signIn")}
               </Text>

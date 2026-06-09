@@ -139,7 +139,7 @@ export default function PickupCard({
         {earning != null ? (
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 11, color: tokens.text.muted }}>{t("trip.stat.youEarn", "You earn")}</Text>
-            <Text style={{ fontSize: 14, fontWeight: "700", color: "#059669" }}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.status.successStrong }}>
               {money(earning)}
             </Text>
           </View>

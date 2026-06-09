@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
@@ -33,6 +33,7 @@ const INITIAL_SETTINGS = {
 export default function NotificationSettingsScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { notificationPreferences, isLoading, isUpdating, error } = useSelector(
     (state) => state.profile
   );
@@ -138,34 +139,34 @@ export default function NotificationSettingsScreen({ navigation }) {
           style={{
             width: 38,
             height: 38,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             borderRadius: 11,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name={icon} size={19} color={colors.text} />
+          <Ionicons name={icon} size={19} color={tokens.text.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text
             style={{
               fontSize: 15,
               fontWeight: "600",
-              color: colors.text,
+              color: tokens.text.primary,
               marginBottom: 1,
             }}
           >
             {label}
           </Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted }}>{sub}</Text>
+          <Text style={{ fontSize: 12, color: tokens.text.muted }}>{sub}</Text>
         </View>
         <Switch
           value={settings[key]}
           onValueChange={() => !disabled && toggle(key)}
           disabled={disabled}
-          trackColor={{ false: colors.border, true: "#FDBA74" }}
-          thumbColor={settings[key] ? colors.primary : "#f4f3f4"}
+          trackColor={{ false: tokens.border.default, true: tokens.brand.strong }}
+          thumbColor={settings[key] ? tokens.brand.default : tokens.bg.surface}
         />
       </View>
     );
@@ -177,7 +178,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         style={{
           fontSize: 13,
           fontWeight: "700",
-          color: colors.textMuted,
+          color: tokens.text.muted,
           letterSpacing: 1,
           textTransform: "uppercase",
           marginBottom: 10,
@@ -188,10 +189,10 @@ export default function NotificationSettingsScreen({ navigation }) {
       </Text>
       <View
         style={{
-          backgroundColor: colors.surface,
+          backgroundColor: tokens.bg.surface,
           borderRadius: 18,
           borderWidth: 1.5,
-          borderColor: colors.border,
+          borderColor: tokens.border.default,
           overflow: "hidden",
         }}
       >
@@ -202,11 +203,14 @@ export default function NotificationSettingsScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -227,20 +231,20 @@ export default function NotificationSettingsScreen({ navigation }) {
               width: 40,
               height: 40,
               borderRadius: 12,
-              backgroundColor: colors.surfaceMuted,
+              backgroundColor: tokens.bg.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
               marginRight: 14,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
           </TouchableOpacity>
           <Text
             accessibilityRole="header"
             style={{
               fontSize: 20,
               fontWeight: "900",
-              color: colors.text,
+              color: tokens.text.primary,
               letterSpacing: -0.5,
             }}
           >
@@ -248,7 +252,7 @@ export default function NotificationSettingsScreen({ navigation }) {
           </Text>
         </View>
         {isUpdating ? (
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={tokens.brand.default} />
         ) : (
           <TouchableOpacity
             onPress={() => handleSave()}
@@ -257,14 +261,16 @@ export default function NotificationSettingsScreen({ navigation }) {
               paddingHorizontal: 16,
               paddingVertical: 8,
               borderRadius: 8,
-              backgroundColor: hasUnsavedChanges ? colors.primary : colors.border,
+              backgroundColor: hasUnsavedChanges
+                ? tokens.brand.default
+                : tokens.border.default,
             }}
           >
             <Text
               style={{
                 fontSize: 14,
                 fontWeight: "600",
-                color: hasUnsavedChanges ? "#fff" : colors.textMuted,
+                color: hasUnsavedChanges ? tokens.text.onBrand : tokens.text.muted,
               }}
             >
               Save
@@ -275,7 +281,7 @@ export default function NotificationSettingsScreen({ navigation }) {
 
       {isLoading && (
         <View style={{ paddingVertical: 20, alignItems: "center" }}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={tokens.brand.default} />
         </View>
       )}
 
@@ -294,7 +300,7 @@ export default function NotificationSettingsScreen({ navigation }) {
             key="separator-1"
             style={{
               height: 1,
-              backgroundColor: colors.border,
+              backgroundColor: tokens.border.default,
               marginHorizontal: 16,
             }}
           />,
@@ -309,7 +315,7 @@ export default function NotificationSettingsScreen({ navigation }) {
             key="separator-2"
             style={{
               height: 1,
-              backgroundColor: colors.border,
+              backgroundColor: tokens.border.default,
               marginHorizontal: 16,
             }}
           />,
@@ -324,7 +330,7 @@ export default function NotificationSettingsScreen({ navigation }) {
             key="separator-3"
             style={{
               height: 1,
-              backgroundColor: colors.border,
+              backgroundColor: tokens.border.default,
               marginHorizontal: 16,
             }}
           />,
@@ -348,7 +354,7 @@ export default function NotificationSettingsScreen({ navigation }) {
             key="separator-4"
             style={{
               height: 1,
-              backgroundColor: colors.border,
+              backgroundColor: tokens.border.default,
               marginHorizontal: 16,
             }}
           />,
@@ -373,7 +379,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         <Text
           style={{
             fontSize: 12,
-            color: colors.textMuted,
+            color: tokens.text.muted,
             textAlign: "center",
             marginTop: 20,
             marginHorizontal: 20,

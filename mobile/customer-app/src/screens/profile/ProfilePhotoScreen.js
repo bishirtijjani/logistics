@@ -18,11 +18,12 @@ import { chooseImageSource } from "../../lib/chooseImageSource";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { updateProfilePicture, getUploadSignature } from "../../store/slices/profileSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import api from "../../services/api";
 
 export default function ProfilePhotoScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens, isDark } = useTheme();
   const { t } = useTranslation();
   const { profile } = useSelector((state) => state.profile);
   const [localUri, setLocalUri] = useState(null);
@@ -175,11 +176,14 @@ export default function ProfilePhotoScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -198,20 +202,20 @@ export default function ProfilePhotoScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -238,7 +242,7 @@ export default function ProfilePhotoScreen({ navigation }) {
                   height: 180,
                   borderRadius: 90,
                   borderWidth: 4,
-                  borderColor: colors.primary,
+                  borderColor: tokens.brand.default,
                 }}
               />
               <View
@@ -249,14 +253,14 @@ export default function ProfilePhotoScreen({ navigation }) {
                   width: 44,
                   height: 44,
                   borderRadius: 22,
-                  backgroundColor: colors.primary,
+                  backgroundColor: tokens.brand.default,
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: 3,
-                  borderColor: colors.background,
+                  borderColor: tokens.bg.canvas,
                 }}
               >
-                <Ionicons name="camera" size={20} color={colors.white} />
+                <Ionicons name="camera" size={20} color={tokens.text.onBrand} />
               </View>
             </View>
           ) : (
@@ -266,16 +270,16 @@ export default function ProfilePhotoScreen({ navigation }) {
                   width: 180,
                   height: 180,
                   borderRadius: 90,
-                  backgroundColor: colors.dark,
+                  backgroundColor: tokens.bg.elevated,
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: 4,
-                  borderColor: colors.border,
+                  borderColor: tokens.border.default,
                 }}
               >
                 <Text
                   style={{
-                    color: colors.white,
+                    color: tokens.text.onElevated,
                     fontSize: 56,
                     fontWeight: "900",
                   }}
@@ -291,14 +295,14 @@ export default function ProfilePhotoScreen({ navigation }) {
                   width: 44,
                   height: 44,
                   borderRadius: 22,
-                  backgroundColor: colors.primary,
+                  backgroundColor: tokens.brand.default,
                   alignItems: "center",
                   justifyContent: "center",
                   borderWidth: 3,
-                  borderColor: colors.background,
+                  borderColor: tokens.bg.canvas,
                 }}
               >
-                <Ionicons name="camera" size={20} color={colors.white} />
+                <Ionicons name="camera" size={20} color={tokens.text.onBrand} />
               </View>
             </View>
           )}
@@ -307,7 +311,7 @@ export default function ProfilePhotoScreen({ navigation }) {
         <Text
           style={{
             fontSize: 14,
-            color: colors.textMuted,
+            color: tokens.text.muted,
             marginTop: 20,
             textAlign: "center",
           }}
@@ -324,7 +328,9 @@ export default function ProfilePhotoScreen({ navigation }) {
               borderRadius: 16,
               alignItems: "center",
               backgroundColor:
-                !localUri || uploading ? "#9CA3AF" : colors.primary,
+                !localUri || uploading
+                  ? tokens.text.placeholder
+                  : tokens.brand.default,
             }}
             onPress={handleSave}
             disabled={!localUri || uploading}
@@ -334,9 +340,15 @@ export default function ProfilePhotoScreen({ navigation }) {
             accessibilityState={{ disabled: !localUri || uploading, busy: uploading }}
           >
             {uploading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={tokens.text.onBrand} />
             ) : (
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+              <Text
+                style={{
+                  color: tokens.text.onBrand,
+                  fontSize: 15,
+                  fontWeight: "800",
+                }}
+              >
                 {t("photo.savePhoto")}
               </Text>
             )}
@@ -351,15 +363,15 @@ export default function ProfilePhotoScreen({ navigation }) {
                 borderRadius: 16,
                 alignItems: "center",
                 marginTop: 10,
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: tokens.bg.surfaceMuted,
                 borderWidth: 1.5,
-                borderColor: colors.border,
+                borderColor: tokens.border.default,
               }}
               activeOpacity={0.8}
             >
               <Text
                 style={{
-                  color: colors.text,
+                  color: tokens.text.primary,
                   fontSize: 15,
                   fontWeight: "700",
                 }}

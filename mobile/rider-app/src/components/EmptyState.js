@@ -10,10 +10,10 @@
  * that frequently get conflated.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 const EmptyState = ({
   icon = 'archive-outline',
@@ -27,31 +27,35 @@ const EmptyState = ({
   // Optional accessibility role override; default is "summary" so a screen
   // reader announces the whole block as one piece of content.
   accessibilityLabel,
-}) => (
-  <View
-    style={[styles.wrap, fill && { flex: 1 }]}
-    accessible
-    accessibilityLabel={accessibilityLabel || `${title}. ${subtitle || ''}`.trim()}
-  >
-    <View style={styles.iconWrap}>
-      <Ionicons name={icon} size={28} color={colors.textMuted} />
+}) => {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
+  return (
+    <View
+      style={[styles.wrap, fill && { flex: 1 }]}
+      accessible
+      accessibilityLabel={accessibilityLabel || `${title}. ${subtitle || ''}`.trim()}
+    >
+      <View style={styles.iconWrap}>
+        <Ionicons name={icon} size={28} color={tokens.text.muted} />
+      </View>
+      <Text style={styles.title}>{title}</Text>
+      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {ctaLabel && onCta ? (
+        <TouchableOpacity
+          onPress={onCta}
+          style={styles.cta}
+          accessibilityRole="button"
+          accessibilityLabel={ctaLabel}
+        >
+          <Text style={styles.ctaText}>{ctaLabel}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
-    <Text style={styles.title}>{title}</Text>
-    {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-    {ctaLabel && onCta ? (
-      <TouchableOpacity
-        onPress={onCta}
-        style={styles.cta}
-        accessibilityRole="button"
-        accessibilityLabel={ctaLabel}
-      >
-        <Text style={styles.ctaText}>{ctaLabel}</Text>
-      </TouchableOpacity>
-    ) : null}
-  </View>
-);
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (tokens) => StyleSheet.create({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -62,7 +66,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: tokens.bg.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -70,13 +74,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: tokens.text.primary,
     textAlign: 'center',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: tokens.text.muted,
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -85,10 +89,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: colors.primary,
+    backgroundColor: tokens.brand.default,
   },
   ctaText: {
-    color: '#fff',
+    color: tokens.text.onBrand,
     fontWeight: '700',
     fontSize: 13,
   },

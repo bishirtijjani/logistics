@@ -241,7 +241,7 @@ export default function BeneficiariesScreen() {
                   backgroundColor: tokens.status.error, alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>
+                <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 14 }}>
                   {t("beneficiaries.remove", "Remove")}
                 </Text>
               </TouchableOpacity>

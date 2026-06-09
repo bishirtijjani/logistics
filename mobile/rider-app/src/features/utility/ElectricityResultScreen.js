@@ -106,14 +106,14 @@ export default function ElectricityResultScreen({ route, navigation }) {
         <View
           accessibilityLiveRegion="polite"
           style={{
-            backgroundColor: isDone ? "#ECFDF5" : isFailed ? tokens.status.errorSoft : tokens.brand.soft,
+            backgroundColor: isDone ? tokens.status.successSoft : isFailed ? tokens.status.errorSoft : tokens.brand.soft,
             borderRadius: 16, padding: 20, alignItems: "center", marginBottom: 20,
-            borderWidth: 2, borderColor: isDone ? "#10B981" : isFailed ? tokens.status.error : tokens.brand.softBorder,
+            borderWidth: 2, borderColor: isDone ? tokens.status.success : isFailed ? tokens.status.error : tokens.brand.softBorder,
           }}
         >
           {isPolling ? <ActivityIndicator size="large" color={tokens.brand.default} accessibilityLabel={t("common.loading")} /> : (
             <Ionicons name={isDone ? "checkmark-circle" : "alert-circle"} size={56}
-              color={isDone ? "#10B981" : tokens.status.error} />
+              color={isDone ? tokens.status.success : tokens.status.error} />
           )}
           <Text style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginTop: 12 }}>
             {isDone ? t("utility.result.successTitle") : isFailed ? t("utility.result.failedTitle") : t("utility.result.processingTitle")}
@@ -134,14 +134,14 @@ export default function ElectricityResultScreen({ route, navigation }) {
 
         {/* Token block - only when delivered */}
         {token ? (
-          <View style={{ backgroundColor: "#0F172A", borderRadius: 20, padding: 20, marginBottom: 16 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.5, marginBottom: 8 }}>
+          <View style={{ backgroundColor: tokens.bg.elevated, borderRadius: 20, padding: 20, marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.onElevated, letterSpacing: 1.5, marginBottom: 8 }}>
               {t("utility.result.tokenLabel")}
             </Text>
             <Text
               selectable
               accessibilityLabel={`${t("utility.result.tokenLabel")} ${token}`}
-              style={{ fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 2, marginBottom: 16 }}
+              style={{ fontSize: 24, fontWeight: "800", color: tokens.text.onElevated, letterSpacing: 2, marginBottom: 16 }}
             >
               {token}
             </Text>
@@ -150,22 +150,22 @@ export default function ElectricityResultScreen({ route, navigation }) {
                 onPress={copyToken}
                 accessibilityRole="button"
                 accessibilityLabel={t("utility.result.copy")}
-                style={{ flex: 1, backgroundColor: "#1E293B", borderRadius: 12, paddingVertical: 12, alignItems: "center", marginRight: 8, flexDirection: "row", justifyContent: "center" }}
+                style={{ flex: 1, backgroundColor: tokens.bg.elevated, borderRadius: 12, paddingVertical: 12, alignItems: "center", marginRight: 8, flexDirection: "row", justifyContent: "center" }}
               >
-                <Ionicons name="copy-outline" size={18} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>{t("utility.result.copy")}</Text>
+                <Ionicons name="copy-outline" size={18} color={tokens.text.onElevated} />
+                <Text style={{ color: tokens.text.onElevated, fontWeight: "700", marginLeft: 6 }}>{t("utility.result.copy")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={shareToken}
                 accessibilityRole="button"
                 accessibilityLabel={t("utility.result.share")}
-                style={{ flex: 1, backgroundColor: "#1E293B", borderRadius: 12, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
+                style={{ flex: 1, backgroundColor: tokens.bg.elevated, borderRadius: 12, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
               >
-                <Ionicons name="share-outline" size={18} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>{t("utility.result.share")}</Text>
+                <Ionicons name="share-outline" size={18} color={tokens.text.onElevated} />
+                <Text style={{ color: tokens.text.onElevated, fontWeight: "700", marginLeft: 6 }}>{t("utility.result.share")}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ fontSize: 11, color: "#94A3B8", marginTop: 12, textAlign: "center" }}>
+            <Text style={{ fontSize: 11, color: tokens.text.onElevated, marginTop: 12, textAlign: "center" }}>
               {t("utility.result.tokenSmsHint")}
             </Text>
           </View>
@@ -186,7 +186,7 @@ export default function ElectricityResultScreen({ route, navigation }) {
             accessibilityLabel={t("utility.result.done")}
             style={{ flex: 1, backgroundColor: tokens.brand.default, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>{t("utility.result.done")}</Text>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "700" }}>{t("utility.result.done")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

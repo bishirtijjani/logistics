@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSelector, useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { fetchWallet, fetchTransactions } from "../../store/slices/walletSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import EmptyState from "../../components/EmptyState";
 import SkeletonLoader from "../../components/SkeletonLoader";
 
@@ -36,6 +36,7 @@ const TX_ICON = {
 
 export default function WalletScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens, isDark } = useTheme();
   const { t, i18n } = useTranslation();
   const { balance, accountNumber, bankName, accountName, transactions, isLoading } =
     useSelector((state) => state.wallet);
@@ -78,9 +79,9 @@ export default function WalletScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -89,8 +90,8 @@ export default function WalletScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+            tintColor={tokens.brand.default}
+            colors={[tokens.brand.default]}
           />
         }
       >
@@ -98,18 +99,18 @@ export default function WalletScreen({ navigation }) {
         <View style={{ paddingHorizontal: 20, paddingTop: 22, paddingBottom: 8 }}>
           <Text
             accessibilityRole="header"
-            style={{ fontSize: 28, fontWeight: "900", color: colors.text, letterSpacing: -1, marginBottom: 18 }}
+            style={{ fontSize: 28, fontWeight: "900", color: tokens.text.primary, letterSpacing: -1, marginBottom: 18 }}
           >
             {t("wallet.title")}
           </Text>
 
           {/* Balance Card */}
-          <View style={{ backgroundColor: colors.dark, borderRadius: 22, padding: 24, overflow: "hidden" }}>
-            <View style={{ position: "absolute", top: 0, right: 36, width: 4, height: "100%", backgroundColor: colors.primary }} />
+          <View style={{ backgroundColor: tokens.bg.elevated, borderRadius: 22, padding: 24, overflow: "hidden" }}>
+            <View style={{ position: "absolute", top: 0, right: 36, width: 4, height: "100%", backgroundColor: tokens.brand.default }} />
             <View style={{ position: "absolute", top: -40, left: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: "#ffffff05" }} />
 
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 1.6, textTransform: "uppercase" }}>
+              <Text style={{ color: tokens.text.muted, fontSize: 11, fontWeight: "700", letterSpacing: 1.6, textTransform: "uppercase" }}>
                 {t("wallet.balance")}
               </Text>
               <TouchableOpacity
@@ -118,7 +119,7 @@ export default function WalletScreen({ navigation }) {
                 accessibilityLabel={t("a11y.toggleBalance")}
                 accessibilityState={{ selected: !showBalance }}
               >
-                <Ionicons name={showBalance ? "eye-off-outline" : "eye-outline"} size={20} color={colors.textMuted} />
+                <Ionicons name={showBalance ? "eye-off-outline" : "eye-outline"} size={20} color={tokens.text.muted} />
               </TouchableOpacity>
             </View>
 
@@ -129,7 +130,7 @@ export default function WalletScreen({ navigation }) {
             ) : (
               <Text
                 accessibilityLabel={`${t("wallet.balance")} ${showBalance ? formatNaira(balance) : ""}`.trim()}
-                style={{ color: colors.white, fontSize: 40, fontWeight: "900", letterSpacing: -2, marginBottom: 24 }}
+                style={{ color: tokens.text.onElevated, fontSize: 40, fontWeight: "900", letterSpacing: -2, marginBottom: 24 }}
               >
                 {showBalance ? formatNaira(balance) : "₦ ••••"}
               </Text>
@@ -138,11 +139,11 @@ export default function WalletScreen({ navigation }) {
             {/* Virtual Account */}
             {accountNumber && (
               <View style={{ backgroundColor: "#ffffff10", borderRadius: 10, padding: 10, marginBottom: 16 }}>
-                <Text style={{ color: colors.textMuted, fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 2 }}>
+                <Text style={{ color: tokens.text.muted, fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 2 }}>
                   {t("wallet.fundViaTransfer")}
                 </Text>
-                <Text style={{ color: colors.white, fontSize: 16, fontWeight: "800", letterSpacing: 1 }}>{accountNumber}</Text>
-                <Text style={{ color: colors.textMuted, fontSize: 12 }}>{bankName} · {accountName}</Text>
+                <Text style={{ color: tokens.text.onElevated, fontSize: 16, fontWeight: "800", letterSpacing: 1 }}>{accountNumber}</Text>
+                <Text style={{ color: tokens.text.muted, fontSize: 12 }}>{bankName} · {accountName}</Text>
               </View>
             )}
 
@@ -152,20 +153,20 @@ export default function WalletScreen({ navigation }) {
                 onPress={() => navigation.navigate("FundWallet")}
                 accessibilityRole="button"
                 accessibilityLabel={t("wallet.fund")}
-                style={{ flex: 1, height: 44, backgroundColor: colors.primary, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
+                style={{ flex: 1, height: 44, backgroundColor: tokens.brand.default, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
               >
-                <Ionicons name="add" size={18} color={colors.white} />
-                <Text numberOfLines={1} style={{ color: colors.white, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.fund")}</Text>
+                <Ionicons name="add" size={18} color={tokens.text.onBrand} />
+                <Text numberOfLines={1} style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.fund")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => navigation.navigate("SendMoney")}
                 accessibilityRole="button"
                 accessibilityLabel={t("wallet.send")}
-                style={{ flex: 1, height: 44, backgroundColor: colors.surface, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
+                style={{ flex: 1, height: 44, backgroundColor: tokens.bg.surface, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center" }}
               >
-                <Ionicons name="send" size={18} color={colors.text} />
-                <Text numberOfLines={1} style={{ color: colors.text, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.send")}</Text>
+                <Ionicons name="send" size={18} color={tokens.text.primary} />
+                <Text numberOfLines={1} style={{ color: tokens.text.primary, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.send")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -174,8 +175,8 @@ export default function WalletScreen({ navigation }) {
                 accessibilityLabel={t("wallet.withdraw")}
                 style={{ flex: 1, height: 44, backgroundColor: "#ffffff12", borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#ffffff10" }}
               >
-                <Ionicons name="arrow-down" size={18} color={colors.white} />
-                <Text numberOfLines={1} style={{ color: colors.white, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.withdraw")}</Text>
+                <Ionicons name="arrow-down" size={18} color={tokens.text.onElevated} />
+                <Text numberOfLines={1} style={{ color: tokens.text.onElevated, fontWeight: "800", fontSize: 14, marginLeft: 6 }}>{t("wallet.withdraw")}</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -193,7 +194,7 @@ export default function WalletScreen({ navigation }) {
         {/* Transactions */}
         <View style={{ paddingHorizontal: 20, marginTop: 28 }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <Text accessibilityRole="header" style={{ fontSize: 19, fontWeight: "900", color: colors.text, letterSpacing: -0.5 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 19, fontWeight: "900", color: tokens.text.primary, letterSpacing: -0.5 }}>
               {t("wallet.recentTransactions")}
             </Text>
             {transactions.length > 0 && (
@@ -202,7 +203,7 @@ export default function WalletScreen({ navigation }) {
                 accessibilityRole="link"
                 accessibilityLabel={t("wallet.seeAll")}
               >
-                <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>{t("wallet.seeAll")}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.brand.default }}>{t("wallet.seeAll")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -223,7 +224,7 @@ export default function WalletScreen({ navigation }) {
           ) : (
             recent.map((tx) => {
               const isCredit = CREDIT_TYPES.includes(tx.type);
-              const meta = TX_ICON[tx.type] || { icon: "swap-horizontal", color: colors.textMuted };
+              const meta = TX_ICON[tx.type] || { icon: "swap-horizontal", color: tokens.text.muted };
               const title = txTitle(tx);
               const amountText = `${isCredit ? "+" : "-"}${formatNaira(tx.amount)}`;
               return (
@@ -231,18 +232,18 @@ export default function WalletScreen({ navigation }) {
                   key={tx.id}
                   accessible
                   accessibilityLabel={`${title}. ${amountText}. ${formatDate(tx.createdAt)}`}
-                  style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 10 }}
+                  style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 14, marginBottom: 10 }}
                 >
                   <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: meta.color + "15", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
                     <Ionicons name={meta.icon} size={22} color={meta.color} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }} numberOfLines={1}>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }} numberOfLines={1}>
                       {title}
                     </Text>
-                    <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>{formatDate(tx.createdAt)}</Text>
+                    <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: 2 }}>{formatDate(tx.createdAt)}</Text>
                   </View>
-                  <Text style={{ fontSize: 15, fontWeight: "800", color: isCredit ? "#16A34A" : colors.text }}>
+                  <Text style={{ fontSize: 15, fontWeight: "800", color: isCredit ? tokens.status.success : tokens.text.primary }}>
                     {amountText}
                   </Text>
                 </View>

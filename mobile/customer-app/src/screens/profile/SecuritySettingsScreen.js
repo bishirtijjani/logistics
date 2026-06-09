@@ -22,11 +22,12 @@ import {
   setBiometricEnabled as persistBiometricEnabled,
   authenticateWithBiometric,
 } from "../../services/biometric";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 export default function SecuritySettingsScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { isLoading } = useSelector((state) => state.profile);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -194,14 +195,14 @@ export default function SecuritySettingsScreen({ navigation }) {
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: index < total - 1 ? 1 : 0,
-        borderBottomColor: colors.border,
+        borderBottomColor: tokens.border.default,
       }}
     >
       <View
         style={{
           width: 38,
           height: 38,
-          backgroundColor: item.danger ? "#FEE2E2" : colors.surfaceMuted,
+          backgroundColor: item.danger ? tokens.status.errorSoft : tokens.bg.surfaceMuted,
           borderRadius: 11,
           alignItems: "center",
           justifyContent: "center",
@@ -211,7 +212,7 @@ export default function SecuritySettingsScreen({ navigation }) {
         <Ionicons
           name={item.icon}
           size={19}
-          color={item.danger ? colors.error : colors.text}
+          color={item.danger ? tokens.status.error : tokens.text.primary}
         />
       </View>
       <View style={{ flex: 1 }}>
@@ -219,17 +220,17 @@ export default function SecuritySettingsScreen({ navigation }) {
           style={{
             fontSize: 15,
             fontWeight: "600",
-            color: item.danger ? colors.error : colors.text,
+            color: item.danger ? tokens.status.error : tokens.text.primary,
             marginBottom: 1,
           }}
         >
           {item.label}
         </Text>
-        <Text style={{ fontSize: 12, color: colors.textMuted }}>
+        <Text style={{ fontSize: 12, color: tokens.text.muted }}>
           {item.sub}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={17} color={colors.textLight} />
+      <Ionicons name="chevron-forward" size={17} color={tokens.text.placeholder} />
     </TouchableOpacity>
   );
 
@@ -239,7 +240,7 @@ export default function SecuritySettingsScreen({ navigation }) {
         style={{
           fontSize: 13,
           fontWeight: "700",
-          color: colors.textMuted,
+          color: tokens.text.muted,
           letterSpacing: 1,
           textTransform: "uppercase",
           marginBottom: 10,
@@ -250,10 +251,10 @@ export default function SecuritySettingsScreen({ navigation }) {
       </Text>
       <View
         style={{
-          backgroundColor: colors.surface,
+          backgroundColor: tokens.bg.surface,
           borderRadius: 18,
           borderWidth: 1.5,
-          borderColor: colors.border,
+          borderColor: tokens.border.default,
           overflow: "hidden",
         }}
       >
@@ -264,11 +265,14 @@ export default function SecuritySettingsScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -287,20 +291,20 @@ export default function SecuritySettingsScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -321,7 +325,7 @@ export default function SecuritySettingsScreen({ navigation }) {
             style={{
               fontSize: 13,
               fontWeight: "700",
-              color: colors.textMuted,
+              color: tokens.text.muted,
               letterSpacing: 1,
               textTransform: "uppercase",
               marginBottom: 10,
@@ -332,10 +336,10 @@ export default function SecuritySettingsScreen({ navigation }) {
           </Text>
           <View
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: tokens.bg.surface,
               borderRadius: 18,
               borderWidth: 1.5,
-              borderColor: colors.border,
+              borderColor: tokens.border.default,
               flexDirection: "row",
               alignItems: "center",
               paddingHorizontal: 16,
@@ -346,7 +350,7 @@ export default function SecuritySettingsScreen({ navigation }) {
               style={{
                 width: 38,
                 height: 38,
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: tokens.bg.surfaceMuted,
                 borderRadius: 11,
                 alignItems: "center",
                 justifyContent: "center",
@@ -356,7 +360,7 @@ export default function SecuritySettingsScreen({ navigation }) {
               <Ionicons
                 name="finger-print-outline"
                 size={19}
-                color={colors.text}
+                color={tokens.text.primary}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -364,27 +368,27 @@ export default function SecuritySettingsScreen({ navigation }) {
                 style={{
                   fontSize: 15,
                   fontWeight: "600",
-                  color: colors.text,
+                  color: tokens.text.primary,
                   marginBottom: 1,
                 }}
               >
                 Biometric Login
               </Text>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              <Text style={{ fontSize: 12, color: tokens.text.muted }}>
                 {biometricAvailable
                   ? "Use fingerprint or Face ID to sign in"
                   : "No biometrics enrolled on this device"}
               </Text>
             </View>
             {biometricBusy ? (
-              <ActivityIndicator color={colors.primary} />
+              <ActivityIndicator color={tokens.brand.default} />
             ) : (
               <Switch
                 value={biometricEnabled}
                 onValueChange={handleBiometricToggle}
                 disabled={!biometricAvailable}
-                trackColor={{ false: colors.border, true: "#FDBA74" }}
-                thumbColor={biometricEnabled ? colors.primary : "#f4f3f4"}
+                trackColor={{ false: tokens.border.default, true: tokens.brand.strong }}
+                thumbColor={biometricEnabled ? tokens.brand.default : tokens.bg.surface}
               />
             )}
           </View>
@@ -398,7 +402,7 @@ export default function SecuritySettingsScreen({ navigation }) {
             style={{
               fontSize: 13,
               fontWeight: "700",
-              color: colors.error,
+              color: tokens.status.error,
               letterSpacing: 1,
               textTransform: "uppercase",
               marginBottom: 10,
@@ -411,10 +415,10 @@ export default function SecuritySettingsScreen({ navigation }) {
             onPress={handleDeleteAccount}
             activeOpacity={0.6}
             style={{
-              backgroundColor: "#FEE2E2",
+              backgroundColor: tokens.status.errorSoft,
               borderRadius: 16,
               borderWidth: 1.5,
-              borderColor: "#FECACA",
+              borderColor: tokens.status.errorSoftBorder,
               flexDirection: "row",
               alignItems: "center",
               paddingHorizontal: 16,
@@ -425,31 +429,31 @@ export default function SecuritySettingsScreen({ navigation }) {
               style={{
                 width: 38,
                 height: 38,
-                backgroundColor: "#FEE2E2",
+                backgroundColor: tokens.status.errorSoft,
                 borderRadius: 11,
                 alignItems: "center",
                 justifyContent: "center",
                 marginRight: 14,
               }}
             >
-              <Ionicons name="trash-outline" size={19} color={colors.error} />
+              <Ionicons name="trash-outline" size={19} color={tokens.status.error} />
             </View>
             <View style={{ flex: 1 }}>
               <Text
                 style={{
                   fontSize: 15,
                   fontWeight: "600",
-                  color: colors.error,
+                  color: tokens.status.error,
                   marginBottom: 1,
                 }}
               >
                 Delete Account
               </Text>
-              <Text style={{ fontSize: 12, color: "#F87171" }}>
+              <Text style={{ fontSize: 12, color: tokens.status.error }}>
                 Permanently delete your account and data
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={17} color={colors.error} />
+            <Ionicons name="chevron-forward" size={17} color={tokens.status.error} />
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -39,12 +39,12 @@ export default function DropoffCard({
             style={{
               width: 24, height: 24, borderRadius: 12,
               alignItems: "center", justifyContent: "center",
-              backgroundColor: "#D1FAE5",
-              borderWidth: 1, borderColor: "#A7F3D0",
+              backgroundColor: tokens.status.successSoft,
+              borderWidth: 1, borderColor: tokens.status.success,
               marginRight: 8,
             }}
           >
-            <Ionicons name="home-outline" size={14} color="#059669" />
+            <Ionicons name="home-outline" size={14} color={tokens.status.successStrong} />
           </View>
           <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, letterSpacing: 0.5 }}>
             {t("trip.dropoff.label", "DROPOFF")}
@@ -92,7 +92,7 @@ export default function DropoffCard({
         {earning != null ? (
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 11, color: tokens.text.muted }}>{t("trip.stat.youEarn", "You earn")}</Text>
-            <Text style={{ fontSize: 14, fontWeight: "700", color: "#059669" }}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.status.successStrong }}>
               {money(earning)}
             </Text>
           </View>

@@ -14,11 +14,13 @@
  * screen don't each spin up their own RAF loop.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 
 const Shimmer = ({ style }) => {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const opacity = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
@@ -49,6 +51,8 @@ const SkeletonLoader = ({ width = '100%', height = 16, radius = 8, style }) => (
 
 /** A typical row in the Orders list. */
 SkeletonLoader.OrderRow = function OrderRow() {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   return (
     <View style={styles.cardRow}>
       <SkeletonLoader width={44} height={44} radius={22} style={{ marginRight: 12 }} />
@@ -63,6 +67,8 @@ SkeletonLoader.OrderRow = function OrderRow() {
 
 /** A merchant card in the browse grid. */
 SkeletonLoader.MerchantCard = function MerchantCard() {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   return (
     <View style={styles.merchantCard}>
       <SkeletonLoader width="100%" height={120} radius={12} />
@@ -76,6 +82,8 @@ SkeletonLoader.MerchantCard = function MerchantCard() {
 
 /** A line in the wallet history list. */
 SkeletonLoader.TransactionRow = function TransactionRow() {
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   return (
     <View style={styles.cardRow}>
       <SkeletonLoader width={36} height={36} radius={10} style={{ marginRight: 12 }} />
@@ -88,20 +96,20 @@ SkeletonLoader.TransactionRow = function TransactionRow() {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (tokens) => StyleSheet.create({
   base: {
-    backgroundColor: colors.border,
+    backgroundColor: tokens.border.default,
   },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: tokens.bg.surface,
     borderRadius: 14,
     marginBottom: 10,
   },
   merchantCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: tokens.bg.surface,
     borderRadius: 14,
     marginBottom: 12,
     overflow: 'hidden',

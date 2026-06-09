@@ -3,7 +3,7 @@
  * Part of the unified request architecture
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,18 +13,24 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import { colors } from '../../theme';
+import { useTheme } from '../../theme';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import EmptyState from '../../components/EmptyState';
+import SearchModal from '../../components/SearchModal';
 
 const MerchantBrowseScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
+  const [searchVisible, setSearchVisible] = useState(false);
   // route.params is undefined when entered from the "Start an order" CTA on
   // OrdersScreen (no category context); HomeScreen / ShopsScreen do pass them.
   // The screen treats every field as optional, so a missing params bag is fine.
@@ -74,6 +80,40 @@ const MerchantBrowseScreen = () => {
   };
 
   const headerLabel = categoryName || t('merchant.browseFallbackHeader');
+  const searchPlaceholder = categoryName
+    ? t('search.scopedPh', { category: categoryName })
+    : t('search.ph');
+
+  // Floating header: circular back button (left) + category name (top-right) on
+  // one row, with the search bar centered full-width below. Tapping the bar opens
+  // the unified search scoped to THIS category and the user's location.
+  const renderHeader = () => (
+    <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={styles.headerTopRow}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backCircle}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.back')}
+        >
+          <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
+        </TouchableOpacity>
+        <Text accessibilityRole="header" style={styles.categoryLabel} numberOfLines={1}>
+          {headerLabel}
+        </Text>
+      </View>
+      <TouchableOpacity
+        onPress={() => setSearchVisible(true)}
+        activeOpacity={0.8}
+        accessibilityRole="search"
+        accessibilityLabel={searchPlaceholder}
+        style={styles.searchPill}
+      >
+        <Ionicons name="search" size={18} color={tokens.text.muted} />
+        <Text numberOfLines={1} style={styles.searchPillText}>{searchPlaceholder}</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderMerchant = ({ item }) => (
     <TouchableOpacity
@@ -117,98 +157,118 @@ const MerchantBrowseScreen = () => {
         </Text>
         <View style={styles.footerRow}>
           <Text style={styles.type}>{item.category?.name || ''}</Text>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+          <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
         </View>
       </View>
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel={t('a11y.back')}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text accessibilityRole="header" style={styles.headerTitle}>{headerLabel}</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+  return (
+    <View style={styles.container}>
+      {renderHeader()}
+
+      {loading ? (
         <View style={{ padding: 16 }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonLoader.MerchantCard key={i} />
           ))}
         </View>
-      </View>
-    );
-  }
+      ) : (
+        <FlatList
+          data={merchants}
+          renderItem={renderMerchant}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <EmptyState
+              icon="storefront-outline"
+              title={t('merchant.noMerchantsTitle', { category: headerLabel })}
+              subtitle={t('merchant.noMerchantsHint')}
+              fill={false}
+            />
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.default} />
+          }
+        />
+      )}
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel={t('a11y.back')}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text accessibilityRole="header" style={styles.headerTitle}>{headerLabel}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <FlatList
-        data={merchants}
-        renderItem={renderMerchant}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <EmptyState
-            icon="storefront-outline"
-            title={t('merchant.noMerchantsTitle', { category: headerLabel })}
-            subtitle={t('merchant.noMerchantsHint')}
-            fill={false}
-          />
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+      <SearchModal
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+        onNavigate={(name, params) => navigation.navigate(name, params)}
+        categorySlug={categorySlug || null}
+        categoryName={categoryName || null}
       />
     </View>
   );
 };
 
-const styles = {
+const makeStyles = (tokens) => ({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: tokens.bg.canvas,
   },
+  // Floating header sits on the canvas (no solid bar / bottom border); the back
+  // button and search pill are the only elevated surfaces, so they read as
+  // floating chips.
   header: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: tokens.bg.canvas,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  headerSpacer: {
+  backCircle: {
     width: 40,
+    height: 40,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tokens.bg.surface,
+    borderWidth: 1,
+    borderColor: tokens.border.default,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  categoryLabel: {
+    flexShrink: 1,
+    maxWidth: '60%',
+    textAlign: 'right',
+    fontSize: 16,
+    fontWeight: '800',
+    color: tokens.text.primary,
+    letterSpacing: -0.3,
+    marginLeft: 12,
+  },
+  searchPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: tokens.bg.surface,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: tokens.border.default,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  searchPillText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    fontWeight: '500',
+    color: tokens.text.muted,
   },
   loadingContainer: {
     flex: 1,
@@ -219,7 +279,7 @@ const styles = {
     padding: 16,
   },
   merchantCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: tokens.bg.surface,
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
@@ -259,7 +319,7 @@ const styles = {
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.text,
+    color: tokens.text.primary,
     marginBottom: 4,
   },
   ratingRow: {
@@ -269,16 +329,16 @@ const styles = {
   rating: {
     fontSize: 12,
     fontWeight: '500',
-    color: colors.text,
+    color: tokens.text.primary,
     marginLeft: 4,
   },
   orderCount: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: tokens.text.muted,
     marginLeft: 4,
   },
   openBadge: {
-    backgroundColor: '#10B981',
+    backgroundColor: tokens.status.success,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -286,10 +346,10 @@ const styles = {
   openText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#fff',
+    color: tokens.text.onBrand,
   },
   closedBadge: {
-    backgroundColor: '#EF4444',
+    backgroundColor: tokens.status.error,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -297,11 +357,11 @@ const styles = {
   closedText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#fff',
+    color: tokens.text.onBrand,
   },
   address: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: tokens.text.muted,
     marginBottom: 8,
   },
   footerRow: {
@@ -311,7 +371,7 @@ const styles = {
   },
   type: {
     fontSize: 11,
-    color: colors.primary,
+    color: tokens.brand.default,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -324,15 +384,15 @@ const styles = {
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.text,
+    color: tokens.text.primary,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: colors.textMuted,
+    color: tokens.text.muted,
     marginTop: 8,
     textAlign: 'center',
   },
-};
+});
 
 export default MerchantBrowseScreen;

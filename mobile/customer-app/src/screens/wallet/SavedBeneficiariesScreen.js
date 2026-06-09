@@ -15,7 +15,7 @@ import {
   fetchBeneficiaries,
   deleteBeneficiary,
 } from "../../store/slices/walletSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import Toast from "react-native-toast-message";
 import EmptyState from "../../components/EmptyState";
 
@@ -31,6 +31,7 @@ function initials(name) {
 export default function SavedBeneficiariesScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const { beneficiaries, isLoading } = useSelector((s) => s.wallet);
 
   useEffect(() => {
@@ -71,8 +72,8 @@ export default function SavedBeneficiariesScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
@@ -81,15 +82,15 @@ export default function SavedBeneficiariesScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
         </TouchableOpacity>
-        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: tokens.text.primary, marginLeft: 16, letterSpacing: -0.5 }}>
           {t("wallet.savedBeneficiaries")}
         </Text>
       </View>
 
       {isLoading && list.length === 0 ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} accessibilityLabel={t("common.loading")} />
+        <ActivityIndicator color={tokens.brand.default} style={{ marginTop: 40 }} accessibilityLabel={t("common.loading")} />
       ) : list.length === 0 ? (
         <EmptyState
           icon="people-outline"
@@ -104,21 +105,21 @@ export default function SavedBeneficiariesScreen({ navigation }) {
           renderItem={({ item }) => {
             const title = item.accountName || item.name;
             return (
-              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, padding: 14, marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 14, marginBottom: 10 }}>
                 {/* Avatar */}
-                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: colors.primary + "20", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: colors.primary }}>
+                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: tokens.brand.default + "20", alignItems: "center", justifyContent: "center", marginRight: 14 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: tokens.brand.default }}>
                     {initials(title)}
                   </Text>
                 </View>
 
                 {/* Info */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }} numberOfLines={1}>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }} numberOfLines={1}>
                     {title}
                   </Text>
-                  <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{item.accountNumber}</Text>
-                  <Text style={{ fontSize: 11, color: colors.primaryStrong, marginTop: 1 }}>{item.bankName || item.bankCode}</Text>
+                  <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>{item.accountNumber}</Text>
+                  <Text style={{ fontSize: 11, color: tokens.brand.strong, marginTop: 1 }}>{item.bankName || item.bankCode}</Text>
                 </View>
 
                 {/* Actions */}
@@ -127,9 +128,9 @@ export default function SavedBeneficiariesScreen({ navigation }) {
                     onPress={() => handleUse(item)}
                     accessibilityRole="button"
                     accessibilityLabel={t("wallet.beneficiaries.send")}
-                    style={{ backgroundColor: colors.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
+                    style={{ backgroundColor: tokens.brand.default, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 }}
                   >
-                    <Text style={{ color: colors.white, fontWeight: "700", fontSize: 12 }}>
+                    <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 12 }}>
                       {t("wallet.beneficiaries.send")}
                     </Text>
                   </TouchableOpacity>
@@ -139,7 +140,7 @@ export default function SavedBeneficiariesScreen({ navigation }) {
                     accessibilityRole="button"
                     accessibilityLabel={t("wallet.beneficiaries.removeCta")}
                   >
-                    <Ionicons name="trash-outline" size={20} color="#DC2626" />
+                    <Ionicons name="trash-outline" size={20} color={tokens.status.errorStrong} />
                   </TouchableOpacity>
                 </View>
               </View>

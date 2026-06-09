@@ -11,7 +11,7 @@
  * patterns in HomeScreen / RequestTrackingScreen - no extra deps.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 import { SUPPORTED_LOCALES, setLocale } from '../i18n';
 import { InModalToast } from './toastShared';
 
@@ -34,6 +34,8 @@ const FLAG_FOR = {
 
 const LocaleSheet = ({ visible, onClose }) => {
   const { t, i18n } = useTranslation();
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const current = i18n.language;
 
   const onPick = async (code) => {
@@ -80,7 +82,7 @@ const LocaleSheet = ({ visible, onClose }) => {
                 </View>
                 <Text style={styles.rowLabel}>{t(`locale.${code}`)}</Text>
                 {isPicked ? (
-                  <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                  <Ionicons name="checkmark-circle" size={22} color={tokens.brand.default} />
                 ) : (
                   <View style={styles.radioEmpty} />
                 )}
@@ -103,14 +105,14 @@ const LocaleSheet = ({ visible, onClose }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (tokens) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
+    backgroundColor: tokens.bg.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 22,
@@ -120,7 +122,7 @@ const styles = StyleSheet.create({
   grabber: {
     width: 44,
     height: 5,
-    backgroundColor: colors.border,
+    backgroundColor: tokens.border.default,
     borderRadius: 3,
     alignSelf: 'center',
     marginBottom: 18,
@@ -128,12 +130,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 19,
     fontWeight: '900',
-    color: colors.text,
+    color: tokens.text.primary,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: tokens.text.muted,
     marginTop: 4,
     marginBottom: 18,
   },
@@ -144,18 +146,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: tokens.border.default,
     marginBottom: 10,
   },
   rowPicked: {
-    borderColor: colors.primary,
-    backgroundColor: '#FFF7ED',
+    borderColor: tokens.brand.default,
+    backgroundColor: tokens.brand.soft,
   },
   flag: {
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: tokens.bg.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -163,21 +165,21 @@ const styles = StyleSheet.create({
   flagText: {
     fontSize: 12,
     fontWeight: '900',
-    color: colors.text,
+    color: tokens.text.primary,
     letterSpacing: 0.5,
   },
   rowLabel: {
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: tokens.text.primary,
   },
   radioEmpty: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: tokens.border.default,
   },
   dismiss: {
     marginTop: 8,
@@ -187,7 +189,7 @@ const styles = StyleSheet.create({
   dismissText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textMuted,
+    color: tokens.text.muted,
   },
 });
 

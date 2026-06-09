@@ -27,18 +27,25 @@ const TX_FILTERS = [
   { key: "WALLET_FUNDING",       labelKey: "transactions.filterFunding",  fallback: "Funding" },
 ];
 
+// `tone` keys a token path resolved at render so amount/icon colors flip with theme.
 const TYPE_META = {
-  RIDER_EARNING:  { icon: "cash-outline",      color: "#16A34A", sign: "+" },
-  WITHDRAWAL:     { icon: "arrow-down",        color: "#DC2626", sign: "-" },
-  REFUND:         { icon: "refresh-outline",   color: "#16A34A", sign: "+" },
-  WALLET_FUNDING: { icon: "arrow-up",          color: "#16A34A", sign: "+" },
-  PAYOUT_FEE:     { icon: "remove-circle-outline", color: "#DC2626", sign: "-" },
-  P2P_TRANSFER_SENT:     { icon: "send-outline",  color: "#DC2626", sign: "-" },
-  P2P_TRANSFER_RECEIVED: { icon: "send",          color: "#16A34A", sign: "+" },
+  RIDER_EARNING:  { icon: "cash-outline",      tone: "credit", sign: "+" },
+  WITHDRAWAL:     { icon: "arrow-down",        tone: "debit",  sign: "-" },
+  REFUND:         { icon: "refresh-outline",   tone: "credit", sign: "+" },
+  WALLET_FUNDING: { icon: "arrow-up",          tone: "credit", sign: "+" },
+  PAYOUT_FEE:     { icon: "remove-circle-outline", tone: "debit", sign: "-" },
+  P2P_TRANSFER_SENT:     { icon: "send-outline",  tone: "debit",  sign: "-" },
+  P2P_TRANSFER_RECEIVED: { icon: "send",          tone: "credit", sign: "+" },
 };
 
 function metaFor(type) {
-  return TYPE_META[type] || { icon: "ellipsis-horizontal", color: "#6B7280", sign: "" };
+  return TYPE_META[type] || { icon: "ellipsis-horizontal", tone: "neutral", sign: "" };
+}
+
+function toneColor(tone, tokens) {
+  if (tone === "credit") return tokens.status.success;
+  if (tone === "debit") return tokens.status.errorStrong;
+  return tokens.text.muted;
 }
 
 function relativeTime(iso) {
@@ -112,6 +119,7 @@ export default function TransactionsScreen() {
 
   const renderRow = ({ item }) => {
     const meta = metaFor(item.type);
+    const metaColor = toneColor(meta.tone, tokens);
     return (
       <TouchableOpacity
         onPress={() => navigation.navigate("TransactionDetail", { transactionId: item.id, fallback: item })}
@@ -135,7 +143,7 @@ export default function TransactionsScreen() {
             marginRight: 12,
           }}
         >
-          <Ionicons name={meta.icon} size={16} color={meta.color} />
+          <Ionicons name={meta.icon} size={16} color={metaColor} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }} numberOfLines={1}>
@@ -148,7 +156,7 @@ export default function TransactionsScreen() {
         </View>
         <Text
           style={{
-            fontSize: 15, fontWeight: "800", color: meta.color,
+            fontSize: 15, fontWeight: "800", color: metaColor,
             letterSpacing: -0.3,
           }}
         >

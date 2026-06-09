@@ -47,12 +47,12 @@ export default function MainTabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: "#EA580C",
-        tabBarInactiveTintColor: "#6b7280",
+        tabBarActiveTintColor: tokens.brand.default,
+        tabBarInactiveTintColor: tokens.text.muted,
         tabBarStyle: {
-          backgroundColor: "#ffffff",
+          backgroundColor: tokens.bg.surface,
           borderTopWidth: 1,
-          borderTopColor: "#f3f4f6",
+          borderTopColor: tokens.border.default,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 5,
           height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
@@ -62,8 +62,8 @@ export default function MainTabNavigator() {
           fontWeight: "500",
         },
         tabBarBadgeStyle: {
-          backgroundColor: "#EA580C",
-          color: "#fff",
+          backgroundColor: tokens.brand.default,
+          color: tokens.text.onBrand,
           fontSize: 10,
           fontWeight: "800",
           minWidth: 18,

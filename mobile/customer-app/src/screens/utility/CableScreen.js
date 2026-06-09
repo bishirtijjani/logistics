@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { usePinGuard } from "../../lib/usePinGuard";
 import { buyCable, fetchPlans, validateIuc, clearValidation } from "../../store/slices/utilitySlice";
@@ -23,6 +23,7 @@ const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
 export default function CableScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens } = useTheme();
   const { t } = useTranslation();
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, isValidating, validationResult } = useSelector((state) => state.utility);
@@ -82,7 +83,7 @@ export default function CableScreen({ navigation }) {
   const customerName = validationResult?.Customer_Name || validationResult?.name || t("utility.verified");
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
@@ -91,9 +92,9 @@ export default function CableScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: tokens.text.primary }}>
             {t("utility.cableScreen.title")}
           </Text>
         </View>
@@ -101,7 +102,7 @@ export default function CableScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}>
         {/* Provider Selection */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.cableScreen.selectProvider")}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 12 }}>{t("utility.cableScreen.selectProvider")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 20 }}>
           {PROVIDERS.map((p) => {
             const selected = selectedProvider.id === p.id;
@@ -114,33 +115,33 @@ export default function CableScreen({ navigation }) {
                 accessibilityLabel={p.name}
                 style={{
                   flex: 1, marginRight: p.id !== PROVIDERS[PROVIDERS.length - 1].id ? 8 : 0,
-                  backgroundColor: selected ? colors.primary : colors.surface,
+                  backgroundColor: selected ? tokens.brand.default : tokens.bg.surface,
                   borderRadius: 12, paddingVertical: 14, alignItems: "center", borderWidth: 2,
-                  borderColor: selected ? colors.primary : colors.border,
+                  borderColor: selected ? tokens.brand.default : tokens.border.default,
                 }}
               >
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: p.color, marginBottom: 6 }} />
-                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.text }}>{p.name}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{p.name}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         {/* Smart Card */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.cableScreen.smartCardLabel")}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.cableScreen.smartCardLabel")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.smartCard ? colors.error : (smartCardValidated ? colors.success || "#22C55E" : colors.border), paddingHorizontal: 16, marginRight: 8 }}>
-            <Ionicons name="tv-outline" size={20} color={colors.textMuted} />
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.smartCard ? tokens.status.error : (smartCardValidated ? tokens.status.success : tokens.border.default), paddingHorizontal: 16, marginRight: 8 }}>
+            <Ionicons name="tv-outline" size={20} color={tokens.text.muted} />
             <TextInput
               value={smartCard}
               onChangeText={(text) => { setSmartCard(text); setSmartCardValidated(false); dispatch(clearValidation()); clearField("smartCard"); }}
               placeholder={t("utility.cableScreen.smartCardPh")}
               accessibilityLabel={t("utility.cableScreen.smartCardLabel")}
-              placeholderTextColor={colors.textLight}
+              placeholderTextColor={tokens.text.placeholder}
               keyboardType="number-pad"
-              style={{ flex: 1, fontSize: 15, fontWeight: "600", color: colors.text, paddingVertical: 16, marginLeft: 12 }}
+              style={{ flex: 1, fontSize: 15, fontWeight: "600", color: tokens.text.primary, paddingVertical: 16, marginLeft: 12 }}
             />
-            {smartCardValidated && <Ionicons name="checkmark-circle" size={20} color="#22C55E" />}
+            {smartCardValidated && <Ionicons name="checkmark-circle" size={20} color={tokens.status.success} />}
           </View>
           <TouchableOpacity
             onPress={handleValidateIuc}
@@ -148,27 +149,27 @@ export default function CableScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("utility.cableScreen.verify")}
             accessibilityState={{ disabled: isValidating, busy: isValidating }}
-            style={{ backgroundColor: colors.primary, borderRadius: 16, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}
+            style={{ backgroundColor: tokens.brand.default, borderRadius: 16, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}
           >
-            {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{t("utility.cableScreen.verify")}</Text>}
+            {isValidating ? <ActivityIndicator size="small" color={tokens.text.onBrand} /> : <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 13 }}>{t("utility.cableScreen.verify")}</Text>}
           </TouchableOpacity>
         </View>
         {fieldErrors.smartCard ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 12, paddingLeft: 4 }}>{fieldErrors.smartCard}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 12, paddingLeft: 4 }}>{fieldErrors.smartCard}</Text>
         ) : null}
 
         {validationResult && (
-          <View style={{ backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, marginBottom: 20 }}>
-            <Text style={{ fontSize: 13, color: "#059669", fontWeight: "600" }}>
+          <View style={{ backgroundColor: tokens.status.successSoft, borderRadius: 12, padding: 12, marginBottom: 20 }}>
+            <Text style={{ fontSize: 13, color: tokens.status.successStrong, fontWeight: "600" }}>
               {customerName}
             </Text>
           </View>
         )}
 
         {/* Plans */}
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>{t("utility.cableScreen.selectPackage")}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 12 }}>{t("utility.cableScreen.selectPackage")}</Text>
         {isLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} accessibilityLabel={t("common.loading")} />
+          <ActivityIndicator color={tokens.brand.default} style={{ marginVertical: 20 }} accessibilityLabel={t("common.loading")} />
         ) : (
           <View style={{ marginBottom: fieldErrors.plan ? 4 : 20 }}>
             {cablePlans.map((plan) => (
@@ -180,39 +181,39 @@ export default function CableScreen({ navigation }) {
                 accessibilityLabel={`${plan.name}. ${naira(plan.sellingPrice)}`}
                 style={{
                   flexDirection: "row", alignItems: "center",
-                  backgroundColor: selectedPlan?.id === plan.id ? colors.primary + "10" : colors.surface,
+                  backgroundColor: selectedPlan?.id === plan.id ? tokens.brand.soft : tokens.bg.surface,
                   borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 2,
-                  borderColor: selectedPlan?.id === plan.id ? colors.primary : colors.border,
+                  borderColor: selectedPlan?.id === plan.id ? tokens.brand.default : tokens.border.default,
                 }}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>{plan.name}</Text>
-                  {plan.validity ? <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{plan.validity}</Text> : null}
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>{plan.name}</Text>
+                  {plan.validity ? <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 2 }}>{plan.validity}</Text> : null}
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: "800", color: colors.primary }}>{naira(plan.sellingPrice)}</Text>
+                <Text style={{ fontSize: 16, fontWeight: "800", color: tokens.brand.default }}>{naira(plan.sellingPrice)}</Text>
               </TouchableOpacity>
             ))}
-            {!cablePlans.length && <Text style={{ color: colors.textMuted, textAlign: "center", marginVertical: 20 }}>{t("utility.cableScreen.noPackages")}</Text>}
+            {!cablePlans.length && <Text style={{ color: tokens.text.muted, textAlign: "center", marginVertical: 20 }}>{t("utility.cableScreen.noPackages")}</Text>}
           </View>
         )}
         {fieldErrors.plan ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.plan}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.plan}</Text>
         ) : null}
       </ScrollView>
 
-      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: colors.border }}>
+      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: tokens.bg.canvas, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
         <TouchableOpacity
           onPress={handlePurchase}
           disabled={isLoading || !selectedPlan}
           accessibilityRole="button"
           accessibilityLabel={selectedPlan ? naira(selectedPlan.sellingPrice) : t("utility.cableScreen.selectPackage")}
           accessibilityState={{ disabled: isLoading || !selectedPlan, busy: isLoading }}
-          style={{ backgroundColor: selectedPlan ? colors.primary : colors.textLight, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
+          style={{ backgroundColor: selectedPlan ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={colors.white} accessibilityLabel={t("common.loading")} />
+            <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
-            <Text style={{ color: colors.white, fontSize: 16, fontWeight: "800" }}>
+            <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
               {selectedPlan ? naira(selectedPlan.sellingPrice) : t("utility.cableScreen.selectPackage")}
             </Text>
           )}

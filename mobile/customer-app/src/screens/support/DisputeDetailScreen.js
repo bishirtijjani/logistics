@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import SupportThread from "./SupportThread";
 import {
   fetchDisputeDetail,
@@ -22,14 +22,14 @@ import {
   clearDisputeDetail,
 } from "../../store/slices/supportSlice";
 
-const statusColor = (status) => {
+const statusColor = (status, tokens) => {
   switch (status) {
-    case "OPEN": return "#DC2626";
-    case "UNDER_REVIEW": return "#D97706";
-    case "AWAITING_RESPONSE": return "#B45309";
-    case "RESOLVED": return "#059669";
-    case "REJECTED": return "#6B7280";
-    default: return colors.textMuted;
+    case "OPEN": return tokens.status.errorStrong;
+    case "UNDER_REVIEW": return tokens.status.warning;
+    case "AWAITING_RESPONSE": return tokens.status.warningStrong;
+    case "RESOLVED": return tokens.status.successStrong;
+    case "REJECTED": return tokens.text.muted;
+    default: return tokens.text.muted;
   }
 };
 
@@ -41,6 +41,7 @@ export default function DisputeDetailScreen() {
   const { disputeId } = route.params || {};
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { disputeDetail, disputeDetailLoading } = useSelector((s) => s.support);
   const currentUserId = useSelector((s) => s.auth.user?.id);
 
@@ -64,9 +65,9 @@ export default function DisputeDetailScreen() {
 
   if (disputeDetailLoading || !disputeDetail) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={tokens.brand.default} />
         </View>
       </SafeAreaView>
     );
@@ -75,9 +76,9 @@ export default function DisputeDetailScreen() {
   const isClosed = ["RESOLVED", "REJECTED"].includes(disputeDetail.status);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -97,20 +98,20 @@ export default function DisputeDetailScreen() {
               width: 40,
               height: 40,
               borderRadius: 12,
-              backgroundColor: colors.surfaceMuted,
+              backgroundColor: tokens.bg.surfaceMuted,
               alignItems: "center",
               justifyContent: "center",
               marginRight: 14,
             }}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.text} />
+            <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 11, color: colors.textMuted }}>
+            <Text style={{ fontSize: 11, color: tokens.text.muted }}>
               {t("support.disputeNumber")} #{disputeDetail.number}
             </Text>
             <Text
-              style={{ fontSize: 16, fontWeight: "800", color: colors.text }}
+              style={{ fontSize: 16, fontWeight: "800", color: tokens.text.primary }}
               numberOfLines={1}
               accessibilityRole="header"
             >
@@ -120,13 +121,13 @@ export default function DisputeDetailScreen() {
         </View>
         <View
           style={{
-            backgroundColor: statusColor(disputeDetail.status),
+            backgroundColor: statusColor(disputeDetail.status, tokens),
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 10,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "700" }}>
+          <Text style={{ color: tokens.text.onBrand, fontSize: 10, fontWeight: "700" }}>
             {disputeDetail.status.replace(/_/g, " ")}
           </Text>
         </View>
@@ -137,11 +138,11 @@ export default function DisputeDetailScreen() {
           marginHorizontal: 20,
           marginBottom: 8,
           padding: 12,
-          backgroundColor: colors.surfaceMuted,
+          backgroundColor: tokens.bg.surfaceMuted,
           borderRadius: 12,
         }}
       >
-        <Text style={{ fontSize: 13, color: colors.text, lineHeight: 18 }}>
+        <Text style={{ fontSize: 13, color: tokens.text.primary, lineHeight: 18 }}>
           {disputeDetail.description}
         </Text>
         {Array.isArray(disputeDetail.attachmentUrls) &&
@@ -177,25 +178,25 @@ export default function DisputeDetailScreen() {
             marginHorizontal: 20,
             marginBottom: 8,
             padding: 12,
-            backgroundColor: "#D1FAE5",
+            backgroundColor: tokens.status.successSoft,
             borderRadius: 12,
           }}
         >
-          <Text style={{ fontSize: 12, fontWeight: "700", color: "#065F46" }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.status.successStrong }}>
             {t("support.outcome")}: {disputeDetail.resolution.replace(/_/g, " ")}
           </Text>
           {disputeDetail.resolutionNotes && (
-            <Text style={{ fontSize: 13, color: "#064E3B", marginTop: 4 }}>
+            <Text style={{ fontSize: 13, color: tokens.status.successStrong, marginTop: 4 }}>
               {disputeDetail.resolutionNotes}
             </Text>
           )}
           {disputeDetail.refundAmount && (
-            <Text style={{ fontSize: 13, color: "#065F46", marginTop: 4, fontWeight: "700" }}>
+            <Text style={{ fontSize: 13, color: tokens.status.successStrong, marginTop: 4, fontWeight: "700" }}>
               {naira(disputeDetail.refundAmount)} {t("support.refundedToWallet")}
             </Text>
           )}
           {disputeDetail.refundTransaction?.reference && (
-            <Text style={{ fontSize: 11, color: "#065F46", marginTop: 2 }}>
+            <Text style={{ fontSize: 11, color: tokens.status.successStrong, marginTop: 2 }}>
               Ref: {disputeDetail.refundTransaction.reference}
             </Text>
           )}

@@ -27,7 +27,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { colors } from '../../theme';
+import { useTheme } from '../../theme';
 import { buildMerchantSnapshot } from '../../lib/cart';
 import {
   addLine,
@@ -54,6 +54,8 @@ export default function ProductDetailScreen() {
   const route = useRoute();
   const { t } = useTranslation();
   const dispatch = useDispatch();
+  const { tokens } = useTheme();
+  const styles = useMemo(() => makeStyles(tokens), [tokens]);
   const cart = useSelector(selectCart);
   const { product, merchantId, merchant, merchantCategorySlug, editingLineId } = route.params || {};
 
@@ -266,7 +268,7 @@ export default function ProductDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('a11y.back')}
               >
-                <Ionicons name="arrow-back" size={20} color={colors.text} />
+                <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
               </TouchableOpacity>
             </View>
             <Text accessibilityRole="header" style={styles.title}>{product.name}</Text>
@@ -274,7 +276,7 @@ export default function ProductDetailScreen() {
             <Text style={styles.basePrice}>{t('merchant.fromPrice')} {money(variant?.price ?? product.basePrice)}</Text>
             {product.requiresPrescription && (
               <View style={styles.rxBanner}>
-                <Ionicons name="medkit-outline" size={16} color="#B45309" />
+                <Ionicons name="medkit-outline" size={16} color={tokens.status.warningStrong} />
                 <Text style={styles.rxText}>{t('merchant.rxRequired')}</Text>
               </View>
             )}
@@ -345,7 +347,7 @@ export default function ProductDetailScreen() {
                       accessibilityLabel={item.name}
                     >
                       <View style={[styles.indicator, isOne ? styles.radio : styles.checkbox]}>
-                        {isPicked && (isOne ? <View style={styles.radioDot} /> : <Ionicons name="checkmark" size={14} color="#fff" />)}
+                        {isPicked && (isOne ? <View style={styles.radioDot} /> : <Ionicons name="checkmark" size={14} color={tokens.text.onBrand} />)}
                       </View>
                       <Text style={[styles.itemName, !item.isAvailable && styles.lineThrough]}>
                         {item.name}
@@ -420,7 +422,7 @@ export default function ProductDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${t('merchant.quantity')} -`}
               >
-                <Ionicons name="remove" size={20} color={colors.text} />
+                <Ionicons name="remove" size={20} color={tokens.text.primary} />
               </TouchableOpacity>
               <Text style={styles.qtyValue} accessibilityLiveRegion="polite">{quantity}</Text>
               <TouchableOpacity
@@ -429,7 +431,7 @@ export default function ProductDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${t('merchant.quantity')} +`}
               >
-                <Ionicons name="add" size={20} color={colors.text} />
+                <Ionicons name="add" size={20} color={tokens.text.primary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -453,55 +455,55 @@ export default function ProductDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (tokens) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tokens.bg.canvas },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   hero: { width: '100%', height: 220, resizeMode: 'cover' },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   backBtn: { padding: 4 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text },
-  desc: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
-  basePrice: { fontSize: 18, fontWeight: '600', color: colors.primary, marginTop: 8 },
-  rxBanner: { flexDirection: 'row', alignItems: 'center', marginTop: 10, padding: 8, backgroundColor: '#FEF3C7', borderRadius: 8 },
-  rxText: { marginLeft: 6, color: '#B45309', fontSize: 13, fontWeight: '600' },
+  title: { fontSize: 22, fontWeight: '700', color: tokens.text.primary },
+  desc: { fontSize: 14, color: tokens.text.muted, marginTop: 4 },
+  basePrice: { fontSize: 18, fontWeight: '600', color: tokens.brand.default, marginTop: 8 },
+  rxBanner: { flexDirection: 'row', alignItems: 'center', marginTop: 10, padding: 8, backgroundColor: tokens.status.warningSoft, borderRadius: 8 },
+  rxText: { marginLeft: 6, color: tokens.status.warningStrong, fontSize: 13, fontWeight: '600' },
 
-  section: { padding: 16, borderTopWidth: 8, borderTopColor: colors.background, backgroundColor: colors.surface },
-  sectionHighlight: { backgroundColor: '#FEE2E2' },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
+  section: { padding: 16, borderTopWidth: 8, borderTopColor: tokens.bg.canvas, backgroundColor: tokens.bg.surface },
+  sectionHighlight: { backgroundColor: tokens.status.errorSoft },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: tokens.text.primary },
   groupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  groupRule: { fontSize: 12, color: colors.textMuted },
+  groupRule: { fontSize: 12, color: tokens.text.muted },
 
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 },
-  chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.border, marginRight: 8, marginBottom: 8 },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, borderColor: tokens.border.default, marginRight: 8, marginBottom: 8 },
+  chipActive: { backgroundColor: tokens.brand.default, borderColor: tokens.brand.default },
   chipDisabled: { opacity: 0.4 },
-  chipText: { color: colors.text, fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  unavail: { fontSize: 10, color: '#DC2626' },
+  chipText: { color: tokens.text.primary, fontSize: 13, fontWeight: '600' },
+  chipTextActive: { color: tokens.text.onBrand },
+  unavail: { fontSize: 10, color: tokens.status.errorStrong },
 
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: tokens.border.default },
   itemRowDisabled: { opacity: 0.45 },
-  indicator: { width: 22, height: 22, marginRight: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: colors.border },
+  indicator: { width: 22, height: 22, marginRight: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: tokens.border.default },
   radio: { borderRadius: 11 },
   checkbox: { borderRadius: 5, backgroundColor: 'transparent' },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
-  itemName: { flex: 1, fontSize: 14, color: colors.text },
-  lineThrough: { textDecorationLine: 'line-through', color: colors.textMuted },
-  delta: { fontSize: 13, color: colors.textMuted, marginLeft: 8 },
-  tag: { fontSize: 11, color: '#DC2626', marginLeft: 8 },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: tokens.brand.default },
+  itemName: { flex: 1, fontSize: 14, color: tokens.text.primary },
+  lineThrough: { textDecorationLine: 'line-through', color: tokens.text.muted },
+  delta: { fontSize: 13, color: tokens.text.muted, marginLeft: 8 },
+  tag: { fontSize: 11, color: tokens.status.errorStrong, marginLeft: 8 },
 
-  textArea: { marginTop: 8, padding: 10, minHeight: 70, borderWidth: 1, borderColor: colors.border, borderRadius: 8, fontSize: 14, color: colors.text, textAlignVertical: 'top' },
-  charCount: { textAlign: 'right', fontSize: 11, color: colors.textMuted, marginTop: 4 },
+  textArea: { marginTop: 8, padding: 10, minHeight: 70, borderWidth: 1, borderColor: tokens.border.default, borderRadius: 8, fontSize: 14, color: tokens.text.primary, textAlignVertical: 'top' },
+  charCount: { textAlign: 'right', fontSize: 11, color: tokens.text.muted, marginTop: 4 },
 
-  subRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
-  subLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
-  subSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  subRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: tokens.border.default },
+  subLabel: { fontSize: 14, fontWeight: '600', color: tokens.text.primary },
+  subSub: { fontSize: 12, color: tokens.text.muted, marginTop: 2 },
 
   qtyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  qtyBtn: { padding: 10, backgroundColor: colors.background, borderRadius: 8 },
-  qtyValue: { paddingHorizontal: 18, fontSize: 16, fontWeight: '600', color: colors.text },
+  qtyBtn: { padding: 10, backgroundColor: tokens.bg.canvas, borderRadius: 8 },
+  qtyValue: { paddingHorizontal: 18, fontSize: 16, fontWeight: '600', color: tokens.text.primary },
 
-  cta: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border },
-  ctaBtn: { backgroundColor: colors.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
-  ctaText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  cta: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: tokens.bg.surface, borderTopWidth: 1, borderTopColor: tokens.border.default },
+  ctaBtn: { backgroundColor: tokens.brand.default, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  ctaText: { color: tokens.text.onBrand, fontSize: 16, fontWeight: '700' },
 });

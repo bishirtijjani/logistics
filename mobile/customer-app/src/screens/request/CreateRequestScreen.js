@@ -23,7 +23,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
-import { colors } from '../../theme';
+import { useTheme } from '../../theme';
 import { createRequest } from '../../store/slices/requestSlice';
 import { fetchWallet } from '../../store/slices/walletSlice';
 import PinBottomSheet from '../../components/PinBottomSheet';
@@ -45,6 +45,7 @@ export default function CreateRequestScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const { user } = useSelector((s) => s.auth);
   const { balance } = useSelector((s) => s.wallet);
 
@@ -211,17 +212,17 @@ export default function CreateRequestScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel={t('a11y.back')}
           >
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
+            <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: colors.text }}>
+          <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: tokens.text.primary }}>
             {t('request.createTitle')}
           </Text>
           <View style={{ width: 22 }} />
@@ -252,13 +253,13 @@ export default function CreateRequestScreen() {
                     accessibilityHint={hint}
                     style={{
                       paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1,
-                      borderColor: active ? colors.primary : colors.border,
-                      backgroundColor: active ? `${colors.primary}15` : colors.surface,
+                      borderColor: active ? tokens.brand.default : tokens.border.default,
+                      backgroundColor: active ? `${tokens.brand.default}15` : tokens.bg.surface,
                       marginRight: 8, marginBottom: 8,
                     }}
                   >
-                    <Text style={{ fontWeight: '600', color: active ? colors.primary : colors.text }}>{label}</Text>
-                    <Text style={{ fontSize: 11, color: colors.textMuted }}>{hint}</Text>
+                    <Text style={{ fontWeight: '600', color: active ? tokens.brand.default : tokens.text.primary }}>{label}</Text>
+                    <Text style={{ fontSize: 11, color: tokens.text.muted }}>{hint}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -284,22 +285,22 @@ export default function CreateRequestScreen() {
           </Section>
 
           {/* Quote */}
-          <View style={{ marginTop: 12, padding: 14, backgroundColor: colors.surface, borderRadius: 12 }}>
+          <View style={{ marginTop: 12, padding: 14, backgroundColor: tokens.bg.surface, borderRadius: 12 }}>
             {(!pickup || !dropoff) ? (
-              <Text style={{ color: colors.textMuted, textAlign: 'center' }}>
+              <Text style={{ color: tokens.text.muted, textAlign: 'center' }}>
                 {t('request.quote.needAddresses')}
               </Text>
             ) : quoting || !quote ? (
-              <ActivityIndicator color={colors.primary} accessibilityLabel={t('common.loading')} />
+              <ActivityIndicator color={tokens.brand.default} accessibilityLabel={t('common.loading')} />
             ) : (
               <>
                 <Row label={t('request.quote.deliveryFee')} value={money(quote.deliveryFee)} />
                 <Row label={t('request.quote.platformFee')} value={money(quote.platformFee)} />
-                <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text style={{ fontWeight: '700', color: colors.text }}>{t('request.quote.total')}</Text>
-                  <Text style={{ fontWeight: '700', color: colors.primary }}>{money(quote.total)}</Text>
+                <View style={{ borderTopWidth: 1, borderTopColor: tokens.border.default, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontWeight: '700', color: tokens.text.primary }}>{t('request.quote.total')}</Text>
+                  <Text style={{ fontWeight: '700', color: tokens.brand.default }}>{money(quote.total)}</Text>
                 </View>
-                <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 6 }}>
+                <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: 6 }}>
                   {t('request.quote.etaLine', { minutes: quote.estimatedMinutes, km: quote.distanceKm })}
                 </Text>
                 <QuoteCountdown
@@ -313,16 +314,16 @@ export default function CreateRequestScreen() {
           </View>
         </ScrollView>
 
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border }}>
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: tokens.bg.surface, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
           <TouchableOpacity
             onPress={openPin}
             disabled={!quote || submitting || quoteExpired}
             accessibilityRole="button"
             accessibilityState={{ disabled: !quote || submitting || quoteExpired, busy: submitting }}
             accessibilityLabel={t('request.cta.placeRequest')}
-            style={{ backgroundColor: !quote || submitting || quoteExpired ? colors.border : colors.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}
+            style={{ backgroundColor: !quote || submitting || quoteExpired ? tokens.border.default : tokens.brand.default, paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}
           >
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: '700', fontSize: 16 }}>
               {submitting
                 ? t('request.cta.placing')
                 : quoteExpired
@@ -349,9 +350,10 @@ export default function CreateRequestScreen() {
 
 const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const seconds = Math.ceil(msUntilExpiry / 1000);
   const warn = msUntilExpiry > 0 && msUntilExpiry <= QUOTE_WARN_MS;
-  const color = expired ? colors.error : warn ? '#EA580C' : colors.textMuted;
+  const color = expired ? tokens.status.error : warn ? tokens.brand.default : tokens.text.muted;
   const label = expired
     ? t('request.checkout.quoteExpired')
     : msUntilExpiry > 60_000
@@ -369,7 +371,7 @@ const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
         accessibilityLabel={t('request.checkout.refresh')}
         accessibilityState={{ disabled: refreshing }}
       >
-        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primaryStrong }}>
+        <Text style={{ fontSize: 12, fontWeight: '700', color: tokens.brand.strong }}>
           {refreshing ? t('request.checkout.refreshing') : t('request.checkout.refresh')}
         </Text>
       </TouchableOpacity>
@@ -377,48 +379,60 @@ const QuoteCountdown = ({ msUntilExpiry, expired, refreshing, onRefresh }) => {
   );
 };
 
-const Section = ({ title, children }) => (
-  <View style={{ marginBottom: 16 }}>
-    <Text accessibilityRole="header" style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 6 }}>{title}</Text>
-    {children}
-  </View>
-);
-
-const Input = (props) => (
-  <TextInput
-    {...props}
-    accessibilityLabel={props.accessibilityLabel || props.placeholder}
-    placeholderTextColor={colors.textMuted}
-    style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, fontSize: 14, color: colors.text, borderWidth: 1, borderColor: colors.border, ...(props.multiline ? { minHeight: 70, textAlignVertical: 'top' } : {}) }}
-  />
-);
-
-const LocationPicker = ({ placeholder, value, onPress, a11yLabel }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityLabel={a11yLabel || placeholder}
-    accessibilityHint={value?.address || placeholder}
-    style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: colors.border }}
-  >
-    <Ionicons name={value ? 'location' : 'location-outline'} size={20} color={colors.primary} />
-    <View style={{ flex: 1, marginLeft: 10 }}>
-      {value ? (
-        <>
-          <Text style={{ fontWeight: '600', color: colors.text }}>{value.label || a11yLabel}</Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted }} numberOfLines={1}>{value.address}</Text>
-        </>
-      ) : (
-        <Text style={{ color: colors.textMuted }}>{placeholder}</Text>
-      )}
+const Section = ({ title, children }) => {
+  const { tokens } = useTheme();
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <Text accessibilityRole="header" style={{ fontSize: 14, fontWeight: '600', color: tokens.text.primary, marginBottom: 6 }}>{title}</Text>
+      {children}
     </View>
-    <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-  </TouchableOpacity>
-);
+  );
+};
 
-const Row = ({ label, value }) => (
-  <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-    <Text style={{ color: colors.textMuted }}>{label}</Text>
-    <Text style={{ color: colors.text }}>{value}</Text>
-  </View>
-);
+const Input = (props) => {
+  const { tokens } = useTheme();
+  return (
+    <TextInput
+      {...props}
+      accessibilityLabel={props.accessibilityLabel || props.placeholder}
+      placeholderTextColor={tokens.text.muted}
+      style={{ backgroundColor: tokens.bg.surface, borderRadius: 10, padding: 12, fontSize: 14, color: tokens.text.primary, borderWidth: 1, borderColor: tokens.border.default, ...(props.multiline ? { minHeight: 70, textAlignVertical: 'top' } : {}) }}
+    />
+  );
+};
+
+const LocationPicker = ({ placeholder, value, onPress, a11yLabel }) => {
+  const { tokens } = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel || placeholder}
+      accessibilityHint={value?.address || placeholder}
+      style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.bg.surface, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: tokens.border.default }}
+    >
+      <Ionicons name={value ? 'location' : 'location-outline'} size={20} color={tokens.brand.default} />
+      <View style={{ flex: 1, marginLeft: 10 }}>
+        {value ? (
+          <>
+            <Text style={{ fontWeight: '600', color: tokens.text.primary }}>{value.label || a11yLabel}</Text>
+            <Text style={{ fontSize: 12, color: tokens.text.muted }} numberOfLines={1}>{value.address}</Text>
+          </>
+        ) : (
+          <Text style={{ color: tokens.text.muted }}>{placeholder}</Text>
+        )}
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
+    </TouchableOpacity>
+  );
+};
+
+const Row = ({ label, value }) => {
+  const { tokens } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+      <Text style={{ color: tokens.text.muted }}>{label}</Text>
+      <Text style={{ color: tokens.text.primary }}>{value}</Text>
+    </View>
+  );
+};

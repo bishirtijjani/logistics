@@ -1,8 +1,10 @@
 import React, { forwardRef, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import { useTheme } from '../theme';
 
 const AppBottomSheet = forwardRef(({ children, snapPoints = ['25%', '50%'], onClose }, ref) => {
+  const { tokens } = useTheme();
   const renderBackdrop = useCallback(
     (props) => (
       <BottomSheetBackdrop
@@ -25,10 +27,10 @@ const AppBottomSheet = forwardRef(({ children, snapPoints = ['25%', '50%'], onCl
       onChange={(index) => {
         if (index === -1 && onClose) onClose();
       }}
-      backgroundStyle={{ backgroundColor: '#fff', borderRadius: 24 }}
-      handleIndicatorStyle={{ backgroundColor: '#e5e7eb', width: 40 }}
+      backgroundStyle={{ backgroundColor: tokens.bg.surface, borderRadius: 24 }}
+      handleIndicatorStyle={{ backgroundColor: tokens.border.default, width: 40 }}
     >
-      <View style={{ flex: 1, padding: 24, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}>
+      <View style={{ flex: 1, padding: 24, backgroundColor: tokens.bg.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}>
         {children}
       </View>
     </BottomSheet>

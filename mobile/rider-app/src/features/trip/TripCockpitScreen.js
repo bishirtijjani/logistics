@@ -66,17 +66,18 @@ const STAGE_LABEL_FALLBACK = {
   [STATUS.SETTLED]: "Settled",
 };
 
-const STAGE_COLORS = {
-  [STATUS.RIDER_ASSIGNED]: "#EA580C",
-  [STATUS.RIDER_EN_ROUTE]: "#EA580C",
-  [STATUS.PICKED_UP]: "#7C3AED",
-  [STATUS.IN_TRANSIT]: "#7C3AED",
-  [STATUS.DELIVERED]: "#059669",
-  [STATUS.SETTLED]: "#059669",
-};
-
 export default function TripCockpitScreen({ route }) {
   const { tokens } = useTheme();
+  // Per-stage accent, resolved from reactive tokens so the status pill re-tones
+  // in dark mode. Drives both the pill text color and its tinted background.
+  const STAGE_COLORS = {
+    [STATUS.RIDER_ASSIGNED]: tokens.brand.default,
+    [STATUS.RIDER_EN_ROUTE]: tokens.brand.default,
+    [STATUS.PICKED_UP]: tokens.category.groceries.icon,
+    [STATUS.IN_TRANSIT]: tokens.category.groceries.icon,
+    [STATUS.DELIVERED]: tokens.status.successStrong,
+    [STATUS.SETTLED]: tokens.status.successStrong,
+  };
   const { t } = useT();
   const dispatch = useDispatch();
   // We read POD URLs via store.getState() inside the submit flow because the

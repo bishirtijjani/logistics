@@ -849,12 +849,19 @@
   "search": {
     "title": "Bincike",
     "ph": "Bincika gidajen abinci, abinci, kayayyaki…",
-    "noResults": "Babu sakamako",
-    "noResultsHint": "Gwada kalmar bincike daban.",
+    "scopedPh": "Bincika cikin {{category}}…",
+    "noResults": "Babu sakamako don “{{query}}”",
+    "noResultsHint": "Duba rubutu ko gwada wata kalma.",
     "recent": "Bincike na kwanan nan",
     "clearRecent": "Share",
     "merchants": "Shaguna",
-    "products": "Kayayyaki"
+    "products": "Kayayyaki",
+    "popular": "Bincika rukunoni",
+    "errorTitle": "An kasa bincike",
+    "errorHint": "Duba haɗin yanar gizo ka sake gwadawa.",
+    "retry": "Sake gwadawa",
+    "removeRecent": "Cire",
+    "distanceKm": "{{km}} km nesa"
   },
   "locationPicker": {
     "title": "Zaɓi wuri",

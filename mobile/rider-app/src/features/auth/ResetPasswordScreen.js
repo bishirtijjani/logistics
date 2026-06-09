@@ -19,10 +19,11 @@ import FormInput from "../../components/FormInput";
 import AuthErrorBanner from "../../components/AuthErrorBanner";
 import AuthBrandMark from "../../components/AuthBrandMark";
 import { resetPassword, clearError } from "../../store/slices/authSlice";
-import { colors, light } from "../../theme";
+import { useTheme } from "../../theme";
 
 export default function ResetPasswordScreen({ route, navigation }) {
   const { email, code } = route.params || {};
+  const { tokens } = useTheme();
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { isLoading } = useSelector((state) => state.auth);
@@ -82,9 +83,9 @@ export default function ResetPasswordScreen({ route, navigation }) {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: light.bg.canvas }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
     >
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -102,7 +103,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}
             >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
+              <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
             </TouchableOpacity>
             <AuthBrandMark style={{ marginBottom: 0, marginLeft: 16 }} />
           </View>
@@ -113,7 +114,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
               style={{
                 fontSize: 38,
                 fontWeight: "900",
-                color: colors.text,
+                color: tokens.text.primary,
                 letterSpacing: -1.5,
                 marginBottom: 8,
                 lineHeight: 44,
@@ -121,7 +122,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
             >
               {t("auth.resetTitle")}
             </Text>
-            <Text style={{ fontSize: 15, color: colors.textMuted }}>
+            <Text style={{ fontSize: 15, color: tokens.text.muted }}>
               {t("auth.resetSubtitle")}
             </Text>
           </View>
@@ -176,7 +177,7 @@ export default function ResetPasswordScreen({ route, navigation }) {
               borderRadius: 16,
               alignItems: "center",
               marginTop: 4,
-              backgroundColor: isLoading ? "#EA580CB3" : colors.primary,
+              backgroundColor: isLoading ? "#EA580CB3" : tokens.brand.default,
             }}
             onPress={handleSubmit(onSubmit)}
             disabled={isLoading}
@@ -186,9 +187,9 @@ export default function ResetPasswordScreen({ route, navigation }) {
             accessibilityState={{ disabled: isLoading, busy: isLoading }}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={tokens.text.onBrand} />
             ) : (
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "800" }}>
+              <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "800" }}>
                 {t("auth.resetCta")}
               </Text>
             )}

@@ -92,11 +92,11 @@ export function useToastConfig() {
     const textBase = {
       fontSize: 16,
       fontWeight: "600",
-      color: "#FFFFFF",
+      color: tokens.text.onBrand,
     };
     const subTextBase = {
       fontSize: 14,
-      color: "#FFFFFF",
+      color: tokens.text.onBrand,
       marginTop: 4,
       opacity: 0.95,
     };

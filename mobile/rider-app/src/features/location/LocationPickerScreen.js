@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ExpoLocation from "expo-location";
 import api from "../../services/api";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 const KATSINA = { latitude: 13.0059, longitude: 7.6019 };
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
@@ -37,6 +37,7 @@ const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
  */
 export default function LocationPickerScreen({ navigation, route }) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const initial = route.params?.initial || null;
 
   const mapRef = useRef(null);
@@ -191,13 +192,13 @@ export default function LocationPickerScreen({ navigation, route }) {
       {/* Animated tooltip above pin */}
       <View style={{ position: "absolute", top: "50%", left: "50%", marginLeft: -80, marginTop: -88, width: 160, alignItems: "center", zIndex: 10 }} pointerEvents="none">
         <Animated.View style={{ opacity: address ? 1 : 0, transform: [{ translateY: address ? 0 : -10 }] }}>
-          <View style={{ backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2, maxWidth: 160 }}>
-            <View style={{ position: "absolute", bottom: -8, left: "50%", marginLeft: -8, width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderTopWidth: 8, borderLeftColor: "transparent", borderRightColor: "transparent", borderTopColor: colors.surface }} />
+          <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2, maxWidth: 160 }}>
+            <View style={{ position: "absolute", bottom: -8, left: "50%", marginLeft: -8, width: 0, height: 0, borderLeftWidth: 8, borderRightWidth: 8, borderTopWidth: 8, borderLeftColor: "transparent", borderRightColor: "transparent", borderTopColor: tokens.bg.surface }} />
             <View style={{ alignItems: "center" }}>
               {isGeocoding ? (
-                <ActivityIndicator size="small" color={colors.primary} />
+                <ActivityIndicator size="small" color={tokens.brand.default} />
               ) : (
-                <Text style={{ fontSize: 12, fontWeight: "600", textAlign: "center", color: colors.text, lineHeight: 16 }} numberOfLines={2} accessibilityLiveRegion="polite">
+                <Text style={{ fontSize: 12, fontWeight: "600", textAlign: "center", color: tokens.text.primary, lineHeight: 16 }} numberOfLines={2} accessibilityLiveRegion="polite">
                   {address || t("locationPicker.movePin", "Move the pin to your location")}
                 </Text>
               )}
@@ -208,7 +209,7 @@ export default function LocationPickerScreen({ navigation, route }) {
 
       {/* Fixed center pin */}
       <View style={{ position: "absolute", top: "50%", left: "50%", marginLeft: -20, marginTop: -40, alignItems: "center", zIndex: 10 }} pointerEvents="none">
-        <Ionicons name="location" size={40} color={colors.primary} />
+        <Ionicons name="location" size={40} color={tokens.brand.default} />
         <View style={{ width: 8, height: 8, borderRadius: 4, marginTop: 4, backgroundColor: "rgba(234,88,12,0.3)" }} />
       </View>
 
@@ -219,24 +220,24 @@ export default function LocationPickerScreen({ navigation, route }) {
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back", "Go back")}
-            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
+            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: tokens.bg.surface, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}
           >
-            <Ionicons name="arrow-back" size={22} color={colors.text} />
+            <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
           </TouchableOpacity>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 12, paddingHorizontal: 12, height: 44, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2, marginLeft: 12 }}>
-            <Ionicons name="search-outline" size={18} color={colors.textMuted} />
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 12, paddingHorizontal: 12, height: 44, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2, marginLeft: 12 }}>
+            <Ionicons name="search-outline" size={18} color={tokens.text.muted} />
             <TextInput
-              style={{ flex: 1, fontSize: 16, marginLeft: 8, fontWeight: "500", color: colors.text }}
+              style={{ flex: 1, fontSize: 16, marginLeft: 8, fontWeight: "500", color: tokens.text.primary }}
               placeholder={t("locationPicker.searchPh", "Search for a place")}
               accessibilityLabel={t("locationPicker.searchPh", "Search for a place")}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={tokens.text.muted}
               value={query}
               onChangeText={handleSearch}
               returnKeyType="search"
             />
             {query.length > 0 && (
               <TouchableOpacity onPress={() => handleSearch("")} accessibilityRole="button" accessibilityLabel={t("locationPicker.clearSearchA11y", "Clear search")}>
-                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+                <Ionicons name="close-circle" size={18} color={tokens.text.muted} />
               </TouchableOpacity>
             )}
           </View>
@@ -246,22 +247,22 @@ export default function LocationPickerScreen({ navigation, route }) {
       {/* Search results */}
       {predictions.length > 0 && (
         <View style={{ position: "absolute", top: 112, left: 0, right: 0, zIndex: 100 }}>
-          <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 12, maxHeight: 288, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4, zIndex: 100 }}>
+          <View style={{ marginHorizontal: 16, backgroundColor: tokens.bg.surface, borderRadius: 12, maxHeight: 288, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4, zIndex: 100 }}>
             <FlatList
               data={predictions}
               keyExtractor={(item) => item.placeId}
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}
                   onPress={() => handleSelectPlace(item)}
                   accessibilityRole="button"
                   accessibilityLabel={t("locationPicker.selectResultA11y", { name: item.mainText, defaultValue: `Select ${item.mainText}` })}
                 >
-                  <Ionicons name="location-outline" size={18} color={colors.primaryStrong} style={{ marginRight: 12 }} />
+                  <Ionicons name="location-outline" size={18} color={tokens.brand.strong} style={{ marginRight: 12 }} />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "700", color: colors.text }}>{item.mainText}</Text>
-                    <Text style={{ fontSize: 12, marginTop: 2, color: colors.textMuted }} numberOfLines={1}>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>{item.mainText}</Text>
+                    <Text style={{ fontSize: 12, marginTop: 2, color: tokens.text.muted }} numberOfLines={1}>
                       {item.secondaryText}
                     </Text>
                   </View>
@@ -272,38 +273,38 @@ export default function LocationPickerScreen({ navigation, route }) {
         </View>
       )}
       {isSearching && (
-        <View style={{ marginHorizontal: 16, backgroundColor: colors.surface, borderRadius: 12, zIndex: 100 }}>
-          <ActivityIndicator size="small" color={colors.primary} style={{ padding: 16 }} />
+        <View style={{ marginHorizontal: 16, backgroundColor: tokens.bg.surface, borderRadius: 12, zIndex: 100 }}>
+          <ActivityIndicator size="small" color={tokens.brand.default} style={{ padding: 16 }} />
         </View>
       )}
 
       {/* GPS button */}
       <TouchableOpacity
-        style={{ position: "absolute", right: 16, bottom: 176, width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 }}
+        style={{ position: "absolute", right: 16, bottom: 176, width: 46, height: 46, borderRadius: 23, backgroundColor: tokens.bg.surface, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 }}
         onPress={handleMyLocation}
         activeOpacity={0.8}
         accessibilityRole="button"
         accessibilityLabel={t("locationPicker.useGpsA11y", "Use my current location")}
       >
-        <Ionicons name="navigate" size={20} color={colors.primary} />
+        <Ionicons name="navigate" size={20} color={tokens.brand.default} />
       </TouchableOpacity>
 
       {/* Bottom card */}
-      <SafeAreaView style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 8 }} edges={["bottom"]}>
+      <SafeAreaView style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: tokens.bg.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12, shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 8 }} edges={["bottom"]}>
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-          <Ionicons name="location" size={20} color={colors.primary} />
+          <Ionicons name="location" size={20} color={tokens.brand.default} />
           <View style={{ flex: 1, marginLeft: 10 }}>
             {isGeocoding ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={tokens.brand.default} />
             ) : (
-              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text, lineHeight: 20 }} numberOfLines={2} accessibilityLiveRegion="polite">
+              <Text style={{ fontSize: 14, fontWeight: "600", color: tokens.text.primary, lineHeight: 20 }} numberOfLines={2} accessibilityLiveRegion="polite">
                 {address || t("locationPicker.movePin", "Move the pin to your location")}
               </Text>
             )}
           </View>
         </View>
         <TouchableOpacity
-          style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: "center", opacity: !address ? 0.5 : 1 }}
+          style={{ backgroundColor: tokens.brand.default, borderRadius: 12, paddingVertical: 16, alignItems: "center", opacity: !address ? 0.5 : 1 }}
           onPress={handleConfirm}
           disabled={!address || isGeocoding}
           activeOpacity={0.8}
@@ -311,7 +312,7 @@ export default function LocationPickerScreen({ navigation, route }) {
           accessibilityLabel={t("locationPicker.confirmA11y", "Confirm location")}
           accessibilityState={{ disabled: !address || isGeocoding }}
         >
-          <Text style={{ color: colors.surface, fontSize: 16, fontWeight: "800" }}>{t("common.confirm", "Confirm")}</Text>
+          <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>{t("common.confirm", "Confirm")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
     </View>

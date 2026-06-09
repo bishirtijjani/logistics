@@ -179,7 +179,11 @@ const getBankList = async () => {
       `${BASE_URL()}/api/bank-list`,
       { headers: authHeaders() }
     );
-    bankListCache = response.data?.data || response.data || [];
+    // KatPay has been seen to wrap the list as a bare array, `{ data: [...] }`,
+    // or `{ banks: [...] }` / `{ items: [...] }`. Always return a flat array so
+    // every consumer (controller, frontend, paystack mapping) can rely on it.
+    const raw = response.data?.data ?? response.data ?? [];
+    bankListCache = Array.isArray(raw) ? raw : raw.banks || raw.items || [];
     bankListCachedAt = Date.now();
     return bankListCache;
   } catch (error) {

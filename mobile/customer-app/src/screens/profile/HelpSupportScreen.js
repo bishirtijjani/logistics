@@ -10,10 +10,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 export default function HelpSupportScreen({ navigation }) {
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const [expanded, setExpanded] = React.useState(null);
 
   const FAQ_ITEMS = [
@@ -26,11 +27,14 @@ export default function HelpSupportScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <View
         style={{
@@ -48,20 +52,20 @@ export default function HelpSupportScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -82,7 +86,7 @@ export default function HelpSupportScreen({ navigation }) {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.primary,
+              backgroundColor: tokens.brand.default,
               borderRadius: 14,
               paddingHorizontal: 14,
               paddingVertical: 12,
@@ -99,10 +103,10 @@ export default function HelpSupportScreen({ navigation }) {
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="create-outline" size={19} color="#fff" />
+              <Ionicons name="create-outline" size={19} color={tokens.text.onBrand} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.onBrand }}>
                 {t("support.createTicket")}
               </Text>
               <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
@@ -119,9 +123,9 @@ export default function HelpSupportScreen({ navigation }) {
             style={{
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: colors.surface,
+              backgroundColor: tokens.bg.surface,
               borderWidth: 1.5,
-              borderColor: colors.border,
+              borderColor: tokens.border.default,
               borderRadius: 14,
               paddingHorizontal: 14,
               paddingVertical: 12,
@@ -132,23 +136,23 @@ export default function HelpSupportScreen({ navigation }) {
               style={{
                 width: 38,
                 height: 38,
-                backgroundColor: colors.surfaceMuted,
+                backgroundColor: tokens.bg.surfaceMuted,
                 borderRadius: 11,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="folder-open-outline" size={19} color={colors.text} />
+              <Ionicons name="folder-open-outline" size={19} color={tokens.text.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>
                 {t("support.myTickets")}
               </Text>
-              <Text style={{ fontSize: 12, color: colors.textMuted }}>
+              <Text style={{ fontSize: 12, color: tokens.text.muted }}>
                 {t("support.myTicketsSub")}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={17} color={colors.textLight} />
+            <Ionicons name="chevron-forward" size={17} color={tokens.text.placeholder} />
           </TouchableOpacity>
         </View>
 
@@ -159,7 +163,7 @@ export default function HelpSupportScreen({ navigation }) {
             style={{
               fontSize: 13,
               fontWeight: "700",
-              color: colors.textMuted,
+              color: tokens.text.muted,
               letterSpacing: 1,
               textTransform: "uppercase",
               marginBottom: 10,
@@ -170,10 +174,10 @@ export default function HelpSupportScreen({ navigation }) {
           </Text>
           <View
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: tokens.bg.surface,
               borderRadius: 18,
               borderWidth: 1.5,
-              borderColor: colors.border,
+              borderColor: tokens.border.default,
               overflow: "hidden",
             }}
           >
@@ -210,41 +214,41 @@ export default function HelpSupportScreen({ navigation }) {
                   paddingHorizontal: 16,
                   paddingVertical: 14,
                   borderBottomWidth: index < 2 ? 1 : 0,
-                  borderBottomColor: colors.border,
+                  borderBottomColor: tokens.border.default,
                 }}
               >
                 <View
                   style={{
                     width: 38,
                     height: 38,
-                    backgroundColor: colors.surfaceMuted,
+                    backgroundColor: tokens.bg.surfaceMuted,
                     borderRadius: 11,
                     alignItems: "center",
                     justifyContent: "center",
                     marginRight: 14,
                   }}
                 >
-                  <Ionicons name={item.icon} size={19} color={colors.text} />
+                  <Ionicons name={item.icon} size={19} color={tokens.text.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
                       fontSize: 15,
                       fontWeight: "600",
-                      color: colors.text,
+                      color: tokens.text.primary,
                       marginBottom: 1,
                     }}
                   >
                     {item.label}
                   </Text>
-                  <Text style={{ fontSize: 12, color: colors.textMuted }}>
+                  <Text style={{ fontSize: 12, color: tokens.text.muted }}>
                     {item.sub}
                   </Text>
                 </View>
                 <Ionicons
                   name="chevron-forward"
                   size={17}
-                  color={colors.textLight}
+                  color={tokens.text.placeholder}
                 />
               </TouchableOpacity>
             ))}
@@ -258,7 +262,7 @@ export default function HelpSupportScreen({ navigation }) {
             style={{
               fontSize: 13,
               fontWeight: "700",
-              color: colors.textMuted,
+              color: tokens.text.muted,
               letterSpacing: 1,
               textTransform: "uppercase",
               marginBottom: 10,
@@ -269,10 +273,10 @@ export default function HelpSupportScreen({ navigation }) {
           </Text>
           <View
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: tokens.bg.surface,
               borderRadius: 18,
               borderWidth: 1.5,
-              borderColor: colors.border,
+              borderColor: tokens.border.default,
               overflow: "hidden",
             }}
           >
@@ -285,7 +289,7 @@ export default function HelpSupportScreen({ navigation }) {
                   paddingHorizontal: 16,
                   paddingVertical: 14,
                   borderBottomWidth: index < FAQ_ITEMS.length - 1 ? 1 : 0,
-                  borderBottomColor: colors.border,
+                  borderBottomColor: tokens.border.default,
                 }}
               >
                 <View
@@ -299,7 +303,7 @@ export default function HelpSupportScreen({ navigation }) {
                     style={{
                       fontSize: 14,
                       fontWeight: "600",
-                      color: colors.text,
+                      color: tokens.text.primary,
                       flex: 1,
                       marginRight: 10,
                     }}
@@ -309,14 +313,14 @@ export default function HelpSupportScreen({ navigation }) {
                   <Ionicons
                     name={expanded === index ? "chevron-up" : "chevron-down"}
                     size={16}
-                    color={colors.textMuted}
+                    color={tokens.text.muted}
                   />
                 </View>
                 {expanded === index && (
                   <Text
                     style={{
                       fontSize: 13,
-                      color: colors.textMuted,
+                      color: tokens.text.muted,
                       marginTop: 8,
                       lineHeight: 20,
                     }}

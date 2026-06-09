@@ -845,12 +845,19 @@
   "search": {
     "title": "Search",
     "ph": "Search restaurants, food, items…",
-    "noResults": "No results",
-    "noResultsHint": "Try a different keyword.",
+    "scopedPh": "Search in {{category}}…",
+    "noResults": "No results for “{{query}}”",
+    "noResultsHint": "Check the spelling or try a different keyword.",
     "recent": "Recent searches",
     "clearRecent": "Clear",
-    "merchants": "Merchants",
-    "products": "Items"
+    "merchants": "Stores",
+    "products": "Items",
+    "popular": "Browse categories",
+    "errorTitle": "Couldn’t search",
+    "errorHint": "Check your connection and try again.",
+    "retry": "Retry",
+    "removeRecent": "Remove",
+    "distanceKm": "{{km}} km away"
   },
   "locationPicker": {
     "title": "Pick location",

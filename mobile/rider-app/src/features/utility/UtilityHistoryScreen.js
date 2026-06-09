@@ -24,13 +24,13 @@ const UTILITY_TYPES = {
   EDUCATION_PIN: { icon: "school", color: "#059669",       labelKey: null },
 };
 
-const STATUS_COLORS = {
-  COMPLETED: { bg: "#10B981" + "20", text: "#10B981" },
-  PENDING:    { bg: "#FEF3C7", text: "#D97706" },
-  PROCESSING: { bg: "#FEF3C7", text: "#D97706" },
-  FAILED:    { bg: "#EF4444" + "20", text: "#EF4444" },
-  REFUNDED:  { bg: ("#2563EB" || "#3B82F6") + "20", text: "#2563EB" || "#3B82F6" },
-};
+const makeStatusColors = (tokens) => ({
+  COMPLETED: { bg: tokens.status.successSoft, text: tokens.status.successStrong },
+  PENDING:    { bg: tokens.status.warningSoft, text: tokens.status.warningStrong },
+  PROCESSING: { bg: tokens.status.warningSoft, text: tokens.status.warningStrong },
+  FAILED:    { bg: tokens.status.errorSoft, text: tokens.status.errorStrong },
+  REFUNDED:  { bg: tokens.status.infoSoft, text: tokens.status.infoStrong },
+});
 
 const FILTERS = [
   { key: null,           tabKey: "tabAll" },
@@ -49,6 +49,7 @@ export default function UtilityHistoryScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t, i18n } = useT();
   const { tokens } = useTheme();
+  const statusColors = useMemo(() => makeStatusColors(tokens), [tokens]);
   const { history, isLoading, total } = useSelector((state) => state.utility);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
@@ -112,7 +113,7 @@ export default function UtilityHistoryScreen({ navigation }) {
   const renderItem = ({ item }) => {
     const meta = UTILITY_TYPES[item.type] || { icon: "receipt", color: tokens.text.muted, labelKey: null };
     const typeLabel = meta.labelKey ? t(meta.labelKey) : item.type;
-    const statusColor = STATUS_COLORS[item.status] || { bg: tokens.bg.surface, text: tokens.text.primary };
+    const statusColor = statusColors[item.status] || { bg: tokens.bg.surface, text: tokens.text.primary };
     const recipient = item.phoneNumber || item.meterNumber || "-";
     const amountText = naira(item.amount);
 
@@ -208,7 +209,7 @@ export default function UtilityHistoryScreen({ navigation }) {
                 borderColor: active ? tokens.brand.default : tokens.border.default,
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: active ? "#fff" : tokens.text.primary }}>{label}</Text>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: active ? tokens.text.onBrand : tokens.text.primary }}>{label}</Text>
             </TouchableOpacity>
           );
         })}

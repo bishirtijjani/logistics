@@ -121,7 +121,7 @@ export default function CableScreen({ navigation }) {
                 }}
               >
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: p.color, marginBottom: 6 }} />
-                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? "#FFFFFF" : tokens.text.primary }}>{p.name}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{p.name}</Text>
               </TouchableOpacity>
             );
           })}
@@ -130,7 +130,7 @@ export default function CableScreen({ navigation }) {
         {/* Smart Card */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.cableScreen.smartCardLabel")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.smartCard ? tokens.status.error : (smartCardValidated ? tokens.status.success || "#22C55E" : tokens.border.default), paddingHorizontal: 16, marginRight: 8 }}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.smartCard ? tokens.status.error : (smartCardValidated ? tokens.status.success : tokens.border.default), paddingHorizontal: 16, marginRight: 8 }}>
             <Ionicons name="tv-outline" size={20} color={tokens.text.muted} />
             <TextInput
               value={smartCard}
@@ -141,7 +141,7 @@ export default function CableScreen({ navigation }) {
               keyboardType="number-pad"
               style={{ flex: 1, fontSize: 15, fontWeight: "600", color: tokens.text.primary, paddingVertical: 16, marginLeft: 12 }}
             />
-            {smartCardValidated && <Ionicons name="checkmark-circle" size={20} color="#22C55E" />}
+            {smartCardValidated && <Ionicons name="checkmark-circle" size={20} color={tokens.status.success} />}
           </View>
           <TouchableOpacity
             onPress={handleValidateIuc}
@@ -151,7 +151,7 @@ export default function CableScreen({ navigation }) {
             accessibilityState={{ disabled: isValidating, busy: isValidating }}
             style={{ backgroundColor: tokens.brand.default, borderRadius: 16, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}
           >
-            {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{t("utility.cableScreen.verify")}</Text>}
+            {isValidating ? <ActivityIndicator size="small" color={tokens.text.onBrand} /> : <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 13 }}>{t("utility.cableScreen.verify")}</Text>}
           </TouchableOpacity>
         </View>
         {fieldErrors.smartCard ? (
@@ -159,8 +159,8 @@ export default function CableScreen({ navigation }) {
         ) : null}
 
         {validationResult && (
-          <View style={{ backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, marginBottom: 20 }}>
-            <Text style={{ fontSize: 13, color: "#059669", fontWeight: "600" }}>
+          <View style={{ backgroundColor: tokens.status.successSoft, borderRadius: 12, padding: 12, marginBottom: 20 }}>
+            <Text style={{ fontSize: 13, color: tokens.status.successStrong, fontWeight: "600" }}>
               {customerName}
             </Text>
           </View>
@@ -211,9 +211,9 @@ export default function CableScreen({ navigation }) {
           style={{ backgroundColor: selectedPlan ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" accessibilityLabel={t("common.loading")} />
+            <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "800" }}>
+            <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
               {selectedPlan ? naira(selectedPlan.sellingPrice) : t("utility.cableScreen.selectPackage")}
             </Text>
           )}

@@ -218,7 +218,7 @@ export default function CancelTripSheet({ visible, onClose, onCancelled }) {
                 backgroundColor: canProceed ? tokens.status.error : tokens.border.strong,
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>
+              <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 14 }}>
                 {t("trip.cancel.confirm", "Cancel trip")}
               </Text>
             </TouchableOpacity>

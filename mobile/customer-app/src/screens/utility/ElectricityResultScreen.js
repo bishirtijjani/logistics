@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import { fetchUtilityPayment } from "../../store/slices/utilitySlice";
 
 const POLL_MS = 3000;
@@ -21,6 +21,7 @@ const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
 export default function ElectricityResultScreen({ route, navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const { paymentId, amount, meterNumber, biller, beneficiaryName: initialName } = route.params || {};
 
   const [status, setStatus] = useState("PROCESSING");
@@ -84,7 +85,7 @@ export default function ElectricityResultScreen({ route, navigation }) {
   const isPolling = !isDone && !isFailed;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
@@ -93,9 +94,9 @@ export default function ElectricityResultScreen({ route, navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("common.close")}
           >
-            <Ionicons name="close" size={24} color={colors.text} />
+            <Ionicons name="close" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: tokens.text.primary }}>
             {t("utility.result.title")}
           </Text>
         </View>
@@ -106,42 +107,42 @@ export default function ElectricityResultScreen({ route, navigation }) {
         <View
           accessibilityLiveRegion="polite"
           style={{
-            backgroundColor: isDone ? "#ECFDF5" : isFailed ? colors.error + "15" : colors.primary + "10",
+            backgroundColor: isDone ? tokens.status.successSoft : isFailed ? tokens.status.error + "15" : tokens.brand.default + "10",
             borderRadius: 16, padding: 20, alignItems: "center", marginBottom: 20,
-            borderWidth: 2, borderColor: isDone ? "#10B981" : isFailed ? colors.error : colors.primary + "30",
+            borderWidth: 2, borderColor: isDone ? tokens.status.success : isFailed ? tokens.status.error : tokens.brand.default + "30",
           }}
         >
-          {isPolling ? <ActivityIndicator size="large" color={colors.primary} accessibilityLabel={t("common.loading")} /> : (
+          {isPolling ? <ActivityIndicator size="large" color={tokens.brand.default} accessibilityLabel={t("common.loading")} /> : (
             <Ionicons name={isDone ? "checkmark-circle" : "alert-circle"} size={56}
-              color={isDone ? "#10B981" : colors.error} />
+              color={isDone ? tokens.status.success : tokens.status.error} />
           )}
-          <Text style={{ fontSize: 18, fontWeight: "800", color: colors.text, marginTop: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginTop: 12 }}>
             {isDone ? t("utility.result.successTitle") : isFailed ? t("utility.result.failedTitle") : t("utility.result.processingTitle")}
           </Text>
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 4, textAlign: "center" }}>
+          <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 4, textAlign: "center" }}>
             {isDone ? t("utility.result.successBody") : isFailed ? t("utility.result.failedBody") : t("utility.result.processingBody")}
           </Text>
         </View>
 
         {/* Payment summary */}
-        <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 20 }}>
-          <Row label={t("utility.result.amountLabel")} value={naira(amount)} />
-          <Row label={t("utility.result.discoLabel")} value={biller || "-"} />
-          <Row label={t("utility.result.meterLabel")} value={meterNumber || "-"} />
-          {beneficiaryName ? <Row label={t("utility.result.accountLabel")} value={beneficiaryName} /> : null}
-          <Row label={t("utility.result.statusLabel")} value={status} last />
+        <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 16, marginBottom: 20 }}>
+          <Row tokens={tokens} label={t("utility.result.amountLabel")} value={naira(amount)} />
+          <Row tokens={tokens} label={t("utility.result.discoLabel")} value={biller || "-"} />
+          <Row tokens={tokens} label={t("utility.result.meterLabel")} value={meterNumber || "-"} />
+          {beneficiaryName ? <Row tokens={tokens} label={t("utility.result.accountLabel")} value={beneficiaryName} /> : null}
+          <Row tokens={tokens} label={t("utility.result.statusLabel")} value={status} last />
         </View>
 
         {/* Token block - only when delivered */}
         {token ? (
-          <View style={{ backgroundColor: "#0F172A", borderRadius: 20, padding: 20, marginBottom: 16 }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.5, marginBottom: 8 }}>
+          <View style={{ backgroundColor: tokens.bg.elevated, borderRadius: 20, padding: 20, marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.onElevated, letterSpacing: 1.5, marginBottom: 8 }}>
               {t("utility.result.tokenLabel")}
             </Text>
             <Text
               selectable
               accessibilityLabel={`${t("utility.result.tokenLabel")} ${token}`}
-              style={{ fontSize: 24, fontWeight: "800", color: "#fff", letterSpacing: 2, marginBottom: 16 }}
+              style={{ fontSize: 24, fontWeight: "800", color: tokens.text.onElevated, letterSpacing: 2, marginBottom: 16 }}
             >
               {token}
             </Text>
@@ -150,22 +151,22 @@ export default function ElectricityResultScreen({ route, navigation }) {
                 onPress={copyToken}
                 accessibilityRole="button"
                 accessibilityLabel={t("utility.result.copy")}
-                style={{ flex: 1, backgroundColor: "#1E293B", borderRadius: 12, paddingVertical: 12, alignItems: "center", marginRight: 8, flexDirection: "row", justifyContent: "center" }}
+                style={{ flex: 1, backgroundColor: tokens.bg.elevated, borderRadius: 12, paddingVertical: 12, alignItems: "center", marginRight: 8, flexDirection: "row", justifyContent: "center" }}
               >
-                <Ionicons name="copy-outline" size={18} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>{t("utility.result.copy")}</Text>
+                <Ionicons name="copy-outline" size={18} color={tokens.text.onElevated} />
+                <Text style={{ color: tokens.text.onElevated, fontWeight: "700", marginLeft: 6 }}>{t("utility.result.copy")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={shareToken}
                 accessibilityRole="button"
                 accessibilityLabel={t("utility.result.share")}
-                style={{ flex: 1, backgroundColor: "#1E293B", borderRadius: 12, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
+                style={{ flex: 1, backgroundColor: tokens.bg.elevated, borderRadius: 12, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center" }}
               >
-                <Ionicons name="share-outline" size={18} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>{t("utility.result.share")}</Text>
+                <Ionicons name="share-outline" size={18} color={tokens.text.onElevated} />
+                <Text style={{ color: tokens.text.onElevated, fontWeight: "700", marginLeft: 6 }}>{t("utility.result.share")}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ fontSize: 11, color: "#94A3B8", marginTop: 12, textAlign: "center" }}>
+            <Text style={{ fontSize: 11, color: tokens.text.onElevated, marginTop: 12, textAlign: "center" }}>
               {t("utility.result.tokenSmsHint")}
             </Text>
           </View>
@@ -176,17 +177,17 @@ export default function ElectricityResultScreen({ route, navigation }) {
             onPress={() => navigation.replace("UtilityHistory")}
             accessibilityRole="button"
             accessibilityLabel={t("utility.result.viewHistory")}
-            style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 16, paddingVertical: 16, alignItems: "center", marginRight: 8, borderWidth: 1, borderColor: colors.border }}
+            style={{ flex: 1, backgroundColor: tokens.bg.surface, borderRadius: 16, paddingVertical: 16, alignItems: "center", marginRight: 8, borderWidth: 1, borderColor: tokens.border.default }}
           >
-            <Text style={{ color: colors.text, fontWeight: "700" }}>{t("utility.result.viewHistory")}</Text>
+            <Text style={{ color: tokens.text.primary, fontWeight: "700" }}>{t("utility.result.viewHistory")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.popToTop()}
             accessibilityRole="button"
             accessibilityLabel={t("utility.result.done")}
-            style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
+            style={{ flex: 1, backgroundColor: tokens.brand.default, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>{t("utility.result.done")}</Text>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "700" }}>{t("utility.result.done")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -194,11 +195,11 @@ export default function ElectricityResultScreen({ route, navigation }) {
   );
 }
 
-function Row({ label, value, last = false }) {
+function Row({ tokens, label, value, last = false }) {
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.border }}>
-      <Text style={{ fontSize: 13, color: colors.textMuted }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: "700", color: colors.text }}>{value}</Text>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: last ? 0 : 1, borderBottomColor: tokens.border.default }}>
+      <Text style={{ fontSize: 13, color: tokens.text.muted }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.primary }}>{value}</Text>
     </View>
   );
 }

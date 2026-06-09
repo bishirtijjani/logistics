@@ -11,9 +11,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import { fetchRequests } from "../../store/slices/requestSlice";
-import { ACTIVE_STATUSES as ACTIVE_LIST, COMPLETED_STATUSES as COMPLETED_LIST, statusDisplay } from "../../lib/requestStatus";
+import { ACTIVE_STATUSES as ACTIVE_LIST, COMPLETED_STATUSES as COMPLETED_LIST, statusDisplay, statusToneColors } from "../../lib/requestStatus";
 import SkeletonLoader from "../../components/SkeletonLoader";
 import EmptyState from "../../components/EmptyState";
 
@@ -23,31 +23,9 @@ const ACTIVE_STATUSES = ACTIVE_LIST.join(",");
 const COMPLETED_STATUSES = COMPLETED_LIST.join(",");
 const CANCELLED_STATUSES = "CANCELLED";
 
-// Static badge for the package (courier) flow. `labelKey` resolves via t() at
-// render time so a locale change retags every row without a re-fetch.
-const PACKAGE_META = {
-  icon: "cube-outline",
-  bg: colors.package?.bg || "#EFF6FF",
-  color: colors.package?.icon || "#2563EB",
-  labelKey: "home.package",
-};
-
-// Soft 8% tint for category badge background.
-const tintBg = (hex) => (/^#[0-9a-fA-F]{6}$/.test(hex || "") ? `${hex}14` : "#F3F4F6");
-
-// Resolve type metadata for a request:
-// - PACKAGE → static blue cube (label resolved via t)
-// - MERCHANT_ORDER → derived from request.merchant.category (color/name)
-const resolveTypeMeta = (request, t) => {
-  if (request.type === "PACKAGE") return { ...PACKAGE_META, label: t(PACKAGE_META.labelKey) };
-  const cat = request.merchant?.category;
-  return {
-    icon: "storefront-outline",
-    bg: tintBg(cat?.color),
-    color: cat?.color || "#7C3AED",
-    label: cat?.name || t("home.active.orderFallback"),
-  };
-};
+// Soft 8% tint for category badge background. `fallbackBg` is a themed token so
+// rows without a category color stay readable in both modes.
+const tintBg = (hex, fallbackBg) => (/^#[0-9a-fA-F]{6}$/.test(hex || "") ? `${hex}14` : fallbackBg);
 
 function formatNaira(amount) {
   return "₦" + Number(amount || 0).toLocaleString("en-NG");
@@ -55,7 +33,31 @@ function formatNaira(amount) {
 
 export default function OrdersScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens, isDark } = useTheme();
   const { t, i18n } = useTranslation();
+
+  // Static badge for the package (courier) flow. `labelKey` resolves via t() at
+  // render time so a locale change retags every row without a re-fetch.
+  const PACKAGE_META = {
+    icon: "cube-outline",
+    bg: tokens.category.package.bg,
+    color: tokens.category.package.icon,
+    labelKey: "home.package",
+  };
+
+  // Resolve type metadata for a request:
+  // - PACKAGE → static blue cube (label resolved via t)
+  // - MERCHANT_ORDER → derived from request.merchant.category (color/name)
+  const resolveTypeMeta = (request) => {
+    if (request.type === "PACKAGE") return { ...PACKAGE_META, label: t(PACKAGE_META.labelKey) };
+    const cat = request.merchant?.category;
+    return {
+      icon: "storefront-outline",
+      bg: tintBg(cat?.color, tokens.bg.surfaceMuted),
+      color: cat?.color || tokens.category.groceries.icon,
+      label: cat?.name || t("home.active.orderFallback"),
+    };
+  };
   const { requests, isLoading, pagination } = useSelector((s) => s.request);
   const [activeTab, setActiveTab] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -105,17 +107,17 @@ export default function OrdersScreen({ navigation }) {
   // These supplement (not replace) the existing status pill.
   const resolveLifecycleBadge = (req) => {
     if (req.status === "REQUESTED" || req.status === "READY_FOR_PICKUP") {
-      return { label: t("orders.lifecycle.searching"), bg: "#FFEDD5", color: "#9A3412", icon: "search" };
+      return { label: t("orders.lifecycle.searching"), bg: tokens.brand.soft, color: tokens.brand.strong, icon: "search" };
     }
     if (
       req.status === "PICKED_UP" ||
       req.status === "IN_TRANSIT" ||
       req.status === "RIDER_EN_ROUTE"
     ) {
-      return { label: t("orders.lifecycle.inTransit"), bg: "#DCFCE7", color: "#15803D", icon: "bicycle" };
+      return { label: t("orders.lifecycle.inTransit"), bg: tokens.status.successSoft, color: tokens.status.successStrong, icon: "bicycle" };
     }
     if ((req.status === "DELIVERED" || req.status === "SETTLED") && !req.rating) {
-      return { label: t("orders.lifecycle.awaitingRating"), bg: "#FEF9C3", color: "#854D0E", icon: "star-outline" };
+      return { label: t("orders.lifecycle.awaitingRating"), bg: tokens.status.warningSoft, color: tokens.status.warningStrong, icon: "star-outline" };
     }
     return null;
   };
@@ -124,8 +126,9 @@ export default function OrdersScreen({ navigation }) {
     // Phase 8 - pass category slug so pharmacy/grocery rows render
     // type-specific status copy ("Pharmacist preparing…", "Picking your groceries").
     const pill = statusDisplay(item.status, item.type, item.merchant?.category?.slug);
-    const status = { label: pill.label, bg: pill.bg, text: pill.color };
-    const type = resolveTypeMeta(item, t);
+    const pillColors = statusToneColors(pill.tone, tokens);
+    const status = { label: pill.label, bg: pillColors.bg, text: pillColors.color };
+    const type = resolveTypeMeta(item);
     const isActive = activeTab === 0;
     const canRate = (item.status === "DELIVERED" || item.status === "SETTLED") && !item.rating;
     const lifecycle = resolveLifecycleBadge(item);
@@ -138,12 +141,12 @@ export default function OrdersScreen({ navigation }) {
         accessibilityRole="button"
         accessibilityLabel={`${title}. ${status.label}. ${formatNaira(item.total || item.customerPaid)}`}
         style={{
-          backgroundColor: colors.surface,
+          backgroundColor: tokens.bg.surface,
           borderRadius: 18,
           padding: 16,
           marginBottom: 12,
           borderWidth: 1.5,
-          borderColor: isActive ? colors.primary + "30" : colors.border,
+          borderColor: isActive ? tokens.brand.default + "30" : tokens.border.default,
           shadowColor: "#000",
           shadowOpacity: 0.04,
           shadowRadius: 8,
@@ -167,14 +170,14 @@ export default function OrdersScreen({ navigation }) {
           </View>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ fontSize: 14, fontWeight: "800", color: colors.text }}>
+              <Text style={{ fontSize: 14, fontWeight: "800", color: tokens.text.primary }}>
                 {title}
               </Text>
               <View style={{ backgroundColor: status.bg, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
                 <Text style={{ fontSize: 11, fontWeight: "700", color: status.text }}>{status.label}</Text>
               </View>
             </View>
-            <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>
+            <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: 2 }}>
               {t("orders.orderId")}{item.id.slice(-8).toUpperCase()} · {formatDate(item.createdAt)}
             </Text>
             {lifecycle && (
@@ -191,28 +194,28 @@ export default function OrdersScreen({ navigation }) {
         {/* Route */}
         <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}>
           <View style={{ alignItems: "center", marginRight: 10, paddingTop: 3 }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#16A34A" }} />
-            <View style={{ width: 1.5, height: 18, backgroundColor: colors.border, marginVertical: 2 }} />
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tokens.status.success }} />
+            <View style={{ width: 1.5, height: 18, backgroundColor: tokens.border.default, marginVertical: 2 }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: tokens.brand.default }} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 12, color: colors.textMuted, fontWeight: "600" }} numberOfLines={1}>
+            <Text style={{ fontSize: 12, color: tokens.text.muted, fontWeight: "600" }} numberOfLines={1}>
               {item.pickupAddress || "Pickup location"}
             </Text>
-            <Text style={{ fontSize: 12, color: colors.text, fontWeight: "600", marginTop: 14 }} numberOfLines={1}>
+            <Text style={{ fontSize: 12, color: tokens.text.primary, fontWeight: "600", marginTop: 14 }} numberOfLines={1}>
               {item.dropoffAddress || "Delivery location"}
             </Text>
           </View>
         </View>
 
         {/* Bottom row */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 12, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
           <View>
-            <Text style={{ fontSize: 16, fontWeight: "900", color: colors.text }}>
+            <Text style={{ fontSize: 16, fontWeight: "900", color: tokens.text.primary }}>
               {formatNaira(item.total || item.customerPaid)}
             </Text>
             {item.distanceKm > 0 && (
-              <Text style={{ fontSize: 11, color: colors.textMuted }}>{item.distanceKm} km</Text>
+              <Text style={{ fontSize: 11, color: tokens.text.muted }}>{item.distanceKm} km</Text>
             )}
           </View>
 
@@ -221,18 +224,18 @@ export default function OrdersScreen({ navigation }) {
               onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
               accessibilityRole="button"
               accessibilityLabel={t("orders.track")}
-              style={{ backgroundColor: colors.primary, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
+              style={{ backgroundColor: tokens.brand.default, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
             >
-              <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>{t("orders.track")}</Text>
+              <Text style={{ color: tokens.text.onBrand, fontSize: 12, fontWeight: "700" }}>{t("orders.track")}</Text>
             </TouchableOpacity>
           ) : canRate ? (
             <TouchableOpacity
               onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
               accessibilityRole="button"
               accessibilityLabel={t("orders.rate")}
-              style={{ backgroundColor: "#FFA500", paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
+              style={{ backgroundColor: tokens.status.warning, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
             >
-              <Text style={{ color: colors.white, fontSize: 12, fontWeight: "700" }}>{t("orders.rate")}</Text>
+              <Text style={{ color: tokens.text.onBrand, fontSize: 12, fontWeight: "700" }}>{t("orders.rate")}</Text>
             </TouchableOpacity>
           ) : (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -243,22 +246,22 @@ export default function OrdersScreen({ navigation }) {
                   accessibilityLabel={t("support.reportIssue")}
                   style={{
                     borderWidth: 1,
-                    borderColor: colors.border,
+                    borderColor: tokens.border.default,
                     paddingHorizontal: 10,
                     paddingVertical: 8,
                     borderRadius: 10,
                   }}
                 >
-                  <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+                  <Ionicons name="flag-outline" size={14} color={tokens.text.muted} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 onPress={() => navigation.navigate("RequestTracking", { requestId: item.id })}
                 accessibilityRole="button"
                 accessibilityLabel={t("orders.details")}
-                style={{ backgroundColor: colors.surfaceMuted, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
+                style={{ backgroundColor: tokens.bg.surfaceMuted, paddingHorizontal: 18, paddingVertical: 8, borderRadius: 10 }}
               >
-                <Text style={{ color: colors.textMuted, fontSize: 12, fontWeight: "700" }}>{t("orders.details")}</Text>
+                <Text style={{ color: tokens.text.muted, fontSize: 12, fontWeight: "700" }}>{t("orders.details")}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -291,9 +294,9 @@ export default function OrdersScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={tokens.bg.canvas} />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -306,11 +309,11 @@ export default function OrdersScreen({ navigation }) {
           alignItems: "center",
         }}
       >
-        <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "900", color: colors.text, letterSpacing: -1 }}>
+        <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "900", color: tokens.text.primary, letterSpacing: -1 }}>
           {t("orders.title")}
         </Text>
-        <View style={{ backgroundColor: colors.dark, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
-          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700", letterSpacing: 0.5 }}>
+        <View style={{ backgroundColor: tokens.bg.elevated, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
+          <Text style={{ color: tokens.brand.default, fontSize: 12, fontWeight: "700", letterSpacing: 0.5 }}>
             {t("orders.activeCount", { count: activeCount })}
           </Text>
         </View>
@@ -322,7 +325,7 @@ export default function OrdersScreen({ navigation }) {
           flexDirection: "row",
           marginHorizontal: 20,
           marginBottom: 24,
-          backgroundColor: colors.surfaceMuted,
+          backgroundColor: tokens.bg.surfaceMuted,
           borderRadius: 14,
           padding: 4,
         }}
@@ -343,10 +346,10 @@ export default function OrdersScreen({ navigation }) {
                 paddingVertical: 10,
                 borderRadius: 11,
                 alignItems: "center",
-                backgroundColor: selected ? colors.dark : "transparent",
+                backgroundColor: selected ? tokens.bg.elevated : "transparent",
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? colors.white : colors.textMuted }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onElevated : tokens.text.muted }}>
                 {label}
               </Text>
             </TouchableOpacity>
@@ -359,7 +362,7 @@ export default function OrdersScreen({ navigation }) {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={tokens.brand.default} />}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         ListEmptyComponent={!isLoading ? renderEmpty : null}

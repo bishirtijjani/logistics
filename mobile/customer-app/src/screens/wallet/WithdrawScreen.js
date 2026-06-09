@@ -22,7 +22,7 @@ import {
   saveBeneficiary,
   fetchBeneficiaries,
 } from "../../store/slices/walletSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import Toast from "react-native-toast-message";
 import { usePlatformSetting } from "../../services/settings";
 import { usePinGuard } from "../../lib/usePinGuard";
@@ -36,6 +36,7 @@ export default function WithdrawScreen({ navigation, route }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { balance, banks, isWithdrawing, beneficiaries } = useSelector((s) => s.wallet);
+  const { tokens } = useTheme();
   const requirePin = usePinGuard();
 
   const minWithdraw = Number(usePlatformSetting("wallet.minWithdraw", 500));
@@ -173,29 +174,29 @@ export default function WithdrawScreen({ navigation, route }) {
 
   if (step === "success") {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#16A34A15", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-            <Ionicons name="checkmark-circle" size={52} color="#16A34A" />
+          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: tokens.status.successSoft, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+            <Ionicons name="checkmark-circle" size={52} color={tokens.status.success} />
           </View>
-          <Text accessibilityRole="header" style={{ fontSize: 26, fontWeight: "900", color: colors.text, letterSpacing: -1, marginBottom: 8 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 26, fontWeight: "900", color: tokens.text.primary, letterSpacing: -1, marginBottom: 8 }}>
             {t("wallet.withdraw_.successTitle")}
           </Text>
-          <Text style={{ fontSize: 32, fontWeight: "900", color: colors.primary, letterSpacing: -1, marginBottom: 4 }}>
+          <Text style={{ fontSize: 32, fontWeight: "900", color: tokens.brand.default, letterSpacing: -1, marginBottom: 4 }}>
             {formatNaira(amount)}
           </Text>
-          <Text style={{ fontSize: 15, color: colors.textMuted, marginBottom: 4 }}>{accountName}</Text>
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 8 }}>{selectedBank?.bankName || selectedBank?.name} · {accountNumber}</Text>
-          <Text style={{ fontSize: 12, color: colors.textMuted, marginBottom: 40, textAlign: "center", paddingHorizontal: 24 }}>
+          <Text style={{ fontSize: 15, color: tokens.text.muted, marginBottom: 4 }}>{accountName}</Text>
+          <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 8 }}>{selectedBank?.bankName || selectedBank?.name} · {accountNumber}</Text>
+          <Text style={{ fontSize: 12, color: tokens.text.muted, marginBottom: 40, textAlign: "center", paddingHorizontal: 24 }}>
             {t("wallet.withdraw_.successHint")}
           </Text>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel={t("wallet.withdraw_.done")}
-            style={{ backgroundColor: colors.primary, paddingHorizontal: 48, paddingVertical: 14, borderRadius: 14 }}
+            style={{ backgroundColor: tokens.brand.default, paddingHorizontal: 48, paddingVertical: 14, borderRadius: 14 }}
           >
-            <Text style={{ color: colors.white, fontWeight: "800", fontSize: 15 }}>{t("wallet.withdraw_.done")}</Text>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 15 }}>{t("wallet.withdraw_.done")}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -204,41 +205,41 @@ export default function WithdrawScreen({ navigation, route }) {
 
   if (step === "pin") {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 16, marginBottom: 32 }}>
           <TouchableOpacity
             onPress={() => setStep("form")}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "800", color: colors.text, marginLeft: 16 }}>
+          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginLeft: 16 }}>
             {t("wallet.withdraw_.confirmTitle")}
           </Text>
         </View>
 
         {/* Summary */}
-        <View style={{ marginHorizontal: 20, backgroundColor: colors.surface, borderRadius: 16, padding: 16, marginBottom: 32 }}>
-          <Row label={t("wallet.withdraw_.summaryTo")} value={accountName} />
-          <Row label={t("wallet.withdraw_.summaryBank")} value={selectedBank?.bankName || selectedBank?.name} />
-          <Row label={t("wallet.withdraw_.summaryAccount")} value={accountNumber} />
-          <Row label={t("wallet.withdraw_.summaryAmount")} value={formatNaira(amount)} bold />
+        <View style={{ marginHorizontal: 20, backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 16, marginBottom: 32 }}>
+          <Row tokens={tokens} label={t("wallet.withdraw_.summaryTo")} value={accountName} />
+          <Row tokens={tokens} label={t("wallet.withdraw_.summaryBank")} value={selectedBank?.bankName || selectedBank?.name} />
+          <Row tokens={tokens} label={t("wallet.withdraw_.summaryAccount")} value={accountNumber} />
+          <Row tokens={tokens} label={t("wallet.withdraw_.summaryAmount")} value={formatNaira(amount)} bold />
         </View>
 
         <View style={{ alignItems: "center", paddingHorizontal: 24 }}>
-          <Text style={{ fontSize: 13, color: colors.textMuted, marginBottom: 32 }}>
+          <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 32 }}>
             {t("wallet.withdraw_.enterPinSub")}
           </Text>
 
           <Animated.View style={{ flexDirection: "row", gap: 12, marginBottom: 12, transform: [{ translateX: shakeAnim }] }}>
             {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-              <View key={i} style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: i < pin.length ? colors.primary : colors.border }} />
+              <View key={i} style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: i < pin.length ? tokens.brand.default : tokens.border.default }} />
             ))}
           </Animated.View>
 
           {pinError ? (
-            <Text accessibilityLiveRegion="polite" style={{ color: "#DC2626", fontSize: 13, fontWeight: "600", marginBottom: 8 }}>
+            <Text accessibilityLiveRegion="polite" style={{ color: tokens.status.errorStrong, fontSize: 13, fontWeight: "600", marginBottom: 8 }}>
               {pinError}
             </Text>
           ) : null}
@@ -250,15 +251,15 @@ export default function WithdrawScreen({ navigation, route }) {
                   <TouchableOpacity
                     key={ki}
                     onPress={() => { if (key === "del") pinDelete(); else if (key !== "") handlePinInput(String(key)); }}
-                    style={{ width: 84, height: 64, borderRadius: 16, backgroundColor: key === "" ? "transparent" : colors.surface, alignItems: "center", justifyContent: "center" }}
+                    style={{ width: 84, height: 64, borderRadius: 16, backgroundColor: key === "" ? "transparent" : tokens.bg.surface, alignItems: "center", justifyContent: "center" }}
                     disabled={isWithdrawing || key === ""}
                     accessibilityRole={key === "" ? "none" : "button"}
                     accessibilityLabel={key === "del" ? t("common.delete") : String(key)}
                   >
                     {key === "del" ? (
-                      <Ionicons name="backspace-outline" size={24} color={colors.text} />
+                      <Ionicons name="backspace-outline" size={24} color={tokens.text.primary} />
                     ) : key !== "" ? (
-                      <Text style={{ fontSize: 24, fontWeight: "700", color: colors.text }}>{key}</Text>
+                      <Text style={{ fontSize: 24, fontWeight: "700", color: tokens.text.primary }}>{key}</Text>
                     ) : null}
                   </TouchableOpacity>
                 ))}
@@ -266,7 +267,7 @@ export default function WithdrawScreen({ navigation, route }) {
             ))}
           </View>
 
-          {isWithdrawing && <ActivityIndicator color={colors.primary} style={{ marginTop: 8 }} accessibilityLabel={t("common.loading")} />}
+          {isWithdrawing && <ActivityIndicator color={tokens.brand.default} style={{ marginTop: 8 }} accessibilityLabel={t("common.loading")} />}
         </View>
       </SafeAreaView>
     );
@@ -274,8 +275,8 @@ export default function WithdrawScreen({ navigation, route }) {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
-        <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+        <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
         <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 28 }}>
@@ -284,24 +285,24 @@ export default function WithdrawScreen({ navigation, route }) {
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}
             >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
+              <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
             </TouchableOpacity>
-            <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: colors.text, marginLeft: 16, letterSpacing: -0.5 }}>
+            <Text accessibilityRole="header" style={{ fontSize: 22, fontWeight: "900", color: tokens.text.primary, marginLeft: 16, letterSpacing: -0.5 }}>
               {t("wallet.withdraw_.title")}
             </Text>
           </View>
 
           {/* Balance chip */}
-          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, marginBottom: 24, flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="wallet-outline" size={18} color={colors.primary} />
-            <Text style={{ color: colors.textMuted, fontSize: 13, marginLeft: 8 }}>
-              {t("wallet.withdraw_.balance")} <Text style={{ fontWeight: "800", color: colors.text }}>{formatNaira(balance)}</Text>
+          <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 12, marginBottom: 24, flexDirection: "row", alignItems: "center" }}>
+            <Ionicons name="wallet-outline" size={18} color={tokens.brand.default} />
+            <Text style={{ color: tokens.text.muted, fontSize: 13, marginLeft: 8 }}>
+              {t("wallet.withdraw_.balance")} <Text style={{ fontWeight: "800", color: tokens.text.primary }}>{formatNaira(balance)}</Text>
             </Text>
           </View>
 
           {bankBeneficiaries.length > 0 && (
             <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 10, letterSpacing: 0.8 }}>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 10, letterSpacing: 0.8 }}>
                 {t("wallet.withdraw_.saved")}
               </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -316,75 +317,75 @@ export default function WithdrawScreen({ navigation, route }) {
                     }}
                     accessibilityRole="button"
                     accessibilityLabel={b.accountName || b.name}
-                    style={{ marginRight: 12, backgroundColor: colors.surface, borderRadius: 12, padding: 12, width: 140 }}
+                    style={{ marginRight: 12, backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 12, width: 140 }}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: "800", color: colors.text }} numberOfLines={1}>{b.accountName || b.name}</Text>
-                    <Text style={{ fontSize: 11, color: colors.textMuted }}>{b.accountNumber}</Text>
-                    <Text style={{ fontSize: 10, color: colors.primaryStrong }}>{b.bankCode}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: "800", color: tokens.text.primary }} numberOfLines={1}>{b.accountName || b.name}</Text>
+                    <Text style={{ fontSize: 11, color: tokens.text.muted }}>{b.accountNumber}</Text>
+                    <Text style={{ fontSize: 10, color: tokens.brand.strong }}>{b.bankCode}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
           )}
 
-          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 6, letterSpacing: 0.8 }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6, letterSpacing: 0.8 }}>
             {t("wallet.withdraw_.bankLabel")}
           </Text>
           <TouchableOpacity
             onPress={() => setShowBankPicker(true)}
             accessibilityRole="button"
             accessibilityLabel={selectedBank ? (selectedBank.bankName || selectedBank.name) : t("wallet.withdraw_.selectBank")}
-            style={{ backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, borderWidth: 1.5, borderColor: selectedBank ? colors.primary : colors.border }}
+            style={{ backgroundColor: tokens.bg.surface, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16, borderWidth: 1.5, borderColor: selectedBank ? tokens.brand.default : tokens.border.default }}
           >
-            <Text style={{ fontSize: 15, color: selectedBank ? colors.text : colors.textMuted, fontWeight: selectedBank ? "700" : "400" }}>
+            <Text style={{ fontSize: 15, color: selectedBank ? tokens.text.primary : tokens.text.muted, fontWeight: selectedBank ? "700" : "400" }}>
               {selectedBank ? (selectedBank.bankName || selectedBank.name) : t("wallet.withdraw_.selectBank")}
             </Text>
-            <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+            <Ionicons name="chevron-down" size={18} color={tokens.text.muted} />
           </TouchableOpacity>
 
-          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginBottom: 6, letterSpacing: 0.8 }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6, letterSpacing: 0.8 }}>
             {t("wallet.withdraw_.accountLabel")}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 4, borderWidth: 1.5, borderColor: accountNumber ? colors.primary : colors.border }}>
+          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 4, borderWidth: 1.5, borderColor: accountNumber ? tokens.brand.default : tokens.border.default }}>
             <TextInput
               value={accountNumber}
               onChangeText={setAccountNumber}
               placeholder="0000000000"
               accessibilityLabel={t("wallet.withdraw_.accountLabel")}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={tokens.text.muted}
               keyboardType="numeric"
               maxLength={10}
-              style={{ flex: 1, paddingVertical: 14, fontSize: 15, color: colors.text, letterSpacing: 2 }}
+              style={{ flex: 1, paddingVertical: 14, fontSize: 15, color: tokens.text.primary, letterSpacing: 2 }}
             />
-            {resolving && <ActivityIndicator size="small" color={colors.primary} accessibilityLabel={t("common.loading")} />}
+            {resolving && <ActivityIndicator size="small" color={tokens.brand.default} accessibilityLabel={t("common.loading")} />}
           </View>
           {accountName && (
-            <Text style={{ fontSize: 13, color: "#16A34A", fontWeight: "700", marginBottom: 8, paddingLeft: 4 }}>
+            <Text style={{ fontSize: 13, color: tokens.status.success, fontWeight: "700", marginBottom: 8, paddingLeft: 4 }}>
               {accountName}
             </Text>
           )}
           {!accountName && accountNumber.length === 10 && selectedBank && !resolving && (
-            <Text accessibilityLiveRegion="polite" style={{ fontSize: 12, color: "#DC2626", marginBottom: 8, paddingLeft: 4 }}>
+            <Text accessibilityLiveRegion="polite" style={{ fontSize: 12, color: tokens.status.errorStrong, marginBottom: 8, paddingLeft: 4 }}>
               {t("wallet.withdraw_.accountNotFound")}
             </Text>
           )}
 
-          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.textMuted, marginTop: 12, marginBottom: 6, letterSpacing: 0.8 }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginTop: 12, marginBottom: 6, letterSpacing: 0.8 }}>
             {t("wallet.withdraw_.amountLabel")}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 8, borderWidth: 1.5, borderColor: amount ? colors.primary : colors.border }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: colors.textMuted, marginRight: 4 }}>₦</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 14, paddingHorizontal: 16, marginBottom: 8, borderWidth: 1.5, borderColor: amount ? tokens.brand.default : tokens.border.default }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: tokens.text.muted, marginRight: 4 }}>₦</Text>
             <TextInput
               value={amount}
               onChangeText={setAmount}
               placeholder="0.00"
               accessibilityLabel={t("wallet.withdraw_.amountLabel")}
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={tokens.text.muted}
               keyboardType="numeric"
-              style={{ flex: 1, paddingVertical: 14, fontSize: 22, fontWeight: "800", color: colors.text }}
+              style={{ flex: 1, paddingVertical: 14, fontSize: 22, fontWeight: "800", color: tokens.text.primary }}
             />
           </View>
-          <Text style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8, paddingLeft: 4 }}>
+          <Text style={{ fontSize: 11, color: tokens.text.muted, marginBottom: 8, paddingLeft: 4 }}>
             {t("wallet.withdraw_.minFee", { min: formatNaira(minWithdraw), fee: formatNaira(withdrawalFee) })}
           </Text>
 
@@ -398,9 +399,9 @@ export default function WithdrawScreen({ navigation, route }) {
                   accessibilityRole="button"
                   accessibilityLabel={formatNaira(q)}
                   accessibilityState={{ selected }}
-                  style={{ flex: 1, backgroundColor: colors.surface, paddingVertical: 8, borderRadius: 10, alignItems: "center", borderWidth: 1, borderColor: selected ? colors.primary : colors.border }}
+                  style={{ flex: 1, backgroundColor: tokens.bg.surface, paddingVertical: 8, borderRadius: 10, alignItems: "center", borderWidth: 1, borderColor: selected ? tokens.brand.default : tokens.border.default }}
                 >
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: selected ? colors.primary : colors.textMuted }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: selected ? tokens.brand.default : tokens.text.muted }}>
                     {formatChip(q)}
                   </Text>
                 </TouchableOpacity>
@@ -412,17 +413,17 @@ export default function WithdrawScreen({ navigation, route }) {
             onPress={handleContinue}
             accessibilityRole="button"
             accessibilityLabel={t("wallet.withdraw_.continue")}
-            style={{ backgroundColor: colors.primary, paddingVertical: 15, borderRadius: 14, alignItems: "center" }}
+            style={{ backgroundColor: tokens.brand.default, paddingVertical: 15, borderRadius: 14, alignItems: "center" }}
           >
-            <Text style={{ color: colors.white, fontWeight: "800", fontSize: 16 }}>{t("wallet.withdraw_.continue")}</Text>
+            <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 16 }}>{t("wallet.withdraw_.continue")}</Text>
           </TouchableOpacity>
         </ScrollView>
 
         {/* Bank Picker Modal */}
         <Modal visible={showBankPicker} animationType="slide" presentationStyle="pageSheet">
-          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16 }}>
-              <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "800", color: colors.text }}>
+              <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary }}>
                 {t("wallet.withdraw_.bankPickerTitle")}
               </Text>
               <TouchableOpacity
@@ -430,24 +431,24 @@ export default function WithdrawScreen({ navigation, route }) {
                 accessibilityRole="button"
                 accessibilityLabel={t("common.close")}
               >
-                <Ionicons name="close" size={24} color={colors.text} />
+                <Ionicons name="close" size={24} color={tokens.text.primary} />
               </TouchableOpacity>
             </View>
 
-            <View style={{ marginHorizontal: 20, marginBottom: 12, backgroundColor: colors.surface, borderRadius: 12, flexDirection: "row", alignItems: "center", paddingHorizontal: 12 }}>
-              <Ionicons name="search" size={18} color={colors.textMuted} />
+            <View style={{ marginHorizontal: 20, marginBottom: 12, backgroundColor: tokens.bg.surface, borderRadius: 12, flexDirection: "row", alignItems: "center", paddingHorizontal: 12 }}>
+              <Ionicons name="search" size={18} color={tokens.text.muted} />
               <TextInput
                 value={bankSearch}
                 onChangeText={setBankSearch}
                 placeholder={t("wallet.withdraw_.bankSearchPh")}
                 accessibilityLabel={t("wallet.withdraw_.bankSearchPh")}
-                placeholderTextColor={colors.textMuted}
-                style={{ flex: 1, paddingVertical: 12, paddingLeft: 8, fontSize: 15, color: colors.text }}
+                placeholderTextColor={tokens.text.muted}
+                style={{ flex: 1, paddingVertical: 12, paddingLeft: 8, fontSize: 15, color: tokens.text.primary }}
               />
             </View>
 
             {banks.length === 0 ? (
-              <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} accessibilityLabel={t("common.loading")} />
+              <ActivityIndicator color={tokens.brand.default} style={{ marginTop: 24 }} accessibilityLabel={t("common.loading")} />
             ) : (
               <FlatList
                 data={filteredBanks}
@@ -460,13 +461,13 @@ export default function WithdrawScreen({ navigation, route }) {
                       accessibilityRole="radio"
                       accessibilityState={{ selected }}
                       accessibilityLabel={item.bankName || item.name}
-                      style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border }}
+                      style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}
                     >
-                      <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: colors.text }}>
+                      <Text style={{ flex: 1, fontSize: 15, fontWeight: "600", color: tokens.text.primary }}>
                         {item.bankName || item.name}
                       </Text>
                       {selected && (
-                        <Ionicons name="checkmark" size={20} color={colors.primary} />
+                        <Ionicons name="checkmark" size={20} color={tokens.brand.default} />
                       )}
                     </TouchableOpacity>
                   );
@@ -481,11 +482,11 @@ export default function WithdrawScreen({ navigation, route }) {
   );
 }
 
-function Row({ label, value, bold }) {
+function Row({ tokens, label, value, bold }) {
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-      <Text style={{ fontSize: 13, color: colors.textMuted }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: bold ? "800" : "600", color: bold ? colors.primary : colors.text }}>{value}</Text>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
+      <Text style={{ fontSize: 13, color: tokens.text.muted }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: bold ? "800" : "600", color: bold ? tokens.brand.default : tokens.text.primary }}>{value}</Text>
     </View>
   );
 }

@@ -146,7 +146,7 @@ export default function ElectricityScreen({ navigation }) {
                     borderColor: selected ? tokens.brand.default : tokens.border.default,
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? "#FFFFFF" : tokens.text.primary }}>{d.networkName}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{d.networkName}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -176,7 +176,7 @@ export default function ElectricityScreen({ navigation }) {
                   borderColor: selected ? tokens.brand.default : tokens.border.default,
                 }}
               >
-                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? "#FFFFFF" : tokens.text.primary }}>{label}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -185,7 +185,7 @@ export default function ElectricityScreen({ navigation }) {
         {/* Meter Number */}
         <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.electricityScreen.meterLabel")}</Text>
         <View style={{ flexDirection: "row", marginBottom: 8 }}>
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.meter ? tokens.status.error : (meterValidated ? "#22C55E" : tokens.border.default), paddingHorizontal: 16, marginRight: 8 }}>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.meter ? tokens.status.error : (meterValidated ? tokens.status.success : tokens.border.default), paddingHorizontal: 16, marginRight: 8 }}>
             <Ionicons name="flash-outline" size={20} color={tokens.text.muted} />
             <TextInput
               value={meterNumber}
@@ -197,7 +197,7 @@ export default function ElectricityScreen({ navigation }) {
               keyboardType="number-pad"
               style={{ flex: 1, fontSize: 15, fontWeight: "600", color: tokens.text.primary, paddingVertical: 16, marginLeft: 12 }}
             />
-            {meterValidated && <Ionicons name="checkmark-circle" size={20} color="#22C55E" />}
+            {meterValidated && <Ionicons name="checkmark-circle" size={20} color={tokens.status.success} />}
           </View>
           <TouchableOpacity
             onPress={handleValidateMeter}
@@ -207,7 +207,7 @@ export default function ElectricityScreen({ navigation }) {
             accessibilityState={{ disabled: isValidating, busy: isValidating }}
             style={{ backgroundColor: tokens.brand.default, borderRadius: 16, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}
           >
-            {isValidating ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>{t("utility.electricityScreen.verify")}</Text>}
+            {isValidating ? <ActivityIndicator size="small" color={tokens.text.onBrand} /> : <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 13 }}>{t("utility.electricityScreen.verify")}</Text>}
           </TouchableOpacity>
         </View>
         {fieldErrors.meter ? (
@@ -215,9 +215,9 @@ export default function ElectricityScreen({ navigation }) {
         ) : null}
 
         {validationResult && (
-          <View style={{ backgroundColor: "#ECFDF5", borderRadius: 12, padding: 12, marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, color: "#059669", fontWeight: "600" }}>{customerName}</Text>
-            {validationResult.Address ? <Text style={{ fontSize: 12, color: "#059669", marginTop: 2 }}>{validationResult.Address}</Text> : null}
+          <View style={{ backgroundColor: tokens.status.successSoft, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, color: tokens.status.successStrong, fontWeight: "600" }}>{customerName}</Text>
+            {validationResult.Address ? <Text style={{ fontSize: 12, color: tokens.status.successStrong, marginTop: 2 }}>{validationResult.Address}</Text> : null}
           </View>
         )}
 
@@ -271,7 +271,7 @@ export default function ElectricityScreen({ navigation }) {
                 accessibilityState={{ selected }}
                 style={{ backgroundColor: selected ? tokens.brand.default : tokens.bg.surface, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, marginRight: 8, marginBottom: 8, borderWidth: 2, borderColor: selected ? tokens.brand.default : tokens.border.default }}
               >
-                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? "#FFFFFF" : tokens.text.primary }}>{naira(value)}</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: selected ? tokens.text.onBrand : tokens.text.primary }}>{naira(value)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -288,9 +288,9 @@ export default function ElectricityScreen({ navigation }) {
           style={{ backgroundColor: amount ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" accessibilityLabel={t("common.loading")} />
+            <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
-            <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "800" }}>
+            <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
               {amount ? t("utility.electricityScreen.payCta", { amount: naira(amount) }) : t("utility.electricityScreen.enterAmountCta")}
             </Text>
           )}

@@ -266,11 +266,11 @@ export default function WithdrawScreen() {
           <View
             style={{
               width: 86, height: 86, borderRadius: 43,
-              backgroundColor: "#16A34A22",
+              backgroundColor: tokens.status.successSoft,
               alignItems: "center", justifyContent: "center", marginBottom: 22,
             }}
           >
-            <Ionicons name="checkmark-circle" size={56} color="#16A34A" />
+            <Ionicons name="checkmark-circle" size={56} color={tokens.status.success} />
           </View>
           <Text accessibilityRole="header" style={{ fontSize: 24, fontWeight: "800", color: tokens.text.primary, marginBottom: 6 }}>
             {t("withdraw.successTitle", "Withdrawal sent")}

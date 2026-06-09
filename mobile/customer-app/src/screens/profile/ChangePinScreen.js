@@ -13,13 +13,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { changeTransactionPin } from "../../store/slices/profileSlice";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 
 const PIN_LENGTH = 6;
 
 export default function ChangePinScreen({ navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { isUpdating } = useSelector((state) => state.profile);
   const [step, setStep] = useState("current");
   const [currentPin, setCurrentPin] = useState("");
@@ -105,11 +106,14 @@ export default function ChangePinScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: tokens.bg.canvas }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      <View style={{ height: 4, backgroundColor: colors.primary }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       {/* Header */}
       <View
@@ -128,20 +132,20 @@ export default function ChangePinScreen({ navigation }) {
             width: 40,
             height: 40,
             borderRadius: 12,
-            backgroundColor: colors.surfaceMuted,
+            backgroundColor: tokens.bg.surfaceMuted,
             alignItems: "center",
             justifyContent: "center",
             marginRight: 14,
           }}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.text} />
+          <Ionicons name="arrow-back" size={20} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text
           accessibilityRole="header"
           style={{
             fontSize: 20,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             letterSpacing: -0.5,
           }}
         >
@@ -162,20 +166,20 @@ export default function ChangePinScreen({ navigation }) {
             width: 72,
             height: 72,
             borderRadius: 36,
-            backgroundColor: colors.dark,
+            backgroundColor: tokens.bg.elevated,
             alignItems: "center",
             justifyContent: "center",
             marginBottom: 24,
           }}
         >
-          <Ionicons name="key" size={32} color={colors.primary} />
+          <Ionicons name="key" size={32} color={tokens.brand.default} />
         </View>
 
         <Text
           style={{
             fontSize: 22,
             fontWeight: "900",
-            color: colors.text,
+            color: tokens.text.primary,
             marginBottom: 8,
             textAlign: "center",
           }}
@@ -185,7 +189,7 @@ export default function ChangePinScreen({ navigation }) {
         <Text
           style={{
             fontSize: 14,
-            color: colors.textMuted,
+            color: tokens.text.muted,
             textAlign: "center",
             marginBottom: 36,
           }}
@@ -210,7 +214,9 @@ export default function ChangePinScreen({ navigation }) {
                 borderRadius: 9,
                 marginHorizontal: 8,
                 backgroundColor:
-                  i < current.value.length ? colors.primary : colors.border,
+                  i < current.value.length
+                    ? tokens.brand.default
+                    : tokens.border.default,
               }}
             />
           ))}
@@ -239,7 +245,7 @@ export default function ChangePinScreen({ navigation }) {
           <Text
             style={{
               fontSize: 13,
-              color: colors.textMuted,
+              color: tokens.text.muted,
               fontWeight: "600",
             }}
           >
@@ -257,7 +263,7 @@ export default function ChangePinScreen({ navigation }) {
                 height: 4,
                 borderRadius: 2,
                 backgroundColor:
-                  i <= stepIndex ? colors.primary : colors.border,
+                  i <= stepIndex ? tokens.brand.default : tokens.border.default,
                 marginHorizontal: 3,
               }}
             />
@@ -267,7 +273,7 @@ export default function ChangePinScreen({ navigation }) {
         {isUpdating && (
           <ActivityIndicator
             size="large"
-            color={colors.primary}
+            color={tokens.brand.default}
             style={{ marginTop: 24 }}
           />
         )}

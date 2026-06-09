@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../../theme";
 import { useSelector, useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { fetchWallet } from "../../store/slices/walletSlice";
@@ -28,7 +29,7 @@ import SearchModal from "../../components/SearchModal";
 import EmptyState from "../../components/EmptyState";
 import SkeletonLoader from "../../components/SkeletonLoader";
 import socketService from "../../services/socket";
-import { statusDisplay } from "../../lib/requestStatus";
+import { statusDisplay, statusToneColors } from "../../lib/requestStatus";
 import { resolveCategoryIcon } from "../../lib/categoryIcons";
 import {
   Ionicons,
@@ -82,16 +83,18 @@ const tintBackground = (hex) => {
 // stay white; this color drives the gradient icon chip + the tile's tinted
 // shadow so each tile reads as its own thing instead of monolithic orange.
 // Keyed by slug for dynamic categories (restaurant/grocery/pharmacy) and by
-// id for the two static tiles (SHOPS/PACKAGE).
-const TILE_ACCENT = {
-  restaurant: "#EA580C",
-  grocery:    "#65A30D",
-  pharmacy:   "#0D9488",
-  SHOPS:      "#4F46E5",
-  PACKAGE:    "#09090b",
+// id for the two static tiles (SHOPS/PACKAGE). Resolves through reactive
+// `tokens.category.*` so the gradient chips re-tone in dark mode.
+const accentFor = (item, tokens) => {
+  const TILE_ACCENT = {
+    restaurant: tokens.category.food.icon,
+    grocery:    tokens.category.groceries.icon,
+    pharmacy:   tokens.category.pharmacy.icon,
+    SHOPS:      tokens.category.groceries.icon,
+    PACKAGE:    tokens.text.primary,
+  };
+  return TILE_ACCENT[item.slug || item.id] || item.color || tokens.brand.default;
 };
-
-const accentFor = (item) => TILE_ACCENT[item.slug || item.id] || item.color || "#EA580C";
 
 // Suffix a hex color with an alpha byte ("#EA580C" + "B3" → "#EA580CB3").
 // Used to build the second stop of the chip's gradient + the specular
@@ -104,13 +107,15 @@ const withAlpha = (hex, alpha) =>
 // VTU services list. `key` ties the row to the i18n catalog (utility.*) and to
 // the screen name in the navigation switch below. `name` field removed in
 // favor of t() lookup at render time.
+// `color` is resolved at render from `tokens.category[key]` (key already
+// matches the category token: airtime/data/electricity/transfer) so the
+// gradient chips re-tone in dark mode.
 const vtuServices = [
   {
     id: "v1",
     key: "airtime",
     screen: "Airtime",
     icon: "phone-portrait-outline",
-    color: "#EA580C",
     type: "Ionicons",
   },
   {
@@ -118,7 +123,6 @@ const vtuServices = [
     key: "data",
     screen: "Data",
     icon: "wifi-outline",
-    color: "#2563EB",
     type: "Ionicons",
   },
   {
@@ -126,7 +130,6 @@ const vtuServices = [
     key: "electricity",
     screen: "Electricity",
     icon: "flash-outline",
-    color: "#D97706",
     type: "Ionicons",
   },
   {
@@ -134,10 +137,13 @@ const vtuServices = [
     key: "transfer",
     screen: "SendMoney",
     icon: "swap-horizontal-outline",
-    color: "#059669",
     type: "Ionicons",
   },
 ];
+
+// Resolve a VTU service's accent from its category token (reactive).
+const vtuColor = (item, tokens) =>
+  tokens.category[item.key] || tokens.brand.default;
 
 function resolveIcon(item) {
   if (item.iconType === "MaterialCommunityIcons") return MaterialCommunityIcons;
@@ -157,6 +163,7 @@ function formatNaira(amount) {
 
 export default function HomeScreen({ navigation }) {
   const { t } = useTranslation();
+  const { tokens, isDark } = useTheme();
   const { user } = useSelector((state) => state.auth);
   const { balance } = useSelector((state) => state.wallet);
   const { latitude, longitude } = useSelector((state) => state.location);
@@ -247,8 +254,11 @@ export default function HomeScreen({ navigation }) {
       style={{ flex: 1, backgroundColor: "transparent" }}
       edges={["top"]}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFAFA" />
-      <View style={{ height: 4, backgroundColor: "#EA580C" }} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={tokens.bg.canvas}
+      />
+      <View style={{ height: 4, backgroundColor: tokens.brand.default }} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -257,8 +267,8 @@ export default function HomeScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#EA580C"
-            colors={["#EA580C"]}
+            tintColor={tokens.brand.default}
+            colors={[tokens.brand.default]}
           />
         }
       >
@@ -281,14 +291,14 @@ export default function HomeScreen({ navigation }) {
             accessibilityHint={t("home.searchPlaceholder")}
             style={{
               flex: 1,
-              backgroundColor: "#fff",
+              backgroundColor: tokens.bg.surface,
               borderRadius: 999,
               paddingHorizontal: 16,
               paddingVertical: 12,
               flexDirection: "row",
               alignItems: "center",
               borderWidth: 1,
-              borderColor: "#EEF0F2",
+              borderColor: tokens.border.default,
               shadowColor: "#000",
               shadowOpacity: 0.05,
               shadowOffset: { width: 0, height: 2 },
@@ -297,11 +307,11 @@ export default function HomeScreen({ navigation }) {
               marginRight: 10,
             }}
           >
-            <Ionicons name="search" size={18} color="#6B7280" />
+            <Ionicons name="search" size={18} color={tokens.text.muted} />
             <Text
               numberOfLines={1}
               style={{
-                color: "#9CA3AF",
+                color: tokens.text.placeholder,
                 fontSize: 14,
                 marginLeft: 10,
                 fontWeight: "500",
@@ -333,13 +343,13 @@ export default function HomeScreen({ navigation }) {
               style={{
                 width: 40,
                 height: 40,
-                backgroundColor: "#09090b",
+                backgroundColor: tokens.bg.elevated,
                 borderRadius: 20,
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="person" size={18} color="#fff" />
+              <Ionicons name="person" size={18} color={tokens.text.onElevated} />
             </View>
             {/* Settings gear badge - bottom-right corner of the avatar.
                 Sits inside the parent TouchableOpacity (no borderRadius) so
@@ -353,14 +363,14 @@ export default function HomeScreen({ navigation }) {
                 width: 18,
                 height: 18,
                 borderRadius: 9,
-                backgroundColor: "#EA580C",
+                backgroundColor: tokens.brand.default,
                 alignItems: "center",
                 justifyContent: "center",
                 borderWidth: 2,
-                borderColor: "#FAFAFA",
+                borderColor: tokens.bg.canvas,
               }}
             >
-              <Ionicons name="settings-sharp" size={9} color="#fff" />
+              <Ionicons name="settings-sharp" size={9} color={tokens.text.onBrand} />
             </View>
           </TouchableOpacity>
         </View>
@@ -380,7 +390,7 @@ export default function HomeScreen({ navigation }) {
           style={{
             marginHorizontal: 20,
             marginTop: 28,
-            backgroundColor: "#09090b",
+            backgroundColor: tokens.bg.elevated,
             borderRadius: 20,
             paddingHorizontal: 18,
             paddingVertical: 18,
@@ -403,12 +413,12 @@ export default function HomeScreen({ navigation }) {
                 marginRight: 12,
               }}
             >
-              <Ionicons name="wallet" size={20} color="#E5E7EB" />
+              <Ionicons name="wallet" size={20} color={tokens.text.onElevated} />
             </View>
             <View>
               <Text
                 style={{
-                  color: "#6B7280",
+                  color: tokens.text.muted,
                   fontSize: 11,
                   fontWeight: "600",
                   letterSpacing: 1.2,
@@ -420,7 +430,7 @@ export default function HomeScreen({ navigation }) {
               </Text>
               <Text
                 style={{
-                  color: "#fff",
+                  color: tokens.text.onElevated,
                   fontSize: 18,
                   fontWeight: "900",
                   letterSpacing: -0.5,
@@ -434,7 +444,7 @@ export default function HomeScreen({ navigation }) {
           </View>
           <View
             style={{
-              backgroundColor: "#EA580C",
+              backgroundColor: tokens.brand.default,
               paddingHorizontal: 14,
               paddingVertical: 8,
               borderRadius: 10,
@@ -444,7 +454,7 @@ export default function HomeScreen({ navigation }) {
           >
             <Text
               style={{
-                color: "#fff",
+                color: tokens.text.onBrand,
                 fontSize: 13,
                 fontWeight: "800",
                 marginRight: 4,
@@ -452,7 +462,7 @@ export default function HomeScreen({ navigation }) {
             >
               {t("home.viewWallet")}
             </Text>
-            <Ionicons name="chevron-forward" size={14} color="#fff" />
+            <Ionicons name="chevron-forward" size={14} color={tokens.text.onBrand} />
           </View>
         </TouchableOpacity>
 
@@ -471,7 +481,7 @@ export default function HomeScreen({ navigation }) {
               style={{
                 fontSize: 20,
                 fontWeight: "900",
-                color: "#09090b",
+                color: tokens.text.primary,
                 letterSpacing: -0.5,
               }}
             >
@@ -481,7 +491,7 @@ export default function HomeScreen({ navigation }) {
               style={{
                 width: 30,
                 height: 3.5,
-                backgroundColor: "#EA580C",
+                backgroundColor: tokens.brand.default,
                 borderRadius: 2,
               }}
             />
@@ -499,7 +509,7 @@ export default function HomeScreen({ navigation }) {
             </View>
           ) : categoriesError && homeCategoryTiles.length === 0 ? (
             <View style={{ paddingVertical: 16, alignItems: "center" }}>
-              <Text style={{ color: "#DC2626", fontSize: 13, marginBottom: 8 }}>
+              <Text style={{ color: tokens.status.errorStrong, fontSize: 13, marginBottom: 8 }}>
                 {t("home.servicesError")}
               </Text>
               <TouchableOpacity
@@ -507,7 +517,7 @@ export default function HomeScreen({ navigation }) {
                 accessibilityRole="button"
                 accessibilityLabel={t("home.servicesRetry")}
               >
-                <Text style={{ color: "#EA580C", fontSize: 13, fontWeight: "600" }}>
+                <Text style={{ color: tokens.brand.default, fontSize: 13, fontWeight: "600" }}>
                   {t("home.servicesRetry")}
                 </Text>
               </TouchableOpacity>
@@ -528,7 +538,7 @@ export default function HomeScreen({ navigation }) {
           >
             {tiles.map((item) => {
               const Icon = resolveIcon(item);
-              const accent = accentFor(item);
+              const accent = accentFor(item, tokens);
               const displayName = item.nameKey ? t(item.nameKey) : item.name;
               const handlePress = () => {
                 if (item.isPackage) {
@@ -561,13 +571,13 @@ export default function HomeScreen({ navigation }) {
                     accessibilityLabel={displayName}
                     accessibilityState={{ disabled: !!item.comingSoon }}
                     style={{
-                      backgroundColor: "#fff",
+                      backgroundColor: tokens.bg.surface,
                       borderRadius: 22,
                       paddingVertical: 16,
                       paddingHorizontal: 8,
                       alignItems: "center",
                       borderWidth: 1,
-                      borderColor: "#F1F1F2",
+                      borderColor: tokens.border.default,
                       shadowColor: "#09090b",
                       shadowOpacity: 0.06,
                       shadowOffset: { width: 0, height: 6 },
@@ -598,7 +608,7 @@ export default function HomeScreen({ navigation }) {
                           justifyContent: "center",
                         }}
                       >
-                        <Icon name={item.icon} size={26} color="#FFFFFF" />
+                        <Icon name={item.icon} size={26} color={tokens.text.onBrand} />
                       </LinearGradient>
                       <View
                         style={{
@@ -616,7 +626,7 @@ export default function HomeScreen({ navigation }) {
                       style={{
                         fontSize: 12,
                         fontWeight: "700",
-                        color: "#09090b",
+                        color: tokens.text.primary,
                         textAlign: "center",
                         letterSpacing: -0.2,
                         opacity: item.comingSoon ? 0.6 : 1,
@@ -646,7 +656,7 @@ export default function HomeScreen({ navigation }) {
               style={{
                 fontSize: 20,
                 fontWeight: "900",
-                color: "#09090b",
+                color: tokens.text.primary,
                 letterSpacing: -0.5,
               }}
             >
@@ -656,7 +666,7 @@ export default function HomeScreen({ navigation }) {
               style={{
                 width: 30,
                 height: 3.5,
-                backgroundColor: "#EA580C",
+                backgroundColor: tokens.brand.default,
                 borderRadius: 2,
               }}
             />
@@ -668,6 +678,7 @@ export default function HomeScreen({ navigation }) {
           {(() => {
             const [hero, ...rest] = vtuServices;
             const HeroIcon = resolveIcon(hero);
+            const heroColor = vtuColor(hero, tokens);
             const heroLabel = t(`utility.${hero.key}`);
             const handlePress = (item) => {
               if (item.screen) {
@@ -682,14 +693,14 @@ export default function HomeScreen({ navigation }) {
                   accessibilityRole="button"
                   accessibilityLabel={heroLabel}
                   style={{
-                    backgroundColor: "#fff",
+                    backgroundColor: tokens.bg.surface,
                     borderRadius: 24,
                     padding: 18,
                     flexDirection: "row",
                     alignItems: "center",
                     borderWidth: 1,
-                    borderColor: "#F1F1F2",
-                    shadowColor: hero.color,
+                    borderColor: tokens.border.default,
+                    shadowColor: heroColor,
                     shadowOpacity: 0.14,
                     shadowOffset: { width: 0, height: 10 },
                     shadowRadius: 20,
@@ -702,7 +713,7 @@ export default function HomeScreen({ navigation }) {
                       the hero card a soft branded glow without overpowering
                       the white surface. */}
                   <LinearGradient
-                    colors={[withAlpha(hero.color, "1A"), "transparent"]}
+                    colors={[withAlpha(heroColor, "1A"), "transparent"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0.8 }}
                     style={{
@@ -723,7 +734,7 @@ export default function HomeScreen({ navigation }) {
                     }}
                   >
                     <LinearGradient
-                      colors={[hero.color, withAlpha(hero.color, "B3")]}
+                      colors={[heroColor, withAlpha(heroColor, "B3")]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
@@ -732,7 +743,7 @@ export default function HomeScreen({ navigation }) {
                         justifyContent: "center",
                       }}
                     >
-                      <HeroIcon name={hero.icon} size={30} color="#fff" />
+                      <HeroIcon name={hero.icon} size={30} color={tokens.text.onBrand} />
                     </LinearGradient>
                   </View>
                   <View style={{ flex: 1 }}>
@@ -740,7 +751,7 @@ export default function HomeScreen({ navigation }) {
                       style={{
                         fontSize: 10,
                         fontWeight: "800",
-                        color: hero.color,
+                        color: heroColor,
                         letterSpacing: 1.4,
                         textTransform: "uppercase",
                         marginBottom: 2,
@@ -753,7 +764,7 @@ export default function HomeScreen({ navigation }) {
                       style={{
                         fontSize: 18,
                         fontWeight: "900",
-                        color: "#09090b",
+                        color: tokens.text.primary,
                         letterSpacing: -0.5,
                       }}
                     >
@@ -761,7 +772,7 @@ export default function HomeScreen({ navigation }) {
                     </Text>
                     <Text
                       numberOfLines={1}
-                      style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}
+                      style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}
                     >
                       {t("home.billsHero.blurb")}
                     </Text>
@@ -771,13 +782,13 @@ export default function HomeScreen({ navigation }) {
                       width: 34,
                       height: 34,
                       borderRadius: 17,
-                      backgroundColor: hero.color,
+                      backgroundColor: heroColor,
                       alignItems: "center",
                       justifyContent: "center",
                       marginLeft: 8,
                     }}
                   >
-                    <Ionicons name="arrow-forward" size={16} color="#fff" />
+                    <Ionicons name="arrow-forward" size={16} color={tokens.text.onBrand} />
                   </View>
                 </TouchableOpacity>
 
@@ -792,6 +803,7 @@ export default function HomeScreen({ navigation }) {
                 >
                   {rest.map((item) => {
                     const Icon = resolveIcon(item);
+                    const color = vtuColor(item, tokens);
                     const label = t(`utility.${item.key}`);
                     return (
                       <View
@@ -804,13 +816,13 @@ export default function HomeScreen({ navigation }) {
                           accessibilityRole="button"
                           accessibilityLabel={label}
                           style={{
-                            backgroundColor: "#fff",
+                            backgroundColor: tokens.bg.surface,
                             borderRadius: 22,
                             paddingVertical: 16,
                             paddingHorizontal: 8,
                             alignItems: "center",
                             borderWidth: 1,
-                            borderColor: "#F1F1F2",
+                            borderColor: tokens.border.default,
                             shadowColor: "#09090b",
                             shadowOpacity: 0.06,
                             shadowOffset: { width: 0, height: 6 },
@@ -831,7 +843,7 @@ export default function HomeScreen({ navigation }) {
                             }}
                           >
                             <LinearGradient
-                              colors={[item.color, withAlpha(item.color, "B3")]}
+                              colors={[color, withAlpha(color, "B3")]}
                               start={{ x: 0, y: 0 }}
                               end={{ x: 1, y: 1 }}
                               style={{
@@ -843,7 +855,7 @@ export default function HomeScreen({ navigation }) {
                               <Icon
                                 name={item.icon}
                                 size={26}
-                                color="#FFFFFF"
+                                color={tokens.text.onBrand}
                               />
                             </LinearGradient>
                             <View
@@ -862,7 +874,7 @@ export default function HomeScreen({ navigation }) {
                             style={{
                               fontSize: 12,
                               fontWeight: "700",
-                              color: "#09090b",
+                              color: tokens.text.primary,
                               textAlign: "center",
                               letterSpacing: -0.2,
                             }}
@@ -906,7 +918,7 @@ export default function HomeScreen({ navigation }) {
           style={{
             flex: 1,
             justifyContent: "flex-end",
-            backgroundColor: "#00000055",
+            backgroundColor: tokens.overlay.scrim,
           }}
         >
           <TouchableOpacity
@@ -922,7 +934,7 @@ export default function HomeScreen({ navigation }) {
           />
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: tokens.bg.surface,
               borderTopLeftRadius: 32,
               borderTopRightRadius: 32,
               paddingHorizontal: 20,
@@ -935,7 +947,7 @@ export default function HomeScreen({ navigation }) {
               style={{
                 width: 44,
                 height: 5,
-                backgroundColor: "#E5E7EB",
+                backgroundColor: tokens.border.default,
                 borderRadius: 3,
                 alignSelf: "center",
                 marginBottom: 24,
@@ -946,19 +958,19 @@ export default function HomeScreen({ navigation }) {
               style={{
                 fontSize: 19,
                 fontWeight: "900",
-                color: "#09090b",
+                color: tokens.text.primary,
                 letterSpacing: -0.5,
                 marginBottom: 4,
               }}
             >
               {t("home.walletSheet.title")}
             </Text>
-            <Text style={{ color: "#6B7280", fontSize: 13, marginBottom: 20 }}>
+            <Text style={{ color: tokens.text.muted, fontSize: 13, marginBottom: 20 }}>
               {t("home.walletSheet.subtitle")}
             </Text>
             <View
               style={{
-                backgroundColor: "#09090b",
+                backgroundColor: tokens.bg.elevated,
                 borderRadius: 20,
                 padding: 22,
                 marginBottom: 24,
@@ -972,7 +984,7 @@ export default function HomeScreen({ navigation }) {
                   right: 36,
                   width: 4,
                   height: "100%",
-                  backgroundColor: "#EA580C",
+                  backgroundColor: tokens.brand.default,
                 }}
               />
               <View
@@ -985,7 +997,7 @@ export default function HomeScreen({ navigation }) {
               >
                 <Text
                   style={{
-                    color: "#6B7280",
+                    color: tokens.text.muted,
                     fontSize: 11,
                     fontWeight: "700",
                     letterSpacing: 1.4,
@@ -1003,13 +1015,13 @@ export default function HomeScreen({ navigation }) {
                   <Ionicons
                     name={showBalance ? "eye-off-outline" : "eye-outline"}
                     size={20}
-                    color="#6B7280"
+                    color={tokens.text.muted}
                   />
                 </TouchableOpacity>
               </View>
               <Text
                 style={{
-                  color: "#fff",
+                  color: tokens.text.onElevated,
                   fontSize: 38,
                   fontWeight: "900",
                   letterSpacing: -1.5,
@@ -1030,14 +1042,14 @@ export default function HomeScreen({ navigation }) {
                 accessibilityLabel={t("home.walletSheet.fund")}
                 style={{
                   flex: 1,
-                  backgroundColor: "#EA580C",
+                  backgroundColor: tokens.brand.default,
                   paddingVertical: 15,
                   borderRadius: 14,
                   alignItems: "center",
                 }}
               >
                 <Text
-                  style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}
+                  style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 15 }}
                 >
                   {t("home.walletSheet.fund")}
                 </Text>
@@ -1047,14 +1059,14 @@ export default function HomeScreen({ navigation }) {
                 accessibilityLabel={t("home.walletSheet.send")}
                 style={{
                   flex: 1,
-                  backgroundColor: "#F3F4F6",
+                  backgroundColor: tokens.bg.surfaceMuted,
                   paddingVertical: 15,
                   borderRadius: 14,
                   alignItems: "center",
                 }}
               >
                 <Text
-                  style={{ color: "#09090b", fontWeight: "800", fontSize: 15 }}
+                  style={{ color: tokens.text.primary, fontWeight: "800", fontSize: 15 }}
                 >
                   {t("home.walletSheet.send")}
                 </Text>
@@ -1072,6 +1084,7 @@ export default function HomeScreen({ navigation }) {
 // auto-increments when `notification:new` arrives via socket (notificationsBus).
 function NotificationBell({ navigation }) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const unreadCount = useSelector((s) => s.notifications.unreadCount);
   return (
     <TouchableOpacity
@@ -1079,12 +1092,12 @@ function NotificationBell({ navigation }) {
       style={{
         width: 40,
         height: 40,
-        backgroundColor: "#fff",
+        backgroundColor: tokens.bg.surface,
         borderRadius: 20,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1.5,
-        borderColor: "#E5E7EB",
+        borderColor: tokens.border.default,
       }}
       accessibilityRole="button"
       accessibilityLabel={
@@ -1093,7 +1106,7 @@ function NotificationBell({ navigation }) {
           : t("a11y.notifications")
       }
     >
-      <Ionicons name="notifications-outline" size={20} color="#09090b" />
+      <Ionicons name="notifications-outline" size={20} color={tokens.text.primary} />
       {unreadCount > 0 && (
         <View
           style={{
@@ -1104,16 +1117,16 @@ function NotificationBell({ navigation }) {
             height: 16,
             paddingHorizontal: 4,
             borderRadius: 9,
-            backgroundColor: "#EF4444",
+            backgroundColor: tokens.status.error,
             alignItems: "center",
             justifyContent: "center",
             borderWidth: 2,
-            borderColor: "#fff",
+            borderColor: tokens.bg.surface,
           }}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>
+          <Text style={{ color: tokens.text.onBrand, fontSize: 10, fontWeight: "800" }}>
             {unreadCount > 99 ? "99+" : unreadCount}
           </Text>
         </View>
@@ -1126,10 +1139,12 @@ function NotificationBell({ navigation }) {
 // slice is fed by socket-status-changed listeners in HomeScreen's useEffect.
 function ActiveRequestBanner({ request, navigation }) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   // Phase 8 - pass the merchant's category slug so the banner reads
   // "Pharmacist preparing…" / "Picking your groceries" instead of the
   // generic "Preparing your order" for pharmacy/grocery orders.
   const pill = statusDisplay(request.status, request.type, request.merchant?.category?.slug);
+  const pillColors = statusToneColors(pill.tone, tokens);
   const isPackage = request.type === "PACKAGE";
   const merchantName =
     request.merchant?.name ||
@@ -1143,11 +1158,11 @@ function ActiveRequestBanner({ request, navigation }) {
       style={{
         marginHorizontal: 20,
         marginTop: 14,
-        backgroundColor: "#fff",
+        backgroundColor: tokens.bg.surface,
         borderRadius: 18,
         padding: 16,
         borderWidth: 1,
-        borderColor: "#EA580C30",
+        borderColor: tokens.brand.softBorder,
         flexDirection: "row",
         alignItems: "center",
         shadowColor: "#EA580C",
@@ -1159,27 +1174,27 @@ function ActiveRequestBanner({ request, navigation }) {
       <View
         style={{
           width: 44, height: 44, borderRadius: 22,
-          backgroundColor: pill.bg,
+          backgroundColor: pillColors.bg,
           alignItems: "center", justifyContent: "center", marginRight: 12,
         }}
       >
-        <Ionicons name={isPackage ? "cube" : "fast-food"} size={20} color={pill.color} />
+        <Ionicons name={isPackage ? "cube" : "fast-food"} size={20} color={pillColors.color} />
       </View>
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: pill.bg }}>
-            <Text style={{ fontSize: 10, fontWeight: "800", color: pill.color }}>{pill.label}</Text>
+          <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: pillColors.bg }}>
+            <Text style={{ fontSize: 10, fontWeight: "800", color: pillColors.color }}>{pill.label}</Text>
           </View>
         </View>
-        <Text numberOfLines={1} style={{ marginTop: 4, fontSize: 14, fontWeight: "800", color: "#09090b" }}>
+        <Text numberOfLines={1} style={{ marginTop: 4, fontSize: 14, fontWeight: "800", color: tokens.text.primary }}>
           {merchantName}
         </Text>
-        <Text numberOfLines={1} style={{ marginTop: 2, fontSize: 12, color: "#6B7280" }}>
+        <Text numberOfLines={1} style={{ marginTop: 2, fontSize: 12, color: tokens.text.muted }}>
           {request.dropoffAddress || t("home.active.trackingFallback")}
         </Text>
       </View>
-      <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: "#EA580C" }}>
-        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>{t("home.active.trackCta")}</Text>
+      <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: tokens.brand.default }}>
+        <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 12 }}>{t("home.active.trackCta")}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -1190,6 +1205,7 @@ function ActiveRequestBanner({ request, navigation }) {
 // in-app screen name.
 function PromoBanner({ banner, navigation }) {
   const { t } = useTranslation();
+  const { tokens } = useTheme();
   const handleTap = () => {
     if (!banner.deepLink) return;
     // Local schemes like `/wallet`, `/orders`, `iprime://request/abc`. The
@@ -1221,7 +1237,7 @@ function PromoBanner({ banner, navigation }) {
     }
   };
 
-  const bg = banner.bgColor || "#09090b";
+  const bg = banner.bgColor || tokens.bg.elevated;
   return (
     <TouchableOpacity
       onPress={handleTap}
@@ -1242,7 +1258,7 @@ function PromoBanner({ banner, navigation }) {
         {banner.subtitle ? (
           <Text
             style={{
-              color: "#EA580C",
+              color: tokens.brand.default,
               fontSize: 10,
               fontWeight: "800",
               letterSpacing: 1.5,
@@ -1255,7 +1271,7 @@ function PromoBanner({ banner, navigation }) {
         ) : null}
         <Text
           style={{
-            color: "#fff",
+            color: tokens.text.onElevated,
             fontSize: 20,
             fontWeight: "900",
             letterSpacing: -0.5,
@@ -1267,8 +1283,8 @@ function PromoBanner({ banner, navigation }) {
         </Text>
       </View>
       {banner.deepLink && (
-        <View style={{ backgroundColor: "#EA580C", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 }}>
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>{t("common.continue")}</Text>
+        <View style={{ backgroundColor: tokens.brand.default, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 }}>
+          <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 12 }}>{t("common.continue")}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -1278,6 +1294,7 @@ function PromoBanner({ banner, navigation }) {
 // Phase 6 - Recent Activity: 5 most recent requests + transactions interleaved.
 function RecentActivity({ items, navigation }) {
   const { t, i18n } = useTranslation();
+  const { tokens } = useTheme();
   const handleTap = (it) => {
     if (it.kind === "request") {
       navigation.navigate("RequestTracking", { requestId: it.id });
@@ -1303,7 +1320,7 @@ function RecentActivity({ items, navigation }) {
   return (
     <View style={{ paddingHorizontal: 20, marginTop: 40, marginBottom: 28 }}>
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 18 }}>
-        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: "900", color: "#09090b", letterSpacing: -0.5 }}>
+        <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: "900", color: tokens.text.primary, letterSpacing: -0.5 }}>
           {t("home.sectionRecent")}
         </Text>
         {items.length > 0 && (
@@ -1312,7 +1329,7 @@ function RecentActivity({ items, navigation }) {
             accessibilityRole="link"
             accessibilityLabel={t("home.seeAll")}
           >
-            <Text style={{ fontSize: 12, fontWeight: "700", color: "#EA580C" }}>{t("home.seeAll")}</Text>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.brand.default }}>{t("home.seeAll")}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1325,7 +1342,7 @@ function RecentActivity({ items, navigation }) {
           fill={false}
         />
       ) : (
-        <View style={{ backgroundColor: "#fff", borderRadius: 18, borderWidth: 1.5, borderColor: "#E5E7EB", overflow: "hidden" }}>
+        <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 18, borderWidth: 1.5, borderColor: tokens.border.default, overflow: "hidden" }}>
           {items.map((it, idx) => (
             <TouchableOpacity
               key={`${it.kind}-${it.id}`}
@@ -1336,13 +1353,13 @@ function RecentActivity({ items, navigation }) {
                 paddingVertical: 12,
                 paddingHorizontal: 14,
                 borderTopWidth: idx === 0 ? 0 : 1,
-                borderTopColor: "#F3F4F6",
+                borderTopColor: tokens.border.subtle,
               }}
             >
               <View
                 style={{
                   width: 36, height: 36, borderRadius: 10,
-                  backgroundColor: it.kind === "request" ? `${"#EA580C"}20` : "#DCFCE7",
+                  backgroundColor: it.kind === "request" ? tokens.brand.soft : tokens.status.successSoft,
                   alignItems: "center", justifyContent: "center", marginRight: 12,
                 }}
               >
@@ -1355,19 +1372,19 @@ function RecentActivity({ items, navigation }) {
                         : "fast-food-outline"
                   }
                   size={18}
-                  color={it.kind === "request" ? "#EA580C" : "#15803D"}
+                  color={it.kind === "request" ? tokens.brand.default : tokens.status.successStrong}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: "#09090b" }}>
+                <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: "700", color: tokens.text.primary }}>
                   {it.title}
                 </Text>
-                <Text numberOfLines={1} style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+                <Text numberOfLines={1} style={{ fontSize: 11, color: tokens.text.muted, marginTop: 2 }}>
                   {it.subtitle} · {formatDate(it.at)}
                 </Text>
               </View>
               {it.amount > 0 && (
-                <Text style={{ fontSize: 13, fontWeight: "800", color: "#09090b", marginLeft: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: tokens.text.primary, marginLeft: 8 }}>
                   ₦{Number(it.amount).toLocaleString("en-NG")}
                 </Text>
               )}

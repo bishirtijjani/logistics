@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
-import { colors } from "../../theme";
+import { useTheme } from "../../theme";
 import PinBottomSheet from "../../components/PinBottomSheet";
 import { usePinGuard } from "../../lib/usePinGuard";
 import { buyData, fetchPlans, fetchRecentRecipients } from "../../store/slices/utilitySlice";
@@ -18,6 +18,7 @@ const naira = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
 export default function DataScreen({ navigation }) {
   const dispatch = useDispatch();
+  const { tokens } = useTheme();
   const { t } = useTranslation();
   const { balance } = useSelector((state) => state.wallet);
   const { plans, isLoading, recentRecipients } = useSelector((state) => state.utility);
@@ -106,7 +107,7 @@ export default function DataScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
@@ -115,18 +116,18 @@ export default function DataScreen({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
           </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: colors.text }}>
+          <Text accessibilityRole="header" style={{ fontSize: 20, fontWeight: "800", color: tokens.text.primary }}>
             {t("utility.dataScreen.title")}
           </Text>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 }}>
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 12 }}>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 12 }}>
           {t("utility.dataScreen.selectNetwork")}{" "}
-          {networkAutoSelected ? <Text style={{ color: colors.primary }}>{t("utility.airtimeScreen.autoDetected")}</Text> : null}
+          {networkAutoSelected ? <Text style={{ color: tokens.brand.default }}>{t("utility.airtimeScreen.autoDetected")}</Text> : null}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 20 }}>
           {networks.map((n) => (
@@ -138,65 +139,65 @@ export default function DataScreen({ navigation }) {
               accessibilityLabel={n.networkName}
               style={{
                 flexDirection: "row", alignItems: "center",
-                backgroundColor: selectedNetwork?.id === n.id ? colors.primary : colors.surface,
+                backgroundColor: selectedNetwork?.id === n.id ? tokens.brand.default : tokens.bg.surface,
                 borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
                 marginRight: 8, marginBottom: 8, borderWidth: 2,
-                borderColor: selectedNetwork?.id === n.id ? colors.primary : colors.border,
+                borderColor: selectedNetwork?.id === n.id ? tokens.brand.default : tokens.border.default,
               }}
             >
               <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: NETWORK_COLORS[n.networkName] || "#999", marginRight: 8 }} />
-              <Text style={{ fontSize: 14, fontWeight: "700", color: selectedNetwork?.id === n.id ? colors.white : colors.text }}>{n.networkName}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: selectedNetwork?.id === n.id ? tokens.text.onBrand : tokens.text.primary }}>{n.networkName}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {recents.length > 0 ? (
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.dataScreen.recent")}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.dataScreen.recent")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {recents.map((r) => (
                 <TouchableOpacity
                   key={r.recipient}
                   onPress={() => handlePickRecent(r)}
                   style={{
-                    backgroundColor: colors.surface,
+                    backgroundColor: tokens.bg.surface,
                     borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10,
-                    marginRight: 8, borderWidth: 1, borderColor: colors.border,
+                    marginRight: 8, borderWidth: 1, borderColor: tokens.border.default,
                     flexDirection: "row", alignItems: "center",
                   }}
                 >
-                  <Ionicons name="time-outline" size={14} color={colors.textMuted} style={{ marginRight: 6 }} />
-                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.text }}>{r.recipient}</Text>
+                  <Ionicons name="time-outline" size={14} color={tokens.text.muted} style={{ marginRight: 6 }} />
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: tokens.text.primary }}>{r.recipient}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
         ) : null}
 
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: 8 }}>{t("utility.dataScreen.phoneLabel")}</Text>
-        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.phone ? colors.error : colors.border, paddingHorizontal: 16, marginBottom: fieldErrors.phone ? 4 : 20 }}>
-          <Ionicons name="call-outline" size={20} color={colors.textMuted} />
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: 8 }}>{t("utility.dataScreen.phoneLabel")}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: tokens.bg.surface, borderRadius: 16, borderWidth: 2, borderColor: fieldErrors.phone ? tokens.status.error : tokens.border.default, paddingHorizontal: 16, marginBottom: fieldErrors.phone ? 4 : 20 }}>
+          <Ionicons name="call-outline" size={20} color={tokens.text.muted} />
           <TextInput
             value={phone}
             onChangeText={handlePhoneChange}
             placeholder="080XXXXXXXX"
             accessibilityLabel={t("utility.dataScreen.phoneLabel")}
-            placeholderTextColor={colors.textLight}
+            placeholderTextColor={tokens.text.placeholder}
             keyboardType="phone-pad"
             maxLength={11}
-            style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.text, paddingVertical: 16, marginLeft: 12 }}
+            style={{ flex: 1, fontSize: 16, fontWeight: "600", color: tokens.text.primary, paddingVertical: 16, marginLeft: 12 }}
           />
         </View>
         {fieldErrors.phone ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.phone}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 16, paddingLeft: 4 }}>{fieldErrors.phone}</Text>
         ) : null}
 
-        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.textMuted, marginBottom: fieldErrors.plan ? 4 : 12 }}>{t("utility.dataScreen.selectPlan")}</Text>
+        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.muted, marginBottom: fieldErrors.plan ? 4 : 12 }}>{t("utility.dataScreen.selectPlan")}</Text>
         {fieldErrors.plan ? (
-          <Text style={{ fontSize: 12, color: colors.error, marginBottom: 12, paddingLeft: 4 }}>{fieldErrors.plan}</Text>
+          <Text style={{ fontSize: 12, color: tokens.status.error, marginBottom: 12, paddingLeft: 4 }}>{fieldErrors.plan}</Text>
         ) : null}
         {isLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} accessibilityLabel={t("common.loading")} />
+          <ActivityIndicator color={tokens.brand.default} style={{ marginVertical: 20 }} accessibilityLabel={t("common.loading")} />
         ) : (
           <View style={{ marginBottom: 20 }}>
             {dataPlans.map((plan) => (
@@ -208,42 +209,42 @@ export default function DataScreen({ navigation }) {
                 accessibilityLabel={`${plan.name}. ${naira(plan.sellingPrice)}`}
                 style={{
                   flexDirection: "row", alignItems: "center",
-                  backgroundColor: selectedPlan?.id === plan.id ? colors.primary + "10" : colors.surface,
+                  backgroundColor: selectedPlan?.id === plan.id ? tokens.brand.soft : tokens.bg.surface,
                   borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 2,
-                  borderColor: selectedPlan?.id === plan.id ? colors.primary : colors.border,
+                  borderColor: selectedPlan?.id === plan.id ? tokens.brand.default : tokens.border.default,
                 }}
               >
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: selectedPlan?.id === plan.id ? colors.primary : colors.surfaceMuted, alignItems: "center", justifyContent: "center", marginRight: 16 }}>
-                  <Ionicons name="wifi" size={24} color={selectedPlan?.id === plan.id ? colors.white : colors.text} />
+                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: selectedPlan?.id === plan.id ? tokens.brand.default : tokens.bg.surfaceMuted, alignItems: "center", justifyContent: "center", marginRight: 16 }}>
+                  <Ionicons name="wifi" size={24} color={selectedPlan?.id === plan.id ? tokens.text.onBrand : tokens.text.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "700", color: colors.text }}>{plan.name}</Text>
-                  {plan.planType ? <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600", marginTop: 2 }}>{plan.planType}</Text> : null}
-                  <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 2 }}>{t("utility.dataScreen.validity")}: {plan.validity || "N/A"}</Text>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>{plan.name}</Text>
+                  {plan.planType ? <Text style={{ fontSize: 11, color: tokens.brand.default, fontWeight: "600", marginTop: 2 }}>{plan.planType}</Text> : null}
+                  <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 2 }}>{t("utility.dataScreen.validity")}: {plan.validity || "N/A"}</Text>
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: "800", color: colors.primary }}>{naira(plan.sellingPrice)}</Text>
+                <Text style={{ fontSize: 16, fontWeight: "800", color: tokens.brand.default }}>{naira(plan.sellingPrice)}</Text>
               </TouchableOpacity>
             ))}
             {!dataPlans.length && selectedNetwork && (
-              <Text style={{ color: colors.textMuted, textAlign: "center", marginVertical: 20 }}>{t("utility.dataScreen.noPlans")}</Text>
+              <Text style={{ color: tokens.text.muted, textAlign: "center", marginVertical: 20 }}>{t("utility.dataScreen.noPlans")}</Text>
             )}
           </View>
         )}
       </ScrollView>
 
-      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: colors.border }}>
+      <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: tokens.bg.canvas, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
         <TouchableOpacity
           onPress={handlePurchase}
           disabled={isLoading || !selectedPlan}
           accessibilityRole="button"
           accessibilityLabel={selectedPlan ? naira(selectedPlan.sellingPrice) : t("utility.dataScreen.selectPlan")}
           accessibilityState={{ disabled: isLoading || !selectedPlan, busy: isLoading }}
-          style={{ backgroundColor: selectedPlan ? colors.primary : colors.textLight, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
+          style={{ backgroundColor: selectedPlan ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={colors.white} accessibilityLabel={t("common.loading")} />
+            <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
-            <Text style={{ color: colors.white, fontSize: 16, fontWeight: "800" }}>
+            <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
               {selectedPlan ? naira(selectedPlan.sellingPrice) : t("utility.dataScreen.selectPlan")}
             </Text>
           )}
