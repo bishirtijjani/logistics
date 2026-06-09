@@ -114,12 +114,7 @@ export default function SettingsPage() {
       setPinForm({ currentPin: '', newPin: '', confirmPin: '' })
       showSuccessToast('Transaction PIN updated')
     } catch (err) {
-      const left = err?.errors?.attemptsRemaining
-      setPinError(
-        err?.message
-          ? (left != null ? `${err.message} (${left} attempt${left === 1 ? '' : 's'} left)` : err.message)
-          : 'Could not update your PIN. Please try again.'
-      )
+      setPinError(err?.message || 'Could not update your PIN. Please try again.')
     } finally {
       setPinSubmitting(false)
     }

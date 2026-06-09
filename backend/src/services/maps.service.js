@@ -6,8 +6,16 @@ const axios = require("axios");
 const { config } = require("../config");
 const { logger } = require("../utils/logger");
 const { AppError } = require("../utils/api-error");
+const { GEO_RESTRICTION } = require("../config/geo-restriction");
 
 const MAPS_BASE = "https://maps.googleapis.com/maps/api";
+
+// Geocoding `components` filter. Restricts to the operating state when enabled,
+// otherwise just to the country. See config/geo-restriction.js to undo.
+const geocodeComponents = () =>
+  GEO_RESTRICTION.enabled
+    ? `country:${GEO_RESTRICTION.country}|administrative_area:${GEO_RESTRICTION.adminArea}`
+    : `country:${GEO_RESTRICTION.country}`;
 
 /**
  * Get distance and duration between two points using Distance Matrix API.
@@ -51,7 +59,7 @@ const geocodeAddress = async (address) => {
       params: {
         address,
         key: config.GOOGLE_MAPS_API_KEY,
-        components: "country:NG",
+        components: geocodeComponents(),
       },
     });
 
@@ -133,12 +141,24 @@ const getDirections = async (originLat, originLng, destLat, destLng) => {
  */
 const autocomplete = async (query, sessionToken) => {
   try {
+    // Restrict results to the operating area when enabled. The legacy Places
+    // Autocomplete API only supports a circular restriction, so we bias to the
+    // area centre + radius and pass `strictbounds` to exclude anything outside.
+    // See config/geo-restriction.js to undo.
+    const restriction = GEO_RESTRICTION.enabled
+      ? {
+          location: `${GEO_RESTRICTION.search.center.lat},${GEO_RESTRICTION.search.center.lng}`,
+          radius: GEO_RESTRICTION.search.radiusMeters,
+          strictbounds: true,
+        }
+      : {};
     const response = await axios.get(`${MAPS_BASE}/place/autocomplete/json`, {
       params: {
         input: query,
         key: config.GOOGLE_MAPS_API_KEY,
-        components: "country:ng",
+        components: `country:${GEO_RESTRICTION.country.toLowerCase()}`,
         types: "geocode|establishment",
+        ...restriction,
       },
     });
 

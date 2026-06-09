@@ -15,6 +15,7 @@ import {
   BasemapSwitcher,
   BasemapLayers,
 } from './GoogleBasemap'
+import { clampToBounds } from '../config/geoRestriction'
 
 // Katsina city centre - same fallback the customer app uses.
 const FALLBACK = { lat: 13.0059, lng: 7.6019 }
@@ -262,9 +263,20 @@ export default function LocationPicker({ value, onChange }) {
   }, [])
 
   // Reverse-geocode the map centre once the user stops moving the map.
-  const handleCenterChange = useCallback((newLat, newLng) => {
+  const handleCenterChange = useCallback((rawLat, rawLng) => {
+    // Keep the selection inside the operating area. If the user pans out, snap
+    // the map back to the nearest in-area point. No-op when the restriction is
+    // disabled (config/geoRestriction.js).
+    const clamped = clampToBounds({ lat: rawLat, lng: rawLng })
+    const snapped = clamped.lat !== rawLat || clamped.lng !== rawLng
+    const newLat = clamped.lat
+    const newLng = clamped.lng
     if (geocodeTimeout.current) clearTimeout(geocodeTimeout.current)
     setGeocoding(true)
+    if (snapped) {
+      onChange({ lat: newLat, lng: newLng, address })
+      setRecenterKey((k) => k + 1)
+    }
     // Fallback string is >= 5 chars so backend validation (address.min(5))
     // never rejects a pin just because reverse-geocode returned nothing.
     const coordFallback = `Pin at ${newLat.toFixed(5)}, ${newLng.toFixed(5)}`

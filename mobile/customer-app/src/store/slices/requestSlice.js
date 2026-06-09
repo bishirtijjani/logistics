@@ -65,8 +65,8 @@ export const fetchRequestById = createAsyncThunk(
 
 // Create new request - requires quoteToken issued by /requests/quote.
 // On failure we reject with the FULL normalised error so callers like
-// PinBottomSheet can read .status (e.g. 423 lockout) and .data.errors
-// (lockedUntil, attemptsRemaining). Reducer only renders the message.
+// PinBottomSheet can read .status and .code (e.g. PIN_NOT_SET). Reducer only
+// renders the message.
 export const createRequest = createAsyncThunk(
   'request/createRequest',
   async (requestData, { rejectWithValue }) => {

@@ -23,8 +23,9 @@ import {
   setLocation,
   detectCurrentLocation,
 } from "../../store/slices/locationSlice";
+import { GEO_RESTRICTION, clampToBounds, isOutOfBounds } from "../../config/geoRestriction";
 
-const KATSINA = { latitude: 13.0059, longitude: 7.6019 };
+const KATSINA = GEO_RESTRICTION.center;
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function LocationPickerScreen({ navigation, route }) {
@@ -38,14 +39,14 @@ export default function LocationPickerScreen({ navigation, route }) {
   const geocodeTimeout = useRef(null);
   const sessionToken = useRef(`${Date.now()}-${Math.random()}`);
 
-  const [region, setRegion] = useState({
-    ...(savedLocation.latitude
-      ? {
-          latitude: savedLocation.latitude,
-          longitude: savedLocation.longitude,
-        }
-      : KATSINA),
-    ...DELTA,
+  const [region, setRegion] = useState(() => {
+    // Start on the saved location, but fall back to the operating-area centre if
+    // it's missing or (with the restriction on) sits outside the area.
+    const saved = savedLocation.latitude
+      ? { latitude: savedLocation.latitude, longitude: savedLocation.longitude }
+      : null;
+    const base = saved && !isOutOfBounds(saved) ? saved : KATSINA;
+    return { ...base, ...DELTA };
   });
   const [address, setAddress] = useState(savedLocation.address || "");
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -58,8 +59,16 @@ export default function LocationPickerScreen({ navigation, route }) {
 
   // Reverse geocode the map center when user stops dragging (debounced)
   const handleRegionChangeComplete = useCallback(
-    (newRegion) => {
+    (raw) => {
+      // Keep the map centre inside the operating area: if the user pans out,
+      // snap back to the nearest in-bounds point. No-op when the restriction
+      // is disabled (config/geoRestriction.js).
+      const clamped = clampToBounds(raw);
+      const corrected =
+        clamped.latitude !== raw.latitude || clamped.longitude !== raw.longitude;
+      const newRegion = corrected ? { ...raw, ...clamped } : raw;
       setRegion(newRegion);
+      if (corrected) mapRef.current?.animateToRegion(newRegion, 300);
       if (showSearch) return; // Don't geocode while searching
 
       // Clear any pending geocode
@@ -177,9 +186,10 @@ export default function LocationPickerScreen({ navigation, route }) {
       const pos = await ExpoLocation.getCurrentPositionAsync({
         accuracy: ExpoLocation.Accuracy.Balanced,
       });
+      // Clamp GPS into the operating area so a user physically outside Katsina
+      // still lands on a valid in-area point (no-op when restriction disabled).
       const newRegion = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
+        ...clampToBounds({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
         ...DELTA,
       };
       setRegion(newRegion);

@@ -66,8 +66,8 @@ export const fetchAuthProfile = createAsyncThunk(
 )
 
 // Change the transaction PIN. Verifies the current PIN server-side, so a wrong
-// current PIN comes back 401 (with attemptsRemaining) and 6 fails → 423 lockout
-// - the form surfaces those. Merchants start on the default '000000'.
+// current PIN comes back 401 and the form surfaces the message. There is no
+// attempt lockout. Merchants start on the default '000000'.
 export const changeTransactionPin = createAsyncThunk(
   'auth/changeTransactionPin',
   async ({ currentPin, newPin }, { rejectWithValue }) => {

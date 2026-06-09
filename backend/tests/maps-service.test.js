@@ -108,7 +108,12 @@ test('geocodeAddress: returns lat/lng + placeId for a valid address', async () =
   assert.equal(out.lat, 13.0059);
   assert.equal(out.lng, 7.6019);
   assert.equal(out.placeId, 'ChIJxxx');
-  assert.equal(lastRequest.params.components, 'country:NG', 'must scope to Nigeria');
+  // Geo-restriction (Katsina) scopes geocoding to the state via components.
+  assert.equal(
+    lastRequest.params.components,
+    'country:NG|administrative_area:Katsina',
+    'must scope to Katsina State',
+  );
 });
 
 test('geocodeAddress: AppError.badRequest when no results', async () => {
@@ -167,6 +172,10 @@ test('autocomplete: returns flattened predictions', async () => {
   assert.equal(out[0].mainText, 'Sani Street');
   assert.equal(out[1].mainText, 'Sani Abacha Road');
   assert.equal(lastRequest.params.components, 'country:ng');
+  // Geo-restriction (Katsina) confines autocomplete to a strict circle.
+  assert.equal(lastRequest.params.strictbounds, true);
+  assert.equal(lastRequest.params.location, '12.4,7.6');
+  assert.equal(lastRequest.params.radius, 150000);
 });
 
 test('autocomplete: empty array on ZERO_RESULTS (does not throw)', async () => {

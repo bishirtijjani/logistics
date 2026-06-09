@@ -449,27 +449,11 @@ const changeTransactionPin = async (userId, currentPin, newPin) => {
 
 /**
  * Verify transaction PIN - used before any financial operation.
- * Tracks failed attempts in Redis and locks the user after too many failures.
+ * A wrong PIN is rejected, but there is intentionally NO attempt-counting or
+ * lockout: the user can keep retrying. (Brute-force throttling was removed by
+ * product decision.)
  */
 const verifyTransactionPin = async (userId, pin) => {
-  const lockKey = `pin:lock:${userId}`;
-  const failKey = `pin:fails:${userId}`;
-
-  const PIN_MAX_ATTEMPTS = 6;
-  const PIN_LOCKOUT_SECONDS = 30 * 60; // 30 minutes
-
-  // Check if locked
-  const lockTtl = await redis.ttl(lockKey);
-  if (lockTtl > 0) {
-    const minutes = Math.ceil(lockTtl / 60);
-    throw new AppError(
-      `PIN locked. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
-      423,
-      true,
-      { lockedUntil: Date.now() + lockTtl * 1000, lockTtlSeconds: lockTtl },
-    );
-  }
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { transactionPin: true },
@@ -482,31 +466,8 @@ const verifyTransactionPin = async (userId, pin) => {
   const isValid = await bcrypt.compare(pin, user.transactionPin);
 
   if (!isValid) {
-    const fails = await redis.incr(failKey);
-    await redis.expire(failKey, PIN_LOCKOUT_SECONDS);
-
-    if (fails >= PIN_MAX_ATTEMPTS) {
-      await redis.set(lockKey, '1', 'EX', PIN_LOCKOUT_SECONDS);
-      await redis.del(failKey);
-      throw new AppError(
-        'Too many wrong attempts. PIN locked for 30 minutes.',
-        423,
-        true,
-        { lockedUntil: Date.now() + PIN_LOCKOUT_SECONDS * 1000, lockTtlSeconds: PIN_LOCKOUT_SECONDS },
-      );
-    }
-
-    const remaining = PIN_MAX_ATTEMPTS - fails;
-    throw new AppError(
-      `Incorrect PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`,
-      401,
-      true,
-      { attemptsRemaining: remaining },
-    );
+    throw AppError.invalidPin("Incorrect PIN");
   }
-
-  // Clear fails on success
-  await redis.del(failKey);
 
   return true;
 };

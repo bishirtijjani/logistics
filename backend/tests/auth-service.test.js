@@ -344,51 +344,37 @@ test('verifyTransactionPin: PIN_NOT_SET when user has no PIN', async () => {
   );
 });
 
-test('verifyTransactionPin: success on correct PIN returns true and clears fail counter', async () => {
+test('verifyTransactionPin: success on correct PIN returns true', async () => {
   await resetState();
   const hash = await bcrypt.hash('123456', 4);
   const user = await prismaStub.user.create({ data: { email: 'u@x.com', transactionPin: hash } });
-  redisStub._store.set(`pin:fails:${user.id}`, 2);
   const ok = await authService.verifyTransactionPin(user.id, '123456');
   assert.equal(ok, true);
-  assert.equal(redisStub._store.get(`pin:fails:${user.id}`), undefined);
 });
 
-test('verifyTransactionPin: wrong PIN increments fail counter and reports remaining', async () => {
+test('verifyTransactionPin: wrong PIN throws 401 (INVALID_PIN)', async () => {
   await resetState();
   const hash = await bcrypt.hash('123456', 4);
   const user = await prismaStub.user.create({ data: { email: 'u@x.com', transactionPin: hash } });
   await assert.rejects(
     () => authService.verifyTransactionPin(user.id, '000000'),
-    (err) => err.statusCode === 401 && err.errors?.attemptsRemaining === 5,
+    (err) => err.statusCode === 401 && err.code === 'INVALID_PIN',
   );
-  assert.equal(redisStub._store.get(`pin:fails:${user.id}`), 1);
 });
 
-test('verifyTransactionPin: locks PIN after 6 wrong attempts', async () => {
+test('verifyTransactionPin: never locks out - wrong PINs keep returning 401, not 423', async () => {
   await resetState();
   const hash = await bcrypt.hash('123456', 4);
   const user = await prismaStub.user.create({ data: { email: 'u@x.com', transactionPin: hash } });
-  redisStub._store.set(`pin:fails:${user.id}`, 5);
-  await assert.rejects(
-    () => authService.verifyTransactionPin(user.id, '000000'),
-    (err) => err.statusCode === 423,
-  );
-  // The lock key was set; fails reset
-  assert.ok(redisStub._store.get(`pin:lock:${user.id}`));
-  assert.equal(redisStub._store.get(`pin:fails:${user.id}`), undefined);
-});
-
-test('verifyTransactionPin: refuses while lock is active', async () => {
-  await resetState();
-  const hash = await bcrypt.hash('123456', 4);
-  const user = await prismaStub.user.create({ data: { email: 'u@x.com', transactionPin: hash } });
-  redisStub._store.set(`pin:lock:${user.id}`, '1');
-  redisStub._ttls.set(`pin:lock:${user.id}`, 600);
-  await assert.rejects(
-    () => authService.verifyTransactionPin(user.id, '123456'),
-    (err) => err.statusCode === 423,
-  );
+  // Hammer it well past the old 6-attempt threshold.
+  for (let i = 0; i < 10; i += 1) {
+    await assert.rejects(
+      () => authService.verifyTransactionPin(user.id, '000000'),
+      (err) => err.statusCode === 401,
+    );
+  }
+  // And the correct PIN still works immediately afterwards (no lock).
+  assert.equal(await authService.verifyTransactionPin(user.id, '123456'), true);
 });
 
 test('changeTransactionPin: rejects when current PIN wrong', async () => {
