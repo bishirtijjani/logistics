@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
@@ -47,25 +46,6 @@ function Row({ label, value, tokens, mono }) {
   );
 }
 
-function DocPreview({ label, url, tokens }) {
-  if (!url) return null;
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10 }}>
-      <Image
-        source={{ uri: url }}
-        style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: tokens.bg.surfaceMuted }}
-      />
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={{ fontSize: 13, fontWeight: "700", color: tokens.text.primary }}>{label}</Text>
-        <Text style={{ fontSize: 11, color: tokens.text.muted, marginTop: 2 }} numberOfLines={1}>
-          Uploaded
-        </Text>
-      </View>
-      <Ionicons name="checkmark-circle" size={20} color={tokens.status.success} />
-    </View>
-  );
-}
-
 /**
  * Final onboarding step. Read-only summary + Submit CTA.
  * On success, resets the stack to MainTabs (there's no onboarding wall anymore);
@@ -82,12 +62,11 @@ export default function BecomeRiderReviewSubmitStep() {
   const error = useSelector((s) => s.onboarding?.error);
 
   useEffect(() => {
-    dispatch(onboardingStepSet(3));
+    dispatch(onboardingStepSet(2));
   }, [dispatch]);
 
   const personal = draft.personal || {};
   const vehicle = draft.vehicle || {};
-  const docs = draft.documents || {};
 
   const onSubmit = async () => {
     const result = await dispatch(submitRiderApplication());
@@ -127,7 +106,7 @@ export default function BecomeRiderReviewSubmitStep() {
           ) : null}
           <View>
             <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.brand.default, letterSpacing: 1 }}>
-              STEP 4 OF 4
+              STEP 3 OF 3
             </Text>
             <Text
               accessibilityRole="header"
@@ -187,31 +166,6 @@ export default function BecomeRiderReviewSubmitStep() {
           <Row label="Type" value={vehicle.vehicleType} tokens={tokens} />
           <Row label="Plate" value={vehicle.plateNumber} tokens={tokens} mono />
           <Row label="Colour" value={vehicle.vehicleColor} tokens={tokens} />
-        </View>
-
-        <View
-          style={{
-            borderRadius: 14,
-            backgroundColor: tokens.bg.surface,
-            borderWidth: 1,
-            borderColor: tokens.border.default,
-            padding: 14,
-            marginBottom: 16,
-          }}
-        >
-          <Text style={{ fontSize: 12, fontWeight: "800", color: tokens.text.muted, letterSpacing: 1, marginBottom: 8 }}>
-            DOCUMENTS
-          </Text>
-          <Row label="NIN" value={docs.ninNumber} tokens={tokens} mono />
-          <DocPreview label="NIN slip / national ID" url={docs.idDocumentUrl} tokens={tokens} />
-          <Row label="Licence number" value={docs.driverLicenseNumber} tokens={tokens} mono />
-          <Row label="Licence expiry" value={docs.driverLicenseExpiresAt} tokens={tokens} />
-          <DocPreview label="Driver's licence" url={docs.driverLicenseUrl} tokens={tokens} />
-          <Row label="Vehicle reg. expiry" value={docs.vehicleRegistrationExpiresAt} tokens={tokens} />
-          <DocPreview label="Vehicle registration" url={docs.vehicleRegistrationUrl} tokens={tokens} />
-          <Row label="Insurance expiry" value={docs.insuranceExpiresAt} tokens={tokens} />
-          <DocPreview label="Insurance certificate" url={docs.insuranceCertificateUrl} tokens={tokens} />
-          <DocPreview label="Vehicle photo" url={docs.vehiclePhotoUrl} tokens={tokens} />
         </View>
 
         {error ? (

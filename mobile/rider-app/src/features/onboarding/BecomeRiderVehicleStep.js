@@ -29,8 +29,9 @@ const VEHICLE_OPTIONS = [
 ];
 
 /**
- * Step 2/4 - Vehicle info.
+ * Step 2/3 - Vehicle info.
  * Captures vehicleType, plateNumber (Nigerian plate format), vehicleColor.
+ * This is the last data-entry step; next is the review/submit screen.
  */
 export default function BecomeRiderVehicleStep({ navigation }) {
   const dispatch = useDispatch();
@@ -84,7 +85,7 @@ export default function BecomeRiderVehicleStep({ navigation }) {
       }),
     );
     dispatch(onboardingStepSet(2));
-    navigation.navigate("BecomeRiderDocuments");
+    navigation.navigate("BecomeRiderReview");
   };
 
   return (
@@ -105,7 +106,7 @@ export default function BecomeRiderVehicleStep({ navigation }) {
           ) : null}
           <View>
             <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.brand.default, letterSpacing: 1 }}>
-              {t("onboarding.stepLabel2", "STEP 2 OF 4")}
+              {t("onboarding.stepLabel2", "STEP 2 OF 3")}
             </Text>
             <Text
               accessibilityRole="header"

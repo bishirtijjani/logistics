@@ -2,113 +2,117 @@
   Katsina hero map: wide-format adaptation of the in-app tracking map.
   Pure SVG, no tiles or external assets.
 
-  ViewBox 1920x1080. Designed to stretch/cover any hero section; the
-  composition is balanced so cropping at either edge still reads.
+  ViewBox 1920x1080, preserveAspectRatio slice so it covers any hero band.
 
-  Layers, in paint order:
-    1. Sand canvas (#EDE2C9)        base
-    2. Building blocks (#E5D8B8)    grid of beige rectangles
-    3. White roads + grey hairlines the street network
-    4. Street name labels (#9CA3AF) Roboto 700 if available
-    5. Route polyline (#EA580C)     wrap in <g class="route">
-    6. Pickup + dropoff pins        same group
-    7. Rider marker (white arrow)   wrap in <g class="rider">
-
-  To calm the background, hide via CSS: .route, .rider { display:none }
+  Paint order:
+    1. Sand canvas (#EDE2C9)
+    2. Building blocks (#E5D8B8), drawn first so roads carve them
+    3. Road casings (#D1D5DB) under road fills (#FAFAFA) for real road outlines
+    4. Roundabout
+    5. Minor streets
+    6. Street labels (#9CA3AF)
+    7. Orange route + pickup/dropoff pins
+    8. Rider marker (white nav arrow)
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
   <!-- 1. canvas -->
   <rect width="1920" height="1080" fill="#EDE2C9"/>
 
-  <!-- 2. building blocks: denser grid for landscape -->
+  <!-- 2. building blocks (jittered, drawn under the roads) -->
   <g fill="#E5D8B8">
-    <!-- row 1 -->
-    <rect x="40"   y="60"   width="220" height="140" rx="8"/>
-    <rect x="300"  y="40"   width="260" height="160" rx="8"/>
-    <rect x="600"  y="80"   width="200" height="120" rx="8"/>
-    <rect x="840"  y="50"   width="240" height="150" rx="8"/>
-    <rect x="1120" y="70"   width="220" height="130" rx="8"/>
-    <rect x="1380" y="40"   width="260" height="160" rx="8"/>
-    <rect x="1680" y="60"   width="200" height="140" rx="8"/>
-    <!-- row 2 -->
-    <rect x="40"   y="260"  width="180" height="180" rx="8"/>
-    <rect x="260"  y="240"  width="280" height="200" rx="8"/>
-    <rect x="580"  y="260"  width="220" height="180" rx="8"/>
-    <rect x="840"  y="250"  width="200" height="190" rx="8"/>
-    <rect x="1080" y="270"  width="260" height="170" rx="8"/>
-    <rect x="1380" y="250"  width="220" height="190" rx="8"/>
-    <rect x="1640" y="270"  width="240" height="170" rx="8"/>
-    <!-- row 3 -->
-    <rect x="40"   y="500"  width="240" height="180" rx="8"/>
-    <rect x="320"  y="480"  width="200" height="200" rx="8"/>
-    <rect x="560"  y="500"  width="260" height="180" rx="8"/>
-    <rect x="860"  y="490"  width="220" height="190" rx="8"/>
-    <rect x="1120" y="510"  width="240" height="170" rx="8"/>
-    <rect x="1400" y="490"  width="200" height="190" rx="8"/>
-    <rect x="1640" y="500"  width="240" height="180" rx="8"/>
-    <!-- row 4 -->
-    <rect x="40"   y="740"  width="200" height="200" rx="8"/>
-    <rect x="280"  y="720"  width="260" height="220" rx="8"/>
-    <rect x="580"  y="740"  width="220" height="200" rx="8"/>
-    <rect x="840"  y="730"  width="240" height="210" rx="8"/>
-    <rect x="1120" y="750"  width="200" height="190" rx="8"/>
-    <rect x="1360" y="730"  width="280" height="210" rx="8"/>
-    <rect x="1680" y="740"  width="200" height="200" rx="8"/>
+    <rect x="40"   y="50"   width="230" height="180" rx="10"/>
+    <rect x="320"  y="40"   width="300" height="150" rx="10"/>
+    <rect x="690"  y="60"   width="180" height="170" rx="10"/>
+    <rect x="930"  y="40"   width="250" height="160" rx="10"/>
+    <rect x="1250" y="55"   width="210" height="150" rx="10"/>
+    <rect x="1520" y="40"   width="360" height="170" rx="10"/>
+    <rect x="60"   y="300"  width="200" height="210" rx="10"/>
+    <rect x="330"  y="300"  width="270" height="190" rx="10"/>
+    <rect x="700"  y="300"  width="230" height="210" rx="10"/>
+    <rect x="1010" y="300"  width="210" height="180" rx="10"/>
+    <rect x="1320" y="300"  width="240" height="200" rx="10"/>
+    <rect x="1640" y="300"  width="240" height="190" rx="10"/>
+    <rect x="40"   y="600"  width="250" height="220" rx="10"/>
+    <rect x="350"  y="620"  width="220" height="200" rx="10"/>
+    <rect x="640"  y="600"  width="200" height="230" rx="10"/>
+    <rect x="1330" y="600"  width="250" height="210" rx="10"/>
+    <rect x="1650" y="610"  width="230" height="220" rx="10"/>
+    <rect x="60"   y="900"  width="280" height="150" rx="10"/>
+    <rect x="420"  y="910"  width="240" height="150" rx="10"/>
+    <rect x="740"  y="900"  width="260" height="160" rx="10"/>
+    <rect x="1080" y="910"  width="220" height="150" rx="10"/>
+    <rect x="1380" y="900"  width="240" height="160" rx="10"/>
+    <rect x="1690" y="910"  width="200" height="150" rx="10"/>
   </g>
 
-  <!-- 3. roads: thick white fills, thin grey hairlines for definition -->
-  <g stroke="#FAFAFA" stroke-width="32" fill="none" stroke-linecap="round">
-    <!-- horizontal east-west streets -->
-    <path d="M -40 230 Q 600 220 1920 250"/>
-    <path d="M -40 470 L 1960 480"/>
-    <path d="M -40 710 Q 700 700 1960 730"/>
-    <path d="M -40 970 L 1960 980"/>
-    <!-- vertical north-south streets -->
-    <path d="M 540 -40 L 560 1120"/>
-    <path d="M 1060 -40 L 1080 1120"/>
-    <path d="M 1620 -40 L 1640 1120"/>
-  </g>
-  <g stroke="#D1D5DB" stroke-width="2" fill="none">
-    <path d="M -40 230 Q 600 220 1920 250"/>
-    <path d="M -40 470 L 1960 480"/>
-    <path d="M -40 710 Q 700 700 1960 730"/>
-    <path d="M -40 970 L 1960 980"/>
-    <path d="M 540 -40 L 560 1120"/>
-    <path d="M 1060 -40 L 1080 1120"/>
-    <path d="M 1620 -40 L 1640 1120"/>
+  <!-- 3a. road casings (slightly wider grey underlay) -->
+  <g fill="none" stroke="#D1D5DB" stroke-linecap="round" stroke-linejoin="round">
+    <!-- arterials -->
+    <path d="M -40 540 C 320 470, 560 650, 940 560 S 1520 470, 1980 545" stroke-width="42"/>
+    <path d="M 720 -40 C 786 230, 648 430, 742 640 S 846 905, 770 1120" stroke-width="42"/>
+    <path d="M -40 165 C 430 250, 830 365, 1180 520 S 1720 815, 1980 905" stroke-width="38"/>
+    <path d="M 1980 205 C 1648 285, 1470 470, 1392 705 S 1300 985, 1175 1120" stroke-width="38"/>
+    <!-- secondaries -->
+    <path d="M -40 300 C 400 345, 760 300, 1120 345 S 1700 360, 1980 320" stroke-width="26"/>
+    <path d="M -40 820 C 360 840, 720 795, 1080 835 S 1640 855, 1980 815" stroke-width="26"/>
+    <path d="M 300 -40 C 345 300, 320 640, 372 1120" stroke-width="24"/>
+    <path d="M 1180 -40 C 1138 270, 1224 520, 1176 1120" stroke-width="24"/>
   </g>
 
-  <!-- 4. street name labels: Roboto 700 (falls back gracefully) -->
+  <!-- 3b. road fills (white) -->
+  <g fill="none" stroke="#FAFAFA" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M -40 540 C 320 470, 560 650, 940 560 S 1520 470, 1980 545" stroke-width="34"/>
+    <path d="M 720 -40 C 786 230, 648 430, 742 640 S 846 905, 770 1120" stroke-width="34"/>
+    <path d="M -40 165 C 430 250, 830 365, 1180 520 S 1720 815, 1980 905" stroke-width="30"/>
+    <path d="M 1980 205 C 1648 285, 1470 470, 1392 705 S 1300 985, 1175 1120" stroke-width="30"/>
+    <path d="M -40 300 C 400 345, 760 300, 1120 345 S 1700 360, 1980 320" stroke-width="18"/>
+    <path d="M -40 820 C 360 840, 720 795, 1080 835 S 1640 855, 1980 815" stroke-width="18"/>
+    <path d="M 300 -40 C 345 300, 320 640, 372 1120" stroke-width="16"/>
+    <path d="M 1180 -40 C 1138 270, 1224 520, 1176 1120" stroke-width="16"/>
+  </g>
+
+  <!-- 4. roundabout at a major junction -->
+  <circle cx="1180" cy="600" r="66" fill="none" stroke="#D1D5DB" stroke-width="26"/>
+  <circle cx="1180" cy="600" r="66" fill="none" stroke="#FAFAFA" stroke-width="18"/>
+  <circle cx="1180" cy="600" r="44" fill="#E5D8B8"/>
+  <circle cx="1180" cy="600" r="20" fill="#65A30D" fill-opacity="0.55"/>
+
+  <!-- 5. minor streets (thin, no casing) -->
+  <g fill="none" stroke="#FAFAFA" stroke-width="9" stroke-linecap="round">
+    <path d="M 372 360 C 520 350, 640 380, 700 470"/>
+    <path d="M 1000 220 C 1040 320, 980 420, 1010 520"/>
+    <path d="M 460 700 C 600 690, 720 720, 760 800"/>
+    <path d="M 1340 360 C 1380 460, 1320 540, 1340 600"/>
+    <path d="M 840 940 C 900 880, 1000 880, 1060 940"/>
+    <path d="M 1560 540 C 1640 560, 1700 620, 1700 700"/>
+  </g>
+
+  <!-- 6. street labels: Roboto 700 (falls back gracefully) -->
   <g font-family="'Roboto', system-ui, sans-serif" font-weight="700" font-size="18" fill="#9CA3AF" letter-spacing="2.5">
-    <text x="120" y="222">IBB WAY</text>
-    <text x="780" y="462">FILIN SAMJI</text>
-    <text x="180" y="702">GRA AVENUE</text>
-    <text x="1200" y="962">KANO ROAD</text>
-    <text x="568" y="200" transform="rotate(90 568 200)">KOFAR KAURA</text>
-    <text x="1088" y="200" transform="rotate(90 1088 200)">YANDAKA STREET</text>
-    <text x="1648" y="200" transform="rotate(90 1648 200)">SABUWAR UNGUWA</text>
+    <text x="120" y="292">GRA AVENUE</text>
+    <text x="1230" y="500">KANO ROAD</text>
+    <text x="180" y="812">NAGOGO ROAD</text>
+    <text x="980" y="206">IBB WAY</text>
+    <text x="742" y="300" transform="rotate(86 742 300)">KOFAR KAURA</text>
+    <text x="1182" y="250" transform="rotate(90 1182 250)">YANDAKA STREET</text>
   </g>
 
-  <!-- 5. route polyline: orange path through the city -->
+  <!-- 7. route + pins, following the road network -->
   <g class="route">
-    <path d="M 280 180 Q 480 320 720 420 T 1180 600 T 1560 820"
-          fill="none" stroke="#EA580C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
-  </g>
-
-  <!-- 6. pins: pickup (orange ring) and dropoff (ink dot) -->
-  <g class="route">
-    <g transform="translate(280 180)">
+    <path d="M 300 250 C 470 320, 600 470, 742 560 C 880 648, 1040 650, 1180 600 C 1360 540, 1460 700, 1500 860"
+          fill="none" stroke="#EA580C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    <g transform="translate(300 250)">
       <circle r="18" fill="#fff" stroke="#EA580C" stroke-width="4"/>
       <circle r="8"  fill="#EA580C"/>
     </g>
-    <g transform="translate(1560 820)">
+    <g transform="translate(1500 860)">
       <circle r="22" fill="#09090b"/>
       <circle r="8"  fill="#fff"/>
     </g>
   </g>
 
-  <!-- 7. rider marker: white navigation arrow on an orange puck -->
-  <g class="rider" transform="translate(900 480)">
+  <!-- 8. rider marker: white nav arrow on an orange puck -->
+  <g class="rider" transform="translate(900 622)">
     <circle r="22" fill="#EA580C"/>
     <circle r="22" fill="none" stroke="#fff" stroke-width="4"/>
     <path d="M0 -10 L9 10 L0 4 L-9 10 Z" fill="#fff"/>

@@ -25,11 +25,11 @@ export const ONBOARDING_STAGE = Object.freeze({
 });
 
 // Become-Rider step index → screen name. Mirrors the onboarding step counter
-// persisted by onboardingSlice so we can resume mid-application.
+// persisted by onboardingSlice so we can resume mid-application. The document
+// step was removed for this stage of the business, so the flow is 3 steps.
 const STEP_SCREENS = [
   "BecomeRiderPersonal",
   "BecomeRiderVehicle",
-  "BecomeRiderDocuments",
   "BecomeRiderReview",
 ];
 
@@ -44,9 +44,7 @@ export function resumeScreenForStep(step) {
 /** True once the rider has entered anything into the application draft. */
 function draftStarted(draft) {
   if (!draft) return false;
-  if (draft.personal || draft.vehicle) return true;
-  const docs = draft.documents || {};
-  return Object.values(docs).some(Boolean);
+  return Boolean(draft.personal || draft.vehicle);
 }
 
 /**

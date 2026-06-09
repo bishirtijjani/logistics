@@ -13,21 +13,14 @@ import {
  * resumes mid-application with all uploaded Cloudinary URLs preserved.
  */
 
+// For this stage of the business the rider join flow is intentionally light:
+// personal + vehicle only. The document / KYC capture (NIN, ID, licence,
+// vehicle registration, insurance, vehicle photo) has been removed from the
+// app. The backing Rider columns still exist and admin review still runs, so
+// KYC can be reinstated later without a migration.
 const emptyDraft = {
   personal: null,
   vehicle: null,
-  documents: {
-    ninNumber: null,
-    idDocumentUrl: null,
-    driverLicenseNumber: null,
-    driverLicenseUrl: null,
-    driverLicenseExpiresAt: null,
-    vehicleRegistrationUrl: null,
-    vehicleRegistrationExpiresAt: null,
-    insuranceCertificateUrl: null,
-    insuranceExpiresAt: null,
-    vehiclePhotoUrl: null,
-  },
 };
 
 const initialState = {
@@ -50,10 +43,9 @@ export const hydrateOnboarding = createAsyncThunk(
 
 /**
  * Submit the rider application.
- * Sends the fields the current backend schema supports. Fields gated on
- * BLK-RiderKycExpansion (driverLicense*, vehicleRegistration*, insurance*)
- * are also sent in the payload; the backend will ignore them today and
- * persist them once the migration ships.
+ * Only vehicle + personal fields are collected at this stage. vehicleType and
+ * plateNumber are the only fields the backend requires; everything else is
+ * optional in the validator, so a slim payload submits cleanly.
  */
 export const submitRiderApplication = createAsyncThunk(
   'onboarding/submit',
@@ -61,30 +53,14 @@ export const submitRiderApplication = createAsyncThunk(
     const { draft } = getState().onboarding;
     const personal = draft.personal || {};
     const vehicle = draft.vehicle || {};
-    const documents = draft.documents || {};
 
     const payload = {
-      // Vehicle (currently in Rider schema)
+      // Vehicle (the only required fields backend-side)
       vehicleType: vehicle.vehicleType,
       plateNumber: vehicle.plateNumber,
       vehicleColor: vehicle.vehicleColor || undefined,
 
-      // Identity (currently in Rider schema)
-      ninNumber: documents.ninNumber,
-      idDocumentUrl: documents.idDocumentUrl,
-      vehiclePhotoUrl: documents.vehiclePhotoUrl,
-
-      // BLK-RiderKycExpansion (passed now; persisted once migration ships)
-      driverLicenseNumber: documents.driverLicenseNumber || undefined,
-      driverLicenseUrl: documents.driverLicenseUrl || undefined,
-      driverLicenseExpiresAt: documents.driverLicenseExpiresAt || undefined,
-      vehicleRegistrationUrl: documents.vehicleRegistrationUrl || undefined,
-      vehicleRegistrationExpiresAt: documents.vehicleRegistrationExpiresAt || undefined,
-      insuranceCertificateUrl: documents.insuranceCertificateUrl || undefined,
-      insuranceExpiresAt: documents.insuranceExpiresAt || undefined,
-
-      // Personal - none of these are on the current Rider schema; sent for
-      // forward compatibility. Backend currently ignores.
+      // Personal - persisted on the User record (optional backend-side)
       ...(personal.dob && { dateOfBirth: personal.dob }),
       ...(personal.address && { address: personal.address }),
     };
@@ -114,12 +90,6 @@ const slice = createSlice({
     onboardingDraftMerged: (state, action) => {
       const patch = action.payload || {};
       state.draft = { ...state.draft, ...patch };
-      saveOnboardingDraft({ step: state.step, draft: state.draft });
-    },
-    onboardingDocumentSet: (state, action) => {
-      const { key, value } = action.payload || {};
-      if (!key) return;
-      state.draft.documents = { ...state.draft.documents, [key]: value };
       saveOnboardingDraft({ step: state.step, draft: state.draft });
     },
     onboardingPersonalSet: (state, action) => {
@@ -164,7 +134,6 @@ const slice = createSlice({
 export const {
   onboardingStepSet,
   onboardingDraftMerged,
-  onboardingDocumentSet,
   onboardingPersonalSet,
   onboardingVehicleSet,
   resetOnboarding,

@@ -30,10 +30,9 @@ function maxDobString() {
 }
 
 /**
- * Step 0/3 - Personal info.
+ * Step 1/3 - Personal info.
  * Collects DOB + address. Name + email come from the registered user account.
- * Backend currently ignores these fields (Rider model has no DOB/address)
- * but we capture them now for forward compatibility.
+ * These persist on the User record (dateOfBirth / address).
  */
 export default function BecomeRiderPersonalStep({ navigation }) {
   const dispatch = useDispatch();
@@ -108,7 +107,7 @@ export default function BecomeRiderPersonalStep({ navigation }) {
           ) : null}
           <View>
             <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.brand.default, letterSpacing: 1 }}>
-              {t("onboarding.stepLabel", "STEP 1 OF 4")}
+              {t("onboarding.stepLabel", "STEP 1 OF 3")}
             </Text>
             <Text
               accessibilityRole="header"

@@ -46,7 +46,6 @@ import SetTransactionPinScreen from "../features/onboarding/SetTransactionPinScr
 import EnableBiometricScreen from "../features/onboarding/EnableBiometricScreen";
 import BecomeRiderPersonalStep from "../features/onboarding/BecomeRiderPersonalStep";
 import BecomeRiderVehicleStep from "../features/onboarding/BecomeRiderVehicleStep";
-import BecomeRiderDocumentsStep from "../features/onboarding/BecomeRiderDocumentsStep";
 import BecomeRiderReviewSubmitStep from "../features/onboarding/BecomeRiderReviewSubmitStep";
 import LocationPermissionRecoveryScreen from "../features/location/LocationPermissionRecoveryScreen";
 import LocationPickerScreen from "../features/location/LocationPickerScreen";
@@ -529,7 +528,6 @@ export default function AppNavigator() {
                 no longer a wall in front of the app. */}
             <Stack.Screen name="BecomeRiderPersonal" component={BecomeRiderPersonalStep} />
             <Stack.Screen name="BecomeRiderVehicle" component={BecomeRiderVehicleStep} />
-            <Stack.Screen name="BecomeRiderDocuments" component={BecomeRiderDocumentsStep} />
             <Stack.Screen name="BecomeRiderReview" component={BecomeRiderReviewSubmitStep} />
             {/* PIN + biometric setup - prompted post-approval, not forced. SetPin
                 is registered WITHOUT a nextScreen so the wallet just-in-time

@@ -51,8 +51,8 @@ export default function OnboardingHero() {
   const goToResume = () => navigation.navigate(resumeScreen);
   // A REJECTED rider already has a Rider record, so re-submitting via
   // POST /rider/register would 409. Recovery goes through KycStatus, which
-  // re-uploads documents in place via POST /rider/documents.
-  const goToFixDocs = () => navigation.navigate("KycStatus");
+  // flips the rider back to PENDING_APPROVAL.
+  const goToFix = () => navigation.navigate("KycStatus");
 
   // ── PENDING ───────────────────────────────────────────────────────────────
   if (stage === ONBOARDING_STAGE.PENDING) {
@@ -66,7 +66,7 @@ export default function OnboardingHero() {
         <Text style={bodyStyle(tokens)}>
           {t(
             "onboardingHero.pendingBody",
-            "We're reviewing your documents, usually within a few hours. We'll notify you the moment you're approved.",
+            "We're reviewing your application, usually within a few hours. We'll notify you the moment you're approved.",
           )}
         </Text>
         {submittedAt ? (
@@ -111,10 +111,10 @@ export default function OnboardingHero() {
           {rejectionReason ||
             t(
               "onboardingHero.rejectedBody",
-              "Some details couldn't be verified. Update the affected documents and resubmit to try again.",
+              "Some details couldn't be verified. Update the affected details and resubmit to try again.",
             )}
         </Text>
-        <TouchableOpacity onPress={goToFixDocs} accessibilityRole="button" style={primaryBtnStyle(tokens)}>
+        <TouchableOpacity onPress={goToFix} accessibilityRole="button" style={primaryBtnStyle(tokens)}>
           <Text style={primaryBtnTextStyle(tokens)}>
             {t("onboardingHero.rejectedCta", "Update & resubmit")}
           </Text>
@@ -138,7 +138,7 @@ export default function OnboardingHero() {
           )}
         </Text>
         <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.brand.default, marginBottom: 14 }}>
-          {t("onboardingHero.stepProgress", "Step {{n}} of 4", { n: Math.min((step || 0) + 1, 4) })}
+          {t("onboardingHero.stepProgress", "Step {{n}} of 3", { n: Math.min((step || 0) + 1, 3) })}
         </Text>
         <TouchableOpacity onPress={goToResume} accessibilityRole="button" style={primaryBtnStyle(tokens)}>
           <Text style={primaryBtnTextStyle(tokens)}>

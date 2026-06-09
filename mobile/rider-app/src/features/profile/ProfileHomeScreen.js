@@ -41,10 +41,11 @@ export default function ProfileHomeScreen() {
     if (!performance) dispatch(fetchPerformance()).catch?.(() => {});
   }, [performance, dispatch]);
 
-  // The KYC row doubles as the onboarding-status surface on the Me tab: its
-  // label, sub-text, badge and destination all reflect where the rider is in
-  // the join journey, so a not-yet-onboarded rider is always nudged forward.
-  const kyc = (() => {
+  // This row is the rider's onboarding-status surface on the Me tab: its label,
+  // sub-text, badge and destination reflect where the rider is in the join
+  // journey. Document/KYC capture was removed for this stage, so an APPROVED
+  // rider has nothing to manage here and the row is hidden entirely (null).
+  const onboardingRow = (() => {
     switch (stage) {
       case ONBOARDING_STAGE.NONE:
         return {
@@ -56,7 +57,7 @@ export default function ProfileHomeScreen() {
       case ONBOARDING_STAGE.DRAFT:
         return {
           label: t("profile.kycDraft", "Finish your application"),
-          sub: t("onboardingHero.stepProgress", "Step {{n}} of 4", { n: Math.min((step || 0) + 1, 4) }),
+          sub: t("onboardingHero.stepProgress", "Step {{n}} of 3", { n: Math.min((step || 0) + 1, 3) }),
           badge: { text: t("profile.badgeAction", "Action needed"), tone: "warning" },
           onPress: () => navigation.navigate(resumeScreen),
         };
@@ -70,19 +71,15 @@ export default function ProfileHomeScreen() {
       case ONBOARDING_STAGE.REJECTED:
         return {
           label: t("profile.kycRejected", "Application needs changes"),
-          sub: t("profile.kycRejectedSub", "Update your documents and resubmit"),
+          sub: t("profile.kycRejectedSub", "Update your details and resubmit"),
           badge: { text: t("profile.badgeAction", "Action needed"), tone: "error" },
-          // Re-uploads go through KycStatus (POST /rider/documents) - the register
-          // flow would 409 for an existing (rejected) rider record.
+          // The resubmit path still runs through KycStatus, which flips a
+          // REJECTED rider back to PENDING_APPROVAL (the register endpoint 409s
+          // for an existing rider record).
           onPress: () => navigation.navigate("KycStatus"),
         };
-      default: // APPROVED
-        return {
-          label: t("profile.kyc", "KYC documents"),
-          sub: t("profile.kycSub", "ID, licence, insurance"),
-          badge: null,
-          onPress: () => navigation.navigate("KycStatus"),
-        };
+      default: // APPROVED - nothing to manage now that KYC capture is off.
+        return null;
     }
   })();
 
@@ -185,8 +182,12 @@ export default function ProfileHomeScreen() {
           <Divider tokens={tokens} />
           <Row tokens={tokens} icon="bicycle-outline" label={t("profile.vehicle", "Vehicle")} sub={vehicle} onPress={() => navigation.navigate("VehicleInfo")} />
           <Divider tokens={tokens} />
-          <Row tokens={tokens} icon="shield-checkmark-outline" label={kyc.label} sub={kyc.sub} badge={kyc.badge} onPress={kyc.onPress} />
-          <Divider tokens={tokens} />
+          {onboardingRow ? (
+            <>
+              <Row tokens={tokens} icon="shield-checkmark-outline" label={onboardingRow.label} sub={onboardingRow.sub} badge={onboardingRow.badge} onPress={onboardingRow.onPress} />
+              <Divider tokens={tokens} />
+            </>
+          ) : null}
           <Row tokens={tokens} icon="trending-up-outline" label={t("profile.performance", "Performance")} sub={t("profile.performanceSub", "Rating, acceptance, on-time")} onPress={() => navigation.navigate("Performance")} />
         </Card>
 

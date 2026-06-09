@@ -27,10 +27,9 @@
     "dismiss": "Dismiss"
   },
   "onboarding": {
-    "stepLabel": "STEP 1 OF 4",
-    "stepLabel2": "STEP 2 OF 4",
-    "stepLabel3": "STEP 3 OF 4",
-    "stepLabel4": "STEP 4 OF 4",
+    "stepLabel": "STEP 1 OF 3",
+    "stepLabel2": "STEP 2 OF 3",
+    "stepLabel3": "STEP 3 OF 3",
     "personalTitle": "About you",
     "personalSubtitle": "We've got your name and email already. A couple more details before we look at your vehicle.",
     "dobLabel": "Date of birth",
@@ -1628,7 +1627,7 @@
     "kycPending": "Application under review",
     "kycPendingSub": "We'll notify you when approved",
     "kycRejected": "Application needs changes",
-    "kycRejectedSub": "Update your documents and resubmit",
+    "kycRejectedSub": "Update your details and resubmit",
     "badgeStart": "Start",
     "badgeAction": "Action needed",
     "badgePending": "Pending"
@@ -1717,14 +1716,14 @@
     "noneCta": "Get started",
     "draftTitle": "Finish your application",
     "draftBody": "You're partway there. Pick up where you left off and start earning.",
-    "stepProgress": "Step {{n}} of 4",
+    "stepProgress": "Step {{n}} of 3",
     "draftCta": "Continue application",
     "pendingTitle": "Application under review",
-    "pendingBody": "We're reviewing your documents, usually within a few hours. We'll notify you the moment you're approved.",
+    "pendingBody": "We're reviewing your application, usually within a few hours. We'll notify you the moment you're approved.",
     "submitted": "Submitted",
     "checkStatus": "Check status",
     "rejectedTitle": "Your application needs changes",
-    "rejectedBody": "Some details couldn't be verified. Update the affected documents and resubmit to try again.",
+    "rejectedBody": "Some details couldn't be verified. Update the affected details and resubmit to try again.",
     "rejectedCta": "Update & resubmit"
   }
 }
