@@ -53,10 +53,14 @@ const listMerchantsSchema = z.object({
   categoryId: z.string().uuid().optional(),
   categorySlug: z.string().min(1).optional(),
   status: z.enum(MERCHANT_STATUSES).optional(),
-  lat: z.number().min(-90).max(90).optional(),
-  lng: z.number().min(-180).max(180).optional(),
-  radius: z.number().min(0.1).max(50).default(10),
-  openNow: z.boolean().optional(),
+  // Query strings arrive as strings, so coerce numbers and preprocess the
+  // boolean. Bare z.number()/z.boolean() reject "12.34"/"true" and 400 out.
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  radius: z.coerce.number().min(0.1).max(50).default(10),
+  openNow: z
+    .preprocess((v) => (v === 'true' ? true : v === 'false' ? false : v), z.boolean())
+    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

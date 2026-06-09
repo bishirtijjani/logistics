@@ -38,7 +38,9 @@ const getMerchants = async (req, res, next) => {
       lat: lat ? parseFloat(lat) : undefined,
       lng: lng ? parseFloat(lng) : undefined,
       radius: radius ? parseFloat(radius) : undefined,
-      openNow: openNow === 'true',
+      // The query validator already coerces openNow to a real boolean, so
+      // compare against true (not the string 'true', which never matches now).
+      openNow: openNow === true || openNow === 'true',
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
     });
