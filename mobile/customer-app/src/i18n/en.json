@@ -105,7 +105,7 @@
   },
   "auth": {
     "welcomeTitle": "Get anything\ndelivered.",
-    "welcomeSubtitle": "Food, packages, prescriptions, groceries — across Katsina in minutes.",
+    "welcomeSubtitle": "Food, packages, prescriptions, groceries, across Katsina in minutes.",
     "signIn": "Sign in",
     "signUp": "Create account",
     "signInWithGoogle": "Continue with Google",
@@ -166,7 +166,7 @@
       "lastNameRequired": "Last name is required",
       "otpInvalid": "Enter the 6-digit code",
       "pinInvalid": "PIN must be 6 digits",
-      "pinMismatch": "PINs don't match — try again",
+      "pinMismatch": "PINs don't match. Try again",
       "termsRequired": "Please accept the terms to continue"
     },
     "toast": {
@@ -308,11 +308,11 @@
       "balanceBefore": "Balance before",
       "balanceAfter": "Balance after",
       "date": "Date",
-      "footer": "iPrime — Official Receipt",
+      "footer": "iPrime Official Receipt",
       "copyRef": "Copy Ref",
       "share": "Share",
       "shareDialogTitle": "Transaction Receipt",
-      "shareLine": "Receipt — {{label}} {{amount}}",
+      "shareLine": "Receipt: {{label}} {{amount}}",
       "couldntShare": "Couldn't share receipt",
       "refCopied": "Reference copied",
       "repeat": "Repeat this transaction",
@@ -345,7 +345,7 @@
       "selectABank": "Select a bank",
       "enterAccount": "Enter account number",
       "accountNotResolved": "Account name not resolved yet",
-      "accountNotFound": "Account not found — check number or bank",
+      "accountNotFound": "Account not found. Check number or bank",
       "minWithdraw": "Minimum withdrawal is {{amount}}",
       "maxWithdraw": "Maximum withdrawal is {{amount}}",
       "confirmTitle": "Confirm Withdrawal",
@@ -380,7 +380,7 @@
       "selectABank": "Select a bank",
       "enterAccount": "Enter account number",
       "accountNotResolved": "Account name not resolved yet",
-      "accountNotFound": "Account not found — check number or bank",
+      "accountNotFound": "Account not found. Check number or bank",
       "minTransfer": "Minimum transfer is {{amount}}",
       "maxTransfer": "Maximum transfer is {{amount}}",
       "confirmTitle": "Confirm Transfer",
@@ -439,7 +439,7 @@
       "notReadyBody": "Verify your identity (BVN) to activate your virtual account. It takes about a minute and unlocks wallet funding, transfers, and bigger limits.",
       "verifyCta": "Verify identity",
       "provisioningTitle": "Setting up your account",
-      "provisioningBody": "Your virtual account is being set up. This usually takes a few seconds — pull to refresh."
+      "provisioningBody": "Your virtual account is being set up. This usually takes a few seconds. Pull to refresh."
     },
     "fund": "Fund"
   },
@@ -488,7 +488,7 @@
       "placeRequest": "Place request",
       "placeRequestWith": "Place request · {{amount}}",
       "placing": "Placing…",
-      "quoteExpired": "Quote expired — refresh"
+      "quoteExpired": "Quote expired. Refresh"
     },
     "toast": {
       "pickBothAddresses": "Pick both addresses",
@@ -578,7 +578,7 @@
       "place": "Place order",
       "placeWithTotal": "Place order · {{amount}}",
       "placingOrder": "Placing your order…",
-      "quoteExpired": "Quote expired — refresh",
+      "quoteExpired": "Quote expired. Refresh",
       "quoteValidMin": "Quote valid for {{m}}m {{s}}s",
       "quoteValidSec": "Quote valid for {{s}}s",
       "refresh": "Refresh",
@@ -1080,12 +1080,12 @@
     "title": "Something went wrong",
     "tryAgain": "Try again",
     "_fallback": "{{message}}",
-    "BAD_REQUEST": "That didn't work — please check your details and try again.",
+    "BAD_REQUEST": "That didn't work. Please check your details and try again.",
     "UNAUTHORIZED": "Please sign in to continue.",
     "FORBIDDEN": "You don't have permission to do that.",
     "NOT_FOUND": "We couldn't find that.",
     "CONFLICT": "That action conflicts with the current state.",
-    "TOO_MANY_REQUESTS": "Too many tries — please wait a moment.",
+    "TOO_MANY_REQUESTS": "Too many tries. Please wait a moment.",
     "INTERNAL_ERROR": "Something went wrong on our end. Try again in a moment.",
     "SERVICE_UNAVAILABLE": "Service is temporarily unavailable.",
     "UNKNOWN_ERROR": "Something went wrong. Please try again.",
@@ -1099,7 +1099,7 @@
     "ACCOUNT_NOT_FOUND": "No account found for that email.",
     "ACCOUNT_SUSPENDED": "Your account is suspended. Please contact support.",
     "ACCOUNT_DEACTIVATED": "Your account is deactivated.",
-    "OTP_EXPIRED": "Code expired — please request a new one.",
+    "OTP_EXPIRED": "Code expired. Please request a new one.",
     "INVALID_OTP": "That code isn't right. Double-check and try again.",
     "REFRESH_TOKEN_INVALID": "Your session expired. Please sign in again.",
     "SESSION_NOT_FOUND": "Session not found.",
@@ -1116,14 +1116,14 @@
     "AMOUNT_TOO_LOW": "Amount is too low.",
     "AMOUNT_TOO_HIGH": "Amount is too high.",
     "QUOTE_EXPIRED": "Your quote expired. Please refresh and try again.",
-    "QUOTE_INVALID": "Quote is invalid — please request a fresh one.",
+    "QUOTE_INVALID": "Quote is invalid. Please request a fresh one.",
     "QUOTE_MISMATCH": "The quote no longer matches your order. Please refresh.",
     "INVALID_TRANSITION": "That status change isn't allowed right now.",
     "REQUEST_NOT_FOUND": "Order not found.",
     "ALREADY_RATED": "You've already rated this order.",
     "CANCELLED": "Cancelled",
     "PRESCRIPTION_REQUIRED": "One or more items need a valid prescription. Upload it at checkout to continue.",
-    "INVALID_PRESCRIPTION_URL": "Invalid prescription — please upload via the in-app flow."
+    "INVALID_PRESCRIPTION_URL": "Invalid prescription. Please upload via the in-app flow."
   },
   "shops": {
     "title": "Shops",

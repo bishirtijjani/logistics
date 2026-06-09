@@ -1,5 +1,5 @@
 /**
- * Rider worker — periodic maintenance jobs for the rider domain.
+ * Rider worker - periodic maintenance jobs for the rider domain.
  *
  * Phase 7:
  *   - CHECK_DOC_EXPIRY: scans Rider rows whose ID / driver-licence / vehicle
@@ -31,7 +31,7 @@ const DOC_FIELDS = [
 
 /**
  * Returns the earliest doc that's within the warning window or already
- * expired. Riders with no docs at all aren't reminded here — that path is
+ * expired. Riders with no docs at all aren't reminded here - that path is
  * the onboarding flow's job.
  */
 const classifyRiderDocs = (rider) => {

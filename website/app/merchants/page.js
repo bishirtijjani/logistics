@@ -21,7 +21,7 @@ import Footer from "../components/Footer";
 export const metadata = {
   title: "For merchants",
   description:
-    "List your restaurant, supermarket, pharmacy, or retail shop on iPrime. Daily payouts, integrated riders, no fixed monthly fee — sign up from your phone.",
+    "List your restaurant, supermarket, pharmacy, or retail shop on iPrime. Daily payouts, integrated riders, no fixed monthly fee - sign up from your phone.",
   alternates: { canonical: "/merchants" },
 };
 
@@ -57,17 +57,17 @@ const benefits = [
   {
     Icon: BadgeDollarSign,
     title: "No fixed monthly fee.",
-    body: "We earn only when you do — a percentage commission on the orders iPrime actually delivers. Slow week? You pay nothing.",
+    body: "We earn only when you do - a percentage commission on the orders iPrime actually delivers. Slow week? You pay nothing.",
   },
   {
     Icon: Truck,
     title: "Riders included, no fleet to manage.",
-    body: "Every accepted order is auto-routed to a vetted iPrime rider nearby. You don't hire drivers, manage helmets, or chase missing parcels — we handle that side end-to-end.",
+    body: "Every accepted order is auto-routed to a vetted iPrime rider nearby. You don't hire drivers, manage helmets, or chase missing parcels - we handle that side end-to-end.",
   },
   {
     Icon: TrendingUp,
     title: "We market with you.",
-    body: "Featured-merchant slots, push-notification campaigns, and category banners — built into our app and our launch calendar. We grow your basket, not just our app.",
+    body: "Featured-merchant slots, push-notification campaigns, and category banners - built into our app and our launch calendar. We grow your basket, not just our app.",
   },
 ];
 
@@ -95,11 +95,11 @@ const steps = [
 ];
 
 const requirements = [
-  "Your business is registered with CAC (RC or BN) — or you have a clear plan to be within 30 days.",
+  "Your business is registered with CAC (RC or BN) - or you have a clear plan to be within 30 days.",
   "A bank account in the business's name (or the proprietor's, for a BN).",
   "Where applicable: NAFDAC registration for pharmacy and packaged food categories; valid pharmacist licence for prescription dispensing.",
   "A smartphone (Android 9+ / iOS 14+) running the iPrime Merchant app.",
-  "Willingness to keep menu / availability honest in real time — accurate stock is the #1 driver of repeat customers.",
+  "Willingness to keep menu / availability honest in real time - accurate stock is the #1 driver of repeat customers.",
 ];
 
 export default function MerchantsPage() {
@@ -131,7 +131,7 @@ export default function MerchantsPage() {
               <p className="text-lg md:text-xl text-white/80 font-medium leading-relaxed max-w-2xl mb-8">
                 Plug your restaurant, supermarket, pharmacy, or retail shop
                 into the iPrime customer base. We handle delivery, payment,
-                and customer support — you focus on what you make.
+                and customer support - you focus on what you make.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -162,7 +162,7 @@ export default function MerchantsPage() {
                 <span className="text-accent">live across the app.</span>
               </h2>
               <p className="ui-sub">
-                If you fit one of these — or something close — we want you on
+                If you fit one of these - or something close - we want you on
                 the platform. We don&apos;t list age-restricted goods (alcohol,
                 tobacco, unprescribed pharmaceuticals).
               </p>

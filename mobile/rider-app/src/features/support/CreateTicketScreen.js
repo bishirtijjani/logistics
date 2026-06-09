@@ -1,5 +1,5 @@
 /**
- * CreateTicketScreen — rider-side ticket creation form. Category + priority
+ * CreateTicketScreen - rider-side ticket creation form. Category + priority
  * + subject + description + optional photo attachments. On success, replaces
  * to TicketDetail so the rider can immediately see + reply.
  */

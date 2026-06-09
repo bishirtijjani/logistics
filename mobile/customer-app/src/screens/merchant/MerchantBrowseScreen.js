@@ -1,5 +1,5 @@
 /**
- * MerchantBrowseScreen — Browse merchants (restaurants, grocery stores, pharmacies)
+ * MerchantBrowseScreen - Browse merchants (restaurants, grocery stores, pharmacies)
  * Part of the unified request architecture
  */
 

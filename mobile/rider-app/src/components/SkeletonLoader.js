@@ -1,5 +1,5 @@
 /**
- * SkeletonLoader — pulsing-grey placeholder for content that is loading.
+ * SkeletonLoader - pulsing-grey placeholder for content that is loading.
  *
  * Replaces ad-hoc <ActivityIndicator> spinners on primary lists. The "pulse"
  * makes a 1–2s load feel ~3× faster than a spinner because the user sees the

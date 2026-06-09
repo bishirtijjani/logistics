@@ -18,11 +18,11 @@ const roboto = Roboto({
 export const metadata = {
   metadataBase: new URL("https://iprime.ng"),
   title: {
-    default: "iPrime — Delivery, Wallet & Bills for Katsina",
+    default: "iPrime - Delivery, Wallet & Bills for Katsina",
     template: "%s · iPrime",
   },
   description:
-    "iPrime is Katsina's delivery app. Order food, groceries, pharmacy and parcels with live rider tracking — plus a built-in wallet that handles airtime, data and electricity bills.",
+    "iPrime is Katsina's delivery app. Order food, groceries, pharmacy and parcels with live rider tracking - plus a built-in wallet that handles airtime, data and electricity bills.",
   keywords: [
     "iPrime",
     "Katsina delivery",
@@ -42,16 +42,16 @@ export const metadata = {
     type: "website",
     locale: "en_NG",
     url: "https://iprime.ng",
-    title: "iPrime — Delivery, Wallet & Bills for Katsina",
+    title: "iPrime - Delivery, Wallet & Bills for Katsina",
     description:
-      "Door-to-door delivery across Katsina State — food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
+      "Door-to-door delivery across Katsina State - food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
     siteName: "iPrime",
   },
   twitter: {
     card: "summary_large_image",
-    title: "iPrime — Delivery, Wallet & Bills for Katsina",
+    title: "iPrime - Delivery, Wallet & Bills for Katsina",
     description:
-      "Door-to-door delivery across Katsina State — food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
+      "Door-to-door delivery across Katsina State - food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
   },
   robots: {
     index: true,

@@ -19,7 +19,7 @@ export const hydrateAuth = createAsyncThunk(
       const response = await api.get("/auth/profile");
       return { user: response.data };
     } catch (error) {
-      // Token expired or invalid — clear stored tokens
+      // Token expired or invalid - clear stored tokens
       await SecureStore.deleteItemAsync("accessToken");
       await SecureStore.deleteItemAsync("refreshToken");
       return null;
@@ -62,7 +62,7 @@ export const verifyOtp = createAsyncThunk(
     try {
       const response = await api.post("/auth/otp/verify", verificationData);
       const data = response.data;
-      // Customer registrations now come back with tokens + user — persist them
+      // Customer registrations now come back with tokens + user - persist them
       // so the navigator's auth gate flips on `isAuthenticated` and the user
       // lands in the main app without a separate login step. Password-reset
       // OTPs (handled on a different screen) carry no tokens, so this is a
@@ -143,7 +143,7 @@ const authSlice = createSlice({
     setPendingEmail: (state, action) => {
       state.pendingEmail = action.payload;
     },
-    // Phase 5 — fired by the api.js interceptor when the silent token
+    // Phase 5 - fired by the api.js interceptor when the silent token
     // refresh fails (refresh-token expired or revoked). Clears the user
     // out of state so the navigator falls back to the Login stack.
     forceLogout: (state) => {
@@ -159,7 +159,7 @@ const authSlice = createSlice({
       if (action.payload) {
         state.isAuthenticated = true;
         state.user = action.payload.user;
-        // Refresh the FCM/Expo push token on warm start — Expo can rotate
+        // Refresh the FCM/Expo push token on warm start - Expo can rotate
         // tokens between sessions, and missing a refresh silently breaks pushes.
         registerPushToken().catch(() => {});
       }

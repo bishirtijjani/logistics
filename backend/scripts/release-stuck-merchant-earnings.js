@@ -1,22 +1,22 @@
 /**
- * release-stuck-merchant-earnings.js — one-time corrective backfill.
+ * release-stuck-merchant-earnings.js - one-time corrective backfill.
  *
  * Before the settlement worker was corrected, a delivered order's merchant
  * earning was credited to MerchantWallet.pendingBalance and never promoted to
- * availableBalance — so merchants could see earnings but never withdraw them.
+ * availableBalance - so merchants could see earnings but never withdraw them.
  * Settlement now credits availableBalance directly, but any earning that
  * settled BEFORE that change is still stranded in pendingBalance. This script
  * moves that stranded amount into availableBalance for every merchant wallet.
  *
  * pendingBalance legitimately also holds withdrawals that are mid-flight
- * (status PENDING or PROCESSING). Those must NOT be released — only the portion
+ * (status PENDING or PROCESSING). Those must NOT be released - only the portion
  * of pendingBalance that exceeds in-flight withdrawals is stranded earnings.
  *
  * Safe to re-run: once stranded earnings are released, pendingBalance equals
  * in-flight withdrawals and nothing further is moved.
  *
  * Usage (from the backend/ folder, with your DB running + migrated):
- *   node scripts/release-stuck-merchant-earnings.js           # dry run — prints what it would do
+ *   node scripts/release-stuck-merchant-earnings.js           # dry run - prints what it would do
  *   node scripts/release-stuck-merchant-earnings.js --apply   # actually move the balances
  */
 
@@ -43,7 +43,7 @@ async function main() {
     const pending = Number(w.pendingBalance);
     if (pending <= 0) continue;
 
-    // Withdrawals still in flight for this wallet — these rightfully sit in
+    // Withdrawals still in flight for this wallet - these rightfully sit in
     // pendingBalance and must be left untouched.
     const inFlightAgg = await prisma.merchantWalletTransaction.aggregate({
       where: {

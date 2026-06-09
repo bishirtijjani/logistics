@@ -148,7 +148,7 @@ export default function JobOfferScreen() {
         Toast.show({
           type: "error",
           text1: t("offer.activationFailed", "Couldn't start trip"),
-          text2: t("offer.activationFailedSub", "Contact support — your acceptance was recorded."),
+          text2: t("offer.activationFailedSub", "Contact support. Your acceptance was recorded."),
           visibilityTime: 6000,
         });
         if (__DEV__) {
@@ -263,16 +263,16 @@ export default function JobOfferScreen() {
             marginBottom: 16,
           }}
         >
-          <Stat tokens={tokens} label={t("offer.fare", "Estimated fare")} value={fare ? formatNaira(fare) : "—"} />
+          <Stat tokens={tokens} label={t("offer.fare", "Estimated fare")} value={fare ? formatNaira(fare) : "-"} />
           <Stat
             tokens={tokens}
             label={t("offer.distance", "Distance")}
-            value={typeof distanceKm === "number" ? `${distanceKm.toFixed(distanceKm < 10 ? 1 : 0)} km` : "—"}
+            value={typeof distanceKm === "number" ? `${distanceKm.toFixed(distanceKm < 10 ? 1 : 0)} km` : "-"}
           />
           <Stat
             tokens={tokens}
             label={t("offer.eta", "Est. minutes")}
-            value={typeof eta === "number" ? `${Math.round(eta)} min` : "—"}
+            value={typeof eta === "number" ? `${Math.round(eta)} min` : "-"}
             last
           />
         </View>
@@ -313,7 +313,7 @@ export default function JobOfferScreen() {
         </View>
       </ScrollView>
 
-      {/* Action bar — fixed at the bottom */}
+      {/* Action bar - fixed at the bottom */}
       <View
         style={{
           paddingHorizontal: 20,
@@ -445,7 +445,7 @@ function AddressRow({ tokens, color, icon, label, address }) {
           style={{ fontSize: 14, color: tokens.text.primary, fontWeight: "600", marginTop: 2 }}
           numberOfLines={2}
         >
-          {address || "—"}
+          {address || "-"}
         </Text>
       </View>
     </View>

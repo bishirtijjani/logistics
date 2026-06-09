@@ -11,11 +11,11 @@ into tabs:
 
 ![Platform analytics](/help/screenshots/admin/analytics.png)
 
-- **Overview** — the headline numbers
-- **Revenue** — money trends over time
-- **Orders** — order volumes and patterns
-- **Customers** — growth and behaviour
-- **Geographic** — where activity is happening
+- **Overview** - the headline numbers
+- **Revenue** - money trends over time
+- **Orders** - order volumes and patterns
+- **Customers** - growth and behaviour
+- **Geographic** - where activity is happening
 
 > 💡 Use the date ranges to compare periods. A single merchant's analytics is
 > available from that merchant's drawer on the **Merchants** page.
@@ -34,7 +34,7 @@ related signals across riders and deliveries so issues can be caught early.
 ## Pre-launch waitlist
 
 The **Waitlist** page (*Pre-launch Waitlist*) lists everyone who signed up before
-launch — customers, riders, and merchants. Use **Refresh** to pull the latest,
+launch - customers, riders, and merchants. Use **Refresh** to pull the latest,
 and export the list when you're ready to reach out.
 
 ![Pre-launch waitlist](/help/screenshots/admin/waitlist.png)
@@ -43,15 +43,15 @@ and export the list when you're ready to reach out.
 
 ## Audit logs
 
-The **Audit Logs** page is the platform's memory — a record of **every admin
+The **Audit Logs** page is the platform's memory - a record of **every admin
 action**: approvals, suspensions, refunds, settings changes, and more.
 
 ![Audit logs](/help/screenshots/admin/audit-logs.png)
 
 **Filter by action** to trace what happened, when, and who did it.
 
-> 💡 If something looks wrong — an unexpected refund, a merchant suddenly
-> suspended — the Audit Logs tell you exactly which admin did it and when. It's
+> 💡 If something looks wrong - an unexpected refund, a merchant suddenly
+> suspended - the Audit Logs tell you exactly which admin did it and when. It's
 > your first stop for any "who changed this?" question.
 
 ---

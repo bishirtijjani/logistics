@@ -1,4 +1,4 @@
-# Security — iPrime
+# Security - iPrime
 
 Operational guidance for the platform's security posture. Lives in-repo so
 on-call has a single source to consult.
@@ -19,21 +19,21 @@ Date: 2026-05-19. Run `npm audit` again before each major release.
 #### Why we did NOT take `npm audit fix --force`
 
 `--force` would have:
-- **Downgraded** `socket.io` 4.8 → 4.2 (the audit DB's "fix" is older than what we ship — a false positive on our version)
+- **Downgraded** `socket.io` 4.8 → 4.2 (the audit DB's "fix" is older than what we ship - a false positive on our version)
 - **Downgraded** `firebase-admin` 13 → 10.3 (same issue; the chain `protobufjs` warning is on a newer transitive that 10.3 simply lacks)
 - Broken the real-time + push pipeline
 
 Both warnings stay open until upstream `firebase-admin` ships a `protobufjs` patch.
-Tracked as a recurring audit item — re-run after each `firebase-admin` minor bump.
+Tracked as a recurring audit item - re-run after each `firebase-admin` minor bump.
 
 #### High-severity items that ARE addressed
 
 - ✅ `nodemailer` SMTP command injection / DoS / address-parser → bumped to 8.0.7
-- ⏳ `axios` (high) — direct dep, but the published fix breaks the request/response
+- ⏳ `axios` (high) - direct dep, but the published fix breaks the request/response
   interceptor signature we use. Migration tracked separately; mitigated for now by
   the fact that all server-side `axios` callers use server-controlled URLs (KatPay,
-  Termii, Google Maps, AlRahuz — none take user-supplied URLs).
-- ⏳ `fast-xml-builder` (high) — transitive only; the project doesn't accept
+  Termii, Google Maps, AlRahuz - none take user-supplied URLs).
+- ⏳ `fast-xml-builder` (high) - transitive only; the project doesn't accept
   user-supplied XML, so the CDATA-injection vector isn't reachable.
 
 ---
@@ -44,11 +44,11 @@ Tracked as a recurring audit item — re-run after each `firebase-admin` minor b
   any API response.
 - **Transaction PIN**: bcrypt, 6-digit numeric. Server-side lockout at 6
   consecutive wrong attempts (30 min); per-endpoint rate limit at 3/5min
-  (defense-in-depth — see [`rate-limit.middleware.js`](backend/src/middlewares/rate-limit.middleware.js)).
+  (defense-in-depth - see [`rate-limit.middleware.js`](backend/src/middlewares/rate-limit.middleware.js)).
 - **JWT**: separate access/refresh secrets, ≥32 chars enforced at boot.
   Access tokens expire in 15min; refresh in 7d. Refresh rotation revokes the
   prior session inside one transaction.
-- **OTP**: 6-digit, 10-minute TTL, 60s resend cooldown. Single-use — burned
+- **OTP**: 6-digit, 10-minute TTL, 60s resend cooldown. Single-use - burned
   from Redis on successful verify.
 - **BVN**: only stored hashed (`bvnHash`). Plaintext never persisted, never
   logged. Phone-OTP gate verifies BVN-linked phone ownership before NUBAN
@@ -90,7 +90,7 @@ Tracked as a recurring audit item — re-run after each `firebase-admin` minor b
 - All inbound webhooks (KatPay, future providers) verify a per-provider
   HMAC over the **raw** request body. The raw-body middleware mounts BEFORE
   `express.json()` so the bytes used for HMAC match the bytes that hit the
-  wire — see [`app.js`](backend/src/app.js#L48).
+  wire - see [`app.js`](backend/src/app.js#L48).
 - Failed verification: `401` immediately, no logging of the body.
 
 ---
@@ -105,7 +105,7 @@ Tracked as a recurring audit item — re-run after each `firebase-admin` minor b
   for cancellation-fee preview → confirm. Cross-token forgery blocked by tests.
 - Idempotency-Key header required on creation, transfer, withdrawal,
   refund. The middleware records the response on first hit and replays it
-  on retries — see [`middlewares/idempotency.middleware.js`](backend/src/middlewares/idempotency.middleware.js).
+  on retries - see [`middlewares/idempotency.middleware.js`](backend/src/middlewares/idempotency.middleware.js).
 - Reconciliation worker runs nightly to detect ledger drift.
 
 ---
@@ -113,7 +113,7 @@ Tracked as a recurring audit item — re-run after each `firebase-admin` minor b
 ## Observability
 
 - **Sentry** captures `5xx` and non-operational errors. `SENTRY_DSN` is
-  optional everywhere — when unset, the SDK no-ops and errors still land
+  optional everywhere - when unset, the SDK no-ops and errors still land
   in Winston logs. See [`utils/sentry.js`](backend/src/utils/sentry.js).
 - **Request-ID**: every request gets an `X-Request-Id` (echoed in logs,
   Sentry tags, and the response header). Use it to correlate user reports
@@ -125,7 +125,7 @@ Tracked as a recurring audit item — re-run after each `firebase-admin` minor b
 
 ## Backups
 
-- **Postgres**: `scripts/backup-postgres.sh` — daily cron, 30-day local
+- **Postgres**: `scripts/backup-postgres.sh` - daily cron, 30-day local
   retention, optional S3 upload. Restore is documented inline at the top
   of the script.
 - **Redis**: provider-managed snapshots every 6 h. Redis holds ephemeral
@@ -135,7 +135,7 @@ Tracked as a recurring audit item — re-run after each `firebase-admin` minor b
 
 ---
 
-## OWASP top 10 — quick checks for code review
+## OWASP top 10 - quick checks for code review
 
 - **A01 Broken Access Control**: every route after `/auth/login` gates on
   `authenticate` + `authorize(...roles)`. Cross-user reads (e.g. notifications,

@@ -1,5 +1,5 @@
 /**
- * Admin service — rider approvals, user management, transaction oversight, request management, merchant management.
+ * Admin service - rider approvals, user management, transaction oversight, request management, merchant management.
  */
 
 const { prisma } = require('../../config/database');
@@ -154,7 +154,7 @@ const invalidateCustomerSockets = (userId, { forceDisconnect = false } = {}) => 
 
 /**
  * Suspend, deactivate, or reactivate a customer. Refuses to act on non-CUSTOMER
- * users — merchants/riders have their own status endpoints. Locks the wallet
+ * users - merchants/riders have their own status endpoints. Locks the wallet
  * on suspension/deactivation and unlocks it on reactivation.
  */
 const updateCustomerStatus = async (customerId, status, reason, adminUserId, ipAddress, userAgent) => {
@@ -202,7 +202,7 @@ const updateCustomerStatus = async (customerId, status, reason, adminUserId, ipA
 };
 
 /**
- * Granular customer edit — any subset of profile fields, KYC status, account
+ * Granular customer edit - any subset of profile fields, KYC status, account
  * status, and wallet lock. Records a diff in the audit log so each field
  * change is independently traceable. Mirrors the merchant-profile update
  * pattern but is field-level granular.
@@ -387,7 +387,7 @@ const getCustomerById = async (customerId) => {
 /**
  * Wipe a customer's KYC binding so they can re-verify from scratch. Clears the
  * stored bvnHash and resets kycStatus to NONE. The append-only BvnVerificationLog
- * is intentionally preserved — regulators require the full attempt history.
+ * is intentionally preserved - regulators require the full attempt history.
  */
 const wipeCustomerKyc = async (customerId, reason, adminUserId, ipAddress, userAgent) => {
   const user = await prisma.user.findUnique({
@@ -426,7 +426,7 @@ const wipeCustomerKyc = async (customerId, reason, adminUserId, ipAddress, userA
 
   logger.info('Customer KYC wiped by admin', { customerId, reason });
 
-  // Drop session caches — old JWTs may carry stale kyc-derived claims, and
+  // Drop session caches - old JWTs may carry stale kyc-derived claims, and
   // the user's verification screen needs a fresh load.
   invalidateCustomerSockets(customerId);
 
@@ -744,7 +744,7 @@ const getAllMerchants = async ({ page = 1, limit = 20, categoryId, categorySlug,
             lastName: true,
             email: true,
             phone: true,
-            // Unified spendable wallet — what the merchant actually holds.
+            // Unified spendable wallet - what the merchant actually holds.
             wallet: { select: { balance: true, isLocked: true } },
           },
         },
@@ -1314,7 +1314,7 @@ const slugify = (s) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 /**
- * List all categories (admin view — includes inactive + merchant counts).
+ * List all categories (admin view - includes inactive + merchant counts).
  */
 const getAllCategories = async ({ page = 1, limit = 50, isActive } = {}) => {
   const where = {
@@ -1629,7 +1629,7 @@ const getRiderStats = async () => {
 /**
  * Suspend a rider. Mirrors merchant suspension: flips status to SUSPENDED,
  * records the reason, and locks the rider's wallet so payouts pause. Riders
- * share the generic Wallet (keyed by userId) — there is no RiderWallet.
+ * share the generic Wallet (keyed by userId) - there is no RiderWallet.
  */
 const suspendRider = async (riderId, reason, adminUserId, ipAddress, userAgent) => {
   const rider = await prisma.rider.findUnique({
@@ -2077,7 +2077,7 @@ const getPendingWithdrawals = async ({ page = 1, limit = 20 }) => {
 };
 
 /**
- * Approve withdrawal request — triggers KatPay payout.
+ * Approve withdrawal request - triggers KatPay payout.
  */
 const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent) => {
   const withdrawal = await prisma.merchantWalletTransaction.findUnique({
@@ -2108,7 +2108,7 @@ const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent
     account_number: withdrawal.accountNumber,
     account_name: withdrawal.accountName,
     reference: withdrawal.reference,
-    description: `Merchant payout — ${withdrawal.merchantWallet.merchantId}`,
+    description: `Merchant payout - ${withdrawal.merchantWallet.merchantId}`,
   });
 
   // Mark as PROCESSING with KatPay reference; final COMPLETED arrives via webhook
@@ -2155,7 +2155,7 @@ const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent
 };
 
 /**
- * Reject withdrawal request — refunds to merchant wallet.
+ * Reject withdrawal request - refunds to merchant wallet.
  */
 const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, userAgent) => {
   const withdrawal = await prisma.merchantWalletTransaction.findUnique({
@@ -2203,7 +2203,7 @@ const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, us
     return true;
   });
 
-  // Lost the race — another caller already rejected it. Return the row without
+  // Lost the race - another caller already rejected it. Return the row without
   // duplicating the audit log / email.
   if (!claimed) {
     return prisma.merchantWalletTransaction.findUnique({ where: { id: withdrawalId } });
@@ -2238,11 +2238,11 @@ const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, us
  *   - an admin "mark failed & refund" action
  *   - (potentially) a reconciliation job
  *
- * Only acts on PROCESSING (the post-approval window — a PENDING withdrawal was
+ * Only acts on PROCESSING (the post-approval window - a PENDING withdrawal was
  * never sent to KatPay, so its refund path is rejectWithdrawal → REJECTED).
  * Already-FAILED is an idempotent no-op. Returns the row augmented with
  * `refunded` (was the wallet credited back) and `conflict` (marked FAILED but
- * the ledger had already settled — needs manual reconciliation).
+ * the ledger had already settled - needs manual reconciliation).
  */
 const failWithdrawal = async (withdrawalId, reason, { adminUserId = 'SYSTEM', ipAddress, userAgent } = {}) => {
   const existing = await prisma.merchantWalletTransaction.findUnique({
@@ -2295,7 +2295,7 @@ const failWithdrawal = async (withdrawalId, reason, { adminUserId = 'SYSTEM', ip
       }
     }
 
-    // Ledger already COMPLETED or REVERSED — the payout may actually have gone
+    // Ledger already COMPLETED or REVERSED - the payout may actually have gone
     // out (a half-applied success). Mark FAILED but DON'T credit; this is a hard
     // conflict that needs a human, not a silent refund.
     return { refunded: false, conflict: true, alreadyHandled: false };
@@ -2307,7 +2307,7 @@ const failWithdrawal = async (withdrawalId, reason, { adminUserId = 'SYSTEM', ip
   }
 
   if (result.conflict) {
-    logger.error('failWithdrawal: ledger already settled — marked FAILED WITHOUT refund; manual reconciliation needed', {
+    logger.error('failWithdrawal: ledger already settled - marked FAILED WITHOUT refund; manual reconciliation needed', {
       withdrawalId, reference: existing.reference, amount: existing.amount,
     });
   }
@@ -2379,8 +2379,8 @@ const getWithdrawalHistory = async ({ page = 1, limit = 20, status, startDate, e
 // ----------------------------------------------------------------
 // Backed by the `support` module (modules/support/support.service.js).
 // The admin namespace keeps these paths for backward compatibility with
-// admin-dashboard URLs; the actual logic — including the atomic refund on
-// dispute resolution — lives in the support service.
+// admin-dashboard URLs; the actual logic - including the atomic refund on
+// dispute resolution - lives in the support service.
 // ============================================================
 
 // ============================================================
@@ -2481,7 +2481,7 @@ const getRiderPerformance = async ({ page = 1, limit = 20 }) => {
   // Rank by the persisted performance counters on the Rider row. The previous
   // implementation tried `_count: { deliveries: true }` but the relation is
   // named `requests` (Prisma threw at runtime), and built a createdAt date
-  // filter it never applied — both removed in favour of the real metrics.
+  // filter it never applied - both removed in favour of the real metrics.
   const [riders, total] = await Promise.all([
     prisma.rider.findMany({
       where,
@@ -2573,7 +2573,7 @@ const getComplianceReport = async () => {
   };
 };
 
-// ─── Phase 8 — Rider force-offline (used by admin + Maestro `05-force-offline`)
+// ─── Phase 8 - Rider force-offline (used by admin + Maestro `05-force-offline`)
 //
 // Flips the rider from ONLINE/ON_DELIVERY to OFFLINE, clears the Redis
 // presence cache so the dispatcher won't broadcast offers to them, and
@@ -2627,7 +2627,7 @@ const forceOfflineRider = async (riderId, reason, adminUserId, ipAddress, userAg
   return { riderId, availability: 'OFFLINE' };
 };
 
-// ─── Phase 8 — Staging-only test offer seeder (Maestro `08-offer-race-lost`)
+// ─── Phase 8 - Staging-only test offer seeder (Maestro `08-offer-race-lost`)
 //
 // Creates a minimal PACKAGE request + immediately enqueues a broadcast
 // targeted at the test rider population. Gated behind NODE_ENV !== production
@@ -2649,7 +2649,7 @@ const seedTestOffer = async ({ target = 'both', pickupLat, pickupLng, fare = 150
     select: { id: true },
   });
   if (!customer) {
-    throw AppError.badRequest('No staging customer found — seed one first.', { code: 'NO_STAGING_CUSTOMER' });
+    throw AppError.badRequest('No staging customer found - seed one first.', { code: 'NO_STAGING_CUSTOMER' });
   }
 
   // Defaults: a pickup in Katsina town centre so the broadcast lands on
@@ -2686,7 +2686,7 @@ const seedTestOffer = async ({ target = 'both', pickupLat, pickupLng, fare = 150
 
   // Enqueue the broadcast directly via the request queue so this seeder
   // doesn't depend on the standard request.service flow (which validates
-  // payment, locks the customer wallet, etc. — overkill for staging).
+  // payment, locks the customer wallet, etc. - overkill for staging).
   const { requestQueue } = require('../../queues');
   const { REQUEST_JOBS } = require('../../queues/jobs');
   await requestQueue.add(REQUEST_JOBS.BROADCAST_TO_RIDERS, {
@@ -2777,7 +2777,7 @@ module.exports = {
   createVtuNetwork,
   updateVtuNetwork,
   deleteVtuNetwork,
-  // Phase 8 — Maestro support
+  // Phase 8 - Maestro support
   forceOfflineRider,
   seedTestOffer,
 };
@@ -2825,7 +2825,7 @@ async function bulkCreateVtuPlans(plans) {
 }
 
 // ─── VTU Network Management ───────────────────────────────────────────────────
-// Networks (and discos / cable names — same shape, different `type`) are the
+// Networks (and discos / cable names - same shape, different `type`) are the
 // catalogue admins edit when a provider renumbers IDs. Edits sweep all
 // VtuPlan rows that reference the old (type, providerNetworkId) pair.
 
@@ -2902,7 +2902,7 @@ async function updateVtuNetwork(id, data) {
     ...(data.sortOrder !== undefined && { sortOrder: Number(data.sortOrder) }),
   };
 
-  // Detect whether the sweep is needed. Type is intentionally immutable — a
+  // Detect whether the sweep is needed. Type is intentionally immutable - a
   // network is fundamentally one of AIRTIME/DATA/CABLE/ELECTRICITY; deleting
   // and recreating is the safer path if admin truly needs to change it.
   const idChanged = next.providerNetworkId !== undefined && next.providerNetworkId !== existing.providerNetworkId;

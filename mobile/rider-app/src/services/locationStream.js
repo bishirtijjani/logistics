@@ -1,5 +1,5 @@
 /**
- * Foreground GPS stream for the rider — Phase 2.
+ * Foreground GPS stream for the rider - Phase 2.
  *
  * Design choices (set in roadmap §2.7):
  *   - Foreground only. No `expo-task-manager`, no background service. When the
@@ -13,9 +13,9 @@
  *       - throttled to 60 000 ms when battery < 10 %
  *   - Each fix is enriched with `requestId` (from the trip slice) and emitted
  *     via socket `rider:location:update`. If the socket is disconnected the
- *     fix is pushed onto an in-memory ring buffer (cap 50 — oldest dropped)
+ *     fix is pushed onto an in-memory ring buffer (cap 50 - oldest dropped)
  *     and drained via batched `POST /rider/location` on reconnect.
- *   - Server's location rate-limit is 1 fix/sec/rider — we comply by never
+ *   - Server's location rate-limit is 1 fix/sec/rider - we comply by never
  *     scheduling tighter than 3 s and by deduping on a min-distance.
  */
 
@@ -28,8 +28,8 @@ import { newIdempotencyKey } from "./idempotency";
 import { LOCATION_CADENCE } from "../lib/constants";
 
 const RING_BUFFER_CAP = 50;
-const MIN_DISTANCE_M = 8;       // dedupe — drop fixes < 8 m from previous
-const MIN_TIME_DELTA_MS = 2_000; // dedupe — drop fixes < 2 s after previous
+const MIN_DISTANCE_M = 8;       // dedupe - drop fixes < 8 m from previous
+const MIN_TIME_DELTA_MS = 2_000; // dedupe - drop fixes < 2 s after previous
 const LOW_BATTERY_THRESHOLD = 0.20;
 const VERY_LOW_BATTERY_THRESHOLD = 0.10;
 const VERY_LOW_CADENCE_MS = 60_000;
@@ -79,7 +79,7 @@ class LocationStream {
   async start(opts = {}) {
     const { mode = "idle", onFix, requestIdGetter } = opts;
     if (this._subscription) {
-      // Already running — switch mode if needed.
+      // Already running - switch mode if needed.
       if (mode !== this._mode) {
         await this.setMode(mode);
       }
@@ -103,14 +103,14 @@ class LocationStream {
     this._onFix = onFix || null;
     this._requestIdGetter = requestIdGetter || null;
 
-    // 3. Battery monitoring — initial read + subscription.
+    // 3. Battery monitoring - initial read + subscription.
     try {
       this._batteryLevel = await Battery.getBatteryLevelAsync();
       this._batterySubscription = Battery.addBatteryLevelListener(({ batteryLevel }) => {
         const wasThrottled = this._isBatteryThrottled();
         this._batteryLevel = batteryLevel;
         if (wasThrottled !== this._isBatteryThrottled() && this._subscription) {
-          // Cadence band changed — restart subscription with new cadence.
+          // Cadence band changed - restart subscription with new cadence.
           this._restartWatch().catch(() => {});
         }
       });
@@ -118,7 +118,7 @@ class LocationStream {
       // Battery APIs can fail on emulators. Don't block streaming.
     }
 
-    // 4. AppState — pause on background, resume on foreground.
+    // 4. AppState - pause on background, resume on foreground.
     this._appStateSubscription = AppState.addEventListener("change", (next) => {
       if (next !== "active" && this._subscription) {
         this._suspendWatch();
@@ -127,7 +127,7 @@ class LocationStream {
       }
     });
 
-    // 5. Socket reconnect — drain the ring buffer the moment the socket comes back.
+    // 5. Socket reconnect - drain the ring buffer the moment the socket comes back.
     this._socketUnsub = socketService.onConnectionStateChange((connected) => {
       if (connected) this._drainRingBuffer().catch(() => {});
     });
@@ -255,7 +255,7 @@ class LocationStream {
   _pushToBuffer(record) {
     this._ringBuffer.push(record);
     if (this._ringBuffer.length > RING_BUFFER_CAP) {
-      // Drop oldest — recent fixes matter more than stale ones for a re-sync.
+      // Drop oldest - recent fixes matter more than stale ones for a re-sync.
       this._ringBuffer.splice(0, this._ringBuffer.length - RING_BUFFER_CAP);
     }
   }
@@ -264,7 +264,7 @@ class LocationStream {
    * Drain buffered fixes to the backend in a single batched POST.
    * Backend endpoint: `POST /rider/location` accepts either a single
    * `{lat,lng,requestId?}` body or `{ updates: [...] }` (the rider client
-   * uses the array form when draining — BE may need the array form added
+   * uses the array form when draining - BE may need the array form added
    * if it currently only accepts singletons).
    */
   async _drainRingBuffer() {

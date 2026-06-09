@@ -3,7 +3,7 @@
  *
  * Speaks Meta's Graph API for sending OTPs via an approved authentication
  * template. Free-form (utility / marketing) messages are NOT supported here
- * — Meta requires a separately approved template per message type, and our
+ * - Meta requires a separately approved template per message type, and our
  * transactional channel still goes through Termii (see messaging.service).
  *
  * Send pipeline (OTP):
@@ -60,13 +60,13 @@ const assertConfiguredForProd = () => {
       language: config.WHATSAPP_AUTH_TEMPLATE_LANGUAGE,
     });
   } else {
-    logger.warn('WhatsApp not configured — OTPs will be logged locally only');
+    logger.warn('WhatsApp not configured - OTPs will be logged locally only');
   }
 };
 
 /**
  * Send a 6-digit OTP via the approved authentication template. Used for
- * signup, password reset, KYC phone proof, and phone-change confirmation —
+ * signup, password reset, KYC phone proof, and phone-change confirmation -
  * all share the same template since the only variable is the code itself.
  */
 const sendOtp = async (phoneNumber, otp) => {
@@ -75,7 +75,7 @@ const sendOtp = async (phoneNumber, otp) => {
       throw AppError.internal('WhatsApp OTP provider not configured');
     }
     logger.info(
-      `[DEV] WhatsApp OTP for ${phoneNumber}: ${otp} (not sent — provider not configured)`,
+      `[DEV] WhatsApp OTP for ${phoneNumber}: ${otp} (not sent - provider not configured)`,
     );
     return { dev: true, otp };
   }
@@ -95,7 +95,7 @@ const sendOtp = async (phoneNumber, otp) => {
           type: 'body',
           parameters: [{ type: 'text', text: String(otp) }],
         },
-        // Copy-code button — Meta's auth templates require the same OTP
+        // Copy-code button - Meta's auth templates require the same OTP
         // value as the button parameter so the "Copy code" tap copies the
         // exact code the user sees in the body.
         {
@@ -137,7 +137,7 @@ const sendOtp = async (phoneNumber, otp) => {
 
 /**
  * Format Nigerian phone to international (E.164 minus the "+", which Meta
- * accepts either way — we strip it for consistency with the existing Termii
+ * accepts either way - we strip it for consistency with the existing Termii
  * format).
  *   08012345678 → 2348012345678
  */

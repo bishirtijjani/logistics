@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
 /**
- * The merchant's standard User wallet — the single wallet that now holds order
+ * The merchant's standard User wallet - the single wallet that now holds order
  * earnings AND top-ups, and that VTU + withdrawals draw from (merchants work
  * like riders/customers). Funding uses the same ad-hoc KatPay transfer-payment
  * rail every role uses (`/wallet/fund`), so no virtual account / BVN is needed.

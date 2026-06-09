@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
 /**
- * Profile slice — wraps the auth/profile + Phase 7 profile-management
+ * Profile slice - wraps the auth/profile + Phase 7 profile-management
  * surface (edit, photo, password, account deletion, performance,
  * notification preferences). `hasPinSet` drives the PIN-guard hook and the
  * onboarding gate.
@@ -109,7 +109,7 @@ export const updateNotificationPreferences = createAsyncThunk(
 );
 
 /**
- * Phase 7 — rider performance metrics (trailing 30 days). Backend computes
+ * Phase 7 - rider performance metrics (trailing 30 days). Backend computes
  * acceptance / cancellation / on-time / rating breakdown + streak.
  */
 export const fetchPerformance = createAsyncThunk(
@@ -125,7 +125,7 @@ export const fetchPerformance = createAsyncThunk(
 );
 
 /**
- * Phase 7 — re-upload a rider KYC document. Caller must upload the file
+ * Phase 7 - re-upload a rider KYC document. Caller must upload the file
  * to Cloudinary first (via `/auth/upload-signature` with `kind=rider_doc`)
  * and pass the resulting secure_url here along with the kind + expiry.
  */

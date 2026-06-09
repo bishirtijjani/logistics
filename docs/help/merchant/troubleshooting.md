@@ -9,7 +9,7 @@ a ticket from **Support**, or email **support@iprime.ng**.
 
 ### Customers can't see my shop
 
-Work through this checklist — it's almost always one of these:
+Work through this checklist - it's almost always one of these:
 
 1. **Are you approved?** New accounts are reviewed first (1–2 business days). You
    can't appear or take orders until you're approved.
@@ -20,7 +20,7 @@ Work through this checklist — it's almost always one of these:
 4. **Are you within your opening hours?** Customers can only order between your
    opening and closing times.
 
-### My account is "pending approval" — how long?
+### My account is "pending approval" - how long?
 
 Usually **1–2 business days**. We email you the moment you're approved, and then
 you can log in and finish setting up.
@@ -56,7 +56,7 @@ raise a support ticket.
 ### The "Request Withdrawal" button is greyed out
 
 That happens when your **Available Balance is ₦0**. Earnings sit in **Pending**
-until each order is delivered and settled, then move to **Available** — that's
+until each order is delivered and settled, then move to **Available** - that's
 what you can withdraw.
 
 ### What are the withdrawal limits?
@@ -65,7 +65,7 @@ Minimum **₦1,000** and maximum **₦1,000,000** per request.
 
 ### Why is my balance lower than the order totals?
 
-A small platform **commission** is deducted from each sale — you can see the
+A small platform **commission** is deducted from each sale - you can see the
 total under **Total Commission** on the Earnings page.
 
 ---
@@ -74,7 +74,7 @@ total under **Total Commission** on the Earnings page.
 
 ### The "New Product" button is greyed out
 
-It's just loading your shop's category — wait a second or two and it'll become
+It's just loading your shop's category - wait a second or two and it'll become
 clickable.
 
 ### I've sold out of an item
@@ -84,7 +84,7 @@ flip it to **Hidden**, then flip it back when you restock. Deleting is permanent
 
 ### A new order isn't showing up
 
-Check the **connection indicator** at the top-right of the **Orders** page — it
+Check the **connection indicator** at the top-right of the **Orders** page - it
 should be green. Tap the **refresh** button, or reload the page.
 
 ### I need to temporarily stop taking orders
@@ -104,7 +104,7 @@ your rating.
 
 ### How do I change my business category?
 
-You can't change it yourself — contact **support@iprime.ng** and we'll update it
+You can't change it yourself - contact **support@iprime.ng** and we'll update it
 for you.
 
 ### I saw a login I don't recognise
@@ -114,5 +114,5 @@ Change your password immediately under **Settings → Security**, then email
 
 ---
 
-Still stuck? Open **Support → New ticket** and include a screenshot — we aim to
+Still stuck? Open **Support → New ticket** and include a screenshot - we aim to
 respond within a few business hours.

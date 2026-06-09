@@ -1,5 +1,5 @@
 /**
- * Tracking socket handler — rider GPS location streaming.
+ * Tracking socket handler - rider GPS location streaming.
  *
  * FLOW:
  * 1. Rider emits rider:location:update every ~3 seconds with { lat, lng }
@@ -7,7 +7,7 @@
  * 3. Server broadcasts to the request room so customer sees live movement
  *
  * PERFORMANCE:
- * - Redis write per update (not DB — too frequent)
+ * - Redis write per update (not DB - too frequent)
  * - DB is updated less often via a periodic flush or on status change
  */
 
@@ -18,7 +18,7 @@ const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const mapsService = require('../../services/maps.service');
 
-// Phase 4 — push ETA at most every 30s and only when the rider has moved
+// Phase 4 - push ETA at most every 30s and only when the rider has moved
 // >100m since the last push. Cheap on Maps quota, accurate enough for UI.
 const ETA_MIN_INTERVAL_MS = 30 * 1000;
 const ETA_MIN_DISTANCE_M = 100;
@@ -169,7 +169,7 @@ const registerTrackingHandlers = (io, socket) => {
     }
   });
 
-  // Explicit availability:changed channel — riders going offline should
+  // Explicit availability:changed channel - riders going offline should
   // disappear from the index immediately.
   socket.on(RIDER.AVAILABILITY_CHANGED, async (data) => {
     try {

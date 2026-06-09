@@ -1,10 +1,10 @@
-// Shared help-center search — word/relevance based, with typo tolerance.
+// Shared help-center search - word/relevance based, with typo tolerance.
 //
 // Splits the query into meaningful words (dropping filler like how/to/a/the),
 // matches each word as a substring (so "withdraw" hits "withdrawal", "product"
 // hits "products"), falls back to a near-match for typos (so "withdrwal" hits
 // "withdrawal", "recieving" hits "receiving"), then ranks guides by how many
-// query words they cover — weighting title/keyword hits far above body hits.
+// query words they cover - weighting title/keyword hits far above body hits.
 //
 // SINGLE SOURCE OF TRUTH: this file is copied verbatim into each dashboard
 // (src/help/helpSearch.js) by scripts/build-help-content.mjs, and imported by
@@ -18,7 +18,7 @@ const STOPWORDS = new Set(
 const tokenize = (s) => String(s || '').toLowerCase().match(/[a-z0-9]+/g) || []
 
 // True if `a` is within 1 edit (substitution, insertion, deletion, or adjacent
-// transposition — i.e. optimal string alignment distance <= 1) of `b`.
+// transposition - i.e. optimal string alignment distance <= 1) of `b`.
 // Adjacent transposition is what makes it forgiving of "recieving"/"prodcut".
 function within1(a, b) {
   if (a === b) return true

@@ -1,5 +1,5 @@
 /**
- * NotificationsCenterScreen — in-app feed of every notification the backend
+ * NotificationsCenterScreen - in-app feed of every notification the backend
  * has pushed to this rider. Reads from `/notifications`, live-updates
  * via the `notification:new` socket event (wired in `notificationsBus`),
  * and deep-links to the relevant screen on tap.
@@ -88,7 +88,7 @@ export default function NotificationsCenterScreen() {
       try {
         navigation.navigate(action.name, action.params);
       } catch (_) {
-        // unknown screen — degrade silently
+        // unknown screen - degrade silently
       }
     }
   };

@@ -5,7 +5,7 @@ import { Platform, Alert } from "react-native";
  *
  * Native: the usual Alert action sheet (unchanged behaviour).
  * Web: browsers have no action sheet, AND react-native-web's Alert.alert does
- * not fire the per-button `onPress` callbacks — so the chooser is a dead end and
+ * not fire the per-button `onPress` callbacks - so the chooser is a dead end and
  * the upload button appears to "do nothing". Instead we skip straight to the
  * gallery handler; the browser's own file dialog already lets the user pick a
  * camera or a file. This MUST be called synchronously from the button's onPress

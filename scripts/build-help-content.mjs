@@ -1,5 +1,5 @@
 /**
- * build-help-content.mjs — sync the Help Center guides into a dashboard app so
+ * build-help-content.mjs - sync the Help Center guides into a dashboard app so
  * the in-app "?" help panel renders the SAME content as the web Help Center,
  * with zero drift (regenerated on every dev/build).
  *
@@ -42,7 +42,7 @@ const guides = manifest.guides
 const outDir = path.join(target, 'src', 'help')
 fs.mkdirSync(outDir, { recursive: true })
 const mod =
-  '// AUTO-GENERATED from /docs/help by scripts/build-help-content.mjs — do not edit.\n' +
+  '// AUTO-GENERATED from /docs/help by scripts/build-help-content.mjs - do not edit.\n' +
   '// Re-run `node scripts/build-help-content.mjs ' + role + '` (runs automatically on dev/build).\n' +
   'export const helpCategories = ' + JSON.stringify(manifest.categories || []) + '\n' +
   'export const helpGuides = ' + JSON.stringify(guides) + '\n'

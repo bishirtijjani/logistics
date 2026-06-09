@@ -1,5 +1,5 @@
 /**
- * ProductDetailScreen — Phase 2 food/retail item customization.
+ * ProductDetailScreen - Phase 2 food/retail item customization.
  *
  * Renders, in order:
  *   1. Hero image + name + base price
@@ -38,7 +38,7 @@ import {
 
 const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
-// Phase 8 — substitution is grocery-only UX. Detection by slug prefix keeps
+// Phase 8 - substitution is grocery-only UX. Detection by slug prefix keeps
 // admin's category taxonomy in charge (any new "grocery-*" category Just Works).
 const isGrocerySlug = (slug) => typeof slug === 'string' && slug.startsWith('grocery');
 
@@ -71,7 +71,7 @@ export default function ProductDetailScreen() {
     editingLine?.variantId || (variants.length === 1 ? variants[0].id : variants.find((v) => v.isAvailable)?.id) || ''
   );
   // Default to MERCHANT_PICK on first-add. Grocery shoppers nearly always want
-  // a sensible swap when an item is out — making them tap NONE explicitly
+  // a sensible swap when an item is out - making them tap NONE explicitly
   // matches Instacart/Jumia behavior and avoids surprise refunds.
   const [substitution, setSubstitution] = useState(
     editingLine?.substitution || (showSubstitution ? 'MERCHANT_PICK' : null)
@@ -193,7 +193,7 @@ export default function ProductDetailScreen() {
       lineTotal,
       selectedOptions: selectedOptionsPayload,
       specialInstructions: instructions.trim() || null,
-      // Phase 8 — flags carried on the line so downstream screens (menu, cart,
+      // Phase 8 - flags carried on the line so downstream screens (menu, cart,
       // checkout) don't have to re-derive them from the product object.
       substitution: showSubstitution ? substitution : null,
       requiresPrescription: Boolean(product.requiresPrescription),
@@ -375,7 +375,7 @@ export default function ProductDetailScreen() {
             <Text style={styles.charCount}>{instructions.length}/200</Text>
           </View>
 
-          {/* Phase 8 — grocery substitution preference. Hidden for non-grocery
+          {/* Phase 8 - grocery substitution preference. Hidden for non-grocery
               merchants so non-grocery shoppers never see an irrelevant control. */}
           {showSubstitution && (
             <View style={styles.section}>

@@ -61,7 +61,7 @@ ALTER TABLE "requests" DROP COLUMN "type_old";
 CREATE INDEX "requests_type_idx" ON "requests" ("type");
 
 -- ============================================================
--- 3. Drop the categoryId FK, index, column — only after all data has been migrated above
+-- 3. Drop the categoryId FK, index, column - only after all data has been migrated above
 -- ============================================================
 ALTER TABLE "merchants" DROP CONSTRAINT IF EXISTS "merchants_categoryId_fkey";
 DROP INDEX IF EXISTS "merchants_categoryId_idx";

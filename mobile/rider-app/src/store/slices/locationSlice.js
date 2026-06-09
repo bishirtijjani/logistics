@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 /**
- * Location slice — last GPS fix + accuracy + permission state.
+ * Location slice - last GPS fix + accuracy + permission state.
  * Fleshed out in Phase 2 alongside the TaskManager background task.
  */
 

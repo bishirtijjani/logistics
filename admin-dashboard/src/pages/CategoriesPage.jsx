@@ -207,7 +207,7 @@ export default function CategoriesPage() {
     const merchantCount = cat._count?.merchants ?? 0
     const msg =
       merchantCount > 0
-        ? `Deactivate "${cat.name}"? It's still assigned to ${merchantCount} merchant(s) — they keep working but the category disappears from new signups.`
+        ? `Deactivate "${cat.name}"? It's still assigned to ${merchantCount} merchant(s) - they keep working but the category disappears from new signups.`
         : `Delete "${cat.name}" permanently? Zero merchants reference it.`
     if (!confirm(msg)) return
     try {
@@ -284,7 +284,7 @@ export default function CategoriesPage() {
                         style={{ background: cat.color || '#999' }}
                       />
                       <span className="text-xs text-muted dark:text-dark-muted">
-                        {cat.color || '—'}
+                        {cat.color || '-'}
                       </span>
                     </div>
                   </td>
@@ -294,7 +294,7 @@ export default function CategoriesPage() {
                         {cat.icon}
                       </span>
                     ) : (
-                      '—'
+                      '-'
                     )}
                   </td>
                   <td className="px-4 py-3 text-text dark:text-dark-text">{cat.sortOrder}</td>
@@ -353,10 +353,10 @@ export default function CategoriesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-text dark:text-dark-text">
-                  Attribute Schema — {attrTarget.name}
+                  Attribute Schema - {attrTarget.name}
                 </h2>
                 <p className="text-xs text-muted dark:text-dark-muted">
-                  Tells the merchant product form which axes & pack inputs to render. UX hint only — DB does not enforce.
+                  Tells the merchant product form which axes & pack inputs to render. UX hint only - DB does not enforce.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -470,7 +470,7 @@ export default function CategoriesPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-xs text-muted dark:text-dark-muted">No axes — single-SKU product flow.</div>
+                    <div className="text-xs text-muted dark:text-dark-muted">No axes - single-SKU product flow.</div>
                   )}
                   {attrSchema.pack && (
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surface-muted dark:border-dark-surface-muted">

@@ -8,7 +8,7 @@
  *      Permanent token failures null out `User.fcmToken` (dead-letter).
  *
  * All wallet/order/lifecycle code must call `pushAndSocket` instead of emitting
- * sockets or invoking push helpers directly — this keeps the Notification
+ * sockets or invoking push helpers directly - this keeps the Notification
  * Center in sync with the tray and prevents the three-parallel-channels drift
  * that the Phase 4 audit found.
  *
@@ -56,7 +56,7 @@ const pushAndSocket = async (userId, payload) => {
     return null;
   }
 
-  // Single user lookup up-front — used for the status gate AND for push.
+  // Single user lookup up-front - used for the status gate AND for push.
   // Skips a redundant findUnique we used to do later in the push branch.
   let user = null;
   try {
@@ -82,7 +82,7 @@ const pushAndSocket = async (userId, payload) => {
     return null;
   }
 
-  // 1. Persist — drives the Notification Center feed + unread count.
+  // 1. Persist - drives the Notification Center feed + unread count.
   let row;
   try {
     row = await prisma.notification.create({
@@ -98,10 +98,10 @@ const pushAndSocket = async (userId, payload) => {
     });
   } catch (err) {
     logger.error('Notification persist failed', { userId, type, error: err.message });
-    // Continue — socket+push are best-effort even if DB write fails.
+    // Continue - socket+push are best-effort even if DB write fails.
   }
 
-  // 2. Socket — live unread badge + Notification Center prepend.
+  // 2. Socket - live unread badge + Notification Center prepend.
   // _io is null when running in a worker-only process (BullMQ host without
   // an HTTP socket server); in that case the row + push still fire so the
   // user sees the notification on next foreground / via push.
@@ -123,10 +123,10 @@ const pushAndSocket = async (userId, payload) => {
     }
   }
 
-  // 3. Push — fire-and-forget. We don't `await` the Expo/FCM call because:
+  // 3. Push - fire-and-forget. We don't `await` the Expo/FCM call because:
   //   - HTTP push latency (≤10s) would otherwise block whatever business
   //     transaction called us (status update, refund, etc.)
-  //   - Push delivery is best-effort by design — if it fails the user still
+  //   - Push delivery is best-effort by design - if it fails the user still
   //     has the in-app row + the socket event.
   if (!silent && user) {
     const prefs = user.notificationPreferences;
@@ -140,7 +140,7 @@ const pushAndSocket = async (userId, payload) => {
     })();
 
     if (pushEnabled && typeAllowed) {
-      // Web push — browser/PWA subscriptions (PushSubscription rows). Fires
+      // Web push - browser/PWA subscriptions (PushSubscription rows). Fires
       // independently of fcmToken so web-only users still get tray alerts.
       // Fire-and-forget; no-ops when VAPID isn't configured.
       webpushService
@@ -159,7 +159,7 @@ const pushAndSocket = async (userId, payload) => {
         })
         .catch((err) => logger.warn('Web push delivery failed (non-fatal)', { userId, error: err.message }));
 
-      // FCM / Expo (native devices) — only when a device token exists.
+      // FCM / Expo (native devices) - only when a device token exists.
       if (user.fcmToken) {
       const fcmToken = user.fcmToken;
       // intentionally not awaited
@@ -173,7 +173,7 @@ const pushAndSocket = async (userId, payload) => {
             requestId: requestId || '',
             transactionId: transactionId || '',
             notificationId: row?.id || '',
-            // Phase 5 — short codes the recipient app needs at tap time
+            // Phase 5 - short codes the recipient app needs at tap time
             // (e.g. POD_OTP_GENERATED carries the 6-digit code so the
             // tracking screen can render it from the cold-start payload
             // without a second round-trip).
@@ -208,13 +208,13 @@ const pushAndSocket = async (userId, payload) => {
 };
 
 // ============================================================
-// Lifecycle hooks — translate domain events into user-facing notifications.
+// Lifecycle hooks - translate domain events into user-facing notifications.
 // ============================================================
 
 const REQUEST_STATUS_TEMPLATES = {
   ACCEPTED:         { title: 'Order accepted',         body: 'The merchant accepted your order.' },
   PROCESSING:       { title: 'Preparing your order',   body: 'The merchant is preparing your order now.' },
-  READY_FOR_PICKUP: { title: 'Ready for pickup',       body: 'Your order is ready — finding a rider.' },
+  READY_FOR_PICKUP: { title: 'Ready for pickup',       body: 'Your order is ready - finding a rider.' },
   RIDER_ASSIGNED:   { title: 'Rider on the way',       body: 'A rider has been assigned. Tap to track live.' },
   RIDER_EN_ROUTE:   { title: 'Rider heading to pickup', body: 'Your rider is heading to the pickup point.' },
   PICKED_UP:        { title: 'Order picked up',        body: 'Your order has been picked up and is on the way.' },
@@ -224,7 +224,7 @@ const REQUEST_STATUS_TEMPLATES = {
   CANCELLED:        { title: 'Order cancelled',        body: 'Your order has been cancelled.' },
 };
 
-// Phase 8 — category-specific overrides for the early lifecycle states the
+// Phase 8 - category-specific overrides for the early lifecycle states the
 // customer sees most often. Keeps the unified taxonomy on the wire while
 // letting copy adapt to pharmacy / grocery in both the in-app banner and
 // the push notification, so the two never disagree.
@@ -262,7 +262,7 @@ const onRequestStatusChanged = async (request, prevStatus) => {
 
   const categorySlug = request.merchant?.category?.slug || null;
   const tpl = resolveTemplate(request.status, categorySlug);
-  if (!tpl) return; // REQUESTED, etc. — no notification
+  if (!tpl) return; // REQUESTED, etc. - no notification
 
   await pushAndSocket(request.customerId, {
     type: 'REQUEST_STATUS',
@@ -311,7 +311,7 @@ const onWalletEvent = async (userId, { kind, amount, transactionId, route, sende
 
 // ============================================================
 // Lightweight socket-only helpers (no Notification Center row).
-//   Use these for live UI nudges that don't warrant a feed entry — e.g. the
+//   Use these for live UI nudges that don't warrant a feed entry - e.g. the
 //   wallet balance dot updating in the background.
 // ============================================================
 

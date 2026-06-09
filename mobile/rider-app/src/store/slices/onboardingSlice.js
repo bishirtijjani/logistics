@@ -8,7 +8,7 @@ import {
 } from '../../lib/onboardingPersistence';
 
 /**
- * Onboarding slice — Become-Rider multi-step draft state.
+ * Onboarding slice - Become-Rider multi-step draft state.
  * Persisted to SecureStore via lib/onboardingPersistence so a kill-and-restart
  * resumes mid-application with all uploaded Cloudinary URLs preserved.
  */
@@ -83,7 +83,7 @@ export const submitRiderApplication = createAsyncThunk(
       insuranceCertificateUrl: documents.insuranceCertificateUrl || undefined,
       insuranceExpiresAt: documents.insuranceExpiresAt || undefined,
 
-      // Personal — none of these are on the current Rider schema; sent for
+      // Personal - none of these are on the current Rider schema; sent for
       // forward compatibility. Backend currently ignores.
       ...(personal.dob && { dateOfBirth: personal.dob }),
       ...(personal.address && { address: personal.address }),
@@ -108,7 +108,7 @@ const slice = createSlice({
   reducers: {
     onboardingStepSet: (state, action) => {
       state.step = action.payload;
-      // Async persistence — fire-and-forget.
+      // Async persistence - fire-and-forget.
       saveOnboardingDraft({ step: state.step, draft: state.draft });
     },
     onboardingDraftMerged: (state, action) => {

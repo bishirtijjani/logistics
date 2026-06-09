@@ -251,11 +251,11 @@ export default function AirtimeScreen({ navigation }) {
           <View style={{ backgroundColor: tokens.brand.soft, borderRadius: 16, padding: 20, borderWidth: 2, borderColor: tokens.brand.softBorder }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
               <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t("utility.airtimeScreen.summaryNetwork")}</Text>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>{selectedNetwork?.networkName || "—"}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>{selectedNetwork?.networkName || "-"}</Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
               <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t("utility.airtimeScreen.summaryPhone")}</Text>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>{phone || "—"}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: tokens.text.primary }}>{phone || "-"}</Text>
             </View>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <Text style={{ fontSize: 16, fontWeight: "700", color: tokens.text.primary }}>{t("utility.airtimeScreen.summaryTotal")}</Text>

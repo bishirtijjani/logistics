@@ -1,5 +1,5 @@
 /**
- * CreateDisputeScreen — rider files a dispute against a delivered request.
+ * CreateDisputeScreen - rider files a dispute against a delivered request.
  * The route param `requestId` is required. Server enforces:
  *   - rider must be the assigned rider on the request
  *   - request must be DELIVERED or SETTLED

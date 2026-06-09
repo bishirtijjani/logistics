@@ -1,12 +1,12 @@
 /**
- * Tests the offersSlice — the FSM-style state machine that drives the
+ * Tests the offersSlice - the FSM-style state machine that drives the
  * job-offer overlay. acceptOffer thunk is exercised via synthetic
  * pending/fulfilled/rejected actions; the network is never touched.
  */
 
 // We need to mock socketService BEFORE the slice is imported because it
 // fires socket emits inside reducers (rejection / acceptance optimistic
-// signals). The slice also calls `serverNow()` from api.js — for tests
+// signals). The slice also calls `serverNow()` from api.js - for tests
 // we want a deterministic clock.
 jest.mock("../../src/services/socket", () => ({
   __esModule: true,
@@ -76,7 +76,7 @@ describe("offersSlice.offerEnqueued", () => {
   });
 });
 
-describe("offersSlice — dismissal paths", () => {
+describe("offersSlice - dismissal paths", () => {
   it("offerDismissed pops the active offer and advances to the next in queue", () => {
     const a = reducer(initial, offerEnqueued(makeOffer({ requestId: "a" })));
     const b = reducer(a, offerEnqueued(makeOffer({ requestId: "b" })));
@@ -142,7 +142,7 @@ describe("offersSlice — dismissal paths", () => {
   });
 });
 
-describe("offersSlice — acceptOffer thunk reducers", () => {
+describe("offersSlice - acceptOffer thunk reducers", () => {
   it("pending flips to 'accepting' when an active offer is showing", () => {
     const seeded = reducer(initial, offerEnqueued(makeOffer()));
     const next = reducer(seeded, { type: acceptOffer.pending.type });

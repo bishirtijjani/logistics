@@ -17,9 +17,9 @@ import { useT } from "../../i18n/useT";
 import { reportAddressCorrection } from "../../store/slices/tripSlice";
 
 /**
- * WrongAddressSheet — file an address-correction note. Optionally pins the
+ * WrongAddressSheet - file an address-correction note. Optionally pins the
  * current location as the "corrected" coordinates (sourced from
- * riderSlice.lastFix). Doesn't change the trip status — dispatch acts on the
+ * riderSlice.lastFix). Doesn't change the trip status - dispatch acts on the
  * note out-of-band.
  */
 export default function WrongAddressSheet({ visible, stage, onClose, onSent }) {
@@ -112,7 +112,7 @@ export default function WrongAddressSheet({ visible, stage, onClose, onSent }) {
                 {t("trip.wrong.title", "Wrong {{stage}} address?", { stage: stageLabel })}
               </Text>
               <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 3 }}>
-                {t("trip.wrong.subtitle", "Tell dispatch what's wrong. They'll follow up — your trip stays in flight.")}
+                {t("trip.wrong.subtitle", "Tell dispatch what's wrong. They'll follow up. Your trip stays in flight.")}
               </Text>
             </View>
           </View>
@@ -120,7 +120,7 @@ export default function WrongAddressSheet({ visible, stage, onClose, onSent }) {
           <TextInput
             value={note}
             onChangeText={setNote}
-            placeholder={t("trip.wrong.placeholder", "e.g. The address is one block north — gate is by the green mosque")}
+            placeholder={t("trip.wrong.placeholder", "e.g. The address is one block north, gate is by the green mosque")}
             placeholderTextColor={tokens.text.placeholder}
             multiline
             maxLength={500}
@@ -171,7 +171,7 @@ export default function WrongAddressSheet({ visible, stage, onClose, onSent }) {
               <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
                 {lastFix
                   ? `${lastFix.lat.toFixed(5)}, ${lastFix.lng.toFixed(5)}`
-                  : t("trip.wrong.waitingGps", "Waiting on GPS — go online to capture a fix.")}
+                  : t("trip.wrong.waitingGps", "Waiting on GPS. Go online to capture a fix.")}
               </Text>
             </View>
           </TouchableOpacity>

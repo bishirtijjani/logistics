@@ -21,7 +21,7 @@ and the rights you have under the **Nigeria Data Protection Act, 2023
 
 If you only want a summary: we collect what we need to run logistics
 deliveries, hold a wallet for you, and verify your identity for financial
-transactions — and nothing else.
+transactions - and nothing else.
 
 ---
 
@@ -32,7 +32,7 @@ transactions — and nothing else.
 | Category | Examples | Why we need it |
 |---|---|---|
 | **Account & profile** | First name, last name, email, phone number, password (stored hashed only), profile photo | To create and secure your account; to display your name to merchants and riders during a delivery |
-| **Identity (KYC)** | Bank Verification Number (BVN — stored hashed only), date of birth, residential address | Required by the Central Bank of Nigeria (CBN) and our payment partners before we can provision a wallet or process transfers |
+| **Identity (KYC)** | Bank Verification Number (BVN - stored hashed only), date of birth, residential address | Required by the Central Bank of Nigeria (CBN) and our payment partners before we can provision a wallet or process transfers |
 | **Transaction PIN** | Your 6-digit PIN (stored hashed only) | Confirms financial actions; we never see the plain PIN, even internally |
 | **Delivery & address details** | Saved addresses (label, street, GPS coordinates), recipient names/phones you enter for package deliveries | To match riders, calculate fares, and complete deliveries |
 | **Order contents** | Items in your cart, prescriptions you upload at pharmacy checkout, special instructions you send merchants | To fulfill the order; prescriptions are stored encrypted in our image host and accessible only by the assigned pharmacist + you |
@@ -47,7 +47,7 @@ transactions — and nothing else.
 | **Usage analytics** | Screens visited, taps, time spent, error events | To find bugs, fix slow screens, and decide what to build next. Aggregated and anonymized where possible |
 | **Push notification token** | Firebase Cloud Messaging (FCM) token | To deliver order updates, OTP messages, and rider chats |
 
-### 2.3 Riders only — additional data
+### 2.3 Riders only - additional data
 
 Riders go through stricter KYC because they handle other people's money and
 goods. In addition to the above, we collect:
@@ -78,11 +78,11 @@ Each processing activity needs a lawful basis. Ours:
 | Activity | Lawful basis under NDPA §25 |
 |---|---|
 | Creating your account, fulfilling deliveries, holding your wallet | **Performance of a contract** with you (Terms of Service) |
-| KYC verification (BVN, identity) | **Legal obligation** — CBN regulations and AML/CFT requirements |
+| KYC verification (BVN, identity) | **Legal obligation** - CBN regulations and AML/CFT requirements |
 | Sending order-status push notifications and OTPs | **Performance of contract** |
-| Sending marketing emails or in-app promotions | **Consent** — opt-in, and you can revoke at any time |
-| Detecting and preventing fraud, chargebacks, and abuse | **Legitimate interest** — protecting the platform and other users |
-| Crash and error reporting | **Legitimate interest** — keeping the app working |
+| Sending marketing emails or in-app promotions | **Consent** - opt-in, and you can revoke at any time |
+| Detecting and preventing fraud, chargebacks, and abuse | **Legitimate interest** - protecting the platform and other users |
+| Crash and error reporting | **Legitimate interest** - keeping the app working |
 
 ---
 
@@ -95,7 +95,7 @@ contract or by Nigerian law.
 
 To complete a delivery:
 - **Merchants** see your name, the items you ordered, and any special
-  instructions — but not your phone number or address until you confirm.
+  instructions - but not your phone number or address until you confirm.
 - **Riders** see the pickup and dropoff addresses, your first name, and a
   masked phone number for in-app calls. The masking is done via our
   telephony partner so the rider never sees your real number.
@@ -171,7 +171,7 @@ You have the right to:
 - **Access** the personal data we hold about you
 - **Correct** data that is wrong or incomplete
 - **Delete** your account and the personal data associated with it (subject
-  to the retention limits in §5 — we cannot delete records the law forces
+  to the retention limits in §5 - we cannot delete records the law forces
   us to keep)
 - **Restrict** processing in specific situations
 - **Object** to processing based on legitimate interest
@@ -189,8 +189,8 @@ sensitive requests to prevent account takeover.
 
 We protect your data with:
 
-- Passwords and PINs stored as bcrypt hashes — never recoverable in plaintext, even by us
-- BVN stored as a one-way hash — never recoverable
+- Passwords and PINs stored as bcrypt hashes - never recoverable in plaintext, even by us
+- BVN stored as a one-way hash - never recoverable
 - TLS 1.2+ for all data in transit (app ↔ server, server ↔ partners)
 - HMAC-signed payment tokens to prevent tampering
 - Per-user rate limits, abuse heuristics, and device-fingerprinted sessions
@@ -224,7 +224,7 @@ they take effect. The "Last updated" date at the top is authoritative.
 - **General support:** contact@iprime.ng
 - **Data Protection Officer (DPO):** contact@iprime.ng
 - **Postal:** MH Prime, 2, Liyafa Street, Katsina, Katsina State, Nigeria
-- **NDPC:** https://ndpc.gov.ng — if you believe we have not handled your data correctly
+- **NDPC:** https://ndpc.gov.ng - if you believe we have not handled your data correctly
 
 ---
 

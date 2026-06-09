@@ -1,5 +1,5 @@
 /**
- * Connectivity signal — single source of truth for the global offline banner.
+ * Connectivity signal - single source of truth for the global offline banner.
  *
  * Phase 8 doesn't add `@react-native-community/netinfo` as a hard dep (the
  * rider app already streams location at high cadence; the socket service
@@ -7,10 +7,10 @@
  * unreachable" should still show the banner).
  *
  * Sources of "online?" truth:
- *   1. Socket connection state — primary. When authenticated, the socket
+ *   1. Socket connection state - primary. When authenticated, the socket
  *      reconnects automatically; a sustained disconnect is the strongest
  *      signal that something is wrong with the rider's connectivity.
- *   2. API call failures — secondary. When api.js gets a network-level
+ *   2. API call failures - secondary. When api.js gets a network-level
  *      failure (TypeError on fetch), it calls `markOffline()`. The next
  *      successful response flips back to `markOnline()`.
  *
@@ -32,7 +32,7 @@ const emit = () => {
 
 /**
  * Subscribe to changes. Returns an unsubscribe function. The callback is
- * NOT fired with the current state on subscribe — call getState() first
+ * NOT fired with the current state on subscribe - call getState() first
  * if you want immediate render.
  */
 export const subscribe = (cb) => {
@@ -44,7 +44,7 @@ export const subscribe = (cb) => {
 export const getState = () => _state.online;
 
 /**
- * Imperative setters. Idempotent — only emits when state changes. Called
+ * Imperative setters. Idempotent - only emits when state changes. Called
  * by the api interceptor on network errors / first 2xx, and by the socket
  * subscriber below on connect/disconnect.
  */
@@ -67,7 +67,7 @@ export const markOnline = () => {
 // signal is correct on first paint even before any component mounts.
 // Skip in test envs where socketService might be a partial mock.
 //
-// socket.js emits boolean true/false on `connectionStateChange` — accept
+// socket.js emits boolean true/false on `connectionStateChange` - accept
 // either booleans or the legacy string form ("connected"/"disconnected")
 // so a future emitter change doesn't silently break the banner again.
 if (socketService && typeof socketService.onConnectionStateChange === "function") {

@@ -5,9 +5,9 @@ import api from "./api";
  * Settings access surface.
  *
  * Two paths:
- *   - `getSetting(key, default)` — synchronous, reads the latest cached value.
+ *   - `getSetting(key, default)` - synchronous, reads the latest cached value.
  *     Use in non-React contexts (thunks, services, validators).
- *   - `usePlatformSetting(key, default)` — React hook backed by the Redux
+ *   - `usePlatformSetting(key, default)` - React hook backed by the Redux
  *     `settings` slice. Use in components so they re-render when settings
  *     load or update.
  *

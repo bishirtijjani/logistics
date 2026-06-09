@@ -8,15 +8,15 @@
 | **Prepared by** | Bishir Tijjani |
 | **Prepared for** | Muhammad Umar Lawal |
 | **Date** | March 2026 |
-| **Version** | 1.0 — For Review |
+| **Version** | 1.0 - For Review |
 
-> **CONFIDENTIAL** — Prepared exclusively for Muhammad Umar Lawal
+> **CONFIDENTIAL** - Prepared exclusively for Muhammad Umar Lawal
 
 ---
 
 ## 1. What We Are Building
 
-This proposal covers the design, development, and deployment of iPrime — a mobile super-app for Android and iOS targeting users across Katsina State. The platform brings three essential services together under a single app, eliminating the need for residents to use multiple separate applications.
+This proposal covers the design, development, and deployment of iPrime - a mobile super-app for Android and iOS targeting users across Katsina State. The platform brings three essential services together under a single app, eliminating the need for residents to use multiple separate applications.
 
 | Module | What It Does | Powered By |
 |---|---|---|
@@ -24,17 +24,17 @@ This proposal covers the design, development, and deployment of iPrime — a mob
 | **Utility Payments** | Buy airtime and data bundles for MTN, Airtel, Glo, and 9mobile. Pay electricity bills for any DISCO merchant across Nigeria. Everything is instant and paid from your wallet balance. | AlRahuz |
 | **Delivery & Logistics** | Request pickup and dropoff of any item within Katsina State. A registered rider accepts the job, collects the item, and delivers it while you track them live on a map. Payment is automatic from your wallet on delivery. | Google Maps + In-house |
 
-The platform consists of two mobile applications — a **Customer App** for end users and a **Rider App** for delivery personnel — both connected to the same backend system.
+The platform consists of two mobile applications - a **Customer App** for end users and a **Rider App** for delivery personnel - both connected to the same backend system.
 
 ---
 
 ## 2. How the System is Structured
 
-The Customer App and Rider App each communicate with a shared backend server over a secure connection. The backend handles all business logic and connects to external merchants for payments, utilities, maps, and notifications. Users never interact with these merchants directly — everything goes through the app.
+The Customer App and Rider App each communicate with a shared backend server over a secure connection. The backend handles all business logic and connects to external merchants for payments, utilities, maps, and notifications. Users never interact with these merchants directly - everything goes through the app.
 
 ### 2.1 Wallet Money Flow
 
-Every way money moves inside the platform flows through the wallet — from top-up via bank transfer, through peer-to-peer sends, utility payments, delivery charges, and out via bank withdrawal.
+Every way money moves inside the platform flows through the wallet - from top-up via bank transfer, through peer-to-peer sends, utility payments, delivery charges, and out via bank withdrawal.
 
 ### 2.2 Delivery Request Flow
 
@@ -46,7 +46,7 @@ A delivery moves through seven stages from the moment a customer places a reques
 |---|---|---|
 | **Mobile Apps** | React Native | One codebase builds both Android and iOS versions of both apps simultaneously. Reduces cost and development time significantly. |
 | **Backend Server** | Node.js + Express | Handles all transactions, delivery logic, and user management. Designed to handle many users at the same time reliably. |
-| **Database** | PostgreSQL | A financial-grade database. Every wallet transaction is recorded with full accuracy — no rounding errors, no data loss. |
+| **Database** | PostgreSQL | A financial-grade database. Every wallet transaction is recorded with full accuracy - no rounding errors, no data loss. |
 | **Real-Time Tracking** | Socket.io | Streams the rider's live GPS location to the customer's map every 3 seconds during an active delivery. |
 | **Payments** | KatPay | A licensed Nigerian payments provider that issues per-user virtual accounts, processes wallet funding via bank transfer, and handles bank disbursements (withdrawals). |
 | **Utility Bills** | AlRahuz | A Nigerian VTU/bill-payment aggregator supporting airtime, data, electricity, cable TV, and education pins. |
@@ -55,7 +55,7 @@ A delivery moves through seven stages from the moment a customer places a reques
 
 ---
 
-## 3. Full Feature Scope — Version 1
+## 3. Full Feature Scope - Version 1
 
 The following tables define every feature included in Version 1 of the platform. This is the agreed scope of work. Anything not listed here is not included in this engagement.
 
@@ -65,7 +65,7 @@ The following tables define every feature included in Version 1 of the platform.
 |---|---|
 | **Phone Number Registration** | Users sign up using their Nigerian phone number. A one-time OTP code is sent via SMS to verify the number. |
 | **BVN Verification** | Before a wallet is activated, the user's Bank Verification Number (BVN) is verified. This is a CBN requirement for any platform handling virtual accounts. The BVN is verified but never stored in readable form. |
-| **Transaction PIN** | A 6-digit PIN is set during registration and is required to authorise every financial action — transfers, payments, and withdrawals. |
+| **Transaction PIN** | A 6-digit PIN is set during registration and is required to authorise every financial action - transfers, payments, and withdrawals. |
 | **Rider Identity Check** | Riders are required to upload a government-issued ID and a vehicle photo. Their account is reviewed and approved by the platform administrator before they can go live. |
 | **Password Reset** | Users can reset their password via an OTP sent to their registered phone number. |
 
@@ -76,9 +76,9 @@ The following tables define every feature included in Version 1 of the platform.
 | **Personal Virtual Account** | Every verified user receives a unique Nigerian bank account number (issued via KatPay). This account is used exclusively to fund their wallet from any bank app. |
 | **Wallet Balance & Dashboard** | The home screen displays the user's current wallet balance with the option to hide or show it. |
 | **Wallet Top-Up** | User transfers any amount to their virtual account from their bank. The wallet balance updates automatically within seconds via a webhook notification from KatPay. |
-| **Send Money (P2P)** | Users can send money to any other registered user by entering their phone number. Both parties receive instant balance updates and push notifications. No bank transfer occurs — this is an internal ledger movement. |
+| **Send Money (P2P)** | Users can send money to any other registered user by entering their phone number. Both parties receive instant balance updates and push notifications. No bank transfer occurs - this is an internal ledger movement. |
 | **Withdraw to Bank** | Users can withdraw their wallet balance to any Nigerian bank account. The app verifies the account name before confirmation. Transfer is processed via KatPay's disbursement service. |
-| **Transaction History** | A chronological list of all wallet activity — top-ups, transfers sent and received, utility payments, delivery charges, and withdrawals — with full details and status. |
+| **Transaction History** | A chronological list of all wallet activity - top-ups, transfers sent and received, utility payments, delivery charges, and withdrawals - with full details and status. |
 | **Saved Beneficiaries** | Users can save frequently used account numbers and phone numbers for quick access during transfers. |
 
 ### 3.3 Utility Payments
@@ -90,7 +90,7 @@ The following tables define every feature included in Version 1 of the platform.
 | **Electricity Token** | Pay electricity bills for any DISCO merchant across Nigeria by entering the meter number. The payment token is delivered in the app and via SMS to the registered number. |
 | **Bill Purchase History** | A separate log of all utility purchases with merchant, beneficiary, amount, reference number, and status. |
 
-### 3.4 Delivery & Logistics — Customer Features
+### 3.4 Delivery & Logistics - Customer Features
 
 | Feature | Description |
 |---|---|
@@ -140,15 +140,15 @@ The project is structured across seven milestones over an estimated **19 weeks (
 
 | Milestone | What Is Delivered | Duration | Weeks |
 |---|---|---|---|
-| **1 — Foundation & Authentication** | Project setup, database, user registration, OTP verification, BVN KYC, transaction PIN, and secure session management. | 2 weeks | 1–2 |
-| **2 — Wallet & Transfers** | KatPay virtual account setup per user, wallet top-up via bank transfer, peer-to-peer transfers, bank withdrawals, and full transaction history. | 3 weeks | 3–5 |
-| **3 — Utility Payments** | AlRahuz integration for airtime, data bundles, and electricity tokens. Bill history and saved beneficiaries. | 2 weeks | 6–7 |
-| **4 — Delivery Module (Customer)** | Full delivery request flow, Google Maps integration, fare calculation, rider matching engine, push notifications, delivery history, and ratings. | 4 weeks | 8–11 |
-| **5 — Live Tracking** | Real-time GPS tracking via WebSocket. Rider location streams to customer map. Full delivery status event pipeline. | 2 weeks | 12–13 |
-| **6 — Rider Application** | Complete Rider App: onboarding, availability, job notifications, navigation, delivery actions, earnings dashboard, and rider withdrawals. | 3 weeks | 14–16 |
-| **7 — Testing & Launch** | End-to-end testing, bug fixes, performance checks, Google Play Store and Apple App Store submissions, production deployment, and full documentation handover. | 3 weeks | 17–19 |
+| **1 - Foundation & Authentication** | Project setup, database, user registration, OTP verification, BVN KYC, transaction PIN, and secure session management. | 2 weeks | 1–2 |
+| **2 - Wallet & Transfers** | KatPay virtual account setup per user, wallet top-up via bank transfer, peer-to-peer transfers, bank withdrawals, and full transaction history. | 3 weeks | 3–5 |
+| **3 - Utility Payments** | AlRahuz integration for airtime, data bundles, and electricity tokens. Bill history and saved beneficiaries. | 2 weeks | 6–7 |
+| **4 - Delivery Module (Customer)** | Full delivery request flow, Google Maps integration, fare calculation, rider matching engine, push notifications, delivery history, and ratings. | 4 weeks | 8–11 |
+| **5 - Live Tracking** | Real-time GPS tracking via WebSocket. Rider location streams to customer map. Full delivery status event pipeline. | 2 weeks | 12–13 |
+| **6 - Rider Application** | Complete Rider App: onboarding, availability, job notifications, navigation, delivery actions, earnings dashboard, and rider withdrawals. | 3 weeks | 14–16 |
+| **7 - Testing & Launch** | End-to-end testing, bug fixes, performance checks, Google Play Store and Apple App Store submissions, production deployment, and full documentation handover. | 3 weeks | 17–19 |
 
-> **Total Duration: 19 weeks — approximately 5 months from project kickoff to live app on both stores.**
+> **Total Duration: 19 weeks - approximately 5 months from project kickoff to live app on both stores.**
 >
 > Timeline assumes the client provides required API credentials (KatPay, AlRahuz, Google Maps) within the first week. Each milestone must be signed off before the following milestone begins. Delays in sign-off extend the timeline proportionally.
 
@@ -159,7 +159,7 @@ The project is structured across seven milestones over an estimated **19 weeks (
 The total fixed price for the complete Version 1 platform as described in this document is:
 
 ### ₦1,500,000
-**Fixed Price — Full V1 Scope**
+**Fixed Price - Full V1 Scope**
 
 This is a fixed price engagement. The total does not change regardless of how long any individual milestone takes, as long as the agreed scope remains unchanged. Payment is split across the seven milestones as follows:
 
@@ -181,7 +181,7 @@ This is a fixed price engagement. The total does not change regardless of how lo
 
 ### 5.1 What Is Included in This Price
 
-- Both mobile applications — Customer App and Rider App — for Android and iOS.
+- Both mobile applications - Customer App and Rider App - for Android and iOS.
 - The complete backend API, database, and real-time tracking infrastructure.
 - All third-party API integrations: KatPay, AlRahuz, Google Maps, Firebase, and Termii.
 - A basic admin dashboard for rider approvals and transaction oversight.
@@ -194,7 +194,7 @@ This is a fixed price engagement. The total does not change regardless of how lo
 
 - Third-party account fees: KatPay merchant onboarding, Google Maps billing, AlRahuz merchant account, Apple Developer Account (₦150,000/year equivalent), Google Play Developer Account (one-time ~₦25,000 equivalent).
 - Monthly infrastructure hosting costs after deployment (estimated ₦20,000–₦40,000/month depending on scale).
-- Rider recruitment — the client is responsible for recruiting and onboarding initial riders before launch.
+- Rider recruitment - the client is responsible for recruiting and onboarding initial riders before launch.
 - Any feature not listed in Section 3 of this document.
 - Ongoing maintenance, new features, or support beyond the 30-day warranty period. These are a separate engagement.
 
@@ -236,7 +236,7 @@ To proceed with this engagement, complete the following steps in order:
 
 1. Client reviews this document and raises any questions or requested changes.
 2. Both parties agree on terms and sign a brief service agreement.
-3. Client initiates account registrations for KatPay, AlRahuz, and Google Maps Platform (these can take a few days to process — they should not wait until development begins).
+3. Client initiates account registrations for KatPay, AlRahuz, and Google Maps Platform (these can take a few days to process - they should not wait until development begins).
 4. First milestone payment of **₦300,000** is received by the developer.
 5. Development begins on Milestone 1 immediately.
 

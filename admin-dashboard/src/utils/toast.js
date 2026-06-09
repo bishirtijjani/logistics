@@ -1,9 +1,9 @@
 /**
- * Toast helpers — thin wrapper over `sonner` (rendered by <Toaster> in App.jsx).
+ * Toast helpers - thin wrapper over `sonner` (rendered by <Toaster> in App.jsx).
  *
  * Mirrors the merchant dashboard's toast API (showSuccessToast / showErrorToast)
- * so components ported across apps — e.g. CloudinaryImageUploader and the
- * merchant product page — work without edits.
+ * so components ported across apps - e.g. CloudinaryImageUploader and the
+ * merchant product page - work without edits.
  */
 import { toast } from 'sonner'
 

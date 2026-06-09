@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
  *     setShowPinSheet(true);
  *   };
  *
- * If the profile slice hasn't hydrated yet we assume the PIN exists — the
+ * If the profile slice hasn't hydrated yet we assume the PIN exists - the
  * server's PIN_NOT_SET response is the backstop, and the per-screen catch
  * handlers route to SetPin if it fires.
  */

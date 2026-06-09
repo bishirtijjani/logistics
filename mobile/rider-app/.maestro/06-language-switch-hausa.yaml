@@ -15,7 +15,7 @@ env:
     visible: "Hausa"
     timeout: 10000
 - tapOn: "Hausa"
-# Back on Me tab — primary section label should now read "Asusu" (Hausa for Account).
+# Back on Me tab - primary section label should now read "Asusu" (Hausa for Account).
 - extendedWaitUntil:
     visible: "Asusu"
     timeout: 5000

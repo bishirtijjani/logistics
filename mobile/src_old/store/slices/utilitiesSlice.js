@@ -1,5 +1,5 @@
 /**
- * Utilities slice — airtime, data, electricity purchases.
+ * Utilities slice - airtime, data, electricity purchases.
  */
 
 const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');

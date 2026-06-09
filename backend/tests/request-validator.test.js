@@ -24,12 +24,12 @@ const baseLocations = {
   dropoffLng: 7.6089,
 };
 
-// Phase 4 — quote token is required on every create. The token's signature /
+// Phase 4 - quote token is required on every create. The token's signature /
 // expiry / locked-numbers checks happen in the service; the validator only
 // asserts presence + non-trivial length.
 const QUOTE_TOKEN = 'eyJ2IjoxLCJleHAiOjk5OTk5OTk5OTk5OTl9.fake-signature-long-enough-for-validator';
 
-// Phase 2 — items now reference a product by UUID; unit pricing is server-truth.
+// Phase 2 - items now reference a product by UUID; unit pricing is server-truth.
 const validItems = [
   { productId: '00000000-0000-4000-8000-000000000aaa', quantity: 2 },
 ];

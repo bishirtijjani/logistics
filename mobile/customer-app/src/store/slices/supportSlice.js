@@ -1,5 +1,5 @@
 /**
- * Support slice — tickets and disputes.
+ * Support slice - tickets and disputes.
  *
  * Patterns mirror requestSlice.js: envelope-unwrapping HTTP, idempotency keys
  * on creation, rejectWithValue carries the full error so screens can read

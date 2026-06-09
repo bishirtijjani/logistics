@@ -2,12 +2,12 @@
  * Sentry wrapper for the customer app.
  *
  * Mirrors the rider-app wrapper so call sites stay symmetrical across both
- * surfaces. All Sentry SDK references live in this one file — switching
+ * surfaces. All Sentry SDK references live in this one file - switching
  * providers later is a single-file change.
  *
  * Configuration:
- *   - `EXPO_PUBLIC_SENTRY_DSN`         — required; events are dropped if absent.
- *   - `EXPO_PUBLIC_SENTRY_ENVIRONMENT` — `development` | `staging` | `production`.
+ *   - `EXPO_PUBLIC_SENTRY_DSN`         - required; events are dropped if absent.
+ *   - `EXPO_PUBLIC_SENTRY_ENVIRONMENT` - `development` | `staging` | `production`.
  *                                       Set in `eas.json` per build profile.
  */
 

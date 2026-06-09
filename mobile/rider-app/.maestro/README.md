@@ -1,4 +1,4 @@
-# Maestro flows — iPrime Rider
+# Maestro flows - iPrime Rider
 
 End-to-end UI flows for the rider app, run via [Maestro](https://maestro.mobile.dev/).
 

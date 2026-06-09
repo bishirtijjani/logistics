@@ -1,5 +1,5 @@
 /**
- * Banner service — Phase 6.
+ * Banner service - Phase 6.
  *
  * Customer-facing read: returns banners that are currently `isActive`, not
  * scheduled-future via `startsAt`, not expired via `endsAt`, and whose
@@ -7,20 +7,20 @@
  *
  * Audience predicates are small JSON shapes evaluated server-side so we
  * never ship a banner intended for one segment to another:
- *   { "kyc": "VERIFIED" }              — only verified users see it
- *   { "minRequests": 1 }               — only users with ≥1 completed delivery
- *   { "categorySlug": "food" }         — only users who've ordered from this category
+ *   { "kyc": "VERIFIED" }              - only verified users see it
+ *   { "minRequests": 1 }               - only users with ≥1 completed delivery
+ *   { "categorySlug": "food" }         - only users who've ordered from this category
  * Empty / null audience = visible to everyone.
  *
  * Audience evaluation is batched into a SINGLE user profile lookup up front
  * (Phase 6 hardening). Previously each candidate banner could do up to 3
  * separate DB calls → 60 round-trips for a heavy banner shelf. Now: one
  * `User.findUnique`, optionally one `Request.count`, optionally one
- * `Request.findMany(distinct categorySlug)` — total 1-3 DB reads regardless
+ * `Request.findMany(distinct categorySlug)` - total 1-3 DB reads regardless
  * of banner count.
  *
  * Admin CRUD for banners follows the same shape as categories/merchants but
- * is intentionally not in this module — it lands in `modules/admin/admin.service`
+ * is intentionally not in this module - it lands in `modules/admin/admin.service`
  * if/when the admin dashboard ships the page.
  */
 
@@ -76,7 +76,7 @@ const buildProfile = async (userId, needs) => {
 
 const matchesAudience = (audience, profile) => {
   if (!audience || typeof audience !== 'object') return true;
-  // Arrays are typeof 'object' but never the shape we expect — treat as
+  // Arrays are typeof 'object' but never the shape we expect - treat as
   // malformed (admin paste error) and refuse to ship the banner.
   if (Array.isArray(audience)) return false;
   if (Object.keys(audience).length === 0) return true;

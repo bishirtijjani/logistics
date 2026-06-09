@@ -164,7 +164,7 @@ const utilitySlice = createSlice({
     error: null,
     total: 0,
     recentRecipients: {}, // { AIRTIME: [...], DATA: [...], CABLE: [...], ELECTRICITY: [...] }
-    paymentsById: {},      // { [paymentId]: payment } — kept fresh for pending polling
+    paymentsById: {},      // { [paymentId]: payment } - kept fresh for pending polling
   },
   reducers: {
     clearUtilityError: (state) => { state.error = null; },

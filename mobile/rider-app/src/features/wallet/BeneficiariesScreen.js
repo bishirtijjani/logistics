@@ -22,7 +22,7 @@ import {
 } from "../../store/slices/beneficiariesSlice";
 
 /**
- * Beneficiaries — saved bank accounts the rider has withdrawn to before.
+ * Beneficiaries - saved bank accounts the rider has withdrawn to before.
  * Tap to pre-fill WithdrawScreen; long-press / chevron menu deletes.
  */
 export default function BeneficiariesScreen() {

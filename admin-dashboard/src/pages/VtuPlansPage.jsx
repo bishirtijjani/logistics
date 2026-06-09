@@ -217,7 +217,7 @@ export default function VtuPlansPage() {
       try { await api.delete(`/admin/vtu-plans/${plan.id}`) }
       catch (e) {
         setPlans(snapshot)
-        toast.error(e.response?.data?.message || 'Delete failed — restored')
+        toast.error(e.response?.data?.message || 'Delete failed - restored')
       }
     }, UNDO_MS)
   }
@@ -544,7 +544,7 @@ function BulkBar({ count, onClear, onActivate, onDeactivate, onAdjustPrice, onDe
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// List view (table) — used for AIRTIME/CABLE/ELECTRICITY and Data list mode
+// List view (table) - used for AIRTIME/CABLE/ELECTRICITY and Data list mode
 // ────────────────────────────────────────────────────────────────────────────
 
 function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggleActive, onInlinePrice }) {
@@ -552,7 +552,7 @@ function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggl
   const groups = useMemo(() => {
     const g = new Map()
     for (const p of plans) {
-      const k = p.networkName || '—'
+      const k = p.networkName || '-'
       if (!g.has(k)) g.set(k, [])
       g.get(k).push(p)
     }
@@ -654,14 +654,14 @@ function PlanRow({ plan, tab, checked, onCheck, onEdit, onDelete, onToggleActive
       <td className="px-3 py-2.5">
         <div className="font-medium text-text dark:text-dark-text">{plan.name}</div>
         <div className="text-xs text-muted dark:text-dark-muted">
-          {[plan.dataSize, plan.validity].filter(Boolean).join(' · ') || '—'}
+          {[plan.dataSize, plan.validity].filter(Boolean).join(' · ') || '-'}
         </div>
       </td>
       {tab === 'DATA' && (
         <td className="px-3 py-2.5">
           {plan.planType
             ? <span className={`${cls.pill} bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300`}>{plan.planType}</span>
-            : <span className="text-muted dark:text-dark-muted">—</span>}
+            : <span className="text-muted dark:text-dark-muted">-</span>}
         </td>
       )}
       <td className="px-3 py-2.5 text-right text-muted dark:text-dark-muted">{fmt(plan.costPrice)}</td>
@@ -1044,7 +1044,7 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
               <div>
                 <label className={cls.label}>Plan type</label>
                 <select value={form.planType} onChange={(e) => setField('planType', e.target.value)} className={cls.input}>
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {DATA_PLAN_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>

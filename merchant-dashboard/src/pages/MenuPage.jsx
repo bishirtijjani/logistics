@@ -1,5 +1,5 @@
 /**
- * MenuPage — merchant product catalogue.
+ * MenuPage - merchant product catalogue.
  *
  * Phase 2: category-driven product form. The merchant selects a category, the
  * form reads `category.attributeSchema` from the backend, and renders only the
@@ -126,8 +126,8 @@ const cartesian = (arrays) =>
 const parseAxisList = (s) => (s || '').split(',').map((x) => x.trim()).filter(Boolean)
 
 function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) {
-  // Raw comma-separated text per axis. We hold the user's literal text — commas
-  // and spaces included — instead of a parsed array, so typing "30," doesn't get
+  // Raw comma-separated text per axis. We hold the user's literal text - commas
+  // and spaces included - instead of a parsed array, so typing "30," doesn't get
   // its trailing comma stripped on the next keystroke. Values are parsed only
   // when we actually need the distinct list (chips, matrix generation).
   const [axisText, setAxisText] = useState(() => {
@@ -216,7 +216,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
         {variants.length === 0 ? (
           <div className="text-sm text-muted dark:text-dark-muted rounded-xl border border-dashed border-surface-muted dark:border-dark-surface-muted px-4 py-6 text-center">
             {axes.length === 0
-              ? 'Single-SKU product — set price & stock below.'
+              ? 'Single-SKU product - set price & stock below.'
               : 'Enter your option values above, then tap “Generate combinations”.'}
           </div>
         ) : (
@@ -293,7 +293,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
                             onChange={(e) => patchRow(idx, { packUnit: e.target.value || undefined })}
                             className={inputCls}
                           >
-                            <option value="">—</option>
+                            <option value="">-</option>
                             {(packUnits && packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
                               <option key={u} value={u}>{u}</option>
                             ))}
@@ -313,7 +313,7 @@ function VariantMatrixBuilder({ axes, pack, packUnits, variants, setVariants }) 
 }
 
 // ---------------------------------------------------------------------------
-// OptionGroupsBuilder — inline editor used on product CREATE only. Existing
+// OptionGroupsBuilder - inline editor used on product CREATE only. Existing
 // products use the per-row option-group endpoints (added in EditProductModal).
 // ---------------------------------------------------------------------------
 
@@ -497,7 +497,7 @@ export default function MenuPage() {
 
   const [categories, setCategories] = useState([])
   // The merchant's own business category (chosen once at signup). Every product
-  // they add belongs to this — they never re-pick it. Drives the form's axes,
+  // they add belongs to this - they never re-pick it. Drives the form's axes,
   // pack units, and add-on support.
   const [merchantCategory, setMerchantCategory] = useState(null)
   const [search, setSearch] = useState('')
@@ -509,7 +509,7 @@ export default function MenuPage() {
     dispatch(fetchProducts({ merchantId }))
     // Full list still needed by the edit modal to resolve a product's category.
     api.get('/categories').then((r) => setCategories(r.data.data || [])).catch(() => {})
-    // The merchant's locked-in business category — used to pre-bind the create form.
+    // The merchant's locked-in business category - used to pre-bind the create form.
     api.get(`/merchants/${merchantId}`).then((r) => setMerchantCategory(r.data?.data?.category || null)).catch(() => {})
   }, [dispatch, merchantId])
 
@@ -614,7 +614,7 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="font-semibold text-text dark:text-dark-text">{product.name}</div>
-          <div className="text-xs text-muted dark:text-dark-muted">{product.description || '—'}</div>
+          <div className="text-xs text-muted dark:text-dark-muted">{product.description || '-'}</div>
           <div className="mt-1 text-sm text-text dark:text-dark-text font-medium">
             from {moneyFmt(lowestPrice)} · {totalStock} in stock
           </div>
@@ -667,7 +667,7 @@ function ProductCard({ product, merchantId, onEdit, onDelete }) {
 }
 
 // ---------------------------------------------------------------------------
-// Create modal — inline variants + option groups all at once
+// Create modal - inline variants + option groups all at once
 // ---------------------------------------------------------------------------
 
 // text-base (16px) on inputs prevents iOS Safari from auto-zooming on focus.
@@ -677,7 +677,7 @@ const smInputCls = 'border border-surface-muted dark:border-dark-surface-muted r
 const ghostBtnCls = 'px-3 py-1.5 border border-surface-muted dark:border-dark-surface-muted rounded-md text-sm text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors'
 
 // The merchant's business category is fixed at signup, so the create form is
-// bound to it — the merchant never re-selects a category per product.
+// bound to it - the merchant never re-selects a category per product.
 // Exported so the onboarding wizard can reuse the exact same product form for
 // the merchant's first product, instead of a thinner, divergent inline form.
 export function ProductCreateModal({ category: selectedCategory, onClose, onSubmit }) {
@@ -728,7 +728,7 @@ export function ProductCreateModal({ category: selectedCategory, onClose, onSubm
 
   const submit = async () => {
     if (!name.trim()) return showErrorToast('Name required')
-    if (!selectedCategory) return showErrorToast('Category still loading — try again')
+    if (!selectedCategory) return showErrorToast('Category still loading - try again')
 
     let inlineVariants
     if (singleSku) {
@@ -948,7 +948,7 @@ export function ProductCreateModal({ category: selectedCategory, onClose, onSubm
                       <label className="block">
                         <span className="text-sm font-medium text-text dark:text-dark-text mb-1.5 block">Pack unit</span>
                         <select value={singlePackUnit} onChange={(e) => setSinglePackUnit(e.target.value)} className={inputCls}>
-                          <option value="">—</option>
+                          <option value="">-</option>
                           {(packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => (
                             <option key={u} value={u}>{u}</option>
                           ))}
@@ -973,7 +973,7 @@ export function ProductCreateModal({ category: selectedCategory, onClose, onSubm
             <div className="space-y-4">
               <div>
                 <h3 className="text-base font-semibold text-text dark:text-dark-text">Add-ons &amp; choices</h3>
-                <p className="text-sm text-muted dark:text-dark-muted">Sides, spice levels, extras — anything customers pick. Optional.</p>
+                <p className="text-sm text-muted dark:text-dark-muted">Sides, spice levels, extras - anything customers pick. Optional.</p>
               </div>
               <OptionGroupsBuilder groups={optionGroups} setGroups={setOptionGroups} />
             </div>
@@ -1013,7 +1013,7 @@ export function ProductCreateModal({ category: selectedCategory, onClose, onSubm
 }
 
 // ---------------------------------------------------------------------------
-// Edit modal — uses per-row endpoints for variants + option groups so the
+// Edit modal - uses per-row endpoints for variants + option groups so the
 // merchant can incrementally add/remove rows on an existing product.
 // ---------------------------------------------------------------------------
 
@@ -1022,7 +1022,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
   const [name, setName] = useState(product.name)
   const [description, setDescription] = useState(product.description || '')
   const [imageUrl, setImageUrl] = useState(product.imageUrl || '')
-  // Phase 8 — pharmacy fields, editable on the existing product so merchants
+  // Phase 8 - pharmacy fields, editable on the existing product so merchants
   // can flag/clear the Rx requirement or update the dosage label after creation.
   const [requiresPrescription, setRequiresPrescription] = useState(Boolean(product.requiresPrescription))
   const [dosage, setDosage] = useState(product.dosage || '')
@@ -1066,7 +1066,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
       <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl w-full sm:max-w-4xl max-h-[95dvh] flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-surface-muted dark:border-dark-surface-muted">
-          <h2 className="text-lg font-semibold text-text dark:text-dark-text truncate pr-2">Edit — {product.name}</h2>
+          <h2 className="text-lg font-semibold text-text dark:text-dark-text truncate pr-2">Edit - {product.name}</h2>
           <button
             onClick={onClose}
             className="p-2.5 -mr-1 shrink-0 text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors"
@@ -1089,7 +1089,7 @@ function ProductEditModal({ product, categories, merchantId, onClose }) {
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={inputCls} rows={2} />
         </div>
 
-        {/* Phase 8 — pharmacy product edit fields. Hidden for non-pharmacy
+        {/* Phase 8 - pharmacy product edit fields. Hidden for non-pharmacy
             categories to keep the form focused. */}
         {isPharmacy && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1296,7 +1296,7 @@ function VariantsTable({ product, merchantId, axes, pack, packUnits }) {
                 onChange={(e) => setDraft({ ...draft, packUnit: e.target.value })}
                 className={smInputCls}
               >
-                <option value="">—</option>
+                <option value="">-</option>
                 {(packUnits.length > 0 ? packUnits : PACK_UNITS).map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
@@ -1463,7 +1463,7 @@ function OptionGroupRow({ group, product, merchantId, onDelete }) {
             if (total < group.minSelect) {
               return (
                 <div className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                  ⚠ Needs at least {group.minSelect} item{group.minSelect !== 1 ? 's' : ''} — add {group.minSelect - total} more so customers can order this.
+                  ⚠ Needs at least {group.minSelect} item{group.minSelect !== 1 ? 's' : ''} - add {group.minSelect - total} more so customers can order this.
                 </div>
               )
             }

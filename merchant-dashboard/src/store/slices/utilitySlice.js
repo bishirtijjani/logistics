@@ -7,7 +7,7 @@ const idemHeaders = () => ({ headers: { 'Idempotency-Key': crypto.randomUUID() }
 
 // Preserve { status, code, errors } off the axios error so the PIN modal can
 // branch on PIN_NOT_SET, render the 401 attempts-remaining counter, and apply
-// the 423 lockout countdown — same contract the mobile PinBottomSheet relies on.
+// the 423 lockout countdown - same contract the mobile PinBottomSheet relies on.
 const toRejection = (err, fallback) => ({
   message: err?.response?.data?.message || err?.message || fallback,
   status: err?.response?.status ?? null,

@@ -38,7 +38,7 @@ const detectDeviceLocale = () => {
     const code = locales?.[0]?.languageCode;
     if (code && SUPPORTED_LOCALES.includes(code)) return code;
   } catch (_) {
-    // Localization API can throw in test envs — fall through to default.
+    // Localization API can throw in test envs - fall through to default.
   }
   return DEFAULT_LOCALE;
 };
@@ -55,7 +55,7 @@ i18n
     lng: initialLocale,
     fallbackLng: DEFAULT_LOCALE,
     interpolation: {
-      // React already escapes — turning off prevents double-escaped curly
+      // React already escapes - turning off prevents double-escaped curly
       // braces showing up as `&#x7B;` etc.
       escapeValue: false,
     },
@@ -76,7 +76,7 @@ i18n
       await i18n.changeLanguage(stored);
     }
   } catch (_) {
-    // SecureStore can fail on emulators without a keychain — non-fatal.
+    // SecureStore can fail on emulators without a keychain - non-fatal.
   }
 })();
 
@@ -95,7 +95,7 @@ export const setLocale = async (locale) => {
 };
 
 /**
- * Current locale, for screens that need the raw code (rare — most should
+ * Current locale, for screens that need the raw code (rare - most should
  * use `useT()` instead).
  */
 export const getLocale = () => i18n.language || DEFAULT_LOCALE;

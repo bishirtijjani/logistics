@@ -24,7 +24,7 @@ const REASON_CODES = [
 ];
 
 /**
- * CancelTripSheet — two-step cancel flow:
+ * CancelTripSheet - two-step cancel flow:
  *   1. Reason picker (+ free text for OTHER)
  *   2. PinBottomSheet to authorize
  *

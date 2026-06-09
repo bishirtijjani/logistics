@@ -10,7 +10,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { useFonts, Roboto_700Bold } from "@expo-google-fonts/roboto";
 import "./global.css";
-// Phase 9 — initialize i18n before any screen mounts so the device locale (or
+// Phase 9 - initialize i18n before any screen mounts so the device locale (or
 // previously persisted user choice) is the language seen on first paint.
 import "./src/i18n";
 import { Provider } from "react-redux";
@@ -26,18 +26,18 @@ import { ThemeProvider, useTheme } from "./src/theme";
 import { useToastConfig } from "./src/components/toastShared";
 import AlertHost from "./src/components/AlertHost";
 import { installWebAlert } from "./src/lib/safeAlert";
-// Phase 10 — Sentry boot. Safe to call before the SDK package is installed;
+// Phase 10 - Sentry boot. Safe to call before the SDK package is installed;
 // no-ops cleanly when `@sentry/react-native` is missing or EXPO_PUBLIC_SENTRY_DSN
 // is unset. Once both are in place this starts capturing automatically.
 import { initSentry, captureError as captureSentryError } from "./src/services/sentry";
 
 initSentry();
 
-// Web only: route Alert.alert through a themed modal — RN-web's Alert.alert has
+// Web only: route Alert.alert through a themed modal - RN-web's Alert.alert has
 // dead multi-button callbacks. No-op on native (real OS Alert is used there).
 installWebAlert();
 
-// Phase 5 — register the silent-refresh fallback so the api.js interceptor
+// Phase 5 - register the silent-refresh fallback so the api.js interceptor
 // can flip the auth state out from anywhere in the tree when the refresh
 // token is permanently invalid.
 registerForceLogout(() => store.dispatch(forceLogoutAction()));
@@ -46,7 +46,7 @@ registerForceLogout(() => store.dispatch(forceLogoutAction()));
 LogBox.ignoreLogs(["ViewPropTypes will be removed"]);
 LogBox.ignoreAllLogs();
 
-// Themed toast — built inside ThemeProvider so the pill bg flips with mode.
+// Themed toast - built inside ThemeProvider so the pill bg flips with mode.
 // Wrapped in an absolute-fill View with a high elevation/zIndex so the toast
 // paints ABOVE the navigator on both platforms.
 // `pointerEvents="box-none"` lets taps on empty area fall through to the
@@ -73,7 +73,7 @@ function ThemedStatusBar() {
 }
 
 // Root canvas: paints the app-wide background color behind every screen. The
-// navigators sit on top of it — native-stack inherits this color via the
+// navigators sit on top of it - native-stack inherits this color via the
 // navigation theme, and each bottom-tab scene sets the same color via its
 // `sceneStyle` (bottom-tabs doesn't read the theme background).
 function ThemedRoot({ children }) {
@@ -98,7 +98,7 @@ function ErrorFallback({ error, resetErrorBoundary }) {
 
 export default function App() {
   // Load the brand-logo font in the background. We don't block first paint on
-  // it — the only consumer is AboutScreen, which the user navigates to long
+  // it - the only consumer is AboutScreen, which the user navigates to long
   // after the font is cached.
   useFonts({ Roboto_700Bold });
 
@@ -107,7 +107,7 @@ export default function App() {
   //
   // ErrorBoundary sits OUTSIDE ThemeProvider so the fallback still renders if
   // ThemeProvider itself crashes (e.g. AsyncStorage failure). The fallback
-  // intentionally uses static colors — it cannot consume useTheme.
+  // intentionally uses static colors - it cannot consume useTheme.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

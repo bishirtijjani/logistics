@@ -7,11 +7,11 @@
  * file change.
  *
  * Configuration:
- *   - `EXPO_PUBLIC_SENTRY_DSN`         — required; events are dropped if absent.
- *   - `EXPO_PUBLIC_SENTRY_ENVIRONMENT` — `development` | `staging` | `production`.
+ *   - `EXPO_PUBLIC_SENTRY_DSN`         - required; events are dropped if absent.
+ *   - `EXPO_PUBLIC_SENTRY_ENVIRONMENT` - `development` | `staging` | `production`.
  *                                       Set in `eas.json` per build profile.
  *
- * Sample rates are tuned conservatively for v1 — bump
+ * Sample rates are tuned conservatively for v1 - bump
  * `tracesSampleRate` once we have a Sentry quota signal.
  */
 
@@ -24,7 +24,7 @@ const ENVIRONMENT = process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT || "development";
 
 /**
  * Redact obvious secrets from event extras before sending. Defense-in-
- * depth on top of Sentry's `sendDefaultPii: false` — we control the keys
+ * depth on top of Sentry's `sendDefaultPii: false` - we control the keys
  * we attach via `captureError(..., context)` so this is a belt-and-braces.
  */
 function redactSecrets(event) {
@@ -45,9 +45,9 @@ function redactSecrets(event) {
 }
 
 /**
- * Initialise Sentry. Safe to call once at App boot — subsequent calls
+ * Initialise Sentry. Safe to call once at App boot - subsequent calls
  * short-circuit. Returns true when the SDK is active, false when no DSN
- * was provided (e.g. local dev without secrets — we don't crash, we
+ * was provided (e.g. local dev without secrets - we don't crash, we
  * silently disable).
  */
 export const initSentry = () => {
@@ -75,7 +75,7 @@ export const initSentry = () => {
       return redactSecrets(event);
     },
   });
-  // Default tag — every event from this binary belongs to the rider app.
+  // Default tag - every event from this binary belongs to the rider app.
   Sentry.setTag("role", "RIDER");
   Sentry.setTag("appSurface", "rider-mobile");
   return true;

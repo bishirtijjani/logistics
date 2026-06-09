@@ -246,18 +246,18 @@ export default function CustomerDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
         <Card title="Profile">
           <InfoRow icon={Mail} label="Email" value={customer.email} />
-          <InfoRow icon={Phone} label="Phone" value={customer.phone || '—'} />
+          <InfoRow icon={Phone} label="Phone" value={customer.phone || '-'} />
           <InfoRow icon={Calendar} label="Joined" value={new Date(customer.createdAt).toLocaleString()} />
-          <InfoRow icon={User} label="Date of Birth" value={customer.dateOfBirth ? new Date(customer.dateOfBirth).toLocaleDateString() : '—'} />
+          <InfoRow icon={User} label="Date of Birth" value={customer.dateOfBirth ? new Date(customer.dateOfBirth).toLocaleDateString() : '-'} />
         </Card>
         <Card title="Wallet">
           {customer.wallet ? (
             <>
               <InfoRow icon={Wallet} label="Balance" value={formatNGN(customer.wallet.balance)} />
               <InfoRow icon={Lock} label="Status" value={customer.wallet.isLocked ? 'Locked' : 'Active'} />
-              <InfoRow label="Virtual Account" value={customer.wallet.virtualAccountNumber || '—'} />
-              <InfoRow label="Bank" value={customer.wallet.virtualAccountBank || '—'} />
-              <InfoRow label="Account Name" value={customer.wallet.virtualAccountName || '—'} />
+              <InfoRow label="Virtual Account" value={customer.wallet.virtualAccountNumber || '-'} />
+              <InfoRow label="Bank" value={customer.wallet.virtualAccountBank || '-'} />
+              <InfoRow label="Account Name" value={customer.wallet.virtualAccountName || '-'} />
             </>
           ) : (
             <p className="text-sm text-muted dark:text-dark-muted">No wallet provisioned.</p>

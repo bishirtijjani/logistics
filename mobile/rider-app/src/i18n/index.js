@@ -25,7 +25,7 @@ const detectDeviceLocale = () => {
     const code = locales?.[0]?.languageCode;
     if (code && SUPPORTED_LOCALES.includes(code)) return code;
   } catch (_) {
-    // Localization API can throw in test envs — fall through to default.
+    // Localization API can throw in test envs - fall through to default.
   }
   return DEFAULT_LOCALE;
 };
@@ -57,7 +57,7 @@ i18n
       await i18n.changeLanguage(stored);
     }
   } catch (_) {
-    // SecureStore can fail on emulators without a keychain — non-fatal.
+    // SecureStore can fail on emulators without a keychain - non-fatal.
   }
 })();
 

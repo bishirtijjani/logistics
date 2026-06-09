@@ -113,7 +113,7 @@ export default function UtilityHistoryScreen({ navigation }) {
     const meta = UTILITY_TYPES[item.type] || { icon: "receipt", color: tokens.text.muted, labelKey: null };
     const typeLabel = meta.labelKey ? t(meta.labelKey) : item.type;
     const statusColor = STATUS_COLORS[item.status] || { bg: tokens.bg.surface, text: tokens.text.primary };
-    const recipient = item.phoneNumber || item.meterNumber || "—";
+    const recipient = item.phoneNumber || item.meterNumber || "-";
     const amountText = naira(item.amount);
 
     return (

@@ -9,7 +9,7 @@ Two tabs: **All Riders** and **Pending Approvals**. The stat cards show **Total
 Riders** (and how many are online now), **Active**, **Pending Review**, and
 **Suspended**.
 
-Each rider shows a **status** — *Pending*, *Active*, *Suspended*, or *Rejected* —
+Each rider shows a **status** - *Pending*, *Active*, *Suspended*, or *Rejected* -
 and, for active riders, an availability badge: *Online*, *On delivery*, or
 *Offline*.
 
@@ -18,11 +18,11 @@ and, for active riders, an availability badge: *Online*, *On delivery*, or
 ## Approve a new rider
 
 1. Open **Pending Approvals** (or the *Pending Review* stat card).
-2. Click a rider to open their detail drawer and review the **Documents** tab —
+2. Click a rider to open their detail drawer and review the **Documents** tab -
    ID, licence, vehicle registration, and insurance.
 3. **Approve** the rider, or **Reject** them with a reason.
 
-> ⚠️ Check that documents are valid and not expired before approving — riders
+> ⚠️ Check that documents are valid and not expired before approving - riders
 > handle customers' orders and cash.
 
 ---
@@ -31,10 +31,10 @@ and, for active riders, an availability badge: *Online*, *On delivery*, or
 
 Click any rider to open their drawer, which has three tabs:
 
-- **Profile** — personal and vehicle details; **Suspend** (with a reason that
+- **Profile** - personal and vehicle details; **Suspend** (with a reason that
   tells them what's needed to lift it).
-- **Documents** — uploaded ID/licence/insurance with their **expiry dates**.
-- **Earnings** — what the rider has made.
+- **Documents** - uploaded ID/licence/insurance with their **expiry dates**.
+- **Earnings** - what the rider has made.
 
 ---
 

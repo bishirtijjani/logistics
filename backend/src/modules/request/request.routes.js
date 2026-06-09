@@ -1,5 +1,5 @@
 /**
- * Request routes — /requests
+ * Request routes - /requests
  * Unified request endpoints for all request types (FOOD, GROCERY, PHARMACY, PACKAGE)
  */
 
@@ -33,7 +33,7 @@ router.use(authenticate);
 // Public endpoints (any authenticated user)
 // ============================================================
 
-// Server-truth quote — POST same shape as createRequest, returns pricing + validUntil
+// Server-truth quote - POST same shape as createRequest, returns pricing + validUntil
 router.post('/quote', quoteLimiter, validate(quoteRequestSchema), requestController.getQuote);
 
 // List requests (customers see theirs, riders see theirs, merchants see theirs)
@@ -48,11 +48,11 @@ router.get('/active', requestController.getActiveRequest);
 // Get single request details
 router.get('/:requestId', requestController.getRequestById);
 
-// Tracking — route polyline + live ETA from rider's last known position.
+// Tracking - route polyline + live ETA from rider's last known position.
 // Cached in Redis for 30s to keep Maps quota in check.
 router.get('/:requestId/route', requestController.getRoute);
 
-// In-app messaging — list + post (rider/customer/merchant, all in the request).
+// In-app messaging - list + post (rider/customer/merchant, all in the request).
 // Idempotent post so a flaky network retry can't double-send the same message.
 router.get('/:requestId/messages', validate(listMessagesSchema, 'query'), requestController.listMessages);
 router.post('/:requestId/messages', idempotency, validate(postMessageSchema), requestController.postMessage);
@@ -61,13 +61,13 @@ router.post('/:requestId/messages', idempotency, validate(postMessageSchema), re
 // Customer endpoints
 // ============================================================
 
-// Create a new request (any type) — 30/hour per user cap (Phase 10 abuse mitigation)
+// Create a new request (any type) - 30/hour per user cap (Phase 10 abuse mitigation)
 router.post('/', authorize('CUSTOMER'), requestCreationLimiter, idempotency, validate(createRequestSchema), requestController.createRequest);
 
-// Cancellation quote — preview the fee/refund before the customer confirms.
+// Cancellation quote - preview the fee/refund before the customer confirms.
 router.get('/:requestId/cancel-quote', authorize('CUSTOMER'), requestController.getCancellationQuote);
 
-// Cancel request (customer only, before pickup) — fee policy applied server-side.
+// Cancel request (customer only, before pickup) - fee policy applied server-side.
 router.delete('/:requestId', authorize('CUSTOMER'), validate(cancelRequestSchema), requestController.cancelRequest);
 
 // Rate completed request (customer only)
@@ -90,7 +90,7 @@ router.patch(
 );
 
 // ============================================================
-// Rider endpoints — Phase 4
+// Rider endpoints - Phase 4
 // ============================================================
 
 // Update request status (rider: RIDER_EN_ROUTE, PICKED_UP, IN_TRANSIT, DELIVERED).
@@ -105,7 +105,7 @@ router.post(
   requestController.riderCancelRequest,
 );
 
-// Address correction — rider supplies a corrected location + note when the
+// Address correction - rider supplies a corrected location + note when the
 // pickup/dropoff is wrong. Audit-logged, notifies merchant/customer. Does
 // NOT change the trip flow.
 router.post(
@@ -116,7 +116,7 @@ router.post(
   requestController.recordAddressCorrection,
 );
 
-// Phase 5 — Proof of Delivery OTP. Rider asks the server to mint a 6-digit
+// Phase 5 - Proof of Delivery OTP. Rider asks the server to mint a 6-digit
 // code, which the customer sees in their tracking screen and reads to the
 // rider on arrival. Idempotent + rate-limited so the rider can't spam the
 // customer (max 3 codes per request per 10 minutes).

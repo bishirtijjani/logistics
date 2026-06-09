@@ -73,7 +73,7 @@ export default function HelpSupportScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 48 }}
       >
-        {/* Quick actions — open tickets */}
+        {/* Quick actions - open tickets */}
         <View style={{ marginHorizontal: 20, marginBottom: 24, gap: 10 }}>
           <TouchableOpacity
             onPress={() => navigation.navigate("CreateSupportTicket")}

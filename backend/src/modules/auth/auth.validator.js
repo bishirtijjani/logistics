@@ -1,5 +1,5 @@
 /**
- * Auth module — Zod validation schemas.
+ * Auth module - Zod validation schemas.
  *
  * Every request to auth endpoints is validated against these schemas
  * via the validate middleware BEFORE reaching the controller.
@@ -85,7 +85,7 @@ const verifyBvnSchema = z.object({
     .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
   // Optional at the schema level so the request can succeed without one when
   // SKIP_KYC_PHONE_OTP is on. The service still enforces the OTP when the flag
-  // is off — schema permissiveness here does NOT relax that gate.
+  // is off - schema permissiveness here does NOT relax that gate.
   otp: z
     .string()
     .length(6)

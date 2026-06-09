@@ -16,7 +16,7 @@ export async function saveOnboardingDraft(draft) {
   try {
     await SecureStore.setItemAsync(KEY, JSON.stringify(draft || {}));
   } catch (_) {
-    // Non-fatal — draft will rebuild on next interaction.
+    // Non-fatal - draft will rebuild on next interaction.
   }
 }
 

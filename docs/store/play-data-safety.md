@@ -1,4 +1,4 @@
-# Google Play Console — Data Safety Form
+# Google Play Console - Data Safety Form
 
 The answers below are the source-of-truth for Play Console → Data
 safety, derived from `backend/prisma/schema.prisma` + the third-party
@@ -9,17 +9,17 @@ inventory in `docs/legal/privacy-policy.md`.
 
 ---
 
-## Section 1 — Data collection & security
+## Section 1 - Data collection & security
 
 | Question | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** |
-| Is all of the user data collected by your app encrypted in transit? | **Yes** — TLS 1.2+ on all client ↔ server traffic |
-| Do you provide a way for users to request that their data be deleted? | **Yes** — Profile → Account → Delete Account, plus DPO email per privacy policy |
+| Is all of the user data collected by your app encrypted in transit? | **Yes** - TLS 1.2+ on all client ↔ server traffic |
+| Do you provide a way for users to request that their data be deleted? | **Yes** - Profile → Account → Delete Account, plus DPO email per privacy policy |
 
 ---
 
-## Section 2 — Data types collected
+## Section 2 - Data types collected
 
 Play groups data into **categories**, each with sub-types. For each
 sub-type, we declare: (a) is it **collected**, (b) is it **shared**
@@ -36,73 +36,73 @@ our behalf.
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| Name | ✓ | — | Required | Account management; merchant + rider see your name on a trip |
-| Email address | ✓ | — | Required | Account management, OTP delivery |
-| Phone number | ✓ | — | Required | Account management, OTP, masked phone calls during deliveries |
-| Address | ✓ | — | Required | KYC, delivery dropoff |
-| Other personal info | ✓ | — | Required | Hashed BVN for KYC; date of birth |
+| Name | ✓ | - | Required | Account management; merchant + rider see your name on a trip |
+| Email address | ✓ | - | Required | Account management, OTP delivery |
+| Phone number | ✓ | - | Required | Account management, OTP, masked phone calls during deliveries |
+| Address | ✓ | - | Required | KYC, delivery dropoff |
+| Other personal info | ✓ | - | Required | Hashed BVN for KYC; date of birth |
 
 ### Financial info
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| User payment info | ✓ | — | Required | Wallet balance, NUBAN account number, transaction history |
-| Purchase history | ✓ | — | Required | Order history, receipts |
-| Credit score | — | — | — | — |
-| Other financial info | ✓ | — | Required | Hashed BVN for KYC compliance |
+| User payment info | ✓ | - | Required | Wallet balance, NUBAN account number, transaction history |
+| Purchase history | ✓ | - | Required | Order history, receipts |
+| Credit score | - | - | - | - |
+| Other financial info | ✓ | - | Required | Hashed BVN for KYC compliance |
 
 ### Location
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| Approximate location | ✓ | — | Required | Show merchants near user; rider–customer matching |
-| Precise location | ✓ | — | Required | **Customer:** while picking a delivery address. **Rider only:** continuous during active trips, deleted after 30 days. Documented in privacy policy. |
+| Approximate location | ✓ | - | Required | Show merchants near user; rider–customer matching |
+| Precise location | ✓ | - | Required | **Customer:** while picking a delivery address. **Rider only:** continuous during active trips, deleted after 30 days. Documented in privacy policy. |
 
 ### Personal identifiers
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| User IDs | ✓ | — | Required | Account management |
-| Device or other IDs | ✓ | — | Required | Session security, push notification targeting (FCM token) |
+| User IDs | ✓ | - | Required | Account management |
+| Device or other IDs | ✓ | - | Required | Session security, push notification targeting (FCM token) |
 
 ### Web & app activity
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| App interactions | ✓ | — | Optional | Analytics — Posthog, anonymized aggregations |
-| In-app search history | ✓ | — | Optional | Analytics — merchant/product search queries |
-| Installed apps | — | — | — | — |
-| Other user-generated content | ✓ | — | Required | In-app chat (customer/rider/merchant/support), prescription uploads, dispute evidence, order special instructions |
-| Other actions | — | — | — | — |
+| App interactions | ✓ | - | Optional | Analytics - Posthog, anonymized aggregations |
+| In-app search history | ✓ | - | Optional | Analytics - merchant/product search queries |
+| Installed apps | - | - | - | - |
+| Other user-generated content | ✓ | - | Required | In-app chat (customer/rider/merchant/support), prescription uploads, dispute evidence, order special instructions |
+| Other actions | - | - | - | - |
 
 ### App info & performance
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| Crash logs | ✓ | — | Required | App functionality (Sentry — PII stripped before send) |
-| Diagnostics | ✓ | — | Required | App functionality (Sentry traces, perf metrics) |
-| Other app performance data | ✓ | — | Optional | Analytics |
+| Crash logs | ✓ | - | Required | App functionality (Sentry - PII stripped before send) |
+| Diagnostics | ✓ | - | Required | App functionality (Sentry traces, perf metrics) |
+| Other app performance data | ✓ | - | Optional | Analytics |
 
 ### Photos & videos
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| Photos | ✓ | — | Optional | Profile photo, prescription image, dispute evidence, proof of delivery |
-| Videos | — | — | — | — |
+| Photos | ✓ | - | Optional | Profile photo, prescription image, dispute evidence, proof of delivery |
+| Videos | - | - | - | - |
 
 ### Messages
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| Emails | — | — | — | We send transactional email but do not store inbound emails on user behalf |
-| SMS or MMS | — | — | — | OTPs are sent via Termii; we do not read user SMS |
-| Other in-app messages | ✓ | — | Required | In-app chat in support tickets and during trips |
+| Emails | - | - | - | We send transactional email but do not store inbound emails on user behalf |
+| SMS or MMS | - | - | - | OTPs are sent via Termii; we do not read user SMS |
+| Other in-app messages | ✓ | - | Required | In-app chat in support tickets and during trips |
 
 ### Files & docs
 
 | Sub-type | Collected | Shared | Required? | Purpose |
 |---|---|---|---|---|
-| Files and docs | ✓ | — | Optional | Prescription images, KYC document scans (rider only) |
+| Files and docs | ✓ | - | Optional | Prescription images, KYC document scans (rider only) |
 
 ### Health & fitness, contacts, calendar, audio, navigation/browsing history
 
@@ -110,23 +110,23 @@ our behalf.
 
 ---
 
-## Section 3 — Security practices
+## Section 3 - Security practices
 
 | Item | Answer | Notes |
 |---|---|---|
 | Data is encrypted in transit | **Yes** | TLS 1.2+ everywhere |
 | You provide a way to request deletion | **Yes** | In-app + DPO email |
 | You follow the [Families Policy](https://play.google.com/about/families/) | **No** | Not targeted at children; 18+ |
-| Independent security review | **Planned** | First annual third-party audit planned for V1 release year — disclose honestly here; do not claim a review we haven't done |
+| Independent security review | **Planned** | First annual third-party audit planned for V1 release year - disclose honestly here; do not claim a review we haven't done |
 
 ---
 
-## Section 4 — Data sharing (NOT processing)
+## Section 4 - Data sharing (NOT processing)
 
 **No data is "shared" in the Play Console sense.** The vendors we use
 (KatPay, Termii, Cloudinary, Google Maps Platform, Firebase Cloud
 Messaging, Sentry, Posthog) are data-processing partners contracted
-under Data Processing Addenda — they only process data on iPrime's
+under Data Processing Addenda - they only process data on iPrime's
 instructions for the stated purposes. Per Google's definitions, this is
 not "sharing" and should NOT be declared in the sharing column.
 
@@ -135,13 +135,13 @@ If the form's framing makes this ambiguous, the canonical reference is
 
 ---
 
-## Section 5 — Privacy Policy URL
+## Section 5 - Privacy Policy URL
 
 ```
 https://iprime.ng/legal/privacy
 ```
 
-(Must resolve at the time of review — deployed via Phase 10 #5.3.)
+(Must resolve at the time of review - deployed via Phase 10 #5.3.)
 
 ---
 
@@ -159,6 +159,6 @@ Most rows mirror the Apple privacy questionnaire (see
 - Apple has a tracking declaration; Google does not.
 
 The "what changes if we add ads/marketing later" caveat from the Apple
-doc applies equally here — adding any cross-app tracking, third-party
+doc applies equally here - adding any cross-app tracking, third-party
 ad SDK, or behavioural advertising would require an update to this
 form within 90 days of the change going live.

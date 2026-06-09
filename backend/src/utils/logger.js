@@ -24,7 +24,7 @@ const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
   defaultMeta: { service: 'iprime' },
   transports: [
-    // Console transport — always active
+    // Console transport - always active
     new winston.transports.Console({
       format:
         process.env.NODE_ENV === 'production'
@@ -32,7 +32,7 @@ const logger = winston.createLogger({
           : combine(colorize(), timestamp({ format: 'HH:mm:ss' }), devFormat),
     }),
 
-    // File transport — errors only, production and staging
+    // File transport - errors only, production and staging
     ...(process.env.NODE_ENV !== 'development'
       ? [
           new winston.transports.File({

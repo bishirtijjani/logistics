@@ -710,7 +710,7 @@ export default function SettingsPage() {
           </form>
         </div>
 
-        {/* Transaction PIN — authorizes bill payments */}
+        {/* Transaction PIN - authorizes bill payments */}
         <div className="bg-white dark:bg-dark-surface rounded-xl shadow-sm p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">

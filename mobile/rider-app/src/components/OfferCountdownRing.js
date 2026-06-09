@@ -76,7 +76,7 @@ export default function OfferCountdownRing({ offeredAt, ttlSeconds = 60, onExpir
           strokeWidth={STROKE_WIDTH}
           fill="none"
         />
-        {/* Progress — start from 12 o'clock and sweep clockwise */}
+        {/* Progress - start from 12 o'clock and sweep clockwise */}
         <AnimatedCircle
           cx={SIZE / 2}
           cy={SIZE / 2}

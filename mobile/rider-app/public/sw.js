@@ -1,7 +1,7 @@
 /* iPrime PWA service worker.
  *
  * Deliberately conservative so a new deploy never serves a stale app:
- *   - Content-hashed build assets (/_expo/, /assets/) are cache-first — their
+ *   - Content-hashed build assets (/_expo/, /assets/) are cache-first - their
  *     filenames change every build, so a cached copy is never out of date.
  *   - Navigations are network-first, falling back to the cached app shell only
  *     when the network is unavailable (offline launch).

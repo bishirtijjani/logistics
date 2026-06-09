@@ -59,7 +59,7 @@ export default function Layout() {
       .catch(() => {})
   }, [dispatch, merchantId])
 
-  // Placeholder coords are 0,0 (Gulf of Guinea — no Nigerian merchant lands
+  // Placeholder coords are 0,0 (Gulf of Guinea - no Nigerian merchant lands
   // there) and the placeholder address starts with "Pending". Either signal
   // means the merchant still needs to pin their real location.
   const locationMissing =
@@ -69,7 +69,7 @@ export default function Layout() {
       (typeof merchantProfile.address === 'string' && merchantProfile.address.startsWith('Pending'))
     )
 
-  // A merchant with no products isn't really open for business — keep
+  // A merchant with no products isn't really open for business - keep
   // onboarding incomplete until they've added their first one. Gate on
   // `productsChecked` so we don't flash "incomplete" before products load.
   const hasProducts = (productTotal || 0) > 0 || (products?.length || 0) > 0
@@ -77,7 +77,7 @@ export default function Layout() {
 
   const needsOnboarding = locationMissing || productMissing
 
-  // Auto-open once per page load — after the user dismisses, the banner is
+  // Auto-open once per page load - after the user dismisses, the banner is
   // the entry point. Layout persists across route changes, so this won't
   // re-pop on every navigation.
   useEffect(() => {
@@ -262,7 +262,7 @@ export default function Layout() {
                 </div>
                 <div className="text-sm text-amber-800/80 dark:text-amber-300/80">
                   {locationMissing
-                    ? "Pin your business on the map — until you do, customers can't find you and admin can't approve your account."
+                    ? "Pin your business on the map - until you do, customers can't find you and admin can't approve your account."
                     : 'Add your first product so customers have something to order.'}
                 </div>
               </div>

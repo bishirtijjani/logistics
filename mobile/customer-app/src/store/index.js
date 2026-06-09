@@ -35,7 +35,7 @@ const combined = combineReducers({
 // the next user that signs in on the same device doesn't briefly see the
 // previous user's wallet balance / notifications / orders during the
 // hydrate gap. `categories`, `settings`, and `location` are global/anonymous
-// — we keep them to avoid an extra cold-load. The cart is user-scoped and
+// - we keep them to avoid an extra cold-load. The cart is user-scoped and
 // belongs to whoever signed in; we wipe it AND clear the persisted blob so
 // the next user doesn't inherit it on cold start.
 const rootReducer = (state, action) => {

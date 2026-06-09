@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Maestro runScript helper — enqueues a staging offer, then immediately
+# Maestro runScript helper - enqueues a staging offer, then immediately
 # claims it as a sibling rider, so the test rider sees a 409 OFFER_TAKEN
 # when they tap Accept.
 set -euo pipefail
 
 : "${ADMIN_TOKEN:?ADMIN_TOKEN required}"
-: "${SIBLING_RIDER_TOKEN:?SIBLING_RIDER_TOKEN required — a logged-in test rider's access token}"
+: "${SIBLING_RIDER_TOKEN:?SIBLING_RIDER_TOKEN required - a logged-in test rider's access token}"
 : "${API_URL:=https://api.iprime.ng}"
 
 # 1. Seed an offer addressed at both test riders.

@@ -1,5 +1,5 @@
 /**
- * Waitlist service — pre-launch sign-ups from the marketing website.
+ * Waitlist service - pre-launch sign-ups from the marketing website.
  */
 
 const { prisma } = require('../../config/database');

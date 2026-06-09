@@ -1,5 +1,5 @@
 /**
- * Request service — unified request lifecycle for all request types
+ * Request service - unified request lifecycle for all request types
  * 
  * Handles: FOOD, GROCERY, PHARMACY, PACKAGE
  * All follow the same lifecycle with type-specific adaptations
@@ -39,13 +39,13 @@ const { redis } = require('../../config/redis');
 const { REDIS_KEYS, REDIS_TTL } = require('../../utils/constants');
 
 // ============================================================
-// Status Transition Map (sourced from utils/status — single source of truth)
+// Status Transition Map (sourced from utils/status - single source of truth)
 // ============================================================
 
 const REQUEST_TRANSITIONS = UNIFIED_TRANSITIONS;
 
 // ============================================================
-// Resolve & price line items — server-truth, never trusts client.
+// Resolve & price line items - server-truth, never trusts client.
 //
 // For each client-supplied item the server:
 //   1. Loads the Product (must belong to the merchant if MERCHANT_ORDER)
@@ -93,7 +93,7 @@ const resolveLineItems = async (merchantId, rawItems) => {
     } else if (product.variants.length === 0) {
       throw AppError.badRequest(`Product "${product.name}" has no variants configured`);
     } else {
-      throw AppError.badRequest(`Product "${product.name}" has multiple variants — variantId is required`);
+      throw AppError.badRequest(`Product "${product.name}" has multiple variants - variantId is required`);
     }
     if (!variant.isAvailable) {
       throw AppError.badRequest(`Variant of "${product.name}" is unavailable`);
@@ -156,7 +156,7 @@ const resolveLineItems = async (merchantId, rawItems) => {
     const unitPrice = Number(variant.price) + optionDelta;
     const lineTotal = unitPrice * raw.quantity;
 
-    // Phase 8 — normalize substitution preference. Default NONE so the
+    // Phase 8 - normalize substitution preference. Default NONE so the
     // merchant ticket never has to infer intent from null/undefined.
     const substitution = raw.substitution || 'NONE';
 
@@ -181,7 +181,7 @@ const resolveLineItems = async (merchantId, rawItems) => {
 };
 
 // ============================================================
-// Estimate / Calculate Pricing — server-truth pricing.
+// Estimate / Calculate Pricing - server-truth pricing.
 // Exported so the `/quote` endpoint can return the same numbers
 // that createRequest will persist.
 // ============================================================
@@ -195,8 +195,8 @@ const estimateRequest = async ({
   pickupLng,
   dropoffLat,
   dropoffLng,
-  resolvedItems, // optional — pass when caller already resolved (avoid double lookup)
-  // Phase 4 — when the quote token already locked the distance, reuse it
+  resolvedItems, // optional - pass when caller already resolved (avoid double lookup)
+  // Phase 4 - when the quote token already locked the distance, reuse it
   // instead of calling Maps again. Google Distance Matrix is non-deterministic
   // for identical coords (traffic/routing variation); a second call within
   // the 5-min TTL would otherwise produce spurious "Quote no longer matches"
@@ -282,7 +282,7 @@ const createRequest = async (customerId, requestData) => {
     quotePayload = verifyQuoteToken(quoteToken);
   } catch (err) {
     if (err.code === 'EXPIRED') {
-      throw AppError.badRequest('Quote has expired — please request a fresh quote.', { code: 'QUOTE_EXPIRED' });
+      throw AppError.badRequest('Quote has expired - please request a fresh quote.', { code: 'QUOTE_EXPIRED' });
     }
     throw AppError.badRequest('Invalid quote token.', { code: 'QUOTE_INVALID' });
   }
@@ -299,7 +299,7 @@ const createRequest = async (customerId, requestData) => {
   // Resolve + price items server-side (validates variants + option groups).
   const resolvedItems = await resolveLineItems(merchantId, items);
 
-  // Phase 8 — pharmacy gating. If any resolved line points at a product flagged
+  // Phase 8 - pharmacy gating. If any resolved line points at a product flagged
   // `requiresPrescription`, the request must carry a prescription URL captured
   // via the signed-upload endpoint. Block here rather than at the validator so
   // the rule lives next to the product lookup that determines it (validator
@@ -312,7 +312,7 @@ const createRequest = async (customerId, requestData) => {
     );
   }
 
-  // Phase 8 — defensive URL check. The signed-upload endpoint always returns
+  // Phase 8 - defensive URL check. The signed-upload endpoint always returns
   // a `res.cloudinary.com/<cloud_name>/...` URL; a customer client supplying
   // anything else (third-party link, internal IP, etc.) would be unsafe to
   // surface to the pharmacist. Skip in dev when Cloudinary is not configured.
@@ -321,14 +321,14 @@ const createRequest = async (customerId, requestData) => {
     if (cloudName) {
       const expectedPrefix = `https://res.cloudinary.com/${cloudName}/`;
       if (!prescriptionUrl.startsWith(expectedPrefix)) {
-        throw AppError.badRequest('Invalid prescription URL — upload via the in-app flow.', { code: 'INVALID_PRESCRIPTION_URL' });
+        throw AppError.badRequest('Invalid prescription URL - upload via the in-app flow.', { code: 'INVALID_PRESCRIPTION_URL' });
       }
     }
   }
 
   // Compute total pricing using the distance LOCKED in the quote token, so
   // Google Maps non-determinism within the 5-min TTL can't fail an otherwise
-  // valid create. The quote signature already binds these numbers — we trust
+  // valid create. The quote signature already binds these numbers - we trust
   // them. (Geo coords + token signature + TTL all verified above.)
   const pricing = await estimateRequest({
     ...requestData,
@@ -341,7 +341,7 @@ const createRequest = async (customerId, requestData) => {
 
   // Re-validate that the quote payload still matches what we just recomputed.
   // A mismatch means either pricing settings changed mid-quote OR the client
-  // tampered with the body — either way we refuse and force a re-quote.
+  // tampered with the body - either way we refuse and force a re-quote.
   const round2 = (n) => Math.round(Number(n) * 100) / 100;
   const round4 = (n) => Math.round(Number(n) * 10000) / 10000;
   const fingerprintMismatch =
@@ -359,7 +359,7 @@ const createRequest = async (customerId, requestData) => {
 
   if (fingerprintMismatch || priceMismatch) {
     throw AppError.badRequest(
-      'Quote no longer matches the current request — please request a fresh quote.',
+      'Quote no longer matches the current request - please request a fresh quote.',
       { code: 'QUOTE_MISMATCH' },
     );
   }
@@ -381,7 +381,7 @@ const createRequest = async (customerId, requestData) => {
         ...locationData,
         ...persistablePricing,
         customerPaid: pricing.total,
-        // Phase 8 — pharmacy prescription URL. Persisted only when supplied;
+        // Phase 8 - pharmacy prescription URL. Persisted only when supplied;
         // service already rejected above if Rx was required and missing.
         prescriptionUrl: prescriptionUrl || null,
       },
@@ -400,12 +400,12 @@ const createRequest = async (customerId, requestData) => {
           lineTotal: it.lineTotal,
           selectedOptions: it.selectedOptions,
           specialInstructions: it.specialInstructions,
-          // Phase 8 — persist grocery substitution preference per line.
+          // Phase 8 - persist grocery substitution preference per line.
           substitution: it.substitution || null,
         })),
       });
 
-      // Decrement stock on the resolved variant (single SKU or many — same path).
+      // Decrement stock on the resolved variant (single SKU or many - same path).
       for (const it of resolvedItems) {
         await tx.productVariant.update({
           where: { id: it.variantId },
@@ -471,7 +471,7 @@ const createRequest = async (customerId, requestData) => {
   
   // Queue rider matching job (if no merchant, go directly to rider matching).
   // The expanding-radius matcher in request.worker enqueues
-  // AUTO_CANCEL_UNMATCHED itself once it exhausts all rings — we no longer
+  // AUTO_CANCEL_UNMATCHED itself once it exhausts all rings - we no longer
   // schedule a duplicate fixed-delay cancel here.
   // For MERCHANT_ORDER, matching is deferred to READY_FOR_PICKUP.
   if (!merchantId) {
@@ -504,7 +504,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
     ? { reason: payload }
     : (payload || {});
   const reason = normalised.reason;
-  // Phase 5 POD payload — only consumed when transitioning to DELIVERED.
+  // Phase 5 POD payload - only consumed when transitioning to DELIVERED.
   const podPhotoUrl = normalised.podPhotoUrl || null;
   const podSignatureUrl = normalised.podSignatureUrl || null;
   const podDeliveryOtpPlain = normalised.podDeliveryOtp || null;
@@ -536,7 +536,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
     if (!['ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'CANCELLED'].includes(newStatus)) {
       throw AppError.forbidden('Merchants can only accept, process, mark ready, or cancel');
     }
-    // Per-request ownership check — without it any authenticated merchant
+    // Per-request ownership check - without it any authenticated merchant
     // could PATCH any other merchant's order through the direct status route.
     if (!request.merchant || request.merchant.userId !== userId) {
       throw AppError.forbidden('Not your order');
@@ -554,7 +554,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
   const updateData = { status: newStatus };
 
   // ── Phase 5: POD validation on DELIVERED ────────────────────────────────
-  // Server is authoritative — the client's settings cache may be stale.
+  // Server is authoritative - the client's settings cache may be stale.
   if (newStatus === 'DELIVERED') {
     const [requirePhotoSetting, requireSignatureSetting, otpThresholdSetting] = await Promise.all([
       getSetting('delivery.requirePodPhoto', true),
@@ -570,14 +570,14 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
     const otpThreshold = Number(otpThresholdSetting) || 0;
     const orderTotal = Number(request.total || 0);
 
-    // Validate Cloudinary URL belongs to our cloud — same defense the
+    // Validate Cloudinary URL belongs to our cloud - same defense the
     // prescriptionUrl uses on create. Skipped in dev when Cloudinary is unset.
     const cloudName = (config.CLOUDINARY_CLOUD_NAME || '').trim();
     const expectedPrefix = cloudName ? `https://res.cloudinary.com/${cloudName}/` : null;
     const assertCloudinary = (url, code) => {
       if (!cloudName) return;
       if (!url || !url.startsWith(expectedPrefix)) {
-        throw AppError.badRequest('Invalid POD URL — upload via the in-app flow.', { code });
+        throw AppError.badRequest('Invalid POD URL - upload via the in-app flow.', { code });
       }
     };
 
@@ -590,7 +590,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
       assertCloudinary(podPhotoUrl, 'POD_PHOTO_INVALID');
       updateData.podPhotoUrl = podPhotoUrl;
     } else if (podPhotoUrl) {
-      // Setting may be off but the client opted to send anyway — accept it.
+      // Setting may be off but the client opted to send anyway - accept it.
       assertCloudinary(podPhotoUrl, 'POD_PHOTO_INVALID');
       updateData.podPhotoUrl = podPhotoUrl;
     }
@@ -616,7 +616,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
         );
       }
       if (!request.podDeliveryOtp) {
-        // Rider attempted OTP without us having generated one — they likely
+        // Rider attempted OTP without us having generated one - they likely
         // skipped the "Send code" CTA. Surface a specific code so the client
         // re-opens the OTP sheet with the generate button.
         throw AppError.badRequest(
@@ -680,7 +680,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
           user: { select: { firstName: true, lastName: true, phone: true } },
         },
       },
-      // Phase 8 — merchant category drives push-notification copy
+      // Phase 8 - merchant category drives push-notification copy
       // ("Pharmacist preparing…", "Picking your groceries").
       // Mirrors the slug visible in the in-app status banner.
       merchant: {
@@ -696,7 +696,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
 
   // Emit socket event for status change. On DELIVERED we also attach the POD
   // URLs so the customer's tracking screen flips to the "Proof of delivery"
-  // card in the same tick — without it, the customer would see DELIVERED but
+  // card in the same tick - without it, the customer would see DELIVERED but
   // no photo until the next manual refetch.
   const io = getIO();
   const statusMeta = newStatus === 'DELIVERED'
@@ -709,7 +709,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
   emitStatusChanged(io, requestId, newStatus, statusMeta);
 
   // Emit specific events based on status. `updated.rider` is null when the
-  // request has no rider yet — guard before touching nested user fields.
+  // request has no rider yet - guard before touching nested user fields.
   if (newStatus === 'RIDER_ASSIGNED' && updated.riderId && updated.rider?.user) {
     const r = updated.rider;
     emitRiderAssigned(io, requestId, request.customerId, {
@@ -1098,7 +1098,7 @@ const rateRequest = async (requestId, customerId, ratingData) => {
 };
 
 // ============================================================
-// Customer cancellation — status-gated fee policy
+// Customer cancellation - status-gated fee policy
 //
 // Spec (delivery.cancellationFee from settings):
 //   - REQUESTED                                        → free
@@ -1166,7 +1166,7 @@ const getCancellationQuote = async (requestId, customerId) => {
  * earnings in a single transaction.
  *
  * If the client supplies `cancelToken` from a recent /cancel-quote, we honour
- * the signed fee inside it rather than recomputing — bullet-proofs the flow
+ * the signed fee inside it rather than recomputing - bullet-proofs the flow
  * against admin changing `delivery.cancellationFee` between preview and
  * confirm. Without a token we fall back to the current setting (back-compat
  * + admin cancel paths).
@@ -1183,7 +1183,7 @@ const customerCancelRequest = async (requestId, customerId, reason, cancelToken)
 
   const policy = await computeCancellationPolicy(request.status);
   if (!policy.allowed) {
-    throw AppError.forbidden('This order can no longer be cancelled — please contact support.');
+    throw AppError.forbidden('This order can no longer be cancelled - please contact support.');
   }
 
   // If a signed cancellation-fee token is provided, prefer its locked fee.
@@ -1196,7 +1196,7 @@ const customerCancelRequest = async (requestId, customerId, reason, cancelToken)
       cancelPayload = verifyCancellationFeeToken(cancelToken);
     } catch (err) {
       if (err.code === 'EXPIRED') {
-        throw AppError.badRequest('Cancellation preview expired — please re-open the cancellation prompt.');
+        throw AppError.badRequest('Cancellation preview expired - please re-open the cancellation prompt.');
       }
       throw AppError.badRequest('Invalid cancellation token.');
     }
@@ -1218,7 +1218,7 @@ const customerCancelRequest = async (requestId, customerId, reason, cancelToken)
     },
   });
 
-  // Emit cancelled socket event — refund worker fires immediately after.
+  // Emit cancelled socket event - refund worker fires immediately after.
   // Include the fee so the mobile can render the right cancellation summary
   // without a refetch.
   const io = getIO();
@@ -1236,7 +1236,7 @@ const customerCancelRequest = async (requestId, customerId, reason, cancelToken)
 };
 
 // ============================================================
-// Active request — single-query home banner. Backed by the
+// Active request - single-query home banner. Backed by the
 // (customerId, status) composite index added in Phase 4.
 // ============================================================
 
@@ -1271,7 +1271,7 @@ const getActiveRequest = async (customerId) => {
 };
 
 // ============================================================
-// Tracking — live polyline + ETA from rider's last position.
+// Tracking - live polyline + ETA from rider's last position.
 // Cached in Redis for 30s to bound Maps quota during active deliveries.
 // ============================================================
 
@@ -1312,7 +1312,7 @@ const getActiveRoute = async (requestId, userId, role) => {
       etaSeconds: null,
       distanceMeters: null,
       nextCheckpoint: null,
-      reason: 'No active rider — route unavailable',
+      reason: 'No active rider - route unavailable',
     };
   }
 
@@ -1441,7 +1441,7 @@ const postMessage = async (requestId, userId, role, body) => {
     message,
   });
 
-  // BLK-ChatNotifRouting — push the other parties so a backgrounded app
+  // BLK-ChatNotifRouting - push the other parties so a backgrounded app
   // wakes. We route per-recipient role:
   //   - CUSTOMER → /request/:id (customer-app's tracking screen)
   //   - RIDER    → /trip/:id    (rider-app's TripCockpit)
@@ -1479,7 +1479,7 @@ const postMessage = async (requestId, userId, role, body) => {
 };
 
 // ============================================================
-// Rider-initiated cancellation — Phase 4.
+// Rider-initiated cancellation - Phase 4.
 //
 // Only allowed while the rider is actively handling the request
 // (RIDER_ASSIGNED, RIDER_EN_ROUTE, PICKED_UP). PIN-protected, fully refunds
@@ -1513,7 +1513,7 @@ const riderCancelRequest = async (requestId, userId, { reason, note, pin }) => {
     );
   }
 
-  // PIN check — same guard money-moves use, so a stolen phone can't kill
+  // PIN check - same guard money-moves use, so a stolen phone can't kill
   // an active delivery from the lock-screen quick action.
   await verifyTransactionPin(userId, pin);
 
@@ -1531,7 +1531,7 @@ const riderCancelRequest = async (requestId, userId, { reason, note, pin }) => {
         cancelledAt: new Date(),
         cancelledBy: 'rider',
         cancellationReason: reasonDescription,
-        // No fee — rider cancellations are operational, not punitive.
+        // No fee - rider cancellations are operational, not punitive.
         cancellationFee: 0,
       },
     });
@@ -1553,14 +1553,14 @@ const riderCancelRequest = async (requestId, userId, { reason, note, pin }) => {
     cancellationFee: 0,
   });
 
-  // Refund worker — same path as customer cancel / admin force-cancel.
+  // Refund worker - same path as customer cancel / admin force-cancel.
   await requestQueue.add(REQUEST_JOBS.REFUND_REQUEST, { requestId }, { delay: 500 });
 
   // Push the customer so they aren't surprised.
   await notifyService.pushAndSocket(request.customerId, {
     type: 'REQUEST_STATUS',
     title: 'Delivery cancelled',
-    body: 'Your rider cancelled — your wallet will be refunded shortly.',
+    body: 'Your rider cancelled - your wallet will be refunded shortly.',
     data: { route: `/request/${requestId}`, status: 'CANCELLED' },
     requestId,
   }).catch((err) => logger.warn('riderCancel customer notify failed', { error: err.message }));
@@ -1571,7 +1571,7 @@ const riderCancelRequest = async (requestId, userId, { reason, note, pin }) => {
 };
 
 // ============================================================
-// Phase 5 — Proof of Delivery OTP generation.
+// Phase 5 - Proof of Delivery OTP generation.
 //
 // Generates a 6-digit OTP, bcrypts it onto Request.podDeliveryOtp, and
 // pushes it to the customer via the unified notification pipeline (push +
@@ -1647,9 +1647,9 @@ const generatePodOtp = async (requestId, riderUserId) => {
     data: { podDeliveryOtp: hash },
   });
 
-  // Push to customer — visible in the in-app banner + tray. `data.otp` is
+  // Push to customer - visible in the in-app banner + tray. `data.otp` is
   // included so the customer-app can render the code right in the banner
-  // without an extra fetch. SMS is deliberately omitted in v1 (cost) —
+  // without an extra fetch. SMS is deliberately omitted in v1 (cost) -
   // notifyService handles the push+socket+Notification Center triple.
   await notifyService.pushAndSocket(request.customerId, {
     type: 'POD_OTP_GENERATED',
@@ -1669,13 +1669,13 @@ const generatePodOtp = async (requestId, riderUserId) => {
 };
 
 // ============================================================
-// Address correction — Phase 4 (BLK-AddressCorrection).
+// Address correction - Phase 4 (BLK-AddressCorrection).
 //
 // Rider supplies a corrected location + note for a wrong pickup/dropoff
 // address. We persist an AuditLog row so dispatch can audit and reach out
 // to the customer/merchant; we also emit `request:address:correction` and
 // push the merchant (when this is a pickup correction) so they can act.
-// Does NOT change the request's flow or status — it's an out-of-band signal.
+// Does NOT change the request's flow or status - it's an out-of-band signal.
 // ============================================================
 
 const ADDRESS_CORRECTION_OPEN_STATUSES = new Set([
@@ -1705,7 +1705,7 @@ const recordAddressCorrection = async (
     throw AppError.forbidden('Not your assigned trip');
   }
   if (!ADDRESS_CORRECTION_OPEN_STATUSES.has(request.status)) {
-    // Trip already terminal — corrections are operational signals for an
+    // Trip already terminal - corrections are operational signals for an
     // in-flight delivery. After settlement/cancellation the right channel
     // is a support ticket, not a correction.
     throw AppError.badRequest(
@@ -1713,12 +1713,12 @@ const recordAddressCorrection = async (
       { code: 'ADDRESS_CORRECTION_TRIP_CLOSED' },
     );
   }
-  // Stage must be relevant to where the rider currently is — accepting a
+  // Stage must be relevant to where the rider currently is - accepting a
   // dropoff correction while still RIDER_ASSIGNED/RIDER_EN_ROUTE is fine
   // (rider previewed the dropoff), and a pickup correction post-pickup is
   // historical but still useful for dispatch. We only block obvious nonsense:
   // a pickup correction when the rider is already in transit toward dropoff
-  // is too late to act on — they should file a support ticket instead.
+  // is too late to act on - they should file a support ticket instead.
   if (stage === 'pickup' && request.status === 'IN_TRANSIT') {
     throw AppError.badRequest(
       'You\'ve already passed pickup. Open a support ticket to escalate.',
@@ -1802,10 +1802,10 @@ module.exports = {
   getActiveRequest,
   listMessages,
   postMessage,
-  // Phase 4 — rider trip cockpit
+  // Phase 4 - rider trip cockpit
   riderCancelRequest,
   recordAddressCorrection,
-  // Phase 5 — POD
+  // Phase 5 - POD
   generatePodOtp,
   // Admin functions
   getAllRequestsAdmin,

@@ -20,7 +20,7 @@ const PIN_LENGTH = 6;
 /**
  * Reused by:
  *   - Onboarding (route.params.nextScreen === 'EnableBiometric')
- *   - Settings (no params; goBack on success — Phase 7)
+ *   - Settings (no params; goBack on success - Phase 7)
  */
 export default function SetTransactionPinScreen({ route, navigation }) {
   const dispatch = useDispatch();

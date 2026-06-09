@@ -24,7 +24,7 @@ api.interceptors.request.use(
 )
 
 // Public auth endpoints. A 401 from these means "bad credentials" or "bad
-// OTP" — NOT "session expired" — so we must NOT hard-redirect; the calling
+// OTP" - NOT "session expired" - so we must NOT hard-redirect; the calling
 // page needs to show its inline error. Without this guard the
 // window.location.href below kicks off a full page reload that wipes the
 // freshly-set error message one frame after it paints, which is why every

@@ -429,7 +429,7 @@ export default function OrdersPage() {
     return colors[status] || 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'
   }
 
-  // Shared row actions — rendered both in the desktop table and the mobile
+  // Shared row actions - rendered both in the desktop table and the mobile
   // card list so the two layouts never drift apart.
   const renderOrderActions = (order) => (
     <>
@@ -788,7 +788,7 @@ export default function OrdersPage() {
             </table>
           </div>
 
-          {/* Mobile card list — replaces the horizontal-scroll table below md */}
+          {/* Mobile card list - replaces the horizontal-scroll table below md */}
           <div className="md:hidden divide-y divide-surface-muted dark:divide-dark-surface-muted">
             {orders.map((order) => (
               <div

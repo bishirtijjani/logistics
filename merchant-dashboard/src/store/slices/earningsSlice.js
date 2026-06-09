@@ -61,8 +61,8 @@ export const saveBankAccount = createAsyncThunk(
   }
 )
 
-// Advisory name verification — resolves the account holder name via the backend
-// (Paystack). Returns { accountName, resolved } — resolved:false when the name
+// Advisory name verification - resolves the account holder name via the backend
+// (Paystack). Returns { accountName, resolved } - resolved:false when the name
 // couldn't be confirmed, in which case the merchant types it manually.
 export const resolveBankAccount = createAsyncThunk(
   'earnings/resolveBankAccount',

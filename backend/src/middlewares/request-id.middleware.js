@@ -8,7 +8,7 @@
  *     to quote when reporting bugs
  *
  * Honors an inbound `X-Request-Id` header so callers (e.g. an upstream
- * gateway or another service) can propagate their own correlation id —
+ * gateway or another service) can propagate their own correlation id -
  * lightly validated to prevent header-injection / log-injection abuse.
  */
 

@@ -1,5 +1,5 @@
 /**
- * RequestTrackingScreen — unified request tracking.
+ * RequestTrackingScreen - unified request tracking.
  *
  * Phase 4 features:
  *   - Status timeline (10 states + cancelled)
@@ -67,7 +67,7 @@ const STEP_ICON = {
 const money = (n) => `₦${Number(n || 0).toLocaleString()}`;
 
 const formatEta = (seconds) => {
-  if (seconds == null) return '—';
+  if (seconds == null) return '-';
   if (seconds < 60) return '<1 min';
   const mins = Math.round(seconds / 60);
   if (mins < 60) return `~${mins} min`;
@@ -95,7 +95,7 @@ const RequestTrackingScreen = () => {
     route: activeRoute, matchingStatus, riderEta, messages,
   } = useSelector((state) => state.request);
 
-  // Phase 5 — POD OTP banner. The rider taps "Send code" → the customer
+  // Phase 5 - POD OTP banner. The rider taps "Send code" → the customer
   // gets a `notification:new` with `type=POD_OTP_GENERATED` carrying
   // `data.otp`. We surface the latest such notification for THIS request
   // as a prominent banner so the customer can read the code aloud at the
@@ -122,7 +122,7 @@ const RequestTrackingScreen = () => {
   const [chatSending, setChatSending] = useState(false);
   const chatListRef = useRef(null);
 
-  // Phase 5 — connection quality. We render the "Reconnecting…" banner only
+  // Phase 5 - connection quality. We render the "Reconnecting…" banner only
   // after the socket has been down for >= 3s, to avoid flickering on transient
   // dis-reconnect cycles that happen on app foreground.
   const [showReconnect, setShowReconnect] = useState(false);
@@ -148,7 +148,7 @@ const RequestTrackingScreen = () => {
     [activeRoute?.polyline],
   );
 
-  // Boot — fetch the request, join its socket room, attach Phase 4 listeners.
+  // Boot - fetch the request, join its socket room, attach Phase 4 listeners.
   useEffect(() => {
     dispatch(fetchRequestById(requestId));
     socketService.joinRequestRoom(requestId);
@@ -293,7 +293,7 @@ const RequestTrackingScreen = () => {
     );
   }
 
-  // Phase 8 — type-specific copy keyed off the merchant's admin-managed
+  // Phase 8 - type-specific copy keyed off the merchant's admin-managed
   // category slug ('pharmacy', 'grocery', 'restaurant', ...). The slug is
   // included in /requests/:id by request.service.getRequestById.
   const categorySlug = currentRequest.merchant?.category?.slug || null;
@@ -348,7 +348,7 @@ const RequestTrackingScreen = () => {
         )}
       </View>
 
-      {/* Connection quality pill — only when socket has been down ≥3s. */}
+      {/* Connection quality pill - only when socket has been down ≥3s. */}
       {showReconnect && (
         <View
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#FEF3C7', borderBottomWidth: 1, borderBottomColor: '#FDE68A' }}
@@ -489,7 +489,7 @@ const RequestTrackingScreen = () => {
                         “{it.specialInstructions}”
                       </Text>
                     ) : null}
-                    {/* Phase 8 — surface the substitution preference back to
+                    {/* Phase 8 - surface the substitution preference back to
                         the customer so they can recall what they asked for
                         when reading status updates. */}
                     {subText ? (
@@ -507,7 +507,7 @@ const RequestTrackingScreen = () => {
           </View>
         )}
 
-        {/* Phase 5 — POD OTP banner. Shown while the rider is between pickup
+        {/* Phase 5 - POD OTP banner. Shown while the rider is between pickup
             and delivery and an OTP has been issued. Customer reads the code
             aloud to the rider at the doorstep. Hidden once DELIVERED. */}
         {podOtpFromNotifications && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status) ? (
@@ -543,7 +543,7 @@ const RequestTrackingScreen = () => {
           </View>
         ) : null}
 
-        {/* Phase 5 — POD photo card (post-delivery). Shows the rider's
+        {/* Phase 5 - POD photo card (post-delivery). Shows the rider's
             doorstep proof so the customer can verify. */}
         {currentRequest.podPhotoUrl && ['DELIVERED', 'SETTLED'].includes(currentRequest.status) ? (
           <View style={{ marginBottom: 24, padding: 12, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
@@ -570,7 +570,7 @@ const RequestTrackingScreen = () => {
           </View>
         ) : null}
 
-        {/* Phase 8 — prescription attached banner. Persisted on the Request
+        {/* Phase 8 - prescription attached banner. Persisted on the Request
             row and visible to the customer for the lifetime of the order. */}
         {currentRequest.prescriptionUrl ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24, padding: 12, borderRadius: 12, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A' }}>

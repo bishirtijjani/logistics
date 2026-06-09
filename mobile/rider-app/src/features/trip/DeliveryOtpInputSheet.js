@@ -21,13 +21,13 @@ import { generatePodOtp } from "../../store/slices/tripSlice";
 const OTP_LENGTH = 6;
 
 /**
- * DeliveryOtpInputSheet — rider enters the 6-digit code the customer reads
+ * DeliveryOtpInputSheet - rider enters the 6-digit code the customer reads
  * aloud. The sheet also hosts the "Send code to customer" CTA which calls
  * `POST /requests/:id/pod-otp/generate` (rate-limited to 3/10min on the
- * server). On submit, the parent's `onSubmit(otp)` callback runs — typically
+ * server). On submit, the parent's `onSubmit(otp)` callback runs - typically
  * the cockpit's "complete delivery" thunk.
  *
- * The sheet does NOT validate the OTP itself — the server does that during
+ * The sheet does NOT validate the OTP itself - the server does that during
  * the DELIVERED PATCH. We trap `POD_OTP_MISMATCH` upstream and surface a
  * shake animation + "Wrong code" toast.
  */
@@ -208,7 +208,7 @@ export default function DeliveryOtpInputSheet({
                 )}
               </TouchableOpacity>
 
-              {/* 6-digit input — using a single TextInput with letter-spacing for visual chunking. */}
+              {/* 6-digit input - using a single TextInput with letter-spacing for visual chunking. */}
               <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8, letterSpacing: 0.5 }}>
                 {t("pod.otp.inputLabel", "ENTER CODE")}
               </Text>
@@ -240,7 +240,7 @@ export default function DeliveryOtpInputSheet({
                 </Text>
               ) : errorCode === "POD_OTP_NOT_ISSUED" ? (
                 <Text style={{ marginTop: 8, fontSize: 13, fontWeight: "600", color: tokens.status.warningStrong, textAlign: "center" }}>
-                  {t("pod.otp.notIssued", "No code issued yet — tap Send code first.")}
+                  {t("pod.otp.notIssued", "No code issued yet. Tap Send code first.")}
                 </Text>
               ) : otpError ? (
                 <Text style={{ marginTop: 8, fontSize: 13, fontWeight: "600", color: tokens.status.errorStrong, textAlign: "center" }}>

@@ -27,7 +27,7 @@ stubs.prisma.platformSetting.seed({
   'merchant.platformFeePercent': 15,
   'auth.pinMaxAttempts': 5,
   'auth.pinLockoutMinutes': 30,
-  // sensitive — must NOT appear in public payload
+  // sensitive - must NOT appear in public payload
   'internal.providerApiKey': 'secret',
 });
 

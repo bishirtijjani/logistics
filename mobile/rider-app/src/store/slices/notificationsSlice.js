@@ -1,5 +1,5 @@
 /**
- * Notifications slice — Notification Center feed + unread badge.
+ * Notifications slice - Notification Center feed + unread badge.
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';

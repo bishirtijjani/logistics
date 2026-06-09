@@ -36,7 +36,7 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // rememberMe is purely client-side (localStorage below) — the thunk
+      // rememberMe is purely client-side (localStorage below) - the thunk
       // ignores it, so don't pass it along and pretend it's part of the API.
       const result = await dispatch(login({ email, password })).unwrap()
       
@@ -53,7 +53,7 @@ export default function LoginPage() {
       } else {
         // The backend treats this user as a valid login, but they have no
         // merchant profile to enter the dashboard with. Without dispatching
-        // logout here we'd leave the token + auth state set — on the next
+        // logout here we'd leave the token + auth state set - on the next
         // page refresh ProtectedRoute would happily wave them into the
         // dashboard based on the live token alone, and they'd then watch
         // every page fail to load merchant-scoped data.

@@ -11,6 +11,6 @@ export const RIDER_URL =
 
 // Deep-link a hero category card into the customer app. The `intent` slug is
 // honoured by mobile/customer-app/src/lib/pendingIntent.js, which replays the
-// matching screen after sign-in — so a logged-out visitor lands exactly where
+// matching screen after sign-in - so a logged-out visitor lands exactly where
 // they tapped. Keep these slugs in sync with INTENT_TO_ACTION there.
 export const orderLink = (intent) => `${APP_URL}/?intent=${intent}`;

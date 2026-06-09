@@ -1,5 +1,5 @@
 /**
- * CartScreen — the dedicated review/edit view for the persisted cart.
+ * CartScreen - the dedicated review/edit view for the persisted cart.
  *
  * Reached from the bottom-tab `CartTab` and from the "View cart" CTA on
  * `MerchantMenuScreen`. Shows:
@@ -67,7 +67,7 @@ export default function CartScreen() {
   };
 
   const goBrowse = () => {
-    // CartTab is a top-level tab — go to Home tab so the customer can start
+    // CartTab is a top-level tab - go to Home tab so the customer can start
     // shopping. `popToTop` first so we don't pile screens forever.
     navigation.navigate("MainTabs", { screen: "HomeTab" });
   };
@@ -76,7 +76,7 @@ export default function CartScreen() {
     if (!merchant?.id || editingLineId) return;
     // Fetch the merchant (with products) directly so the user lands on
     // ProductDetail in one hop and goBack returns them straight to the
-    // cart — not via the menu screen, which would feel like a detour.
+    // cart - not via the menu screen, which would feel like a detour.
     setEditingLineId(line.lineId);
     try {
       const r = await api.get(`/merchants/${merchant.id}`);

@@ -1,10 +1,10 @@
-# iPrime — pre-handover end-to-end manual test
+# iPrime - pre-handover end-to-end manual test
 
 A single linear smoke pass across **website + merchant dashboard + admin dashboard**.
 Tick each box; **🔴 = must-pass** (a fail here blocks handover). Target: ~45 min.
 
 The flows connect on purpose: you register a shop in Part 2, **approve it** in Part 3,
-then **log in as it** in Part 4 — so the merchant↔admin loop is exercised for real.
+then **log in as it** in Part 4 - so the merchant↔admin loop is exercised for real.
 
 ---
 
@@ -14,8 +14,8 @@ then **log in as it** in Part 4 — so the merchant↔admin loop is exercised fo
 
 | App | URL | Login |
 |---|---|---|
-| Backend API | http://localhost:3000 | — |
-| Website (public) | http://localhost:4321 | — |
+| Backend API | http://localhost:3000 | - |
+| Website (public) | http://localhost:4321 | - |
 | Merchant dashboard | http://localhost:5174 | `merchant@test.com` / `merchant123` (seeded, approved, has data) |
 | Admin dashboard | http://localhost:3001 | `admin@vtulogistics.com` / `admin123456` |
 
@@ -30,12 +30,12 @@ node backend/scripts/seed-demo-orders.js
 ```
 
 - [ ] All four return **200** and the seed prints "Created 7 demo orders."
-- Use an **incognito window**. The ☀️/🌙 button toggles dark/light — flip it once per app.
-- ⚠️ **OTP codes are printed in the backend terminal** (SMS/WhatsApp aren't configured locally) — keep that window visible for Part 2.
+- Use an **incognito window**. The ☀️/🌙 button toggles dark/light - flip it once per app.
+- ⚠️ **OTP codes are printed in the backend terminal** (SMS/WhatsApp aren't configured locally) - keep that window visible for Part 2.
 
 ---
 
-## 1. Website — public Help Center & gating (5 min)
+## 1. Website - public Help Center & gating (5 min)
 
 - [ ] 🔴 Open **http://localhost:4321/help/** → landing shows **"For Merchants"** only, **no "For Admins."**
 - [ ] 🔴 Search **`how to withdraw to bank`** → top result is **"Getting paid: earnings and withdrawals."**
@@ -46,17 +46,17 @@ node backend/scripts/seed-demo-orders.js
 
 ---
 
-## 2. Merchant — new-shop sign-up + OTP (8 min)
+## 2. Merchant - new-shop sign-up + OTP (8 min)
 
 - [ ] Open **http://localhost:5174/** → header shows **Guides** link (and in the footer); the Guides link opens the Help Center.
 - [ ] Click **Register** → **Step 1** name/email (use a NEW email, e.g. `qa1@iprime.ng`)/phone (`08011112222`)/password → **Next**.
 - [ ] 🔴 **Step 2** pick a **category**, business name/phone/email → **Next**. **Step 3** set hours → **Complete Registration**.
 - [ ] 🔴 OTP screen → read the **6-digit code from the backend terminal** → **Verify Email** → see **"pending admin approval."**
-- [ ] (Try logging in now → it should refuse, because you're not approved yet. Leave it — you'll approve in Part 3.)
+- [ ] (Try logging in now → it should refuse, because you're not approved yet. Leave it - you'll approve in Part 3.)
 
 ---
 
-## 3. Admin — approve the shop + touch every screen (15 min)
+## 3. Admin - approve the shop + touch every screen (15 min)
 
 - [ ] 🔴 Log in at **http://localhost:3001** (`admin@vtulogistics.com` / `admin123456`).
 - [ ] 🔴 **Dashboard** → 6 stat cards, Revenue/Request charts, Pending panels all render.
@@ -64,25 +64,25 @@ node backend/scripts/seed-demo-orders.js
 - [ ] **Merchants** → open `Test Restaurant` → drawer tabs **Profile / Commission / Wallet / Tags** all load; **Withdrawals** tab lists payout requests.
 - [ ] **Riders** → *All Riders* + *Pending Approvals* tabs; open the seeded rider → **Profile / Documents / Earnings** tabs.
 - [ ] **Requests** → list of delivery orders shows; click one → details (items, customer, fees).
-- [ ] **Disputes** → loads (may be empty — fine). **Support** → ticket list loads.
+- [ ] **Disputes** → loads (may be empty - fine). **Support** → ticket list loads.
 - [ ] **Customers** → search a name → open a customer → **Requests / Transactions / Addresses** tabs.
 - [ ] **Transactions** → filter by **type** and **status**; rows update. **Financial** → loads.
 - [ ] **Categories** → list renders; open one (edit form opens). **VTU Plans** → tabs (Airtime/Data/Cable/Electricity); **VTU Networks** → list.
 - [ ] **Marketing** → banners screen. **Settings** → Platform Config / Commission Defaults / Notifications sections.
 - [ ] **Analytics** → tabs Overview/Revenue/Orders/Customers/Geographic. **Safety** → loads. **Waitlist** → loads (Refresh works).
 - [ ] 🔴 **Audit Logs** → your **merchant-approval from above appears** here.
-- [ ] ⚠️ **Rider Ops** — known incomplete (real-time/performance endpoints deferred). Expect partial/empty; **not a blocker**.
+- [ ] ⚠️ **Rider Ops** - known incomplete (real-time/performance endpoints deferred). Expect partial/empty; **not a blocker**.
 - [ ] 🔴 Click the **"?"** button (bottom-right) → help drawer opens to the relevant guide; search `approve a vendor` → "Approving and managing merchants." Close it.
-- [ ] Toggle **dark mode** once — layout stays intact.
+- [ ] Toggle **dark mode** once - layout stays intact.
 
 ---
 
-## 4. Merchant — onboarding wizard + daily use (15 min)
+## 4. Merchant - onboarding wizard + daily use (15 min)
 
 **4a. The freshly-approved shop (the wizard):**
 - [ ] 🔴 Log in at **http://localhost:5174** as the **shop you just approved** (`qa1@iprime.ng`).
 - [ ] 🔴 The **"Setup Your Business"** wizard auto-opens → **Step 1 of 3** Welcome → Next.
-- [ ] 🔴 **Pin Your Business Location** (Step 2) → search an address / drag the pin → "Location saved" → Next. *(There should be **NO separate hours step** — it's Welcome → Location → Product.)*
+- [ ] 🔴 **Pin Your Business Location** (Step 2) → search an address / drag the pin → "Location saved" → Next. *(There should be **NO separate hours step** - it's Welcome → Location → Product.)*
 - [ ] 🔴 **Add Your First Product** (Step 3) → fill name + price → **Create product** → "First product added!" → **Complete Setup**.
 
 **4b. Daily use (switch to the seeded shop for populated data):**
@@ -102,12 +102,12 @@ node backend/scripts/seed-demo-orders.js
 - [ ] No red console errors blocking any core flow (open DevTools console on each app once).
 - [ ] All 🔴 items passed.
 
-**Recently changed — worth a closer look (where regressions would hide):**
-- Merchant **products list** (was a reducer bug — products now render) and **mojibake** fix (₦, ·, … in the product form).
+**Recently changed - worth a closer look (where regressions would hide):**
+- Merchant **products list** (was a reducer bug - products now render) and **mojibake** fix (₦, ·, … in the product form).
 - Onboarding **wizard** (hours step removed) + new **"Open for orders"** toggle in Settings.
 - **In-app help** ("?" panel) + **search** in both dashboards; **Help Center** role gating (admin not public); **Guides** links on the website /merchants page and the dashboard landing.
 
 **Before deploying (not part of the smoke test):**
-- Both dashboards' `.env` currently point at **`http://localhost:3000`** for local testing — **revert to `https://api.iprime.ng`** before building for production.
-- Dashboard-landing **Guides** links are hardcoded to `https://iprime.ng/help/...` — confirm that's the real Help Center URL.
-- Admin account is **`admin@vtulogistics.com`** (a pre-rebrand email) — decide whether to migrate it to the iPrime domain.
+- Both dashboards' `.env` currently point at **`http://localhost:3000`** for local testing - **revert to `https://api.iprime.ng`** before building for production.
+- Dashboard-landing **Guides** links are hardcoded to `https://iprime.ng/help/...` - confirm that's the real Help Center URL.
+- Admin account is **`admin@vtulogistics.com`** (a pre-rebrand email) - decide whether to migrate it to the iPrime domain.

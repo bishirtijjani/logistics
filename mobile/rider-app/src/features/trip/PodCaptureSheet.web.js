@@ -25,7 +25,7 @@ import { uploadPodAsset } from "../../services/cloudinary";
  * Web counterpart of PodCaptureSheet.
  *
  * expo-camera's CameraView is unreliable across browsers, so on web we use a
- * native file input with `capture="environment"` — on a mobile browser that
+ * native file input with `capture="environment"` - on a mobile browser that
  * opens the rear camera directly; on desktop it opens the file chooser. The
  * picked file becomes an object URL, previewed and uploaded via uploadPodAsset
  * (whose web path turns the URL into a Blob). Same props / Redux actions /
@@ -91,7 +91,7 @@ export default function PodCaptureSheet({ visible, onClose, onContinue, requestI
     } catch (err) {
       if (controller.signal.aborted) return;
       if (!isMountedRef.current) return;
-      const msg = err?.message || t("pod.capture.uploadFailedFallback", "Upload failed — try again.");
+      const msg = err?.message || t("pod.capture.uploadFailedFallback", "Upload failed. Try again.");
       dispatch(podPhotoUploadFailed({ message: msg }));
       Toast.show({ type: "error", text1: t("pod.capture.uploadFailed", "Upload failed"), text2: msg });
     } finally {

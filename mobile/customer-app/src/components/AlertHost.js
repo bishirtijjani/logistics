@@ -6,7 +6,7 @@ import { _registerAlertHost } from "../lib/safeAlert";
 /**
  * Renders themed alerts pushed via safeAlert.showAlert (which, on web, backs the
  * monkeypatched Alert.alert). Mount once near the app root, inside ThemeProvider.
- * On native the OS Alert is used instead, so this simply never shows — harmless
+ * On native the OS Alert is used instead, so this simply never shows - harmless
  * to mount on every platform.
  */
 export default function AlertHost() {

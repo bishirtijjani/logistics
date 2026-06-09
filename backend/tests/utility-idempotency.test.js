@@ -1,5 +1,5 @@
 /**
- * Phase 7 — utility-idempotency money-path test.
+ * Phase 7 - utility-idempotency money-path test.
  *
  * Verifies the worker is idempotent on the AlRahuz response:
  *   - Calling handleResult twice with the same `success` response does not
@@ -91,7 +91,7 @@ test('utility-idempotency: replaying a failure response does not double-refund',
   assert.equal(stubs.state.payment.status, 'REFUNDED');
   assert.equal(stubs.state.wallet.balance, 500);
 
-  // Second invocation — payment is already REFUNDED so the refund's tx-level
+  // Second invocation - payment is already REFUNDED so the refund's tx-level
   // guard short-circuits.
   await _internal.handleResult(failResp, ctx);
   assert.equal(stubs.state.wallet.balance, 500, 'no double refund on replay');

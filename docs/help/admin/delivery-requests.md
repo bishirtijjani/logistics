@@ -1,7 +1,7 @@
 # Monitoring delivery requests
 
 The **Requests** page is the live and historical record of every delivery order
-on the platform — food, groceries, pharmacy, and packages.
+on the platform - food, groceries, pharmacy, and packages.
 
 ![Delivery requests](/help/screenshots/admin/requests.png)
 
@@ -22,19 +22,19 @@ by status to focus on, say, only active or only cancelled orders.
 
 ## Look into an order
 
-Click a request to see the full picture — items, the customer and merchant,
+Click a request to see the full picture - items, the customer and merchant,
 delivery address, the assigned rider, and the money split (subtotal, delivery
 fee, platform fee).
 
 > 💡 When a customer or merchant contacts support about an order, find it here
-> first — it shows exactly where the order is and who's involved.
+> first - it shows exactly where the order is and who's involved.
 
 ---
 
 ## Cancel an order
 
 If an order is stuck or needs intervention, you can **cancel** it. You'll be
-asked for a **cancellation reason** — this is recorded and may trigger a refund
+asked for a **cancellation reason** - this is recorded and may trigger a refund
 to the customer.
 
 > ⚠️ Cancelling can refund the customer and affects the merchant and rider.

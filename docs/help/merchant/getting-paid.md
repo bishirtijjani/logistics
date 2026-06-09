@@ -31,8 +31,8 @@ At the top you'll see four cards:
 
 2. Enter the **amount**.
 3. Choose how fast you want it:
-   - **Standard** — **free**, arrives within about a day.
-   - **Instant** — arrives in minutes, for a small fee (about 2%).
+   - **Standard** - **free**, arrives within about a day.
+   - **Instant** - arrives in minutes, for a small fee (about 2%).
 4. Enter your **bank**, **account number**, and **account name**.
 5. Confirm.
 
@@ -48,9 +48,9 @@ You can follow the status anytime under **"Withdrawal History."**
 
 From the Earnings page you can also:
 
-- **Process Refund** — issue a refund to a customer for an order.
-- **Refund History** — see every refund you've made.
-- **Disputes** — review and respond to any payment disputes.
+- **Process Refund** - issue a refund to a customer for an order.
+- **Refund History** - see every refund you've made.
+- **Disputes** - review and respond to any payment disputes.
 
 You can export your transactions to CSV or PDF anytime for your own records using
 the date-range tools further down the page.

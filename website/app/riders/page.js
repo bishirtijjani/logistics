@@ -26,7 +26,7 @@ const earnings = [
   {
     Icon: BadgeDollarSign,
     title: "Per-trip fares.",
-    body: "Every accepted job pays a base fare plus distance. Fares are shown to you before you accept — you never deliver without knowing what you'll earn.",
+    body: "Every accepted job pays a base fare plus distance. Fares are shown to you before you accept - you never deliver without knowing what you'll earn.",
   },
   {
     Icon: Wallet,
@@ -36,7 +36,7 @@ const earnings = [
   {
     Icon: Star,
     title: "Tips, all yours.",
-    body: "Customers can add a tip after delivery. Every naira of every tip goes directly to you — iPrime takes 0% on tips.",
+    body: "Customers can add a tip after delivery. Every naira of every tip goes directly to you - iPrime takes 0% on tips.",
   },
   {
     Icon: Clock,
@@ -49,7 +49,7 @@ const appFeatures = [
   {
     Icon: Navigation,
     title: "Live job matching.",
-    body: "Jobs pop up based on your live GPS — usually you only see offers within a 2 km pickup radius.",
+    body: "Jobs pop up based on your live GPS - usually you only see offers within a 2 km pickup radius.",
   },
   {
     Icon: Phone,
@@ -87,13 +87,13 @@ const onboarding = [
 ];
 
 const requirements = [
-  "A motorcycle in good working condition (your own — we don't lease vehicles).",
+  "A motorcycle in good working condition (your own - we don't lease vehicles).",
   "A valid Nigerian driver's licence with motorcycle endorsement (Class A).",
   "Up-to-date vehicle papers: registration, insurance, roadworthiness certificate.",
-  "A helmet — non-negotiable. You can't go online without one.",
+  "A helmet - non-negotiable. You can't go online without one.",
   "A smartphone (Android 9+ / iOS 14+) with a working data plan.",
   "A bank account in your name (we credit your wallet, you withdraw from there).",
-  "Valid BVN. Required for the wallet — no BVN, no payouts.",
+  "Valid BVN. Required for the wallet - no BVN, no payouts.",
 ];
 
 export default function RidersPage() {
@@ -143,7 +143,7 @@ export default function RidersPage() {
                 <span className="text-accent">the money side.</span>
               </h2>
               <p className="ui-sub">
-                We're a platform that connects you to delivery work —
+                We're a platform that connects you to delivery work -
                 you're an independent contractor, not an iPrime employee.
                 That means flexibility, and it also means you keep what you
                 earn.
@@ -262,7 +262,7 @@ export default function RidersPage() {
                   iPrime is for independent riders. You bring your bike, your
                   licence, and your time; we bring the customers, the
                   navigation, and the payout rail. If you're missing
-                  one of the items on this list, ask us — we may be able to
+                  one of the items on this list, ask us - we may be able to
                   point you to a partner.
                 </p>
                 <div className="flex items-center gap-2 text-sm text-gray-500 font-semibold">

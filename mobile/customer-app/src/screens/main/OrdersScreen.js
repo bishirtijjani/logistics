@@ -61,7 +61,7 @@ export default function OrdersScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
 
-  // Locale-aware date formatter — memoized on language so the Intl runtime
+  // Locale-aware date formatter - memoized on language so the Intl runtime
   // is touched once per locale change, not once per row.
   const formatDate = useMemo(() => {
     const tag = i18n.language === "ha" ? "ha-NG" : "en-NG";
@@ -101,7 +101,7 @@ export default function OrdersScreen({ navigation }) {
     if (activeTab === 0) setActiveCount(requests.length);
   }, [activeTab, requests.length]);
 
-  // Phase 4 — surface the three states that matter most at-a-glance.
+  // Phase 4 - surface the three states that matter most at-a-glance.
   // These supplement (not replace) the existing status pill.
   const resolveLifecycleBadge = (req) => {
     if (req.status === "REQUESTED" || req.status === "READY_FOR_PICKUP") {
@@ -121,7 +121,7 @@ export default function OrdersScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    // Phase 8 — pass category slug so pharmacy/grocery rows render
+    // Phase 8 - pass category slug so pharmacy/grocery rows render
     // type-specific status copy ("Pharmacist preparing…", "Picking your groceries").
     const pill = statusDisplay(item.status, item.type, item.merchant?.category?.slug);
     const status = { label: pill.label, bg: pill.bg, text: pill.color };

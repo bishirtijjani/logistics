@@ -14,7 +14,7 @@
 // (HomeTab/OrdersTab/WalletTab/CartTab). A mismatch produces a silent
 // "screen not found" inside the tab navigator, which presents as the tap
 // switching to MainTabs but never moving to the intended tab. Profile is no
-// longer a tab — it's a stack screen above MainTabs, reachable via the home
+// longer a tab - it's a stack screen above MainTabs, reachable via the home
 // header avatar.
 const ROUTE_MAP = [
   // /request/:id → tracking screen

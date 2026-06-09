@@ -1,5 +1,5 @@
 /**
- * auto-cancel-refund — Phase 4 deferred spec.
+ * auto-cancel-refund - Phase 4 deferred spec.
  *
  * Two policies under test:
  *
@@ -54,7 +54,7 @@ stubModule(path.resolve(__dirname, '../src/utils/logger.js'), {
 });
 
 // bullmq Worker is constructed inside startRequestWorker, so requiring the
-// worker module is safe — but `__test` access still pulls in `getIO`,
+// worker module is safe - but `__test` access still pulls in `getIO`,
 // `notifyJobTaken` (uses redis.smembers), the request queue module, etc. Stub
 // each one defensively.
 stubModule(require.resolve('bullmq'), {
@@ -207,7 +207,7 @@ test('refundRequest: refuses to refund a request that is not CANCELLED', async (
   );
 });
 
-test('refundRequest: idempotent — returns alreadyRefunded:true when refundTransactionId already set', async () => {
+test('refundRequest: idempotent - returns alreadyRefunded:true when refundTransactionId already set', async () => {
   reset();
   await seedCancelledRequest({ customerPaid: 2000, cancellationFee: 0, refundTransactionId: 'PRIOR-REFUND-XYZ' });
   const result = await refundRequest({ data: { requestId: 'req-1' } });

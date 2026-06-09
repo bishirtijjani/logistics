@@ -1,8 +1,8 @@
 /**
- * Public contact routes — /contact
+ * Public contact routes - /contact
  *
  * Backs the "Send us a message" form on the marketing site. Spam protection
- * is a hidden honeypot field validated server-side — see contact.validator.
+ * is a hidden honeypot field validated server-side - see contact.validator.
  * No IP rate-limiting: with Nigerian CGNAT a single bucket would block whole
  * neighborhoods. SMTP-side and inbox-side filters handle anything that gets
  * past the honeypot.

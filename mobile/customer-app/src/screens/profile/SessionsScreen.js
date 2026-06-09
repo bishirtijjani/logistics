@@ -21,7 +21,7 @@ export default function SessionsScreen({ navigation }) {
   const [revoking, setRevoking] = useState(null);
 
   const formatDate = (d) => {
-    if (!d) return "—";
+    if (!d) return "-";
     const tag = i18n.language === "ha" ? "ha-NG" : "en-NG";
     return new Date(d).toLocaleString(tag, {
       day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",

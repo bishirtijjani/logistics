@@ -27,7 +27,7 @@ export const SOCKET_URL = BASE_URL;
  * Server-clock skew tracking.
  *
  * Captured opportunistically from the `Date` response header on every API
- * call — no extra round trips. Consumers use `serverNow()` to get a clock
+ * call - no extra round trips. Consumers use `serverNow()` to get a clock
  * value that matches the server's wall time, regardless of how wrong the
  * device clock is. Used by `OfferCountdownRing` so a rider with a 30 s-off
  * phone clock still sees the right remaining time on offers.
@@ -50,7 +50,7 @@ function maybeUpdateSkewFromHeader(headers) {
     if (!dateHeader) return;
     const serverMs = Date.parse(dateHeader);
     if (Number.isNaN(serverMs)) return;
-    // EMA-ish smoothing — single sample is good enough for our purpose.
+    // EMA-ish smoothing - single sample is good enough for our purpose.
     _serverSkewMs = serverMs - Date.now();
   } catch (_) {}
 }
@@ -140,7 +140,7 @@ const forceLogout = async ({ showToast = true } = {}) => {
 api.interceptors.response.use(
   (response) => {
     maybeUpdateSkewFromHeader(response.headers);
-    // Phase 8 — a successful response confirms connectivity. Lazy require
+    // Phase 8 - a successful response confirms connectivity. Lazy require
     // so we don't create a load-order dep between api.js and connectivity.js.
     try {
       // eslint-disable-next-line global-require
@@ -150,7 +150,7 @@ api.interceptors.response.use(
   },
   async (error) => {
     maybeUpdateSkewFromHeader(error?.response?.headers);
-    // Phase 8 — a network-level failure (no error.response) means we
+    // Phase 8 - a network-level failure (no error.response) means we
     // couldn't reach the server at all. Flip the offline signal so the
     // global banner appears. HTTP error responses (4xx/5xx) leave the
     // signal alone because the server WAS reachable.
@@ -194,7 +194,7 @@ api.interceptors.response.use(
     const code = data?.code || (isNetworkError ? 'NETWORK_ERROR' : null);
 
     // Best-effort background calls (e.g. push-token registration) opt out of
-    // the global error toast by setting `suppressErrorToast` on their config —
+    // the global error toast by setting `suppressErrorToast` on their config -
     // a transient failure there must not nag the rider with "Something went
     // wrong", least of all right after they grant notification permission.
     const suppressErrorToast = original?.suppressErrorToast === true;

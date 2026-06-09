@@ -190,7 +190,7 @@ const walletSlice = createSlice({
         state.transactions = [action.payload.transaction, ...state.transactions];
       }
     },
-    // Inbound P2P transfer — backend has already credited the wallet and the
+    // Inbound P2P transfer - backend has already credited the wallet and the
     // matching wallet:balance:updated event will set the balance. We only
     // prepend a placeholder transaction so it appears immediately in history;
     // it'll be reconciled with the server row on next fetch.
@@ -268,7 +268,7 @@ const walletSlice = createSlice({
       })
       .addCase(fetchTransactions.fulfilled, (state, action) => {
         // Stale-response guard. If the user changed filters while this fetch
-        // was in flight, a newer fetch has taken the latest slot — drop this
+        // was in flight, a newer fetch has taken the latest slot - drop this
         // one to avoid clobbering the new filter's results.
         if (action.meta.requestId !== state.latestTxFetchId) return;
         state.isLoading = false;

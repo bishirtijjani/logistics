@@ -17,7 +17,7 @@ const verifySchema = z.object({
 const submitSchema = z.object({
   transactionId: z.string().uuid(),
   // Network-level SIM transfer PIN (e.g. MTN's default 0000 or user-set 4-digit).
-  // NOT the iPrime wallet PIN — that's not required for inbound airtime-to-cash.
+  // NOT the iPrime wallet PIN - that's not required for inbound airtime-to-cash.
   simPin: z.string().min(4).max(6),
 });
 

@@ -71,7 +71,7 @@ export default function AvailabilityToggle({ availability, busy, onPress, disabl
           {label}
         </Text>
         <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 2 }}>
-          {isOnDelivery ? "Stay on this delivery — toggle disabled" : cta}
+          {isOnDelivery ? "Stay on this delivery, toggle disabled" : cta}
         </Text>
       </View>
       {busy ? (

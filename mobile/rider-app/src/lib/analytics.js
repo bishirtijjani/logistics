@@ -12,7 +12,7 @@
  *     a one-file change.
  *   - In dev builds, track() logs to the console so engineers can verify
  *     events fire at the right moments without setting up a backend.
- *   - In production stub mode, track() costs nothing — the body short-
+ *   - In production stub mode, track() costs nothing - the body short-
  *     circuits before any work.
  *
  * Event catalog: see EVENTS below. Every event name lives there as a
@@ -31,9 +31,9 @@ const _userProps = { id: null, role: null };
  *   - Past-tense ("Accepted", "Delivered", "FailedTo…")
  *
  * Property conventions (every event):
- *   - `userId`     — string (set automatically by `setUser`)
- *   - `requestId`  — string when the event scopes to a trip
- *   - `errorCode`  — string when the event is a failure
+ *   - `userId`     - string (set automatically by `setUser`)
+ *   - `requestId`  - string when the event scopes to a trip
+ *   - `errorCode`  - string when the event is a failure
  */
 export const EVENTS = {
   // ── Lifecycle ────────────────────────────────────────────────────────

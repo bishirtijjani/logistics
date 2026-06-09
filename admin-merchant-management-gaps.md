@@ -2,7 +2,7 @@
 
 ## What This App Is
 
-A Nigerian delivery super-app where any type of shop or store can register as a merchant — restaurants, grocery stores, pharmacies, clothing shops, shoe stores, electronics, beauty products, and more. The platform is open-vertical: if it sells products and can be delivered, it qualifies. The admin is the platform operator. The model is: merchants self-register → admin approves → merchants list products → customers order → riders deliver → admin handles settlements.
+A Nigerian delivery super-app where any type of shop or store can register as a merchant - restaurants, grocery stores, pharmacies, clothing shops, shoe stores, electronics, beauty products, and more. The platform is open-vertical: if it sells products and can be delivered, it qualifies. The admin is the platform operator. The model is: merchants self-register → admin approves → merchants list products → customers order → riders deliver → admin handles settlements.
 
 ---
 
@@ -43,7 +43,7 @@ A Nigerian delivery super-app where any type of shop or store can register as a 
 
 ---
 
-## What the Admin Should Have — V1 Scope
+## What the Admin Should Have - V1 Scope
 
 ### 1. Merchant Onboarding & Verification
 
@@ -59,7 +59,7 @@ Document requirements (CAC, NAFDAC, permits, etc.) are out of scope for v1.
 - Logo and cover image preview during review (are they appropriate and not placeholder images?)
 - Operating hours review
 - Phone OTP verification (email OTP already exists, phone should too)
-- Bank account details visible in review panel (account name, number, bank name) — admin verifies manually for v1
+- Bank account details visible in review panel (account name, number, bank name) - admin verifies manually for v1
 
 ---
 
@@ -74,7 +74,7 @@ Document requirements (CAC, NAFDAC, permits, etc.) are out of scope for v1.
 - Business name, description, phone, email, address, coordinates
 - Logo and cover image upload/replace
 - Operating hours (override what merchant set)
-- Admin-controlled active override — independent of the merchant-controlled `isOpen` flag, so admin can hard-disable a merchant without formally suspending them
+- Admin-controlled active override - independent of the merchant-controlled `isOpen` flag, so admin can hard-disable a merchant without formally suspending them
 
 #### Tags & Categories
 
@@ -109,8 +109,8 @@ Document requirements (CAC, NAFDAC, permits, etc.) are out of scope for v1.
 
 #### Withdrawal Management
 
-- Bulk approval of pending withdrawals — currently admin must process one at a time
-- Withdrawal hold: admin can freeze a specific merchant's withdrawals without suspending their operations (e.g., a dispute is open) — currently the only option is full suspension
+- Bulk approval of pending withdrawals - currently admin must process one at a time
+- Withdrawal hold: admin can freeze a specific merchant's withdrawals without suspending their operations (e.g., a dispute is open) - currently the only option is full suspension
 - Payout receipts/remittance advice that merchants can download after a withdrawal is completed
 
 ---
@@ -121,7 +121,7 @@ Document requirements (CAC, NAFDAC, permits, etc.) are out of scope for v1.
 
 **What should exist:**
 
-#### Notification Triggers (critical — every status change must fire)
+#### Notification Triggers (critical - every status change must fire)
 
 - Merchant application approved → welcome email with next steps
 - Merchant application rejected → email with the rejection reason and how to reapply
@@ -135,7 +135,7 @@ Document requirements (CAC, NAFDAC, permits, etc.) are out of scope for v1.
 
 ### 5. Analytics
 
-**What exists:** Top 10 merchants by revenue, daily/weekly revenue trend, geographic distribution, order counts — all aggregate only. No way to drill into a single merchant.
+**What exists:** Top 10 merchants by revenue, daily/weekly revenue trend, geographic distribution, order counts - all aggregate only. No way to drill into a single merchant.
 
 **What should exist:**
 
@@ -152,7 +152,7 @@ Clicking a merchant opens a dedicated analytics view:
 
 ---
 
-## Gap Summary — V1
+## Gap Summary - V1
 
 | Area | Currently Has | V1 Gap |
 |---|---|---|

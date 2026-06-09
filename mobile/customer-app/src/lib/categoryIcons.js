@@ -5,7 +5,7 @@
  * defaults seeded in `backend/prisma/seed.js` use Material / Lucide-style
  * names (e.g. `shirt`, `smartphone`, `restaurant`) that don't exist in
  * `MaterialCommunityIcons`. When MCI gets an unknown name it renders a "?"
- * glyph — which is what users were seeing on the home grid.
+ * glyph - which is what users were seeing on the home grid.
  *
  * Resolution order:
  *   1. Known slug → curated MCI name (handles the seeded categories).

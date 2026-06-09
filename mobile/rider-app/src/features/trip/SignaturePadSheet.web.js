@@ -24,7 +24,7 @@ import { uploadPodAsset } from "../../services/cloudinary";
  * Web counterpart of SignaturePadSheet.
  *
  * The native sheet uses react-native-signature-canvas (a WebView) and writes the
- * PNG to expo-file-system before upload — neither works in a browser. This
+ * PNG to expo-file-system before upload - neither works in a browser. This
  * version draws on a plain HTML <canvas> (pointer events cover mouse + touch),
  * exports a PNG data URL, and hands it straight to uploadPodAsset, which now
  * accepts a data/blob URL on web (see services/cloudinary.js). It keeps the exact
@@ -137,7 +137,7 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
     } catch (err) {
       if (controller.signal.aborted) return;
       if (!isMountedRef.current) return;
-      const msg = err?.message || t("pod.signature.uploadFailedFallback", "Upload failed — try again.");
+      const msg = err?.message || t("pod.signature.uploadFailedFallback", "Upload failed. Try again.");
       dispatch(podSignatureUploadFailed({ message: msg }));
       Toast.show({
         type: "error",

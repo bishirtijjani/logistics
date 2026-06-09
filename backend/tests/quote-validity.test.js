@@ -1,5 +1,5 @@
 /**
- * quote-validity — Phase 4 deferred spec.
+ * quote-validity - Phase 4 deferred spec.
  *
  * Verifies the HMAC-signed quote token:
  *   - round-trips: issued → verified payload matches input numbers (modulo
@@ -70,7 +70,7 @@ test('verifyQuoteToken: round-trip preserves the locked pricing numbers', async 
   assert.equal(payload.estimatedMinutes, 14);
 });
 
-test('verifyQuoteToken: numeric rounding policy — 2dp on money, 4dp on lat/lng', async () => {
+test('verifyQuoteToken: numeric rounding policy - 2dp on money, 4dp on lat/lng', async () => {
   const { token } = issueQuoteToken({
     ...baseInput(),
     subtotal: 1500.005,

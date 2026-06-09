@@ -48,7 +48,7 @@ payment partner.
 - You must provide accurate KYC information, including your real legal name and a valid Bank Verification Number (BVN). False or misleading information is grounds for immediate suspension and reporting to the relevant authorities.
 
 ### 3.2 Account security
-- You're responsible for keeping your password and **transaction PIN** confidential. Anyone who knows your PIN can move funds out of your wallet — we have no way to reverse a PIN-authorized transaction made from your device.
+- You're responsible for keeping your password and **transaction PIN** confidential. Anyone who knows your PIN can move funds out of your wallet - we have no way to reverse a PIN-authorized transaction made from your device.
 - We never ask for your password, PIN, OTP, or BVN over phone, SMS, email, or social media. Anyone who does is a scammer.
 - Notify us immediately at **contact@iprime.ng** if you suspect unauthorized access. Sessions can be revoked in-app under Profile → Security → Active Sessions.
 
@@ -69,7 +69,7 @@ VTU top-ups).
 
 ### 4.2 Funding & withdrawal
 - Funding via NUBAN is credited as soon as our payment partner confirms the inbound transfer (usually instant; allow up to 30 minutes for delays at the partner bank).
-- Withdrawals are subject to KYC level, daily limits (configurable in the app under wallet limits), and our payment partner's processing times — usually under 5 minutes during business hours.
+- Withdrawals are subject to KYC level, daily limits (configurable in the app under wallet limits), and our payment partner's processing times - usually under 5 minutes during business hours.
 - Withdrawal fees, if any, are shown on the withdrawal screen before you confirm.
 
 ### 4.3 Escrow during deliveries
@@ -81,7 +81,7 @@ your wallet per §6 below.
 
 ### 4.4 Currency, holds, and disputes
 - All amounts are in **Nigerian Naira (NGN)**.
-- We may temporarily hold or freeze a wallet balance if we reasonably suspect fraud, money laundering, sanctions risk, or a chargeback dispute — and for no longer than is necessary to investigate.
+- We may temporarily hold or freeze a wallet balance if we reasonably suspect fraud, money laundering, sanctions risk, or a chargeback dispute - and for no longer than is necessary to investigate.
 - You will not earn interest on wallet balances; iPrime is not a bank.
 
 ---
@@ -91,7 +91,7 @@ your wallet per §6 below.
 ### 5.1 Quotes are binding
 Before you confirm any request, we show you a quote (items, delivery fee,
 service charge, total). The quote is server-signed and valid for **5
-minutes**. If you take longer to confirm, the quote refreshes — prices
+minutes**. If you take longer to confirm, the quote refreshes - prices
 may change if merchant prices or delivery distance have changed.
 
 ### 5.2 Confirmation creates a contract
@@ -127,7 +127,7 @@ in transit and you must accept delivery or refuse it at the door (in
 which case you may be charged a delivery fee but refunded for items).
 
 A small **cancellation fee** may apply depending on how far along the
-order is when you cancel — the fee is shown in the cancellation preview
+order is when you cancel - the fee is shown in the cancellation preview
 before you confirm. Once you confirm cancellation:
 - The cancellation fee (if any) is debited from your wallet.
 - The remainder of your payment is refunded to your wallet immediately.
@@ -159,11 +159,11 @@ Decisions are final after support review unless new evidence emerges.
 iPrime fees are shown in-app before you confirm each transaction. The
 main fee types:
 
-- **Delivery fee** — distance-based, set per route by our pricing engine
-- **Service charge** — small fee for using the platform (food, package, retail)
-- **Cancellation fee** — see §6.1
-- **Withdrawal fee** — see §4.2
-- **VTU markup** — included in the price you see for airtime/data/electricity/cable
+- **Delivery fee** - distance-based, set per route by our pricing engine
+- **Service charge** - small fee for using the platform (food, package, retail)
+- **Cancellation fee** - see §6.1
+- **Withdrawal fee** - see §4.2
+- **VTU markup** - included in the price you see for airtime/data/electricity/cable
 
 All fees are inclusive of any applicable Nigerian taxes (VAT) where required.
 
@@ -190,7 +190,7 @@ rights, reporting to authorities, and civil claims for damages.
 
 ---
 
-## 9. Riders — additional terms
+## 9. Riders - additional terms
 
 If you sign up as a rider, you also agree:
 
@@ -204,7 +204,7 @@ If you sign up as a rider, you also agree:
 
 ---
 
-## 10. Merchants — additional terms
+## 10. Merchants - additional terms
 
 If you operate as a merchant, you also agree:
 
@@ -273,8 +273,8 @@ to the greater of:
 - **₦100,000**, or
 - The total fees you paid us in the 6 months preceding the event giving rise to the claim.
 
-We are not liable for indirect, consequential, or punitive damages — lost
-profits, lost goodwill, lost data — except where such limits are
+We are not liable for indirect, consequential, or punitive damages - lost
+profits, lost goodwill, lost data - except where such limits are
 unenforceable under Nigerian law.
 
 ### 13.3 Force majeure

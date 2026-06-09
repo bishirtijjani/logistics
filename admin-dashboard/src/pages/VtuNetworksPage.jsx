@@ -88,7 +88,7 @@ export default function VtuNetworksPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">VTU Networks</h1>
           <p className="text-sm text-muted dark:text-dark-muted mt-1 max-w-2xl">
             The provider IDs (network, disco, cable) sent to the upstream VTU
-            provider. Edit these here when the provider renumbers an ID — every
+            provider. Edit these here when the provider renumbers an ID - every
             plan referencing this network is updated automatically.
           </p>
         </div>
@@ -259,7 +259,7 @@ function NetworkSheet({ mode, initial, onClose, onSaved }) {
                   className={`py-1.5 text-xs font-medium rounded ${
                     form.type === t.key ? 'bg-surface dark:bg-dark-surface text-primary shadow' : 'text-muted dark:text-dark-muted'
                   } ${isEdit ? 'cursor-not-allowed opacity-60' : ''}`}
-                  title={isEdit ? 'Type is immutable — delete and recreate to change' : undefined}
+                  title={isEdit ? 'Type is immutable - delete and recreate to change' : undefined}
                 >
                   {t.key}
                 </button>

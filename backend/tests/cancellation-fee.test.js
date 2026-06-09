@@ -1,5 +1,5 @@
 /**
- * cancellation-fee — Phase 4 deferred spec.
+ * cancellation-fee - Phase 4 deferred spec.
  *
  * Covers:
  *   - Cancellation-fee token issuance + verification round-trip

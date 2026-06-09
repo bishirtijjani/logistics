@@ -15,7 +15,7 @@ const { startUtilityWorker } = require('./workers/utility.worker');
 const { startRequestWorker } = require('./workers/request.worker');
 const { startRiderWorker } = require('./workers/rider.worker');
 
-// Queue instances — import these in services to add jobs
+// Queue instances - import these in services to add jobs
 const paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
 const notificationQueue = new Queue(QUEUES.NOTIFICATION, { connection: redis });
 const utilityQueue = new Queue(QUEUES.UTILITY, { connection: redis });
@@ -67,7 +67,7 @@ const scheduleRecurringJobs = async () => {
         removeOnFail: { count: 90 },
       },
     );
-    // Phase 7 — daily doc-expiry scan. Runs at 04:00 so it lands after the
+    // Phase 7 - daily doc-expiry scan. Runs at 04:00 so it lands after the
     // reconciliation/idempotency cleanups but well before the morning rush.
     await riderQueue.add(
       RIDER_JOBS.CHECK_DOC_EXPIRY,
@@ -89,7 +89,7 @@ const addUtilityJob = (jobName, data) => utilityQueue.add(jobName, data, DEFAULT
 
 /**
  * Schedule a delayed POLL_PENDING job. Used by the utility worker when AlRahuz
- * returns `pending` — we re-query the same providerRef after `delayMs`.
+ * returns `pending` - we re-query the same providerRef after `delayMs`.
  * Single-attempt: if the poll itself fails infra-wise, the *next* scheduled
  * poll will catch the eventual state. We don't compound retries onto delays.
  */

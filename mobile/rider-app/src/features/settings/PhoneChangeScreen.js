@@ -1,5 +1,5 @@
 /**
- * PhoneChangeScreen — two-step phone change: request OTP → confirm.
+ * PhoneChangeScreen - two-step phone change: request OTP → confirm.
  * Calls `/auth/phone/request-change` and `/auth/phone/confirm-change`.
  */
 
@@ -152,7 +152,7 @@ export default function PhoneChangeScreen() {
                 label={t("phoneChange.otpLabel", "Verification code")}
                 value={otp}
                 onChangeText={setOtp}
-                placeholder="——————"
+                placeholder="------"
                 keyboardType="number-pad"
               />
 

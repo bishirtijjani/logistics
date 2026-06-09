@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 
 /**
- * DatePickerField — a pure-JS, theme-aware calendar date picker.
+ * DatePickerField - a pure-JS, theme-aware calendar date picker.
  *
  * No native modules, so it runs identically in Expo Go, dev builds and
  * production on both platforms. Replaces the old "type YYYY-MM-DD by hand"
@@ -21,13 +21,13 @@ import { useTheme } from "../theme";
  * a drop-in for the fields that previously stored that exact format.
  *
  * Props:
- *   label, icon            — presentation
- *   value                  — "YYYY-MM-DD" | "" | null
- *   onChange(next)         — called with "YYYY-MM-DD"
- *   error                  — error string shown below the field
- *   placeholder            — shown when no value (default "Select date")
- *   minDate / maxDate      — Date | "YYYY-MM-DD"; days outside are disabled
- *   disabled               — non-interactive
+ *   label, icon            - presentation
+ *   value                  - "YYYY-MM-DD" | "" | null
+ *   onChange(next)         - called with "YYYY-MM-DD"
+ *   error                  - error string shown below the field
+ *   placeholder            - shown when no value (default "Select date")
+ *   minDate / maxDate      - Date | "YYYY-MM-DD"; days outside are disabled
+ *   disabled               - non-interactive
  */
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];

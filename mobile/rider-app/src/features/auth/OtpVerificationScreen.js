@@ -53,13 +53,13 @@ export default function OtpVerificationScreen({ route, navigation }) {
     }
 
     if (mode === "reset") {
-      // For password reset: don't verify here — pass code to ResetPassword screen
+      // For password reset: don't verify here - pass code to ResetPassword screen
       // The backend will verify OTP atomically with the password update
       navigation.navigate("ResetPassword", { email, code });
       return;
     }
 
-    // Registration flow — verify OTP and activate account. The backend returns
+    // Registration flow - verify OTP and activate account. The backend returns
     // tokens on successful OTP verify, so the slice flips `isAuthenticated`
     // and AppNavigator routes the user via the role gate (a fresh rider account
     // has role !== RIDER and lands on the Become Rider stack).

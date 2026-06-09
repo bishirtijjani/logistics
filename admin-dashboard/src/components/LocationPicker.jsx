@@ -16,7 +16,7 @@ import {
   BasemapLayers,
 } from './GoogleBasemap'
 
-// Katsina city centre — same fallback the customer app uses.
+// Katsina city centre - same fallback the customer app uses.
 const FALLBACK = { lat: 13.0059, lng: 7.6019 }
 
 const PIN_COLOR = '#EA580C'
@@ -28,12 +28,12 @@ const PIN_COLOR = '#EA580C'
 // A pin locked to the centre of the map viewport while the map pans underneath
 // it (the Uber/Bolt "set location on map" pattern, and the one the customer app
 // already uses). The selected point is always whatever sits under the centre,
-// so the pin can never scroll off-screen — which the old draggable marker did
+// so the pin can never scroll off-screen - which the old draggable marker did
 // the moment you panned the map.
 function CenterPin({ color, lifted }) {
   return (
     <>
-      {/* Teardrop — its tip rests on the exact centre point. */}
+      {/* Teardrop - its tip rests on the exact centre point. */}
       <div
         className="pointer-events-none absolute left-1/2 top-1/2 z-[450]"
         style={{

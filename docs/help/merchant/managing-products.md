@@ -1,6 +1,6 @@
 # Adding and managing products
 
-Your **Products** page is your catalogue — everything customers can order from
+Your **Products** page is your catalogue - everything customers can order from
 you. Here's how to add new items, keep them up to date, and hide things when
 you run out.
 
@@ -15,10 +15,10 @@ you run out.
 
 ![Adding a new product](/help/screenshots/merchant/products-new.png)
 
-   - **Details** — add a **photo**, a **name** (e.g. *Jollof Rice*), and a short
+   - **Details** - add a **photo**, a **name** (e.g. *Jollof Rice*), and a short
      **description**. A clear photo helps an item sell.
-   - **Pricing** — set the **price (₦)** and how many you have in **stock**.
-   - **Add-ons** *(food shops only)* — optional choices like protein, sides, or
+   - **Pricing** - set the **price (₦)** and how many you have in **stock**.
+   - **Add-ons** *(food shops only)* - optional choices like protein, sides, or
      spice level.
 3. Tap **"Create product."**
 
@@ -29,8 +29,8 @@ you run out.
 
 ## Products that come in options (sizes, colours, packs)
 
-If your item comes in **variants** — small/medium/large, different colours, or
-pack sizes — turn on **"Has variants?"** on the Pricing step. Enter your option
+If your item comes in **variants** - small/medium/large, different colours, or
+pack sizes - turn on **"Has variants?"** on the Pricing step. Enter your option
 values (e.g. *Small, Medium, Large*), tap **"Generate combinations,"** then set a
 **price and stock for each** one.
 
@@ -50,7 +50,7 @@ Each product shows as a card with three controls:
 | **Edit** | Change the name, photo, price, stock, variants, or add-ons |
 | **Delete** | Remove the product permanently |
 
-> 💡 **Sold out for the day?** Don't delete it — just tap **"Available"** to flip
+> 💡 **Sold out for the day?** Don't delete it - just tap **"Available"** to flip
 > it to **Hidden**. Flip it back when you restock. Deleting is permanent.
 
 Use the **search box** at the top to find a product quickly when your list grows.

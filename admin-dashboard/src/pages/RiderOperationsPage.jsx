@@ -37,7 +37,7 @@ const AvailabilityBadge = ({ availability }) => {
   )
 }
 
-// Brand pin (lifted from LocationPicker — avoids Leaflet's bundled-asset path issue under Vite).
+// Brand pin (lifted from LocationPicker - avoids Leaflet's bundled-asset path issue under Vite).
 const RIDER_PIN = L.divIcon({
   className: '',
   html: `<div style="transform:translate(-50%,-100%);color:#EA580C;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">
@@ -309,7 +309,7 @@ export default function RiderOperationsPage() {
                       <span className="flex items-center gap-1"><Package size={13} className="text-muted dark:text-dark-muted" /> {rider.totalDeliveries || 0}</span>
                     </td>
                     <td className="px-4 py-3 text-sm text-text dark:text-dark-text">
-                      <span className="flex items-center gap-1"><Star size={13} className="text-amber-400 fill-amber-400" /> {rider.averageRating?.toFixed(1) || '—'}</span>
+                      <span className="flex items-center gap-1"><Star size={13} className="text-amber-400 fill-amber-400" /> {rider.averageRating?.toFixed(1) || '-'}</span>
                     </td>
                     <td className="px-4 py-3 text-sm text-text dark:text-dark-text">₦{Number(rider.totalEarnings || 0).toLocaleString('en-NG')}</td>
                     <td className="px-4 py-3"><AvailabilityBadge availability={rider.availability} /></td>

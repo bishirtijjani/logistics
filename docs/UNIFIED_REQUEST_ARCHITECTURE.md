@@ -1,7 +1,7 @@
 # Unified Request-Centric Architecture
 
-> **Document Version:** 2.0 — Architectural Pivot  
-> **Status:** Design Phase — Not Yet Implemented  
+> **Document Version:** 2.0 - Architectural Pivot  
+> **Status:** Design Phase - Not Yet Implemented  
 > **Author:** Cascade AI Assistant  
 
 ---
@@ -94,7 +94,7 @@ The underlying structure is **identical**. The only difference is the type of me
 
 ## Data Model Redesign
 
-### 1. Request — The Central Entity
+### 1. Request - The Central Entity
 
 ```prisma
 model Request {
@@ -110,7 +110,7 @@ model Request {
   customerId      String
   customer        User          @relation(fields: [customerId], references: [id])
   
-  // Merchant (optional — package delivery has no merchant)
+  // Merchant (optional - package delivery has no merchant)
   merchantId      String?
   merchant        Merchant?     @relation(fields: [merchantId], references: [id])
   
@@ -205,7 +205,7 @@ enum RequestStatus {
 }
 ```
 
-### 2. RequestItem — For All Product-Based Requests
+### 2. RequestItem - For All Product-Based Requests
 
 ```prisma
 model RequestItem {
@@ -237,13 +237,13 @@ model RequestItem {
 }
 ```
 
-### 3. Merchant — Merchants, Restaurants, etc.
+### 3. Merchant - Merchants, Restaurants, etc.
 
 ```prisma
 model Merchant {
   id              String        @id @default(uuid())
   
-  // User account (optional — merchants can have login)
+  // User account (optional - merchants can have login)
   userId          String?       @unique
   user            User?         @relation(fields: [userId], references: [id])
   
@@ -301,7 +301,7 @@ enum MerchantType {
 }
 ```
 
-### 4. Product — For Catalog-Based Merchants
+### 4. Product - For Catalog-Based Merchants
 
 ```prisma
 model Product {
@@ -339,7 +339,7 @@ model Product {
 }
 ```
 
-### 5. MerchantWallet — Separate from User Wallet
+### 5. MerchantWallet - Separate from User Wallet
 
 ```prisma
 model MerchantWallet {
@@ -368,7 +368,7 @@ model MerchantWallet {
 }
 ```
 
-### 6. PackageDetail — For Package Delivery (No Merchant)
+### 6. PackageDetail - For Package Delivery (No Merchant)
 
 ```prisma
 model PackageDetail {
@@ -561,10 +561,10 @@ GET    /nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 
 | System Status | Customer-Facing | Merchant-Facing | Rider-Facing |
 |---------------|-----------------|-----------------|--------------|
-| `REQUESTED` | "Order received" | "New order" | — |
-| `ACCEPTED` | "Preparing your order" | "Order accepted" | — |
-| `PROCESSING` | "Still preparing" | "In progress" | — |
-| `READY_FOR_PICKUP` | "Ready for pickup" | "Waiting for rider" | — |
+| `REQUESTED` | "Order received" | "New order" | - |
+| `ACCEPTED` | "Preparing your order" | "Order accepted" | - |
+| `PROCESSING` | "Still preparing" | "In progress" | - |
+| `READY_FOR_PICKUP` | "Ready for pickup" | "Waiting for rider" | - |
 | `RIDER_ASSIGNED` | "Rider assigned" | "Rider on the way" | "New pickup" |
 | `RIDER_EN_ROUTE` | "Rider heading to pickup" | "Rider nearby" | "Going to pickup" |
 | `PICKED_UP` | "On the way to you" | "Handed to rider" | "Going to customer" |
@@ -704,10 +704,10 @@ GET    /nearby?lat=13.0&lng=7.6&type=restaurant&radius=5
 ## Document Relationships
 
 This document supersedes and extends:
-- `ARCHITECTURE.md` — Update with unified diagrams
-- `API_CONTRACT.md` — Replace with v1 endpoints
-- `SOCKET_ARCHITECTURE.md` — Update event names
-- `customer-app-implementation.md` — Update with new screens
+- `ARCHITECTURE.md` - Update with unified diagrams
+- `API_CONTRACT.md` - Replace with v1 endpoints
+- `SOCKET_ARCHITECTURE.md` - Update event names
+- `customer-app-implementation.md` - Update with new screens
 
 **Next Steps:**
 1. Review and approve this architecture

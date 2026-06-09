@@ -1,5 +1,5 @@
 /**
- * Request controller — handles HTTP requests for unified request operations
+ * Request controller - handles HTTP requests for unified request operations
  */
 
 const requestService = require('./request.service');
@@ -99,7 +99,7 @@ const updateStatus = async (req, res, next) => {
 };
 
 // ============================================================
-// Cancel Request — customer path. Applies server-driven fee policy.
+// Cancel Request - customer path. Applies server-driven fee policy.
 // ============================================================
 
 const cancelRequest = async (req, res, next) => {
@@ -123,7 +123,7 @@ const cancelRequest = async (req, res, next) => {
   }
 };
 
-// Cancellation preview — what would happen if I cancelled right now.
+// Cancellation preview - what would happen if I cancelled right now.
 // Customer's tracking screen calls this to show "Cancel with ₦X fee?" copy.
 const getCancellationQuote = async (req, res, next) => {
   try {
@@ -137,7 +137,7 @@ const getCancellationQuote = async (req, res, next) => {
 };
 
 // ============================================================
-// Active request — single-shot fetch for the home banner.
+// Active request - single-shot fetch for the home banner.
 // ============================================================
 
 const getActiveRequest = async (req, res, next) => {
@@ -150,7 +150,7 @@ const getActiveRequest = async (req, res, next) => {
 };
 
 // ============================================================
-// Tracking — route polyline + live ETA
+// Tracking - route polyline + live ETA
 // ============================================================
 
 const getRoute = async (req, res, next) => {
@@ -193,7 +193,7 @@ const postMessage = async (req, res, next) => {
 };
 
 // ============================================================
-// Rider-initiated cancellation — Phase 4
+// Rider-initiated cancellation - Phase 4
 // ============================================================
 
 const riderCancelRequest = async (req, res, next) => {
@@ -211,7 +211,7 @@ const riderCancelRequest = async (req, res, next) => {
 };
 
 // ============================================================
-// Phase 5 — Proof of Delivery OTP generation
+// Phase 5 - Proof of Delivery OTP generation
 // ============================================================
 
 const generatePodOtp = async (req, res, next) => {
@@ -226,7 +226,7 @@ const generatePodOtp = async (req, res, next) => {
 };
 
 // ============================================================
-// Address correction — Phase 4
+// Address correction - Phase 4
 // ============================================================
 
 const recordAddressCorrection = async (req, res, next) => {
@@ -351,7 +351,7 @@ const adminUpdateStatus = async (req, res, next) => {
 };
 
 // ============================================================
-// Quote (Estimate) — POST with full body shape: same numbers the eventual
+// Quote (Estimate) - POST with full body shape: same numbers the eventual
 // createRequest will persist. Mobile app submits the request payload here,
 // shows the breakdown to the user, then submits to POST / with the matching
 // shape AND the returned quoteToken. Server re-verifies the token signature
@@ -411,10 +411,10 @@ module.exports = {
   listMessages,
   postMessage,
   rateRequest,
-  // Phase 4 — rider trip cockpit
+  // Phase 4 - rider trip cockpit
   riderCancelRequest,
   recordAddressCorrection,
-  // Phase 5 — POD
+  // Phase 5 - POD
   generatePodOtp,
   // Admin controllers
   getAllRequestsAdmin,

@@ -220,7 +220,7 @@ const optionGroupInputSchema = z.object({
   if (ruleErr) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: ruleErr, path: ['maxSelect'] });
   }
-  // A populated group must be satisfiable — it can't ask for more picks than it
+  // A populated group must be satisfiable - it can't ask for more picks than it
   // offers. Empty groups are allowed: the dashboard creates the group first and
   // the merchant adds items afterwards.
   if (d.items.length > 0 && d.minSelect > d.items.length) {

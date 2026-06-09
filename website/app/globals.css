@@ -152,6 +152,25 @@
   100% { transform: scale(1.10) translate(0%, 2%) rotate(0deg); }
 }
 
+/* --- Hero floating UI cards - gentle ambient drift --------------------- */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float-soft 5s ease-in-out infinite;
+}
+.animate-float-delayed {
+  animation: float-soft 6s ease-in-out infinite;
+  animation-delay: -2.5s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-delayed {
+    animation: none;
+  }
+}
+
 /* --- Legal prose --------------------------------------------------------- */
 /* Styling for the markdown-rendered /legal/* pages. Plain CSS instead of
    @tailwindcss/typography so we keep the existing zero-plugin tailwind v4

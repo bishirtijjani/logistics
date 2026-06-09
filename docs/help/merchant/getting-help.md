@@ -20,7 +20,7 @@ When you need help from the platform team:
    Other) and a **Priority**.
 3. Add a short **Subject** and **describe the issue** in as much detail as you
    can.
-4. Optionally **attach a screenshot** — it really speeds things up.
+4. Optionally **attach a screenshot** - it really speeds things up.
 5. Tap **"Create ticket."**
 
 Your tickets are listed with their status (**Open**, **In Progress**,
@@ -35,18 +35,18 @@ conversation.
 ## Disputes
 
 If a customer disputes one of your orders, it appears under the **Disputes** tab.
-Tap a dispute to see the details and **respond with your side** — add any
+Tap a dispute to see the details and **respond with your side** - add any
 evidence you have (photos, notes). The platform team reviews both sides and
 decides fairly.
 
-> 💡 Respond to disputes promptly and politely with clear evidence — it protects
+> 💡 Respond to disputes promptly and politely with clear evidence - it protects
 > your rating and your earnings.
 
 ---
 
 ## FAQ and Knowledge Base
 
-Before raising a ticket, check the **FAQ** and **Knowledge Base** tabs — most
+Before raising a ticket, check the **FAQ** and **Knowledge Base** tabs - most
 common questions are answered there instantly, no waiting required.
 
 ---

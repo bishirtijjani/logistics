@@ -19,7 +19,7 @@
  * Rule of thumb used below:
  *   - "Comes in sizes/colours the shop stocks separately?"  → add an axis.
  *   - "Sold as a measured bundle (500 ml, 1 kg, 30 tablets)?" → pack: true.
- *   - When unsure, prefer FEWER axes — merchants can add per-product detail,
+ *   - When unsure, prefer FEWER axes - merchants can add per-product detail,
  *     and an over-asking form is what confuses people.
  */
 
@@ -230,7 +230,7 @@ async function main() {
     });
 
     const s = cat.attributeSchema;
-    const axes = s.axes.length ? s.axes.join(', ') : '—';
+    const axes = s.axes.length ? s.axes.join(', ') : '-';
     const pack = s.pack ? (s.packUnits || []).join('/') : 'no pack';
     console.log(`  ✓ ${cat.name.padEnd(24)} axes: ${axes.padEnd(20)} pack: ${pack}`);
   }

@@ -1,12 +1,12 @@
 /**
- * pendingIntent — carries an "order intent" from the marketing site's hero into
+ * pendingIntent - carries an "order intent" from the marketing site's hero into
  * the app, surviving the sign-in flow.
  *
  * The website (iprime.ng) renders Glovo-style category cards that link here as
  * `https://app.iprime.ng/?intent=food`. We read that `intent` on entry, map it
  * to a navigation action, and replay it once the user is authenticated and past
  * the biometric gate (see AppNavigator). A logged-out visitor therefore lands
- * exactly where they tapped — "just works after auth".
+ * exactly where they tapped - "just works after auth".
  *
  * This is the SAME app whether opened on the web or as a native iOS/Android
  * binary. On a normal native cold open there is no `?intent=` in the entry URL,
@@ -23,7 +23,7 @@ const STORAGE_KEY = "iprime.pendingIntent";
 // Intent slug → navigation action. Mirrors the in-app Home tile handlers
 // (screens/main/HomeScreen.js): category tiles open MerchantBrowse by slug,
 // Shops opens the aggregator, Package starts a courier request, and the VTU
-// tile lands on Airtime. categoryName is cosmetic (header title only) — the
+// tile lands on Airtime. categoryName is cosmetic (header title only) - the
 // slug drives the merchant query, so a missing lat/lng is fine here
 // (MerchantBrowse reads `route.params || {}` and falls back to store location).
 const INTENT_TO_ACTION = {

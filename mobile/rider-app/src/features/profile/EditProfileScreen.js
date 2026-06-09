@@ -1,5 +1,5 @@
 /**
- * EditProfileScreen — first name / last name / DOB / address.
+ * EditProfileScreen - first name / last name / DOB / address.
  * Email is locked (use support); phone changes flow through PhoneChangeScreen.
  */
 
@@ -104,7 +104,7 @@ export default function EditProfileScreen() {
             tokens={tokens}
             label={t("edit.email", "Email")}
             icon="mail-outline"
-            value={profile?.email || "—"}
+            value={profile?.email || "-"}
             readOnly
             hint={t("edit.emailReadonly", "Contact support to change your email.")}
           />
@@ -128,9 +128,9 @@ export default function EditProfileScreen() {
             tokens={tokens}
             label={t("edit.phone", "Phone")}
             icon="call-outline"
-            value={profile?.phone || "—"}
+            value={profile?.phone || "-"}
             readOnly
-            hint={t("edit.phoneNote", "Phone changes require verification — use 'Change phone number' in Security.")}
+            hint={t("edit.phoneNote", "Phone changes require verification. Use 'Change phone number' in Security.")}
           />
           <DatePickerField
             label={t("edit.dob", "Date of birth")}

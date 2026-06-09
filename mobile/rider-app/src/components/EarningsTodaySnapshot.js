@@ -6,10 +6,10 @@ import { useTheme } from "../theme";
 import { formatNaira } from "../lib/formatters";
 
 /**
- * Compact earnings strip for the Home tab — three stats sourced from
+ * Compact earnings strip for the Home tab - three stats sourced from
  * `GET /rider/earnings` (today/week summary) with fallback to lifetime
  * stats from the rider profile while earnings are still loading. No mock
- * data: if the endpoint returns nothing, we show `—`.
+ * data: if the endpoint returns nothing, we show `-`.
  */
 export default function EarningsTodaySnapshot({ onSeeAll }) {
   const { tokens } = useTheme();
@@ -25,9 +25,9 @@ export default function EarningsTodaySnapshot({ onSeeAll }) {
   const todayAmountText = today
     ? formatNaira(today.amount)
     : isLoading
-      ? "—"
+      ? "-"
       : formatNaira(0);
-  const todayCountText = today ? String(today.count) : isLoading ? "—" : "0";
+  const todayCountText = today ? String(today.count) : isLoading ? "-" : "0";
 
   return (
     <View
@@ -63,7 +63,7 @@ export default function EarningsTodaySnapshot({ onSeeAll }) {
         <Stat label="Deliveries today" value={todayCountText} tokens={tokens} />
         <Stat
           label="Rating"
-          value={typeof rating === "number" && rating > 0 ? rating.toFixed(1) : "—"}
+          value={typeof rating === "number" && rating > 0 ? rating.toFixed(1) : "-"}
           tokens={tokens}
           last
         />

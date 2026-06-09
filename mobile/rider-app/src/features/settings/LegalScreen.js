@@ -1,5 +1,5 @@
 /**
- * LegalScreen — links to Terms / Privacy / About via the device's browser.
+ * LegalScreen - links to Terms / Privacy / About via the device's browser.
  */
 
 import React from "react";
@@ -19,7 +19,7 @@ import { useTheme } from "../../theme";
 // Public legal docs are hosted on the marketing site (see /website in this
 // repo, route /legal/[slug]). The URLs are referenced from the App Store
 // privacy questionnaire + Play Console data-safety form, so they must stay
-// stable across releases — coordinate a migration if the marketing domain
+// stable across releases - coordinate a migration if the marketing domain
 // ever moves to a brand-aligned host.
 const URLS = {
   terms: "https://iprime.ng/legal/terms",

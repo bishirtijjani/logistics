@@ -33,7 +33,7 @@ export default function MainTabNavigator() {
   const navigation = useNavigation();
   const lastActiveRequestRef = useRef(null);
 
-  // Phase 4 — when a trip becomes active, jump to it. Skip on every render —
+  // Phase 4 - when a trip becomes active, jump to it. Skip on every render -
   // only fire on the leading edge of activeRequestId changing to non-null.
   useEffect(() => {
     if (activeRequestId && activeRequestId !== lastActiveRequestRef.current) {
@@ -47,7 +47,7 @@ export default function MainTabNavigator() {
   return (
     <Tab.Navigator
       // Opaque per-scene background. bottom-tabs does NOT apply the navigation
-      // theme's `background` to tab scenes — they're transparent by default — so
+      // theme's `background` to tab scenes - they're transparent by default - so
       // without this, web tab switches briefly reveal the other tabs' content
       // through the incoming screen. `sceneStyle` is the intended API for it.
       sceneStyle={{ backgroundColor: tokens.bg.canvas }}

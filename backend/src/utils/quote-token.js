@@ -1,5 +1,5 @@
 /**
- * Quote token — HMAC-signed pricing token issued by POST /requests/quote
+ * Quote token - HMAC-signed pricing token issued by POST /requests/quote
  * and re-validated by POST /requests.
  *
  * Wire format: base64url(JSON payload) + "." + base64url(HMAC-SHA256(payload))
@@ -7,7 +7,7 @@
  * The payload includes the locked pricing numbers, the geo fingerprint, the
  * type, and `exp` (epoch ms). createRequest verifies the signature, checks
  * `exp`, and asserts the locked numbers match what estimateRequest now
- * computes — protecting against stale quote replays AND price drift between
+ * computes - protecting against stale quote replays AND price drift between
  * quote-time and create-time.
  */
 
@@ -111,7 +111,7 @@ const verifyQuoteToken = (token) => {
     throw err;
   }
   if (typeof payload.exp !== 'number' || payload.exp < Date.now()) {
-    const err = new Error('Quote expired — please request a fresh quote');
+    const err = new Error('Quote expired - please request a fresh quote');
     err.code = 'EXPIRED';
     throw err;
   }
@@ -174,7 +174,7 @@ const verifyCancellationFeeToken = (token) => {
     throw err;
   }
   if (typeof payload.exp !== 'number' || payload.exp < Date.now()) {
-    const err = new Error('Cancellation preview expired — please re-open the cancellation prompt');
+    const err = new Error('Cancellation preview expired - please re-open the cancellation prompt');
     err.code = 'EXPIRED';
     throw err;
   }

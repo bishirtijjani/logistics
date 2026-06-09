@@ -1,5 +1,5 @@
 /**
- * Request slice — unified request state management
+ * Request slice - unified request state management
  * Handles MERCHANT_ORDER (any merchant fulfillment) and PACKAGE (courier) requests.
  *
  * Phase 4 additions:
@@ -21,7 +21,7 @@ import { newIdempotencyKey } from '../../services/idempotency';
 //   envelope body { success, message, data, meta }
 // so `envelope.data` is the payload (the request object, the request list,
 // etc) and `envelope.meta` is the pagination meta. The previous version of
-// this slice read `response.data.data` everywhere — that's
+// this slice read `response.data.data` everywhere - that's
 // `envelope.data.data`, which is `undefined` on the unwrapped value, so
 // every thunk silently returned undefined. The reducers then fell through to
 // `|| []` defaults and showed empty UIs.
@@ -63,7 +63,7 @@ export const fetchRequestById = createAsyncThunk(
   }
 );
 
-// Create new request — requires quoteToken issued by /requests/quote.
+// Create new request - requires quoteToken issued by /requests/quote.
 // On failure we reject with the FULL normalised error so callers like
 // PinBottomSheet can read .status (e.g. 423 lockout) and .data.errors
 // (lockedUntil, attemptsRemaining). Reducer only renders the message.
@@ -99,7 +99,7 @@ export const updateRequestStatus = createAsyncThunk(
   }
 );
 
-// Cancellation preview — { allowed, fee, refundAmount, cancelToken }.
+// Cancellation preview - { allowed, fee, refundAmount, cancelToken }.
 // Used to show the "Cancel with ₦X fee?" sheet on the tracking screen.
 export const fetchCancellationQuote = createAsyncThunk(
   'request/fetchCancellationQuote',
@@ -142,7 +142,7 @@ export const rateRequest = createAsyncThunk(
   }
 );
 
-// Phase 4 — live route + ETA. Backend caches 30s.
+// Phase 4 - live route + ETA. Backend caches 30s.
 export const fetchActiveRoute = createAsyncThunk(
   'request/fetchActiveRoute',
   async (requestId, { rejectWithValue }) => {
@@ -155,7 +155,7 @@ export const fetchActiveRoute = createAsyncThunk(
   }
 );
 
-// Phase 4 — in-app messaging
+// Phase 4 - in-app messaging
 export const fetchMessages = createAsyncThunk(
   'request/fetchMessages',
   async ({ requestId, before, limit = 30 }, { rejectWithValue }) => {
@@ -243,7 +243,7 @@ const requestSlice = createSlice({
         state.currentRequest.riderLocation = { lat, lng };
       }
     },
-    // Phase 4 — matching ring status
+    // Phase 4 - matching ring status
     setMatchingStatus: (state, action) => {
       const { requestId } = action.payload || {};
       if (state.currentRequest?.id === requestId) {
@@ -253,14 +253,14 @@ const requestSlice = createSlice({
     clearMatchingStatus: (state) => {
       state.matchingStatus = null;
     },
-    // Phase 4 — server-pushed ETA
+    // Phase 4 - server-pushed ETA
     setRiderEta: (state, action) => {
       const { requestId } = action.payload || {};
       if (state.currentRequest?.id === requestId) {
         state.riderEta = action.payload;
       }
     },
-    // Phase 4 — chat append (socket-driven; de-duped against optimistic id)
+    // Phase 4 - chat append (socket-driven; de-duped against optimistic id)
     appendMessageFromSocket: (state, action) => {
       const { requestId, message } = action.payload || {};
       if (state.currentRequest?.id !== requestId || !message) return;
@@ -314,7 +314,7 @@ const requestSlice = createSlice({
         const sameRequest = state.currentRequest?.id === action.payload?.id;
         state.currentRequest = action.payload;
         if (!sameRequest) {
-          // New request opened — wipe per-request tracking caches.
+          // New request opened - wipe per-request tracking caches.
           state.route = null;
           state.matchingStatus = null;
           state.riderEta = null;
@@ -372,7 +372,7 @@ const requestSlice = createSlice({
       })
       .addCase(cancelRequest.fulfilled, (state, action) => {
         state.isCancelling = false;
-        // Server returns { requestId, status, cancellationFee } — patch the
+        // Server returns { requestId, status, cancellationFee } - patch the
         // current request and list entry rather than replacing wholesale.
         const id = action.payload?.requestId || action.payload?.id;
         if (id) {
@@ -411,7 +411,7 @@ const requestSlice = createSlice({
         state.error = action.payload;
       });
 
-    // Phase 4 — route + ETA
+    // Phase 4 - route + ETA
     builder
       .addCase(fetchActiveRoute.fulfilled, (state, action) => {
         state.route = action.payload;
@@ -425,7 +425,7 @@ const requestSlice = createSlice({
         }
       });
 
-    // Phase 4 — messages
+    // Phase 4 - messages
     builder
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.messages = action.payload || [];

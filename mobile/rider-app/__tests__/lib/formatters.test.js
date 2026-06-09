@@ -84,7 +84,7 @@ describe("formatTimeHm", () => {
   });
 
   it("formats a Date / ISO string into HH:MM with am/pm marker", () => {
-    // We assert just that the output contains digits + a colon — locale
+    // We assert just that the output contains digits + a colon - locale
     // formatting of am/pm varies across runtimes.
     const out = formatTimeHm(new Date("2026-05-01T09:30:00Z"));
     expect(out).toMatch(/\d{1,2}:\d{2}/);

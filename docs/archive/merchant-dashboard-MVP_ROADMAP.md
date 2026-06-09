@@ -1,4 +1,4 @@
-# Merchant Dashboard — REAL MVP Roadmap
+# Merchant Dashboard - REAL MVP Roadmap
 
 This roadmap focuses on the absolute minimum functionality needed to launch and validate the business model.
 
@@ -7,7 +7,7 @@ This roadmap focuses on the absolute minimum functionality needed to launch and 
 
 ---
 
-## Phase 0 — Foundation (Week 1)
+## Phase 0 - Foundation (Week 1)
 ### 0.1 Basic App Structure
 - [x] Set up React app with routing
 - [x] Create basic layout with navigation
@@ -22,7 +22,7 @@ This roadmap focuses on the absolute minimum functionality needed to launch and 
 
 ---
 
-## Phase 1 — Order Management (Week 2)
+## Phase 1 - Order Management (Week 2)
 ### 1.1 Order Processing
 - [ ] Accept/reject orders
 - [ ] View order details (customer, items, total)
@@ -36,7 +36,7 @@ This roadmap focuses on the absolute minimum functionality needed to launch and 
 
 ---
 
-## Phase 2 — Product Management (Week 3)
+## Phase 2 - Product Management (Week 3)
 ### 2.1 Basic Product CRUD
 - [ ] Add new products (name, price, description)
 - [ ] Edit existing products
@@ -50,7 +50,7 @@ This roadmap focuses on the absolute minimum functionality needed to launch and 
 
 ---
 
-## Phase 3 — Revenue Tracking (Week 4)
+## Phase 3 - Revenue Tracking (Week 4)
 ### 3.1 Basic Analytics
 - [ ] Daily revenue summary
 - [ ] Order count for today/week/month
@@ -64,7 +64,7 @@ This roadmap focuses on the absolute minimum functionality needed to launch and 
 
 ---
 
-## Phase 4 — Essential Settings (Week 5)
+## Phase 4 - Essential Settings (Week 5)
 ### 4.1 Business Profile
 - [ ] Business name and description
 - [ ] Contact information
@@ -78,7 +78,7 @@ This roadmap focuses on the absolute minimum functionality needed to launch and 
 
 ---
 
-## Phase 5 — Customer Experience (Week 6)
+## Phase 5 - Customer Experience (Week 6)
 ### 5.1 Order Communication
 - [ ] Customer contact info in orders
 - [ ] Basic order status updates to customers

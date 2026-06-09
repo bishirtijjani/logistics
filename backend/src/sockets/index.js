@@ -25,7 +25,7 @@ const notifyService = require('../services/notify.service');
 // Phase 5 added a DB lookup per socket handshake so SUSPENDED/DEACTIVATED
 // users can't keep using a still-valid access token. At scale, with frequent
 // background/foreground cycles, that's one Postgres SELECT per reconnect per
-// user — hot path. Cache the result for 60s per userId; on suspend/deactivate
+// user - hot path. Cache the result for 60s per userId; on suspend/deactivate
 // admin paths can `invalidateUserAuthCache(userId)` to force the next
 // handshake to re-read.
 // ============================================================
@@ -45,7 +45,7 @@ const cacheGet = (userId) => {
 
 const cacheSet = (userId, value) => {
   authCache.set(userId, { value, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
-  // Keep the cache bounded — at 10k entries, drop the oldest 1k.
+  // Keep the cache bounded - at 10k entries, drop the oldest 1k.
   if (authCache.size > 10_000) {
     const drop = 1000;
     let i = 0;

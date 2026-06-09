@@ -1,5 +1,5 @@
 /**
- * Redux store configuration — Customer App.
+ * Redux store configuration - Customer App.
  *
  * Single store instance. Import in App.js and wrap with <Merchant>.
  */

@@ -1,5 +1,5 @@
 /**
- * Sentry wrapper — thin façade over `@sentry/node` so the rest of the codebase
+ * Sentry wrapper - thin façade over `@sentry/node` so the rest of the codebase
  * imports a single helper instead of the SDK directly. Lets us:
  *   - No-op cleanly when SENTRY_DSN is missing (dev + CI never need an account)
  *   - Swap the SDK or add wrapping logic in exactly one place
@@ -10,7 +10,7 @@
  *     = require('./utils/sentry');
  *
  *   initSentry();              // once at boot, before app.listen()
- *   captureError(err, { ... }); // anywhere — survives no-op when disabled
+ *   captureError(err, { ... }); // anywhere - survives no-op when disabled
  *
  * Why this exists separate from the Winston `logger`:
  *   - Winston handles WHAT happened (structured local + file logs)
@@ -34,7 +34,7 @@ const initSentry = () => {
   _initialized = true;
 
   if (!config.SENTRY_DSN) {
-    // Dev / CI / first-time setup before a DSN is provisioned — leave the
+    // Dev / CI / first-time setup before a DSN is provisioned - leave the
     // SDK uninitialised. captureError() below routes to logger.warn() so
     // we don't lose the signal entirely.
     return false;
@@ -88,7 +88,7 @@ const captureError = (err, context = {}) => {
     if (context.requestId) scope.setTag('requestId', context.requestId);
     if (context.route) scope.setTag('route', context.route);
     if (context.statusCode) scope.setTag('statusCode', String(context.statusCode));
-    // AppError codes — let us alert on e.g. INSUFFICIENT_BALANCE spikes
+    // AppError codes - let us alert on e.g. INSUFFICIENT_BALANCE spikes
     if (err?.code) scope.setTag('errorCode', err.code);
     const { userId, requestId, route, statusCode, ...rest } = context;
     if (Object.keys(rest).length) scope.setContext('extra', rest);
@@ -97,7 +97,7 @@ const captureError = (err, context = {}) => {
 };
 
 /**
- * Express request handler — must be the FIRST middleware so it can attach
+ * Express request handler - must be the FIRST middleware so it can attach
  * the transaction to every downstream handler. No-ops when DSN is missing.
  */
 const requestHandler = () => {
@@ -110,7 +110,7 @@ const requestHandler = () => {
 };
 
 /**
- * Express tracing handler — wraps each route in a transaction for the
+ * Express tracing handler - wraps each route in a transaction for the
  * Performance UI. Cheap to leave on at the configured sample rate.
  */
 const tracingHandler = () => {
@@ -119,7 +119,7 @@ const tracingHandler = () => {
 };
 
 /**
- * Express error handler — must be mounted AFTER routes and BEFORE the app's
+ * Express error handler - must be mounted AFTER routes and BEFORE the app's
  * own errorHandler. It captures the error and re-throws so our existing
  * middleware still formats the response.
  */

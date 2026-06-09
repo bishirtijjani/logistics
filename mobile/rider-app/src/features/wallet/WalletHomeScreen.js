@@ -22,12 +22,12 @@ import { fetchWallet, retryProvisioning } from "../../store/slices/walletSlice";
 const PROVISIONING_POLL_MS = 30_000;
 
 /**
- * Wallet home — balance, virtual NUBAN, quick actions. On balance change
+ * Wallet home - balance, virtual NUBAN, quick actions. On balance change
  * (socket-driven), the big number pops with a brief scale animation so the
  * rider feels each settlement.
  *
  * If the rider's virtual account hasn't been provisioned yet, we show a
- * provisioning-pending state with a 30 s auto-retry — same UX as customer-app.
+ * provisioning-pending state with a 30 s auto-retry - same UX as customer-app.
  */
 export default function WalletHomeScreen() {
   const { tokens } = useTheme();
@@ -136,7 +136,7 @@ export default function WalletHomeScreen() {
             >
               <Ionicons name="lock-closed" size={12} color={tokens.text.onBrand} />
               <Text style={{ marginLeft: 6, fontSize: 11, fontWeight: "700", color: tokens.text.onBrand }}>
-                {t("wallet.locked", "Wallet locked — contact support")}
+                {t("wallet.locked", "Wallet locked. Contact support")}
               </Text>
             </View>
           ) : null}
@@ -165,7 +165,7 @@ export default function WalletHomeScreen() {
             </Text>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
               <Text style={{ fontSize: 13, color: tokens.text.muted }}>
-                {bankName || "—"}{accountName ? ` · ${accountName}` : ""}
+                {bankName || "-"}{accountName ? ` · ${accountName}` : ""}
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <Ionicons name="copy-outline" size={14} color={tokens.brand.default} />
@@ -229,7 +229,7 @@ export default function WalletHomeScreen() {
           />
         </View>
 
-        {/* Pay bills — VTU from wallet balance */}
+        {/* Pay bills - VTU from wallet balance */}
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <Text style={{ fontSize: 15, fontWeight: "800", color: tokens.text.primary }}>
             {t("wallet.payBills", "Pay bills")}

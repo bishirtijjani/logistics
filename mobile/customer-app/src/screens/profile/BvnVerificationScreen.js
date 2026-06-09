@@ -22,7 +22,7 @@ import BvnConfirmSheet from "../../components/BvnConfirmSheet";
 import { verifyBvn, requestKycPhoneOtp } from "../../store/slices/profileSlice";
 import { colors } from "../../theme";
 
-// Step 1 schema — full KYC details. OTP isn't collected yet because we haven't
+// Step 1 schema - full KYC details. OTP isn't collected yet because we haven't
 // SMSed one. Submitting this triggers requestKycPhoneOtp(bvnPhone) which sends
 // the code; only then do we move to the step-2 OTP entry.
 const detailsSchema = z.object({
@@ -32,7 +32,7 @@ const detailsSchema = z.object({
     .regex(/^\d{11}$/, "BVN must contain only digits"),
   firstName: z.string().min(2, "Enter your first name as on BVN"),
   lastName: z.string().min(2, "Enter your last name as on BVN"),
-  // The phone tied to the BVN — must match the BVN record, not user.phone.
+  // The phone tied to the BVN - must match the BVN record, not user.phone.
   bvnPhone: z
     .string()
     .regex(/^0[789][01]\d{8}$/, "Enter a valid Nigerian phone number"),
@@ -84,7 +84,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
       bvn: "",
       firstName: profile?.firstName || "",
       lastName: profile?.lastName || "",
-      // Seed from signup phone but let the user override — BVN-linked phone
+      // Seed from signup phone but let the user override - BVN-linked phone
       // may differ from the one they registered with.
       bvnPhone: profile?.phone || "",
     },
@@ -115,7 +115,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
 
   const onSubmitDetails = async (data) => {
     if (!phoneOtpEnabled) {
-      // SMS-OTP bypass active — show the confirmation sheet in place of the
+      // SMS-OTP bypass active - show the confirmation sheet in place of the
       // OTP entry step. The sheet's Confirm button submits straight to
       // verifyBvn.
       setKycDraft(data);
@@ -208,7 +208,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
       });
       setVerificationResult(result.payload);
     } else {
-      // The backend uses code KYC_OTP_INVALID / KYC_OTP_EXPIRED — surface a
+      // The backend uses code KYC_OTP_INVALID / KYC_OTP_EXPIRED - surface a
       // generic message; the inline field error is enough.
       setOtpError(result.payload || "Verification failed. Try again.");
     }
@@ -219,7 +219,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
       Clipboard.setString(acct);
       Toast.show({ type: "success", text1: "Account number copied" });
     } catch {
-      // Clipboard is best-effort — not worth interrupting the flow.
+      // Clipboard is best-effort - not worth interrupting the flow.
     }
   };
 
@@ -227,14 +227,14 @@ export default function BvnVerificationScreen({ navigation, route }) {
   // verified before bvnPhone-adoption landed). Either the caller set
   // route.params.recovery (FundWallet's BVN_PHONE_MISSING handler) or we
   // detect the same condition from profile state. Force the form view so the
-  // user can re-submit — backend's RECOVERY branch enforces same-BVN.
+  // user can re-submit - backend's RECOVERY branch enforces same-BVN.
   const needsRecovery =
     isRecovery ||
     (profile?.kycStatus === "VERIFIED" && !profile?.phone && !verificationResult);
 
   // Render the success view either: (a) right after a successful verification
   // in this session (verificationResult set), or (b) on revisit of an
-  // already-verified account — but NOT when the account is in recovery mode.
+  // already-verified account - but NOT when the account is in recovery mode.
   const isVerified =
     verificationResult || (profile?.kycStatus === "VERIFIED" && !needsRecovery);
   if (isVerified) {
@@ -359,10 +359,10 @@ export default function BvnVerificationScreen({ navigation, route }) {
                 </TouchableOpacity>
               </View>
               <Text style={{ fontSize: 14, color: colors.text, fontWeight: "600", marginBottom: 4 }}>
-                {wallet.virtualAccountBank || "—"}
+                {wallet.virtualAccountBank || "-"}
               </Text>
               <Text style={{ fontSize: 13, color: colors.textMuted }}>
-                {wallet.virtualAccountName || "—"}
+                {wallet.virtualAccountName || "-"}
               </Text>
               <Text
                 style={{
@@ -644,8 +644,8 @@ export default function BvnVerificationScreen({ navigation, route }) {
                 }}
               >
                 {phoneOtpEnabled
-                  ? "We'll send a verification code to this number. Use the phone your BVN is registered with — it may differ from the one you signed up with."
-                  : "Use the phone your BVN is registered with — it may differ from the one you signed up with. You'll get to double-check before submitting."}
+                  ? "We'll send a verification code to this number. Use the phone your BVN is registered with, it may differ from the one you signed up with."
+                  : "Use the phone your BVN is registered with, it may differ from the one you signed up with. You'll get to double-check before submitting."}
               </Text>
 
               <View

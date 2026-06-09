@@ -1,5 +1,5 @@
 /**
- * Unified request status taxonomy — mirror of backend/src/utils/status.js.
+ * Unified request status taxonomy - mirror of backend/src/utils/status.js.
  * Used by tracking, orders, and history screens to render consistent pills + copy.
  */
 
@@ -39,8 +39,8 @@ export const isTerminal = (s) => TERMINAL_STATUSES.includes(s);
 
 /**
  * Display copy + pill colors. Adapts to:
- *   - `type`           — 'MERCHANT_ORDER' vs 'PACKAGE'
- *   - `categorySlug`   — type-specific copy for pharmacy/grocery
+ *   - `type`           - 'MERCHANT_ORDER' vs 'PACKAGE'
+ *   - `categorySlug`   - type-specific copy for pharmacy/grocery
  *
  * `categorySlug` is optional; older callers without it fall back to the
  * generic merchant-order copy.
@@ -105,7 +105,7 @@ export function statusDisplay(status, type, categorySlug) {
 /**
  * Localized label for a `SubstitutionPreference` value. Pass `t` from
  * `useTranslation()` so the label matches the active locale. Returns an
- * empty string when no preference is set — caller should short-circuit on that.
+ * empty string when no preference is set - caller should short-circuit on that.
  */
 export function substitutionLabel(sub, t) {
   if (!sub || !t) return '';
@@ -118,7 +118,7 @@ export function substitutionLabel(sub, t) {
 }
 
 /**
- * Ordered timeline of states for a request type. Cancellation isn't included —
+ * Ordered timeline of states for a request type. Cancellation isn't included -
  * it's an out-of-band terminal state that should render separately.
  */
 export function statusTimeline(type) {

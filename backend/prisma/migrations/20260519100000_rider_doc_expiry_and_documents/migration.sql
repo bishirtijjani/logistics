@@ -1,6 +1,6 @@
 -- Phase 7: Rider document expiry tracking + offer log for performance metrics.
 --
--- (1) Document expiry — the rider app's KYC Status screen surfaces which
+-- (1) Document expiry - the rider app's KYC Status screen surfaces which
 -- documents are valid, expiring soon, or expired, and the rider re-uploads
 -- the ones that lapse. We store the expiry per-document; null = no expiry
 -- on file (treated as "valid" but flagged in the UI for the rider to
@@ -20,14 +20,14 @@ ALTER TABLE "riders"
 CREATE INDEX "riders_idDocExpiresAt_idx"      ON "riders"("idDocExpiresAt");
 CREATE INDEX "riders_vehicleDocExpiresAt_idx" ON "riders"("vehicleDocExpiresAt");
 
--- (2) Rider offer log — every NEW_JOB broadcast lands a row so we can
+-- (2) Rider offer log - every NEW_JOB broadcast lands a row so we can
 -- compute acceptance rate cleanly (vs trying to reconstruct from the
 -- in-memory ring set, which is Redis-only and short-lived). Outcomes:
---   OFFERED   — initial state when the offer was emitted
---   ACCEPTED  — this rider claimed the job
---   DECLINED  — rider explicitly declined (UI tap)
---   EXPIRED   — ring timeout passed without claim
---   TAKEN     — another rider claimed the job before this one could
+--   OFFERED   - initial state when the offer was emitted
+--   ACCEPTED  - this rider claimed the job
+--   DECLINED  - rider explicitly declined (UI tap)
+--   EXPIRED   - ring timeout passed without claim
+--   TAKEN     - another rider claimed the job before this one could
 -- The dispatcher worker writes OFFERED + flips others to TAKEN when the
 -- claim lands; acceptJob flips this rider's row to ACCEPTED.
 CREATE TYPE "RiderOfferOutcome" AS ENUM ('OFFERED', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'TAKEN');

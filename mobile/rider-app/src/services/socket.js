@@ -1,5 +1,5 @@
 /**
- * Socket.io client (rider role) — receives job offers, broadcasts location,
+ * Socket.io client (rider role) - receives job offers, broadcasts location,
  * receives request lifecycle + wallet + notification events.
  *
  * Differences from customer socket:
@@ -135,7 +135,7 @@ class SocketService {
 
     this.socket.on("request:message:new", (data) => this.emit("requestMessageNew", data));
 
-    // Phase 4 — address correction events. Carries `{ requestId, stage, note,
+    // Phase 4 - address correction events. Carries `{ requestId, stage, note,
     // lat, lng }`. Merchant + admin act on these; the rider sees a faint
     // ack toast so they know dispatch saw it.
     this.socket.on("request:address:correction", (data) => this.emit("requestAddressCorrection", data));

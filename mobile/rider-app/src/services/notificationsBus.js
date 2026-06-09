@@ -50,7 +50,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
   }
   lastUnsubscribers = [];
 
-  // notification:new — generic notifications + the force-offline kill switch
+  // notification:new - generic notifications + the force-offline kill switch
   // + Phase 7 rider lifecycle events that need to refresh the profile gate.
   lastUnsubscribers.push(
     socketService.onNotificationNew((data) => {
@@ -68,7 +68,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     }),
   );
 
-  // rider:job:new — new offer arriving from the dispatcher.
+  // rider:job:new - new offer arriving from the dispatcher.
   lastUnsubscribers.push(
     socketService.onRiderJobNew((data) => {
       if (!data?.requestId) return;
@@ -76,7 +76,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     }),
   );
 
-  // rider:job:taken — another rider won (or the current rider's earlier
+  // rider:job:taken - another rider won (or the current rider's earlier
   // accept resolved on a different connection).
   lastUnsubscribers.push(
     socketService.onRiderJobTaken((data) => {
@@ -85,7 +85,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     }),
   );
 
-  // rider:job:confirmed — server confirmation that this rider won the race.
+  // rider:job:confirmed - server confirmation that this rider won the race.
   lastUnsubscribers.push(
     socketService.onRiderJobConfirmed((data) => {
       if (data?.requestId && __DEV__) {
@@ -95,7 +95,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
   );
 
   // ── Trip lifecycle ─────────────────────────────────────────────────────
-  // request:status:changed — server-pushed FSM transitions.
+  // request:status:changed - server-pushed FSM transitions.
   lastUnsubscribers.push(
     socketService.onRequestStatusChanged((data) => {
       if (!data?.requestId || !data?.status) return;
@@ -103,7 +103,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     }),
   );
 
-  // request:cancelled — admin force-cancel, customer pre-pickup cancel, etc.
+  // request:cancelled - admin force-cancel, customer pre-pickup cancel, etc.
   lastUnsubscribers.push(
     socketService.onRequestCancelled((data) => {
       if (!data?.requestId) return;
@@ -111,7 +111,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     }),
   );
 
-  // request:completed — server signals SETTLED. The status reducer treats
+  // request:completed - server signals SETTLED. The status reducer treats
   // this as a status-changed event so the cockpit flips to the "Delivered"
   // confirmation card.
   lastUnsubscribers.push(
@@ -124,7 +124,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     }),
   );
 
-  // request:message:new — chat updates for the active trip.
+  // request:message:new - chat updates for the active trip.
   lastUnsubscribers.push(
     socketService.onRequestMessageNew((data) => {
       if (!data?.requestId || !data?.message) return;
@@ -132,7 +132,7 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     }),
   );
 
-  // ── Phase 6 — wallet + earnings real-time. ────────────────────────────
+  // ── Phase 6 - wallet + earnings real-time. ────────────────────────────
   // The settlement worker emits `wallet:balance:updated` with the credited
   // transaction; we pipe that into BOTH walletSlice (for balance + recent
   // tx list) AND earningsSlice (for dashboard tallies + chart). Funding

@@ -2,7 +2,7 @@
  * Express application factory.
  *
  * Creates and configures the Express app with all middleware and routes.
- * Does NOT call listen() — that happens in server.js.
+ * Does NOT call listen() - that happens in server.js.
  *
  * This separation allows the app to be imported for testing
  * without starting an HTTP server.
@@ -31,7 +31,7 @@ const buildCorsOptions = () => {
   return {
     origin(origin, callback) {
       // Non-browser callers (curl, mobile apps, server-to-server) send no
-      // Origin header — allow those through; CORS only matters for browsers.
+      // Origin header - allow those through; CORS only matters for browsers.
       if (!origin) return callback(null, true);
       if (allowList.includes(origin)) return callback(null, true);
       return callback(new Error(`CORS: origin "${origin}" not in allowlist`));
@@ -65,7 +65,7 @@ const contactRoutes = require("./modules/contact/contact.routes");
 const createApp = () => {
   const app = express();
 
-  // We sit behind nginx in staging/prod — without this, express-rate-limit
+  // We sit behind nginx in staging/prod - without this, express-rate-limit
   // sees every request as coming from 127.0.0.1 and all visitors share one
   // bucket (e.g. the marketing-site contact form would rate-limit the whole
   // internet, not the person actually spamming). '1' = trust the one proxy

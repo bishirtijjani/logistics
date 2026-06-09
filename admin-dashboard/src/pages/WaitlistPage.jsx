@@ -97,7 +97,7 @@ export default function WaitlistPage() {
   }
 
   // Pull every entry that matches the current filters (up to 1000) so the
-  // export reflects the filter — not just the visible page.
+  // export reflects the filter - not just the visible page.
   const handleExport = async () => {
     setExporting(true)
     try {
@@ -256,7 +256,7 @@ export default function WaitlistPage() {
                       <div className="text-xs text-muted dark:text-dark-muted">{entry.email}</div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs">{entry.city || '—'}</td>
+                  <td className="px-4 py-3 text-xs">{entry.city || '-'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded text-xs ${roleBadge(entry.role)}`}>
                       {entry.role}
@@ -269,7 +269,7 @@ export default function WaitlistPage() {
                   </td>
                   <td className="px-4 py-3 max-w-xs">
                     <div className="text-xs truncate" title={entry.notes || ''}>
-                      {entry.notes || '—'}
+                      {entry.notes || '-'}
                     </div>
                     {entry.source && (
                       <div className="text-[10px] text-muted dark:text-dark-muted mt-0.5 truncate" title={entry.source}>

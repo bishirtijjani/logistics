@@ -1,10 +1,10 @@
 /**
- * Offer alert — loops a sound + fires repeating haptics while a job offer is
+ * Offer alert - loops a sound + fires repeating haptics while a job offer is
  * showing. Stops on dismiss.
  *
  * The sound asset is optional. If `assets/sounds/offer.mp3` exists, expo-av
  * loops it; if not (initial scaffold state), we fall back to haptics-only.
- * Either way the in-app ringtone is decorative — the OS-level FCM
+ * Either way the in-app ringtone is decorative - the OS-level FCM
  * notification sound is what wakes a sleeping device when a push arrives.
  *
  * Drop an `offer.mp3` into `mobile/rider-app/assets/sounds/` and uncomment
@@ -42,7 +42,7 @@ function fireHapticBurst() {
 }
 
 /**
- * Start the offer alert. Idempotent — calling twice while running is a no-op.
+ * Start the offer alert. Idempotent - calling twice while running is a no-op.
  */
 export async function startOfferAlert() {
   if (_started) return;
@@ -53,7 +53,7 @@ export async function startOfferAlert() {
   _hapticTimer = setInterval(fireHapticBurst, HAPTIC_INTERVAL_MS);
 
   // expo-av audio playback is native-only here. On web we stay haptics/visual-
-  // only (web has no haptics either, so the on-screen offer card IS the alert) —
+  // only (web has no haptics either, so the on-screen offer card IS the alert) -
   // this also avoids browser autoplay restrictions on un-gestured audio.
   if (!OFFER_SOUND || Platform.OS === "web") return;
 
@@ -66,7 +66,7 @@ export async function startOfferAlert() {
     });
     _sound = sound;
   } catch (err) {
-    // Audio path is best-effort — haptics already running.
+    // Audio path is best-effort - haptics already running.
     console.warn("[offerRingtone] sound start failed:", err?.message);
   }
 }

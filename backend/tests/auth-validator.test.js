@@ -1,5 +1,5 @@
 /**
- * Auth validator tests — confirms the RETAIL_STORE bug fix.
+ * Auth validator tests - confirms the RETAIL_STORE bug fix.
  * Run with: node --test tests/auth-validator.test.js
  */
 

@@ -1,5 +1,5 @@
 /**
- * Display formatters — Naira, distance, duration, date/time.
+ * Display formatters - Naira, distance, duration, date/time.
  * Pure functions only; never touch i18n directly so they can run in workers.
  */
 

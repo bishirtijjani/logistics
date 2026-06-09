@@ -1,21 +1,21 @@
 import { useRef } from 'react'
 
 /**
- * NumberInput — a money/quantity field that reads naturally for merchants.
+ * NumberInput - a money/quantity field that reads naturally for merchants.
  *
  *   • Shows thousand separators as you type (5,000,000 not 5000000).
  *   • Starts empty with a "0" placeholder instead of a stuck, must-delete 0.
  *   • Emits a bare numeric string ("5000000") through onChange, so callers keep
  *     parsing it with Number()/parseFloat() exactly as they did before.
  *
- * Under the hood it's a plain text input — type="number" can't render commas —
+ * Under the hood it's a plain text input - type="number" can't render commas -
  * with inputMode set so phones still pop the numeric keypad. `required`,
  * `className`, `placeholder`, and any other props pass straight through.
  *
  * Props:
- *   value    — the bare model value (number | string | '')
- *   onChange — receives the cleaned numeric string ('' when empty)
- *   decimal  — allow a single decimal point (prices, rates). Default false.
+ *   value    - the bare model value (number | string | '')
+ *   onChange - receives the cleaned numeric string ('' when empty)
+ *   decimal  - allow a single decimal point (prices, rates). Default false.
  */
 
 // "5000000" -> "5,000,000". Operates on the integer part's digits only.

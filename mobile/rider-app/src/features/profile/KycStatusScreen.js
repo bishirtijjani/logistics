@@ -1,5 +1,5 @@
 /**
- * KycStatusScreen — five document tiles + re-upload flow.
+ * KycStatusScreen - five document tiles + re-upload flow.
  *
  * Each tile renders the current state (Valid / Expiring soon / Expired /
  * Missing) and offers a "Re-upload" CTA. The picker → Cloudinary upload →
@@ -149,7 +149,7 @@ export default function KycStatusScreen() {
     [rider],
   );
 
-  // No rider record yet (NONE / DRAFT — reachable via the /kyc deep link). Don't
+  // No rider record yet (NONE / DRAFT - reachable via the /kyc deep link). Don't
   // show uploadable tiles that would POST documents against a non-existent rider;
   // point them at the application instead.
   if (!rider.status) {
@@ -186,7 +186,7 @@ export default function KycStatusScreen() {
             {t("kyc.noApplicationTitle", "Start your rider application")}
           </Text>
           <Text style={{ fontSize: 14, color: tokens.text.muted, textAlign: "center", lineHeight: 20, marginBottom: 22 }}>
-            {t("kyc.noApplicationBody", "Apply to become a rider first — you'll add your documents as part of the application.")}
+            {t("kyc.noApplicationBody", "Apply to become a rider first. You'll add your documents as part of the application.")}
           </Text>
           <TouchableOpacity
             onPress={start}

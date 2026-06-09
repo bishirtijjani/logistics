@@ -1,16 +1,16 @@
 /**
  * Web shim for `react-native-maps`.
  *
- * react-native-maps has no web build — it imports React Native native internals
+ * react-native-maps has no web build - it imports React Native native internals
  * (codegenNativeCommands) that don't exist in a browser. Metro is configured (see
  * metro.config.js) to redirect `react-native-maps` to THIS file ONLY when
  * bundling for web (platform === 'web'); native iOS/Android builds resolve the
  * real package, untouched.
  *
  * It re-implements the subset of the react-native-maps API the apps actually use
- * — MapView (default export) with animateToRegion / animateCamera / fitToCoordinates
+ * - MapView (default export) with animateToRegion / animateCamera / fitToCoordinates
  * ref methods, Marker (incl. custom children via OverlayView), Polyline, and the
- * PROVIDER_GOOGLE constant — on top of @react-google-maps/api so call sites in the
+ * PROVIDER_GOOGLE constant - on top of @react-google-maps/api so call sites in the
  * screens need zero changes.
  */
 import React, {

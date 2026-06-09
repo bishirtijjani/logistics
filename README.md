@@ -157,9 +157,9 @@ npm run dev     # http://localhost:5173
 
 ## Key Design Decisions
 
-1. **Everything is a Request** — Food, grocery, pharmacy, and package delivery all use the same `Request` model, lifecycle, tracking screen, and financial settlement. Adding a new type is a one-line enum change.
-2. **Financial safety first** — All wallet operations use Prisma `$transaction()` with balance snapshots. No direct balance mutation without a `Transaction` record.
-3. **Debit-first for utilities** — Wallet is deducted immediately, AlRahuz call happens async in a queue. Failed calls trigger automatic refunds.
-4. **Redis for hot data** — Rider locations, availability, and active delivery sessions live in Redis. Database is the source of truth, Redis is the speed layer.
-5. **Queue everything external** — All third-party API calls (KatPay, AlRahuz, FCM, Termii) go through BullMQ with automatic retries and failure handling.
-6. **Socket rooms for isolation** — Each request gets a dedicated room. Only the customer, assigned rider, and merchant receive tracking updates.
+1. **Everything is a Request** - Food, grocery, pharmacy, and package delivery all use the same `Request` model, lifecycle, tracking screen, and financial settlement. Adding a new type is a one-line enum change.
+2. **Financial safety first** - All wallet operations use Prisma `$transaction()` with balance snapshots. No direct balance mutation without a `Transaction` record.
+3. **Debit-first for utilities** - Wallet is deducted immediately, AlRahuz call happens async in a queue. Failed calls trigger automatic refunds.
+4. **Redis for hot data** - Rider locations, availability, and active delivery sessions live in Redis. Database is the source of truth, Redis is the speed layer.
+5. **Queue everything external** - All third-party API calls (KatPay, AlRahuz, FCM, Termii) go through BullMQ with automatic retries and failure handling.
+6. **Socket rooms for isolation** - Each request gets a dedicated room. Only the customer, assigned rider, and merchant receive tracking updates.

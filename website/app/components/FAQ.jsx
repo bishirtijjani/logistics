@@ -26,7 +26,7 @@ const faqs = [
   },
   {
     q: "What happens if an airtime or electricity purchase fails?",
-    a: "If the network or DISCO doesn't deliver your top-up or token, our system automatically refunds the exact amount back to your wallet — no support ticket needed.",
+    a: "If the network or DISCO doesn't deliver your top-up or token, our system automatically refunds the exact amount back to your wallet - no support ticket needed.",
   },
 ];
 

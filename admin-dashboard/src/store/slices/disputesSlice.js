@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
 // ============================================================
-// Disputes — admin
+// Disputes - admin
 // ============================================================
 
 export const fetchDisputes = createAsyncThunk(

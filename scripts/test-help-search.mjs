@@ -1,5 +1,5 @@
 /**
- * test-help-search.mjs — measure help-search relevance against the generated
+ * test-help-search.mjs - measure help-search relevance against the generated
  * query corpus. Reports top-1 / top-3 hit rates both globally (web landing,
  * all guides) and role-scoped (in-app panel, same-role guides), and lists misses.
  *
@@ -41,8 +41,8 @@ for (const { slug, queries } of corpus) {
 
 const pct = (n) => `${n} / ${total} (${(100 * n / total).toFixed(1)}%)`
 console.log(`\nCorpus: ${total} queries across ${corpus.length} guides\n`)
-console.log(`GLOBAL (web landing — all guides):   top-1 ${pct(g1.top1)} · top-3 ${pct(g1.top3)}`)
+console.log(`GLOBAL (web landing - all guides):   top-1 ${pct(g1.top1)} · top-3 ${pct(g1.top3)}`)
 console.log(`ROLE-SCOPED (in-app panel):          top-1 ${pct(r1.top1)} · top-3 ${pct(r1.top3)}`)
-console.log(`\nRole-scoped misses (not in top-3) — ${misses.length}:`)
-for (const m of misses) console.log(`  "${m.q}"  → expected ${m.expected}, got [${m.scoped.join(', ') || '—'}]`)
+console.log(`\nRole-scoped misses (not in top-3) - ${misses.length}:`)
+for (const m of misses) console.log(`  "${m.q}"  → expected ${m.expected}, got [${m.scoped.join(', ') || '-'}]`)
 console.log('')

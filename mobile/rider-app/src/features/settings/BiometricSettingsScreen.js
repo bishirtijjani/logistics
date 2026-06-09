@@ -1,5 +1,5 @@
 /**
- * BiometricSettingsScreen — toggle biometric login. Enabling requires a
+ * BiometricSettingsScreen - toggle biometric login. Enabling requires a
  * successful auth challenge so we don't lock the user out behind a
  * biometric they can't actually pass.
  */

@@ -1,5 +1,5 @@
 /**
- * Rider service — rider profile, availability, and job management.
+ * Rider service - rider profile, availability, and job management.
  */
 
 const { prisma } = require('../../config/database');
@@ -11,7 +11,7 @@ const { getIO } = require('../../sockets');
 const { emitRiderAssigned, emitStatusChanged } = require('../../sockets/handlers/request.handler');
 
 /**
- * Register as a rider — creates Rider profile linked to existing User.
+ * Register as a rider - creates Rider profile linked to existing User.
  */
 const registerRider = async (userId, riderData) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -23,7 +23,7 @@ const registerRider = async (userId, riderData) => {
   // The mobile app sends documents with American-spelled keys; the Rider
   // columns use British spelling. Map them here. Expiry/DOB already arrive as
   // Date objects (coerced by the validator). vehicleDocExpiresAt is the earliest
-  // of the vehicle-registration / insurance expiries — the sort key the
+  // of the vehicle-registration / insurance expiries - the sort key the
   // DOC_EXPIRING_SOON cron uses, so we derive it rather than ask for it.
   const vehicleExpiries = [
     riderData.vehicleRegistrationExpiresAt,
@@ -87,7 +87,7 @@ const registerRider = async (userId, riderData) => {
 
 /**
  * Get rider profile with earnings. The optional `activeRequest` field carries
- * the rider's currently-active delivery (status in the active set) — the
+ * the rider's currently-active delivery (status in the active set) - the
  * mobile app reads this on boot to re-hydrate the trip cockpit after a
  * force-close, so the rider never loses their place in the FSM.
  */
@@ -116,7 +116,7 @@ const getProfile = async (userId) => {
 
   if (!rider) throw AppError.notFound('Rider profile not found');
 
-  // Find an active trip — at most one per rider thanks to the FSM.
+  // Find an active trip - at most one per rider thanks to the FSM.
   const activeRequest = await prisma.request.findFirst({
     where: {
       riderId: rider.id,
@@ -166,7 +166,7 @@ const updateAvailability = async (userId, availability) => {
 };
 
 /**
- * Update rider GPS location — called frequently (~every 3s during delivery).
+ * Update rider GPS location - called frequently (~every 3s during delivery).
  * Writes to Redis for real-time access, DB for persistence.
  */
 const updateLocation = async (userId, { lat, lng }) => {
@@ -192,7 +192,7 @@ const updateLocation = async (userId, { lat, lng }) => {
 };
 
 /**
- * Accept a request job — rider claims a request that's READY_FOR_PICKUP (or REQUESTED for PACKAGE).
+ * Accept a request job - rider claims a request that's READY_FOR_PICKUP (or REQUESTED for PACKAGE).
  */
 const acceptJob = async (userId, requestId) => {
   const rider = await prisma.rider.findUnique({ where: { userId } });
@@ -228,13 +228,13 @@ const acceptJob = async (userId, requestId) => {
       },
     });
 
-    // Set rider to ON_DELIVERY (enum kept for backwards compatibility — covers any active request)
+    // Set rider to ON_DELIVERY (enum kept for backwards compatibility - covers any active request)
     await tx.rider.update({
       where: { id: rider.id },
       data: { availability: 'ON_DELIVERY' },
     });
 
-    // Phase 7 — flip this rider's offer log row to ACCEPTED, and any other
+    // Phase 7 - flip this rider's offer log row to ACCEPTED, and any other
     // riders who were offered to TAKEN, so performance metrics can compute
     // acceptance rate correctly. Upsert handles the rare path where a rider
     // accepts via deep-link without ever having received an OFFERED row
@@ -265,7 +265,7 @@ const acceptJob = async (userId, requestId) => {
 
   logger.info('Rider accepted request', { riderId: rider.id, requestId });
 
-  // Phase 4 — emit status + rider-assigned sockets so the customer's
+  // Phase 4 - emit status + rider-assigned sockets so the customer's
   // tracking screen flips from "Searching…" to "Rider assigned" immediately.
   // Previously acceptJob bypassed updateStatus and these emits were silently
   // missing, leaving the searching banner stuck until a manual refetch.
@@ -290,11 +290,11 @@ const acceptJob = async (userId, requestId) => {
  * Get rider earnings summary.
  */
 /**
- * Phase 6 — full earnings dashboard payload. Single endpoint returns the
+ * Phase 6 - full earnings dashboard payload. Single endpoint returns the
  * three things the dashboard renders:
- *   1. `summary` — today / week / month / allTime `{ count, amount }` tallies.
- *   2. `daily`   — trailing-30-day series for the 7-day bar chart + drill-in.
- *   3. `recent`  — paginated list of recent settlements with the request
+ *   1. `summary` - today / week / month / allTime `{ count, amount }` tallies.
+ *   2. `daily`   - trailing-30-day series for the 7-day bar chart + drill-in.
+ *   3. `recent`  - paginated list of recent settlements with the request
  *                  context the breakdown screen renders per row.
  *
  * Aggregation is keyed off `Transaction` rows of type=RIDER_EARNING joined
@@ -312,7 +312,7 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
   const walletId = wallet?.id || null;
 
-  // No wallet? Rider hasn't been provisioned yet — return zeros so the
+  // No wallet? Rider hasn't been provisioned yet - return zeros so the
   // client renders cleanly rather than 404-ing.
   if (!walletId) {
     return {
@@ -360,7 +360,7 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
     }),
     // Per-day series for the chart. Prisma doesn't have a native bucket-by-day
     // operator on Postgres without raw SQL, so we use $queryRaw. DATE_TRUNC
-    // floors each row to its day; results are sparse — the client fills in
+    // floors each row to its day; results are sparse - the client fills in
     // missing days with zeros.
     prisma.$queryRaw`
       SELECT DATE_TRUNC('day', "createdAt")::date AS day,
@@ -456,7 +456,7 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
 };
 
 // ============================================================
-// Phase 7 — Performance metrics
+// Phase 7 - Performance metrics
 // ============================================================
 
 const PERFORMANCE_WINDOW_DAYS = 30;
@@ -484,7 +484,7 @@ const getPerformance = async (userId) => {
   windowStart.setDate(windowStart.getDate() - PERFORMANCE_WINDOW_DAYS);
   windowStart.setHours(0, 0, 0, 0);
 
-  // Run everything in parallel — these queries are independent.
+  // Run everything in parallel - these queries are independent.
   const [offerCounts, claimedCount, riderCancelCount, deliveredRows, ratingAgg, ratingBreakdown, recentDeliveryDays] =
     await Promise.all([
       // (1) Offer outcomes for acceptance rate. Group by outcome.
@@ -519,7 +519,7 @@ const getPerformance = async (userId) => {
           estimatedMinutes: true,
         },
       }),
-      // (5) Average rating + count (across all time — rider.averageRating is
+      // (5) Average rating + count (across all time - rider.averageRating is
       //     authoritative once the worker writes it, but we recompute here
       //     to defend against drift).
       prisma.rating.aggregate({
@@ -544,7 +544,7 @@ const getPerformance = async (userId) => {
       `,
     ]);
 
-  // Acceptance rate — ACCEPTED / (ACCEPTED + DECLINED + EXPIRED). TAKEN
+  // Acceptance rate - ACCEPTED / (ACCEPTED + DECLINED + EXPIRED). TAKEN
   // doesn't count against the rider (another rider claimed it before they
   // could respond).
   const byOutcome = Object.fromEntries(
@@ -556,7 +556,7 @@ const getPerformance = async (userId) => {
   const denom = accepted + declined + expired;
   const acceptanceRate = denom > 0 ? Math.round((accepted / denom) * 1000) / 10 : null;
 
-  // Cancellation rate — rider-initiated cancellations / total claimed jobs.
+  // Cancellation rate - rider-initiated cancellations / total claimed jobs.
   const cancellationRate =
     claimedCount > 0 ? Math.round((riderCancelCount / claimedCount) * 1000) / 10 : null;
 
@@ -575,7 +575,7 @@ const getPerformance = async (userId) => {
     }
   }
 
-  // Rating breakdown — bucket 5/4/3/2/1.
+  // Rating breakdown - bucket 5/4/3/2/1.
   const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
   for (const row of ratingBreakdown) {
     if (row.riderScore != null && breakdown[row.riderScore] !== undefined) {
@@ -583,7 +583,7 @@ const getPerformance = async (userId) => {
     }
   }
 
-  // Current streak — consecutive trailing days ending today (or yesterday).
+  // Current streak - consecutive trailing days ending today (or yesterday).
   // All comparisons live in UTC to match Postgres DATE_TRUNC results.
   const dayStrings = recentDeliveryDays.map((r) =>
     r.day instanceof Date ? r.day.toISOString().slice(0, 10) : String(r.day).slice(0, 10),
@@ -634,14 +634,14 @@ const getPerformance = async (userId) => {
 };
 
 // ============================================================
-// Phase 7 — Document re-upload
+// Phase 7 - Document re-upload
 // ============================================================
 
 /// Whitelisted document kinds the rider can re-upload from the KYC screen.
 /// `kind` maps to the column on `Rider` that holds the Cloudinary URL.
 /// `expiryRequired` distinguishes documents that always have an expiry
 /// (driver's licence, vehicle reg, insurance) from those that may not
-/// (NIN slip — no expiry; vehicle photo — no expiry).
+/// (NIN slip - no expiry; vehicle photo - no expiry).
 const DOC_KIND_COLUMN = {
   ID_DOC:         { url: 'idDocumentUrl',   expiry: 'idDocExpiresAt',         expiryRequired: false },
   DRIVER_LICENCE: { url: 'driverLicenceUrl', expiry: 'driverLicenceExpiresAt', expiryRequired: true  },
@@ -672,7 +672,7 @@ const reuploadDocument = async (userId, { kind, url, expiresAt }) => {
   if (cloudName) {
     const expectedPrefix = `https://res.cloudinary.com/${cloudName}/`;
     if (typeof url !== 'string' || !url.startsWith(expectedPrefix)) {
-      throw AppError.badRequest('Invalid document URL — upload via the in-app flow.', {
+      throw AppError.badRequest('Invalid document URL - upload via the in-app flow.', {
         code: 'INVALID_DOC_URL',
       });
     }
@@ -700,7 +700,7 @@ const reuploadDocument = async (userId, { kind, url, expiresAt }) => {
 
   const data = { [mapping.url]: url };
   if (mapping.expiry) {
-    // Always write the expiry column — null clears any stale prior value
+    // Always write the expiry column - null clears any stale prior value
     // when an ID slip is re-uploaded without an expiry.
     data[mapping.expiry] = parsedExpiry;
   }
@@ -824,7 +824,7 @@ const updateRiderStatus = async (riderId, status, adminId) => {
 
   logger.info('Rider status updated by admin', { riderId, status, adminId });
 
-  // Phase 7 — push + socket notification so the rider's profile gate flips
+  // Phase 7 - push + socket notification so the rider's profile gate flips
   // (PendingApproval → Main, or Main → Suspended) without a re-launch. The
   // mobile bus listens for these types and refetches the rider profile.
   if (prevStatus !== status) {

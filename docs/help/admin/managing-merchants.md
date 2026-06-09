@@ -7,10 +7,10 @@ applications and manage every merchant on the platform.
 
 Four tabs run across the top:
 
-- **All Merchants** — every shop, searchable
-- **Pending Review** — applications waiting for approval
-- **Withdrawals** — merchant payout requests to approve
-- **Tags & Categories** — manage the tags used for search
+- **All Merchants** - every shop, searchable
+- **Pending Review** - applications waiting for approval
+- **Withdrawals** - merchant payout requests to approve
+- **Tags & Categories** - manage the tags used for search
 
 The stat cards (Total Merchants, Pending Review, Active, Pending Withdrawals) are
 clickable shortcuts.
@@ -20,7 +20,7 @@ clickable shortcuts.
 ## Approve (or reject) a new merchant
 
 1. Open the **Pending Review** tab (or click the *Pending Review* stat card).
-2. Click the merchant to open its application — check the business details,
+2. Click the merchant to open its application - check the business details,
    contact, location, and bank account.
 3. Click **"Approve Application"** to activate them (a welcome email is sent), or
    **"Reject"** and enter a clear reason explaining what they need to fix.
@@ -35,17 +35,17 @@ clickable shortcuts.
 From **All Merchants**, click any shop to open its detail drawer. It has four
 tabs:
 
-- **Profile** — edit business info, location, and hours; toggle admin visibility;
+- **Profile** - edit business info, location, and hours; toggle admin visibility;
   **Suspend** / **Unsuspend** the merchant (with a reason).
-- **Commission** — set this merchant's commission rate and see the full change
+- **Commission** - set this merchant's commission rate and see the full change
   history.
-- **Wallet** — view available/pending balances, the linked bank account, and
+- **Wallet** - view available/pending balances, the linked bank account, and
   place or release a **withdrawal hold** (pauses payouts without suspending the
   shop).
-- **Tags** — assign tags that power search and filtering in the customer app.
+- **Tags** - assign tags that power search and filtering in the customer app.
 
 > 💡 Use a **withdrawal hold** (Wallet tab) instead of a full suspension when you
-> only need to pause payouts while you investigate — the shop keeps operating.
+> only need to pause payouts while you investigate - the shop keeps operating.
 
 ---
 
@@ -55,7 +55,7 @@ Open the **Withdrawals** tab to see payout requests. Approve them individually
 with the green check, or tick several and use **bulk approve**. Rejecting a
 withdrawal returns the funds to the merchant's wallet.
 
-> ⚠️ Withdrawals move real money to a bank account — confirm the request looks
+> ⚠️ Withdrawals move real money to a bank account - confirm the request looks
 > right before approving.
 
 ---

@@ -149,7 +149,7 @@ export default function EarningsPage() {
   });
 
   useEffect(() => {
-    dispatch(fetchWallet({ merchantId }));      // merchantWallet — lifetime stat + bank account
+    dispatch(fetchWallet({ merchantId }));      // merchantWallet - lifetime stat + bank account
     dispatch(fetchUserWallet());                // the unified spendable wallet
     dispatch(fetchWalletTransactions({ page: 1, limit: 20 }));
     dispatch(fetchBankList());
@@ -171,7 +171,7 @@ export default function EarningsPage() {
       const res = await dispatch(initiateFunding({ amount })).unwrap();
       if (res?.checkout_url) {
         window.open(res.checkout_url, "_blank", "noopener");
-        showSuccessToast("Complete your payment in the new tab — your balance updates automatically.");
+        showSuccessToast("Complete your payment in the new tab - your balance updates automatically.");
         setShowTopUpModal(false);
         setTopUpAmount("");
         let polls = 0;
@@ -354,7 +354,7 @@ Thank you for your business!
       (b) => (b.code || b.bankCode) === code,
     )?.name || code;
 
-  // Advisory verification — resolve the real account name from the bank and
+  // Advisory verification - resolve the real account name from the bank and
   // prefill it. If it can't be verified, the merchant just types the name.
   const handleResolveAccount = async () => {
     if (!bankForm.bankCode || bankForm.accountNumber.length !== 10) {
@@ -371,10 +371,10 @@ Thank you for your business!
       if (res?.resolved && res.accountName) {
         setBankForm((f) => ({ ...f, accountName: res.accountName }));
       } else {
-        showErrorToast("Couldn't verify automatically — please type the account name.");
+        showErrorToast("Couldn't verify automatically - please type the account name.");
       }
     } catch (err) {
-      showErrorToast(err?.message || "Couldn't verify automatically — please type the account name.");
+      showErrorToast(err?.message || "Couldn't verify automatically - please type the account name.");
     }
   };
 
@@ -1635,7 +1635,7 @@ Thank you for your business!
             </div>
           )}
 
-          {/* Wallet balance cards — one unified wallet: earnings + top-ups land
+          {/* Wallet balance cards - one unified wallet: earnings + top-ups land
               here; bills + withdrawals draw from here. */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-gradient-to-br from-primary to-primary-700 rounded-xl p-6 text-white">
@@ -1717,7 +1717,7 @@ Thank you for your business!
             </button>
           </div>
 
-          {/* Recent wallet activity — earnings, top-ups, bills + withdrawals,
+          {/* Recent wallet activity - earnings, top-ups, bills + withdrawals,
               all in one ledger (the whole point of the unified wallet). */}
           <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-6">
             <div className="flex items-center gap-3 mb-4">
@@ -2279,7 +2279,7 @@ Thank you for your business!
                 </div>
               </div>
 
-              {/* Destination account — managed in the Payout Bank Account card */}
+              {/* Destination account - managed in the Payout Bank Account card */}
               {bankAccount ? (
                 <div>
                   <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
@@ -2302,7 +2302,7 @@ Thank you for your business!
                 <div className="flex items-start gap-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/40 p-3">
                   <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
                   <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                    Add a payout bank account first — use the Payout Bank Account
+                    Add a payout bank account first - use the Payout Bank Account
                     section on this page, then come back to withdraw.
                   </p>
                 </div>

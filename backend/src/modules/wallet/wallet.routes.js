@@ -13,7 +13,7 @@ const {
 
 const router = Router();
 
-// Public — bank list (no auth needed for bank picker pre-login)
+// Public - bank list (no auth needed for bank picker pre-login)
 router.get('/banks', walletController.getBanks);
 
 // All routes below require authentication

@@ -11,7 +11,7 @@ import { uploadToCloudinary } from "../../services/cloudinary";
 export const pickImage = async (source) => {
   if (Platform.OS === "web") {
     // Browser file dialog handles permission + source. Don't await a permission
-    // first — that would drop the user gesture and the dialog wouldn't open.
+    // first - that would drop the user gesture and the dialog wouldn't open.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: false,

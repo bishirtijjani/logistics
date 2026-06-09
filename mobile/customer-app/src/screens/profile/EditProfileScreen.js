@@ -183,7 +183,7 @@ export default function EditProfileScreen({ navigation }) {
                   flex: 1,
                 }}
               >
-                {profile?.email || "—"}
+                {profile?.email || "-"}
               </Text>
               <Ionicons name="lock-closed" size={14} color={colors.textLight} />
             </View>

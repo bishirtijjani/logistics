@@ -1,5 +1,5 @@
 /**
- * Rider module — Zod validation schemas.
+ * Rider module - Zod validation schemas.
  */
 
 const { z } = require('zod');
@@ -31,7 +31,7 @@ const riderRegistrationSchema = z.object({
   insuranceCertificateUrl: z.string().url().max(1024).optional(),
   insuranceExpiresAt: z.coerce.date().optional(),
 
-  // Personal — persisted on the User record
+  // Personal - persisted on the User record
   dateOfBirth: z.coerce.date().optional(),
   address: z.string().max(255).optional(),
 });
@@ -49,7 +49,7 @@ const acceptJobSchema = z.object({
   orderId: z.string().uuid(),
 });
 
-// Phase 7 — document re-upload + offer decline.
+// Phase 7 - document re-upload + offer decline.
 const reuploadDocumentSchema = z.object({
   kind: z.enum(['ID_DOC', 'DRIVER_LICENCE', 'VEHICLE_PHOTO', 'VEHICLE_REG', 'INSURANCE']),
   url: z.string().url().max(1024),

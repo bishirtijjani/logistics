@@ -1,5 +1,5 @@
 /**
- * Wallet API service — customer app.
+ * Wallet API service - customer app.
  */
 const api = require('../../services/api');
 

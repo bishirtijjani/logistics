@@ -22,7 +22,7 @@ export async function captureAndShareWeb(domId, { fileName = "receipt.png", shar
       return;
     }
   } catch (_) {
-    // Web Share unavailable or cancelled — fall through to download.
+    // Web Share unavailable or cancelled - fall through to download.
   }
 
   // Desktop / no Web Share: trigger a download.

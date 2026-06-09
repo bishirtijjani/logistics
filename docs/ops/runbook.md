@@ -1,4 +1,4 @@
-# Production runbook — iPrime
+# Production runbook - iPrime
 
 Operational playbook for the on-call engineer. The goal of every entry
 is: **diagnose in 5 minutes, mitigate in 15, post-mortem afterwards.**
@@ -13,16 +13,16 @@ runbook.
 
 ### Who's on
 - **Primary on-call:** Bishir (until a second engineer is onboarded)
-- **Escalation:** N/A in V1 — escalate to the engineer's personal phone
+- **Escalation:** N/A in V1 - escalate to the engineer's personal phone
 - **Hand-off:** weekly, Mondays 09:00 WAT
 
 ### Where to look first
-1. **Sentry** — backend + mobile error feeds, traces, releases
-2. **Logs** — backend runs Winston with `logs/error.log` + `logs/combined.log` (rotation: 5MB × 5)
-3. **Redis** — `redis-cli` against the production Redis; `INFO`, `CLIENT LIST`, `KEYS bull:*`
-4. **Postgres** — `psql "$DATABASE_URL"`; common diagnostic queries in §"Database lag"
-5. **KatPay dashboard** — for payment-rail incidents
-6. **Termii dashboard** — for OTP-delivery incidents
+1. **Sentry** - backend + mobile error feeds, traces, releases
+2. **Logs** - backend runs Winston with `logs/error.log` + `logs/combined.log` (rotation: 5MB × 5)
+3. **Redis** - `redis-cli` against the production Redis; `INFO`, `CLIENT LIST`, `KEYS bull:*`
+4. **Postgres** - `psql "$DATABASE_URL"`; common diagnostic queries in §"Database lag"
+5. **KatPay dashboard** - for payment-rail incidents
+6. **Termii dashboard** - for OTP-delivery incidents
 
 ### Communication
 - **Status page:** to be set up (Cronitor or Statuspage)
@@ -53,10 +53,10 @@ runbook.
 
 **Diagnose**
 1. SSH to the production host: `ssh deploy@prod.iprime`
-2. `systemctl status iprime-backend` — service running?
-3. `journalctl -u iprime-backend -n 200` — recent fatals?
-4. `df -h` — disk full?
-5. `free -m` — out of memory?
+2. `systemctl status iprime-backend` - service running?
+3. `journalctl -u iprime-backend -n 200` - recent fatals?
+4. `df -h` - disk full?
+5. `free -m` - out of memory?
 
 **Mitigate**
 | Cause | Fix |
@@ -77,7 +77,7 @@ runbook.
 **Symptoms**
 - OTP send/verify failing across all users
 - Rate-limit counters resetting unexpectedly (general request flood)
-- BullMQ workers stalled — `bull-board` shows growing wait queue, no progress
+- BullMQ workers stalled - `bull-board` shows growing wait queue, no progress
 - Sentry tag: `REDIS_CONNECTION_LOST`
 
 **Diagnose**
@@ -87,8 +87,8 @@ runbook.
 
 **Mitigate**
 - **Provider outage:** wait + post status; restart backend so it reconnects when Redis is back
-- **Memory pressure:** `redis-cli FLUSHDB` is destructive — wipes OTPs and queues. Only do this if Redis is genuinely full AND you can tolerate the OTP loss (users re-request). Prefer scaling RAM if available.
-- **Too many connections:** `redis-cli CLIENT KILL TYPE normal` (be careful — kills all)
+- **Memory pressure:** `redis-cli FLUSHDB` is destructive - wipes OTPs and queues. Only do this if Redis is genuinely full AND you can tolerate the OTP loss (users re-request). Prefer scaling RAM if available.
+- **Too many connections:** `redis-cli CLIENT KILL TYPE normal` (be careful - kills all)
 
 **Recover**
 - After Redis is healthy, restart workers: `systemctl restart iprime-workers`
@@ -145,11 +145,11 @@ SELECT * FROM pg_locks WHERE granted = false;
 **Mitigate**
 - **HMAC mismatch:** secret has drifted. Re-sync from KatPay dashboard → restart backend.
 - **Processing 5xx:** there's a code bug; check the worker; replay the webhook from KatPay dashboard once fixed.
-- **Idempotency-Key collision (rare):** the same delivery may be hitting us twice; our idempotency middleware should dedupe — if it doesn't, that's a bug to file.
+- **Idempotency-Key collision (rare):** the same delivery may be hitting us twice; our idempotency middleware should dedupe - if it doesn't, that's a bug to file.
 
 **Recover**
 - Verify funding completes for the affected users (`SELECT * FROM "Transaction" WHERE "userId" = '...' ORDER BY "createdAt" DESC LIMIT 5;`)
-- If a customer lost time, refund them a fixed inconvenience credit (₦200) — log it in their notes
+- If a customer lost time, refund them a fixed inconvenience credit (₦200) - log it in their notes
 
 ---
 
@@ -162,13 +162,13 @@ SELECT * FROM pg_locks WHERE granted = false;
 
 **Diagnose**
 1. Check Firebase Console → Cloud Messaging → recent send attempts
-2. `SELECT count(*), "sentAt" IS NULL AS unsent FROM "Notification" GROUP BY 2;` — are they being sent at all?
-3. Verify `FIREBASE_SERVICE_ACCOUNT_KEY` env var is still valid (rotated last >30d ago? — confirm in Firebase console)
+2. `SELECT count(*), "sentAt" IS NULL AS unsent FROM "Notification" GROUP BY 2;` - are they being sent at all?
+3. Verify `FIREBASE_SERVICE_ACCOUNT_KEY` env var is still valid (rotated last >30d ago? - confirm in Firebase console)
 
 **Mitigate**
 - **Stale service account:** rotate the key in Firebase, update env, restart backend
 - **FCM quota:** unlikely at our scale, but check console quota page
-- **Bad FCM tokens:** users who upgraded the OS without launching the app have stale tokens — the next push to them fails with `NotRegistered`, which our worker should clear
+- **Bad FCM tokens:** users who upgraded the OS without launching the app have stale tokens - the next push to them fails with `NotRegistered`, which our worker should clear
 
 **Recover**
 - Send a smoke-test notification to a known-good user via admin tool
@@ -194,7 +194,7 @@ SELECT
 
 **Mitigate**
 - Freeze withdrawals: set `wallet.withdrawalsEnabled = false` in PlatformSetting (gates Withdraw endpoints)
-- Identify the bug — usually a non-transactional write path that doesn't roll back on failure
+- Identify the bug - usually a non-transactional write path that doesn't roll back on failure
 - Replay the affected requests through the worker once the bug is fixed
 
 **Recover**
@@ -219,7 +219,7 @@ SELECT
    - A device-class-specific issue (low-end Android, old iOS?)
 
 **Mitigate**
-- **JS-only bug:** EAS Update push (`eas update --branch production --message "fix: <desc>"`) — patches devices on the same `runtimeVersion`
+- **JS-only bug:** EAS Update push (`eas update --branch production --message "fix: <desc>"`) - patches devices on the same `runtimeVersion`
 - **Native bug:** halt the Play Console rollout (or pause iOS phased release); ship a new binary
 
 **Recover**
@@ -241,7 +241,7 @@ SELECT
 
 **Mitigate**
 - **Short-term:** raise the quota in GCP (no extra cost, just monitoring change)
-- **Real cause:** missing cache. The `/route` endpoint caches in Redis for 30s — if Redis is down or the cache key changed, this can balloon. See §2.
+- **Real cause:** missing cache. The `/route` endpoint caches in Redis for 30s - if Redis is down or the cache key changed, this can balloon. See §2.
 
 **Recover**
 - Re-enable the cache, verify hit rate
@@ -278,7 +278,7 @@ node ./scripts/reconcile.js --apply
 sudo /opt/iprime/scripts/backup-postgres.sh
 ```
 
-### Restore from backup (rehearsal — never run in prod without a test)
+### Restore from backup (rehearsal - never run in prod without a test)
 
 ```sh
 gunzip -c /var/backups/iprime/iprime-YYYYMMDD-HHMMSS.sql.gz | psql "$STAGING_DATABASE_URL"
@@ -290,7 +290,7 @@ gunzip -c /var/backups/iprime/iprime-YYYYMMDD-HHMMSS.sql.gz | psql "$STAGING_DAT
 
 - ❌ **Restart the backend to "fix" a slow query.** That hides the bug.
 - ❌ **`FLUSHDB` in Redis to clear "stuck" state.** Without confirming what's stuck, you lose OTPs and rate-limit counters.
-- ❌ **Manually edit wallet balances in SQL.** Always use the admin-tool flow that records a `Transaction` row — otherwise reconciliation will alert tomorrow.
+- ❌ **Manually edit wallet balances in SQL.** Always use the admin-tool flow that records a `Transaction` row - otherwise reconciliation will alert tomorrow.
 - ❌ **`UPDATE … WHERE id = '…'` on Request status.** The FSM in `status.js` exists for a reason; bypassing it can leave a row in an unreachable state.
 - ❌ **`git push --force` to production hotfix branch.** Revert via a new commit.
 - ❌ **Sharing your own credentials to "fix something quickly".** Use the shared deploy account.
@@ -301,7 +301,7 @@ gunzip -c /var/backups/iprime/iprime-YYYYMMDD-HHMMSS.sql.gz | psql "$STAGING_DAT
 
 After any SEV-1 or SEV-2:
 
-1. **Write a post-mortem within 48 h** — keep it blameless; focus on what the system did, not who pressed which key
+1. **Write a post-mortem within 48 h** - keep it blameless; focus on what the system did, not who pressed which key
 2. Update **this runbook** with the new playbook entry
 3. Update **`docs/ops/known-errors.md`** if a new error code is involved
 4. Open a P0/P1 ticket for the underlying fix if it isn't already merged

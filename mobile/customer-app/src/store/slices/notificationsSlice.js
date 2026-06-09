@@ -1,5 +1,5 @@
 /**
- * Notifications slice — Notification Center feed + unread badge.
+ * Notifications slice - Notification Center feed + unread badge.
  *
  * Wiring:
  *  - REST: GET /notifications (paginated), GET /unread-count, PATCH /:id/read, PATCH /read-all.
@@ -85,7 +85,7 @@ const slice = createSlice({
   name: 'notifications',
   initialState,
   reducers: {
-    // Server pushed a new notification via socket — prepend + bump badge.
+    // Server pushed a new notification via socket - prepend + bump badge.
     notificationReceived: (state, action) => {
       const n = action.payload;
       if (!n || !n.id) return;
@@ -155,7 +155,7 @@ const slice = createSlice({
     });
 
     // Cross-user state isolation on forced logout is handled by the
-    // root reducer in `store/index.js` — it wipes this slice along with the
+    // root reducer in `store/index.js` - it wipes this slice along with the
     // rest of the user-scoped state on the `auth/forceLogout` action.
   },
 });

@@ -24,7 +24,7 @@
     {
       "role": "merchant", "category": "everyday", "slug": "receiving-orders",
       "title": "Receiving and fulfilling orders",
-      "summary": "Accept, prepare, and hand off orders — from new order to rider pickup.",
+      "summary": "Accept, prepare, and hand off orders - from new order to rider pickup.",
       "order": 1, "file": "merchant/receiving-orders.md",
       "keywords": ["orders", "incoming orders", "new order", "accept", "reject", "process", "prepare", "ready", "ready for pickup", "pickup", "give to rider", "fulfil", "fulfill", "confirm order", "requested", "delivered", "cancel", "modify", "receipt", "export", "status", "not getting orders"]
     },

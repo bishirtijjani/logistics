@@ -1,5 +1,5 @@
 /**
- * Delivery slice — manages delivery orders and tracking state.
+ * Delivery slice - manages delivery orders and tracking state.
  */
 
 const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');

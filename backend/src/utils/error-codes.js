@@ -3,13 +3,13 @@
  *
  * Used as:
  *   - Reference for backend throw sites (so codes stay consistent across modules).
- *   - Source of truth for the mobile i18n files — every code here must have a
+ *   - Source of truth for the mobile i18n files - every code here must have a
  *     matching key under `errors.<CODE>` in `mobile/customer-app/src/i18n/en.json`
  *     (and `ha.json`).
  *
  * If you add a new code: add it here, throw with it, and add the translation.
  * If a code is missing on the client, the mobile layer falls back to the
- * server-supplied English `message` — so this catalog is documentation,
+ * server-supplied English `message` - so this catalog is documentation,
  * not enforcement.
  */
 

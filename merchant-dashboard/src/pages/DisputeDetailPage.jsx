@@ -142,7 +142,7 @@ export default function DisputeDetailPage() {
                 Total: <span className="font-medium">{naira(selected.request?.customerPaid)}</span>
               </div>
               <div className="text-xs text-muted dark:text-dark-muted">
-                Status: {selected.request?.status || '—'}
+                Status: {selected.request?.status || '-'}
               </div>
               {selected.request?.deliveredAt && (
                 <div className="text-xs text-muted dark:text-dark-muted">

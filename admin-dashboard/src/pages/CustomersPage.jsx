@@ -251,7 +251,7 @@ export default function CustomersPage() {
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1">
                           <Phone size={14} />
-                          {customer.phone || '—'}
+                          {customer.phone || '-'}
                         </div>
                         <div className="flex items-center gap-1">
                           <Mail size={14} />

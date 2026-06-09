@@ -18,7 +18,7 @@ import { useT } from "../../i18n/useT";
 import { fetchMessages, sendMessage } from "../../store/slices/tripSlice";
 
 /**
- * ChatThread — modal sheet hosting the in-app chat for the active trip.
+ * ChatThread - modal sheet hosting the in-app chat for the active trip.
  * The notifications bus pipes incoming `request:message:new` events into
  * `tripMessageReceived` so the thread updates in real time. We still
  * dispatch `fetchMessages` on open to make sure historic context is loaded.

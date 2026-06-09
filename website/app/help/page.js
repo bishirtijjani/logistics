@@ -5,7 +5,7 @@ import HelpBrowser from "./HelpBrowser";
 export const metadata = {
   title: "Help Center",
   description:
-    "Step-by-step guides for using iPrime — set up your shop, manage orders, get paid, and more.",
+    "Step-by-step guides for using iPrime - set up your shop, manage orders, get paid, and more.",
   alternates: { canonical: "/help" },
 };
 

@@ -1,5 +1,5 @@
 /**
- * Socket.io client — real-time request lifecycle, rider location, and wallet events.
+ * Socket.io client - real-time request lifecycle, rider location, and wallet events.
  *
  * Phase 2 swap: all `delivery:*` events were retired with the legacy module.
  * The unified Request flow uses `request:*` events; rooms are keyed by requestId.
@@ -143,7 +143,7 @@ class SocketService {
       this.emit("requestCancelled", data);
     });
 
-    // --- Phase 4 — matching ring status, live ETA, in-app chat ---
+    // --- Phase 4 - matching ring status, live ETA, in-app chat ---
     this.socket.on("request:matching:status", (data) => {
       this.emit("requestMatchingStatus", data);
     });
@@ -162,7 +162,7 @@ class SocketService {
     // --- Generic notifications ---
     this.socket.on("notification:new", (data) => {
       // Suppress the toast if the user is already on the Notification Center
-      // (they'll see the row prepend instead) — avoids a redundant toast +
+      // (they'll see the row prepend instead) - avoids a redundant toast +
       // list-row pair on the same event.
       if (this._currentRouteName !== "NotificationCenter") {
         Toast.show({
@@ -215,7 +215,7 @@ class SocketService {
   onWalletFundingReceived(cb)     { return this.on("walletFundingReceived", cb); }
   onMerchantMenuUpdated(cb)       { return this.on("merchantMenuUpdated", cb); }
 
-  // Phase 5 — expose the socket's connect/disconnect state for the
+  // Phase 5 - expose the socket's connect/disconnect state for the
   // connection-quality banner. Listeners receive `true` on connect and
   // `false` on disconnect.
   onConnectionStateChange(cb) {

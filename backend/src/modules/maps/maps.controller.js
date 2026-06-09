@@ -1,5 +1,5 @@
 /**
- * Maps controller — proxies Google Maps API calls to keep API key server-side.
+ * Maps controller - proxies Google Maps API calls to keep API key server-side.
  */
 
 const mapsService = require("../../services/maps.service");

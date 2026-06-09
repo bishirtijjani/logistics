@@ -1,5 +1,5 @@
 /**
- * SavedAddress service — Phase 6.
+ * SavedAddress service - Phase 6.
  *
  * `isDefault` invariant: at most one address per user is the default.
  * Enforced inside the create/update transactions by unsetting any previous
@@ -7,7 +7,7 @@
  * even under concurrent writes (Prisma serialises transactions on a single
  * connection per request).
  *
- * Soft-delete is intentionally NOT modelled — saved addresses are cheap and
+ * Soft-delete is intentionally NOT modelled - saved addresses are cheap and
  * users want a hard delete. FK is `onDelete: Cascade` from User so an
  * account deletion drops the rows automatically.
  */
@@ -18,7 +18,7 @@ const { AppError } = require('../../utils/api-error');
 // P2002 = unique constraint violation. Used by the partial unique index
 // `saved_addresses(userId) WHERE isDefault=true` to enforce single-default
 // under concurrent writes. When we see it, retry once with `isDefault: false`
-// — the prior winner is already the default; the new row is added without
+// - the prior winner is already the default; the new row is added without
 // claiming the default flag instead of failing the user-facing request.
 const isP2002 = (err) => err?.code === 'P2002';
 
@@ -40,7 +40,7 @@ const create = async (userId, input) => {
           data: { isDefault: false },
         });
       }
-      // If the user has zero addresses, force the first one to be default —
+      // If the user has zero addresses, force the first one to be default -
       // saves them a tap later. When `forceDefault === false` we override
       // this in the retry path so two concurrent first-time creates can't
       // both claim default and trip P2002 forever.
@@ -66,7 +66,7 @@ const create = async (userId, input) => {
     return await attempt();
   } catch (err) {
     if (!isP2002(err)) throw err;
-    // Lost the default-flip race. Retry once as a non-default row — the
+    // Lost the default-flip race. Retry once as a non-default row - the
     // other writer is already the user's default.
     return attempt(false);
   }
@@ -102,7 +102,7 @@ const update = async (userId, id, input) => {
     return await run(input.isDefault);
   } catch (err) {
     if (!isP2002(err)) throw err;
-    // Race with a concurrent default flip — retry as non-default.
+    // Race with a concurrent default flip - retry as non-default.
     return run(false);
   }
 };
@@ -126,10 +126,10 @@ const setDefault = async (userId, id) => {
   } catch (err) {
     if (!isP2002(err)) throw err;
     // The "other" default is being set concurrently. Re-fetch and return
-    // whichever row is now the default — the caller's intent was "make this
+    // whichever row is now the default - the caller's intent was "make this
     // one the active default" but losing the race means the user's last
     // action wins; surface a 409 so the UI can refetch.
-    throw AppError.conflict('Default was changed by another request — please refresh.');
+    throw AppError.conflict('Default was changed by another request - please refresh.');
   }
 };
 

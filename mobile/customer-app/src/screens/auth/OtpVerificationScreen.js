@@ -53,15 +53,15 @@ export default function OtpVerificationScreen({ route, navigation }) {
     }
 
     if (mode === "reset") {
-      // For password reset: don't verify here — pass code to ResetPassword screen
+      // For password reset: don't verify here - pass code to ResetPassword screen
       // The backend will verify OTP atomically with the password update
       navigation.navigate("ResetPassword", { email, code });
       return;
     }
 
-    // Registration flow — verify OTP and activate account. The backend now
+    // Registration flow - verify OTP and activate account. The backend now
     // returns tokens for customer signups, so the slice flips `isAuthenticated`
-    // and AppNavigator swaps to the authed stack on its own — no manual
+    // and AppNavigator swaps to the authed stack on its own - no manual
     // navigation needed here.
     dispatch(clearError());
     const resultAction = await dispatch(verifyOtp({ email, code }));

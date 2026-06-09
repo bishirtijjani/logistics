@@ -33,7 +33,7 @@ export default function ProfileScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const { user } = useSelector((state) => state.auth);
   const { profile, isLoading } = useSelector((state) => state.profile);
-  // Phase 9 — locale picker visibility. State lives on the Profile screen
+  // Phase 9 - locale picker visibility. State lives on the Profile screen
   // (rather than inside <LocaleSheet>) so we can re-render the chip on close
   // with the updated language label.
   const [localeSheetVisible, setLocaleSheetVisible] = useState(false);
@@ -257,7 +257,7 @@ export default function ProfileScreen({ navigation }) {
         <View
           style={{ paddingHorizontal: 20, paddingTop: 22, paddingBottom: 4 }}
         >
-          {/* Phase 9 — Title + language pill on one row so a non-English
+          {/* Phase 9 - Title + language pill on one row so a non-English
               reader can spot the language switch immediately on the Profile
               tab, before scrolling. */}
           <View

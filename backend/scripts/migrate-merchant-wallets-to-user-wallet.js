@@ -2,12 +2,12 @@
  * One-time migration: move spendable merchant earnings from the bespoke
  * `merchantWallet.availableBalance` into each merchant's User `wallet.balance`,
  * so merchants run on the single unified wallet (earnings + top-ups + VTU +
- * withdrawals all in one place — like riders).
+ * withdrawals all in one place - like riders).
  *
  * Idempotent: writes a deterministic `MIGRATE-MW-<merchantId>` Transaction and
  * skips any merchant already migrated. Only `availableBalance` is swept;
  * `pendingBalance` (funds reserved for in-flight LEGACY withdrawals) is LEFT in
- * place so those payouts resolve on their existing path — it's logged for ops.
+ * place so those payouts resolve on their existing path - it's logged for ops.
  *
  * Run:  node scripts/migrate-merchant-wallets-to-user-wallet.js
  */
@@ -33,7 +33,7 @@ async function main() {
 
     if (pending > 0) {
       pendingFlagged += 1;
-      logger.warn('Merchant wallet has pendingBalance (in-flight legacy withdrawal) — left in place', {
+      logger.warn('Merchant wallet has pendingBalance (in-flight legacy withdrawal) - left in place', {
         merchantId: mw.merchantId, name: mw.merchant?.name, pending,
       });
     }
@@ -44,14 +44,14 @@ async function main() {
     if (already) { skipped += 1; continue; }
 
     if (!userId) {
-      logger.error('Merchant has no userId — cannot migrate balance', { merchantId: mw.merchantId, available });
+      logger.error('Merchant has no userId - cannot migrate balance', { merchantId: mw.merchantId, available });
       skipped += 1;
       continue;
     }
 
     const userWallet = await prisma.wallet.findUnique({ where: { userId } });
     if (!userWallet) {
-      logger.error('Merchant owner has no User wallet — cannot migrate balance', { merchantId: mw.merchantId, userId, available });
+      logger.error('Merchant owner has no User wallet - cannot migrate balance', { merchantId: mw.merchantId, userId, available });
       skipped += 1;
       continue;
     }

@@ -1,5 +1,5 @@
 // ============================================================
-// iPRIME — PRISMA SCHEMA
+// iPRIME - PRISMA SCHEMA
 // Single Source of Truth for all data models
 // ============================================================
 
@@ -44,12 +44,12 @@ enum BvnVerificationOutcome {
 }
 
 // ============================================================
-// UNIFIED REQUEST ARCHITECTURE — NEW ENUMS
+// UNIFIED REQUEST ARCHITECTURE - NEW ENUMS
 // ============================================================
 
 enum RequestType {
   MERCHANT_ORDER // Any order fulfilled by a merchant (food, grocery, pharmacy, retail, etc.)
-  PACKAGE // Pure courier — no merchant, customer is the origin
+  PACKAGE // Pure courier - no merchant, customer is the origin
 }
 
 enum RequestStatus {
@@ -143,12 +143,12 @@ enum UtilityStatus {
 }
 
 enum AirtimeToCashStatus {
-  AWAITING_OTP // /initiate called — OTP sent to sender
-  OTP_VERIFIED // /verify succeeded — sessionId stored, awaiting /submit
-  PROCESSING // /submit called — provider transferAirtime in flight
-  COMPLETED // Provider code 2000 — wallet credited
+  AWAITING_OTP // /initiate called - OTP sent to sender
+  OTP_VERIFIED // /verify succeeded - sessionId stored, awaiting /submit
+  PROCESSING // /submit called - provider transferAirtime in flight
+  COMPLETED // Provider code 2000 - wallet credited
   FAILED // Provider 3xxx/5030 or local validation failure
-  NEEDS_RECONCILIATION // Provider code 4000 — no query API; admin resolves manually
+  NEEDS_RECONCILIATION // Provider code 4000 - no query API; admin resolves manually
 }
 
 enum AirtimeNetwork {
@@ -203,7 +203,7 @@ enum SubstitutionPreference {
 // MODELS
 // ============================================================
 
-/// Core user identity — shared by customers, riders, and admins.
+/// Core user identity - shared by customers, riders, and admins.
 /// Role determines which parts of the system the user can access.
 model User {
   id             String     @id @default(uuid())
@@ -213,8 +213,8 @@ model User {
   lastName       String
   passwordHash   String? /// Hashed password for email/password login
   transactionPin String? /// Hashed 6-digit PIN for financial operations
-  transactionPinSetByUser Boolean @default(false) /// True once the user chose their own PIN. Stays false for merchants seeded with the default '000000' — used to force a real PIN before financial actions.
-  bvnHash        String? /// Hashed BVN — never store plaintext
+  transactionPinSetByUser Boolean @default(false) /// True once the user chose their own PIN. Stays false for merchants seeded with the default '000000' - used to force a real PIN before financial actions.
+  bvnHash        String? /// Hashed BVN - never store plaintext
   profilePicture String? /// URL to profile picture (cloud storage)
   dateOfBirth    DateTime? /// For KYC identity confirmation
   address        String? /// Primary address text
@@ -254,7 +254,7 @@ model User {
 }
 
 /// Each user has exactly ONE wallet. All financial operations flow through this.
-/// Balance must NEVER be updated directly — only through Prisma transactions
+/// Balance must NEVER be updated directly - only through Prisma transactions
 /// that simultaneously create a Transaction record.
 model Wallet {
   id                   String  @id @default(uuid())
@@ -290,7 +290,7 @@ model Transaction {
   description String?
   metadata    Json? /// Provider-specific data (KatPay ref, AlRahuz token, etc.)
 
-  // Wallet relations — a transaction debits one wallet and/or credits another
+  // Wallet relations - a transaction debits one wallet and/or credits another
   debitWalletId  String?
   creditWalletId String?
 
@@ -318,7 +318,7 @@ model Transaction {
   @@map("transactions")
 }
 
-/// Rider profile — linked to a User with role=RIDER.
+/// Rider profile - linked to a User with role=RIDER.
 /// Contains vehicle info, verification docs, and performance metrics.
 model Rider {
   id     String @id @default(uuid())
@@ -334,14 +334,14 @@ model Rider {
   idDocumentUrl   String? /// Uploaded government ID
   vehiclePhotoUrl String? /// Uploaded vehicle photo
 
-  // Phase 7 — expiry tracking + supplementary documents for KYC Status screen.
+  // Phase 7 - expiry tracking + supplementary documents for KYC Status screen.
   idDocExpiresAt         DateTime? /// Expiry on the uploaded ID doc (national-ID slips usually have one)
   driverLicenceNumber    String? /// FRSC licence number as typed by the rider
   driverLicenceUrl       String?
   driverLicenceExpiresAt DateTime?
   vehicleRegUrl          String?
   vehicleRegExpiresAt    DateTime?
-  vehicleDocExpiresAt    DateTime? /// Generic vehicle-doc expiry — earliest of vehicleReg/insurance for sort
+  vehicleDocExpiresAt    DateTime? /// Generic vehicle-doc expiry - earliest of vehicleReg/insurance for sort
   insuranceDocUrl        String?
   insuranceExpiresAt     DateTime?
   /// Throttle marker for the nightly DOC_EXPIRING_SOON push so a rider isn't
@@ -383,7 +383,7 @@ model Rider {
   @@map("riders")
 }
 
-/// RiderOfferLog — one row per offer the dispatcher emits to a rider.
+/// RiderOfferLog - one row per offer the dispatcher emits to a rider.
 /// Powers acceptance/decline rate metrics on the rider performance screen.
 enum RiderOfferOutcome {
   OFFERED /// Initial state when emitRing pushed the offer.
@@ -412,7 +412,7 @@ model RiderOfferLog {
   @@map("rider_offer_logs")
 }
 
-/// Utility bill payment — airtime, data, electricity.
+/// Utility bill payment - airtime, data, electricity.
 model UtilityPayment {
   id     String        @id @default(uuid())
   userId String
@@ -456,7 +456,7 @@ model AirtimeToCashTransaction {
   userId String
   status AirtimeToCashStatus @default(AWAITING_OTP)
 
-  // Sender details — the customer's SIM that holds the airtime.
+  // Sender details - the customer's SIM that holds the airtime.
   network     AirtimeNetwork
   senderPhone String /// Normalized 11-digit (e.g. 08061234573)
 
@@ -465,7 +465,7 @@ model AirtimeToCashTransaction {
   payoutAmount  Decimal @db.Decimal(15, 2) /// Amount credited to wallet (airtimeAmount × payoutRate)
   payoutRate    Decimal @db.Decimal(5, 4) /// Snapshot of the rate at submit-time (e.g. 0.7500)
 
-  // Provider tracking — `reference` is sent on transfer, must be unique 10–40 chars.
+  // Provider tracking - `reference` is sent on transfer, must be unique 10–40 chars.
   reference         String  @unique
   providerSessionId String? /// Returned by /verify-otp; required for /transfer-airtime
   providerCode      Int? /// Last provider response code (2000, 4000, 3000, etc.)
@@ -583,14 +583,14 @@ model SavedBeneficiary {
 }
 
 // ============================================================
-// UNIFIED REQUEST ARCHITECTURE — NEW MODELS
+// UNIFIED REQUEST ARCHITECTURE - NEW MODELS
 // ============================================================
 
-/// Merchant — Restaurants, Supermarkets, Pharmacies
+/// Merchant - Restaurants, Supermarkets, Pharmacies
 model Merchant {
   id String @id @default(uuid())
 
-  // User account (optional — standalone merchants possible)
+  // User account (optional - standalone merchants possible)
   userId String? @unique
   user   User?   @relation(fields: [userId], references: [id])
 
@@ -653,7 +653,7 @@ model Merchant {
   @@map("merchants")
 }
 
-/// Tracks every commission rate change for a merchant — full audit trail.
+/// Tracks every commission rate change for a merchant - full audit trail.
 model CommissionHistory {
   id         String   @id @default(uuid())
   merchantId String
@@ -671,7 +671,7 @@ model CommissionHistory {
   @@map("commission_history")
 }
 
-/// Merchant primary category — admin-managed taxonomy. Replaces the hardcoded MerchantType enum.
+/// Merchant primary category - admin-managed taxonomy. Replaces the hardcoded MerchantType enum.
 /// One category per merchant (Merchant.categoryId). For multi-tagging, see Tag.
 model MerchantCategory {
   id             String  @id @default(uuid())
@@ -698,7 +698,7 @@ model MerchantCategory {
   @@map("merchant_categories")
 }
 
-/// Global tag taxonomy — admin-managed, assigned to merchants for search/filtering in customer app.
+/// Global tag taxonomy - admin-managed, assigned to merchants for search/filtering in customer app.
 model Tag {
   id       String  @id @default(uuid())
   name     String  @unique
@@ -736,7 +736,7 @@ model MerchantTag {
   @@map("merchant_tags")
 }
 
-/// Merchant Wallet — Separate from user wallet, tracks earnings
+/// Merchant Wallet - Separate from user wallet, tracks earnings
 model MerchantWallet {
   id         String   @id @default(uuid())
   merchantId String   @unique
@@ -772,7 +772,7 @@ model MerchantWallet {
   @@map("merchant_wallets")
 }
 
-/// Merchant withdrawal ledger — tracks every payout request and its KatPay status.
+/// Merchant withdrawal ledger - tracks every payout request and its KatPay status.
 model MerchantWalletTransaction {
   id        String @id @default(uuid())
   reference String @unique
@@ -803,7 +803,7 @@ model MerchantWalletTransaction {
   @@map("merchant_wallet_transactions")
 }
 
-/// Product — Menu items, grocery products, pharmacy items.
+/// Product - Menu items, grocery products, pharmacy items.
 /// `basePrice` and `stock` are kept for fallback display when a product has a
 /// single default variant. Multi-SKU products carry pricing/stock on `ProductVariant`.
 model Product {
@@ -838,7 +838,7 @@ model Product {
   @@map("products")
 }
 
-/// ProductVariant — SKU-level variation of a product.
+/// ProductVariant - SKU-level variation of a product.
 /// Every Product has at least one variant (default created for single-SKU products).
 /// `attributes` is the discrete-axis JSON; `packSize/packUnit/packLabel` is the unit/pack.
 model ProductVariant {
@@ -851,7 +851,7 @@ model ProductVariant {
   /// e.g. {size:"M", color:"Black"} or {strength:"500mg", form:"TABLET"}
   attributes Json    @default("{}")
 
-  /// Pack/unit fields — null for variants where category isn't pack-based.
+  /// Pack/unit fields - null for variants where category isn't pack-based.
   packSize  Decimal?  @db.Decimal(15, 4)
   packUnit  PackUnit?
   /// Denormalized human-readable pack label, e.g. "500 ml", "30 tablets".
@@ -873,7 +873,7 @@ model ProductVariant {
   @@map("product_variants")
 }
 
-/// ProductOptionGroup — customer-facing customization group on a product
+/// ProductOptionGroup - customer-facing customization group on a product
 /// (sides, spice level, addons, etc.). Combinable with variants for combos.
 model ProductOptionGroup {
   id        String  @id @default(uuid())
@@ -895,7 +895,7 @@ model ProductOptionGroup {
   @@map("product_option_groups")
 }
 
-/// ProductOptionItem — a single selectable item inside an option group.
+/// ProductOptionItem - a single selectable item inside an option group.
 model ProductOptionItem {
   id      String             @id @default(uuid())
   groupId String
@@ -905,7 +905,7 @@ model ProductOptionItem {
   description String? /// Optional flavour-text shown under the item name in the customer cart
   /// Price delta applied on top of the variant price. Defaults to 0 for price-neutral picks.
   priceDelta  Decimal @default(0) @db.Decimal(15, 2)
-  imageUrl    String? /// Cloudinary URL — lets merchants show a picture of the add-on (e.g. an actual photo of the plantain side)
+  imageUrl    String? /// Cloudinary URL - lets merchants show a picture of the add-on (e.g. an actual photo of the plantain side)
   isDefault   Boolean @default(false)
   isAvailable Boolean @default(true)
   sortOrder   Int     @default(0)
@@ -917,8 +917,8 @@ model ProductOptionItem {
   @@map("product_option_items")
 }
 
-/// Request — THE CENTRAL ENTITY (replaces DeliveryOrder)
-/// Food, Grocery, Pharmacy, Package — all unified here
+/// Request - THE CENTRAL ENTITY (replaces DeliveryOrder)
+/// Food, Grocery, Pharmacy, Package - all unified here
 model Request {
   id     String        @id @default(uuid())
   type   RequestType // MERCHANT_ORDER (any merchant fulfillment) or PACKAGE (courier)
@@ -928,7 +928,7 @@ model Request {
   customerId String
   customer   User   @relation("CustomerRequests", fields: [customerId], references: [id])
 
-  // Merchant (optional — package deliveries have no merchant)
+  // Merchant (optional - package deliveries have no merchant)
   merchantId String?
   merchant   Merchant? @relation(fields: [merchantId], references: [id])
 
@@ -954,7 +954,7 @@ model Request {
   tax         Decimal @default(0) @db.Decimal(15, 2)
   total       Decimal @db.Decimal(15, 2) // What customer pays
 
-  // Financial splits (CRITICAL — must exist from day one)
+  // Financial splits (CRITICAL - must exist from day one)
   customerPaid    Decimal @db.Decimal(15, 2)
   merchantEarning Decimal @default(0) @db.Decimal(15, 2)
   riderEarning    Decimal @default(0) @db.Decimal(15, 2)
@@ -980,15 +980,15 @@ model Request {
   /// of which physical prescription the order was fulfilled against.
   prescriptionUrl String?
 
-  /// Phase 5 — Proof of Delivery. Captured by the rider at DELIVERED time and
+  /// Phase 5 - Proof of Delivery. Captured by the rider at DELIVERED time and
   /// gated by platform settings (`delivery.requirePodPhoto`,
   /// `delivery.requireSignature`, `delivery.podOtpThresholdNgn`).
-  ///   - `podPhotoUrl`        — Cloudinary URL of the doorstep photo.
-  ///   - `podSignatureUrl`    — Cloudinary URL of the recipient's signature (opt-in).
-  ///   - `podDeliveryOtp`     — bcrypt hash of the 6-digit OTP the customer
+  ///   - `podPhotoUrl`        - Cloudinary URL of the doorstep photo.
+  ///   - `podSignatureUrl`    - Cloudinary URL of the recipient's signature (opt-in).
+  ///   - `podDeliveryOtp`     - bcrypt hash of the 6-digit OTP the customer
   ///                             shared with the rider; only set when the
   ///                             order's total clears the threshold setting.
-  ///   - `podCapturedAt`      — wall-clock the rider hit "Complete delivery".
+  ///   - `podCapturedAt`      - wall-clock the rider hit "Complete delivery".
   podPhotoUrl     String?
   podSignatureUrl String?
   podDeliveryOtp  String?
@@ -1032,7 +1032,7 @@ model Request {
   @@map("requests")
 }
 
-/// RequestMessage — in-app chat between customer/merchant/rider scoped to a request.
+/// RequestMessage - in-app chat between customer/merchant/rider scoped to a request.
 model RequestMessage {
   id        String  @id @default(uuid())
   requestId String
@@ -1050,7 +1050,7 @@ model RequestMessage {
   @@map("request_messages")
 }
 
-/// RequestItem — Items within a request (food, grocery, pharmacy, retail).
+/// RequestItem - Items within a request (food, grocery, pharmacy, retail).
 /// `variantId` resolves to the exact SKU bought; `productId` is kept for fallback
 /// display when a variant is later deleted. `selectedOptions` is a frozen snapshot
 /// of the customer's option-group picks at order time so menu edits don't rewrite history.
@@ -1069,7 +1069,7 @@ model RequestItem {
   name        String
   description String?
 
-  // Pricing at time of order — computed server-side, never trusted from client.
+  // Pricing at time of order - computed server-side, never trusted from client.
   // unitPrice = variant.price + Σ selected option priceDeltas
   unitPrice Decimal @db.Decimal(15, 2)
   quantity  Int     @default(1)
@@ -1095,7 +1095,7 @@ model RequestItem {
   @@map("request_items")
 }
 
-/// PackageDetail — For package delivery (no merchant)
+/// PackageDetail - For package delivery (no merchant)
 model PackageDetail {
   id        String  @id @default(uuid())
   requestId String  @unique
@@ -1146,7 +1146,7 @@ model Session {
   @@map("sessions")
 }
 
-/// User notification preferences — stored per user, synced across devices.
+/// User notification preferences - stored per user, synced across devices.
 model NotificationPreferences {
   id              String  @id @default(uuid())
   userId          String  @unique
@@ -1168,7 +1168,7 @@ model NotificationPreferences {
   @@map("notification_preferences")
 }
 
-/// Web Push (browser / PWA) subscriptions — one row per browser push endpoint.
+/// Web Push (browser / PWA) subscriptions - one row per browser push endpoint.
 /// Native devices use `User.fcmToken` (FCM); web PWAs register a browser
 /// PushManager subscription here. Pruned automatically when the push service
 /// reports the endpoint as gone (404/410).
@@ -1190,7 +1190,7 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
-/// Notification — in-app notification feed (Notification Center).
+/// Notification - in-app notification feed (Notification Center).
 /// Created by `notify.service.pushAndSocket` whenever a user-facing event
 /// happens: request lifecycle, wallet activity, refunds, etc.
 /// `data.route` (free-form path like `/request/abc-123`) is used by the
@@ -1217,7 +1217,7 @@ model Notification {
   @@map("notifications")
 }
 
-/// SavedAddress — user's reusable delivery / pickup addresses (Phase 6).
+/// SavedAddress - user's reusable delivery / pickup addresses (Phase 6).
 /// `placeId` (Google place id) lets us re-look-up the address text without
 /// keeping it stale. Only one address per user can be `isDefault=true`; that
 /// constraint is enforced in the service layer rather than via a partial unique
@@ -1242,7 +1242,7 @@ model SavedAddress {
   @@map("saved_addresses")
 }
 
-/// Banner — admin-managed promotional banner for the home screen (Phase 6).
+/// Banner - admin-managed promotional banner for the home screen (Phase 6).
 /// `audience` is a free-form JSON predicate evaluated server-side
 /// (e.g. `{ "kyc": "VERIFIED" }` or `{ "categorySlug": "food" }`); empty
 /// audience = visible to all authenticated users. Banners with `startsAt` in
@@ -1271,7 +1271,7 @@ model Banner {
   @@map("banners")
 }
 
-/// External payment-provider webhook event log — for idempotency and audit.
+/// External payment-provider webhook event log - for idempotency and audit.
 model WebhookEvent {
   id             String    @id @default(uuid())
   provider       String /// "katpay" (or other future providers)
@@ -1290,7 +1290,7 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
-/// Platform-wide settings — admin-managed key/value store.
+/// Platform-wide settings - admin-managed key/value store.
 /// All fee constants, thresholds, and feature flags live here.
 model PlatformSetting {
   key         String   @id
@@ -1302,7 +1302,7 @@ model PlatformSetting {
   @@map("platform_settings")
 }
 
-/// Idempotency keys — prevent duplicate mutations on mobile retry.
+/// Idempotency keys - prevent duplicate mutations on mobile retry.
 model IdempotencyKey {
   key              String   @id
   userId           String
@@ -1327,7 +1327,7 @@ model SystemWallet {
   @@map("system_wallets")
 }
 
-/// Audit log — tracks all admin actions for compliance and debugging.
+/// Audit log - tracks all admin actions for compliance and debugging.
 model AuditLog {
   id          String  @id @default(uuid())
   adminUserId String
@@ -1348,7 +1348,7 @@ model AuditLog {
 }
 
 /// Append-only compliance log of every BVN verification attempt.
-/// Required for AML / KYC audits — regulators ask for "every time a user
+/// Required for AML / KYC audits - regulators ask for "every time a user
 /// attempted to bind a BVN to their account, including failures".
 /// We store the BVN hash (never plaintext) so we can correlate without leaking.
 model BvnVerificationLog {
@@ -1373,7 +1373,7 @@ model BvnVerificationLog {
 }
 
 // ============================================================
-// SUPPORT — TICKETS, DISPUTES, MESSAGES
+// SUPPORT - TICKETS, DISPUTES, MESSAGES
 // ============================================================
 
 enum TicketCategory {
@@ -1427,7 +1427,7 @@ enum DisputeResolution {
   RESOLVED_NO_REFUND
 }
 
-/// SupportTicket — generic help/issue thread raised by any user (customer, merchant, rider, admin).
+/// SupportTicket - generic help/issue thread raised by any user (customer, merchant, rider, admin).
 /// Not tied to a specific Request. For order-specific complaints use Dispute.
 model SupportTicket {
   id             String         @id @default(uuid())
@@ -1459,7 +1459,7 @@ model SupportTicket {
   @@map("support_tickets")
 }
 
-/// Dispute — formal complaint by a customer against a specific Request.
+/// Dispute - formal complaint by a customer against a specific Request.
 /// Resolving with FULL_REFUND/PARTIAL_REFUND atomically credits the customer's wallet
 /// and writes a Transaction(type=REFUND) row inside the same prisma.$transaction.
 model Dispute {
@@ -1496,7 +1496,7 @@ model Dispute {
   @@map("disputes")
 }
 
-/// SupportMessage — a single message inside either a SupportTicket or a Dispute thread.
+/// SupportMessage - a single message inside either a SupportTicket or a Dispute thread.
 /// Exactly one of ticketId or disputeId is set. `isInternal=true` is admin-only and hidden from
 /// non-admin users when serializing the thread.
 model SupportMessage {
@@ -1521,11 +1521,11 @@ model SupportMessage {
 }
 
 // ============================================================
-// WAITLIST — pre-launch sign-ups from the marketing website.
+// WAITLIST - pre-launch sign-ups from the marketing website.
 // ============================================================
 // Customers / riders who tap "Download" before the mobile apps are in the
 // stores leave their contact info here. Admin can view + export the list.
-// No PII enforcement — phone is the only required identifier.
+// No PII enforcement - phone is the only required identifier.
 
 enum WaitlistRole {
   CUSTOMER

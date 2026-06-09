@@ -1,5 +1,5 @@
 /**
- * CheckoutScreen — review cart, pick address, fetch server-truth quote, submit.
+ * CheckoutScreen - review cart, pick address, fetch server-truth quote, submit.
  *
  * Phase 4 contract:
  *   - POST /requests/quote → returns { ...pricing, quoteToken, validUntil }
@@ -64,7 +64,7 @@ export default function CheckoutScreen() {
   const [pinVisible, setPinVisible] = useState(false);
   const [now, setNow] = useState(Date.now());
 
-  // Phase 8 — prescription upload state. `rxRequired` is derived from the
+  // Phase 8 - prescription upload state. `rxRequired` is derived from the
   // cart; `rxUrl` is set once the Cloudinary upload succeeds; `rxUploading`
   // gates the upload button while the signed POST is in flight.
   const rxRequired = useMemo(() => cart.some((l) => l.requiresPrescription), [cart]);
@@ -72,7 +72,7 @@ export default function CheckoutScreen() {
   const [rxUploading, setRxUploading] = useState(false);
 
   // Drop a stale prescription if the customer went back to MerchantMenu and
-  // removed every Rx line — otherwise we'd ship an Rx URL for a non-Rx order
+  // removed every Rx line - otherwise we'd ship an Rx URL for a non-Rx order
   // and confuse the merchant + persist a dangling audit reference.
   useEffect(() => {
     if (!rxRequired && rxUrl) setRxUrl(null);
@@ -176,7 +176,7 @@ export default function CheckoutScreen() {
     });
   };
 
-  // Phase 8 — prescription upload. Two-step flow mirrors ProfilePhotoScreen:
+  // Phase 8 - prescription upload. Two-step flow mirrors ProfilePhotoScreen:
   //   1. POST /auth/upload-signature with kind=prescription → signed params.
   //   2. POST multipart form to Cloudinary; persist the returned secure URL.
   const uploadPrescriptionFromSource = async (source) => {
@@ -200,7 +200,7 @@ export default function CheckoutScreen() {
         : ImagePicker.launchImageLibraryAsync;
       const result = await launcher({
         mediaTypes: ['images'],
-        // Pharmacist needs the whole scrip — don't crop. Reasonable quality
+        // Pharmacist needs the whole scrip - don't crop. Reasonable quality
         // keeps the upload small without sacrificing legibility of handwriting.
         allowsEditing: false,
         quality: 0.7,
@@ -292,14 +292,14 @@ export default function CheckoutScreen() {
           paymentMethod: 'WALLET',
           quoteToken: quote.quoteToken,
           pin,
-          // Phase 8 — only ship the URL when the order actually needs one,
+          // Phase 8 - only ship the URL when the order actually needs one,
           // so a stale upload (Rx item removed mid-checkout) never lands on
           // a non-Rx order. Server enforces presence when required.
           ...(rxRequired && rxUrl ? { prescriptionUrl: rxUrl } : {}),
         })
       ).unwrap();
       setPinVisible(false);
-      // Order is now the backend's responsibility — the cart has done its
+      // Order is now the backend's responsibility - the cart has done its
       // job. Wipe Redux + AsyncStorage so a tab-back to Cart shows empty
       // state and a returning shopper doesn't see stale items.
       justSubmittedRef.current = true;
@@ -368,7 +368,7 @@ export default function CheckoutScreen() {
                   “{line.specialInstructions}”
                 </Text>
               ) : null}
-              {/* Phase 8 — per-line markers in checkout review. */}
+              {/* Phase 8 - per-line markers in checkout review. */}
               {(line.substitution || line.requiresPrescription) && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 }}>
                   {line.substitution ? (
@@ -391,7 +391,7 @@ export default function CheckoutScreen() {
           ))}
         </View>
 
-        {/* Phase 8 — prescription upload. Shown only when at least one cart
+        {/* Phase 8 - prescription upload. Shown only when at least one cart
             line is flagged requiresPrescription. Server re-validates the URL
             at order-create time, so this is UX gating, not authoritative. */}
         {rxRequired && (

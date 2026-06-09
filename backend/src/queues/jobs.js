@@ -19,11 +19,11 @@ const QUEUES = {
 // --- Job types per queue ---
 
 const PAYMENT_JOBS = {
-  /** Process KatPay virtual account payment — credit user wallet */
+  /** Process KatPay virtual account payment - credit user wallet */
   PROCESS_KATPAY_WEBHOOK: 'process-katpay-webhook',
-  /** Process KatPay transfer_payment.completed — credit user wallet */
+  /** Process KatPay transfer_payment.completed - credit user wallet */
   PROCESS_TRANSFER_PAYMENT_WEBHOOK: 'process-transfer-payment-webhook',
-  /** Process withdrawal — call KatPay payout API */
+  /** Process withdrawal - call KatPay payout API */
   PROCESS_WITHDRAWAL: 'process-withdrawal',
   /** Provision KatPay virtual account for new user */
   PROVISION_VIRTUAL_ACCOUNT: 'provision-virtual-account',
@@ -55,7 +55,7 @@ const UTILITY_JOBS = {
   POLL_PENDING: 'poll-pending',
 };
 
-// Phase 7 — pending poll cadence (AlRahuz reconciliation)
+// Phase 7 - pending poll cadence (AlRahuz reconciliation)
 const POLL_CONFIG = {
   INTERVAL_MS: 30_000, // 30 s between polls
   MAX_ATTEMPTS: 10,    // ~5 minute window (10 × 30 s)
@@ -67,11 +67,11 @@ const RIDER_JOBS = {
 };
 
 const REQUEST_JOBS = {
-  /** Kick off rider matching for a request — emits ring 0 and schedules the
+  /** Kick off rider matching for a request - emits ring 0 and schedules the
    *  next ring check via CHECK_RING_PROGRESS. Returns immediately, freeing
    *  the worker slot (no sleep). */
   BROADCAST_TO_RIDERS: 'broadcast-to-riders',
-  /** Mid-ring check — if request was claimed → exit; else emit next ring or
+  /** Mid-ring check - if request was claimed → exit; else emit next ring or
    *  trigger auto-cancel. Re-queued by BROADCAST_TO_RIDERS with a delay. */
   CHECK_RING_PROGRESS: 'check-ring-progress',
   /** Settle request payment after completion */

@@ -1,5 +1,5 @@
 /**
- * Tests the earningsSlice — focuses on the race-safe dedup logic for
+ * Tests the earningsSlice - focuses on the race-safe dedup logic for
  * `earningCreditedFromSocket`. That was an explicit Phase 6 audit fix and
  * deserves regression coverage.
  */
@@ -42,7 +42,7 @@ describe("earningCreditedFromSocket", () => {
     expect(next.allIds).toContain("tx-1");
   });
 
-  it("dedupes by reference — second arrival is a no-op", () => {
+  it("dedupes by reference - second arrival is a no-op", () => {
     const first = reducer(
       initial,
       earningCreditedFromSocket({

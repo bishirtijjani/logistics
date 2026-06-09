@@ -1,10 +1,10 @@
-# Logistics App — Unified Request Architecture Roadmap
+# Logistics App - Unified Request Architecture Roadmap
 
 This document outlines the implementation roadmap for the unified request architecture. Each phase includes detailed checklists for backend, frontend, and integration tasks.
 
 ---
 
-## Phase 1 — Foundation ✅ (Completed)
+## Phase 1 - Foundation ✅ (Completed)
 
 ### Database
 - ✅ Update `schema.prisma` with unified models:
@@ -20,7 +20,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Create manual SQL migration file (`backend/prisma/migrations/20260422_unified_request/migration.sql`)
 - ✅ Run `npx prisma generate` to update Prisma client
 
-### Backend — Request Module
+### Backend - Request Module
 - ✅ Create `request.validator.js` with Zod schemas:
   - ✅ `createRequestSchema` with type-specific validations
   - ✅ `updateStatusSchema` with role-based authorization
@@ -38,7 +38,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Create `request.routes.js` with REST endpoints
 - ✅ Register routes in `app.js` under `/requests`
 
-### Backend — Merchant Module
+### Backend - Merchant Module
 - ✅ Create `merchant.validator.js` with Zod schemas:
   - ✅ `createMerchantSchema` for admin creation
   - ✅ `updateMerchantSchema` for profile updates
@@ -58,7 +58,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Create `merchant.routes.js` with REST endpoints
 - ✅ Register routes in `app.js` under `/merchants`
 
-### Backend — Queue Jobs
+### Backend - Queue Jobs
 - ✅ Add `REQUEST` queue to `jobs.js`
 - ✅ Add `REQUEST_JOBS` constants:
   - ✅ `BROADCAST_TO_RIDERS`
@@ -72,7 +72,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ `autoCancelUnmatched` for timeout handling
 - ✅ Register queue and worker in `queues/index.js`
 
-### Backend — Socket Events
+### Backend - Socket Events
 - ✅ Add `REQUEST` event constants to `events.js`:
   - ✅ `REQUEST.CREATED`
   - ✅ `REQUEST.STATUS_CHANGED`
@@ -88,7 +88,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ `getRequestRoom`
   - ✅ `getMerchantRoom`
 
-### Frontend — Redux State
+### Frontend - Redux State
 - ✅ Create `requestSlice.js` with async thunks:
   - ✅ `fetchRequests`
   - ✅ `fetchRequestById`
@@ -99,7 +99,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Add reducer to Redux store
 - ✅ Add socket update action `updateRequestFromSocket`
 
-### Frontend — Merchant Screens
+### Frontend - Merchant Screens
 - ✅ Create `MerchantBrowseScreen.js`:
   - ✅ Fetch merchants by type and location
   - ✅ Display merchant cards with ratings
@@ -114,20 +114,20 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ `MerchantBrowse`
   - ✅ `MerchantMenu`
 
-### Frontend — HomeScreen
+### Frontend - HomeScreen
 - ✅ Update `HomeScreen.js` to use unified `requestTypes` array
 - ✅ Update service mapping logic
 
 ---
 
-## Phase 2 — Core Flows (In Progress)
+## Phase 2 - Core Flows (In Progress)
 
 ### Database
 - ✅ Run the SQL migration file to create new tables (via prisma db push)
 - ✅ Verify all tables and constraints created correctly
 - ❌ Test foreign key relationships (not tested)
 
-### Backend — Testing
+### Backend - Testing
 - ❌ Test `/requests` POST endpoint (skipped - user won't test until Phase 5)
 - ❌ Test `/requests` GET endpoint with filters (skipped - user won't test until Phase 5)
 - ❌ Test `/requests/:id` GET endpoint (skipped - user won't test until Phase 5)
@@ -140,7 +140,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ❌ Test `/merchants/:id/wallet` GET endpoint (skipped - user won't test until Phase 5)
 - ❌ Test `/merchants/:id/orders` GET endpoint (skipped - user won't test until Phase 5)
 
-### Frontend — Checkout Flow
+### Frontend - Checkout Flow
 - ✅ Create `CheckoutScreen.js`:
   - ✅ Display cart items summary
   - ✅ Show itemized costs (subtotal, delivery fee, platform fee, total)
@@ -154,7 +154,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Add `CheckoutScreen` to `AppNavigator`
 - ✅ Update `MerchantMenuScreen` checkout button to navigate to `CheckoutScreen`
 
-### Frontend — Request Tracking
+### Frontend - Request Tracking
 - ✅ Create `RequestTrackingScreen.js`:
   - ✅ Fetch request details by ID
   - ✅ Display status timeline (stepper)
@@ -180,7 +180,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Add `RequestTrackingScreen` to `AppNavigator`
 - ✅ Update navigation after checkout to go to tracking screen
 
-### Frontend — HomeScreen Integration
+### Frontend - HomeScreen Integration
 - ✅ Update Food button to navigate to `MerchantBrowse` with type='FOOD'
 - ✅ Update Grocery button to navigate to `MerchantBrowse` with type='GROCERY'
 - ✅ Update Pharmacy button to navigate to `MerchantBrowse` with type='PHARMACY'
@@ -189,9 +189,9 @@ This document outlines the implementation roadmap for the unified request archit
 
 ---
 
-## Phase 3 — Real-time Features
+## Phase 3 - Real-time Features
 
-### Backend — Socket Integration
+### Backend - Socket Integration
 - ✅ Update socket handlers to emit `request:` events:
   - ✅ Emit `REQUEST.CREATED` when request is created
   - ✅ Emit `REQUEST.STATUS_CHANGED` on status updates
@@ -207,7 +207,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Implement rider location broadcasting
 - ❌ Test socket event flow end-to-end (not tested - user won't test until Phase 5)
 
-### Frontend — Socket Client
+### Frontend - Socket Client
 - ✅ Update mobile socket service to listen to `request:` events:
   - ✅ `REQUEST.CREATED` (merchant app)
   - ✅ `REQUEST.STATUS_CHANGED` (all roles)
@@ -236,9 +236,9 @@ This document outlines the implementation roadmap for the unified request archit
 
 ---
 
-## Phase 4 — Admin Dashboard ✅ (Completed)
+## Phase 4 - Admin Dashboard ✅ (Completed)
 
-### Backend — Admin Endpoints
+### Backend - Admin Endpoints
 - ✅ Add admin-specific endpoints to request module:
   - ✅ Get all requests with advanced filtering (getAllRequests)
   - ✅ Reassign rider to request (reassignRider)
@@ -269,7 +269,7 @@ This document outlines the implementation roadmap for the unified request archit
   - ✅ Get platform settings (getPlatformSettings)
   - ✅ Update platform settings (updatePlatformSettings)
 
-### Frontend — Admin Dashboard (Web)
+### Frontend - Admin Dashboard (Web)
 - ✅ Set up React web app (separate from mobile)
 - ✅ Implement authentication with ADMIN role
 - ✅ Create dashboard layout with sidebar navigation
@@ -319,9 +319,9 @@ This document outlines the implementation roadmap for the unified request archit
 
 ---
 
-## Phase 5 — Merchant Dashboard ✅ (Completed)
+## Phase 5 - Merchant Dashboard ✅ (Completed)
 
-### Backend — Merchant Endpoints
+### Backend - Merchant Endpoints
 - ✅ Add merchant-specific endpoints to merchant module:
   - ✅ Get merchant profile (getMerchantProfile)
   - ✅ Update merchant profile (updateMerchantProfile)
@@ -343,7 +343,7 @@ This document outlines the implementation roadmap for the unified request archit
 - ✅ Add Zod validation schemas for all merchant endpoints
 - ✅ Register merchant routes in merchant.routes.js under /merchants/merchant
 
-### Frontend — Merchant Dashboard (Web)
+### Frontend - Merchant Dashboard (Web)
 - ✅ Set up React web app with Vite
 - ✅ Install dependencies (React, Redux Toolkit, React Router, Axios, Tailwind CSS, Recharts, Lucide React, date-fns)
 - ✅ Configure Tailwind CSS and project structure
@@ -384,7 +384,7 @@ This document outlines the implementation roadmap for the unified request archit
 
 ---
 
-## Phase 6 — Feature Expansion
+## Phase 6 - Feature Expansion
 
 ### Grocery Implementation
 - [ ] Add grocery-specific product attributes (weight, unit, category)
@@ -408,7 +408,7 @@ This document outlines the implementation roadmap for the unified request archit
 
 ---
 
-## Phase 7 — Enhancements
+## Phase 7 - Enhancements
 
 ### Customer App Enhancements
 - [ ] Add saved addresses management
@@ -456,7 +456,7 @@ This document outlines the implementation roadmap for the unified request archit
 
 ---
 
-## Phase 8 — Production Readiness
+## Phase 8 - Production Readiness
 
 ### Deployment
 - [ ] Set up production database

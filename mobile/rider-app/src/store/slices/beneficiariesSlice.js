@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
 /**
- * Beneficiaries — saved bank accounts. Backed by GET/POST/DELETE
+ * Beneficiaries - saved bank accounts. Backed by GET/POST/DELETE
  * `/wallet/beneficiaries`. RIDER role is already permitted on those routes
  * (no `authorize()` guard); the wallet validator gates the payload shape.
  *
@@ -27,7 +27,7 @@ export const saveBeneficiary = createAsyncThunk(
   "beneficiaries/save",
   async (data, { rejectWithValue, getState }) => {
     try {
-      // Avoid duplicate persists — if we already have this bank+account
+      // Avoid duplicate persists - if we already have this bank+account
       // combo, return the existing row to the caller (idempotent UX).
       const s = getState().beneficiaries;
       const list = (s?.allIds || []).map((id) => s.byId[id]).filter(Boolean);

@@ -5,7 +5,7 @@
  * merchants and products in one list with a "kind" chip; tap routes to
  * MerchantMenu / ProductDetail.
  *
- * Used by HomeScreen — opened from the header search bar.
+ * Used by HomeScreen - opened from the header search bar.
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -86,7 +86,7 @@ export default function SearchModal({ visible, onClose, onNavigate }) {
 
   const handleTap = (item) => {
     onClose?.();
-    // Both merchants and products route to MerchantMenu — search returns
+    // Both merchants and products route to MerchantMenu - search returns
     // only a partial product (one variant, no optionGroups), which is the
     // wrong shape for ProductDetailScreen. MerchantMenu hydrates the full
     // product list and the user can re-tap from there.

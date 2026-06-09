@@ -1,11 +1,11 @@
-# Product Model — Variants vs. Option Groups
+# Product Model - Variants vs. Option Groups
 
 Phase 2 split the product model into three concepts that previously got conflated:
 
 | Concept | What it is | Data model | When to use |
 |---|---|---|---|
 | **Variant (SKU)** | A distinct sellable unit with its own price and stock. | `ProductVariant` rows with `attributes` JSON, `price`, `stock`, `packSize`/`packUnit`. | Different sizes, capacities, flavors that the kitchen / inventory treats as separate items. |
-| **Option group** | A customization the customer makes on top of a chosen variant. | `ProductOptionGroup` + `ProductOptionItem` rows; selection captured on `RequestItem.selectedOptions`. | Sides, addons, spice level, "no onions", combo picks — things that don't get their own stock count. |
+| **Option group** | A customization the customer makes on top of a chosen variant. | `ProductOptionGroup` + `ProductOptionItem` rows; selection captured on `RequestItem.selectedOptions`. | Sides, addons, spice level, "no onions", combo picks - things that don't get their own stock count. |
 | **Pack size** | The unit count the SKU is sold in. | `packSize` + `packUnit` (+ optional `packLabel` override) on `ProductVariant`. | Pharmacy ("30 × TABLET"), grocery liquid ("500 ml"), grocery dry ("5 kg bag"). |
 
 ## Rule of thumb
@@ -21,15 +21,15 @@ Phase 2 split the product model into three concepts that previously got conflate
 ### Food
 - **Variants:** Small/Medium/Large pizza, each with its own price and stock.
 - **Option groups:**
-  - `Toppings` (`OPTIONAL_MULTIPLE`, max 5) — Mushroom (+₦300), Pepperoni (+₦500), …
-  - `Spice level` (`REQUIRED_ONE`) — Mild / Medium / Hot (price-neutral).
-  - `Sides` (`OPTIONAL_MULTIPLE`, max 3) — Plantain (+₦300), Coleslaw (+₦200), …
-  - `Doneness` (`REQUIRED_ONE` — for steak/burger) — Rare / Medium / Well done.
-- **Pack:** none — food is sold by the dish.
+  - `Toppings` (`OPTIONAL_MULTIPLE`, max 5) - Mushroom (+₦300), Pepperoni (+₦500), …
+  - `Spice level` (`REQUIRED_ONE`) - Mild / Medium / Hot (price-neutral).
+  - `Sides` (`OPTIONAL_MULTIPLE`, max 3) - Plantain (+₦300), Coleslaw (+₦200), …
+  - `Doneness` (`REQUIRED_ONE` - for steak/burger) - Rare / Medium / Well done.
+- **Pack:** none - food is sold by the dish.
 
 ### Pharmacy
-- **Variants:** Strength + Form axes — `{strength:"500mg", form:"TABLET"}` vs `{strength:"250mg", form:"SYRUP"}`.
-- **Pack:** required — `30 × TABLET`, `120 × ML`, etc.
+- **Variants:** Strength + Form axes - `{strength:"500mg", form:"TABLET"}` vs `{strength:"250mg", form:"SYRUP"}`.
+- **Pack:** required - `30 × TABLET`, `120 × ML`, etc.
 - **Option groups:** rare in V1 (some products may offer a generic-vs-brand pick).
 
 ### Groceries
@@ -38,16 +38,16 @@ carry both, so splitting them forced double-listing). Pack units span every
 common option:
 - **Variants:** none by default. Merchants opt in to a `flavor` axis for
   liquids (Original / Strawberry / Vanilla) or `size`/other axes per product.
-- **Pack:** required — dry: `5 × KG`, `1 × PACK`, `1 × SACHET`; liquid:
+- **Pack:** required - dry: `5 × KG`, `1 × PACK`, `1 × SACHET`; liquid:
   `500 × ML`, `1 × L`, `5 × BOTTLE`. The `attributeSchema.packUnits` list
   exposes the union so the merchant product form offers every choice.
 
 ### Fashion
-- **Variants:** Size + Color axes — `{size:"M", color:"Black"}`.
+- **Variants:** Size + Color axes - `{size:"M", color:"Black"}`.
 - **Pack:** none.
 
 ### Electronics
-- **Variants:** Capacity + Color axes — `{capacity:"128GB", color:"Black"}`.
+- **Variants:** Capacity + Color axes - `{capacity:"128GB", color:"Black"}`.
 - **Pack:** none.
 
 ## What the customer app shows
@@ -68,9 +68,9 @@ Add-to-cart is disabled until every `REQUIRED_*` group is satisfied; the offendi
 
 At order creation the server reads the current option-group / item rows by id, validates the selection respects `minSelect`/`maxSelect`, and writes a frozen snapshot onto `RequestItem`:
 
-- `unitPrice = variant.price + Σ option priceDeltas` — computed server-side; client-sent prices are never trusted.
+- `unitPrice = variant.price + Σ option priceDeltas` - computed server-side; client-sent prices are never trusted.
 - `lineTotal = unitPrice × quantity`.
-- `selectedOptions` JSONB — `[{groupId, groupName, items:[{itemId, itemName, priceDelta}]}]`. Frozen so later merchant menu edits don't rewrite order history.
+- `selectedOptions` JSONB - `[{groupId, groupName, items:[{itemId, itemName, priceDelta}]}]`. Frozen so later merchant menu edits don't rewrite order history.
 
 The server also decrements `ProductVariant.stock` by `quantity` for the resolved variant and flips `isAvailable=false` if stock hits zero.
 
@@ -86,6 +86,6 @@ The server also decrements `ProductVariant.stock` by `quantity` for the resolved
 
 | Surface | What it manages |
 |---|---|
-| Admin → **Category Taxonomy** | `MerchantCategory.attributeSchema` JSON — defines which axes and pack units a category exposes in the merchant form. |
+| Admin → **Category Taxonomy** | `MerchantCategory.attributeSchema` JSON - defines which axes and pack units a category exposes in the merchant form. |
 | Merchant → **Menu** | Per-product: variant matrix builder (axes → SKU rows) + option groups builder (drag-reorder, inline edit, 86-toggle). |
 | Merchant → **Inventory** | Per-variant stock with inline edit. Low-stock alerts fire at the variant level. |

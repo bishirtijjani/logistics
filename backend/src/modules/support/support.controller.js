@@ -1,5 +1,5 @@
 /**
- * Support controller — HTTP handlers for tickets and disputes.
+ * Support controller - HTTP handlers for tickets and disputes.
  *
  * User-side endpoints serve customers, merchants, and (eventually) riders.
  * Admin-side endpoints mirror the existing /admin/disputes and
@@ -10,7 +10,7 @@ const supportService = require('./support.service');
 const { ApiResponse } = require('../../utils/api-response');
 
 // ============================================================
-// Tickets — owner
+// Tickets - owner
 // ============================================================
 
 const createTicket = async (req, res, next) => {
@@ -64,7 +64,7 @@ const closeTicket = async (req, res, next) => {
 };
 
 // ============================================================
-// Tickets — admin
+// Tickets - admin
 // ============================================================
 
 const adminListTickets = async (req, res, next) => {
@@ -108,7 +108,7 @@ const adminAssignTicket = async (req, res, next) => {
 };
 
 // ============================================================
-// Disputes — user / merchant
+// Disputes - user / merchant
 // ============================================================
 
 const createDispute = async (req, res, next) => {
@@ -157,7 +157,7 @@ const postDisputeMessage = async (req, res, next) => {
 };
 
 // ============================================================
-// Disputes — admin
+// Disputes - admin
 // ============================================================
 
 const adminListDisputes = async (req, res, next) => {
@@ -189,22 +189,22 @@ const adminResolveDispute = async (req, res, next) => {
 };
 
 module.exports = {
-  // tickets — user
+  // tickets - user
   createTicket,
   listMyTickets,
   getTicketById,
   postTicketMessage,
   closeTicket,
-  // tickets — admin
+  // tickets - admin
   adminListTickets,
   adminUpdateTicketStatus,
   adminAssignTicket,
-  // disputes — user / merchant
+  // disputes - user / merchant
   createDispute,
   listDisputes,
   getDisputeById,
   postDisputeMessage,
-  // disputes — admin
+  // disputes - admin
   adminListDisputes,
   adminResolveDispute,
 };

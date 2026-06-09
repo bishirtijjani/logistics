@@ -1,5 +1,5 @@
 /**
- * Home slice — drives the Phase 6 HomeScreen widgets:
+ * Home slice - drives the Phase 6 HomeScreen widgets:
  *   - activeRequest from /requests/active (auto-updates via socket events)
  *   - banners from /banners
  *   - recentActivity = last few requests + wallet transactions interleaved by date
@@ -96,7 +96,7 @@ const slice = createSlice({
   name: 'home',
   initialState,
   reducers: {
-    // Updated by socket listeners — keeps the home banner in sync with
+    // Updated by socket listeners - keeps the home banner in sync with
     // live status transitions without an extra REST round-trip.
     activeRequestFromSocket: (state, action) => {
       const { requestId, status } = action.payload || {};

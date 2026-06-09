@@ -1,5 +1,5 @@
 /**
- * Auth slice — manages authentication state.
+ * Auth slice - manages authentication state.
  */
 
 const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');

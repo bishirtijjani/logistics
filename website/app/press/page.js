@@ -16,7 +16,7 @@ import Footer from "../components/Footer";
 export const metadata = {
   title: "Press & Media",
   description:
-    "Press kit for iPrime — Katsina's delivery, wallet, and bill payment app. Boilerplate, brand assets, fast facts, and a direct media contact.",
+    "Press kit for iPrime - Katsina's delivery, wallet, and bill payment app. Boilerplate, brand assets, fast facts, and a direct media contact.",
   alternates: { canonical: "/press" },
 };
 
@@ -32,11 +32,11 @@ const facts = [
 const oneLiners = [
   {
     label: "Twitter bio (160 chars)",
-    text: "iPrime — order anything, track it live, and pay every bill from one wallet. Built in Katsina, for Katsina.",
+    text: "iPrime - order anything, track it live, and pay every bill from one wallet. Built in Katsina, for Katsina.",
   },
   {
     label: "Short boilerplate (40 words)",
-    text: "iPrime is Katsina's home-grown delivery and wallet super-app. Customers order food, groceries, pharmacy, and parcels with live rider tracking — and pay airtime, data, and electricity bills from the same balance.",
+    text: "iPrime is Katsina's home-grown delivery and wallet super-app. Customers order food, groceries, pharmacy, and parcels with live rider tracking - and pay airtime, data, and electricity bills from the same balance.",
   },
   {
     label: "Long boilerplate (90 words)",
@@ -46,12 +46,12 @@ const oneLiners = [
 
 const assets = [
   {
-    title: "Logo — primary (PNG)",
+    title: "Logo - primary (PNG)",
     desc: "Burnt-orange iPrime mark on transparent background.",
     href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20logo%20request",
   },
   {
-    title: "Logo — monochrome (SVG)",
+    title: "Logo - monochrome (SVG)",
     desc: "Single-colour SVG for print and dark backgrounds.",
     href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20logo%20request",
   },

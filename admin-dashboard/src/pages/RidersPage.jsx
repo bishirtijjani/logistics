@@ -134,7 +134,7 @@ function InfoRow({ icon, label, value }) {
       {icon && <span className="text-muted dark:text-dark-muted mt-0.5 flex-shrink-0">{icon}</span>}
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted dark:text-dark-muted">{label}</p>
-        <p className="text-sm text-text dark:text-dark-text break-words">{value || '—'}</p>
+        <p className="text-sm text-text dark:text-dark-text break-words">{value || '-'}</p>
       </div>
     </div>
   )
@@ -365,7 +365,7 @@ export default function RidersPage() {
     setActionLoading(rider.id)
     const r = await dispatch(unsuspendRider({ riderId: rider.id }))
     setActionLoading(null)
-    if (r.meta.requestStatus === 'fulfilled') toast.success('Rider reinstated — wallet unlocked')
+    if (r.meta.requestStatus === 'fulfilled') toast.success('Rider reinstated - wallet unlocked')
     else toast.error(r.error?.message || 'Failed to unsuspend')
   }
 
@@ -375,7 +375,7 @@ export default function RidersPage() {
     const r = await dispatch(suspendRider({ riderId: suspendTarget.id, reason: suspendReason }))
     setActionLoading(null)
     if (r.meta.requestStatus === 'fulfilled') {
-      toast.success('Rider suspended — wallet locked')
+      toast.success('Rider suspended - wallet locked')
       setSuspendTarget(null); setSuspendReason('')
     } else toast.error(r.error?.message || 'Failed to suspend')
   }
@@ -514,21 +514,21 @@ export default function RidersPage() {
                               <Avatar />
                               <div className="min-w-0">
                                 <p className="text-sm font-semibold text-text dark:text-dark-text truncate group-hover:text-primary transition-colors">{fullName(r)}</p>
-                                <p className="text-xs text-muted dark:text-dark-muted truncate">{r.user?.email || '—'}</p>
+                                <p className="text-xs text-muted dark:text-dark-muted truncate">{r.user?.email || '-'}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-5 py-4 text-sm text-muted dark:text-dark-muted">{r.user?.phone || '—'}</td>
+                          <td className="px-5 py-4 text-sm text-muted dark:text-dark-muted">{r.user?.phone || '-'}</td>
                           <td className="px-5 py-4 text-sm">
-                            <p className="text-text dark:text-dark-text capitalize">{(r.vehicleType || '').toLowerCase() || '—'}</p>
-                            <p className="text-xs text-muted dark:text-dark-muted">{r.plateNumber || '—'}</p>
+                            <p className="text-text dark:text-dark-text capitalize">{(r.vehicleType || '').toLowerCase() || '-'}</p>
+                            <p className="text-xs text-muted dark:text-dark-muted">{r.plateNumber || '-'}</p>
                           </td>
                           <td className="px-5 py-4"><StatusBadge status={r.status} /></td>
                           <td className="px-5 py-4"><AvailabilityBadge availability={r.availability} /></td>
                           <td className="px-5 py-4 text-sm text-text dark:text-dark-text">
                             <span className="flex items-center gap-1">
                               <Star size={13} className="text-amber-400 fill-amber-400" />
-                              {r.averageRating?.toFixed(1) || '—'}
+                              {r.averageRating?.toFixed(1) || '-'}
                             </span>
                           </td>
                           <td className="px-5 py-4 text-sm text-text dark:text-dark-text">{r.totalDeliveries || 0}</td>
@@ -547,8 +547,8 @@ export default function RidersPage() {
                         <Avatar />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-text dark:text-dark-text truncate">{fullName(r)}</p>
-                          <p className="text-xs text-muted dark:text-dark-muted truncate flex items-center gap-1"><Phone size={11} /> {r.user?.phone || '—'}</p>
-                          <p className="text-xs text-muted dark:text-dark-muted truncate capitalize flex items-center gap-1"><Truck size={11} /> {(r.vehicleType || '').toLowerCase()} · {r.plateNumber || '—'}</p>
+                          <p className="text-xs text-muted dark:text-dark-muted truncate flex items-center gap-1"><Phone size={11} /> {r.user?.phone || '-'}</p>
+                          <p className="text-xs text-muted dark:text-dark-muted truncate capitalize flex items-center gap-1"><Truck size={11} /> {(r.vehicleType || '').toLowerCase()} · {r.plateNumber || '-'}</p>
                         </div>
                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                           <StatusBadge status={r.status} />
@@ -556,7 +556,7 @@ export default function RidersPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4 mt-3 text-xs text-muted dark:text-dark-muted">
-                        <span className="flex items-center gap-1"><Star size={12} className="text-amber-400 fill-amber-400" /> {r.averageRating?.toFixed(1) || '—'}</span>
+                        <span className="flex items-center gap-1"><Star size={12} className="text-amber-400 fill-amber-400" /> {r.averageRating?.toFixed(1) || '-'}</span>
                         <span className="flex items-center gap-1"><Package size={12} /> {r.totalDeliveries || 0} deliveries</span>
                       </div>
                       <div className="mt-3">
@@ -603,8 +603,8 @@ export default function RidersPage() {
                         <div className="min-w-0">
                           <p className="font-semibold text-text dark:text-dark-text truncate">{fullName(r)}</p>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted dark:text-dark-muted mt-0.5">
-                            <span className="flex items-center gap-1"><Phone size={11} /> {r.user?.phone || '—'}</span>
-                            <span className="flex items-center gap-1 capitalize"><Truck size={11} /> {(r.vehicleType || '').toLowerCase()} · {r.plateNumber || '—'}</span>
+                            <span className="flex items-center gap-1"><Phone size={11} /> {r.user?.phone || '-'}</span>
+                            <span className="flex items-center gap-1 capitalize"><Truck size={11} /> {(r.vehicleType || '').toLowerCase()} · {r.plateNumber || '-'}</span>
                             <span className="flex items-center gap-1"><Calendar size={11} /> Applied {new Date(r.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
@@ -639,7 +639,7 @@ export default function RidersPage() {
       />
 
       {/* Suspend (reason required) */}
-      <Modal open={!!suspendTarget} onClose={() => { setSuspendTarget(null); setSuspendReason('') }} title={`Suspend — ${suspendTarget ? fullName(suspendTarget) : ''}`}>
+      <Modal open={!!suspendTarget} onClose={() => { setSuspendTarget(null); setSuspendReason('') }} title={`Suspend - ${suspendTarget ? fullName(suspendTarget) : ''}`}>
         <div className="space-y-4">
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 flex gap-3">
             <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -656,7 +656,7 @@ export default function RidersPage() {
       </Modal>
 
       {/* Reject confirm (no reason stored backend-side) */}
-      <Modal open={!!rejectTarget} onClose={() => setRejectTarget(null)} title={`Reject application — ${rejectTarget ? fullName(rejectTarget) : ''}`}>
+      <Modal open={!!rejectTarget} onClose={() => setRejectTarget(null)} title={`Reject application - ${rejectTarget ? fullName(rejectTarget) : ''}`}>
         <div className="space-y-4">
           <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 flex gap-3">
             <AlertTriangle size={18} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
@@ -670,13 +670,13 @@ export default function RidersPage() {
       </Modal>
 
       {/* Force offline (optional reason) */}
-      <Modal open={!!offlineTarget} onClose={() => { setOfflineTarget(null); setOfflineReason('') }} title={`Take offline — ${offlineTarget ? fullName(offlineTarget) : ''}`}>
+      <Modal open={!!offlineTarget} onClose={() => { setOfflineTarget(null); setOfflineReason('') }} title={`Take offline - ${offlineTarget ? fullName(offlineTarget) : ''}`}>
         <div className="space-y-4">
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 flex gap-3">
             <Power size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <p className="text-sm text-amber-700 dark:text-amber-300">The rider is flipped to <strong>Offline</strong> and removed from dispatch immediately. They can go back online themselves unless also suspended.</p>
           </div>
-          <FormField label="Reason (optional — sent to the rider)">
+          <FormField label="Reason (optional - sent to the rider)">
             <Textarea rows={3} value={offlineReason} onChange={(e) => setOfflineReason(e.target.value)} placeholder="e.g. End of shift, suspected device issue..." />
           </FormField>
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
@@ -741,7 +741,7 @@ function RiderDrawer({ rider, earnings, deliveries, tab, setTab, actionLoading, 
         {tab === 'profile' && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              <StatCard label="Rating" value={rider.averageRating?.toFixed(1) || '—'} icon={<Star size={16} className="text-amber-400 fill-amber-400" />} />
+              <StatCard label="Rating" value={rider.averageRating?.toFixed(1) || '-'} icon={<Star size={16} className="text-amber-400 fill-amber-400" />} />
               <StatCard label="Deliveries" value={rider.totalDeliveries || 0} icon={<Package size={16} />} />
               <StatCard label="Lifetime" value={naira(rider.totalEarnings)} icon={<DollarSign size={16} />} accent="text-emerald-600 dark:text-emerald-400" />
             </div>

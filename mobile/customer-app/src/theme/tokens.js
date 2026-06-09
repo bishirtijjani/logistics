@@ -1,8 +1,8 @@
-// Bold Lagos — App Design Tokens (semantic, light + dark)
+// Bold Lagos - App Design Tokens (semantic, light + dark)
 //
 // Two palettes, identical shape, swapped by ThemeProvider based on user choice
 // or system colorScheme. Consumers always reference the same token paths
-// (e.g. `tokens.bg.canvas`, `tokens.text.primary`) — never literal hex.
+// (e.g. `tokens.bg.canvas`, `tokens.text.primary`) - never literal hex.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // LIGHT CONTRAST AUDIT (WCAG 2.1 AA, rounded ratios)
@@ -19,7 +19,7 @@
 //   text.onElevated (#FFFFFF) on bg.elevated   (#09090b) → 20.02  ✓ AAA
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// DARK CONTRAST AUDIT (Phase 3 — verify and update before ship)
+// DARK CONTRAST AUDIT (Phase 3 - verify and update before ship)
 // ─────────────────────────────────────────────────────────────────────────────
 //   text.primary   (#F4F4F5) on bg.canvas      (#0B0B0F) → ~18    ✓ AAA
 //   text.primary   (#F4F4F5) on bg.surface     (#16161C) → ~16    ✓ AAA
@@ -35,7 +35,7 @@
 //    `text.onBrand` token already encodes this swap, so consumers don't branch.
 //  - `text.placeholder` is reserved for placeholder text only. Do NOT use it for
 //    real content in either mode.
-//  - Avoid hardcoded hex literals in screen code — every new color needs a token.
+//  - Avoid hardcoded hex literals in screen code - every new color needs a token.
 
 // ─── LIGHT ──────────────────────────────────────────────────────────────────
 export const light = {
@@ -95,7 +95,7 @@ export const light = {
     transfer:    '#059669',
   },
   overlay: {
-    // Modal scrims and image overlays — alpha is intentional, kept in both modes.
+    // Modal scrims and image overlays - alpha is intentional, kept in both modes.
     scrim:     'rgba(0,0,0,0.45)',
     scrimSoft: 'rgba(0,0,0,0.25)',
   },
@@ -108,7 +108,7 @@ export const dark = {
     surface:      '#16161C',  // cards, modals, sheets
     surfaceMuted: '#1F1F27',  // inputs, chips, secondary buttons
     surfaceStrong:'#2A2A33',  // elevated containers, subtle dividers as fills
-    elevated:     '#27272E',  // brand "premium" tile — clearly raised above canvas
+    elevated:     '#27272E',  // brand "premium" tile - clearly raised above canvas
   },
   text: {
     primary:     '#F4F4F5',
@@ -123,7 +123,7 @@ export const dark = {
     subtle:  '#1F1F27',
   },
   brand: {
-    default:    '#FB923C',  // lighter tuned variant — clears AA for body on dark bg
+    default:    '#FB923C',  // lighter tuned variant - clears AA for body on dark bg
     strong:     '#FDBA74',  // body links / inline accent text on dark bg
     soft:       'rgba(251,146,60,0.14)',  // selected radio bg, soft brand banner bg
     softBorder: 'rgba(251,146,60,0.36)',
@@ -179,7 +179,7 @@ export const spacing = {
 
 // Compile-time sanity: the two palettes must expose the same shape so screens
 // can reference any token without runtime undefined lookups. Walks one level
-// deep — enough for our nested groups (bg, text, brand, status, category).
+// deep - enough for our nested groups (bg, text, brand, status, category).
 const sameShape = (() => {
   const walk = (a, b, path) => {
     const ka = Object.keys(a).sort();

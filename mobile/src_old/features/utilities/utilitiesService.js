@@ -1,5 +1,5 @@
 /**
- * Utilities API service — customer app.
+ * Utilities API service - customer app.
  */
 const api = require('../../services/api');
 

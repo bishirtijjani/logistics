@@ -11,7 +11,7 @@ export const hydrateLocation = createAsyncThunk(
     const stored = await AsyncStorage.getItem(LOCATION_KEY);
     if (stored) return JSON.parse(stored);
 
-    // No saved location — return default (no GPS permission prompt)
+    // No saved location - return default (no GPS permission prompt)
     return null;
   },
 );

@@ -32,7 +32,7 @@ router.get('/networks', utilityController.getNetworks);
 router.get('/discos', utilityController.getDiscos);
 router.post('/detect-network', validate(detectNetworkSchema), utilityController.detectNetwork);
 
-// Verification (per Phase 7 spec: POST /verify-meter — legacy GET /validate-* kept for back-compat)
+// Verification (per Phase 7 spec: POST /verify-meter - legacy GET /validate-* kept for back-compat)
 router.post('/verify-meter', validate(validateMeterSchema), utilityController.validateMeter);
 router.get('/validate-meter', validate(validateMeterSchema, 'query'), utilityController.validateMeter);
 router.get('/validate-iuc', validate(validateIucSchema, 'query'), utilityController.validateIuc);

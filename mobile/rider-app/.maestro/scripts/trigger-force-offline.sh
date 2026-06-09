@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Maestro runScript helper — fires the admin force-offline endpoint for the
+# Maestro runScript helper - fires the admin force-offline endpoint for the
 # rider currently signed in on the test device. Requires the env var
 # ADMIN_TOKEN to carry an admin bearer token for the staging environment.
 set -euo pipefail

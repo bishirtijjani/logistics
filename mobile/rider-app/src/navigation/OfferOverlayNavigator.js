@@ -11,7 +11,7 @@ import { offerDismissed } from "../store/slices/offersSlice";
  *
  * Back-gesture policy:
  *   - While `status === 'showing'` or `'accepting'`, the Android back press is
- *     swallowed — riders can't fat-finger their way out of a live offer.
+ *     swallowed - riders can't fat-finger their way out of a live offer.
  *   - On any terminal state (`taken`, `expired`, `error`, `accepted`), back
  *     dismisses the sheet so the rider isn't trapped looking at a "Try again"
  *     button they no longer want.

@@ -7,7 +7,7 @@ import { Alert, Platform } from "react-native";
  * callbacks never fire, so every confirm/chooser dialog silently does nothing
  * on web. This module renders a themed modal instead (see AlertHost) and, on
  * web, monkeypatches `Alert.alert` so EXISTING `Alert.alert(...)` call sites
- * across the app just work — no per-site rewrites.
+ * across the app just work - no per-site rewrites.
  *
  * Native is untouched: installWebAlert() no-ops off web, so the real OS Alert
  * keeps handling everything on iOS/Android.
@@ -33,7 +33,7 @@ export function showAlert(title, message, buttons, options) {
     _present({ title, message, buttons: list, options });
     return;
   }
-  // Host not mounted yet (very early startup) — best-effort via the browser so
+  // Host not mounted yet (very early startup) - best-effort via the browser so
   // a prompt is never silently dropped.
   if (typeof window !== "undefined" && list.length > 1 && window.confirm) {
     const cancel = list.find((b) => b.style === "cancel");

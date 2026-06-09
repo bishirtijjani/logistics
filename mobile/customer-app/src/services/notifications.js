@@ -13,10 +13,10 @@ Notifications.setNotificationHandler({
 
 /**
  * Request notification permissions and register the FCM/APNs token with our backend.
- * Safe to call multiple times — no-ops if permission denied.
+ * Safe to call multiple times - no-ops if permission denied.
  */
 export const registerPushToken = async () => {
-  // On web there's no FCM/APNs — register a browser Push subscription instead.
+  // On web there's no FCM/APNs - register a browser Push subscription instead.
   // Dynamic import so the web-only module never loads into the native bundle.
   if (Platform.OS === 'web') {
     try {

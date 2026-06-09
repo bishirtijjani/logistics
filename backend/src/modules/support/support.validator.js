@@ -1,5 +1,5 @@
 /**
- * Support validator schemas — tickets and disputes.
+ * Support validator schemas - tickets and disputes.
  *
  * Tickets are generic help threads (any authenticated user).
  * Disputes are formal complaints tied to a specific Request (customer-raised,

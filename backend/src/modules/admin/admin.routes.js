@@ -1,5 +1,5 @@
 /**
- * Admin routes — /admin
+ * Admin routes - /admin
  * All routes require ADMIN role.
  */
 
@@ -155,20 +155,20 @@ router.patch('/withdrawals/:withdrawalId/reject', adminController.rejectWithdraw
 router.patch('/withdrawals/:withdrawalId/fail', adminController.failWithdrawal);
 router.get('/withdrawals/history', validate(paginationStatusDateRangeSchema, 'query'), adminController.getWithdrawalHistory);
 
-// Dispute resolution — backed by modules/support
+// Dispute resolution - backed by modules/support
 router.get('/disputes', validate(supportDisputeListQuerySchema, 'query'), adminController.getDisputes);
 router.get('/disputes/:disputeId', adminController.getDisputeDetail);
 router.patch('/disputes/:disputeId/resolve', validate(supportResolveDisputeSchema), adminController.resolveDispute);
 router.post('/disputes/:disputeId/messages', validate(supportDisputeMessageSchema), adminController.postDisputeMessageAdmin);
 
-// Support management — backed by modules/support
+// Support management - backed by modules/support
 router.get('/support/tickets', validate(supportTicketListQuerySchema, 'query'), adminController.getSupportTickets);
 router.get('/support/tickets/:ticketId', adminController.getTicketDetail);
 router.patch('/support/tickets/:ticketId/status', validate(supportUpdateTicketStatusSchema), adminController.updateTicketStatus);
 router.patch('/support/tickets/:ticketId/assign', validate(supportAssignTicketSchema), adminController.assignTicket);
 router.post('/support/tickets/:ticketId/messages', validate(supportTicketMessageSchema), adminController.postTicketMessageAdmin);
 
-// Pre-launch waitlist — backed by modules/waitlist
+// Pre-launch waitlist - backed by modules/waitlist
 router.get('/waitlist', validate(listWaitlistQuerySchema, 'query'), waitlistController.adminListEntries);
 router.get('/waitlist/summary', waitlistController.adminSummary);
 router.delete('/waitlist/:id', waitlistController.adminDeleteEntry);
@@ -200,10 +200,10 @@ router.post('/vtu-networks', adminController.createVtuNetwork);
 router.put('/vtu-networks/:networkId', adminController.updateVtuNetwork);
 router.delete('/vtu-networks/:networkId', adminController.deleteVtuNetwork);
 
-// Phase 8 — Rider force-offline (real admin use + Maestro 05-force-offline).
+// Phase 8 - Rider force-offline (real admin use + Maestro 05-force-offline).
 router.post('/riders/:riderId/force-offline', validate(forceOfflineRiderSchema), adminController.forceOfflineRider);
 
-// Phase 8 — Staging-only Maestro helpers. The service-layer guard refuses
+// Phase 8 - Staging-only Maestro helpers. The service-layer guard refuses
 // to run on production, so leaving the route mounted in all environments
 // is safe.
 router.post('/test/seed-offer', adminController.seedTestOffer);

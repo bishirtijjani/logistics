@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 // The admin API wraps lists as { data: [...], meta: { page, limit, total, totalPages } }.
 // We carry both through the thunk so the reducer can read real pagination
-// (the previous code read action.meta — the redux thunk meta — which never
+// (the previous code read action.meta - the redux thunk meta - which never
 // holds these, so total/page silently fell back to defaults).
 export const fetchAllRiders = createAsyncThunk(
   'riders/fetchAll',
@@ -87,7 +87,7 @@ export const unsuspendRider = createAsyncThunk(
 )
 
 // Flips availability to OFFLINE and clears live presence. Returns only
-// { riderId, availability } — so we merge just those fields into the row.
+// { riderId, availability } - so we merge just those fields into the row.
 export const forceOfflineRider = createAsyncThunk(
   'riders/forceOffline',
   async ({ riderId, reason }) => {
@@ -175,7 +175,7 @@ const ridersSlice = createSlice({
       .addCase(reviewRider.fulfilled, (state, action) => {
         const updated = action.payload
         patchRiderInState(state, updated)
-        // A reviewed rider is no longer pending — drop it from the queue.
+        // A reviewed rider is no longer pending - drop it from the queue.
         state.pending = state.pending.filter((r) => r.id !== updated?.id)
         if (state.pendingTotal > 0) state.pendingTotal -= 1
         if (state.stats) {

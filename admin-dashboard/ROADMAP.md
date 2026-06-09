@@ -4,20 +4,20 @@ This roadmap details all improvements needed to make the admin dashboard 100% pr
 
 ## Completed Work
 
-### Phase 1 — Critical Bug Fixes ✅
+### Phase 1 - Critical Bug Fixes ✅
 - [x] Fix transactionsSlice.js endpoint (changed to `/admin/transactions`)
 - [x] Fix settingsSlice.js HTTP method (changed PUT to PATCH)
 - [x] Fix usersSlice.js stale list after suspend/unsuspend
 - [x] Run Prisma migration
 - [x] Add global toast/notification system (sonner)
 
-### Phase 2 — Missing Pages/Features ✅
+### Phase 2 - Missing Pages/Features ✅
 - [x] Create Pending Riders Review page
 - [x] Add Update Status action to Request Details modal
 - [x] Add date-range filters to Transactions page
 - [x] Add search + status filters to Users page
 
-### Phase 3 — UX/UI Polish ✅
+### Phase 3 - UX/UI Polish ✅
 - [x] Add password visibility toggle to login
 - [x] Create 404 Not Found page
 - [x] Add error boundary component
@@ -30,7 +30,7 @@ This roadmap details all improvements needed to make the admin dashboard 100% pr
 
 ## Remaining Work
 
-### Phase 4 — Missing Features (High Priority)
+### Phase 4 - Missing Features (High Priority)
 
 #### 4.1 Activity Log / Audit Trail Page
 - [ ] Create AuditLogPage.jsx component
@@ -39,7 +39,7 @@ This roadmap details all improvements needed to make the admin dashboard 100% pr
 - [ ] Add filters by action type, date range, admin user
 - [ ] Add to sidebar navigation with History icon
 
-### Phase 5 — UX/UI Polish (Medium Priority)
+### Phase 5 - UX/UI Polish (Medium Priority)
 
 #### 5.1 Complete Search Debouncing
 - [x] TransactionsPage - DONE
@@ -74,7 +74,7 @@ This roadmap details all improvements needed to make the admin dashboard 100% pr
 - [ ] UsersPage - add loading states to suspend/unsuspend actions
 - [ ] RidersPage - add loading states to suspend/unsuspend actions
 
-### Phase 6 — Production Features (Medium Priority)
+### Phase 6 - Production Features (Medium Priority)
 
 #### 6.1 Real-time Updates
 - [ ] Add WebSocket connection for live updates
@@ -140,7 +140,7 @@ This roadmap details all improvements needed to make the admin dashboard 100% pr
 - [ ] Persist theme preference in localStorage
 - [ ] Test all pages in dark mode
 
-### Phase 7 — Architectural Modernizations (Low Priority)
+### Phase 7 - Architectural Modernizations (Low Priority)
 
 #### 7.1 React Query / TanStack Query Migration
 - [ ] Install @tanstack/react-query

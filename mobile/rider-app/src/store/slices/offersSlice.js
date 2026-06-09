@@ -4,7 +4,7 @@ import socketService from "../../services/socket";
 import { newIdempotencyKey } from "../../services/idempotency";
 
 /**
- * Offers slice — queue of `rider:job:new` events + accept/reject thunks.
+ * Offers slice - queue of `rider:job:new` events + accept/reject thunks.
  *
  * Lifecycle (one offer at a time):
  *   - `rider:job:new` → offerEnqueued → activeOfferId set, status = 'showing'.
@@ -35,7 +35,7 @@ export const acceptOffer = createAsyncThunk(
     // same response on duplicate POSTs (network hiccups during race conditions).
     const idempotencyKey = existingKey || newIdempotencyKey();
 
-    // Optimistic socket emit. Fire-and-forget — server doesn't ACK this.
+    // Optimistic socket emit. Fire-and-forget - server doesn't ACK this.
     try { socketService.emitJobAccept(requestId); } catch (_) {}
 
     try {
@@ -73,16 +73,16 @@ const slice = createSlice({
     offerEnqueued: (state, action) => {
       const offer = action.payload;
       // Schema guard. The minimum useful offer needs `requestId` + pickup
-      // coords (for the map preview) — without coords the rider can't make
+      // coords (for the map preview) - without coords the rider can't make
       // an informed decision. Server payload per docs/SOCKET_ARCHITECTURE.md:
       //   { requestId, pickupAddress, dropoffAddress, distanceKm, fare,
       //     pickupLat, pickupLng, timeout: 60 }
       if (!offer || typeof offer.requestId !== "string" || offer.requestId.length === 0) {
-        if (__DEV__) console.warn("[offers] enqueue rejected — missing requestId", offer);
+        if (__DEV__) console.warn("[offers] enqueue rejected - missing requestId", offer);
         return;
       }
       if (typeof offer.pickupLat !== "number" || typeof offer.pickupLng !== "number") {
-        if (__DEV__) console.warn("[offers] enqueue rejected — missing pickup coords", offer.requestId);
+        if (__DEV__) console.warn("[offers] enqueue rejected - missing pickup coords", offer.requestId);
         return;
       }
       if (state.queue.find((o) => o.requestId === offer.requestId)) return;
@@ -100,7 +100,7 @@ const slice = createSlice({
       }
     },
 
-    /** Soft-dismiss — driven by the UI when an outcome has resolved. */
+    /** Soft-dismiss - driven by the UI when an outcome has resolved. */
     offerDismissed: (state, action) => {
       const requestId = action.payload?.requestId || action.payload;
       const outcome = action.payload?.outcome || null;
@@ -114,7 +114,7 @@ const slice = createSlice({
       }
     },
 
-    /** Rider tapped Reject — emit socket and remove from queue. */
+    /** Rider tapped Reject - emit socket and remove from queue. */
     offerRejected: (state, action) => {
       const requestId = action.payload;
       try { socketService.emitJobReject(requestId); } catch (_) {}

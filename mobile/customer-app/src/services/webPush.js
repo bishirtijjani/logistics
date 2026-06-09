@@ -4,7 +4,7 @@
  * Subscribes the browser's ServiceWorker PushManager using the backend's VAPID
  * public key (GET /push/public-key) and persists the subscription
  * (POST /push/subscribe). Called from notifications.registerPushToken on web,
- * which is itself invoked from authSlice on login/refresh — so no UI change.
+ * which is itself invoked from authSlice on login/refresh - so no UI change.
  *
  * Imported dynamically (so this web-only module never loads in the native
  * bundle); every browser-API access is feature-detected and failure-tolerant.

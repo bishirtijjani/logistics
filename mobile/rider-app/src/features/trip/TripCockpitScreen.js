@@ -153,7 +153,7 @@ export default function TripCockpitScreen({ route }) {
 
   // Geofence (single-fence-at-a-time).
   const fenceRef = useRef(null);
-  // Mounted guard — async work (route fetch, hydrate) can resolve after
+  // Mounted guard - async work (route fetch, hydrate) can resolve after
   // unmount when the user pops the screen or kills the trip.
   const isMountedRef = useRef(true);
   useEffect(() => {
@@ -164,7 +164,7 @@ export default function TripCockpitScreen({ route }) {
   // ─── Hydrate trip on mount (cold start with deep-link / persisted req) ───
   useEffect(() => {
     if (!requestId) return;
-    // Always rehydrate from server when we land here — fixes stale state and
+    // Always rehydrate from server when we land here - fixes stale state and
     // covers cold-start with only paramRequestId. Also restore the POD draft
     // (if any) so a kill-mid-upload preserves the captured photo / signature.
     dispatch(hydrateFromServer(requestId));
@@ -189,7 +189,7 @@ export default function TripCockpitScreen({ route }) {
     return () => unsub?.();
   }, [dispatch]);
 
-  // ─── Route polyline — fetch on stage change + every 30s during the journey ─
+  // ─── Route polyline - fetch on stage change + every 30s during the journey ─
   const loadRoute = useCallback(async () => {
     if (!requestId) return;
     if (!status || !ACTIVE_ROUTE_STATUSES.includes(status)) return;
@@ -200,7 +200,7 @@ export default function TripCockpitScreen({ route }) {
       if (!isMountedRef.current) return;
       setRoutePayload(envelope?.data || envelope || null);
     } catch (_) {
-      // Route is decorative — failure is non-fatal.
+      // Route is decorative - failure is non-fatal.
     } finally {
       if (isMountedRef.current) setRouteLoading(false);
     }
@@ -379,7 +379,7 @@ export default function TripCockpitScreen({ route }) {
       try { Vibration.vibrate(120); } catch (_) {}
       dispatch(tripArrived("dropoff"));
     } else if (action.kind === "complete") {
-      // Phase 5 — start the POD pipeline. Each stage that's gated off is
+      // Phase 5 - start the POD pipeline. Each stage that's gated off is
       // skipped automatically by `advancePodStage`. If everything's already
       // captured (e.g. user reopened after a force-close mid-submit),
       // jumps straight to the DELIVERED PATCH.
@@ -427,7 +427,7 @@ export default function TripCockpitScreen({ route }) {
   const submitDelivery = async (otpFromSheet) => {
     if (!requestId) return;
     setPodSubmitError(null);
-    // Same getState() pattern — fetch URLs at call time so we never send
+    // Same getState() pattern - fetch URLs at call time so we never send
     // undefined values that the sheet just resolved.
     const currentPod = store.getState().trip?.pod || null;
     const action = await dispatch(completeDelivery({
@@ -487,7 +487,7 @@ export default function TripCockpitScreen({ route }) {
   // the rider's stream isn't pinned at 3 s after the trip ends. We hold the
   // "Delivered!" success state for ~8 s so the settlement worker (which
   // fires after a 5-second BullMQ delay) has time to credit the wallet and
-  // emit `wallet:balance:updated` — that flips the success card to show
+  // emit `wallet:balance:updated` - that flips the success card to show
   // the actual earned amount before we tear the cockpit down.
   useEffect(() => {
     if (status === STATUS.DELIVERED || status === STATUS.SETTLED) {
@@ -497,10 +497,10 @@ export default function TripCockpitScreen({ route }) {
     }
   }, [status, dispatch]);
 
-  // ── Phase 5: settlement animation — watch for `wallet:balance:updated`
+  // ── Phase 5: settlement animation - watch for `wallet:balance:updated`
   // with a RIDER_EARNING transaction tagged for THIS trip. When it arrives,
   // surface the actual amount + extend the cockpit slightly so the rider
-  // sees the earnings before auto-clear. The local state is enough — the
+  // sees the earnings before auto-clear. The local state is enough - the
   // walletSlice / earningsSlice handle the durable updates.
   const [creditedAmount, setCreditedAmount] = useState(null);
   useEffect(() => {
@@ -597,7 +597,7 @@ export default function TripCockpitScreen({ route }) {
         <View style={{ backgroundColor: tokens.status.warningSoft, paddingHorizontal: 14, paddingVertical: 8, flexDirection: "row", alignItems: "center" }}>
           <Ionicons name="cloud-offline-outline" size={16} color={tokens.status.warningStrong} />
           <Text style={{ marginLeft: 8, fontSize: 12, color: tokens.status.warningStrong, fontWeight: "700", flex: 1 }}>
-            {t("trip.offline.banner", "Connection issue — we'll retry your update.")}
+            {t("trip.offline.banner", "Connection issue. We'll retry your update.")}
           </Text>
         </View>
       ) : null}
@@ -606,7 +606,7 @@ export default function TripCockpitScreen({ route }) {
         contentContainerStyle={{ paddingBottom: 28 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={tokens.brand.default} />}
       >
-        {/* Top map — 280 px */}
+        {/* Top map - 280 px */}
         <View style={{ position: "relative", height: 280 }}>
           {initialRegion ? (
             <MapView
@@ -828,7 +828,7 @@ export default function TripCockpitScreen({ route }) {
       />
 
       {/* Conditional render so the camera + signature WebView unmount
-          immediately when the stage changes — keeps battery + memory in
+          immediately when the stage changes - keeps battery + memory in
           check rather than relying on Modal-hidden cleanup. */}
       {podStage === "photo" ? (
         <PodCaptureSheet

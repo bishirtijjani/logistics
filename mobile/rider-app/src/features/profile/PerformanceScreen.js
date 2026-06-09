@@ -1,5 +1,5 @@
 /**
- * PerformanceScreen — trailing-30-day rider performance dashboard.
+ * PerformanceScreen - trailing-30-day rider performance dashboard.
  *
  * Metrics fetched from `/rider/performance`:
  *   - acceptanceRate, cancellationRate, onTimeRate (percentages)
@@ -30,7 +30,7 @@ import { useTheme } from "../../theme";
 import { fetchPerformance } from "../../store/slices/profileSlice";
 
 function formatPct(value) {
-  if (value == null || Number.isNaN(value)) return "—";
+  if (value == null || Number.isNaN(value)) return "-";
   // Backend already returns one decimal (e.g. 92.3); round-trip to keep it tidy.
   return `${Math.round(value * 10) / 10}%`;
 }

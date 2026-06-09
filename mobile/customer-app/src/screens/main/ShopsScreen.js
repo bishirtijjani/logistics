@@ -1,5 +1,5 @@
 /**
- * ShopsScreen — the long-tail category list reached from the Shops tile on
+ * ShopsScreen - the long-tail category list reached from the Shops tile on
  * Home. Home surfaces only Food / Grocery / Pharmacy as direct tiles; every
  * other active `MerchantCategory` from the backend lives here (Fashion,
  * Shoes, Electronics, and anything an admin adds later).
@@ -27,7 +27,7 @@ import EmptyState from "../../components/EmptyState";
 import { resolveCategoryIcon } from "../../lib/categoryIcons";
 import { colors } from "../../theme";
 
-// Slugs that live on the home grid — exclude them from Shops so we don't
+// Slugs that live on the home grid - exclude them from Shops so we don't
 // duplicate. Stays in sync with HomeScreen's HOME_CATEGORY_SLUGS by value
 // (small enough not to warrant a shared constant).
 const HOME_CATEGORY_SLUGS = new Set(["restaurant", "grocery", "pharmacy"]);

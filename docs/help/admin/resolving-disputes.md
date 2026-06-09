@@ -10,7 +10,7 @@ When a customer or merchant disputes an order, it lands on the **Disputes** page
 ## Review a dispute
 
 1. On the **Disputes** list, click a dispute to open it.
-2. Read the history — the customer's claim, the merchant's response, and any
+2. Read the history - the customer's claim, the merchant's response, and any
    attached evidence (photos, notes).
 3. Use the reply box to **reply to the customer, the merchant, or leave an
    internal note** (notes are for admins only and aren't shown to either party).
@@ -35,7 +35,7 @@ Add **resolution notes** (these are shown to the customer) explaining the
 decision, then confirm.
 
 > ⚠️ Refunds move real money. Make sure the evidence supports the outcome before
-> you confirm — the decision is final and recorded in **Audit Logs**.
+> you confirm - the decision is final and recorded in **Audit Logs**.
 
 ---
 

@@ -7,7 +7,7 @@ import { useT } from "../../i18n/useT";
 const money = (n) => `₦${Number(n || 0).toLocaleString("en-NG")}`;
 
 /**
- * Pickup card — shown while status ∈ {RIDER_ASSIGNED, RIDER_EN_ROUTE}.
+ * Pickup card - shown while status ∈ {RIDER_ASSIGNED, RIDER_EN_ROUTE}.
  * Shows the pickup location, contact + items (for MERCHANT_ORDER) or
  * package details (for PACKAGE), and lets the rider open external maps
  * or contact the merchant / sender.
@@ -63,7 +63,7 @@ export default function PickupCard({
           {pickup.name || pickup.contactName || t("trip.pickup.fallback", "Pickup location")}
         </Text>
         <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 4 }} numberOfLines={3}>
-          {pickup.address || "—"}
+          {pickup.address || "-"}
         </Text>
         {pickup.notes ? (
           <Text style={{ fontSize: 12, fontStyle: "italic", color: tokens.text.muted, marginTop: 6 }} numberOfLines={3}>
@@ -72,7 +72,7 @@ export default function PickupCard({
         ) : null}
       </View>
 
-      {/* Items list — only for MERCHANT_ORDER. */}
+      {/* Items list - only for MERCHANT_ORDER. */}
       {type === "MERCHANT_ORDER" && lineCount > 0 ? (
         <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: tokens.border.subtle }}>
           <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 8, letterSpacing: 0.5 }}>
@@ -85,14 +85,14 @@ export default function PickupCard({
               </Text>
               <Text style={{ fontSize: 13, color: tokens.text.primary, flex: 1 }} numberOfLines={2}>
                 {it.name}
-                {it.specialInstructions ? ` — ${it.specialInstructions}` : ""}
+                {it.specialInstructions ? ` - ${it.specialInstructions}` : ""}
               </Text>
             </View>
           ))}
         </View>
       ) : null}
 
-      {/* Package details — only for PACKAGE. */}
+      {/* Package details - only for PACKAGE. */}
       {type === "PACKAGE" && packageDetails ? (
         <View style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: tokens.border.subtle }}>
           <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6, letterSpacing: 0.5 }}>

@@ -5,21 +5,21 @@ import { APP_URL, RIDER_URL } from "../lib/links";
 const screens = [
   {
     src: "/images/home-screen.png",
-    alt: "iPrime home — wallet balance, category tiles, active order",
+    alt: "iPrime home - wallet balance, category tiles, active order",
     rotate: "-rotate-3",
     translate: "translate-y-4 md:translate-y-8",
     z: "z-10",
   },
   {
     src: "/images/orders-screen.png",
-    alt: "My Orders — active deliveries from Mama Kachalla's, Suya King, KFC Katsina",
+    alt: "My Orders - active deliveries from Mama Kachalla's, Suya King, KFC Katsina",
     rotate: "rotate-0",
     translate: "-translate-y-2 md:-translate-y-4",
     z: "z-20",
   },
   {
     src: "/images/map-screen.png",
-    alt: "Live tracking — rider en route with 4-digit doorstep code",
+    alt: "Live tracking - rider en route with 4-digit doorstep code",
     rotate: "rotate-3",
     translate: "translate-y-5 md:translate-y-10",
     z: "z-10",
@@ -39,12 +39,12 @@ export default function Download() {
           </div>
 
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter leading-[1.05] mb-6">
-            Order, track, pay —{" "}
+            Order, track, pay -{" "}
             <span className="text-accent">in your browser.</span>
           </h2>
 
           <p className="text-base md:text-lg text-white/60 font-medium leading-relaxed mb-8 max-w-xl mx-auto">
-            No install needed — iPrime runs right on the web. Sign up with your
+            No install needed - iPrime runs right on the web. Sign up with your
             phone number and place your first delivery in under two minutes.
           </p>
 
@@ -67,7 +67,7 @@ export default function Download() {
           </div>
 
           <p className="text-xs text-white/40 font-semibold">
-            Works on any phone or computer — iOS &amp; Android apps coming soon.
+            Works on any phone or computer - iOS &amp; Android apps coming soon.
           </p>
         </div>
 

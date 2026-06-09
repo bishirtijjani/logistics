@@ -18,10 +18,10 @@ import { STATUS } from "../../lib/constants";
  *   DELIVERED            → "Settling..." (read-only, settling spinner)
  *   CANCELLED            → null (parent surfaces the cancelled banner instead)
  *
- * Action contract — `onAction({ kind, nextStatus? })`:
- *   - `kind: 'patch'`        — caller patches FSM to `nextStatus` (Idempotency-Key handled in tripSlice).
- *   - `kind: 'arrive-pickup' | 'arrive-dropoff'` — caller dispatches tripArrived(...).
- *   - `kind: 'complete'`     — caller opens the POD sheet (Phase 5 hands DELIVERED PATCH).
+ * Action contract - `onAction({ kind, nextStatus? })`:
+ *   - `kind: 'patch'`        - caller patches FSM to `nextStatus` (Idempotency-Key handled in tripSlice).
+ *   - `kind: 'arrive-pickup' | 'arrive-dropoff'` - caller dispatches tripArrived(...).
+ *   - `kind: 'complete'`     - caller opens the POD sheet (Phase 5 hands DELIVERED PATCH).
  */
 export default function StatusActionButton({
   status,

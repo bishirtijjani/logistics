@@ -3,7 +3,7 @@ import api from "../../services/api";
 import { setCachedSettings } from "../../services/settings";
 
 /**
- * Settings slice — mirrors `/settings/public` into Redux so screens can
+ * Settings slice - mirrors `/settings/public` into Redux so screens can
  * subscribe via `useSelector` and re-render when settings load or change.
  *
  * The non-React `getSetting()` helper still works (read from the same cache
@@ -14,7 +14,7 @@ export const fetchPublicSettings = createAsyncThunk(
   "settings/fetchPublic",
   async (_, { rejectWithValue }) => {
     try {
-      // api.js interceptor unwraps to the envelope body — payload is `envelope.data`.
+      // api.js interceptor unwraps to the envelope body - payload is `envelope.data`.
       const envelope = await api.get("/settings/public");
       const data = envelope?.data || {};
       setCachedSettings(data);

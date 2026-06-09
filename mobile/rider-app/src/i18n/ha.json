@@ -101,7 +101,7 @@
   },
   "auth": {
     "welcomeTitle": "Sami komai\nan kawo maka.",
-    "welcomeSubtitle": "Abinci, fakiti, magunguna, kayan abinci — a faɗin Katsina cikin mintuna.",
+    "welcomeSubtitle": "Abinci, fakiti, magunguna, kayan abinci, a faɗin Katsina cikin mintuna.",
     "signIn": "Shiga",
     "signUp": "Ƙirƙira asusu",
     "signInWithGoogle": "Ci gaba da Google",
@@ -162,7 +162,7 @@
       "lastNameRequired": "Ana bukatar sunan ƙarshe",
       "otpInvalid": "Shigar da lamba mai lamba shida",
       "pinInvalid": "PIN ya zama lambobi shida",
-      "pinMismatch": "PINs ba su dace ba — sake gwadawa",
+      "pinMismatch": "PINs ba su dace ba. Sake gwadawa",
       "termsRequired": "Ka karɓi sharuɗɗan don ci gaba"
     },
     "toast": {
@@ -304,11 +304,11 @@
       "balanceBefore": "Ma'auni kafin",
       "balanceAfter": "Ma'auni bayan",
       "date": "Kwanan wata",
-      "footer": "iPrime — Rasit na hukuma",
+      "footer": "iPrime Rasit na hukuma",
       "copyRef": "Kwafi lamba",
       "share": "Raba",
       "shareDialogTitle": "Rasit na mu'amalla",
-      "shareLine": "Rasit — {{label}} {{amount}}",
+      "shareLine": "Rasit: {{label}} {{amount}}",
       "couldntShare": "Ba a iya raba rasit ba",
       "refCopied": "An kwafa lamba",
       "repeat": "Maimaita wannan mu'amalla",
@@ -341,7 +341,7 @@
       "selectABank": "Zaɓi banki",
       "enterAccount": "Shigar da lambar asusu",
       "accountNotResolved": "Ba a samu sunan asusu ba tukuna",
-      "accountNotFound": "Ba a samu asusu ba — duba lamba ko banki",
+      "accountNotFound": "Ba a samu asusu ba. Duba lamba ko banki",
       "minWithdraw": "Mafi ƙanƙancin cire shine {{amount}}",
       "maxWithdraw": "Mafi yawan cire shine {{amount}}",
       "confirmTitle": "Tabbatar da cire",
@@ -430,7 +430,7 @@
       "notReadyBody": "Tabbatar da BVN ɗinka don buɗe asusunka na bidiyo. Yana ɗaukar mintuna kaɗan kuma yana buɗe ƙarin walat, canja wuri, da iyaka mafi girma.",
       "verifyCta": "Tabbatar da kai",
       "provisioningTitle": "Ana shirya asusunka",
-      "provisioningBody": "Ana shirya asusunka na bidiyo. Yawanci yana ɗaukar daƙiƙu kaɗan — ja ƙasa don sabuntawa."
+      "provisioningBody": "Ana shirya asusunka na bidiyo. Yawanci yana ɗaukar daƙiƙu kaɗan. Ja ƙasa don sabuntawa."
     },
     "fund": "Ƙara"
   },
@@ -479,7 +479,7 @@
       "placeRequest": "Yi roko",
       "placeRequestWith": "Yi roko · {{amount}}",
       "placing": "Ana aikawa…",
-      "quoteExpired": "Kuɗin ya kare — sabunta"
+      "quoteExpired": "Kuɗin ya kare. Sabunta"
     },
     "toast": {
       "pickBothAddresses": "Zaɓi adireshi biyu",
@@ -564,7 +564,7 @@
       "place": "Yi oda",
       "placeWithTotal": "Yi oda · {{amount}}",
       "placingOrder": "Ana yin oda…",
-      "quoteExpired": "Kuɗin ya kare — sabunta",
+      "quoteExpired": "Kuɗin ya kare. Sabunta",
       "quoteValidMin": "Kuɗi yana aiki na {{m}}m {{s}}s",
       "quoteValidSec": "Kuɗi yana aiki na {{s}}s",
       "refresh": "Sabunta",
@@ -1060,12 +1060,12 @@
     "title": "An samu matsala",
     "tryAgain": "Sake gwadawa",
     "_fallback": "{{message}}",
-    "BAD_REQUEST": "Bai yi aiki ba — ka duba bayanan ka kuma sake gwadawa.",
+    "BAD_REQUEST": "Bai yi aiki ba. Ka duba bayanan ka kuma sake gwadawa.",
     "UNAUTHORIZED": "Ka shiga don ci gaba.",
     "FORBIDDEN": "Ba ka da izinin yin haka.",
     "NOT_FOUND": "Ba mu samu hakan ba.",
     "CONFLICT": "Wannan aiki ya saɓa wa yanayin yanzu.",
-    "TOO_MANY_REQUESTS": "Sosai ne — ka jira ɗan kaɗan.",
+    "TOO_MANY_REQUESTS": "Sosai ne. Ka jira ɗan kaɗan.",
     "INTERNAL_ERROR": "An samu matsala a gefenmu. Sake gwadawa nan da ɗan lokaci.",
     "SERVICE_UNAVAILABLE": "Sabis ba ya samuwa a yanzu.",
     "UNKNOWN_ERROR": "An samu matsala. Sake gwadawa.",
@@ -1079,7 +1079,7 @@
     "ACCOUNT_NOT_FOUND": "Ba a samu asusu da wannan imel ba.",
     "ACCOUNT_SUSPENDED": "An dakatar da asusunka. Tuntuɓi tallafi.",
     "ACCOUNT_DEACTIVATED": "An kashe asusunka.",
-    "OTP_EXPIRED": "Lambar ta kare — nemi sabuwa.",
+    "OTP_EXPIRED": "Lambar ta kare. Nemi sabuwa.",
     "INVALID_OTP": "Wannan lambar ba daidai ba. Duba kuma sake gwadawa.",
     "REFRESH_TOKEN_INVALID": "Zaman ka ya kare. Shiga kuma.",
     "SESSION_NOT_FOUND": "Ba a samu zama ba.",
@@ -1096,14 +1096,14 @@
     "AMOUNT_TOO_LOW": "Adadi ya yi ƙanƙanta.",
     "AMOUNT_TOO_HIGH": "Adadi ya yi yawa.",
     "QUOTE_EXPIRED": "Kuɗin ya kare. Sabunta a sake gwadawa.",
-    "QUOTE_INVALID": "Kuɗi bai dace ba — nemi sabo.",
+    "QUOTE_INVALID": "Kuɗi bai dace ba. Nemi sabo.",
     "QUOTE_MISMATCH": "Kuɗi bai sake dacewa da odarka ba. Sabunta.",
     "INVALID_TRANSITION": "Ba a iya canza yanayi haka a yanzu.",
     "REQUEST_NOT_FOUND": "Ba a samu oda ba.",
     "ALREADY_RATED": "Ka riga ka ƙimanta wannan oda.",
     "CANCELLED": "An soke",
     "PRESCRIPTION_REQUIRED": "Magunguna ɗaya ko fiye suna bukatar takardar shaida. Ɗora ta a biya don ci gaba.",
-    "INVALID_PRESCRIPTION_URL": "Takardar shaida ba ta dace ba — ɗora ta cikin manhajar."
+    "INVALID_PRESCRIPTION_URL": "Takardar shaida ba ta dace ba. Ɗora ta cikin manhajar."
   },
   "shops": {
     "title": "Kantuna",
@@ -1245,7 +1245,7 @@
     "expiringBanner": "Wasu takardu za su ƙare cikin kwanaki 14. Sake ɗora cikin sauri don guje wa hutu."
   },
   "offline": {
-    "banner": "Babu intanit — za mu sake gwadawa idan ka koma kan layi.",
+    "banner": "Babu intanit. Za mu sake gwadawa idan ka koma kan layi.",
     "bannerRetry": "Ana sake haɗawa…"
   },
   "performance": {

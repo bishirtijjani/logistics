@@ -10,26 +10,26 @@ import { ProductCreateModal } from '../pages/MenuPage.jsx'
 
 /**
  * Onboarding flow. Visibility and the "needs onboarding" signal both come
- * from the parent (Layout) — which derives them from the merchant profile in
+ * from the parent (Layout) - which derives them from the merchant profile in
  * Redux (lat/lng/address). No more localStorage flag, so a merchant who
  * skips can be re-engaged via the dashboard banner.
  *
  * props:
- *   open      — whether the modal is currently visible
- *   onClose   — called when the wizard is dismissed for any reason
+ *   open      - whether the modal is currently visible
+ *   onClose   - called when the wizard is dismissed for any reason
  */
 export default function OnboardingWizard({ open, onClose }) {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
-  // Full merchant profile (lat/lng/address) — drives the "already pinned"
+  // Full merchant profile (lat/lng/address) - drives the "already pinned"
   // logic so a merchant reopening the wizard just to add their first product
   // isn't forced to re-pin a location they already have.
   const merchantProfile = useSelector((state) => state.settings.settings)
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
 
-  // The merchant's locked-in business category — needed by the real product
+  // The merchant's locked-in business category - needed by the real product
   // modal (ProductCreateModal) to render its category-aware form. Fetched the
   // same way the Products page does.
   const [merchantCategory, setMerchantCategory] = useState(null)
@@ -47,14 +47,14 @@ export default function OnboardingWizard({ open, onClose }) {
   const [locationData, setLocationData] = useState({ address: '', lat: 0, lng: 0 })
   const [locationSaved, setLocationSaved] = useState(false)
 
-  // Placeholder coords are 0,0 and a "Pending…" address — either means the
+  // Placeholder coords are 0,0 and a "Pending…" address - either means the
   // merchant hasn't pinned a real location yet (mirrors Layout's check).
   const locationAlreadySet =
     !!merchantProfile &&
     !(Number(merchantProfile.lat) === 0 && Number(merchantProfile.lng) === 0) &&
     !(typeof merchantProfile.address === 'string' && merchantProfile.address.startsWith('Pending'))
 
-  // Lazily fetch the business category the first time the wizard opens — most
+  // Lazily fetch the business category the first time the wizard opens - most
   // sessions never open it.
   useEffect(() => {
     if (!open || !merchantId || merchantCategory) return
@@ -94,7 +94,7 @@ export default function OnboardingWizard({ open, onClose }) {
   }
 
   const handleNext = async () => {
-    // Step 2 (location) is required — block advance until the pin is saved.
+    // Step 2 (location) is required - block advance until the pin is saved.
     if (currentStep === 2 && !locationSaved) {
       const ok = await saveLocation()
       if (!ok) return
@@ -108,7 +108,7 @@ export default function OnboardingWizard({ open, onClose }) {
       return false
     }
     if (!merchantId) {
-      showErrorToast('Missing merchant context — try logging out and back in')
+      showErrorToast('Missing merchant context - try logging out and back in')
       return false
     }
     setLoading(true)
@@ -141,7 +141,7 @@ export default function OnboardingWizard({ open, onClose }) {
 
   // The first product is created through the real product modal
   // (ProductCreateModal), so it goes through the same Redux thunk and endpoint
-  // as the Products page — and updates the store, which is what flips the
+  // as the Products page - and updates the store, which is what flips the
   // dashboard's "needs onboarding" signal off.
   const handleCreateProduct = async (payload) => {
     try {
@@ -155,7 +155,7 @@ export default function OnboardingWizard({ open, onClose }) {
   }
 
   const handleComplete = () => {
-    // Onboarding isn't complete without a first product — the Complete button
+    // Onboarding isn't complete without a first product - the Complete button
     // is disabled in this case, but guard here too.
     if (!onboardingData.hasAddedProduct) {
       showErrorToast('Add your first product to finish setup')
@@ -225,7 +225,7 @@ export default function OnboardingWizard({ open, onClose }) {
             </div>
           )}
           <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl text-sm text-orange-700 dark:text-orange-400">
-            This step is required — your business won't be approved or visible to customers until your location is pinned.
+            This step is required - your business won't be approved or visible to customers until your location is pinned.
           </div>
         </div>
       )
@@ -280,7 +280,7 @@ export default function OnboardingWizard({ open, onClose }) {
                 </button>
               </div>
               <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl text-sm text-orange-700 dark:text-orange-400">
-                This step is required — your store needs at least one product before setup is complete.
+                This step is required - your store needs at least one product before setup is complete.
               </div>
             </div>
           )}
@@ -387,7 +387,7 @@ export default function OnboardingWizard({ open, onClose }) {
             )}
           </div>
 
-          {/* Skip Button — hidden on the required Location step (step 2) */}
+          {/* Skip Button - hidden on the required Location step (step 2) */}
           {currentStep < steps.length && currentStep !== 2 && (
             <button
               onClick={handleSkip}

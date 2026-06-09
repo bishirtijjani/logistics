@@ -14,7 +14,7 @@ const { ALL_STATUSES } = require('../../utils/status');
 const REQUEST_TYPES = ['MERCHANT_ORDER', 'PACKAGE'];
 const REQUEST_STATUSES = ALL_STATUSES;
 
-// Phase 8 — grocery substitution preference per line item.
+// Phase 8 - grocery substitution preference per line item.
 const SUBSTITUTION_PREFERENCES = ['NONE', 'MERCHANT_PICK', 'CONTACT_ME'];
 
 // ============================================================
@@ -22,7 +22,7 @@ const SUBSTITUTION_PREFERENCES = ['NONE', 'MERCHANT_PICK', 'CONTACT_ME'];
 // ============================================================
 
 const createRequestSchema = z.object({
-  // Optional — server can infer from payload (merchantId present => MERCHANT_ORDER, else PACKAGE).
+  // Optional - server can infer from payload (merchantId present => MERCHANT_ORDER, else PACKAGE).
   type: z.enum(REQUEST_TYPES).optional(),
 
   // Merchant (required for MERCHANT_ORDER, forbidden for PACKAGE)
@@ -40,7 +40,7 @@ const createRequestSchema = z.object({
   dropoffName: z.string().optional(),
   
   // Items (for MERCHANT_ORDER). Server resolves `unitPrice`/`lineTotal` from
-  // the variant + option group price deltas — clients never set prices.
+  // the variant + option group price deltas - clients never set prices.
   items: z.array(z.object({
     productId: z.string().uuid(),
     variantId: z.string().uuid().optional(),
@@ -52,12 +52,12 @@ const createRequestSchema = z.object({
       itemIds: z.array(z.string().uuid()).default([]),
     })).optional(),
     specialInstructions: z.string().max(200).optional(),
-    /// Phase 8 — grocery substitution preference. Persisted as-is on the
+    /// Phase 8 - grocery substitution preference. Persisted as-is on the
     /// line so the merchant ticket and tracking timeline can render it.
     substitution: z.enum(SUBSTITUTION_PREFERENCES).optional(),
   })).optional(),
 
-  /// Phase 8 — pharmacy prescription document. Cloudinary URL captured at
+  /// Phase 8 - pharmacy prescription document. Cloudinary URL captured at
   /// checkout via the signed-upload endpoint. Service enforces presence when
   /// any line product is flagged `requiresPrescription`.
   prescriptionUrl: z.string().url().max(1024).optional(),
@@ -114,7 +114,7 @@ const createRequestSchema = z.object({
 const updateStatusSchema = z.object({
   status: z.enum(REQUEST_STATUSES),
   reason: z.string().optional(),
-  // Phase 5 — Proof of Delivery payload, supplied on DELIVERED transition
+  // Phase 5 - Proof of Delivery payload, supplied on DELIVERED transition
   // when the platform requires it. Validated in `request.service.updateStatus`
   // against `delivery.requirePodPhoto`, `delivery.requireSignature`, and
   // `delivery.podOtpThresholdNgn`. URLs are server-verified against the
@@ -124,7 +124,7 @@ const updateStatusSchema = z.object({
   podDeliveryOtp: z.string().regex(/^\d{6}$/, 'OTP must be 6 digits').optional(),
 });
 
-// Phase 5 — body shape for `POST /requests/:id/pod-otp/generate`.
+// Phase 5 - body shape for `POST /requests/:id/pod-otp/generate`.
 // The endpoint takes no request body, but we declare a schema for the
 // idempotency middleware's body-hash to be deterministic.
 const podOtpGenerateSchema = z.object({}).passthrough();
@@ -167,12 +167,12 @@ const cancelRequestSchema = z.object({
   reason: z.string().min(1, 'Cancellation reason is required'),
   // Optional signed token from the most recent /cancel-quote response.
   // When present the server uses the locked fee from the token instead of
-  // re-reading the platform setting — closes the preview/charge race.
+  // re-reading the platform setting - closes the preview/charge race.
   cancelToken: z.string().min(20).optional(),
 });
 
 // ============================================================
-// Quote Schema — server-truth pricing preview without persisting an order.
+// Quote Schema - server-truth pricing preview without persisting an order.
 // ============================================================
 
 const quoteRequestSchema = z.object({
@@ -211,7 +211,7 @@ const listMessagesSchema = z.object({
 });
 
 // ============================================================
-// Rider-initiated cancellation — Phase 4.
+// Rider-initiated cancellation - Phase 4.
 // Riders cancel for operational reasons (customer unreachable, wrong address,
 // vehicle issue). No fee is charged to the rider; the customer is fully
 // refunded. PIN-protected, idempotent.
@@ -231,7 +231,7 @@ const riderCancelSchema = z.object({
 });
 
 // ============================================================
-// Address correction — Phase 4 (BLK-AddressCorrection).
+// Address correction - Phase 4 (BLK-AddressCorrection).
 // Rider flags a stage's address as wrong and supplies a corrected location
 // + note. Persists as an AuditLog row and notifies merchant + admin so
 // dispatch can act on it without changing the trip flow.

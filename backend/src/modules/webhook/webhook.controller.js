@@ -19,7 +19,7 @@ const findWithdrawalByKatpayRef = async (katpayRef) => {
     take: 2,
   });
   if (rows.length > 1) {
-    logger.error('Multiple withdrawals share one katpayReference — refusing to act', { katpayRef });
+    logger.error('Multiple withdrawals share one katpayReference - refusing to act', { katpayRef });
     return null;
   }
   return rows[0] || null;
@@ -33,18 +33,18 @@ const applyPayoutFailure = async (katpayRef, reason) => {
   const mwt = await findWithdrawalByKatpayRef(katpayRef);
   if (!mwt) return;
   if (mwt.status === 'COMPLETED') {
-    logger.error('KatPay reports payout failed but withdrawal is already COMPLETED — manual reconciliation needed', {
+    logger.error('KatPay reports payout failed but withdrawal is already COMPLETED - manual reconciliation needed', {
       katpayRef, withdrawalId: mwt.id, reference: mwt.reference,
     });
     return;
   }
-  if (mwt.status !== 'PROCESSING') return; // FAILED / REJECTED — already terminal
+  if (mwt.status !== 'PROCESSING') return; // FAILED / REJECTED - already terminal
   const adminService = require('../admin/admin.service');
   await adminService.failWithdrawal(mwt.id, reason, { adminUserId: 'SYSTEM' });
 };
 
 /**
- * Handle KatPay webhook — wallet funding and payout confirmations.
+ * Handle KatPay webhook - wallet funding and payout confirmations.
  *
  * Security:
  * - HMAC-SHA256 signature verified against raw request body
@@ -87,7 +87,7 @@ const handleKatpay = async (req, res, next) => {
       data.reference ||
       `katpay-${Date.now()}`;
 
-    // 3. Idempotency — short-circuit only when a prior delivery actually FINISHED
+    // 3. Idempotency - short-circuit only when a prior delivery actually FINISHED
     // (processed === true). A row that exists but is still unprocessed means an
     // earlier attempt failed mid-way; KatPay's retry must re-enter and reprocess
     // (every downstream write is an idempotent compare-and-set). Treating mere
@@ -114,7 +114,7 @@ const handleKatpay = async (req, res, next) => {
       });
     }
 
-    // 5. Respond immediately — KatPay retries on non-2xx
+    // 5. Respond immediately - KatPay retries on non-2xx
     res.json(ApiResponse.success('Webhook received'));
 
     // 6. Queue processing asynchronously after response is sent
@@ -204,12 +204,12 @@ const handleKatpay = async (req, res, next) => {
                       });
                     }
                   } else {
-                    // Didn't win the completion — re-read committed state. If a
+                    // Didn't win the completion - re-read committed state. If a
                     // fail/refund beat us, the payout both SUCCEEDED (per KatPay)
                     // and was refunded: a hard conflict for a human to reconcile.
                     const fresh = await tx.merchantWalletTransaction.findUnique({ where: { id: mwt.id } });
                     if (fresh && fresh.status === 'FAILED') {
-                      logger.error('Payout reported success AFTER being failed/refunded — manual reconciliation needed', {
+                      logger.error('Payout reported success AFTER being failed/refunded - manual reconciliation needed', {
                         withdrawalId: mwt.id, reference: mwt.reference, katpayRef,
                       });
                     }
@@ -255,7 +255,7 @@ const verifyWhatsappSignature = (rawBody, header) => {
     .update(rawBody)
     .digest('hex');
   const provided = String(header).replace(/^sha256=/i, '');
-  // crypto.timingSafeEqual throws on length mismatch — bail early in that case.
+  // crypto.timingSafeEqual throws on length mismatch - bail early in that case.
   if (provided.length !== expected.length) return false;
   return crypto.timingSafeEqual(Buffer.from(provided, 'hex'), Buffer.from(expected, 'hex'));
 };
@@ -265,7 +265,7 @@ const verifyWhatsappSignature = (rawBody, header) => {
  *   ?hub.mode=subscribe&hub.verify_token=<token>&hub.challenge=<string>
  * We echo `hub.challenge` back as plain text iff the token matches.
  *
- * NOTE: the /webhooks router mounts express.raw — for GETs the body is
+ * NOTE: the /webhooks router mounts express.raw - for GETs the body is
  * empty, so req.query is the only thing we need.
  */
 const verifyWhatsapp = (req, res) => {
@@ -289,11 +289,11 @@ const verifyWhatsapp = (req, res) => {
 
 /**
  * Handle WhatsApp Cloud API events. We currently consume:
- *   - statuses[] entries (sent / delivered / read / failed) — for visibility
+ *   - statuses[] entries (sent / delivered / read / failed) - for visibility
  *     into actual OTP delivery rates and to surface "user doesn't have
  *     WhatsApp" failures (Meta error 131026) in logs.
  *
- * Inbound messages (entry.messages[]) are accepted but not acted on — the
+ * Inbound messages (entry.messages[]) are accepted but not acted on - the
  * app is not a chat product. We just log + 200 so Meta stops retrying.
  *
  * Security:
@@ -313,7 +313,7 @@ const handleWhatsapp = async (req, res, next) => {
 
     const payload = JSON.parse(rawBody.toString('utf8') || '{}');
 
-    // Respond fast — Meta retries aggressively on non-2xx within ~5s.
+    // Respond fast - Meta retries aggressively on non-2xx within ~5s.
     res.status(200).json(ApiResponse.success('Webhook received'));
 
     setImmediate(async () => {
@@ -361,7 +361,7 @@ const handleWhatsapp = async (req, res, next) => {
               }
             }
 
-            // Inbound messages — accepted but not consumed.
+            // Inbound messages - accepted but not consumed.
             const messages = Array.isArray(value.messages) ? value.messages : [];
             if (messages.length) {
               logger.info('WhatsApp inbound messages received (not processed)', {

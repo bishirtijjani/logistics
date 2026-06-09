@@ -1,5 +1,5 @@
 /**
- * Phase 7 — electricity-token money-path test.
+ * Phase 7 - electricity-token money-path test.
  *
  * Verifies:
  *   - A `delivered` AlRahuz electricity response persists the token on the

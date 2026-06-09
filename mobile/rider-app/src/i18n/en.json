@@ -52,7 +52,7 @@
     "ninLabel": "NIN (11 digits)",
     "docsIncompleteToast": "Some items are missing",
     "expiryInvalid": "Use format YYYY-MM-DD",
-    "expiryPast": "Document is expired — use a current one",
+    "expiryPast": "Document is expired. Use a current one",
     "reviewTitle": "Review & submit",
     "reviewSubtitle": "Confirm everything below before submitting. You can go back to fix anything.",
     "submitCta": "Submit application",
@@ -60,7 +60,7 @@
     "submittedToastSub": "We'll review it shortly.",
     "submittedAt": "Submitted",
     "pendingTitle": "Awaiting approval",
-    "pendingBody": "We're reviewing your application. You'll be notified the moment an admin approves it — usually within a few hours.",
+    "pendingBody": "We're reviewing your application. You'll be notified the moment an admin approves it, usually within a few hours.",
     "pendingPullHint": "Pull down to refresh status",
     "rejectedTitle": "Application rejected",
     "rejectedBody": "Your rider application wasn't approved. Review the reason below and re-submit the affected documents to try again.",
@@ -213,7 +213,7 @@
       "lastNameRequired": "Last name is required",
       "otpInvalid": "Enter the 6-digit code",
       "pinInvalid": "PIN must be 6 digits",
-      "pinMismatch": "PINs don't match — try again",
+      "pinMismatch": "PINs don't match. Try again",
       "termsRequired": "Please accept the terms to continue"
     },
     "toast": {
@@ -372,11 +372,11 @@
       "balanceBefore": "Balance before",
       "balanceAfter": "Balance after",
       "date": "Date",
-      "footer": "iPrime — Official Receipt",
+      "footer": "iPrime Official Receipt",
       "copyRef": "Copy Ref",
       "share": "Share",
       "shareDialogTitle": "Transaction Receipt",
-      "shareLine": "Receipt — {{label}} {{amount}}",
+      "shareLine": "Receipt: {{label}} {{amount}}",
       "couldntShare": "Couldn't share receipt",
       "refCopied": "Reference copied",
       "repeat": "Repeat this transaction",
@@ -409,7 +409,7 @@
       "selectABank": "Select a bank",
       "enterAccount": "Enter account number",
       "accountNotResolved": "Account name not resolved yet",
-      "accountNotFound": "Account not found — check number or bank",
+      "accountNotFound": "Account not found. Check number or bank",
       "minWithdraw": "Minimum withdrawal is {{amount}}",
       "maxWithdraw": "Maximum withdrawal is {{amount}}",
       "confirmTitle": "Confirm Withdrawal",
@@ -498,7 +498,7 @@
       "notReadyBody": "Verify your identity (BVN) to activate your virtual account. It takes about a minute and unlocks wallet funding, transfers, and bigger limits.",
       "verifyCta": "Verify identity",
       "provisioningTitle": "Setting up your account",
-      "provisioningBody": "Your virtual account is being set up. This usually takes a few seconds — pull to refresh."
+      "provisioningBody": "Your virtual account is being set up. This usually takes a few seconds. Pull to refresh."
     },
     "fund": "Fund",
     "availableBalance": "AVAILABLE BALANCE",
@@ -509,7 +509,7 @@
     "provisioningSub": "Your virtual account is being created. This usually takes under a minute.",
     "retry": "Retry",
     "tip": "Every completed delivery credits this wallet within a minute. Withdraw any time above the platform minimum.",
-    "locked": "Wallet locked — contact support",
+    "locked": "Wallet locked. Contact support",
     "transactions": "Transactions",
     "beneficiariesCta": "Beneficiaries"
   },
@@ -558,7 +558,7 @@
       "placeRequest": "Place request",
       "placeRequestWith": "Place request · {{amount}}",
       "placing": "Placing…",
-      "quoteExpired": "Quote expired — refresh"
+      "quoteExpired": "Quote expired. Refresh"
     },
     "toast": {
       "pickBothAddresses": "Pick both addresses",
@@ -643,7 +643,7 @@
       "place": "Place order",
       "placeWithTotal": "Place order · {{amount}}",
       "placingOrder": "Placing your order…",
-      "quoteExpired": "Quote expired — refresh",
+      "quoteExpired": "Quote expired. Refresh",
       "quoteValidMin": "Quote valid for {{m}}m {{s}}s",
       "quoteValidSec": "Quote valid for {{s}}s",
       "refresh": "Refresh",
@@ -1151,7 +1151,7 @@
     "expiredBadge": "Offer expired",
     "errorBadge": "Couldn't accept this offer",
     "activationFailed": "Couldn't start trip",
-    "activationFailedSub": "Contact support — your acceptance was recorded.",
+    "activationFailedSub": "Contact support. Your acceptance was recorded.",
     "missedTitle": "You missed this one",
     "missedBody": "This offer is no longer available. Stay online and another one will come along.",
     "missedExpiredTitle": "Offer expired",
@@ -1164,12 +1164,12 @@
     "title": "Something went wrong",
     "tryAgain": "Try again",
     "_fallback": "{{message}}",
-    "BAD_REQUEST": "That didn't work — please check your details and try again.",
+    "BAD_REQUEST": "That didn't work. Please check your details and try again.",
     "UNAUTHORIZED": "Please sign in to continue.",
     "FORBIDDEN": "You don't have permission to do that.",
     "NOT_FOUND": "We couldn't find that.",
     "CONFLICT": "That action conflicts with the current state.",
-    "TOO_MANY_REQUESTS": "Too many tries — please wait a moment.",
+    "TOO_MANY_REQUESTS": "Too many tries. Please wait a moment.",
     "INTERNAL_ERROR": "Something went wrong on our end. Try again in a moment.",
     "SERVICE_UNAVAILABLE": "Service is temporarily unavailable.",
     "UNKNOWN_ERROR": "Something went wrong. Please try again.",
@@ -1183,7 +1183,7 @@
     "ACCOUNT_NOT_FOUND": "No account found for that email.",
     "ACCOUNT_SUSPENDED": "Your account is suspended. Please contact support.",
     "ACCOUNT_DEACTIVATED": "Your account is deactivated.",
-    "OTP_EXPIRED": "Code expired — please request a new one.",
+    "OTP_EXPIRED": "Code expired. Please request a new one.",
     "INVALID_OTP": "That code isn't right. Double-check and try again.",
     "REFRESH_TOKEN_INVALID": "Your session expired. Please sign in again.",
     "SESSION_NOT_FOUND": "Session not found.",
@@ -1200,14 +1200,14 @@
     "AMOUNT_TOO_LOW": "Amount is too low.",
     "AMOUNT_TOO_HIGH": "Amount is too high.",
     "QUOTE_EXPIRED": "Your quote expired. Please refresh and try again.",
-    "QUOTE_INVALID": "Quote is invalid — please request a fresh one.",
+    "QUOTE_INVALID": "Quote is invalid. Please request a fresh one.",
     "QUOTE_MISMATCH": "The quote no longer matches your order. Please refresh.",
     "INVALID_TRANSITION": "That status change isn't allowed right now.",
     "REQUEST_NOT_FOUND": "Order not found.",
     "ALREADY_RATED": "You've already rated this order.",
     "CANCELLED": "Cancelled",
     "PRESCRIPTION_REQUIRED": "One or more items need a valid prescription. Upload it at checkout to continue.",
-    "INVALID_PRESCRIPTION_URL": "Invalid prescription — please upload via the in-app flow."
+    "INVALID_PRESCRIPTION_URL": "Invalid prescription. Please upload via the in-app flow."
   },
   "shops": {
     "title": "Shops",
@@ -1339,7 +1339,7 @@
     "contact": {
       "title": "Contact {{name}}",
       "fallbackName": "party",
-      "noPhone": "No phone number on file — try chat.",
+      "noPhone": "No phone number on file. Try chat.",
       "call": "Call",
       "callSub": "Opens your phone dialer",
       "callAriaPrefix": "Call",
@@ -1376,11 +1376,11 @@
       "title": "Wrong {{stage}} address?",
       "stagePickup": "pickup",
       "stageDropoff": "dropoff",
-      "subtitle": "Tell dispatch what's wrong. They'll follow up — your trip stays in flight.",
-      "placeholder": "e.g. The address is one block north — gate is by the green mosque",
+      "subtitle": "Tell dispatch what's wrong. They'll follow up. Your trip stays in flight.",
+      "placeholder": "e.g. The address is one block north, gate is by the green mosque",
       "attach": "Attach my current location",
       "attachAria": "Include my current location as the correction",
-      "waitingGps": "Waiting on GPS — go online to capture a fix.",
+      "waitingGps": "Waiting on GPS. Go online to capture a fix.",
       "send": "Send",
       "sendAria": "Send correction",
       "notNow": "Not now",
@@ -1422,7 +1422,7 @@
     "offline": {
       "title": "You're offline",
       "sub": "We'll retry as soon as the connection is back.",
-      "banner": "Connection issue — we'll retry your update."
+      "banner": "Connection issue. We'll retry your update."
     },
     "timeline": {
       "assigned": "Assigned",
@@ -1449,7 +1449,7 @@
       "continueAria": "Upload and continue",
       "uploading": "Uploading…",
       "uploadFailed": "Upload failed",
-      "uploadFailedFallback": "Upload failed — try again.",
+      "uploadFailedFallback": "Upload failed. Try again.",
       "failed": "Couldn't take the photo",
       "failedFallback": "Try again.",
       "previewAria": "Captured doorstep photo",
@@ -1473,7 +1473,7 @@
       "failed": "Couldn't save signature",
       "failedFallback": "Try again.",
       "uploadFailed": "Upload failed",
-      "uploadFailedFallback": "Upload failed — try again."
+      "uploadFailedFallback": "Upload failed. Try again."
     },
     "otp": {
       "title": "Customer's delivery code",
@@ -1493,7 +1493,7 @@
       "inputLabel": "ENTER CODE",
       "inputAria": "Delivery code input",
       "mismatch": "That code doesn't match. Ask the customer to read it again.",
-      "notIssued": "No code issued yet — tap Send code first.",
+      "notIssued": "No code issued yet. Tap Send code first.",
       "notNow": "Not now",
       "submit": "Complete delivery",
       "submitAria": "Submit code and complete delivery"
@@ -1550,7 +1550,7 @@
     "selectBank": "Select bank",
     "selectBankAria": "Select bank",
     "accountLabel": "ACCOUNT NUMBER",
-    "accountNotFound": "Account not found — check the number and bank.",
+    "accountNotFound": "Account not found. Check the number and bank.",
     "amountLabel": "AMOUNT",
     "savedLabel": "SAVED ACCOUNTS",
     "min": "Min {{min}}",
@@ -1572,7 +1572,7 @@
     "viewReceipt": "View receipt",
     "done": "Done",
     "pendingTitle": "Unfinished withdrawal",
-    "pendingBody": "We restored your last attempt. Confirm with PIN to resume — we won't double-charge you.",
+    "pendingBody": "We restored your last attempt. Confirm with PIN to resume. We won't double-charge you.",
     "discard": "Discard"
   },
   "beneficiaries": {
@@ -1666,12 +1666,12 @@
     "expiredBanner": "One or more documents have expired. Re-upload to keep working.",
     "expiringBanner": "Some documents expire within 14 days. Re-upload soon to avoid interruptions.",
     "noApplicationTitle": "Start your rider application",
-    "noApplicationBody": "Apply to become a rider first — you'll add your documents as part of the application.",
+    "noApplicationBody": "Apply to become a rider first. You'll add your documents as part of the application.",
     "startApplication": "Become a rider",
     "continueApplication": "Continue application"
   },
   "offline": {
-    "banner": "You're offline — actions will retry when you reconnect.",
+    "banner": "You're offline. Actions will retry when you reconnect.",
     "bannerRetry": "Reconnecting…"
   },
   "performance": {
@@ -1720,7 +1720,7 @@
     "stepProgress": "Step {{n}} of 4",
     "draftCta": "Continue application",
     "pendingTitle": "Application under review",
-    "pendingBody": "We're reviewing your documents — usually within a few hours. We'll notify you the moment you're approved.",
+    "pendingBody": "We're reviewing your documents, usually within a few hours. We'll notify you the moment you're approved.",
     "submitted": "Submitted",
     "checkStatus": "Check status",
     "rejectedTitle": "Your application needs changes",

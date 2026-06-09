@@ -1,8 +1,8 @@
-# EAS — build & submit guide
+# EAS - build & submit guide
 
 How to take an iPrime mobile app from `git push` to a TestFlight/Play
 Console upload. Applies to both `mobile/customer-app` and
-`mobile/rider-app` — same commands, run inside whichever app directory.
+`mobile/rider-app` - same commands, run inside whichever app directory.
 
 ## Prerequisites (one-time setup)
 
@@ -28,7 +28,7 @@ eas login
 eas init           # picks up the projectId in app.json
 eas device:create  # only needed if you want to install dev builds on devices
 
-# Inside mobile/rider-app — note rider-app's app.json has projectId: ""
+# Inside mobile/rider-app - note rider-app's app.json has projectId: ""
 # right now; on first build EAS will create one and write it in.
 cd ../rider-app
 eas init
@@ -44,7 +44,7 @@ into git. Configure them once per app:
 eas secret:create --scope project --name EXPO_PUBLIC_SENTRY_DSN \
   --value "https://...@oXXXX.ingest.sentry.io/YYYY" --type string
 
-# Add any other build-time secrets here — keep production values out of
+# Add any other build-time secrets here - keep production values out of
 # eas.json itself so the file can stay in git.
 ```
 
@@ -75,11 +75,11 @@ Manager** roles, then upload the JSON when prompted.
 | Profile | Distribution | iOS output | Android output | Channel | Use case |
 |---|---|---|---|---|---|
 | `development` | internal | dev-client `.ipa` | dev-client `.apk` | `development` | Expo Go-replacement on your own devices for debugging native modules |
-| `preview` | internal | release `.ipa` (ad-hoc) | release `.apk` | `staging` | QA / stakeholders — installable without going through stores |
+| `preview` | internal | release `.ipa` (ad-hoc) | release `.apk` | `staging` | QA / stakeholders - installable without going through stores |
 | `production` | store | `.ipa` for App Store | `.aab` for Play Store | `production` | The thing you actually submit |
 
 `autoIncrement: true` on the production profile bumps `buildNumber`
-(iOS) and `versionCode` (Android) on every build — so you never collide
+(iOS) and `versionCode` (Android) on every build - so you never collide
 when re-submitting a hotfix.
 
 `appVersionSource: remote` means EAS owns the version numbers. After
@@ -97,7 +97,7 @@ the first build, `eas build:version:get` is the source of truth, not
 eas build --profile development --platform android
 eas build --profile development --platform ios
 
-# Internal preview for QA — share the resulting URL
+# Internal preview for QA - share the resulting URL
 eas build --profile preview --platform all
 
 # Production build (the thing you submit to stores)
@@ -113,7 +113,7 @@ The first iOS production build will prompt for:
 - Provisioning profile (EAS can generate one for you)
 
 Say yes to all of EAS's auto-managed options unless you have a reason
-to bring your own — it's significantly easier than maintaining
+to bring your own - it's significantly easier than maintaining
 certificates manually.
 
 ---
@@ -150,11 +150,11 @@ rollout instead of going 100% on day one:
 | 1 | 10% | 24 h | Sentry crash-free sessions ≥ 99.5%, no spike in support tickets |
 | 2 | 25% | 24 h | Same |
 | 3 | 50% | 48 h | Same + retention metrics |
-| 4 | 100% | — | — |
+| 4 | 100% | - | - |
 
 Apple doesn't expose a staged-rollout UI for App Store releases. The
 equivalent is the **Phased Release for Automatic Updates** option in
-App Store Connect — toggles a 7-day automatic ramp for users on
+App Store Connect - toggles a 7-day automatic ramp for users on
 auto-update; doesn't gate the manual-install audience. Use it.
 
 ---
@@ -179,7 +179,7 @@ eas update --branch production --message "fix: <description>"
 ```
 
 The build's `runtimeVersion.policy: appVersion` means JS patches only
-apply to builds that match the same native version — a hotfix can't
+apply to builds that match the same native version - a hotfix can't
 target an older binary by accident.
 
 ---
@@ -191,8 +191,8 @@ target an older binary by accident.
 - [ ] Fill `REPLACE_WITH_APPLE_TEAM_ID` and `REPLACE_WITH_APP_STORE_CONNECT_APP_ID` in both `eas.json` files (or pass via CLI)
 - [ ] Create + upload an Android service-account JSON for `eas submit` to Play Console
 - [ ] Add `EXPO_PUBLIC_SENTRY_DSN` as an EAS secret (per app)
-- [ ] App icons exist — confirmed for both apps in `assets/icon.png`
-- [ ] Splash screens exist — confirmed for both apps in `assets/splash-icon.png`
-- [ ] Screenshots for store listings — captured separately, see `docs/store/screenshot-plan.md` (#5.6)
-- [ ] Privacy policy + ToS deployed to public URL — see `docs/store/legal-hosting.md` (#5.3 — done)
-- [ ] App Store privacy questionnaire + Play Console data-safety form — see `docs/store/` (#5.7, #5.8)
+- [ ] App icons exist - confirmed for both apps in `assets/icon.png`
+- [ ] Splash screens exist - confirmed for both apps in `assets/splash-icon.png`
+- [ ] Screenshots for store listings - captured separately, see `docs/store/screenshot-plan.md` (#5.6)
+- [ ] Privacy policy + ToS deployed to public URL - see `docs/store/legal-hosting.md` (#5.3 - done)
+- [ ] App Store privacy questionnaire + Play Console data-safety form - see `docs/store/` (#5.7, #5.8)

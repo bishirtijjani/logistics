@@ -1,7 +1,7 @@
 {
   "name": "iPrime",
   "short_name": "iPrime",
-  "description": "iPrime — order, pay, and track deliveries.",
+  "description": "iPrime - order, pay, and track deliveries.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

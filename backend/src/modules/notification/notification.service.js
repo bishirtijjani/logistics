@@ -1,5 +1,5 @@
 /**
- * Notification feed service — backs the in-app Notification Center.
+ * Notification feed service - backs the in-app Notification Center.
  */
 
 const { prisma } = require('../../config/database');

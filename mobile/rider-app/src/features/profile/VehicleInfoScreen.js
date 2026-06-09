@@ -1,5 +1,5 @@
 /**
- * VehicleInfoScreen — read-only summary of the rider's approved vehicle.
+ * VehicleInfoScreen - read-only summary of the rider's approved vehicle.
  * Changes require admin re-approval, so the "Request change" CTA files a
  * pre-filled support ticket of type VEHICLE_CHANGE that admins can action.
  */
@@ -20,9 +20,9 @@ export default function VehicleInfoScreen() {
   const rider = useSelector((s) => s.rider?.rider);
 
   const rows = [
-    { label: t("vehicleInfo.type", "Type"), value: rider?.vehicleType || "—" },
-    { label: t("vehicleInfo.plate", "Plate number"), value: rider?.plateNumber || "—" },
-    { label: t("vehicleInfo.color", "Colour"), value: rider?.vehicleColor || "—" },
+    { label: t("vehicleInfo.type", "Type"), value: rider?.vehicleType || "-" },
+    { label: t("vehicleInfo.plate", "Plate number"), value: rider?.plateNumber || "-" },
+    { label: t("vehicleInfo.color", "Colour"), value: rider?.vehicleColor || "-" },
   ];
 
   const requestChange = () => {
@@ -32,7 +32,7 @@ export default function VehicleInfoScreen() {
       description: [
         t("vehicleInfo.changeBodyPrefix", "I'd like to update my registered vehicle."),
         "",
-        `Current: ${rider?.vehicleType || "—"} · ${rider?.plateNumber || "—"} · ${rider?.vehicleColor || "—"}`,
+        `Current: ${rider?.vehicleType || "-"} · ${rider?.plateNumber || "-"} · ${rider?.vehicleColor || "-"}`,
         "",
         t("vehicleInfo.changeBodyHint", "Please tell me what proof of ownership / insurance you need for the new vehicle."),
       ].join("\n"),
@@ -78,10 +78,10 @@ export default function VehicleInfoScreen() {
             <Ionicons name="bicycle-outline" size={32} color={tokens.brand.default} />
           </View>
           <Text style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary }}>
-            {rider?.vehicleType || "—"}
+            {rider?.vehicleType || "-"}
           </Text>
           <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 2 }}>
-            {rider?.plateNumber || "—"}
+            {rider?.plateNumber || "-"}
           </Text>
         </View>
 

@@ -1,5 +1,5 @@
 /**
- * Rider controller — HTTP handlers for rider operations.
+ * Rider controller - HTTP handlers for rider operations.
  */
 
 const riderService = require('./rider.service');
@@ -92,7 +92,7 @@ const declineOffer = async (req, res, next) => {
 
 const getEarnings = async (req, res, next) => {
   try {
-    // Phase 6 — paginated `recent` rows. `page`/`limit` are optional query
+    // Phase 6 - paginated `recent` rows. `page`/`limit` are optional query
     // params; the dashboard hits with defaults, the breakdown screen passes
     // page=N for infinite scroll.
     const rawPage = parseInt(req.query.page, 10);

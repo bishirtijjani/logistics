@@ -8,7 +8,7 @@ import socketService from './socket';
 let lastUnsubscribe = null;
 
 export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
-  // Idempotent — re-subscribing replaces the previous handler.
+  // Idempotent - re-subscribing replaces the previous handler.
   if (typeof lastUnsubscribe === 'function') {
     lastUnsubscribe();
     lastUnsubscribe = null;

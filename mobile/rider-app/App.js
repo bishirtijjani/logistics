@@ -36,7 +36,7 @@ initSentry();
 initAnalytics();
 track(EVENTS.AppOpened);
 
-// Web only: route Alert.alert through a themed modal — RN-web's Alert.alert has
+// Web only: route Alert.alert through a themed modal - RN-web's Alert.alert has
 // dead multi-button callbacks. No-op on native (real OS Alert is used there).
 installWebAlert();
 
@@ -48,7 +48,7 @@ registerForceLogout(() => store.dispatch(forceLogoutAction()));
 LogBox.ignoreLogs(["ViewPropTypes will be removed"]);
 LogBox.ignoreAllLogs();
 
-// Themed toast — built inside ThemeProvider so the pill bg flips with mode.
+// Themed toast - built inside ThemeProvider so the pill bg flips with mode.
 function ThemedToast() {
   const toastConfig = useToastConfig();
   return (
@@ -112,7 +112,7 @@ function reportToSentry(error, info) {
 export default function App() {
   // Socket lifecycle is managed by AppNavigator (gated on auth + biometric).
   // ErrorBoundary sits OUTSIDE ThemeProvider so the fallback still renders if
-  // ThemeProvider itself crashes. The fallback uses static colors — it cannot
+  // ThemeProvider itself crashes. The fallback uses static colors - it cannot
   // consume useTheme.
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

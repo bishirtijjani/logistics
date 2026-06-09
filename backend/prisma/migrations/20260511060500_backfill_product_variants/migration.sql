@@ -43,7 +43,7 @@ WHERE v."id" IS NULL;
 
 -- 2) Backfill RequestItem.variantId for every row that lacks one.
 -- Each RequestItem points at exactly one Product; we resolve to that
--- Product's default variant (the one we just created — or, if a product
+-- Product's default variant (the one we just created - or, if a product
 -- already had variants pre-migration, the lowest-priced available variant).
 WITH default_variants AS (
   SELECT DISTINCT ON (v."productId")

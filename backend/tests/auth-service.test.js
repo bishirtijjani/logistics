@@ -1,5 +1,5 @@
 /**
- * Auth service tests — signup → OTP → login, PIN flows, session rotation,
+ * Auth service tests - signup → OTP → login, PIN flows, session rotation,
  * password reset, phone-number change. Money paths + KatPay/BVN provisioning
  * stay in the money-path specs; this file is the non-money complement called
  * out in Phase 10.
@@ -45,18 +45,18 @@ stubModule(path.resolve(__dirname, '../src/config/index.js'), {
 stubModule(path.resolve(__dirname, '../src/utils/logger.js'), {
   logger: { info() {}, warn() {}, error() {}, debug() {} },
 });
-// bullmq Queue constructor — never instantiated in the auth flows we test,
+// bullmq Queue constructor - never instantiated in the auth flows we test,
 // but `new Queue()` runs at first use (lazy). Stub the import path so the
 // require chain resolves without spinning up a real Redis-backed queue.
 stubModule(require.resolve('bullmq'), {
   Queue: class { constructor() {} add() { return Promise.resolve({}); } },
 });
-// Termii / KatPay / notification service — only touched by BVN, but stubbed
+// Termii / KatPay / notification service - only touched by BVN, but stubbed
 // defensively in case any test path lights them up.
 stubModule(path.resolve(__dirname, '../src/services/termii.service.js'), {
   sendSms: async () => ({ ok: true }),
 });
-// Messaging dispatcher — the new entry point for outbound OTP + SMS. Stubbed
+// Messaging dispatcher - the new entry point for outbound OTP + SMS. Stubbed
 // so phone-OTP / welcome / phone-change paths don't try to hit Meta or Termii.
 stubModule(path.resolve(__dirname, '../src/services/messaging.service.js'), {
   sendOtp: async () => ({ ok: true, messageId: 'wamid.test' }),

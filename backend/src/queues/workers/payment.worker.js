@@ -184,7 +184,7 @@ const refundFailedWithdrawal = async ({ transactionId, amount, userId, debitWall
   const refRef = `REF-${transactionId}`;
   const already = await prisma.transaction.findUnique({ where: { reference: refRef } });
   if (already) {
-    logger.info('Withdrawal already refunded — skipping', { transactionId });
+    logger.info('Withdrawal already refunded - skipping', { transactionId });
     return;
   }
 
@@ -208,7 +208,7 @@ const refundFailedWithdrawal = async ({ transactionId, amount, userId, debitWall
         type: 'REFUND',
         status: 'COMPLETED',
         amount,
-        description: `Withdrawal refund — payout rejected${reason ? ` (${reason})` : ''}`,
+        description: `Withdrawal refund - payout rejected${reason ? ` (${reason})` : ''}`,
         creditWalletId: wallet.id,
         provider: 'KATPAY',
         balanceBefore: currentBalance,
@@ -226,22 +226,22 @@ const refundFailedWithdrawal = async ({ transactionId, amount, userId, debitWall
       amount,
       transactionId: `REF-${transactionId}`,
       route: '/wallet',
-      description: 'Your withdrawal failed — funds returned to your wallet.',
+      description: 'Your withdrawal failed - funds returned to your wallet.',
     }).catch((err) => logger.warn('Withdrawal-refund notification failed', { error: err.message }));
   }
 };
 
 /**
- * Process withdrawal — call KatPay payout API.
+ * Process withdrawal - call KatPay payout API.
  *
  * Money-safety rules (a payout moves real cash and can't be un-sent):
  *   - Terminal states (COMPLETED/FAILED/REVERSED) never re-run.
  *   - We CLAIM the row (PROCESSING→SENT) BEFORE calling the payout, so a duplicate
  *     job, a retry, or the enqueue-failure compensation can never dispatch the
  *     same payout twice. A row already SENT is treated as "dispatched, outcome
- *     unknown" — we NEVER re-pay it; reconciliation surfaces it.
+ *     unknown" - we NEVER re-pay it; reconciliation surfaces it.
  *   - Refund ONLY on a DEFINITIVE provider rejection (the money did not leave).
- *   - On an AMBIGUOUS error (timeout/network/5xx) the payout may have settled —
+ *   - On an AMBIGUOUS error (timeout/network/5xx) the payout may have settled -
  *     do NOT refund; leave it SENT and re-throw to retry. Retries see SENT and
  *     return without re-paying; if they exhaust, reconciliation flags it.
  */
@@ -254,15 +254,15 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
   }
 
   if (['COMPLETED', 'FAILED', 'REVERSED'].includes(transaction.status)) {
-    logger.info('Withdrawal already settled — skipping', { transactionId, status: transaction.status });
+    logger.info('Withdrawal already settled - skipping', { transactionId, status: transaction.status });
     return;
   }
 
   if (transaction.status === 'SENT') {
     // A prior attempt already dispatched this payout and we can't confirm its
-    // outcome (KatPay has no payout-status endpoint). NEVER re-pay — leave it for
+    // outcome (KatPay has no payout-status endpoint). NEVER re-pay - leave it for
     // the reconciliation scan / manual resolution.
-    logger.warn('Withdrawal already dispatched (SENT) — not re-paying; needs reconciliation', { transactionId });
+    logger.warn('Withdrawal already dispatched (SENT) - not re-paying; needs reconciliation', { transactionId });
     return;
   }
 
@@ -274,7 +274,7 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
     data: { status: 'SENT' },
   });
   if (claim.count !== 1) {
-    logger.info('Withdrawal already claimed elsewhere — skipping', { transactionId });
+    logger.info('Withdrawal already claimed elsewhere - skipping', { transactionId });
     return;
   }
 
@@ -290,16 +290,16 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
     });
   } catch (error) {
     if (!error.definitive) {
-      // Ambiguous — the payout may have gone out. Leave it SENT and retry; the
+      // Ambiguous - the payout may have gone out. Leave it SENT and retry; the
       // retry will see SENT and NOT re-pay. Never refund here.
-      logger.warn('Withdrawal payout ambiguous — left SENT for retry/reconcile', {
+      logger.warn('Withdrawal payout ambiguous - left SENT for retry/reconcile', {
         transactionId, providerStatus: error.providerStatus,
       });
       throw error; // BullMQ retries
     }
-    logger.error('Withdrawal payout rejected — refunding', { transactionId, reason: error.providerMessage });
+    logger.error('Withdrawal payout rejected - refunding', { transactionId, reason: error.providerMessage });
     await refundFailedWithdrawal({ transactionId, amount, userId, debitWalletId: transaction.debitWalletId, reason: error.providerMessage });
-    return; // terminal — do NOT re-throw (no retry, no re-pay)
+    return; // terminal - do NOT re-throw (no retry, no re-pay)
   }
 
   // Success → SENT→COMPLETED (compare-and-set).

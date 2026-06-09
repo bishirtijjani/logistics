@@ -30,7 +30,7 @@ function maxDobString() {
 }
 
 /**
- * Step 0/3 — Personal info.
+ * Step 0/3 - Personal info.
  * Collects DOB + address. Name + email come from the registered user account.
  * Backend currently ignores these fields (Rider model has no DOB/address)
  * but we capture them now for forward compatibility.

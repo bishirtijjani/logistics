@@ -1,5 +1,5 @@
 /**
- * Admin controller — HTTP handlers for admin operations.
+ * Admin controller - HTTP handlers for admin operations.
  */
 
 const adminService = require('./admin.service');
@@ -479,7 +479,7 @@ const setMerchantTags = async (req, res, next) => {
 // Admin Rider Management Controllers
 // ============================================================
 
-// Phase 8 — Force a rider offline. Used by support to handle "rider went
+// Phase 8 - Force a rider offline. Used by support to handle "rider went
 // rogue" scenarios and by the Maestro `05-force-offline` flow.
 const forceOfflineRider = async (req, res, next) => {
   try {
@@ -496,7 +496,7 @@ const forceOfflineRider = async (req, res, next) => {
   }
 };
 
-// Phase 8 — Staging-only helper used by the Maestro `08-offer-race-lost`
+// Phase 8 - Staging-only helper used by the Maestro `08-offer-race-lost`
 // flow. Service-layer guard refuses on production.
 const seedTestOffer = async (req, res, next) => {
   try {
@@ -699,7 +699,7 @@ const failWithdrawal = async (req, res, next) => {
     );
     const message = result?.refunded
       ? 'Withdrawal marked failed and funds returned'
-      : 'Withdrawal marked failed — funds were NOT auto-returned; needs reconciliation';
+      : 'Withdrawal marked failed - funds were NOT auto-returned; needs reconciliation';
     res.json(ApiResponse.success(message, result));
   } catch (error) {
     next(error);
@@ -716,7 +716,7 @@ const getWithdrawalHistory = async (req, res, next) => {
 };
 
 // ============================================================
-// Support tickets + disputes — delegated to the support module.
+// Support tickets + disputes - delegated to the support module.
 // The admin namespace keeps these paths so existing admin-dashboard URLs work.
 // ============================================================
 
@@ -923,7 +923,7 @@ module.exports = {
   createVtuNetwork,
   updateVtuNetwork,
   deleteVtuNetwork,
-  // Phase 8 — Maestro support
+  // Phase 8 - Maestro support
   forceOfflineRider,
   seedTestOffer,
 };

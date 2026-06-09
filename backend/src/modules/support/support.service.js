@@ -1,5 +1,5 @@
 /**
- * Support service — tickets, disputes, thread messages.
+ * Support service - tickets, disputes, thread messages.
  *
  * Tickets: generic help threads raised by any authenticated user.
  * Disputes: order-specific complaints raised by customers; resolved by admins.
@@ -106,11 +106,11 @@ const DISPUTE_THREAD_SELECT = {
 const validateCloudinaryUrls = (urls = []) => {
   if (!Array.isArray(urls) || urls.length === 0) return;
   const cloudName = (config.CLOUDINARY_CLOUD_NAME || '').trim();
-  if (!cloudName) return; // dev mode without Cloudinary — skip
+  if (!cloudName) return; // dev mode without Cloudinary - skip
   const expectedPrefix = `https://res.cloudinary.com/${cloudName}/`;
   for (const url of urls) {
     if (typeof url !== 'string' || !url.startsWith(expectedPrefix)) {
-      throw AppError.badRequest('Invalid attachment URL — upload via the in-app flow.', {
+      throw AppError.badRequest('Invalid attachment URL - upload via the in-app flow.', {
         code: 'INVALID_ATTACHMENT_URL',
       });
     }
@@ -128,7 +128,7 @@ const getAdminUserIds = async () => {
 const stripInternal = (messages) => messages.filter((m) => !m.isInternal);
 
 // ============================================================
-// TICKETS — user-side
+// TICKETS - user-side
 // ============================================================
 
 const createTicket = async (userId, data) => {
@@ -278,7 +278,7 @@ const postTicketMessage = async (ticketId, fromUserId, fromUserRole, data) => {
         data: { route: `/support/ticket/${ticketId}`, kind: 'ticket', ticketId },
       });
     } else {
-      // User replied — notify the assignee (if any) and otherwise all admins.
+      // User replied - notify the assignee (if any) and otherwise all admins.
       const recipients = ticket.assignedToId ? [ticket.assignedToId] : await getAdminUserIds();
       await Promise.all(
         recipients.map((adminId) =>
@@ -313,7 +313,7 @@ const closeTicket = async (ticketId, userId) => {
 };
 
 // ============================================================
-// TICKETS — admin-side
+// TICKETS - admin-side
 // ============================================================
 
 const adminListTickets = async ({ status, category, priority, assignedToId, page = 1, limit = 20 }) => {
@@ -413,7 +413,7 @@ const adminAssignTicket = async (ticketId, assignedToId, adminUserId, ipAddress,
 };
 
 // ============================================================
-// DISPUTES — customer-side
+// DISPUTES - customer-side
 // ============================================================
 
 const DISPUTE_WINDOW_DAYS = 7;
@@ -509,7 +509,7 @@ const createDispute = async (userId, data, viewerRole = 'CUSTOMER') => {
       notifyService.pushAndSocket(recipientId, {
         type: 'SUPPORT',
         title: `New dispute #${dispute.number}`,
-        body: `${data.category.replace(/_/g, ' ')} — ${data.reason.slice(0, 80)}`,
+        body: `${data.category.replace(/_/g, ' ')} - ${data.reason.slice(0, 80)}`,
         data: { route: `/disputes/${dispute.id}`, kind: 'dispute', disputeId: dispute.id },
         requestId: request.id,
       }),
@@ -711,7 +711,7 @@ const postDisputeMessage = async (disputeId, fromUserId, fromUserRole, data) => 
 };
 
 // ============================================================
-// DISPUTES — admin-side resolution (auto-refund)
+// DISPUTES - admin-side resolution (auto-refund)
 // ============================================================
 
 const adminResolveDispute = async (
@@ -753,7 +753,7 @@ const adminResolveDispute = async (
   const customerPaid = Number(dispute.request.customerPaid);
   const wallet = dispute.request.customer?.wallet;
   if (!wallet && (resolution === 'FULL_REFUND' || resolution === 'PARTIAL_REFUND')) {
-    throw AppError.badRequest('Customer wallet not found — cannot refund', {
+    throw AppError.badRequest('Customer wallet not found - cannot refund', {
       code: 'CUSTOMER_WALLET_MISSING',
     });
   }
@@ -874,7 +874,7 @@ const adminResolveDispute = async (
       data: { route: `/disputes/${disputeId}`, kind: 'dispute', disputeId },
     });
   }
-  // Notify the rider involved (if any) — they may have raised the dispute
+  // Notify the rider involved (if any) - they may have raised the dispute
   // or been the target of one.
   if (result.dispute.request?.rider?.userId &&
       result.dispute.request.rider.userId !== dispute.raisedById) {
@@ -890,21 +890,21 @@ const adminResolveDispute = async (
 };
 
 module.exports = {
-  // tickets — user
+  // tickets - user
   createTicket,
   listMyTickets,
   getTicketById,
   postTicketMessage,
   closeTicket,
-  // tickets — admin
+  // tickets - admin
   adminListTickets,
   adminUpdateTicketStatus,
   adminAssignTicket,
-  // disputes — user / merchant
+  // disputes - user / merchant
   createDispute,
   listDisputes,
   getDisputeById,
   postDisputeMessage,
-  // disputes — admin
+  // disputes - admin
   adminResolveDispute,
 };

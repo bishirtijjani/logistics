@@ -1,10 +1,10 @@
 /**
- * Wallet module — Zod validation schemas.
+ * Wallet module - Zod validation schemas.
  */
 
 const { z } = require('zod');
 
-// Money amount: positive, capped, and at most 2 decimals (kobo) — the ledger is
+// Money amount: positive, capped, and at most 2 decimals (kobo) - the ledger is
 // Decimal(15,2), so sub-kobo or absurd values must be rejected before they hit
 // it. The epsilon keeps legitimate kobo amounts from tripping float rounding.
 const amountField = z.coerce
@@ -22,7 +22,7 @@ const withdrawSchema = z.object({
   pin: z.string().length(6),
 });
 
-// A transfer is a bank disbursement — same payload as a withdrawal (we route it
+// A transfer is a bank disbursement - same payload as a withdrawal (we route it
 // to the same rail in the service). Kept as a named export so the route reads
 // intentionally even though the shape is identical to withdrawSchema today.
 const transferSchema = withdrawSchema;

@@ -38,13 +38,13 @@ const STATUS_META = {
 
 // merchant.category is sent by the API; this helper renders a label + color swatch
 // when no category is loaded yet (e.g. immediately after create).
-const categoryLabel = (merchant) => merchant?.category?.name || '—'
+const categoryLabel = (merchant) => merchant?.category?.name || '-'
 const categoryColor = (merchant) => merchant?.category?.color || '#9CA3AF'
 
 // Map a bank code to its display name when the bank list is loaded; fall back
 // to the raw code (or em-dash) otherwise.
 const bankLabel = (banks, code) =>
-  (Array.isArray(banks) ? banks : []).find((b) => (b.code || b.bankCode) === code)?.name || code || '—'
+  (Array.isArray(banks) ? banks : []).find((b) => (b.code || b.bankCode) === code)?.name || code || '-'
 
 const TABS = [
   { id: 'overview',    label: 'All Merchants',    icon: Store },
@@ -258,7 +258,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         setBankForm((f) => ({ ...f, accountName: r.payload.accountName }))
       } else {
         setResolvedBank(null)
-        toast.error("Couldn't verify automatically — type the account name.")
+        toast.error("Couldn't verify automatically - type the account name.")
       }
     })
 
@@ -335,7 +335,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                 <Btn size="sm" variant="success" loading={loading === 'approve'}
                   onClick={() => act('approve', async () => {
                     const r = await dispatch(approveMerchant(merchant.id))
-                    if (r.meta.requestStatus === 'fulfilled') { toast.success('Merchant approved — welcome email sent'); onAction?.() }
+                    if (r.meta.requestStatus === 'fulfilled') { toast.success('Merchant approved - welcome email sent'); onAction?.() }
                     else toast.error(r.error?.message || 'Failed')
                   })}>
                   <CheckCircle size={14} /> Approve
@@ -487,7 +487,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
 
               {/* Stats strip */}
               <div className="grid grid-cols-3 gap-3 pt-2">
-                <StatCard label="Rating" value={merchant.averageRating?.toFixed(1) || '—'} icon={<Star size={14} className="text-amber-500" />} />
+                <StatCard label="Rating" value={merchant.averageRating?.toFixed(1) || '-'} icon={<Star size={14} className="text-amber-500" />} />
                 <StatCard label="Orders" value={merchant.totalOrders?.toLocaleString() || '0'} icon={<TrendingUp size={14} className="text-blue-500" />} />
                 <StatCard label="Commission" value={`${merchant.commissionRate}%`} icon={<DollarSign size={14} className="text-primary" />} />
               </div>
@@ -619,7 +619,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                   {!bankEditMode ? (
                     merchant.wallet.accountNumber ? (
                       <>
-                        <InfoRow label="Account Name" value={merchant.wallet.accountName || '—'} />
+                        <InfoRow label="Account Name" value={merchant.wallet.accountName || '-'} />
                         <InfoRow label="Account Number" value={merchant.wallet.accountNumber} />
                         <InfoRow label="Bank" value={bankLabel(banks, merchant.wallet.bankCode)} />
                       </>
@@ -681,7 +681,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                         </Btn>
                       </div>
                       <p className="text-xs text-muted dark:text-dark-muted">
-                        Verify pulls the real account name from the bank. If it can&apos;t be verified, type it — but double-check, since transfers can&apos;t be reversed.
+                        Verify pulls the real account name from the bank. If it can&apos;t be verified, type it - but double-check, since transfers can&apos;t be reversed.
                       </p>
                     </div>
                   )}
@@ -706,7 +706,7 @@ function InfoRow({ icon, label, value }) {
       {icon && <span className="text-muted dark:text-dark-muted mt-0.5 flex-shrink-0">{icon}</span>}
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted dark:text-dark-muted">{label}</p>
-        <p className="text-sm text-text dark:text-dark-text break-words">{value || '—'}</p>
+        <p className="text-sm text-text dark:text-dark-text break-words">{value || '-'}</p>
       </div>
     </div>
   )
@@ -767,7 +767,7 @@ function MerchantTagsPanel({ merchant, onSaved }) {
       {tagsLoading ? (
         <div className="flex justify-center py-6"><Spinner size={20} cls="border-primary" /></div>
       ) : Object.keys(grouped).length === 0 ? (
-        <p className="text-sm text-muted dark:text-dark-muted py-4 text-center">No tags yet — create some in the Tags tab</p>
+        <p className="text-sm text-muted dark:text-dark-muted py-4 text-center">No tags yet - create some in the Tags tab</p>
       ) : (
         Object.entries(grouped).map(([cat, catTags]) => (
           <div key={cat}>
@@ -849,7 +849,7 @@ function ApplicationReviewPanel({ merchant, onAction }) {
         <div className="p-4 sm:p-5 space-y-3">
           <p className="text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wide">Operations</p>
           <InfoRow icon={<Clock size={14} />} label="Hours" value={`${merchant.openingTime} – ${merchant.closingTime}`} />
-          <InfoRow label="Account Owner" value={merchant.user ? `${merchant.user.firstName} ${merchant.user.lastName}` : '—'} />
+          <InfoRow label="Account Owner" value={merchant.user ? `${merchant.user.firstName} ${merchant.user.lastName}` : '-'} />
           <InfoRow label="Owner Email" value={merchant.user?.email} />
         </div>
       </div>
@@ -868,15 +868,15 @@ function ApplicationReviewPanel({ merchant, onAction }) {
           <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <p className="text-xs text-muted dark:text-dark-muted">Account Name</p>
-              <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.wallet.accountName || '—'}</p>
+              <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.wallet.accountName || '-'}</p>
             </div>
             <div>
               <p className="text-xs text-muted dark:text-dark-muted">Account Number</p>
-              <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.wallet.accountNumber || '—'}</p>
+              <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.wallet.accountNumber || '-'}</p>
             </div>
             <div>
               <p className="text-xs text-muted dark:text-dark-muted">Bank Code</p>
-              <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.wallet.bankCode || '—'}</p>
+              <p className="text-sm font-medium text-text dark:text-dark-text">{merchant.wallet.bankCode || '-'}</p>
             </div>
           </div>
         </div>
@@ -917,7 +917,7 @@ function WithdrawalRow({ w, selected, onSelect, onApprove, onReject, loading }) 
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-text dark:text-dark-text text-sm truncate">{w.merchantWallet?.merchant?.name || '—'}</p>
+          <p className="font-semibold text-text dark:text-dark-text text-sm truncate">{w.merchantWallet?.merchant?.name || '-'}</p>
           <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full shrink-0">Pending</span>
         </div>
         <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -1031,7 +1031,7 @@ export default function MerchantsPage() {
     const r = await dispatch(rejectMerchant({ merchantId: rejectModal.id, reason: rejectReason }))
     setActionLoading(null)
     if (r.meta.requestStatus === 'fulfilled') {
-      toast.success('Merchant rejected — email sent')
+      toast.success('Merchant rejected - email sent')
       setRejectModal(null); setRejectReason(''); refreshMerchants()
     } else toast.error(r.error?.message || 'Failed')
   }
@@ -1042,7 +1042,7 @@ export default function MerchantsPage() {
     const r = await dispatch(suspendMerchant({ merchantId: suspendModal.id, reason: suspendReason }))
     setActionLoading(null)
     if (r.meta.requestStatus === 'fulfilled') {
-      toast.success('Merchant suspended — email sent')
+      toast.success('Merchant suspended - email sent')
       setSuspendModal(null); setSuspendReason(''); refreshMerchants()
     } else toast.error(r.error?.message || 'Failed')
   }
@@ -1088,7 +1088,7 @@ export default function MerchantsPage() {
     setWLoading(`approve-${withdrawalId}`)
     const r = await dispatch(approveWithdrawal(withdrawalId))
     setWLoading(null)
-    if (r.meta.requestStatus === 'fulfilled') toast.success('Withdrawal approved — email sent')
+    if (r.meta.requestStatus === 'fulfilled') toast.success('Withdrawal approved - email sent')
     else toast.error(r.error?.message || 'Failed')
   }
 
@@ -1098,7 +1098,7 @@ export default function MerchantsPage() {
     const r = await dispatch(rejectWithdrawal({ withdrawalId: rejectWithdrawalModal.id, reason: withdrawalRejectReason }))
     setWLoading(null)
     if (r.meta.requestStatus === 'fulfilled') {
-      toast.success('Withdrawal rejected — funds returned')
+      toast.success('Withdrawal rejected - funds returned')
       setRejectWithdrawalModal(null); setWithdrawalRejectReason('')
     } else toast.error(r.error?.message || 'Failed')
   }
@@ -1109,8 +1109,8 @@ export default function MerchantsPage() {
     const r = await dispatch(failWithdrawal({ withdrawalId: failWithdrawalModal.id, reason: failReason }))
     setWLoading(null)
     if (r.meta.requestStatus === 'fulfilled') {
-      if (r.payload?.refunded) toast.success('Marked failed — funds returned to the merchant')
-      else toast.error('Marked failed, but funds were NOT auto-returned — needs reconciliation (check logs)')
+      if (r.payload?.refunded) toast.success('Marked failed - funds returned to the merchant')
+      else toast.error('Marked failed, but funds were NOT auto-returned - needs reconciliation (check logs)')
       setFailWithdrawalModal(null); setFailReason('')
     } else toast.error(r.error?.message || 'Failed')
   }
@@ -1334,7 +1334,7 @@ export default function MerchantsPage() {
                         <td className="px-5 py-4 text-sm text-text dark:text-dark-text">
                           <span className="flex items-center gap-1">
                             <Star size={13} className="text-amber-400 fill-amber-400" />
-                            {m.averageRating?.toFixed(1) || '—'}
+                            {m.averageRating?.toFixed(1) || '-'}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -1436,7 +1436,7 @@ export default function MerchantsPage() {
               </div>
             )}
 
-            {/* Processing payouts — initiated but not yet confirmed by the bank.
+            {/* Processing payouts - initiated but not yet confirmed by the bank.
                 If one bounced, marking it failed returns the funds to the merchant. */}
             {processingWithdrawals.length > 0 && (
               <div className="pt-4 border-t border-surface-muted dark:border-dark-surface-muted">
@@ -1451,7 +1451,7 @@ export default function MerchantsPage() {
                     <div key={w.id} className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-text dark:text-dark-text text-sm truncate">{w.merchantWallet?.merchant?.name || '—'}</p>
+                          <p className="font-semibold text-text dark:text-dark-text text-sm truncate">{w.merchantWallet?.merchant?.name || '-'}</p>
                           <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full shrink-0">Processing</span>
                         </div>
                         <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -1570,7 +1570,7 @@ export default function MerchantsPage() {
       )}
 
       {/* ── Reject Modal ── */}
-      <Modal open={!!rejectModal} onClose={() => { setRejectModal(null); setRejectReason('') }} title={`Reject — ${rejectModal?.name}`}>
+      <Modal open={!!rejectModal} onClose={() => { setRejectModal(null); setRejectReason('') }} title={`Reject - ${rejectModal?.name}`}>
         <div className="space-y-4">
           <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4">
             <p className="text-sm text-red-700 dark:text-red-300">The merchant will be notified by email with this reason and instructions to reapply.</p>
@@ -1593,7 +1593,7 @@ export default function MerchantsPage() {
       </Modal>
 
       {/* ── Suspend Modal ── */}
-      <Modal open={!!suspendModal} onClose={() => { setSuspendModal(null); setSuspendReason('') }} title={`Suspend — ${suspendModal?.name}`}>
+      <Modal open={!!suspendModal} onClose={() => { setSuspendModal(null); setSuspendReason('') }} title={`Suspend - ${suspendModal?.name}`}>
         <div className="space-y-4">
           <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
             <p className="text-sm text-amber-700 dark:text-amber-300">The merchant's wallet will be locked and they'll receive an email notification. Withdrawals will be paused.</p>
@@ -1713,7 +1713,7 @@ export default function MerchantsPage() {
               rows={3}
               value={failReason}
               onChange={(e) => setFailReason(e.target.value)}
-              placeholder="e.g. KatPay confirmed the payout bounced — account closed."
+              placeholder="e.g. KatPay confirmed the payout bounced - account closed."
             />
           </FormField>
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">

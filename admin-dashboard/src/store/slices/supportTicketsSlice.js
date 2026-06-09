@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
 // ============================================================
-// Support tickets — admin
+// Support tickets - admin
 // ============================================================
 
 export const fetchTickets = createAsyncThunk(

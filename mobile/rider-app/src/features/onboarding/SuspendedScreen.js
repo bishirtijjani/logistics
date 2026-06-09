@@ -9,7 +9,7 @@ import { logout } from "../../store/slices/authSlice";
 
 /**
  * Shown when `Rider.status === SUSPENDED`. Suspension is admin-driven (or
- * automatic when performance metrics breach a threshold — Phase 7 work).
+ * automatic when performance metrics breach a threshold - Phase 7 work).
  * Rider can read the reason and open a support ticket to appeal.
  */
 export default function SuspendedScreen() {

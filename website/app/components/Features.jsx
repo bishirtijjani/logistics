@@ -17,7 +17,7 @@ const pillars = [
     tint: "bg-orange-500",
     title: "Food, Groceries & Parcels",
     blurb:
-      "Order from local restaurants, supermarkets and pharmacies across Katsina. Or send a package across town with a nearby rider — live GPS the whole way.",
+      "Order from local restaurants, supermarkets and pharmacies across Katsina. Or send a package across town with a nearby rider - live GPS the whole way.",
     bullets: [
       { Icon: Utensils, label: "Suya, jollof, and everything between" },
       { Icon: ShoppingBasket, label: "Groceries and pharmacy" },
@@ -41,7 +41,7 @@ const pillars = [
     tint: "bg-amber-500",
     title: "Airtime, Data & Bills",
     blurb:
-      "Same balance covers your everyday bills. Recharge MTN, Airtel, Glo and 9mobile, buy data, pay any DISCO — tokens land in SMS the moment payment clears.",
+      "Same balance covers your everyday bills. Recharge MTN, Airtel, Glo and 9mobile, buy data, pay any DISCO - tokens land in SMS the moment payment clears.",
     bullets: [
       { Icon: Radio, label: "MTN, Airtel, Glo, 9mobile" },
       { Icon: Lightbulb, label: "Every Nigerian DISCO" },

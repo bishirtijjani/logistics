@@ -1,5 +1,5 @@
 /**
- * seed-demo-orders.js — drop a realistic spread of demo orders onto one merchant
+ * seed-demo-orders.js - drop a realistic spread of demo orders onto one merchant
  * so the merchant dashboard's Orders + Earnings screens have something to show
  * for a walkthrough / screen recording.
  *
@@ -23,11 +23,11 @@
  */
 
 // Load backend/.env so DATABASE_URL is available regardless of where this is run
-// from. Optional — if dotenv isn't installed, we assume the env is already set.
+// from. Optional - if dotenv isn't installed, we assume the env is already set.
 try {
   require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') })
 } catch {
-  /* dotenv not installed — relying on a pre-set DATABASE_URL */
+  /* dotenv not installed - relying on a pre-set DATABASE_URL */
 }
 const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient()

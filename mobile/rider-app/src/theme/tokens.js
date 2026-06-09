@@ -1,8 +1,8 @@
-// Bold Lagos — App Design Tokens (semantic, light + dark)
+// Bold Lagos - App Design Tokens (semantic, light + dark)
 //
 // Two palettes, identical shape, swapped by ThemeProvider based on user choice
 // or system colorScheme. Consumers always reference the same token paths
-// (e.g. `tokens.bg.canvas`, `tokens.text.primary`) — never literal hex.
+// (e.g. `tokens.bg.canvas`, `tokens.text.primary`) - never literal hex.
 //
 // Identical to customer-app tokens. The rider app shares the platform brand
 // (#EA580C) and the same semantic palette so screenshots, dashboards, and

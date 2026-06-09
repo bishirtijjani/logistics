@@ -38,7 +38,7 @@ import {
 
 // UNIFIED REQUEST ARCHITECTURE
 // Everything is a Request. The category list is data-driven from /categories;
-// PACKAGE is the only static tile (no merchant — pure courier).
+// PACKAGE is the only static tile (no merchant - pure courier).
 
 // Home shows only these top-level categories; everything else lives behind
 // the Shops aggregator tile. Order here is the order they appear on the grid.
@@ -194,7 +194,7 @@ export default function HomeScreen({ navigation }) {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // Refresh per-user state whenever Home regains focus — covers cold open,
+  // Refresh per-user state whenever Home regains focus - covers cold open,
   // tab switch, deep-link back, and pull-from-deep-screen returns. Without
   // this, a user who places a request and navigates back sees stale
   // wallet/balance + activeRequest until they kill the app.
@@ -208,10 +208,10 @@ export default function HomeScreen({ navigation }) {
     }, [dispatch]),
   );
 
-  // Live-update the active-request banner from socket status changes — keeps
+  // Live-update the active-request banner from socket status changes - keeps
   // the home banner in sync without a refetch on every status hop. Each
   // emitter already includes `status` in its payload (per Phase 5 hardening
-  // §5.4), so we forward it untouched — don't synthesize a status here.
+  // §5.4), so we forward it untouched - don't synthesize a status here.
   useEffect(() => {
     const handle = (data) => dispatch(activeRequestFromSocket(data));
     const unsubStatus = socketService.onRequestStatusChanged(handle);
@@ -262,7 +262,7 @@ export default function HomeScreen({ navigation }) {
           />
         }
       >
-        {/* Header — search bar takes the row, bell + profile on the right.
+        {/* Header - search bar takes the row, bell + profile on the right.
             The location chip is gone; address is asked when actually needed
             (checkout, request creation) rather than parked at the top. */}
         <View
@@ -341,7 +341,7 @@ export default function HomeScreen({ navigation }) {
             >
               <Ionicons name="person" size={18} color="#fff" />
             </View>
-            {/* Settings gear badge — bottom-right corner of the avatar.
+            {/* Settings gear badge - bottom-right corner of the avatar.
                 Sits inside the parent TouchableOpacity (no borderRadius) so
                 taps anywhere on the badge open Profile via the parent
                 without a second tap target. */}
@@ -365,7 +365,7 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Active Request Banner — appears when the customer has an in-flight order. */}
+        {/* Active Request Banner - appears when the customer has an in-flight order. */}
         {activeRequest && (
           <ActiveRequestBanner request={activeRequest} navigation={navigation} />
         )}
@@ -487,7 +487,7 @@ export default function HomeScreen({ navigation }) {
             />
           </View>
           {categoriesLoading && homeCategoryTiles.length === 0 ? (
-            // Skeleton tiles instead of a spinner — gives the user a sense of
+            // Skeleton tiles instead of a spinner - gives the user a sense of
             // the layout that's about to arrive (much faster perceived load).
             <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 24 }}>
               {Array.from({ length: 5 }).map((_, i) => (
@@ -577,7 +577,7 @@ export default function HomeScreen({ navigation }) {
                     }}
                   >
                     {/* Gradient icon chip with a 1px specular highlight at
-                        the top edge — gives the chip a subtle injection-
+                        the top edge - gives the chip a subtle injection-
                         molded look instead of reading as a flat fill. */}
                     <View
                       style={{
@@ -698,7 +698,7 @@ export default function HomeScreen({ navigation }) {
                     overflow: "hidden",
                   }}
                 >
-                  {/* Faint color wash bleeding from the icon side — gives
+                  {/* Faint color wash bleeding from the icon side - gives
                       the hero card a soft branded glow without overpowering
                       the white surface. */}
                   <LinearGradient
@@ -781,7 +781,7 @@ export default function HomeScreen({ navigation }) {
                   </View>
                 </TouchableOpacity>
 
-                {/* Rest — 3-col Wolt-modern grid */}
+                {/* Rest - 3-col Wolt-modern grid */}
                 <View
                   style={{
                     flexDirection: "row",
@@ -879,13 +879,13 @@ export default function HomeScreen({ navigation }) {
           })()}
         </View>
 
-        {/* Promo Banner — admin-managed via /banners.
+        {/* Promo Banner - admin-managed via /banners.
             Hidden entirely when no banners are eligible (per spec). */}
         {banners.length > 0 && (
           <PromoBanner banner={banners[0]} navigation={navigation} />
         )}
 
-        {/* Recent Activity — last 5 across requests + wallet transactions. */}
+        {/* Recent Activity - last 5 across requests + wallet transactions. */}
         <RecentActivity items={recentActivity} navigation={navigation} />
       </ScrollView>
 
@@ -1067,7 +1067,7 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-// Phase 5 — notification bell with unread badge. Tapping opens the
+// Phase 5 - notification bell with unread badge. Tapping opens the
 // Notification Center. The badge is driven by the notifications slice; it
 // auto-increments when `notification:new` arrives via socket (notificationsBus).
 function NotificationBell({ navigation }) {
@@ -1122,11 +1122,11 @@ function NotificationBell({ navigation }) {
   );
 }
 
-// Phase 6 — active-request banner. Self-updates from the home slice; the
+// Phase 6 - active-request banner. Self-updates from the home slice; the
 // slice is fed by socket-status-changed listeners in HomeScreen's useEffect.
 function ActiveRequestBanner({ request, navigation }) {
   const { t } = useTranslation();
-  // Phase 8 — pass the merchant's category slug so the banner reads
+  // Phase 8 - pass the merchant's category slug so the banner reads
   // "Pharmacist preparing…" / "Picking your groceries" instead of the
   // generic "Preparing your order" for pharmacy/grocery orders.
   const pill = statusDisplay(request.status, request.type, request.merchant?.category?.slug);
@@ -1185,7 +1185,7 @@ function ActiveRequestBanner({ request, navigation }) {
   );
 }
 
-// Phase 6 — promo banner sourced from /banners. Tap deep-links via
+// Phase 6 - promo banner sourced from /banners. Tap deep-links via
 // `banner.deepLink` (matches notify.service route conventions) or via an
 // in-app screen name.
 function PromoBanner({ banner, navigation }) {
@@ -1275,7 +1275,7 @@ function PromoBanner({ banner, navigation }) {
   );
 }
 
-// Phase 6 — Recent Activity: 5 most recent requests + transactions interleaved.
+// Phase 6 - Recent Activity: 5 most recent requests + transactions interleaved.
 function RecentActivity({ items, navigation }) {
   const { t, i18n } = useTranslation();
   const handleTap = (it) => {
@@ -1288,7 +1288,7 @@ function RecentActivity({ items, navigation }) {
 
   // Locale-aware date formatting. Hausa shares Latin/Western numbers and
   // calendar with English in this app's scope, so en-NG / ha-NG produce the
-  // same output for short dates — but we still pass the actual locale so the
+  // same output for short dates - but we still pass the actual locale so the
   // intl runtime gets month names right when those land in the catalog.
   const formatDate = (iso) => {
     if (!iso) return "";

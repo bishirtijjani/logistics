@@ -42,14 +42,14 @@ const ONLINE_NUDGE_BACKGROUND_MS = 90_000; // 90 s
  *     need fixing.
  *   - EarningsTodaySnapshot driven by fetchRiderEarnings (refresh on mount,
  *     on pull-to-refresh, on AppState `active`).
- *   - useKeepAwake while ONLINE — screen stays awake so foreground GPS keeps
+ *   - useKeepAwake while ONLINE - screen stays awake so foreground GPS keeps
  *     flowing. Removed when OFFLINE so the device behaves normally.
- *   - 4-hour ONLINE cap — after 4 hours, prompts the rider to confirm or
+ *   - 4-hour ONLINE cap - after 4 hours, prompts the rider to confirm or
  *     go offline. Mitigates riders who forget they're online.
- *   - 90s background auto-offline — if the rider backgrounds the app for
+ *   - 90s background auto-offline - if the rider backgrounds the app for
  *     more than 90 s while ONLINE-idle, the server presence cache will TTL
  *     out anyway; we PATCH OFFLINE proactively so the UI stays truthful.
- *     Active trips don't get cancelled — only the availability flips.
+ *     Active trips don't get cancelled - only the availability flips.
  */
 export default function HomeTabScreen() {
   const dispatch = useDispatch();
@@ -275,10 +275,10 @@ function HomeBody({
         <OnboardingHero />
       ) : (
         <>
-          {/* Permission / services banner — self-renders only when needed */}
+          {/* Permission / services banner - self-renders only when needed */}
           <LocationServicesEnabledBanner />
 
-          {/* PIN setup nudge — deferred from onboarding, dismissible. The wallet
+          {/* PIN setup nudge - deferred from onboarding, dismissible. The wallet
               flow also guards PIN just-in-time (usePinGuard), so this is a gentle
               prompt, not a gate. */}
           {showPinPrompt ? (
@@ -330,7 +330,7 @@ function HomeBody({
             </View>
           ) : null}
 
-          {/* ONLINE banner — clear reminder of the foreground-only constraint */}
+          {/* ONLINE banner - clear reminder of the foreground-only constraint */}
           {isOnline ? (
             <View
               style={{
@@ -363,7 +363,7 @@ function HomeBody({
             />
           </View>
 
-          {/* Last fix diagnostic — only when ONLINE */}
+          {/* Last fix diagnostic - only when ONLINE */}
           {isOnline && lastFix ? (
             <Text style={{ marginTop: 8, fontSize: 11, color: tokens.text.placeholder, textAlign: "right" }}>
               Last fix · {formatLastFix(lastFix)}
@@ -373,7 +373,7 @@ function HomeBody({
           {/* Earnings snapshot */}
           <EarningsTodaySnapshot onSeeAll={() => navigation.navigate("EarningsTab")} />
 
-          {/* Performance deep link — Phase 7 will register the target */}
+          {/* Performance deep link - Phase 7 will register the target */}
           <View
             style={{
               marginTop: 16,
@@ -405,7 +405,7 @@ function HomeBody({
 }
 
 function formatLastFix(fix) {
-  if (!fix?.capturedAt) return "—";
+  if (!fix?.capturedAt) return "-";
   const ageSec = Math.max(0, Math.round((Date.now() - fix.capturedAt) / 1000));
   if (ageSec < 5) return "just now";
   if (ageSec < 60) return `${ageSec}s ago`;

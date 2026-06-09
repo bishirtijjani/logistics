@@ -13,7 +13,7 @@ import { light, radius as _radius, spacing as _spacing } from './tokens';
 export const radius = _radius;
 export const spacing = _spacing;
 
-// Legacy flat `colors` shim — pinned to light palette. Avoid in new code.
+// Legacy flat `colors` shim - pinned to light palette. Avoid in new code.
 export const colors = {
   primary:       light.brand.default,
   primaryStrong: light.brand.strong,

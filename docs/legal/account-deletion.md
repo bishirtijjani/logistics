@@ -10,7 +10,7 @@ your data when you do. It applies to both the **iPrime customer app** and the
 
 ## How to delete your account
 
-### Option 1 — In the app (fastest)
+### Option 1 - In the app (fastest)
 
 1. Open the iPrime app and sign in.
 2. Go to **Profile → Settings**.
@@ -18,7 +18,7 @@ your data when you do. It applies to both the **iPrime customer app** and the
 4. Confirm when prompted. Your account is deleted immediately once the checks
    below pass.
 
-### Option 2 — By email
+### Option 2 - By email
 
 If you can't access the app, email **bishirtijjani247@gmail.com** from the
 email address on your account with the subject **"Delete my account"**. We will

@@ -4,25 +4,25 @@
  * Import from here instead of hardcoding magic strings.
  */
 
-// Redis key prefixes — all Redis keys MUST use these prefixes
+// Redis key prefixes - all Redis keys MUST use these prefixes
 const REDIS_KEYS = {
   RIDER_LOCATION: "rider:location:", // rider:location:{riderId}
   RIDER_AVAILABILITY: "rider:availability:", // rider:availability:{riderId}
   ACTIVE_REQUEST: "request:active:", // request:active:{requestId}
   OTP: "otp:", // otp:{phone}
   PENDING_REG: "pending_reg:", // pending_reg:{email}
-  OTP_COOLDOWN: "otp_cooldown:", // otp_cooldown:{email} — 60s between resends
+  OTP_COOLDOWN: "otp_cooldown:", // otp_cooldown:{email} - 60s between resends
   SESSION: "session:", // session:{userId}
   RATE_LIMIT: "ratelimit:", // ratelimit:{ip}:{endpoint}
-  // Phase 4 — logistics
+  // Phase 4 - logistics
   RIDER_GEO_INDEX: "riders:geo", // GEOADD/GEOSEARCH key for available riders
-  REQUEST_ROUTE: "request:route:", // request:route:{requestId} — 30s cache for /route
+  REQUEST_ROUTE: "request:route:", // request:route:{requestId} - 30s cache for /route
   REQUEST_ETA_LAST: "request:eta:last:", // last pushed ETA + position {requestId}
-  RIDER_OFFER_LOCK: "rider:offer:", // rider:offer:{requestId} — set during a ring round
-  // Phase 7 — utility/VTU
-  VTU_DATA_PLANS: "vtu:data-plans:", // vtu:data-plans:{networkId|all} — 1h cache
+  RIDER_OFFER_LOCK: "rider:offer:", // rider:offer:{requestId} - set during a ring round
+  // Phase 7 - utility/VTU
+  VTU_DATA_PLANS: "vtu:data-plans:", // vtu:data-plans:{networkId|all} - 1h cache
   VTU_DISCOS: "vtu:discos", // 1h cache of DISCO list
-  VTU_NETWORKS: "vtu:networks:", // vtu:networks:{type|all} — 1h cache of network catalogue
+  VTU_NETWORKS: "vtu:networks:", // vtu:networks:{type|all} - 1h cache of network catalogue
 };
 
 // Redis TTLs (in seconds)
@@ -34,16 +34,16 @@ const REDIS_TTL = {
   PENDING_REG: 600, // 10 minutes (same as OTP)
   OTP_COOLDOWN: 60, // 60 seconds between resend requests
   SESSION: 604800, // 7 days
-  // Phase 4 — logistics
-  REQUEST_ROUTE: 30, // 30s — short enough to track real movement, cheap on Maps quota
-  REQUEST_ETA_LAST: 120, // 2 min — cleared when delivery completes
-  // Phase 7 — utility/VTU
-  VTU_DATA_PLANS: 3600, // 1 hour — data plans rarely change
+  // Phase 4 - logistics
+  REQUEST_ROUTE: 30, // 30s - short enough to track real movement, cheap on Maps quota
+  REQUEST_ETA_LAST: 120, // 2 min - cleared when delivery completes
+  // Phase 7 - utility/VTU
+  VTU_DATA_PLANS: 3600, // 1 hour - data plans rarely change
   VTU_DISCOS: 3600, // 1 hour
-  VTU_NETWORKS: 3600, // 1 hour — admin-edited but read-heavy
+  VTU_NETWORKS: 3600, // 1 hour - admin-edited but read-heavy
 };
 
-// Phase 7 — Nigerian network prefixes for client/server auto-detect.
+// Phase 7 - Nigerian network prefixes for client/server auto-detect.
 // Source: NCC numbering plan (operators occasionally add codes; review yearly).
 const NETWORK_PREFIXES = {
   MTN:       ['0703','0706','0803','0806','0810','0813','0814','0816','0903','0906','0913','0916','0704','0707'],
@@ -52,7 +52,7 @@ const NETWORK_PREFIXES = {
   '9MOBILE': ['0809','0817','0818','0908','0909'],
 };
 
-// AlRahuz provider IDs — single source of truth. Mobile/static endpoints read these.
+// AlRahuz provider IDs - single source of truth. Mobile/static endpoints read these.
 const NETWORK_IDS = { MTN: 1, GLO: 2, '9MOBILE': 3, AIRTEL: 4, SMILE: 5 };
 
 const NETWORKS = [
@@ -98,7 +98,7 @@ const PAGINATION = {
   MAX_LIMIT: 100,
 };
 
-// Rider matching — defaults if PlatformSetting overrides are unavailable.
+// Rider matching - defaults if PlatformSetting overrides are unavailable.
 // Production reads `delivery.broadcastRadiusRings`,
 // `delivery.broadcastRingTimeoutSec`, and `delivery.autoCancelUnmatchedMs`
 // from PlatformSetting; these are the conservative fallbacks.

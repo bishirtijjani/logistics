@@ -1,11 +1,11 @@
 /**
  * Cross-platform key/value storage.
  *
- * Native (iOS/Android): delegates 1:1 to expo-secure-store — the encrypted
+ * Native (iOS/Android): delegates 1:1 to expo-secure-store - the encrypted
  * keychain/keystore, byte-for-byte identical to the app's original behavior.
  * Web: falls back to window.localStorage, because expo-secure-store has no web
  * implementation (its web build exports an empty module, so calling its methods
- * on web would throw). Tokens on web are therefore NOT hardware-encrypted —
+ * on web would throw). Tokens on web are therefore NOT hardware-encrypted -
  * acceptable for the PWA build, where the browser sandbox is the trust boundary.
  *
  * Exposes the SAME async surface as expo-secure-store so callers swap only their
@@ -26,7 +26,7 @@ export async function getItemAsync(key, options) {
       return null;
     }
   }
-  // Native path — identical to a direct SecureStore.getItemAsync call.
+  // Native path - identical to a direct SecureStore.getItemAsync call.
   return SecureStore.getItemAsync(key, options);
 }
 

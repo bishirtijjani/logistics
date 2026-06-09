@@ -45,7 +45,7 @@ env:
     timeout: 10000
 - tapOn:
     text: "Complete delivery"
-# POD photo sheet — Maestro can't actually take a photo, but the captured
+# POD photo sheet - Maestro can't actually take a photo, but the captured
 # fixture in test mode auto-fills.
 - extendedWaitUntil:
     visible: "Use this photo"

@@ -94,7 +94,7 @@ stateDiagram
     [*] --> REQUESTED: Customer submits request
 
     REQUESTED --> ACCEPTED: Merchant accepts (food/grocery/pharmacy)
-    REQUESTED --> RIDER_ASSIGNED: System assigns rider (package — skips merchant phase)
+    REQUESTED --> RIDER_ASSIGNED: System assigns rider (package - skips merchant phase)
     REQUESTED --> CANCELLED: Customer cancels / Timeout
 
     ACCEPTED --> PROCESSING: Merchant begins preparation
@@ -243,13 +243,13 @@ graph LR
 
 | Data | Storage | Why |
 |---|---|---|
-| Rider GPS location | Redis only (30s TTL) | Updates every ~3s — too frequent for DB. Stale data self-expires. |
+| Rider GPS location | Redis only (30s TTL) | Updates every ~3s - too frequent for DB. Stale data self-expires. |
 | Rider availability | Redis + DB | Redis for fast lookup, DB for persistence. |
 | Active request sessions | Redis + DB | Redis for Socket.io room lookups, DB for durability. |
 | OTP codes | Redis only | Short-lived, no persistence needed. |
 | Platform settings | Redis (invalidated on update) | Avoid DB hit on every request. |
-| Wallet balances | DB only | Financial data — always from source of truth. |
-| Transaction history | DB only | Append-only ledger — no caching. |
+| Wallet balances | DB only | Financial data - always from source of truth. |
+| Transaction history | DB only | Append-only ledger - no caching. |
 
 ## 7. Data Model Summary
 

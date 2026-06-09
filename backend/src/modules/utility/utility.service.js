@@ -1,5 +1,5 @@
 /**
- * Utility service — airtime, data, cable, electricity, education pins via AlRahuz Data API.
+ * Utility service - airtime, data, cable, electricity, education pins via AlRahuz Data API.
  *
  * FLOW: wallet deduction → BullMQ job → worker calls AlRahuz → update status.
  * On AlRahuz failure: mark FAILED, refund via worker.
@@ -22,7 +22,7 @@ const { UTILITY_JOBS } = require('../../queues/jobs');
 /**
  * Debit the payer's User wallet and create the PROCESSING UtilityPayment,
  * atomically. Every role (customer, rider, merchant) spends VTU from their
- * single User-level Wallet — merchants are funded the same way riders are
+ * single User-level Wallet - merchants are funded the same way riders are
  * (order earnings + top-ups both land in this wallet). The worker later flips
  * the paired Transaction to COMPLETED/FAILED and refunds this wallet on failure.
  */
@@ -118,7 +118,7 @@ const getPlans = async ({ type, networkId, isActive = true }) => {
   return plans;
 };
 
-// Default to AIRTIME for back-compat — the existing customer `GET /utility/networks`
+// Default to AIRTIME for back-compat - the existing customer `GET /utility/networks`
 // endpoint historically returned only mobile networks.
 const getNetworks = async ({ type = 'AIRTIME' } = {}) => {
   const key = `${REDIS_KEYS.VTU_NETWORKS}${type}`;
@@ -333,7 +333,7 @@ const getBillHistory = async (userId, { page, limit, type, status }) => {
 };
 
 /**
- * Recent unique recipients for a given service — drives the
+ * Recent unique recipients for a given service - drives the
  * "Recent recipients" chip row above the phone/meter input.
  * Returns up to `limit` distinct recipients ordered by most-recent purchase.
  */
@@ -341,7 +341,7 @@ const getRecentRecipients = async (userId, { type, limit }) => {
   const recipientField = type === 'ELECTRICITY' || type === 'CABLE' ? 'meterNumber' : 'phoneNumber';
   // Pull a wider window of recent settled payments, then de-duplicate in JS.
   // `distinct` + `orderBy createdAt desc` doesn't work cross-driver, so we
-  // fetch ~50 rows and reduce — cheap, indexed (userId, type, status).
+  // fetch ~50 rows and reduce - cheap, indexed (userId, type, status).
   const rows = await prisma.utilityPayment.findMany({
     where: {
       userId,

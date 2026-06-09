@@ -1,12 +1,12 @@
 /**
- * Messaging dispatcher — single entry point for outbound phone messages.
+ * Messaging dispatcher - single entry point for outbound phone messages.
  *
  * Why this exists:
  *   - OTPs go via the active provider (WhatsApp by default, Termii on
  *     fallback) selected with the `OTP_PROVIDER` env flag. Flipping providers
- *     is a one-variable change — no code deploy required.
- *   - Transactional (non-OTP) SMS — welcome messages, electricity tokens,
- *     phone-change security notices — always tries Termii. WhatsApp's Cloud
+ *     is a one-variable change - no code deploy required.
+ *   - Transactional (non-OTP) SMS - welcome messages, electricity tokens,
+ *     phone-change security notices - always tries Termii. WhatsApp's Cloud
  *     API requires a separately approved utility template per message type,
  *     so we don't route those through it. If Termii is unconfigured, these
  *     messages skip with a warning rather than throwing (callers wrap in
@@ -38,7 +38,7 @@ const assertConfiguredForProd = () => {
     termiiService.assertConfiguredForProd();
   }
 
-  // Always run the Termii guard too — when WhatsApp is active, Termii is the
+  // Always run the Termii guard too - when WhatsApp is active, Termii is the
   // dormant transactional channel, and its own guard knows to log instead of
   // throw in that mode. Skipped if already invoked above to avoid double logs.
   if (provider !== 'termii') {
@@ -47,7 +47,7 @@ const assertConfiguredForProd = () => {
 };
 
 /**
- * Send a one-time passcode. Routes to the active provider — WhatsApp by
+ * Send a one-time passcode. Routes to the active provider - WhatsApp by
  * default. The same call covers signup, password reset, KYC phone proof,
  * and phone-change confirmation because the user-visible payload (a 6-digit
  * code) is identical across flows.
@@ -62,7 +62,7 @@ const sendOtp = async (phoneNumber, code) => {
 
 /**
  * Send a free-form transactional SMS. Always tries Termii regardless of the
- * OTP provider setting — WhatsApp doesn't allow free-form templates without
+ * OTP provider setting - WhatsApp doesn't allow free-form templates without
  * per-message approval. If Termii is unconfigured the call no-ops (the
  * underlying service logs a warning).
  *

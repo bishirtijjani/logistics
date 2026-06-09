@@ -285,7 +285,7 @@ export const updateMerchantBankAccount = createAsyncThunk(
 )
 
 // Advisory name verification (Paystack via the backend). Returns
-// { accountName, resolved } — resolved:false when it couldn't be confirmed.
+// { accountName, resolved } - resolved:false when it couldn't be confirmed.
 export const resolveBankAccount = createAsyncThunk(
   'merchants/resolveBankAccount',
   async ({ bankCode, accountNumber }) => {
@@ -497,7 +497,7 @@ const merchantsSlice = createSlice({
       .addCase(failWithdrawal.fulfilled, (state, action) => {
         if (!action.payload) return
         // Only clear it from the list when the funds were actually returned. A
-        // FAILED-but-not-refunded row is a reconciliation case — keep it visible.
+        // FAILED-but-not-refunded row is a reconciliation case - keep it visible.
         if (action.payload.refunded) {
           state.processingWithdrawals = state.processingWithdrawals.filter((w) => w.id !== action.payload.id)
         }

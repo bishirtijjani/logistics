@@ -1,9 +1,9 @@
 /**
- * Public waitlist routes — /waitlist
+ * Public waitlist routes - /waitlist
  *
  * The marketing website POSTs here when a visitor taps "Download" before the
  * mobile apps are live in the stores. Spam protection is a hidden honeypot
- * field validated server-side — see waitlist.validator. No IP rate-limiting:
+ * field validated server-side - see waitlist.validator. No IP rate-limiting:
  * with Nigerian CGNAT a single bucket would block whole neighborhoods.
  */
 

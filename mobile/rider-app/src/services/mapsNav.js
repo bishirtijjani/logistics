@@ -1,5 +1,5 @@
 /**
- * Maps navigation deep-link service — Phase 4.
+ * Maps navigation deep-link service - Phase 4.
  *
  * Opens external turn-by-turn navigation. We deliberately do NOT embed
  * navigation inside the rider app (v1 non-goal). The rider's go-to is
@@ -12,7 +12,7 @@
  *
  * `Linking.canOpenURL` requires the URL scheme to be whitelisted in iOS's
  * `LSApplicationQueriesSchemes`. We try each candidate and rely on the
- * native error from `openURL` to fall through to the next — slightly more
+ * native error from `openURL` to fall through to the next - slightly more
  * resilient than canOpenURL gating, and works even if the manifest is
  * missing the entry.
  */
@@ -62,7 +62,7 @@ export async function openTo(target) {
   const labelEnc = encodeLabel(target.label);
 
   // Web: custom schemes (google.navigation:, geo:, waze://) don't resolve in a
-  // browser, and an unhandled-scheme openURL can "succeed" without navigating —
+  // browser, and an unhandled-scheme openURL can "succeed" without navigating -
   // so go straight to the Google Maps web directions URL (opens a new tab).
   if (Platform.OS === "web") {
     const webUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
@@ -80,13 +80,13 @@ export async function openTo(target) {
         `https://maps.apple.com/?daddr=${lat},${lng}${labelEnc ? `&q=${labelEnc}` : ""}`,
       ]
     : [
-        // Google Maps Android intent — best-quality experience
+        // Google Maps Android intent - best-quality experience
         `google.navigation:q=${lat},${lng}&mode=d`,
         // Waze
         `waze://?ll=${lat},${lng}&navigate=yes`,
-        // Geo URL — picker dialog of any installed maps app
+        // Geo URL - picker dialog of any installed maps app
         `geo:${lat},${lng}?q=${lat},${lng}${labelEnc ? `(${labelEnc})` : ""}`,
-        // Final fallback: web URL — opens browser to Google Maps directions
+        // Final fallback: web URL - opens browser to Google Maps directions
         `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,
       ];
 

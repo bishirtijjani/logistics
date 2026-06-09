@@ -9,43 +9,43 @@ import { STATUS } from "../../lib/constants";
 const POD_DRAFT_KEY = (requestId) => `pod:draft:${requestId}`;
 
 /**
- * Trip slice — active delivery state for the rider's cockpit (Phase 4).
+ * Trip slice - active delivery state for the rider's cockpit (Phase 4).
  *
  * Lifecycle:
- *   - `activateFromAcceptedRequest(payload)` — called when `acceptOffer` returns
+ *   - `activateFromAcceptedRequest(payload)` - called when `acceptOffer` returns
  *     200. Normalises the request, joins the request room, and flips the
  *     location stream to ON_DELIVERY cadence.
- *   - `patchStatus(nextStatus)` — drives the FSM forward via PATCH /requests/:id/status
+ *   - `patchStatus(nextStatus)` - drives the FSM forward via PATCH /requests/:id/status
  *     with a stable Idempotency-Key. Optimistic UI; on 409 STATUS_CONFLICT we
  *     reconcile from server state. On network failure the call is queued for
  *     retry on socket reconnect (each entry keeps its own Idempotency-Key).
- *   - `cancelTrip({ reason, note, pin })` — POST /requests/:id/rider-cancel.
- *   - `reportAddressCorrection({ stage, note, lat, lng })` — POST /requests/:id/address-correction.
- *   - `hydrateFromServer(requestId)` — GET /requests/:id. Used on app cold-start
+ *   - `cancelTrip({ reason, note, pin })` - POST /requests/:id/rider-cancel.
+ *   - `reportAddressCorrection({ stage, note, lat, lng })` - POST /requests/:id/address-correction.
+ *   - `hydrateFromServer(requestId)` - GET /requests/:id. Used on app cold-start
  *     while a trip is active and on 409 STATUS_CONFLICT to re-sync.
  *
  * Socket reconciliation reducers:
- *   - `tripStatusReceivedFromSocket({requestId, status})` — drives the local
+ *   - `tripStatusReceivedFromSocket({requestId, status})` - drives the local
  *     status from server-pushed `request:status:changed` events.
- *   - `tripCancelledFromSocket({requestId, reason})` — handles admin / customer
+ *   - `tripCancelledFromSocket({requestId, reason})` - handles admin / customer
  *     force-cancel mid-trip by surfacing a non-dismissible banner.
- *   - `tripMessageReceived(message)` — appends a chat message.
- *   - `tripAddressCorrectionReceived(payload)` — for completeness; the rider
+ *   - `tripMessageReceived(message)` - appends a chat message.
+ *   - `tripAddressCorrectionReceived(payload)` - for completeness; the rider
  *     itself triggered it but other listeners (admin) may want this too.
  *
  * The reducer maintains:
- *   - `activeRequestId` — null when no trip is active
- *   - `status` — canonical request status from FSM
- *   - `pickup`/`dropoff` — denormalised location + contact info
- *   - `items` — request items (for MERCHANT_ORDER)
- *   - `arrivedAt: { pickup, dropoff }` — set by the geofence; UI uses these
+ *   - `activeRequestId` - null when no trip is active
+ *   - `status` - canonical request status from FSM
+ *   - `pickup`/`dropoff` - denormalised location + contact info
+ *   - `items` - request items (for MERCHANT_ORDER)
+ *   - `arrivedAt: { pickup, dropoff }` - set by the geofence; UI uses these
  *     to flip the StatusActionButton between "On the way" and "Confirm".
- *   - `callAttempts: { [userId]: count }` — tracked locally for the
+ *   - `callAttempts: { [userId]: count }` - tracked locally for the
  *     "Customer not reachable" 3-strikes auto-ticket flow.
- *   - `statusQueue` — pending PATCH retries waiting for connectivity.
- *   - `messages` — chat thread for the active trip.
- *   - `cancelled` — banner state when an external cancel arrives.
- *   - `error` — last operation error (cleared on success).
+ *   - `statusQueue` - pending PATCH retries waiting for connectivity.
+ *   - `messages` - chat thread for the active trip.
+ *   - `cancelled` - banner state when an external cancel arrives.
+ *   - `error` - last operation error (cleared on success).
  */
 
 // ============================================================
@@ -158,7 +158,7 @@ export const hydrateFromServer = createAsyncThunk(
 );
 
 /**
- * Drive the FSM forward. Optimistic — the reducer flips state immediately
+ * Drive the FSM forward. Optimistic - the reducer flips state immediately
  * (when not already past `nextStatus`) and the server response confirms.
  *
  * Errors handled here:
@@ -300,7 +300,7 @@ export const fetchMessages = createAsyncThunk(
 
 /**
  * Send a chat message. Idempotent. The server emits `request:message:new` to
- * the room — our notifications bus dispatches `tripMessageReceived` to keep
+ * the room - our notifications bus dispatches `tripMessageReceived` to keep
  * the thread in sync without us appending here. We still append optimistically
  * so the user sees their message instantly; if the socket later reports the
  * same message we de-dupe by id in the reducer.
@@ -357,7 +357,7 @@ export const drainStatusQueue = createAsyncThunk(
 );
 
 // ============================================================
-// Phase 5 — Proof of Delivery thunks.
+// Phase 5 - Proof of Delivery thunks.
 // ============================================================
 
 /**
@@ -423,7 +423,7 @@ export const generatePodOtp = createAsyncThunk(
 );
 
 /**
- * Complete the delivery — PATCH DELIVERED with the assembled POD payload.
+ * Complete the delivery - PATCH DELIVERED with the assembled POD payload.
  * Idempotent. On 422 with `POD_*` codes, surfaces the code so the cockpit
  * can re-mount the right sheet. On 200, clears the POD draft from SecureStore.
  */
@@ -479,7 +479,7 @@ const initialState = {
   statusQueue: [],
   messages: [],
   messagesLoading: false,
-  // Phase 5 — POD draft, persisted to SecureStore on every mutation.
+  // Phase 5 - POD draft, persisted to SecureStore on every mutation.
   // Shape: {
   //   photoLocalUri: string | null,   - local file:// while pre-upload
   //   photoUrl:      string | null,   - Cloudinary URL once upload succeeds
@@ -498,7 +498,7 @@ const initialState = {
   podSubmitting: false,
   // External cancellation banner (admin / customer force-cancel).
   cancelled: null,           // { reason, cancelledBy, at } | null
-  // Last operation error — cleared on next op.
+  // Last operation error - cleared on next op.
   error: null,
   // Live in-flight states surfaced to the UI.
   patching: false,
@@ -545,14 +545,14 @@ const slice = createSlice({
       state.status = status;
       state.error = null;
       // If the server says we're already at/past the queued status, drop those
-      // entries — they've been resolved server-side.
+      // entries - they've been resolved server-side.
       state.statusQueue = state.statusQueue.filter((e) => e.nextStatus !== status);
     },
     /** Server-pushed cancellation (admin force-cancel, customer cancel pre-pickup). */
     tripCancelledFromSocket: (state, action) => {
       const { requestId, reason, cancelledBy } = action.payload || {};
       if (!state.activeRequestId || state.activeRequestId !== requestId) return;
-      // Skip if WE triggered the cancel — our own thunk already cleared state.
+      // Skip if WE triggered the cancel - our own thunk already cleared state.
       if (state.status === STATUS.CANCELLED) return;
       state.cancelled = {
         reason: reason || "Trip cancelled",
@@ -561,7 +561,7 @@ const slice = createSlice({
       };
       state.status = STATUS.CANCELLED;
     },
-    /** Banner acknowledged — clears the trip so the rider returns to Home. */
+    /** Banner acknowledged - clears the trip so the rider returns to Home. */
     acknowledgeCancellation: (state) => {
       const previous = state.activeRequestId;
       if (previous) {
@@ -585,7 +585,7 @@ const slice = createSlice({
     clearTripError: (state) => { state.error = null; },
     /** Clear chat after closing the sheet. */
     clearTripMessages: (state) => { state.messages = []; },
-    /** Wipe the trip — used after DELIVERED → cockpit hands off to POD/Earnings. */
+    /** Wipe the trip - used after DELIVERED → cockpit hands off to POD/Earnings. */
     tripCleared: (state) => {
       if (state.activeRequestId) {
         try { socketService.leaveRequestRoom(state.activeRequestId); } catch (_) {}
@@ -593,7 +593,7 @@ const slice = createSlice({
       return initialState;
     },
 
-    // ── Phase 5 — POD draft mutations. Each mutation also touches
+    // ── Phase 5 - POD draft mutations. Each mutation also touches
     // `draftedAt` so the persistence side-effect below can snapshot
     // SecureStore on every change.
     podPhotoCaptured: (state, action) => {
@@ -709,14 +709,14 @@ const slice = createSlice({
           state.error = null;
           return;
         }
-        // Trip already settled/delivered — wipe.
+        // Trip already settled/delivered - wipe.
         const isTerminal = r.status === STATUS.DELIVERED
           || r.status === STATUS.SETTLED;
         if (isTerminal) {
           if (state.activeRequestId) {
             try { socketService.leaveRequestRoom(state.activeRequestId); } catch (_) {}
           }
-          // Don't return initialState in extraReducers — Object.assign instead.
+          // Don't return initialState in extraReducers - Object.assign instead.
           Object.assign(state, initialState);
           return;
         }
@@ -761,7 +761,7 @@ const slice = createSlice({
         const payload = action.payload || {};
         if (payload.retriable && payload.requestId === state.activeRequestId) {
           // Queue for retry on reconnect. Avoid duplicate entries with the
-          // same next status — keep only the latest idempotencyKey.
+          // same next status - keep only the latest idempotencyKey.
           const dedup = state.statusQueue.filter((e) => e.nextStatus !== payload.nextStatus);
           dedup.push({
             requestId: payload.requestId,

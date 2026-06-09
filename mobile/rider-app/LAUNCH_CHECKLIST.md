@@ -1,4 +1,4 @@
-# Launch checklist — iPrime Rider (Play Store + App Store)
+# Launch checklist - iPrime Rider (Play Store + App Store)
 
 Run through these in order. Engineering work is complete (see
 `ROADMAP.md` § Phase 8); everything below requires credentials, store
@@ -6,7 +6,7 @@ accounts, devices, or human review I can't do for you.
 
 ## 0. Account prerequisites (one-time)
 
-- [ ] **Expo / EAS account** — log in on this machine.
+- [ ] **Expo / EAS account** - log in on this machine.
   ```bash
   cd mobile/rider-app
   npx eas login
@@ -37,7 +37,7 @@ once you've reviewed them.
 Set the DSN + the org/project values from §0.
 
 ```bash
-# Per-environment DSNs — set via EAS secrets so they don't land in git:
+# Per-environment DSNs - set via EAS secrets so they don't land in git:
 npx eas env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN --value 'https://...prod...@.../...'
 npx eas env:create --environment preview    --name EXPO_PUBLIC_SENTRY_DSN --value 'https://...staging...@.../...'
 ```
@@ -45,7 +45,7 @@ npx eas env:create --environment preview    --name EXPO_PUBLIC_SENTRY_DSN --valu
 Then in [app.json](app.json), under the `@sentry/react-native/expo`
 plugin entry, replace `REPLACE_WITH_SENTRY_ORG` with your real org slug.
 (The Expo plugin uses this at build time to upload source maps so
-Sentry can deminify stack traces — without it, stack traces show
+Sentry can deminify stack traces - without it, stack traces show
 unhelpful bundle line numbers.)
 
 ## 3. Wire Apple submission credentials
@@ -70,10 +70,10 @@ Prisma client (with `riderOfferLog`) is loaded.
 
 ## 5. Worker process must register the rider-queue
 
-Already done in code — `initializeQueues()` in
+Already done in code - `initializeQueues()` in
 [backend/src/queues/index.js](../../backend/src/queues/index.js) now
 starts `startRiderWorker()`. Confirm your worker process
-actually calls `initializeQueues()` on boot (it should — same entry
+actually calls `initializeQueues()` on boot (it should - same entry
 as the request worker).
 
 ## 6. Privacy + Data Safety
@@ -84,11 +84,11 @@ as the request worker).
 - [ ] Play Console → Data Safety form:
   - Location: **collected**, **used in-app**, **not shared**,
     **foreground only**, **optional? No (required to deliver jobs)**.
-  - Personal info: name, email, phone — collected, used in-app +
+  - Personal info: name, email, phone - collected, used in-app +
     customer support, not shared.
-  - Financial: wallet balance, NUBAN — collected, used in-app, shared
+  - Financial: wallet balance, NUBAN - collected, used in-app, shared
     with KatPay (payments processor).
-  - Photos: ID + POD — collected, used in-app, not shared, optional? No.
+  - Photos: ID + POD - collected, used in-app, not shared, optional? No.
 - [ ] App Store Connect → App Privacy: same shape.
 
 ## 7. Store listing assets
@@ -98,7 +98,7 @@ as the request worker).
   the EAS preview build on a real device.
 - [ ] Short description (Play, max 80 chars).
 - [ ] Full description (Play, max 4000 chars). Lead with the value prop
-  ("Drive for iPrime in Katsina — flexible hours, weekly payouts").
+  ("Drive for iPrime in Katsina - flexible hours, weekly payouts").
 - [ ] App icon: `assets/icon.png` already shipped; verify it scales
   cleanly at 192×192.
 
@@ -160,7 +160,7 @@ Internal → Production staged rollout per `RUNBOOKS.md` § 3.
 ## Quick-reference: what's still hard-coded that you might want to swap
 
 - `assets/icon.png`, `assets/splash-icon.png`, `assets/adaptive-icon.png`
-  — verify these are the final iPrime brand assets.
-- `googleMapsApiKey` in [app.json](app.json) — currently shared with
+  - verify these are the final iPrime brand assets.
+- `googleMapsApiKey` in [app.json](app.json) - currently shared with
   staging. Issue a separate restricted key for production iOS/Android
   packages and replace before submitting.

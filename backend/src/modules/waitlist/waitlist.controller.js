@@ -2,12 +2,12 @@
  * Waitlist HTTP controllers.
  *
  * Public:
- *   POST   /waitlist            — anyone (honeypot-protected)
+ *   POST   /waitlist            - anyone (honeypot-protected)
  *
  * Admin:
- *   GET    /admin/waitlist           — list entries
- *   GET    /admin/waitlist/summary   — counts by role/platform
- *   DELETE /admin/waitlist/:id       — remove an entry
+ *   GET    /admin/waitlist           - list entries
+ *   GET    /admin/waitlist/summary   - counts by role/platform
+ *   DELETE /admin/waitlist/:id       - remove an entry
  */
 
 const waitlistService = require('./waitlist.service');
@@ -19,10 +19,10 @@ const createEntry = async (req, res, next) => {
     // Honeypot: if the hidden `website` field was filled, this is a bot.
     // Respond 201 like a normal success so the bot moves on; don't persist.
     if (req.body.website && req.body.website.trim() !== '') {
-      logger.info('Waitlist honeypot triggered — silently dropped', { ip: req.ip });
+      logger.info('Waitlist honeypot triggered - silently dropped', { ip: req.ip });
       return res.status(201).json(
         ApiResponse.success(
-          "You're on the list — we'll text you when the app goes live.",
+          "You're on the list - we'll text you when the app goes live.",
           { id: null },
         ),
       );
@@ -37,7 +37,7 @@ const createEntry = async (req, res, next) => {
 
     res.status(201).json(
       ApiResponse.success(
-        "You're on the list — we'll text you when the app goes live.",
+        "You're on the list - we'll text you when the app goes live.",
         { id: entry.id },
       ),
     );

@@ -1,8 +1,8 @@
 /**
- * `useT` — the single hook every screen imports for localized strings.
+ * `useT` - the single hook every screen imports for localized strings.
  *
  * Wraps `react-i18next`'s `useTranslation` and adds:
- *   - `tError(err)` — maps a server error `{ code, message }` to its
+ *   - `tError(err)` - maps a server error `{ code, message }` to its
  *     localized copy under `errors.<CODE>`, falling back to the server
  *     `message` when no translation exists. Keeps screens free from
  *     `errors.X` lookup boilerplate.

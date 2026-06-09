@@ -14,19 +14,19 @@ const SLUGS = {
     file: "privacy-policy.md",
     title: "Privacy Policy",
     description:
-      "How iPrime collects, uses, stores, and shares your personal data — written for the Nigeria Data Protection Act.",
+      "How iPrime collects, uses, stores, and shares your personal data - written for the Nigeria Data Protection Act.",
   },
   terms: {
     file: "terms-of-service.md",
     title: "Terms of Service",
     description:
-      "The agreement that governs your use of iPrime — wallet, deliveries, and the platform overall.",
+      "The agreement that governs your use of iPrime - wallet, deliveries, and the platform overall.",
   },
   refund: {
     file: "refund-policy.md",
     title: "Refund Policy",
     description:
-      "When and how iPrime refunds money — bill payments, wallet operations, delivery orders, and cancellations.",
+      "When and how iPrime refunds money - bill payments, wallet operations, delivery orders, and cancellations.",
   },
   compliance: {
     file: "compliance.md",
@@ -72,7 +72,7 @@ async function loadMarkdown(slug) {
 }
 
 // Site is built with `output: 'export'` (see next.config.mjs), so this
-// page must be fully static. {{TODAY}} resolves at build time — meaning
+// page must be fully static. {{TODAY}} resolves at build time - meaning
 // the "Last updated" date refreshes on every deploy/webhook rebuild.
 export default async function LegalPage({ params }) {
   const { slug } = await params;

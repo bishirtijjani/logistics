@@ -6,15 +6,15 @@
  *   1. Switch the address form from masculine-singular "ka" / "kai" /
  *      "kake" / "kana" / "maka" / "naka" / "kanka" / "-nka" / "-rka" /
  *      "ɗinka" to plural-neutral "ku" / "kuke" / "kuna" / "muku" / "naku" /
- *      "kanku" / "-nku" / "-rku" / "ɗinku" — more inclusive for a mass-
+ *      "kanku" / "-nku" / "-rku" / "ɗinku" - more inclusive for a mass-
  *      market app.
  *   2. Replace "mai keke" (motorcycle-rider) with the English loanword
- *      "rider" — vehicle-neutral, future-proofs car / bicycle deliveries.
+ *      "rider" - vehicle-neutral, future-proofs car / bicycle deliveries.
  *   3. Replace "takardar shaida" (certificate) with "takardar likita"
- *      (doctor's prescription) — the correct pharmacy term.
+ *      (doctor's prescription) - the correct pharmacy term.
  *
  * The idiom "kai tsaye" ("live" / "real-time" / "directly") must be
- * preserved — without the placeholder dance below it would become "ku
+ * preserved - without the placeholder dance below it would become "ku
  * tsaye" ("you stand up"), which is meaningless and confusing.
  *
  * Run: node scripts/hausa-polish.js [--dry]
@@ -48,7 +48,7 @@ const PROTECT = [
 // pattern like `\bɗinka\b` mis-fires at the boundary before "ɗ". We use
 // explicit Unicode lookaround instead.
 //
-// HAUSA_LETTER matches any letter we treat as part of a word — Latin
+// HAUSA_LETTER matches any letter we treat as part of a word - Latin
 // alphabet plus the four Hausa hooked letters in both cases.
 const HAUSA_LETTER = 'A-Za-zƁɓƊɗƘƙƳƴ';
 const NOT_LETTER_BEFORE = `(?<![${HAUSA_LETTER}])`;
@@ -79,7 +79,7 @@ const PRONOUN_PAIRS = [
   ['ka', 'ku'],           // you (sg. masc.) → ku (pl.)
 ];
 
-// Capitalize the first character of a Hausa word — falls back to JS's
+// Capitalize the first character of a Hausa word - falls back to JS's
 // default `toUpperCase` since the Hausa hooked letters have proper Unicode
 // case pairs (ɗ ↔ Ɗ etc.).
 const capFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -153,7 +153,7 @@ if (dryRun) {
     console.log('BEFORE: ' + c.before);
     console.log('AFTER:  ' + c.after);
   }
-  console.log('\n(dry run — no file written)');
+  console.log('\n(dry run - no file written)');
 } else {
   fs.writeFileSync(HA_PATH, JSON.stringify(updated, null, 2) + '\n', 'utf8');
   console.log('Wrote ' + HA_PATH);

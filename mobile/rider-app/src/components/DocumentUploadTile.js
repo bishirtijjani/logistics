@@ -20,10 +20,10 @@ import { chooseImageSource } from "../lib/chooseImageSource";
  * Single document upload tile.
  *
  * Props:
- *  - title:        string — visible label, e.g. "Driver's licence"
- *  - description?: string — small caption under the title
- *  - kind:         string — upload kind passed to `/auth/upload-signature`
- *  - secureUrl?:   string — current persisted URL (if already uploaded)
+ *  - title:        string - visible label, e.g. "Driver's licence"
+ *  - description?: string - small caption under the title
+ *  - kind:         string - upload kind passed to `/auth/upload-signature`
+ *  - secureUrl?:   string - current persisted URL (if already uploaded)
  *  - onUploaded:   (secureUrl, publicId) => void
  *  - onCleared?:   () => void
  *  - required?:    boolean

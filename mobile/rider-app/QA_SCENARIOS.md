@@ -1,4 +1,4 @@
-# Manual QA Scenario Matrix — iPrime Rider
+# Manual QA Scenario Matrix - iPrime Rider
 
 Reflects §8.2 of the rider roadmap. Rows that are Maestro-automated link
 to the `.maestro/` flow that covers them; the rest are run by hand on a
@@ -40,12 +40,12 @@ close, low-signal GPS).
 | 16 | Screen-off mid-shift | ONLINE rider | Press power button to sleep screen for 30s | `useKeepAwake` prevents OS sleep while ONLINE; stream uninterrupted on resume | Manual |
 | 17 | Hausa parity | Switch language to Hausa | Walk through every primary screen | All strings translated; no English fallback visible | ✅ AUTO `06-language-switch-hausa.yaml` (smoke); manual for parity sweep |
 | 18 | Offline → online recovery | Toggle airplane mode while on Home | Open Notifications → tap a row → return Home | Offline banner appears; queued reads cache cleanly; on reconnect banner disappears and recent updates appear | Manual |
-| 19 | OTA recovery | Bad OTA pushed | Reinstall app from store | Native binary is the source of truth — OTA poison rolled back; rider lands on stable build | Manual (last-line-of-defence runbook in `RUNBOOKS.md`) |
+| 19 | OTA recovery | Bad OTA pushed | Reinstall app from store | Native binary is the source of truth - OTA poison rolled back; rider lands on stable build | Manual (last-line-of-defence runbook in `RUNBOOKS.md`) |
 | 20 | Account-delete refusal | Active trip OR positive wallet balance | Settings → Security → Delete account | Server returns 422 with a clear blocker reason; user sees actionable message ("Complete deliveries / withdraw balance first") | Manual |
 
 ## Performance gates
 
-Measured on a Tecno Spark Go 2024 (or equivalent — 2GB RAM, Android 14):
+Measured on a Tecno Spark Go 2024 (or equivalent - 2GB RAM, Android 14):
 
 - **Cold start (process launch → first paint)**: < 3s
 - **Map first frame on TripCockpit**: < 1s after `RIDER_EN_ROUTE` patch

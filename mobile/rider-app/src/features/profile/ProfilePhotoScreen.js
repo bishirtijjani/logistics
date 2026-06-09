@@ -1,5 +1,5 @@
 /**
- * ProfilePhotoScreen — pick from camera or library, upload via Cloudinary
+ * ProfilePhotoScreen - pick from camera or library, upload via Cloudinary
  * (kind=profile), persist via `PUT /auth/profile/picture`.
  */
 

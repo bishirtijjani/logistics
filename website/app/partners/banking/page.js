@@ -19,7 +19,7 @@ import Footer from "../../components/Footer";
 export const metadata = {
   title: "Bank & payment partners",
   description:
-    "Partner with iPrime as a bank or licensed payment provider — virtual accounts, wallet rails, settlements, and KYC for thousands of Katsina users.",
+    "Partner with iPrime as a bank or licensed payment provider - virtual accounts, wallet rails, settlements, and KYC for thousands of Katsina users.",
   alternates: { canonical: "/partners/banking" },
 };
 
@@ -32,7 +32,7 @@ const opportunities = [
   {
     Icon: Banknote,
     title: "Bank transfers & withdrawals",
-    body: "Power the in-app bank transfer feature — customers move money to any Nigerian bank, instantly, through your NIP/NIBSS rail.",
+    body: "Power the in-app bank transfer feature - customers move money to any Nigerian bank, instantly, through your NIP/NIBSS rail.",
   },
   {
     Icon: CreditCard,
@@ -42,7 +42,7 @@ const opportunities = [
   {
     Icon: ShieldCheck,
     title: "BVN, NIN & document KYC",
-    body: "Help us KYC every new user before they hold a wallet balance — BVN match, NIN match, and document verification on rider sign-ups.",
+    body: "Help us KYC every new user before they hold a wallet balance - BVN match, NIN match, and document verification on rider sign-ups.",
   },
 ];
 
@@ -50,7 +50,7 @@ const reasonsToPartner = [
   {
     Icon: Layers,
     title: "Embedded distribution into a daily-use super-app.",
-    body: "iPrime isn't a once-a-month bill-pay app. Customers open it to order food, send packages, top up airtime, and pay electricity — your rail powers every one of those flows.",
+    body: "iPrime isn't a once-a-month bill-pay app. Customers open it to order food, send packages, top up airtime, and pay electricity - your rail powers every one of those flows.",
   },
   {
     Icon: BarChart3,
@@ -65,13 +65,13 @@ const reasonsToPartner = [
   {
     Icon: FileCheck2,
     title: "A compliance partner, not just a customer.",
-    body: "We treat NDPA, CBN PSD Sandbox guidance, and AML rules as platform commitments — not checkbox items. Our compliance posture protects your licence as much as ours.",
+    body: "We treat NDPA, CBN PSD Sandbox guidance, and AML rules as platform commitments - not checkbox items. Our compliance posture protects your licence as much as ours.",
   },
 ];
 
 const requirements = [
   "CBN licence (commercial bank, MFB, PSSP, PSP, or switching as relevant to scope).",
-  "NIBSS membership for instant transfer rails — direct or via approved aggregator.",
+  "NIBSS membership for instant transfer rails - direct or via approved aggregator.",
   "Production-grade API with sandbox access, webhooks, and SLA-backed uptime.",
   "Data-processing agreement compatible with the Nigeria Data Protection Act 2023.",
   "AML/KYC posture you're willing to defend on an annual review.",
@@ -101,7 +101,7 @@ export default function BankingPartnersPage() {
                 iPrime is built on top of licensed Nigerian financial-service
                 providers. If you&apos;re a bank, microfinance bank, PSP, or
                 switching company looking for embedded distribution in
-                northern Nigeria — let&apos;s talk.
+                northern Nigeria - let&apos;s talk.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -167,7 +167,7 @@ export default function BankingPartnersPage() {
                 <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-8">
                   We approach wallet and payment services with the same rigor
                   a licensed institution would. Below is the posture we
-                  bring to every integration — and the standard we hold our
+                  bring to every integration - and the standard we hold our
                   side of the rail to.
                 </p>
 

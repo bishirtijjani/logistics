@@ -24,7 +24,7 @@ import {
 import { uploadPodAsset } from "../../services/cloudinary";
 
 /**
- * SignaturePadSheet — recipient signs on the screen with a finger; we export
+ * SignaturePadSheet - recipient signs on the screen with a finger; we export
  * the signature as a PNG dataURL, stash it to a local file, and upload to
  * Cloudinary into the same `iprime/pod/{requestId}/` folder as the
  * doorstep photo.
@@ -32,7 +32,7 @@ import { uploadPodAsset } from "../../services/cloudinary";
  * Only rendered when `delivery.requireSignature` setting is on.
  *
  * The signature canvas itself is a WebView under the hood, which means it
- * doesn't give us a regular file URI — it returns base64 data. We persist
+ * doesn't give us a regular file URI - it returns base64 data. We persist
  * the base64-decoded bytes to the cache directory so the cloudinary client
  * can upload it as a normal file.
  */
@@ -61,7 +61,7 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
   const handleOK = async (signatureDataUrl) => {
     setExporting(true);
     try {
-      // SignatureView returns "data:image/png;base64,iVBORw0..." — strip the
+      // SignatureView returns "data:image/png;base64,iVBORw0..." - strip the
       // prefix and write the bytes to a temp file in the cache directory.
       const base64 = String(signatureDataUrl).replace(/^data:image\/\w+;base64,/, "");
       const path = `${FileSystem.cacheDirectory}pod_signature_${requestId}_${Date.now()}.png`;
@@ -108,7 +108,7 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
     } catch (err) {
       if (controller.signal.aborted) return;
       if (!isMountedRef.current) return;
-      const msg = err?.message || t("pod.signature.uploadFailedFallback", "Upload failed — try again.");
+      const msg = err?.message || t("pod.signature.uploadFailedFallback", "Upload failed. Try again.");
       dispatch(podSignatureUploadFailed({ message: msg }));
       Toast.show({
         type: "error",

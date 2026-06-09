@@ -2,7 +2,7 @@
 --
 -- Photo is the baseline evidence (always required by default settings).
 -- Signature is opt-in via `delivery.requireSignature` (default false).
--- OTP is a high-value safeguard — kicks in when Request.total clears
+-- OTP is a high-value safeguard - kicks in when Request.total clears
 -- `delivery.podOtpThresholdNgn`. We store the bcrypt hash so a leaked DB
 -- snapshot doesn't surrender the plaintext OTP.
 --

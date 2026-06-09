@@ -1,5 +1,5 @@
 /**
- * Rider routes — /rider
+ * Rider routes - /rider
  */
 
 const { Router } = require('express');
@@ -30,7 +30,7 @@ router.post('/location', authorize('RIDER'), validate(updateLocationSchema), rid
 router.post('/accept', authorize('RIDER'), validate(acceptJobSchema), riderController.acceptJob);
 router.get('/earnings', authorize('RIDER'), riderController.getEarnings);
 
-// Phase 7 — performance metrics + document re-upload + offer decline.
+// Phase 7 - performance metrics + document re-upload + offer decline.
 router.get('/performance', authorize('RIDER'), riderController.getPerformance);
 router.post(
   '/documents',

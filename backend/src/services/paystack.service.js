@@ -1,5 +1,5 @@
 /**
- * Paystack service — used ONLY for bank-account name verification (name enquiry).
+ * Paystack service - used ONLY for bank-account name verification (name enquiry).
  *
  * KatPay has no account-resolution endpoint, so we resolve the account holder
  * name against Paystack's free `/bank/resolve` and treat the result as advisory.

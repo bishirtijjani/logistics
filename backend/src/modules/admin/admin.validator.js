@@ -1,5 +1,5 @@
 /**
- * Admin module — Zod validation schemas.
+ * Admin module - Zod validation schemas.
  */
 
 const { z } = require('zod');
@@ -281,7 +281,7 @@ const setMerchantTagsSchema = z.object({
 //
 // `attributeSchema` is an admin-managed JSON hint that tells the merchant app
 // which axes (size, color, strength, …) and pack units the category uses, plus
-// some category-specific extras (sizeSystem, etc.). The DB does not enforce it —
+// some category-specific extras (sizeSystem, etc.). The DB does not enforce it -
 // the merchant product form reads it to render the right inputs. Validation here
 // is loose on purpose (categories can be added without code changes); we only
 // constrain the shape of well-known fields.

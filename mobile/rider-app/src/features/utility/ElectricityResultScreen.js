@@ -126,13 +126,13 @@ export default function ElectricityResultScreen({ route, navigation }) {
         {/* Payment summary */}
         <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 16, marginBottom: 20 }}>
           <Row label={t("utility.result.amountLabel")} value={naira(amount)} />
-          <Row label={t("utility.result.discoLabel")} value={biller || "—"} />
-          <Row label={t("utility.result.meterLabel")} value={meterNumber || "—"} />
+          <Row label={t("utility.result.discoLabel")} value={biller || "-"} />
+          <Row label={t("utility.result.meterLabel")} value={meterNumber || "-"} />
           {beneficiaryName ? <Row label={t("utility.result.accountLabel")} value={beneficiaryName} /> : null}
           <Row label={t("utility.result.statusLabel")} value={status} last />
         </View>
 
-        {/* Token block — only when delivered */}
+        {/* Token block - only when delivered */}
         {token ? (
           <View style={{ backgroundColor: "#0F172A", borderRadius: 20, padding: 20, marginBottom: 16 }}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#94A3B8", letterSpacing: 1.5, marginBottom: 8 }}>

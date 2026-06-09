@@ -1,5 +1,5 @@
 /**
- * Maps service tests — distance, geocode, reverse, autocomplete, placeDetails,
+ * Maps service tests - distance, geocode, reverse, autocomplete, placeDetails,
  * directions. Verifies parsing of Google Maps responses and error translation
  * to AppError shapes the controllers expect.
  *
@@ -20,7 +20,7 @@ const stubModule = (filename, exports) => {
 };
 
 // Hand-rolled axios stub. Each test queues the next response (or error) on
-// `nextResponses` — first request shifts the front of the queue, so the test
+// `nextResponses` - first request shifts the front of the queue, so the test
 // can express "first call returns A, second call returns B".
 const nextResponses = [];
 let lastRequest = null;

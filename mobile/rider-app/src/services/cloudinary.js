@@ -41,7 +41,7 @@ export async function uploadToCloudinary({ kind, localUri, requestId, mimeType =
     if (signal?.aborted) throw new Error("upload aborted");
 
     try {
-      // 1. Fresh signature per attempt — server caps timestamp skew, so a
+      // 1. Fresh signature per attempt - server caps timestamp skew, so a
       //    signature that idles too long fails. Refresh is cheap. POD kinds
       //    pass the requestId so the server can verify the rider's assignment.
       const signBody = requestId ? { kind, requestId } : { kind };
@@ -67,7 +67,7 @@ export async function uploadToCloudinary({ kind, localUri, requestId, mimeType =
       const form = new FormData();
       if (Platform.OS === "web") {
         // On web, `localUri` is a data:/blob: URL. Cloudinary needs a real Blob,
-        // not React Native's { uri, name, type } descriptor — so fetch the URL
+        // not React Native's { uri, name, type } descriptor - so fetch the URL
         // into a Blob and append that. Native keeps the RN descriptor below.
         const blob = await fetch(localUri).then((r) => r.blob());
         const ext = mimeType === "image/png" ? "png" : "jpg";
@@ -85,7 +85,7 @@ export async function uploadToCloudinary({ kind, localUri, requestId, mimeType =
       form.append("folder", String(sig.folder));
       form.append("public_id", String(sig.publicId));
 
-      // 4. Use fetch directly — axios + RN can mishandle FormData boundaries on
+      // 4. Use fetch directly - axios + RN can mishandle FormData boundaries on
       //    some Android builds.
       const cloudinaryResp = await fetch(uploadUrl, {
         method: "POST",
@@ -114,7 +114,7 @@ export async function uploadToCloudinary({ kind, localUri, requestId, mimeType =
 }
 
 /**
- * Phase 5 — Proof of Delivery upload convenience wrapper.
+ * Phase 5 - Proof of Delivery upload convenience wrapper.
  *
  * `assetKind`:
  *   - "photo"     → backend kind `pod`

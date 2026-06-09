@@ -1,4 +1,4 @@
-# Customer App — Production Implementation Plan
+# Customer App - Production Implementation Plan
 
 > **Primary Focus:** Logistics & Delivery (Uber for packages)  
 > **Secondary:** Digital Wallet (to support seamless logistics payments)  
@@ -33,18 +33,18 @@
 
 ## Critical Gaps (Production Blockers)
 
-### Logistics (Primary) — CRITICAL
+### Logistics (Primary) - CRITICAL
 
 | # | Component | Issue | Impact |
 |---|-----------|-------|--------|
 | 1 | **Google Maps Service** | No backend service for distance/ETA calculation | Delivery pricing uses Haversine (inaccurate) |
 | 2 | **Rider Matching** | Worker has TODOs, no algorithm to find nearby riders | No automatic rider assignment |
 | 3 | **Socket.io Completion** | Handlers are skeletons, no real-time location broadcast | Customer cannot track rider live |
-| 4 | **Create Delivery Screen** | Not built — no pickup/dropoff flow | Customers cannot request deliveries |
-| 5 | **Track Delivery Screen** | Not built — no map with live rider tracking | Core UX missing |
+| 4 | **Create Delivery Screen** | Not built - no pickup/dropoff flow | Customers cannot request deliveries |
+| 5 | **Track Delivery Screen** | Not built - no map with live rider tracking | Core UX missing |
 | 6 | **Orders History** | Empty state only, no delivery list | Cannot view past deliveries |
 
-### Wallet (Supporting) — HIGH
+### Wallet (Supporting) - HIGH
 
 | # | Component | Issue | Impact |
 |---|-----------|-------|--------|
@@ -53,7 +53,7 @@
 | 9 | **Fund Wallet Screen** | Not built | No way to add money |
 | 10 | **Transaction PIN UI** | No bottom sheet component | Cannot confirm transactions |
 
-### VTU (Secondary) — MEDIUM
+### VTU (Secondary) - MEDIUM
 
 | # | Component | Issue | Impact |
 |---|-----------|-------|--------|
@@ -64,7 +64,7 @@
 
 ## Implementation Phases
 
-### Phase 1: Logistics Core (Weeks 1-2) — CRITICAL PATH
+### Phase 1: Logistics Core (Weeks 1-2) - CRITICAL PATH
 
 **Goal:** Enable customers to request deliveries and track them in real-time.
 
@@ -155,7 +155,7 @@ Create `mobile/customer-app/src/screens/delivery/CreateDeliveryScreen.js`:
 
 #### 1.5 Mobile: Track Delivery Screen
 
-Create `mobile/customer-app/src/screens/delivery/TrackDeliveryScreen.js` — **Most Critical Screen**
+Create `mobile/customer-app/src/screens/delivery/TrackDeliveryScreen.js` - **Most Critical Screen**
 
 ```
 ┌─────────────────────────────┐
@@ -299,7 +299,7 @@ Create `mobile/customer-app/src/components/PinBottomSheet.js`:
 
 **Goal:** Enable wallet funding so customers can pay for deliveries.
 
-**Scope:** Minimal viable wallet — fund only. Defer P2P and withdrawals.
+**Scope:** Minimal viable wallet - fund only. Defer P2P and withdrawals.
 
 #### 3.1 Backend: KatPay Integration
 
@@ -363,7 +363,7 @@ Create `mobile/customer-app/src/screens/wallet/FundWalletScreen.js`:
 #### 3.4 Mobile: Wallet Balance Integration
 
 Update `mobile/customer-app/src/screens/main/HomeScreen.js`:
-- Already shows wallet balance — ensure refresh on pull-to-refresh
+- Already shows wallet balance - ensure refresh on pull-to-refresh
 - Quick actions: "Fund" → navigate to FundWalletScreen
 
 Update `mobile/customer-app/src/screens/main/WalletScreen.js`:
@@ -391,7 +391,7 @@ Create `backend/src/services/alrahuz.service.js`:
 ```
 
 Update `backend/src/queues/workers/utility.worker.js`:
-- Already has skeleton — implement AlRahuz calls
+- Already has skeleton - implement AlRahuz calls
 - Handle success/failure status updates
 - Trigger refund on persistent failure
 
@@ -512,11 +512,11 @@ Configure for:
 - [ ] `mobile/customer-app/src/components/PinBottomSheet.js`
 
 ### Mobile Modified Files
-- [ ] `mobile/customer-app/src/screens/main/HomeScreen.js` — Add delivery creation entry
-- [ ] `mobile/customer-app/src/screens/main/OrdersScreen.js` — Add delivery list
-- [ ] `mobile/customer-app/src/screens/main/WalletScreen.js` — Connect Fund button
-- [ ] `mobile/customer-app/src/store/slices/deliverySlice.js` — Add createDelivery, fetchDeliveries
-- [ ] `mobile/customer-app/src/navigation/AppNavigator.js` — Add new screens
+- [ ] `mobile/customer-app/src/screens/main/HomeScreen.js` - Add delivery creation entry
+- [ ] `mobile/customer-app/src/screens/main/OrdersScreen.js` - Add delivery list
+- [ ] `mobile/customer-app/src/screens/main/WalletScreen.js` - Connect Fund button
+- [ ] `mobile/customer-app/src/store/slices/deliverySlice.js` - Add createDelivery, fetchDeliveries
+- [ ] `mobile/customer-app/src/navigation/AppNavigator.js` - Add new screens
 
 ---
 
@@ -537,8 +537,8 @@ Configure for:
 
 - **Logistics is the product.** Everything else supports this core value prop.
 - Wallet exists to eliminate payment friction for deliveries. No complex banking features needed for MVP.
-- VTU is a retention hook — users open app for airtime, stay for logistics.
-- Real-time tracking is the key differentiator — invest heavily in socket reliability.
+- VTU is a retention hook - users open app for airtime, stay for logistics.
+- Real-time tracking is the key differentiator - invest heavily in socket reliability.
 - Katsina State launch: Focus on Katsina city → Funtua → Daura triangle initially.
 
 ---

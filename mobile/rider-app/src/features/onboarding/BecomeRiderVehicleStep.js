@@ -29,7 +29,7 @@ const VEHICLE_OPTIONS = [
 ];
 
 /**
- * Step 2/4 — Vehicle info.
+ * Step 2/4 - Vehicle info.
  * Captures vehicleType, plateNumber (Nigerian plate format), vehicleColor.
  */
 export default function BecomeRiderVehicleStep({ navigation }) {

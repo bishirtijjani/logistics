@@ -29,7 +29,7 @@ const TYPE_COLORS = {
 };
 
 function formatDateTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString(undefined, {
@@ -42,7 +42,7 @@ function formatDateTime(iso) {
  * Transaction detail + shareable receipt. The card is captured via
  * react-native-view-shot and shared via expo-sharing as a PNG. The server
  * also exposes `GET /wallet/transactions/:id/receipt` which returns the
- * canonical receipt payload — we hit that to pick up server-side fields
+ * canonical receipt payload - we hit that to pick up server-side fields
  * (e.g. bank-side reference) the in-memory tx row may not have.
  */
 export default function TransactionDetailScreen() {
@@ -220,9 +220,9 @@ export default function TransactionDetailScreen() {
 
           <View style={{ height: 1, backgroundColor: tokens.border.subtle, marginVertical: 4 }} />
 
-          <Row tokens={tokens} label={t("receipt.statusLabel", "Status")} value={tx.status || "—"} />
+          <Row tokens={tokens} label={t("receipt.statusLabel", "Status")} value={tx.status || "-"} />
           <Row tokens={tokens} label={t("receipt.dateLabel", "Date")} value={formatDateTime(tx.createdAt)} />
-          <Row tokens={tokens} label={t("receipt.refLabel", "Reference")} value={tx.reference || "—"} mono />
+          <Row tokens={tokens} label={t("receipt.refLabel", "Reference")} value={tx.reference || "-"} mono />
           {tx.description ? (
             <Row tokens={tokens} label={t("receipt.descLabel", "Description")} value={tx.description} />
           ) : null}
@@ -279,7 +279,7 @@ export default function TransactionDetailScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Phase 7 — report an issue on a delivered trip. RIDER_EARNING txs
+        {/* Phase 7 - report an issue on a delivered trip. RIDER_EARNING txs
             carry the originating requestId in metadata, which is exactly what
             CreateDispute needs. */}
         {tx.type === "RIDER_EARNING" && tx.metadata?.requestId ? (

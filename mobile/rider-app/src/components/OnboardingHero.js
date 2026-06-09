@@ -12,7 +12,7 @@ import { useOnboardingStage, ONBOARDING_STAGE } from "../lib/useOnboardingStage"
 /**
  * Stage-aware "finish becoming a rider" card shown on the Home tab whenever the
  * rider is NOT yet APPROVED. This is the primary nudge that replaces the old
- * onboarding wall — the rider can browse the app, but this keeps the path to
+ * onboarding wall - the rider can browse the app, but this keeps the path to
  * earning one tap away and reflects exactly where they are.
  *
  * Renders nothing once APPROVED (Home shows the availability toggle instead) or
@@ -66,7 +66,7 @@ export default function OnboardingHero() {
         <Text style={bodyStyle(tokens)}>
           {t(
             "onboardingHero.pendingBody",
-            "We're reviewing your documents — usually within a few hours. We'll notify you the moment you're approved.",
+            "We're reviewing your documents, usually within a few hours. We'll notify you the moment you're approved.",
           )}
         </Text>
         {submittedAt ? (
@@ -149,7 +149,7 @@ export default function OnboardingHero() {
     );
   }
 
-  // ── NONE (default) — reward-first value prop ────────────────────────────────
+  // ── NONE (default) - reward-first value prop ────────────────────────────────
   return (
     <Card tokens={tokens} accent={tokens.brand.soft} accentBorder={tokens.brand.softBorder}>
       <IconBubble tokens={tokens} name="rocket-outline" color={tokens.brand.default} />

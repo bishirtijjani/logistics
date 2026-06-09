@@ -1,14 +1,14 @@
 /**
- * Search & discovery service — Phase 6 implementation.
+ * Search & discovery service - Phase 6 implementation.
  *
  * Backed by PostgreSQL pg_trgm for fuzzy ranking on merchant and product
  * names (GIN indexes added in the Phase 6 migration). The previous skeleton
- * filtered on a non-existent `isApproved` column — corrected to the
+ * filtered on a non-existent `isApproved` column - corrected to the
  * canonical `isActive=true AND adminActiveOverride=true` filter that the
  * rest of the codebase uses to surface merchants to customers.
  *
- *   /search   — fuzzy across merchant.name + product.name, optional geo bbox.
- *   /nearby   — bounding-box-only merchant list (no text query).
+ *   /search   - fuzzy across merchant.name + product.name, optional geo bbox.
+ *   /nearby   - bounding-box-only merchant list (no text query).
  *
  * We rank with `similarity()` (returned as `_score`) so the mobile can sort
  * client-side if it wants to interleave merchants and products in one list.
@@ -37,7 +37,7 @@ const buildBoundingBox = (lat, lng, radiusKm) => {
   };
 };
 
-// Customer-facing visibility filter — must match what merchant.service.getMerchants
+// Customer-facing visibility filter - must match what merchant.service.getMerchants
 // uses so search results aren't a superset/subset of the listing.
 const MERCHANT_VISIBLE_FILTER = {
   isActive: true,

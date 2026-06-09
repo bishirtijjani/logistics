@@ -49,7 +49,7 @@ const KPICard = ({ label, value, sub, icon, trend, trendLabel, color = 'primary'
 const TrendRow = ({ row }) => {
   const period = row.period
     ? (typeof row.period === 'string' ? row.period.slice(0, 10) : new Date(row.period).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }))
-    : '—'
+    : '-'
 
   return (
     <tr className="border-t border-surface-muted dark:border-dark-surface-muted hover:bg-surface-muted/60 dark:hover:bg-dark-surface-muted/60 transition-colors">
@@ -136,7 +136,7 @@ export default function MerchantAnalyticsPage() {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text truncate">{m.name}</h1>
-                  <p className="text-xs sm:text-sm text-muted dark:text-dark-muted">{m.type} · {m.commissionRate}% commission · Rating {m.averageRating?.toFixed(1) || '—'}</p>
+                  <p className="text-xs sm:text-sm text-muted dark:text-dark-muted">{m.type} · {m.commissionRate}% commission · Rating {m.averageRating?.toFixed(1) || '-'}</p>
                 </div>
               </div>
             </>
@@ -260,7 +260,7 @@ export default function MerchantAnalyticsPage() {
             />
             <KPICard
               label="Average Rating"
-              value={s.averageRating ? Number(s.averageRating).toFixed(2) : '—'}
+              value={s.averageRating ? Number(s.averageRating).toFixed(2) : '-'}
               sub={`${s.totalRatings} ratings`}
               icon={<Star size={18} />}
               color="amber"

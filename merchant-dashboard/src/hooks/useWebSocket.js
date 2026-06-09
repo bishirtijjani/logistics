@@ -6,7 +6,7 @@ import { fetchOrders } from '../store/slices/ordersSlice.js'
 import { showSuccessToast } from '../utils/toast.js'
 
 // The backend speaks Socket.io (backend/src/sockets/index.js), NOT raw
-// WebSocket — so this MUST use socket.io-client to complete the Engine.IO
+// WebSocket - so this MUST use socket.io-client to complete the Engine.IO
 // handshake. Event names mirror backend/src/sockets/events.js, which is the
 // server's source of truth. Merchant scoping is done via a room the client
 // joins after connecting, not via the connection URL.
@@ -62,7 +62,7 @@ export function useWebSocket(merchantId) {
 
     // API_URL is the REST base (e.g. https://api.iprime.ng in prod,
     // http://localhost:3000 in dev). Socket.io connects to the same origin
-    // over its own /socket.io handshake — no custom path needed. Auth goes in
+    // over its own /socket.io handshake - no custom path needed. Auth goes in
     // the handshake `auth` payload, where the server's middleware reads it.
     const socket = io(API_URL, {
       auth: { token },
@@ -101,7 +101,7 @@ export function useWebSocket(merchantId) {
 
       playNotificationSound()
       const amount =
-        typeof order?.total === 'number' ? ` — ₦${order.total.toLocaleString()}` : ''
+        typeof order?.total === 'number' ? ` - ₦${order.total.toLocaleString()}` : ''
       showBrowserNotification('New Order', `New order received${amount}`)
       showSuccessToast('New order received!')
 
@@ -109,7 +109,7 @@ export function useWebSocket(merchantId) {
     })
 
     // Status changes are emitted to the per-request room, which this list page
-    // does not join — so this rarely fires here today. Kept so the list stays
+    // does not join - so this rarely fires here today. Kept so the list stays
     // fresh if/when the page starts joining request rooms.
     socket.on(EVENTS.REQUEST_STATUS_CHANGED, (data) => {
       setLastMessage({ type: EVENTS.REQUEST_STATUS_CHANGED, data })

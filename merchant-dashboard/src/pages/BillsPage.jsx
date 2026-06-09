@@ -192,7 +192,7 @@ function AirtimeTab({ balance, naira, requestPin, dispatch }) {
   const [amount, setAmount] = useState('')
 
   // Derive the active network (default to the first) rather than setting it in
-  // an effect — avoids a cascading re-render and keeps user selection sticky.
+  // an effect - avoids a cascading re-render and keeps user selection sticky.
   const network = networks.find((n) => n.id === networkId) || networks[0] || null
 
   const pay = () => {
@@ -265,7 +265,7 @@ function DataTab({ balance, naira, requestPin, dispatch }) {
   const network = networks.find((n) => n.id === networkId) || networks[0] || null
   const dataPlans = network ? (plans[`DATA-${network.providerNetworkId}`] || []) : []
   // Deriving the plan from planId means it auto-clears when the network (and so
-  // the plan list) changes — no reset effect needed.
+  // the plan list) changes - no reset effect needed.
   const plan = dataPlans.find((p) => p.id === planId) || null
 
   // Effect only synchronizes the external store (fetch plans); no setState here.
@@ -487,7 +487,7 @@ function ElectricityTab({ balance, naira, requestPin, dispatch }) {
         await dispatch(payElectricity({
           discoId: disco.providerNetworkId, meterNumber: meter.trim(), meterType, amount: amt, phone: phone.trim(), pin,
         })).unwrap()
-        showSuccessToast('Electricity payment processing — your token will appear in History.')
+        showSuccessToast('Electricity payment processing - your token will appear in History.')
         setAmount('')
       },
       { title: 'Confirm electricity payment', subtitle: `${naira(amt)} • ${disco.networkName} • ${meter}` },
@@ -609,7 +609,7 @@ function HistoryTab({ naira, dispatch }) {
         <div className="space-y-3">
           {rows.map((r) => {
             const Icon = TYPE_ICON[r.type] || Receipt
-            const recipient = r.phoneNumber || r.meterNumber || '—'
+            const recipient = r.phoneNumber || r.meterNumber || '-'
             return (
               <div key={r.id} className="flex items-center gap-3 p-4 rounded-lg bg-surface-muted dark:bg-dark-surface-muted">
                 <div className="w-10 h-10 rounded-lg bg-white dark:bg-dark-surface flex items-center justify-center shrink-0">

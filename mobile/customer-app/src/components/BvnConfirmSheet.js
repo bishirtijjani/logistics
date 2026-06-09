@@ -15,7 +15,7 @@ const { height } = Dimensions.get("window");
 
 /**
  * Confirmation sheet shown right before BVN verification submits.
- * Used while phone-OTP is bypassed — the only friction we have left between
+ * Used while phone-OTP is bypassed - the only friction we have left between
  * the form and KatPay account provisioning, so the warning copy matters.
  */
 export default function BvnConfirmSheet({
@@ -173,7 +173,7 @@ function Row({ label, value, mono, last }) {
         }}
         numberOfLines={1}
       >
-        {value || "—"}
+        {value || "-"}
       </Text>
     </View>
   );

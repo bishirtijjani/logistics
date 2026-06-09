@@ -1,5 +1,5 @@
 /**
- * Request worker — handles unified request queue jobs
+ * Request worker - handles unified request queue jobs
  * 
  * Jobs:
  * - BROADCAST_TO_RIDERS: Broadcast new request to nearby riders
@@ -35,7 +35,7 @@ const { REDIS_KEYS, RIDER_MATCHING } = require('../../utils/constants');
 //
 // A rider "accepts" by hitting the accept endpoint (existing flow). That
 // endpoint sets Request.riderId + status=RIDER_ASSIGNED. We poll the request
-// row at the end of each ring window — if it has been claimed, we exit
+// row at the end of each ring window - if it has been claimed, we exit
 // cleanly without queueing more.
 // ============================================================
 
@@ -56,7 +56,7 @@ const notifyJobTaken = async (io, requestId, takenByRiderId = null) => {
     logger.warn('notifyJobTaken failed', { requestId, error: err.message });
   }
 
-  // Phase 7 — settle the persistent offer log. Two distinct terminal states
+  // Phase 7 - settle the persistent offer log. Two distinct terminal states
   // depending on what just happened:
   //   - takenByRiderId set     → another rider claimed it. Other OFFERED
   //                              rows become TAKEN.
@@ -168,7 +168,7 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
       logger.warn('Failed to record offer set', { requestId, error: err.message });
     }
 
-    // Phase 7 — persist an OFFERED row per candidate rider so the rider's
+    // Phase 7 - persist an OFFERED row per candidate rider so the rider's
     // performance screen can compute acceptance rate. Skip riders that
     // already have a row for this request (re-ring with overlap) to avoid
     // resetting an EXPIRED/DECLINED outcome.
@@ -202,7 +202,7 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
 };
 
 /**
- * BROADCAST_TO_RIDERS — entry point. Emits the FIRST ring and schedules
+ * BROADCAST_TO_RIDERS - entry point. Emits the FIRST ring and schedules
  * the next CHECK_RING_PROGRESS job. Returns immediately so the worker slot
  * is free; the next ring check arrives via a delayed BullMQ job rather than
  * an in-process sleep.
@@ -261,7 +261,7 @@ const broadcastToRiders = async (job) => {
 };
 
 /**
- * CHECK_RING_PROGRESS — fires `ringTimeoutSec` after the previous ring.
+ * CHECK_RING_PROGRESS - fires `ringTimeoutSec` after the previous ring.
  * If the request was claimed → notify the offered riders the job is gone.
  * Else emit the next ring and schedule the next check; or, on the final
  * ring, schedule AUTO_CANCEL_UNMATCHED.
@@ -277,7 +277,7 @@ const checkRingProgress = async (job) => {
   if (!after) return;
 
   if (after.riderId || !['REQUESTED', 'READY_FOR_PICKUP'].includes(after.status)) {
-    logger.info('checkRingProgress: claimed/changed — stopping', { requestId, status: after.status });
+    logger.info('checkRingProgress: claimed/changed - stopping', { requestId, status: after.status });
     await notifyJobTaken(io, requestId, after.riderId);
     return;
   }
@@ -296,14 +296,14 @@ const checkRingProgress = async (job) => {
   }
 
   if (nextAttempt >= cfg.ringList.length) {
-    // All rings exhausted — auto-cancel + refund.
+    // All rings exhausted - auto-cancel + refund.
     const { requestQueue } = require('../index');
     await requestQueue.add(
       REQUEST_JOBS.AUTO_CANCEL_UNMATCHED,
       { requestId, reason: 'No rider available within search radius' },
       { delay: RIDER_MATCHING.AUTO_CANCEL_BUFFER_MS },
     );
-    logger.info('All rings exhausted — auto-cancel queued', { requestId });
+    logger.info('All rings exhausted - auto-cancel queued', { requestId });
     return;
   }
 
@@ -380,7 +380,7 @@ const settleRequest = async (job) => {
       });
     }
 
-    // Credit merchant earnings into the merchant's User wallet — the single
+    // Credit merchant earnings into the merchant's User wallet - the single
     // wallet a merchant spends (VTU), tops up, and withdraws from, exactly like
     // riders below. `merchantWallet.totalEarnings` is still bumped as a
     // lifetime-earnings stat (it no longer holds spendable money).
@@ -442,7 +442,7 @@ const settleRequest = async (job) => {
         },
       });
 
-      // Notify rider of earnings — live balance nudge + Notification Center row + push.
+      // Notify rider of earnings - live balance nudge + Notification Center row + push.
       // Include reference + createdAt + requestId so the rider client can
       // dedupe the socket-pushed bump against a fetched canonical row,
       // preventing the same earning being counted twice if a dashboard
@@ -468,7 +468,7 @@ const settleRequest = async (job) => {
       }).catch((err) => logger.warn('RIDER_EARNING notification failed', { error: err.message }));
     }
 
-    // Credit platform earnings system wallet — closes the escrow loop so the
+    // Credit platform earnings system wallet - closes the escrow loop so the
     // platform fee actually lands somewhere accountable rather than sitting in
     // escrow forever.
     if (platformEarning > 0) {
@@ -502,7 +502,7 @@ const settleRequest = async (job) => {
       });
     }
 
-    // Phase 4 — release the rider back into the pool. The acceptJob path
+    // Phase 4 - release the rider back into the pool. The acceptJob path
     // flips them to ON_DELIVERY; without this they'd stay ON_DELIVERY until
     // the next manual toggle, and the matcher would skip them.
     if (request.rider) {
@@ -546,7 +546,7 @@ const refundRequest = async (job) => {
     if (request.status !== 'CANCELLED') throw new Error('Request not in CANCELLED state');
 
     // Idempotency guard. settleRequest is protected by the status transition
-    // (DELIVERED → SETTLED) — once SETTLED, the status check rejects the retry.
+    // (DELIVERED → SETTLED) - once SETTLED, the status check rejects the retry.
     // Refund leaves the request in CANCELLED forever, so retries would re-enter
     // the body and double-credit. refundTransactionId is the contract: set
     // exactly once, on the first successful refund.
@@ -558,10 +558,10 @@ const refundRequest = async (job) => {
       return { refundAmount: 0, alreadyRefunded: true };
     }
 
-    // Phase 4 — release the rider back into the matcher pool. Rider's own
+    // Phase 4 - release the rider back into the matcher pool. Rider's own
     // cancel already handles this inline, but admin force-cancel and
     // customer-cancel paths don't; doing it here covers all three.
-    // Only flip ON_DELIVERY → ONLINE — don't disturb a rider who explicitly
+    // Only flip ON_DELIVERY → ONLINE - don't disturb a rider who explicitly
     // went OFFLINE after the cancellation.
     if (request.rider?.id && request.rider.availability === 'ON_DELIVERY') {
       await tx.rider.update({
@@ -577,7 +577,7 @@ const refundRequest = async (job) => {
     const refundAmount = Math.max(0, customerPaid - feeApplied);
     const reference = `REFUND-${requestId}-${Date.now()}`;
 
-    // Drain PLATFORM_ESCROW by the full original customerPaid — closes the
+    // Drain PLATFORM_ESCROW by the full original customerPaid - closes the
     // escrow loop. The fee is then re-credited to PLATFORM_EARNINGS below so
     // accounting still balances: ESCROW_HOLD = ESCROW_REFUND (held -> released).
     if (customerPaid > 0) {
@@ -611,7 +611,7 @@ const refundRequest = async (job) => {
       });
     }
 
-    // Customer-facing refund row — separate from ESCROW_REFUND so the
+    // Customer-facing refund row - separate from ESCROW_REFUND so the
     // customer sees a normal REFUND in their history.
     const customerRefundTx = await tx.transaction.create({
       data: {
@@ -655,7 +655,7 @@ const refundRequest = async (job) => {
       data: { refundTransactionId: customerRefundTx.reference },
     });
 
-    // Restore stock on the resolved variant — Phase 2 variants own stock, not
+    // Restore stock on the resolved variant - Phase 2 variants own stock, not
     // the parent Product. Mirrors forceCancelRequest.
     if (request.items && request.items.length > 0) {
       for (const item of request.items) {
@@ -676,7 +676,7 @@ const refundRequest = async (job) => {
   
   logger.info('Request refunded', { requestId, ...result });
 
-  // Skip the notify on a no-op retry — the customer already got their toast
+  // Skip the notify on a no-op retry - the customer already got their toast
   // on the first refund.
   if (result.alreadyRefunded) return result;
 
@@ -701,7 +701,7 @@ const refundRequest = async (job) => {
       amount: result.refundAmount,
       route: '/wallet',
       description: result.cancellationFee > 0
-        ? `₦${Number(result.refundAmount).toLocaleString('en-NG')} refunded — ₦${result.cancellationFee} cancellation fee deducted.`
+        ? `₦${Number(result.refundAmount).toLocaleString('en-NG')} refunded - ₦${result.cancellationFee} cancellation fee deducted.`
         : `₦${Number(result.refundAmount).toLocaleString('en-NG')} refunded for cancelled order.`,
     }).catch((err) => logger.warn('REFUND notification failed', { error: err.message }));
   }
@@ -773,7 +773,7 @@ const autoCancelUnmatched = async (job) => {
     logger.warn('onRequestStatusChanged failed (auto-cancel)', { requestId, error: err.message });
   }
 
-  // Trigger refund — refund worker is idempotent via refundTransactionId.
+  // Trigger refund - refund worker is idempotent via refundTransactionId.
   const { requestQueue } = require('../index');
   await requestQueue.add(REQUEST_JOBS.REFUND_REQUEST, { requestId });
 

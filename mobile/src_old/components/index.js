@@ -1,5 +1,5 @@
 /**
- * Shared UI components placeholder — customer app.
+ * Shared UI components placeholder - customer app.
  *
  * TODO: Create reusable components:
  * - Button (primary, secondary, outline, loading state)

@@ -54,7 +54,7 @@ export default function ActionMenu({ actions = [], buttonLabel = 'Actions', alig
     const onKey = (e) => {
       if (e.key === 'Escape') closeMenu()
     }
-    // A fixed-positioned menu would drift if the page scrolls or resizes —
+    // A fixed-positioned menu would drift if the page scrolls or resizes -
     // simplest correct behaviour is to close it.
     const onReflow = () => closeMenu()
     document.addEventListener('mousedown', onDocClick)

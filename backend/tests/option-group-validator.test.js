@@ -20,7 +20,7 @@ const {
 const item = (name) => ({ name });
 
 // ---------------------------------------------------------------------------
-// optionGroupRuleError — the shared (rule, min, max) consistency check
+// optionGroupRuleError - the shared (rule, min, max) consistency check
 // ---------------------------------------------------------------------------
 
 test('REQUIRED_ONE is consistent only at min 1 / max 1', () => {
@@ -53,7 +53,7 @@ test('an unknown rule is reported as an error', () => {
 });
 
 // ---------------------------------------------------------------------------
-// optionGroupInputSchema — coupling + satisfiability + canonical fill-in
+// optionGroupInputSchema - coupling + satisfiability + canonical fill-in
 // ---------------------------------------------------------------------------
 
 test('a clean REQUIRED_ONE group with one item parses', () => {

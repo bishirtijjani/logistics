@@ -1,5 +1,5 @@
 /**
- * Cart helpers — pure utilities shared by the cart slice, MerchantMenu,
+ * Cart helpers - pure utilities shared by the cart slice, MerchantMenu,
  * ProductDetail, CartScreen, and CheckoutScreen.
  *
  * Cart is single-merchant. The `cartSlice` enforces that contract; this file

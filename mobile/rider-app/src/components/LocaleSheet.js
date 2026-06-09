@@ -1,5 +1,5 @@
 /**
- * LocaleSheet — bottom-sheet modal for picking the app language.
+ * LocaleSheet - bottom-sheet modal for picking the app language.
  *
  * Used from the Profile screen's language toggle. On select:
  *   1. `setLocale(code)` persists the choice to SecureStore.
@@ -8,7 +8,7 @@
  *   3. The sheet closes.
  *
  * Built with React Native's stock `Modal` to match the existing modal
- * patterns in HomeScreen / RequestTrackingScreen — no extra deps.
+ * patterns in HomeScreen / RequestTrackingScreen - no extra deps.
  */
 
 import React from 'react';

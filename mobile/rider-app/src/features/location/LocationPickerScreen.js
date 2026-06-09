@@ -22,12 +22,12 @@ const KATSINA = { latitude: 13.0059, longitude: 7.6019 };
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 /**
- * Map-based location picker — ported from the customer app so the rider
+ * Map-based location picker - ported from the customer app so the rider
  * onboarding "Home address" field works exactly like the customer's pickup/
  * drop-off picker (drag-the-pin + search autocomplete + GPS recenter).
  *
  * Contract: the caller passes `route.params.onSelect`, invoked with
- * `{ latitude, longitude, address }` on confirm. No redux dependency — the
+ * `{ latitude, longitude, address }` on confirm. No redux dependency - the
  * rider app has no location slice, so onSelect is the only sink.
  *
  * Note: the `api` interceptor returns the response body, which is the backend

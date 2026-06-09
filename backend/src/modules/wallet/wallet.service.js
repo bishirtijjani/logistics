@@ -1,5 +1,5 @@
 /**
- * Wallet service — core financial operations.
+ * Wallet service - core financial operations.
  *
  * CRITICAL RULES:
  * 1. EVERY balance mutation MUST happen inside a Prisma transaction
@@ -45,13 +45,13 @@ const getWallet = async (userId) => {
 };
 
 /**
- * Withdraw to bank account — atomic debit + queue disbursement.
+ * Withdraw to bank account - atomic debit + queue disbursement.
  *
  * A "transfer to any bank account" is the same financial operation as a
  * withdrawal (debit the wallet, queue a KatPay payout to a NUBAN); the only
  * difference is how it reads to the user. `opts.kind === 'transfer'` flavours
  * the reference, ledger description, metadata and notification copy without
- * forking the payout/reversal/retry machinery — the payment worker keys off
+ * forking the payout/reversal/retry machinery - the payment worker keys off
  * `reference`/`status` and the WITHDRAWAL type, so transfers ride the exact
  * same rails (including the failed-payout retry path) for free.
  */
@@ -107,9 +107,9 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
     // CAUTION: paymentQueue.add can reject AFTER the job was actually persisted
     // (lost ack), in which case the worker will dispatch the payout. So only
     // reverse if the row is STILL PROCESSING (the worker claims PROCESSING→SENT
-    // before paying) — winning that compare-and-set means the cash has NOT and
+    // before paying) - winning that compare-and-set means the cash has NOT and
     // will NOT go out. If we lose it, the worker owns the outcome; do nothing.
-    logger.error('Failed to enqueue withdrawal payout — reversing if not yet dispatched', { reference, error: enqueueErr.message });
+    logger.error('Failed to enqueue withdrawal payout - reversing if not yet dispatched', { reference, error: enqueueErr.message });
     const reversed = await prisma.$transaction(async (tx) => {
       const claim = await tx.transaction.updateMany({
         where: { reference, status: 'PROCESSING' },
@@ -123,7 +123,7 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
           type: 'REFUND',
           status: 'COMPLETED',
           amount,
-          description: 'Withdrawal reversed — could not queue payout',
+          description: 'Withdrawal reversed - could not queue payout',
           creditWalletId: result.walletId,
           provider: 'KATPAY',
         },
@@ -131,13 +131,13 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
       return true;
     }).catch((e) => {
       // REF row already exists (worker refunded) → P2002 rolls back; worker owns it.
-      logger.warn('Withdrawal reversal skipped — already handled', { reference, error: e.message });
+      logger.warn('Withdrawal reversal skipped - already handled', { reference, error: e.message });
       return false;
     });
     if (reversed) {
-      throw AppError.internal('Could not start withdrawal — your balance was not affected. Please try again.');
+      throw AppError.internal('Could not start withdrawal - your balance was not affected. Please try again.');
     }
-    throw AppError.internal('Your withdrawal is processing — please check your wallet shortly.');
+    throw AppError.internal('Your withdrawal is processing - please check your wallet shortly.');
   }
 
   logger.info(`${isTransfer ? 'Transfer' : 'Withdrawal'} initiated`, { userId, amount, reference });
@@ -161,14 +161,14 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
 };
 
 /**
- * Transfer wallet funds to any bank account. Thin alias over `withdrawToBank` —
+ * Transfer wallet funds to any bank account. Thin alias over `withdrawToBank` -
  * see that function for why the two share a rail.
  */
 const transferToBank = (userId, params) => withdrawToBank(userId, params, { kind: 'transfer' });
 
 /**
  * Process wallet funding from KatPay webhook.
- * Uses reference-based idempotency — safe to call multiple times.
+ * Uses reference-based idempotency - safe to call multiple times.
  */
 const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
   const existing = await prisma.transaction.findUnique({ where: { reference } });
@@ -315,7 +315,7 @@ const initiateTransferPaymentFunding = async (userId, { amount }) => {
   const result = await katpayService.initiateTransferPayment({
     amount,
     customer: { email: user.email, name: `${user.firstName} ${user.lastName}`, phone: user.phone },
-    merchant_reference: providerRef, // KatPay API field name — do not rename the key
+    merchant_reference: providerRef, // KatPay API field name - do not rename the key
     metadata: { userId, purpose: 'WALLET_TOPUP' },
   });
 
@@ -393,7 +393,7 @@ const _walletIdForUser = async (userId) => {
  * but whose wallet has no NUBAN (KatPay was down/misconfigured at original
  * verification). Throttled per-user via Redis so the client can't spam KatPay.
  *
- * Worker handler is idempotent — short-circuits if accountNumber already set.
+ * Worker handler is idempotent - short-circuits if accountNumber already set.
  */
 const retryVirtualAccountProvisioning = async (userId) => {
   const user = await prisma.user.findUnique({
@@ -410,7 +410,7 @@ const retryVirtualAccountProvisioning = async (userId) => {
 
   // KatPay requires phoneNumber. We adopt the BVN-verified phone into
   // user.phone at verification time, so it should always be set by here.
-  // If it isn't, the user is from before that fix landed — revert their
+  // If it isn't, the user is from before that fix landed - revert their
   // kycStatus so the BVN screen lets them back in to re-submit. Without
   // this revert the screen would render the "already verified" success
   // view and they'd have no way to fix the missing phone.
@@ -427,7 +427,7 @@ const retryVirtualAccountProvisioning = async (userId) => {
   }
   const phoneNumber = user.phone;
 
-  // 30s throttle keyed by user — generous enough to absorb screen mounts +
+  // 30s throttle keyed by user - generous enough to absorb screen mounts +
   // pull-to-refreshes while still letting a user manually retry.
   const throttleKey = `wallet:provision:retry:${userId}`;
   const acquired = await redis.set(throttleKey, '1', 'EX', 30, 'NX');

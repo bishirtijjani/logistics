@@ -6,7 +6,7 @@ const audiences = [
     eyebrow: "For customers",
     title: "Anything you need, at your door.",
     blurb:
-      "One app for food, groceries, pharmacy and parcels — paid from a wallet that also covers your airtime and bills.",
+      "One app for food, groceries, pharmacy and parcels - paid from a wallet that also covers your airtime and bills.",
     cta: { label: "Download iPrime", href: "#download" },
     image: "/images/audience-customer.png",
     fallback: "bg-orange-500",
@@ -28,7 +28,7 @@ const audiences = [
     eyebrow: "For riders",
     title: "Become A Rider. Get paid same-day.",
     blurb:
-      "Accept jobs near you, deliver, settle. Earnings reflect instantly in your iPrime wallet — withdraw anytime.",
+      "Accept jobs near you, deliver, settle. Earnings reflect instantly in your iPrime wallet - withdraw anytime.",
     cta: { label: "Apply to ride", href: "/riders" },
     image: "/images/audience-rider.png",
     fallback: "bg-zinc-800",

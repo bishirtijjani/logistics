@@ -1,5 +1,5 @@
 /**
- * Auth API service — customer app.
+ * Auth API service - customer app.
  */
 const api = require('../../services/api');
 

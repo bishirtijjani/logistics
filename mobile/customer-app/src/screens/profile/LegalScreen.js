@@ -17,7 +17,7 @@ export default function LegalScreen({ navigation }) {
   // Public legal docs are hosted on the marketing site (see /website in this
   // repo, route /legal/[slug]). The URLs are referenced from the App Store
   // privacy questionnaire and the Play Console data-safety form, so they
-  // must stay stable across releases — coordinate a migration if the
+  // must stay stable across releases - coordinate a migration if the
   // marketing domain ever changes.
   const items = [
     {

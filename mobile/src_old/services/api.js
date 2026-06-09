@@ -1,5 +1,5 @@
 /**
- * API service — Axios instance with JWT interceptors.
+ * API service - Axios instance with JWT interceptors.
  *
  * All API calls in the mobile app go through this instance.
  * It automatically attaches the access token and handles token refresh.
@@ -49,7 +49,7 @@ api.interceptors.response.use(
         // originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         // return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed — force logout
+        // Refresh failed - force logout
         // TODO: Dispatch logout action
         return Promise.reject(refreshError);
       }

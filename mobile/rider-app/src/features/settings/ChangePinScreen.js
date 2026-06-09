@@ -1,5 +1,5 @@
 /**
- * ChangePinScreen — three-step PIN change (current → new → confirm).
+ * ChangePinScreen - three-step PIN change (current → new → confirm).
  * Submits via `profileSlice.changeTransactionPin`.
  */
 

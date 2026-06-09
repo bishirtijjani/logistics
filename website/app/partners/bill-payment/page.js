@@ -25,36 +25,36 @@ export const metadata = {
 const verticals = [
   {
     Icon: Smartphone,
-    title: "Telcos — airtime & data",
+    title: "Telcos - airtime & data",
     body: "MTN, Glo, Airtel, 9mobile. We surface your bundles inside the customer app with live availability and instant wallet debit.",
   },
   {
     Icon: Zap,
-    title: "DISCOs — electricity tokens",
+    title: "DISCOs - electricity tokens",
     body: "All 11 Nigerian discos. Prepaid tokens delivered to the customer within seconds, with automatic wallet refund on failure.",
   },
   {
     Icon: Tv,
-    title: "TV — subscription top-ups",
+    title: "TV - subscription top-ups",
     body: "DStv, GOtv, Startimes, Showmax. One-tap renewals from the wallet, with smartcard validation before debit.",
   },
   {
     Icon: ReceiptText,
     title: "Education & other recurring bills",
-    body: "WAEC, NECA result-checker PINs, JAMB, exam fees — and any new biller you launch. Tell us your spec, we&apos;ll plug it in.",
+    body: "WAEC, NECA result-checker PINs, JAMB, exam fees - and any new biller you launch. Tell us your spec, we&apos;ll plug it in.",
   },
 ];
 
 const benefits = [
   {
     Icon: Network,
-    title: "A new distribution channel — no field sales required.",
+    title: "A new distribution channel - no field sales required.",
     body: "Customers already in the iPrime wallet see your product the moment they tap their utility tile. No leaflets, no agent networks, no onboarding costs from your side.",
   },
   {
     Icon: BadgeCheck,
     title: "Verified, KYC-cleared customers.",
-    body: "Every iPrime user is BVN-verified before they can hold a wallet balance. The transactions you process for us are from real, traceable Nigerian residents — not throwaway accounts.",
+    body: "Every iPrime user is BVN-verified before they can hold a wallet balance. The transactions you process for us are from real, traceable Nigerian residents - not throwaway accounts.",
   },
   {
     Icon: ShieldCheck,
@@ -69,7 +69,7 @@ const benefits = [
 ];
 
 const integrationPoints = [
-  "REST API or aggregator pass-through — whichever your stack already supports.",
+  "REST API or aggregator pass-through - whichever your stack already supports.",
   "Webhook-based transaction status updates (or polling, if you must).",
   "Test/sandbox keys before we go live, with full UAT against your billing system.",
   "Settlement to your bank account on the cycle you define (T+0 / T+1 / weekly).",
@@ -190,7 +190,7 @@ export default function BillPaymentPartnersPage() {
                 </h2>
                 <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-6">
                   We&apos;ve already integrated multiple billers and
-                  payment partners. The pattern is the same every time —
+                  payment partners. The pattern is the same every time -
                   we&apos;ll send our integration spec the day you reply, and
                   expect to be in UAT within a fortnight on most stacks.
                 </p>

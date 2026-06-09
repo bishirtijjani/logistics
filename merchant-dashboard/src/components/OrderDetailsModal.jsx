@@ -407,7 +407,7 @@ export default function OrderDetailsModal({ order, onClose }) {
             </div>
           </div>
 
-          {/* Phase 5 — Proof of Delivery card. Renders after the rider hits
+          {/* Phase 5 - Proof of Delivery card. Renders after the rider hits
               DELIVERED. Shows the doorstep photo + optional signature so the
               merchant can verify the order was completed correctly. */}
           {(order.podPhotoUrl || order.podSignatureUrl) && ['DELIVERED', 'SETTLED'].includes(order.status) ? (
@@ -437,7 +437,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                         loading="lazy"
                       />
                     </div>
-                    <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-300">Doorstep photo — tap to view</p>
+                    <p className="mt-2 text-xs text-emerald-800 dark:text-emerald-300">Doorstep photo - tap to view</p>
                   </a>
                 ) : null}
                 {order.podSignatureUrl ? (
@@ -462,7 +462,7 @@ export default function OrderDetailsModal({ order, onClose }) {
             </div>
           ) : null}
 
-          {/* Phase 8 — prescription attachment card. Only renders for pharmacy
+          {/* Phase 8 - prescription attachment card. Only renders for pharmacy
               orders where the customer uploaded a prescription at checkout. */}
           {order.prescriptionUrl ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4 flex items-start gap-3">
@@ -542,7 +542,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                               “{item.specialInstructions}”
                             </p>
                           ) : null}
-                          {/* Phase 8 — grocery substitution chip on the kitchen ticket. */}
+                          {/* Phase 8 - grocery substitution chip on the kitchen ticket. */}
                           <div className="mt-2 flex flex-wrap gap-1">
                             {subText && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">

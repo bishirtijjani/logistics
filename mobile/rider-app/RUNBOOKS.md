@@ -1,4 +1,4 @@
-# Operations runbooks — iPrime Rider
+# Operations runbooks - iPrime Rider
 
 Step-by-step playbooks for the situations the on-call team must handle.
 Add to this file when an incident reveals a gap; never let a one-off
@@ -17,25 +17,25 @@ sees a permission banner; or just nothing happens.
    iPrime Rider → Permissions and confirm Location is set to
    *Allow while using the app* (Android) / *While Using* (iOS). If
    denied, the `LocationServicesEnabledBanner` would already be visible
-   in-app — if it's not, force-quit and relaunch.
+   in-app - if it's not, force-quit and relaunch.
 2. **GPS hardware.** Phone Settings → Location must be ON. The app
    surfaces "Turn on GPS" prompts when it's off but some OEMs swallow
-   the system intent — ask the rider to toggle GPS off then back on.
+   the system intent - ask the rider to toggle GPS off then back on.
 3. **Rider status.** In the admin dashboard, look up the rider and
    confirm `status === APPROVED` and `availability !== ON_DELIVERY`.
    PENDING_APPROVAL / REJECTED / SUSPENDED riders cannot go online by
-   design — the gating UI should make the reason obvious; if not, ask
+   design - the gating UI should make the reason obvious; if not, ask
    the rider to screenshot.
 4. **Active delivery.** If `availability === ON_DELIVERY`, the rider is
    mid-trip. The trip must complete (or be force-cancelled by an admin
-   — see runbook 4) before they can go offline → back online.
+   - see runbook 4) before they can go offline → back online.
 5. **Backend reachable?** Check `https://api.iprime.ng/health`
    from a browser. If it 503's, the rider's problem is the platform's
-   problem — escalate to the platform on-call.
+   problem - escalate to the platform on-call.
 6. **Socket connection.** The rider app's `OfflineBanner` shows when the
    socket has dropped. If the banner is up, ask the rider to flip to
    another wifi/4G and back, and force-close the app.
-7. **Account suspended for doc expiry?** Open the rider's KYC tile — if
+7. **Account suspended for doc expiry?** Open the rider's KYC tile - if
    any document is past its expiry, the cron worker may have downgraded
    them. Re-uploading via the KYC screen reactivates after admin re-approval.
 
@@ -49,7 +49,7 @@ attach to the rider's profile. Engineering pulls Sentry breadcrumbs by
 ## 2. Publishing an OTA
 
 OTAs let us ship JS / asset changes to already-installed apps without
-going through the stores. Use them for bug fixes and copy changes —
+going through the stores. Use them for bug fixes and copy changes -
 NEVER for native module changes.
 
 **Pre-flight checks:**
@@ -59,7 +59,7 @@ NEVER for native module changes.
   ties OTAs to `expo.version`. If you bumped `expo.version`, you must
   ship a NEW native build first.
 - Maestro suite green on Maestro Cloud against the candidate.
-- Manual smoke pass on a physical device — `npx expo start` + load via
+- Manual smoke pass on a physical device - `npx expo start` + load via
   `expo://` is enough.
 - The change is reversible: have the previous bundle's hash in your
   back-pocket in case you need to roll back fast (see runbook 5).
@@ -76,7 +76,7 @@ points at. Riders pick it up on next foreground.
 
 **Verification:**
 
-- Watch Sentry for the next 30 minutes — crash-free should stay flat or
+- Watch Sentry for the next 30 minutes - crash-free should stay flat or
   improve. A sudden drop = pull the OTA (runbook 5).
 - Check the OTA dashboard in EAS for delivery progress; staged rollout
   defaults are fine for low-risk patches.
@@ -150,7 +150,7 @@ The Play Store / App Store don't let you "undo" a release. Recovery
 options:
 
 1. **Halt the staged rollout** in Play Console / App Store Connect.
-2. **Roll the staged percentage back to 0%** — affects new installers
+2. **Roll the staged percentage back to 0%** - affects new installers
    only; existing installs keep the bad version.
 3. **Re-build the previous tag** and re-submit as a NEW version
    (incremented build number). This is the canonical fix for a broken
@@ -172,7 +172,7 @@ The new build supersedes the bad one on next user update.
 a specific city; rider acceptance rate craters; admin sees broadcasts
 sending but no riders responding.
 
-1. **Push provider status.** Check the FCM and APNs status pages — if
+1. **Push provider status.** Check the FCM and APNs status pages - if
    they're degraded, the platform is down, not our code.
 2. **Backend dispatcher health.** Tail the `request.worker` logs for
    `broadcastToRiders` and `emitRing`. If they're crashing, restart the
@@ -198,13 +198,13 @@ backend on-call.
 ## 7. Test data + staging quirks
 
 - Staging riders / customers / merchants live behind the same database
-  as the live admin dashboard — DO NOT promote staging seed data to
+  as the live admin dashboard - DO NOT promote staging seed data to
   prod. The seed script segregates by `email` suffix `+staging@`.
-- Prod Cloudinary cloud is `dxen6m3r0`. Staging uses a separate cloud —
+- Prod Cloudinary cloud is `dxen6m3r0`. Staging uses a separate cloud -
   set `CLOUDINARY_CLOUD_NAME` per environment. Misconfiguring this
   prevents document uploads even when the URL is signed correctly.
 - Use a separate FCM project + APNs key for staging so prod TestFlight
   builds don't accidentally read staging routing keys.
 - Maestro flows depend on a sibling test rider's access token
-  (`SIBLING_RIDER_TOKEN`). Refresh by running the seeder weekly — the
+  (`SIBLING_RIDER_TOKEN`). Refresh by running the seeder weekly - the
   rider's session expires per the auth policy.

@@ -1,5 +1,5 @@
 /**
- * Category service — public-facing reads of merchant categories.
+ * Category service - public-facing reads of merchant categories.
  *
  * Uses an in-process 60s cache because categories change rarely
  * (admin actions only) and are queried on every customer app cold start.

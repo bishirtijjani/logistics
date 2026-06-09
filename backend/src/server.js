@@ -49,7 +49,7 @@ const start = async () => {
       logger.info(`📍 Environment: ${config.NODE_ENV}`);
     });
 
-    // Graceful shutdown — flush Sentry FIRST so any in-flight error events
+    // Graceful shutdown - flush Sentry FIRST so any in-flight error events
     // from workers/handlers land in the dashboard before the process dies.
     const shutdown = async (signal) => {
       logger.info(`${signal} received. Shutting down gracefully...`);

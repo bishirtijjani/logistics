@@ -3,7 +3,7 @@ import api from '../../lib/api'
 
 // Pull the actual error message out of an axios failure. The backend always
 // includes a human-readable `message` in its error body (e.g. "Invalid email
-// or password") — without this helper we'd surface axios's default
+// or password") - without this helper we'd surface axios's default
 // "Request failed with status code 401" to the user, which is what was
 // happening before.
 const apiErrorMessage = (err, fallback) => {
@@ -37,7 +37,7 @@ export const logout = createAsyncThunk(
   async () => {
     // Best-effort tell the backend to revoke the session record. If the
     // network is down or the access token is already expired we still need
-    // to clear local state below — never block sign-out on this call.
+    // to clear local state below - never block sign-out on this call.
     try {
       await api.post('/auth/logout')
     } catch {
@@ -67,7 +67,7 @@ export const fetchAuthProfile = createAsyncThunk(
 
 // Change the transaction PIN. Verifies the current PIN server-side, so a wrong
 // current PIN comes back 401 (with attemptsRemaining) and 6 fails → 423 lockout
-// — the form surfaces those. Merchants start on the default '000000'.
+// - the form surfaces those. Merchants start on the default '000000'.
 export const changeTransactionPin = createAsyncThunk(
   'auth/changeTransactionPin',
   async ({ currentPin, newPin }, { rejectWithValue }) => {
@@ -88,7 +88,7 @@ export const changeTransactionPin = createAsyncThunk(
 export const refreshToken = createAsyncThunk(
   'auth/refreshToken',
   async (_, { rejectWithValue }) => {
-    // Backend's /auth/refresh expects { refreshToken } in the body — not a
+    // Backend's /auth/refresh expects { refreshToken } in the body - not a
     // Bearer header. Auth-by-header here was wrong and silently failed once
     // the access token expired.
     const stored = localStorage.getItem('refreshToken')
@@ -100,7 +100,7 @@ export const refreshToken = createAsyncThunk(
 
 // Rehydrate the persisted user on app startup. Without this, refreshing the
 // page leaves us "authenticated" (we still have a token) but state.auth.user
-// is null — every page that reads state.auth.user?.merchantId breaks silently
+// is null - every page that reads state.auth.user?.merchantId breaks silently
 // for the first few renders.
 const readStoredUser = () => {
   try {
@@ -142,7 +142,7 @@ const authSlice = createSlice({
         // The "5 attempts → lock account" logic that used to live here was
         // pure client-side fiction: a page refresh reset the counter to 0,
         // so anyone hitting refresh got unlimited tries. The backend already
-        // rate-limits /auth/login (authLimiter) — that's the real ceiling.
+        // rate-limits /auth/login (authLimiter) - that's the real ceiling.
         state.loading = false
         state.error = action.error.message
       })
@@ -153,7 +153,7 @@ const authSlice = createSlice({
       })
       .addCase(fetchAuthProfile.fulfilled, (state, action) => {
         const p = action.payload || {}
-        // Merge — the profile payload has no merchantId (that's login-only), so
+        // Merge - the profile payload has no merchantId (that's login-only), so
         // a replace would wipe it and break every page reading user.merchantId.
         state.user = { ...(state.user || {}), ...p }
         try {
@@ -174,7 +174,7 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(refreshToken.fulfilled, (state, action) => {
-        // Backend rotates the refresh token on every refresh — persist both so
+        // Backend rotates the refresh token on every refresh - persist both so
         // the next /auth/refresh call has the latest valid pair.
         state.token = action.payload?.accessToken
         if (action.payload?.accessToken) {

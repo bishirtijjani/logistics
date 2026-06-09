@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
 // ============================================================
-// Pre-launch waitlist — admin
+// Pre-launch waitlist - admin
 // ============================================================
 
 export const fetchWaitlist = createAsyncThunk(

@@ -1,5 +1,5 @@
 /**
- * Audit log helper — shared between admin and support modules so neither
+ * Audit log helper - shared between admin and support modules so neither
  * has to import the other (which would create a circular dependency).
  */
 

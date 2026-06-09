@@ -7,7 +7,7 @@ import { useT } from "../../i18n/useT";
 const money = (n) => `₦${Number(n || 0).toLocaleString("en-NG")}`;
 
 /**
- * Dropoff card — shown while status ∈ {PICKED_UP, IN_TRANSIT, DELIVERED}.
+ * Dropoff card - shown while status ∈ {PICKED_UP, IN_TRANSIT, DELIVERED}.
  * Shows where the package is heading + how to contact the recipient.
  */
 export default function DropoffCard({
@@ -54,7 +54,7 @@ export default function DropoffCard({
           {dropoff.name || dropoff.contactName || t("trip.dropoff.fallback", "Dropoff location")}
         </Text>
         <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 4 }} numberOfLines={3}>
-          {dropoff.address || "—"}
+          {dropoff.address || "-"}
         </Text>
         {dropoff.notes ? (
           <Text style={{ fontSize: 12, fontStyle: "italic", color: tokens.text.muted, marginTop: 6 }} numberOfLines={3}>

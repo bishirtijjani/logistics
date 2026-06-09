@@ -4,7 +4,7 @@
  * Drives the real Express request pipeline (not the middleware in isolation)
  * via `app.handle(req, res)` so we exercise: header parsing → middleware
  * stack → controller invocation → response capture → replay path. Validates
- * the bug class that unit tests can't catch — that the middleware is
+ * the bug class that unit tests can't catch - that the middleware is
  * actually wired into the request route's stack and that two real HTTP-style
  * calls with the same Idempotency-Key trigger the controller exactly once.
  *
@@ -86,7 +86,7 @@ const drive = (app, opts) =>
 
 const buildApp = (controllerSpy) => {
   const app = express();
-  // Stub JSON parser — we'll set req.body manually since our fake req can't be
+  // Stub JSON parser - we'll set req.body manually since our fake req can't be
   // streamed, so just assign through a tiny middleware.
   app.use((req, _res, next) => next());
   app.post('/requests', idempotency, async (req, res) => {
@@ -105,7 +105,7 @@ test('integration: same Idempotency-Key invokes the controller exactly once', as
   const app = buildApp(spy);
   const key = 'integ-once-' + Date.now();
 
-  // First call — handler runs.
+  // First call - handler runs.
   const first = await drive(app, {
     method: 'POST',
     url: '/requests',
@@ -116,7 +116,7 @@ test('integration: same Idempotency-Key invokes the controller exactly once', as
   assert.equal(spy.calls, 1, 'controller must run exactly once on first call');
   assert.deepEqual(first.res.body, { ok: true, id: 'req_1', echo: { amount: 1000 } });
 
-  // Second call with the same key — must replay, NOT re-invoke the handler.
+  // Second call with the same key - must replay, NOT re-invoke the handler.
   const second = await drive(app, {
     method: 'POST',
     url: '/requests',
@@ -168,7 +168,7 @@ test('integration: no Idempotency-Key still works (legacy clients)', async () =>
 
   assert.equal(first.res.statusCode, 201);
   assert.equal(second.res.statusCode, 201);
-  // Without a key, every call hits the handler — that's the legacy contract.
+  // Without a key, every call hits the handler - that's the legacy contract.
   assert.equal(spy.calls, 2);
   assert.equal(stubs.prisma.idempotencyKey._store.size, 0, 'no rows reserved without a key');
 });
@@ -199,7 +199,7 @@ test('integration: middleware fails closed (503) when the dedup store throws', a
 // ── Wiring assertion: confirm idempotency is on the real request route ──────
 
 test('integration: real request.routes.js mounts idempotency on POST /', () => {
-  // Re-require the actual production route module — installStubs already
+  // Re-require the actual production route module - installStubs already
   // shimmed prisma/redis/config so this loads cleanly.
   const router = require('../src/modules/request/request.routes');
   const layer = router.stack.find(

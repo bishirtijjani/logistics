@@ -1,12 +1,12 @@
 /**
- * Sentry wrapper tests — confirms the no-DSN no-op contract:
+ * Sentry wrapper tests - confirms the no-DSN no-op contract:
  *   - initSentry() returns false when SENTRY_DSN is unset
  *   - captureError() with no SDK falls back to logger.error and does NOT throw
  *   - Express handlers degrade to pass-through middlewares
  *   - withScope still invokes the callback
  *
  * Real DSN behavior (event delivery, sampling, scope tagging) is not unit-
- * tested here — that's verified end-to-end against a Sentry test project.
+ * tested here - that's verified end-to-end against a Sentry test project.
  *
  * Run with: node --test tests/sentry-wrapper.test.js
  */

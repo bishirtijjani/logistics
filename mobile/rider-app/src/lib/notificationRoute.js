@@ -33,7 +33,7 @@ const ROUTE_MAP = [
     re: /^\/?wallet\/withdraw\/?$/i,
     build: () => ({ name: 'Withdraw', params: {} }),
   },
-  // Specific /wallet/transactions/:txId route — opens TransactionDetail.
+  // Specific /wallet/transactions/:txId route - opens TransactionDetail.
   {
     re: /^\/?wallet\/transactions\/([^/?#]+)/i,
     build: (m) => ({ name: 'TransactionDetail', params: { transactionId: m[1] } }),
@@ -136,7 +136,7 @@ export const routeToScreen = (n) => {
 export const parseDeepLink = (url) => {
   if (!url) return null;
   try {
-    // http(s) URLs carry a hostname between `://` and the first `/` —
+    // http(s) URLs carry a hostname between `://` and the first `/` -
     // strip both. Custom schemes like `iprime://trip/abc` have no host;
     // strip only the scheme so the first path segment ("trip") isn't
     // mistaken for a hostname and discarded.

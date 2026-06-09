@@ -1,8 +1,8 @@
 /**
- * Push notification service — supports both Expo push tokens and native FCM tokens.
+ * Push notification service - supports both Expo push tokens and native FCM tokens.
  *
  * The customer app is built on Expo's managed workflow and registers `ExponentPushToken[...]`
- * tokens via `Notifications.getExpoPushTokenAsync()` — these CANNOT be sent
+ * tokens via `Notifications.getExpoPushTokenAsync()` - these CANNOT be sent
  * through firebase-admin directly. We detect the token shape and route:
  *
  *   ExponentPushToken[...] → Expo Push API (https://exp.host/--/api/v2/push/send)
@@ -37,7 +37,7 @@ const initFirebase = () => {
     config.FIREBASE_PRIVATE_KEY.includes('PLACEHOLDER') ||
     !config.FIREBASE_CLIENT_EMAIL
   ) {
-    logger.warn('Firebase credentials not configured — FCM disabled (Expo tokens still work)');
+    logger.warn('Firebase credentials not configured - FCM disabled (Expo tokens still work)');
     return false;
   }
 

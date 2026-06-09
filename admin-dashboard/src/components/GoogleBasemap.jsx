@@ -19,7 +19,7 @@ export const ESRI_ATTRIBUTION = 'Tiles © Esri'
 export const PIN_PATH =
   'M12 2C7.589 2 4 5.589 4 9.995C4 14.59 8.6 19.55 11.18 22.04C11.62 22.46 12.38 22.46 12.82 22.04C15.4 19.55 20 14.59 20 9.995C20 5.589 16.411 2 12 2ZM12 12.5C10.62 12.5 9.5 11.38 9.5 10C9.5 8.62 10.62 7.5 12 7.5C13.38 7.5 14.5 8.62 14.5 10C14.5 11.38 13.38 12.5 12 12.5Z'
 
-// Esri's free World Street Map — a different street dataset than OSM, offered
+// Esri's free World Street Map - a different street dataset than OSM, offered
 // as a basemap option since OSM is sparse for Katsina. Tile path is
 // /tile/{z}/{y}/{x} (row before column).
 const esriTileUrl = (coord, zoom) =>

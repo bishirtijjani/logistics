@@ -43,12 +43,12 @@ export default function About() {
             </h2>
             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-5">
               iPrime is a homegrown delivery platform for the people of
-              Katsina State — connecting local restaurants, supermarkets,
+              Katsina State - connecting local restaurants, supermarkets,
               pharmacies, and independent riders to the doors that need them.
             </p>
             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-8">
               A built-in wallet pays for every order, and the same balance
-              covers your airtime, data, and electricity bills — so you never
+              covers your airtime, data, and electricity bills - so you never
               juggle apps to pay for what you ordered.
             </p>
 

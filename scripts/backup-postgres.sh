@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# Postgres daily backup — iPrime
+# Postgres daily backup - iPrime
 # ============================================================================
 #
 # Dumps the production database to a timestamped, gzipped file and keeps the
@@ -23,7 +23,7 @@
 #   2   missing DATABASE_URL
 #   3   upload failed (when BACKUP_S3_BUCKET is set)
 #
-# Manual restore (read-only practice — always test first):
+# Manual restore (read-only practice - always test first):
 #   gunzip -c /var/backups/iprime/iprime-YYYYMMDD-HHMMSS.sql.gz \
 #       | psql "$DATABASE_URL"
 # ============================================================================

@@ -26,7 +26,7 @@ export default function FundWalletScreen({ navigation }) {
   const [isRetrying, setIsRetrying] = useState(false);
   const [didInitialFetch, setDidInitialFetch] = useState(false);
 
-  // Profile is fetched alongside the wallet so kycStatus is fresh — without it
+  // Profile is fetched alongside the wallet so kycStatus is fresh - without it
   // we can't tell "user needs to verify" from "verified but provisioning still
   // pending", and both states need different copy + CTA. We wait for BOTH to
   // resolve before deciding what to render, otherwise the brief window where
@@ -69,7 +69,7 @@ export default function FundWalletScreen({ navigation }) {
 
   const hasAccount = Boolean(accountNumber);
   const isVerified = profile?.kycStatus === "VERIFIED";
-  // Three render states (only valid AFTER the initial fetches resolve — see
+  // Three render states (only valid AFTER the initial fetches resolve - see
   // didInitialFetch). Rendering early shows whichever of wallet/profile loaded
   // first, which briefly mis-classifies a verified-with-NUBAN user as "still
   // provisioning" and triggers the retry-loop spinner unnecessarily.

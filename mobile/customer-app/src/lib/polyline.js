@@ -5,7 +5,7 @@
  * Decodes a string like "_p~iF~ps|U_ulLnnqC" into an array of
  * { latitude, longitude } points that react-native-maps's <Polyline> consumes.
  *
- * Avoids the ~30KB @mapbox/polyline dep — we only need the decoder.
+ * Avoids the ~30KB @mapbox/polyline dep - we only need the decoder.
  */
 export const decodePolyline = (encoded) => {
   if (typeof encoded !== 'string' || encoded.length === 0) return [];

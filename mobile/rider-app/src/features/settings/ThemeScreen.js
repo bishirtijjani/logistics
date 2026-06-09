@@ -1,5 +1,5 @@
 /**
- * ThemeScreen — pick app appearance (system / light / dark). Wraps the
+ * ThemeScreen - pick app appearance (system / light / dark). Wraps the
  * ThemeProvider's `setMode` so the choice persists via AsyncStorage.
  */
 

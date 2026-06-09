@@ -1,5 +1,5 @@
 /**
- * Web Push (VAPID) sender — the browser/PWA counterpart to FCM.
+ * Web Push (VAPID) sender - the browser/PWA counterpart to FCM.
  *
  * `pushAndSocket` (notify.service) calls `sendToUser` alongside the FCM send.
  * Native devices receive FCM via `User.fcmToken`; web PWAs receive a browser
@@ -25,7 +25,7 @@ if (config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY) {
     );
     _configured = true;
   } catch (err) {
-    logger.warn('web-push VAPID config invalid — web push disabled', { error: err.message });
+    logger.warn('web-push VAPID config invalid - web push disabled', { error: err.message });
   }
 }
 

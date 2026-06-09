@@ -12,7 +12,7 @@ const authHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
-// Bank list cache — refreshed every hour
+// Bank list cache - refreshed every hour
 let bankListCache = null;
 let bankListCachedAt = null;
 const BANK_CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -95,7 +95,7 @@ const initiatePayout = async ({ amount, bank_code, account_number, account_name,
     const status = error.response?.status;
     // "definitive" = the provider actively rejected the request (a 4xx other than
     // 408/429), so the money definitely did NOT leave and a refund is safe.
-    // Everything else (timeout, network drop, 5xx, 408/429) is AMBIGUOUS — the
+    // Everything else (timeout, network drop, 5xx, 408/429) is AMBIGUOUS - the
     // payout MAY have settled, so callers must retry, never refund.
     const definitive = Boolean(status && status >= 400 && status < 500 && status !== 408 && status !== 429);
     logger.error('KatPay initiatePayout failed', { error: error.response?.data || error.message, reference, status, definitive });

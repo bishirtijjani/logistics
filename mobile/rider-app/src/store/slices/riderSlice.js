@@ -5,7 +5,7 @@ import locationStream from '../../services/locationStream';
 import { AVAILABILITY } from '../../lib/constants';
 
 /**
- * Rider slice — availability, presence, location streaming, performance.
+ * Rider slice - availability, presence, location streaming, performance.
  *
  * Public thunks:
  *   - fetchRiderProfile()        → GET /rider/profile
@@ -51,7 +51,7 @@ export const goOnline = createAsyncThunk(
   'rider/goOnline',
   async (_, { dispatch, getState, rejectWithValue }) => {
     // Step 3: tell the server first. If this fails, we never start the
-    // stream — the rider stays cleanly OFFLINE with an actionable error.
+    // stream - the rider stays cleanly OFFLINE with an actionable error.
     try {
       await patchAvailability(AVAILABILITY.ONLINE);
     } catch (err) {
@@ -90,7 +90,7 @@ export const goOffline = createAsyncThunk(
     try {
       await patchAvailability(AVAILABILITY.OFFLINE);
     } catch (err) {
-      // Even if the server PATCH fails, we keep local OFFLINE — better to be
+      // Even if the server PATCH fails, we keep local OFFLINE - better to be
       // off in the UI than off in the server but on in the UI.
       return rejectWithValue({ reason: 'patch_failed', message: err?.message, intent: reason });
     }
@@ -102,7 +102,7 @@ export const goOffline = createAsyncThunk(
 /**
  * Toggle ON_DELIVERY cadence on the location stream. Called when a trip is
  * accepted (Phase 3) and again when it terminates. Does NOT touch
- * `Rider.availability` — that stays ONLINE; the server flips internal state
+ * `Rider.availability` - that stays ONLINE; the server flips internal state
  * via the request lifecycle.
  */
 export const setOnDelivery = createAsyncThunk(
@@ -137,9 +137,9 @@ const initialState = {
   lastForceOfflineReason: null,
   isLoading: false,
   // True once the rider profile fetch has settled at least once (fulfilled OR
-  // rejected — a 404 for a non-rider counts). AppNavigator holds a spinner until
+  // rejected - a 404 for a non-rider counts). AppNavigator holds a spinner until
   // this flips so the rider's status (incl. SUSPENDED) is known before we pick a
-  // stack — without it, a returning SUSPENDED rider flashes MainTabs first.
+  // stack - without it, a returning SUSPENDED rider flashes MainTabs first.
   hasLoadedOnce: false,
   isTogglingAvailability: false,
   availabilityError: null,
@@ -180,7 +180,7 @@ const slice = createSlice({
       })
       .addCase(fetchRiderProfile.rejected, (state, action) => {
         state.isLoading = false;
-        // A 404 (no rider record yet) still counts as "resolved" — the rider is
+        // A 404 (no rider record yet) still counts as "resolved" - the rider is
         // simply a fresh sign-up, not in an indeterminate state.
         state.hasLoadedOnce = true;
         state.error = action.payload;

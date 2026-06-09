@@ -114,7 +114,7 @@ export default function Contact() {
             </h2>
             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-10">
               Press, partnerships, merchant or rider onboarding, or just a
-              question — drop us a note and a human will get back to you within
+              question - drop us a note and a human will get back to you within
               one business day.
             </p>
 
@@ -166,7 +166,7 @@ export default function Contact() {
                   Message sent.
                 </h4>
                 <p className="text-sm text-gray-500 font-medium leading-relaxed mb-6">
-                  Thanks — we got it. A human will reply within one business
+                  Thanks - we got it. A human will reply within one business
                   day.
                 </p>
                 <button

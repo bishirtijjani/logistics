@@ -6,7 +6,7 @@
  * copy and fall back to the server `message` when no translation exists.
  *
  * Backwards-compatible: legacy call sites that pass `(message, errorsArray)`
- * keep working — the factories auto-detect the shape and apply a sensible
+ * keep working - the factories auto-detect the shape and apply a sensible
  * default code derived from the HTTP status.
  *
  * USAGE:

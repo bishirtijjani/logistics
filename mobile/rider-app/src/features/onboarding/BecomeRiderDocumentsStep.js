@@ -34,7 +34,7 @@ function isValidExpiry(value) {
 }
 
 /**
- * Step 3/4 — Documents.
+ * Step 3/4 - Documents.
  * Single scrollable screen with 5 doc groups + a NIN entry. Each upload tile
  * persists its `secureUrl` to the onboarding draft as soon as it succeeds, so
  * a kill-and-restart never re-uploads anything.

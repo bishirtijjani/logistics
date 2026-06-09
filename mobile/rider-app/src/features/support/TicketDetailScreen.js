@@ -1,5 +1,5 @@
 /**
- * TicketDetailScreen — thread view + composer for a single support ticket.
+ * TicketDetailScreen - thread view + composer for a single support ticket.
  * Pulls detail via `fetchTicketDetail` on mount and posts replies via
  * `postTicketMessage`. Closing a ticket is owner-only and prompts to
  * confirm.

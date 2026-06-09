@@ -8,10 +8,10 @@ const submitContactMessage = async (req, res, next) => {
     // Respond 200 like a normal success so the bot moves on; don't actually
     // send the email or notify anyone.
     if (req.body.website && req.body.website.trim() !== '') {
-      logger.info('Contact honeypot triggered — silently dropped', { from: req.body.email, ip: req.ip });
+      logger.info('Contact honeypot triggered - silently dropped', { from: req.body.email, ip: req.ip });
       return res.status(201).json(
         ApiResponse.success(
-          "Thanks — we got your message and a human will get back to you within one business day.",
+          "Thanks - we got your message and a human will get back to you within one business day.",
           null,
         ),
       );
@@ -20,7 +20,7 @@ const submitContactMessage = async (req, res, next) => {
     await contactService.submitContactMessage(req.body);
     res.status(201).json(
       ApiResponse.success(
-        "Thanks — we got your message and a human will get back to you within one business day.",
+        "Thanks - we got your message and a human will get back to you within one business day.",
         null,
       ),
     );

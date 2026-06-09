@@ -1,6 +1,6 @@
 import { routeToScreen, parseDeepLink } from "../../src/lib/notificationRoute";
 
-describe("routeToScreen — string forms", () => {
+describe("routeToScreen - string forms", () => {
   it("maps offer paths to JobOffer with requestId", () => {
     expect(routeToScreen("/offer/abc-123")).toEqual({
       name: "JobOffer",
@@ -64,7 +64,7 @@ describe("routeToScreen — string forms", () => {
   });
 });
 
-describe("routeToScreen — notification payload forms", () => {
+describe("routeToScreen - notification payload forms", () => {
   it("uses data.route when provided", () => {
     expect(
       routeToScreen({ type: "REQUEST_STATUS", data: { route: "/trip/abc" } }),

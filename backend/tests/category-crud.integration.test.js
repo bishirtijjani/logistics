@@ -40,7 +40,7 @@ test('setup: server reachable, admin logged in', async () => {
   }
 
   if (!serverReachable) {
-    console.log('  ⏭  Backend not reachable on', BASE_URL, '— integration tests will be skipped');
+    console.log('  ⏭  Backend not reachable on', BASE_URL, '- integration tests will be skipped');
     return;
   }
 

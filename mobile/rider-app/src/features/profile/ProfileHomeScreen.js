@@ -1,5 +1,5 @@
 /**
- * Me tab — full profile aggregator. Phase 7 lights up everything: edit,
+ * Me tab - full profile aggregator. Phase 7 lights up everything: edit,
  * vehicle info, KYC status, performance, security, notifications,
  * language, theme, support, legal, about, sign out.
  *
@@ -72,7 +72,7 @@ export default function ProfileHomeScreen() {
           label: t("profile.kycRejected", "Application needs changes"),
           sub: t("profile.kycRejectedSub", "Update your documents and resubmit"),
           badge: { text: t("profile.badgeAction", "Action needed"), tone: "error" },
-          // Re-uploads go through KycStatus (POST /rider/documents) — the register
+          // Re-uploads go through KycStatus (POST /rider/documents) - the register
           // flow would 409 for an existing (rejected) rider record.
           onPress: () => navigation.navigate("KycStatus"),
         };
@@ -93,7 +93,7 @@ export default function ProfileHomeScreen() {
   const deliveries = performance?.totalDeliveries ?? rider?.totalDeliveries ?? 0;
   const vehicle = rider?.vehicleType
     ? `${rider.vehicleType.toLowerCase()} · ${rider.plateNumber}`
-    : "—";
+    : "-";
 
   const confirmLogout = () => {
     Alert.alert(
@@ -142,7 +142,7 @@ export default function ProfileHomeScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 17, fontWeight: "800", color: tokens.text.primary }}>{fullName}</Text>
-            <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>{user?.email || profile?.email || "—"}</Text>
+            <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>{user?.email || profile?.email || "-"}</Text>
             <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>{vehicle}</Text>
           </View>
           <TouchableOpacity
@@ -165,7 +165,7 @@ export default function ProfileHomeScreen() {
             icon="star"
             iconColor={tokens.status.warning}
             label={t("profile.rating", "Rating")}
-            value={rating > 0 ? rating.toFixed(1) : "—"}
+            value={rating > 0 ? rating.toFixed(1) : "-"}
             onPress={() => navigation.navigate("Performance")}
           />
           <StatChip
@@ -203,7 +203,7 @@ export default function ProfileHomeScreen() {
         <Card tokens={tokens}>
           <Row tokens={tokens} icon="lock-closed-outline" label={t("profile.security", "Security & PIN")} sub={t("profile.securitySub", "PIN, biometrics, sessions")} onPress={() => navigation.navigate("SecuritySettings")} />
           <Divider tokens={tokens} />
-          <Row tokens={tokens} icon="call-outline" label={t("profile.phone", "Phone number")} sub={profile?.phone || "—"} onPress={() => navigation.navigate("PhoneChange")} />
+          <Row tokens={tokens} icon="call-outline" label={t("profile.phone", "Phone number")} sub={profile?.phone || "-"} onPress={() => navigation.navigate("PhoneChange")} />
         </Card>
 
         {/* Section: Preferences */}

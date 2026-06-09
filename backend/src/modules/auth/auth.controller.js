@@ -1,5 +1,5 @@
 /**
- * Auth controller — handles HTTP request/response for auth routes.
+ * Auth controller - handles HTTP request/response for auth routes.
  *
  * RULES:
  * - Controllers NEVER access the database directly
@@ -117,7 +117,7 @@ const requestPasswordReset = async (req, res, next) => {
       await emailService.sendOtpEmail(req.body.email, code);
     }
 
-    // Always respond generically — don't reveal whether email exists
+    // Always respond generically - don't reveal whether email exists
     res.json(
       ApiResponse.success(
         "If an account exists with that email, a reset code has been sent.",

@@ -1,6 +1,6 @@
 # Getting started with the admin dashboard
 
-The iPrime admin dashboard is your control room for the whole platform —
+The iPrime admin dashboard is your control room for the whole platform -
 merchants, riders, orders, money, and support. This guide orients you so you
 know where everything lives.
 
@@ -20,11 +20,11 @@ The home **Dashboard** gives you the platform at a glance:
 
 ![The admin dashboard](/help/screenshots/admin/dashboard.png)
 
-- **Six headline numbers** — Total Requests, Active Requests, Total Revenue,
+- **Six headline numbers** - Total Requests, Active Requests, Total Revenue,
   Merchants, Riders, and Users.
 - **Revenue Trends** and **Request Trends** charts.
 - Quick action panels: **Pending Merchants**, **Failed Transactions**, and
-  **Pending Riders** — each with a **View All** link to jump straight to the
+  **Pending Riders** - each with a **View All** link to jump straight to the
   full screen.
 
 > 💡 Start your shift here. The pending panels tell you what needs attention
@@ -60,7 +60,7 @@ At the **bottom of the sidebar** you'll find your name, a **light/dark toggle**,
 and **Logout**.
 
 > ⚠️ Admin actions are powerful and **logged**. Approving, suspending, refunding,
-> and changing settings all affect real merchants, riders, and money — and every
+> and changing settings all affect real merchants, riders, and money - and every
 > action is recorded in **Audit Logs**.
 
 ---

@@ -167,10 +167,10 @@ SETTLED
 ### 3. `docs/API_CONTRACT.md`
 **Purpose:** Complete API specification
 **Key endpoints:**
-- `/requests` — Unified request CRUD
-- `/merchants` — Merchant browsing and management
-- `/merchant/wallet` — Merchant earnings
-- `/search` — Universal search
+- `/requests` - Unified request CRUD
+- `/merchants` - Merchant browsing and management
+- `/merchant/wallet` - Merchant earnings
+- `/search` - Universal search
 
 ### 5. `CONVENTIONS.md` (Updated)
 **Added:**
@@ -207,12 +207,12 @@ SETTLED
 **Add Groceries:**
 1. Add `GROCERY` to `RequestType` enum
 2. Onboard grocery stores as `Merchant` with `type: GROCERY`
-3. Done — existing UI works immediately
+3. Done - existing UI works immediately
 
 **Add Apparel/Electronics (Future):**
 1. Add `APPAREL` or `ELECTRONICS` to enum
 2. Onboard retailers
-3. Done — same flow, same tracking, same settlement
+3. Done - same flow, same tracking, same settlement
 
 ### 2. Consistent User Experience
 
@@ -294,7 +294,7 @@ Riders see:
 ### 1. Merchant is Optional
 
 **Decision:** `Request.merchantId` is nullable  
-**Why:** Package deliveries have no merchant — customer is the sender  
+**Why:** Package deliveries have no merchant - customer is the sender  
 **Impact:** Food/grocery/pharmacy require merchant, package skips merchant phase
 
 ### 2. Financial Splits Recorded Immediately
@@ -371,9 +371,9 @@ If critical issues:
 ## Questions?
 
 Refer to:
-- `UNIFIED_REQUEST_ARCHITECTURE.md` — Detailed design
-- `CONVENTIONS.md` — Coding standards (sections 13-14)
-- `API_CONTRACT.md` — API specification
+- `UNIFIED_REQUEST_ARCHITECTURE.md` - Detailed design
+- `CONVENTIONS.md` - Coding standards (sections 13-14)
+- `API_CONTRACT.md` - API specification
 
 ---
 

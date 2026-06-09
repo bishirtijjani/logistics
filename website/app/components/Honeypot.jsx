@@ -1,5 +1,5 @@
 /**
- * Honeypot — a hidden input named `website` that real users never see or fill,
+ * Honeypot - a hidden input named `website` that real users never see or fill,
  * but spam bots do (they auto-fill every input they encounter).
  *
  * Hidden via a combination of off-screen positioning + ARIA + tab-skipping +

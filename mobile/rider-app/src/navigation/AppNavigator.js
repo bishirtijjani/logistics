@@ -106,7 +106,7 @@ function collectScreenNames(state) {
   return out;
 }
 
-// Deep-link prefixes — paired with the `iprime` scheme in app.json. The
+// Deep-link prefixes - paired with the `iprime` scheme in app.json. The
 // scheme is shared with the customer app (each binary registers its own
 // handler on-device); we keep them apart on universal links via separate
 // hostnames (rider.iprime.ng here, customer.iprime.ng in the customer app).
@@ -118,7 +118,7 @@ const NAV_LINKING = {
   prefixes: [
     "iprime://",
     "https://rider.iprime.ng",
-    "riderapp://", // legacy — keep for back-compat
+    "riderapp://", // legacy - keep for back-compat
   ],
   config: {
     screens: {
@@ -194,7 +194,7 @@ export default function AppNavigator() {
     registerForceLogout(() => dispatch(forceLogout()));
   }, [dispatch]);
 
-  // Sentry + analytics user tagging — fires whenever the authenticated
+  // Sentry + analytics user tagging - fires whenever the authenticated
   // user changes so crash reports and events are scoped to the right
   // rider. Cleared on sign-out so a shared device doesn't leak the
   // previous rider's id into next session's breadcrumbs.
@@ -252,13 +252,13 @@ export default function AppNavigator() {
 
   // Once authed + bio passed: load profile + rider profile + connect socket.
   // After the rider profile lands, rehydrate an in-flight trip if there is
-  // one — and resume the location stream so the customer's tracking screen
+  // one - and resume the location stream so the customer's tracking screen
   // stops going stale. Covers force-close / cold-start so the rider picks
   // up exactly where they left off.
   useEffect(() => {
     if (!isAuthenticated || bioGate !== "passed") return;
     dispatch(fetchProfile());
-    // Wallet boot — pulls balance + NUBAN so the Wallet tab is populated by
+    // Wallet boot - pulls balance + NUBAN so the Wallet tab is populated by
     // the time the rider taps it. Subsequent socket updates flow via the
     // notificationsBus.
     dispatch(fetchWallet()).catch?.(() => {});
@@ -313,7 +313,7 @@ export default function AppNavigator() {
           socketService.connect();
           // Best-effort re-assert availability + refetch rider snapshot.
           dispatch(reconcileFromServer()).catch?.(() => {});
-          // Drop any offers whose 60 s window elapsed while we were backgrounded —
+          // Drop any offers whose 60 s window elapsed while we were backgrounded -
           // the server already resolved them and we'd be showing a phantom sheet.
           dispatch(offersPruneStale());
         }
@@ -335,7 +335,7 @@ export default function AppNavigator() {
   }, [isAuthenticated, bioGate]);
 
   // Push-tap routing (foreground + background).
-  // Earlier phases (0-1) don't have every target screen registered yet — guard
+  // Earlier phases (0-1) don't have every target screen registered yet - guard
   // against `navigation.navigate("JobOffer")` crashing by fingerprinting which
   // routes are available and falling back to Home if not.
   const safeNavigate = useCallback((action) => {
@@ -344,7 +344,7 @@ export default function AppNavigator() {
       const state = navigationRef.current.getRootState?.();
       const registered = collectScreenNames(state);
       if (action.name && !registered.has(action.name)) {
-        // Unknown screen — degrade to MainTabs/Home if it exists, else swallow.
+        // Unknown screen - degrade to MainTabs/Home if it exists, else swallow.
         if (registered.has("MainTabs")) {
           navigationRef.current.navigate("MainTabs", { screen: "HomeTab" });
         }
@@ -462,7 +462,7 @@ export default function AppNavigator() {
 
   // Hold a spinner until the rider profile fetch has settled at least once, so
   // the rider's status is known before we choose a stack. This is a thin gate
-  // (it releases on a 404 too, so a fresh sign-up never hangs) — it exists only
+  // (it releases on a 404 too, so a fresh sign-up never hangs) - it exists only
   // to stop a returning SUSPENDED rider from flashing MainTabs, and an already-
   // approved rider from flashing the onboarding nudge, before status resolves.
   if (isAuthenticated && bioGate === "passed" && !riderResolved) {
@@ -486,8 +486,8 @@ export default function AppNavigator() {
 
   // ── Role + status gating ──────────────────────────────────────────────────
   // The only hard walls left are: not-authenticated (must log in) and SUSPENDED
-  // (a ban). Every other state — no rider record, mid-application, pending
-  // review, rejected, or approved-without-a-PIN — now lands in MainTabs, where
+  // (a ban). Every other state - no rider record, mid-application, pending
+  // review, rejected, or approved-without-a-PIN - now lands in MainTabs, where
   // the OnboardingHero + Me-tab nudges drive the rider to finish at their own
   // pace. A fresh sign-up gets a 404 from GET /rider/profile (no rider record),
   // so riderStatus is simply undefined and we route straight into the app.
@@ -517,7 +517,7 @@ export default function AppNavigator() {
           <Stack.Group>
             <Stack.Screen name="Suspended" component={SuspendedScreen} />
             {/* Suspended riders are walled off from the app, but must still be
-                able to appeal — register the support-ticket screens their CTA
+                able to appeal - register the support-ticket screens their CTA
                 navigates to. */}
             <Stack.Screen name="CreateTicket" component={CreateTicketScreen} />
             <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
@@ -525,13 +525,13 @@ export default function AppNavigator() {
         ) : (
           <Stack.Group>
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-            {/* Become-Rider application — reachable from the Home hero / Me tab,
+            {/* Become-Rider application - reachable from the Home hero / Me tab,
                 no longer a wall in front of the app. */}
             <Stack.Screen name="BecomeRiderPersonal" component={BecomeRiderPersonalStep} />
             <Stack.Screen name="BecomeRiderVehicle" component={BecomeRiderVehicleStep} />
             <Stack.Screen name="BecomeRiderDocuments" component={BecomeRiderDocumentsStep} />
             <Stack.Screen name="BecomeRiderReview" component={BecomeRiderReviewSubmitStep} />
-            {/* PIN + biometric setup — prompted post-approval, not forced. SetPin
+            {/* PIN + biometric setup - prompted post-approval, not forced. SetPin
                 is registered WITHOUT a nextScreen so the wallet just-in-time
                 guard (usePinGuard) gets goBack; the post-approval prompt passes
                 nextScreen: "EnableBiometric" explicitly. */}
@@ -553,7 +553,7 @@ export default function AppNavigator() {
               options={{ presentation: "modal" }}
             />
             <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
-            {/* Phase 7 — profile / settings / support / notifications */}
+            {/* Phase 7 - profile / settings / support / notifications */}
             <Stack.Screen name="NotificationsCenter" component={NotificationsCenterScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="ProfilePhoto" component={ProfilePhotoScreen} />
@@ -573,7 +573,7 @@ export default function AppNavigator() {
             <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
             <Stack.Screen name="CreateDispute" component={CreateDisputeScreen} />
             <Stack.Screen name="DisputeDetail" component={DisputeDetailScreen} />
-            {/* Utility / VTU — airtime, data, cable, electricity */}
+            {/* Utility / VTU - airtime, data, cable, electricity */}
             <Stack.Screen name="Airtime" component={AirtimeScreen} />
             <Stack.Screen name="Data" component={DataScreen} />
             <Stack.Screen name="Cable" component={CableScreen} />

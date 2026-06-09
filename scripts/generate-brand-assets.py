@@ -18,10 +18,10 @@ FONT_PATH = (
 )
 
 # Brand palette
-ORANGE = (234, 88, 12, 255)        # #EA580C — already used for notifications + website themeColor
+ORANGE = (234, 88, 12, 255)        # #EA580C - already used for notifications + website themeColor
 WHITE = (255, 255, 255, 255)
 TRANSPARENT = (0, 0, 0, 0)
-WORDMARK = "iPrime"   # Full lettermark — used on every surface (icon, splash, favicon).
+WORDMARK = "iPrime"   # Full lettermark - used on every surface (icon, splash, favicon).
 
 
 def fit_font(text: str, font_path: Path, max_w: int, max_h: int) -> ImageFont.FreeTypeFont:
@@ -78,7 +78,7 @@ def make_splash_icon(size: int = 1024) -> Image.Image:
     """Splash centerpiece: white iPrime wordmark on transparent.
 
     Composites against app.json's splash.backgroundColor (#EA580C) for a solid
-    orange brand splash with white wordmark — matches the iOS icon treatment.
+    orange brand splash with white wordmark - matches the iOS icon treatment.
     """
     img = Image.new("RGBA", (size, size), TRANSPARENT)
     draw_centered(img, WORDMARK, WHITE, FONT_PATH, width_ratio=0.7)
@@ -120,7 +120,7 @@ def main() -> None:
         favicon_png.save(assets_dir / "favicon.png", "PNG")
         print(f"Wrote 4 assets to {assets_dir}")
 
-    # Web dashboards — Vite serves /public as the doc root.
+    # Web dashboards - Vite serves /public as the doc root.
     web_png_targets = [
         ROOT / "admin-dashboard" / "public" / "favicon.png",
         ROOT / "merchant-dashboard" / "public" / "favicon.png",
@@ -130,7 +130,7 @@ def main() -> None:
         favicon_png.save(png_path, "PNG")
         print(f"Wrote {png_path}")
 
-    # Marketing site — Next.js convention: app/favicon.ico
+    # Marketing site - Next.js convention: app/favicon.ico
     ico_path = ROOT / "website" / "app" / "favicon.ico"
     make_favicon_ico(ico_path)
     print(f"Wrote {ico_path}")

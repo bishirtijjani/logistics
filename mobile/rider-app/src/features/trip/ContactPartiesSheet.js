@@ -5,7 +5,7 @@ import { useTheme } from "../../theme";
 import { useT } from "../../i18n/useT";
 
 /**
- * ContactPartiesSheet — bottom sheet with two rows: Call + Chat.
+ * ContactPartiesSheet - bottom sheet with two rows: Call + Chat.
  * The cockpit picks which counterparty to surface based on the active stage
  * (pickup → merchant/sender, dropoff → customer/recipient).
  */
@@ -22,7 +22,7 @@ export default function ContactPartiesSheet({
   const { tokens } = useTheme();
   const { t } = useT();
   // Stage 1: a single failed attempt isn't enough to nudge. After 3 we
-  // surface the "Customer not reachable?" CTA — matches roadmap.
+  // surface the "Customer not reachable?" CTA - matches roadmap.
   const showUnreachableCta = callAttempts >= 3;
 
   return (
@@ -51,7 +51,7 @@ export default function ContactPartiesSheet({
             </Text>
           ) : (
             <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 16 }}>
-              {t("trip.contact.noPhone", "No phone number on file — try chat.")}
+              {t("trip.contact.noPhone", "No phone number on file. Try chat.")}
             </Text>
           )}
 

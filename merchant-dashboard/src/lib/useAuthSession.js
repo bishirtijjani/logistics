@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { logout, refreshToken as refreshTokenThunk } from '../store/slices/authSlice'
 
 // Access tokens live ~15m. Silently refresh once we're inside this buffer of
-// the expiry so the merchant never sees an interruption — the 7-day refresh
+// the expiry so the merchant never sees an interruption - the 7-day refresh
 // token does the work in the background.
 const REFRESH_BUFFER_MS = 3 * 60 * 1000
 const POLL_MS = 60 * 1000        // re-check expiry every minute
 
 /**
  * Decode the exp claim out of a JWT without verifying the signature. We only
- * use this to drive the client-side refresh timing — the server is still the
+ * use this to drive the client-side refresh timing - the server is still the
  * authority on whether a token is valid.
  */
 const getTokenExpiryMs = () => {
@@ -27,7 +27,7 @@ const getTokenExpiryMs = () => {
 
 /**
  * Session lifecycle hook for the merchant dashboard. Keeps the access token
- * fresh by silently refreshing via /auth/refresh shortly before it expires —
+ * fresh by silently refreshing via /auth/refresh shortly before it expires -
  * no modal, no manual "stay signed in" click. The merchant is only sent back
  * to /login when the refresh itself fails (refresh token expired/revoked).
  */
@@ -65,7 +65,7 @@ export const useAuthSession = () => {
       if (!expiry) return
       const remaining = expiry - Date.now()
       // Refresh proactively near expiry, and reactively if the token already
-      // lapsed (e.g. the laptop slept) — the refresh token may still be valid,
+      // lapsed (e.g. the laptop slept) - the refresh token may still be valid,
       // so try it before giving up. Guarded per-expiry to avoid double-firing.
       if (remaining <= REFRESH_BUFFER_MS && refreshedForRef.current !== expiry) {
         refreshedForRef.current = expiry

@@ -26,27 +26,27 @@ All variables required to run the backend. Copy `.env.example` to `.env` and fil
 |---|---|---|---|
 | `REDIS_HOST` | Yes | `localhost` | Redis server hostname |
 | `REDIS_PORT` | Yes | `6379` | Redis server port |
-| `REDIS_PASSWORD` | No | — | Redis auth password (if configured) |
+| `REDIS_PASSWORD` | No | - | Redis auth password (if configured) |
 
 ## Authentication (JWT)
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `JWT_ACCESS_SECRET` | Yes | — | Secret for signing access tokens. Min 32 characters. |
-| `JWT_REFRESH_SECRET` | Yes | — | Secret for signing refresh tokens. Min 32 characters. Must differ from access secret. |
+| `JWT_ACCESS_SECRET` | Yes | - | Secret for signing access tokens. Min 32 characters. |
+| `JWT_REFRESH_SECRET` | Yes | - | Secret for signing refresh tokens. Min 32 characters. Must differ from access secret. |
 | `JWT_ACCESS_EXPIRY` | No | `15m` | Access token lifetime |
 | `JWT_REFRESH_EXPIRY` | No | `7d` | Refresh token lifetime |
 
 ## KatPay (Wallet Funding, Virtual Accounts & Withdrawals)
 
-Sole payment provider — issues NUBAN virtual accounts per user, processes inbound funding via webhook, and handles bank disbursements (withdrawals).
+Sole payment provider - issues NUBAN virtual accounts per user, processes inbound funding via webhook, and handles bank disbursements (withdrawals).
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `KATPAY_BASE_URL` | No | `https://api.katpay.co` | KatPay API base URL |
-| `KATPAY_API_SECRET` | Prod | — | KatPay API secret key |
-| `KATPAY_PUBLIC_KEY` | Prod | — | KatPay public key |
-| `KATPAY_MERCHANT_ID` | Prod | — | KatPay merchant ID |
+| `KATPAY_API_SECRET` | Prod | - | KatPay API secret key |
+| `KATPAY_PUBLIC_KEY` | Prod | - | KatPay public key |
+| `KATPAY_MERCHANT_ID` | Prod | - | KatPay merchant ID |
 | `KATPAY_CALLBACK_URL` | Prod | `http://localhost:3000/webhooks/katpay` | Webhook callback URL for payment events |
 
 ## AlRahuz (Utility Payments)
@@ -73,13 +73,13 @@ Nigerian VTU provider for airtime, data bundles, electricity, and cable TV.
 
 ## OTP Provider
 
-Selects which channel delivers one-time passcodes (signup, password reset, KYC phone proof, phone-change confirmation). WhatsApp is the default — cheaper per message, no NCC sender-ID approval needed. Termii stays in the codebase as a dormant fallback so flipping back is a one-variable change (no redeploy).
+Selects which channel delivers one-time passcodes (signup, password reset, KYC phone proof, phone-change confirmation). WhatsApp is the default - cheaper per message, no NCC sender-ID approval needed. Termii stays in the codebase as a dormant fallback so flipping back is a one-variable change (no redeploy).
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `OTP_PROVIDER` | No | `whatsapp` | `whatsapp` or `termii`. Active provider's credentials are required in prod; the other channel can be left unconfigured. |
 
-Transactional (non-OTP) SMS — electricity-token delivery, KYC welcome, phone-change security notices — always tries Termii regardless of this flag. WhatsApp Cloud API requires a separately approved utility template per message type, which is out of scope here. If Termii is unconfigured those messages skip with a warning rather than failing the request.
+Transactional (non-OTP) SMS - electricity-token delivery, KYC welcome, phone-change security notices - always tries Termii regardless of this flag. WhatsApp Cloud API requires a separately approved utility template per message type, which is out of scope here. If Termii is unconfigured those messages skip with a warning rather than failing the request.
 
 ## WhatsApp Cloud API (Default OTP Provider)
 
@@ -88,24 +88,24 @@ Sends OTPs via an approved authentication template. Requires a Meta Business Acc
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `WHATSAPP_API_VERSION` | No | `v21.0` | Graph API version |
-| `WHATSAPP_PHONE_NUMBER_ID` | Prod (when active) | — | Phone Number ID from WhatsApp Manager → Phone Numbers |
-| `WHATSAPP_BUSINESS_ACCOUNT_ID` | No | — | WABA ID — informational, used in logs |
-| `WHATSAPP_ACCESS_TOKEN` | Prod (when active) | — | Long-lived System User access token (NOT a User token — those expire in 60 days) |
+| `WHATSAPP_PHONE_NUMBER_ID` | Prod (when active) | - | Phone Number ID from WhatsApp Manager → Phone Numbers |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | No | - | WABA ID - informational, used in logs |
+| `WHATSAPP_ACCESS_TOKEN` | Prod (when active) | - | Long-lived System User access token (NOT a User token - those expire in 60 days) |
 | `WHATSAPP_AUTH_TEMPLATE_NAME` | No | `iprime_otp` | Name of the approved authentication template |
 | `WHATSAPP_AUTH_TEMPLATE_LANGUAGE` | No | `en_US` | Template language code |
-| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | No | — | Shared secret echoed back to Meta on the GET handshake at `/webhooks/whatsapp` |
-| `WHATSAPP_APP_SECRET` | No | — | Meta App secret used to verify `X-Hub-Signature-256` on inbound webhook POSTs |
+| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | No | - | Shared secret echoed back to Meta on the GET handshake at `/webhooks/whatsapp` |
+| `WHATSAPP_APP_SECRET` | No | - | Meta App secret used to verify `X-Hub-Signature-256` on inbound webhook POSTs |
 
 ### One-time Meta setup
 
-1. **Meta Business account** — business.facebook.com, registered under your business name (CAC must match)
-2. **Business verification** — upload CAC certificate, proof of business address (≤ 90 days old)
+1. **Meta Business account** - business.facebook.com, registered under your business name (CAC must match)
+2. **Business verification** - upload CAC certificate, proof of business address (≤ 90 days old)
 3. **Add a phone number** to the WhatsApp Business Account (fresh number, or use the 2024 Coexistence flow to keep an existing consumer-WhatsApp number)
-4. **Display name approval** — must match registered brand
-5. **Authentication template** — submit a template like:
+4. **Display name approval** - must match registered brand
+5. **Authentication template** - submit a template like:
    `"{{1}} is your iPrime verification code. For your security, do not share this code."` with a "Copy code" button. Use the OTP / authentication category, not utility/marketing.
-6. **System User access token** — under Meta Business Settings → System Users → generate token with `whatsapp_business_messaging` + `whatsapp_business_management` scopes. Pick "Never" for expiration.
-7. **Webhook** — configure the production URL `https://<host>/webhooks/whatsapp`, subscribe to `messages` field, set Verify Token to whatever you've put in `WHATSAPP_WEBHOOK_VERIFY_TOKEN`.
+6. **System User access token** - under Meta Business Settings → System Users → generate token with `whatsapp_business_messaging` + `whatsapp_business_management` scopes. Pick "Never" for expiration.
+7. **Webhook** - configure the production URL `https://<host>/webhooks/whatsapp`, subscribe to `messages` field, set Verify Token to whatever you've put in `WHATSAPP_WEBHOOK_VERIFY_TOKEN`.
 
 ## Termii (Dormant OTP Fallback + Transactional SMS)
 
@@ -114,9 +114,9 @@ Required in prod **only** when `OTP_PROVIDER=termii`. When WhatsApp is active, T
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `TERMII_BASE_URL` | No | `https://api.ng.termii.com` | Termii API base URL |
-| `TERMII_API_KEY` | Prod (if active) | — | Termii API key |
-| `TERMII_SECRET_KEY` | Prod (if active) | — | Termii secret key |
-| `TERMII_SENDER_ID` | Prod (if active) | — | Registered sender ID for SMS |
+| `TERMII_API_KEY` | Prod (if active) | - | Termii API key |
+| `TERMII_SECRET_KEY` | Prod (if active) | - | Termii secret key |
+| `TERMII_SENDER_ID` | Prod (if active) | - | Registered sender ID for SMS |
 
 ## Email (SMTP)
 

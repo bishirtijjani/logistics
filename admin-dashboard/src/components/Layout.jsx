@@ -81,7 +81,7 @@ export default function Layout() {
 
   return (
     <div className="flex h-[100dvh] bg-background dark:bg-dark-background">
-      {/* Mobile menu button — only when closed, so it never overlaps the sidebar */}
+      {/* Mobile menu button - only when closed, so it never overlaps the sidebar */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}

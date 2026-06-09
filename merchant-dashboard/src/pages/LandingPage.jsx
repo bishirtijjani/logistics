@@ -29,7 +29,7 @@ const benefits = [
   {
     Icon: BadgeDollarSign,
     title: "No fixed monthly fee",
-    body: "We earn only when you do — a percentage commission on orders iPrime actually delivers. Slow week? You pay nothing.",
+    body: "We earn only when you do - a percentage commission on orders iPrime actually delivers. Slow week? You pay nothing.",
   },
   {
     Icon: Truck,
@@ -266,7 +266,7 @@ export default function LandingPage() {
               <p className="text-lg md:text-xl text-white/80 font-medium leading-relaxed max-w-xl mb-8">
                 Plug your restaurant, supermarket, pharmacy, or retail shop into
                 the iPrime customer base. We handle delivery, payments, and
-                support — you focus on what you make.
+                support - you focus on what you make.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link

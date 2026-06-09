@@ -1,5 +1,5 @@
 /**
- * Waitlist validator schemas — pre-launch sign-ups from the marketing site.
+ * Waitlist validator schemas - pre-launch sign-ups from the marketing site.
  */
 
 const { z } = require('zod');
@@ -7,7 +7,7 @@ const { z } = require('zod');
 const WAITLIST_ROLES = ['CUSTOMER', 'RIDER', 'UNKNOWN'];
 const WAITLIST_PLATFORMS = ['IOS', 'ANDROID', 'UNKNOWN'];
 
-// Loose phone validation — the form is public and we'd rather capture a lead
+// Loose phone validation - the form is public and we'd rather capture a lead
 // with a slightly malformed number than reject it. Trim and require ≥7 digits
 // once non-digits are stripped.
 const phoneSchema = z
@@ -42,7 +42,7 @@ const createWaitlistEntrySchema = z.object({
   role: z.enum(WAITLIST_ROLES).optional().default('UNKNOWN'),
   platform: z.enum(WAITLIST_PLATFORMS).optional().default('UNKNOWN'),
   source: z.string().trim().max(255).optional(),
-  // Honeypot — hidden in the UI. See contact.validator for the full rationale.
+  // Honeypot - hidden in the UI. See contact.validator for the full rationale.
   website: z.string().max(200).optional().default(''),
 });
 

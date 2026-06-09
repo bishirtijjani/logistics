@@ -1,5 +1,5 @@
 /**
- * LanguageScreen — pick app language (English / Hausa). Persists via the
+ * LanguageScreen - pick app language (English / Hausa). Persists via the
  * existing `setLocale` helper which writes to SecureStore and calls
  * `i18n.changeLanguage` so every screen flips immediately.
  */

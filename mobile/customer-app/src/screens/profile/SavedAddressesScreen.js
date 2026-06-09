@@ -1,5 +1,5 @@
 /**
- * SavedAddressesScreen — Phase 6 CRUD list.
+ * SavedAddressesScreen - Phase 6 CRUD list.
  *
  * Replaces the legacy single-textarea "Primary Address" editor with a real
  * address book backed by `/addresses`. Used as the picker source from:
@@ -51,7 +51,7 @@ export default function SavedAddressesScreen() {
   const { t } = useTranslation();
   const { list, isLoading, isMutating, isLoaded } = useSelector((s) => s.addresses);
 
-  // Picker mode — when set, taps return via callback rather than editing.
+  // Picker mode - when set, taps return via callback rather than editing.
   const onSelect = route.params?.onSelect;
   const pickerMode = typeof onSelect === "function";
 
@@ -71,12 +71,12 @@ export default function SavedAddressesScreen() {
 
   const openLocationPicker = (existing) => {
     navigation.navigate("LocationPicker", {
-      // LocationPicker returns { latitude, longitude, address } — no placeId.
+      // LocationPicker returns { latitude, longitude, address } - no placeId.
       onSelect: (loc) => {
         const newLat = loc.latitude ?? loc.lat;
         const newLng = loc.longitude ?? loc.lng;
         // If the picked coords differ from the existing row, the previously
-        // stored placeId no longer points at this location — drop it. The
+        // stored placeId no longer points at this location - drop it. The
         // backend will accept null and the row stays in a consistent state.
         const coordsChanged = !existing
           || (typeof newLat === "number" && Math.abs(newLat - existing.lat) > 1e-6)
@@ -98,7 +98,7 @@ export default function SavedAddressesScreen() {
 
   const handlePickerTap = async (item) => {
     if (!pickerMode) return;
-    // Optionally mark as default-on-use? Skip — user controls default explicitly.
+    // Optionally mark as default-on-use? Skip - user controls default explicitly.
     onSelect({
       id: item.id,
       label: item.label,
@@ -231,7 +231,7 @@ export default function SavedAddressesScreen() {
 
   // In picker mode an empty saved-address list is a dead end. Surface a
   // one-tap escape hatch that hands control straight to LocationPicker and
-  // pipes the picked location back through the caller's onSelect — same
+  // pipes the picked location back through the caller's onSelect - same
   // contract as a saved-address tap, just without persistence.
   const pickOneOffLocation = () => {
     if (!pickerMode) return;
@@ -326,7 +326,7 @@ export default function SavedAddressesScreen() {
         }
       />
 
-      {/* Label + default modal — used both for new entries and edits. */}
+      {/* Label + default modal - used both for new entries and edits. */}
       <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.5)" }}>
           <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 }}>
@@ -343,7 +343,7 @@ export default function SavedAddressesScreen() {
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <Ionicons name="location" size={16} color={colors.primary} />
                 <Text numberOfLines={2} style={{ marginLeft: 8, flex: 1, fontSize: 13, color: colors.text }}>
-                  {editing?.address || "—"}
+                  {editing?.address || "-"}
                 </Text>
               </View>
             </View>

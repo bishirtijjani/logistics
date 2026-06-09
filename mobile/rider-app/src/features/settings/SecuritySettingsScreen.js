@@ -1,11 +1,11 @@
 /**
- * SecuritySettingsScreen — aggregator for security-adjacent actions:
+ * SecuritySettingsScreen - aggregator for security-adjacent actions:
  *   - Change transaction PIN
  *   - Biometric login toggle (sub-screen)
  *   - Active sessions
  *   - Change phone number
  *   - Sign out all other devices
- *   - Delete account (irreversible — gated by confirmation prompts and
+ *   - Delete account (irreversible - gated by confirmation prompts and
  *     a server-side guard that refuses if a delivery is active or the
  *     wallet still has balance).
  */

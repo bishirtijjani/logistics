@@ -5,7 +5,7 @@ const { authorize } = require('../../middlewares/role.middleware');
 
 const router = Router();
 
-// Public — used by the mobile app on cold start
+// Public - used by the mobile app on cold start
 router.get('/public', settingsController.getPublicSettings);
 
 // Admin only

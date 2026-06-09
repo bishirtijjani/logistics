@@ -43,7 +43,7 @@ import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
 import MainTabNavigator from "./MainTabNavigator";
 
 // Profile Screens (Profile is now a stack screen reachable via the home
-// header's avatar, not a bottom tab — that slot is the cart now.)
+// header's avatar, not a bottom tab - that slot is the cart now.)
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import ProfilePhotoScreen from "../screens/profile/ProfilePhotoScreen";
@@ -106,19 +106,19 @@ import ShopsScreen from "../screens/main/ShopsScreen";
 
 const Stack = createNativeStackNavigator();
 
-// react-navigation deep-link config — pairs with the `iprime` scheme in app.json.
+// react-navigation deep-link config - pairs with the `iprime` scheme in app.json.
 // The route paths mirror the conventions in services/notify.service.js so the
 // server can produce a `data.route` like "/request/abc" and either:
 //   - in-app: notificationRoute.routeToScreen handles dispatch via navigation.navigate
 //   - tray-tap: react-navigation's Linking handler parses the full URL on cold start
 // Deep-link config. Tab screen names MUST match the MainTabNavigator's
-// `HomeTab/OrdersTab/WalletTab/CartTab` exactly — react-navigation throws
+// `HomeTab/OrdersTab/WalletTab/CartTab` exactly - react-navigation throws
 // "screen not found" on a name mismatch, so `navigation.navigate('MainTabs',
 // { screen: 'Wallet' })` would silently fail. notificationRoute.js builds
 // the same screen names. Profile moved off the tab bar and into a top-level
 // stack screen reachable from the home avatar.
 //
-// Note on scheme: `iprime://` is shared with the rider app — each binary
+// Note on scheme: `iprime://` is shared with the rider app - each binary
 // registers it on its own device. Universal-link domains (https://) are split
 // per role to keep cross-app handoff unambiguous: customer.iprime.ng here,
 // rider.iprime.ng in the rider app.
@@ -163,7 +163,7 @@ export default function AppNavigator() {
     [tokens, isDark]
   );
 
-  // navigationRef — used by the push-tap handler to navigate when there's
+  // navigationRef - used by the push-tap handler to navigate when there's
   // no useNavigation hook available (background → tray tap → cold start).
   const navigationRef = useRef(null);
 
@@ -180,9 +180,9 @@ export default function AppNavigator() {
   useEffect(() => { isAuthenticatedRef.current = isAuthenticated; }, [isAuthenticated]);
 
   // Biometric gate states:
-  //   'pending'  — checking whether to prompt
-  //   'required' — user enabled biometrics; show locked screen + retry
-  //   'passed'   — authenticated this session; main UI may render
+  //   'pending'  - checking whether to prompt
+  //   'required' - user enabled biometrics; show locked screen + retry
+  //   'passed'   - authenticated this session; main UI may render
   const [bioGate, setBioGate] = useState("pending");
   const bioGateRef = useRef(bioGate);
   useEffect(() => { bioGateRef.current = bioGate; }, [bioGate]);
@@ -193,9 +193,9 @@ export default function AppNavigator() {
 
   // Navigate to a pending order intent (from a `?intent=` web entry link) once
   // the user is authenticated, past the biometric gate, and the navigator is
-  // ready. Idempotent — clears the intent so it fires at most once. No-op when
+  // ready. Idempotent - clears the intent so it fires at most once. No-op when
   // there's no intent (every normal native open), or when called too early
-  // (a later trigger — onNavReady or the post-login effect — will retry).
+  // (a later trigger - onNavReady or the post-login effect - will retry).
   function replayPendingIntent() {
     const intent = getPendingIntent();
     if (!intent) return;
@@ -214,11 +214,11 @@ export default function AppNavigator() {
     dispatch(fetchPublicSettings());
     // Cart is user-scoped but the persisted blob is removed on forced logout
     // (see store/index.js), so it's safe to read on every cold start before
-    // we know who's signed in — the worst case is an empty read.
+    // we know who's signed in - the worst case is an empty read.
     dispatch(hydrateCartFromStorage());
   }, [dispatch]);
 
-  // Phase 5 — handle push tap (foreground + background) and cold-start deep links.
+  // Phase 5 - handle push tap (foreground + background) and cold-start deep links.
   useEffect(() => {
     // Tap on a delivered notification → navigate.
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -262,7 +262,7 @@ export default function AppNavigator() {
   }, []);
 
   // Replay a pending order intent once the user signs in and clears the
-  // biometric gate — this is the logged-out → login → resume path. Deferred a
+  // biometric gate - this is the logged-out → login → resume path. Deferred a
   // tick because the isAuthenticated flip re-renders the navigator in the same
   // commit, so the authenticated stack's screens must register first.
   useEffect(() => {
@@ -318,7 +318,7 @@ export default function AppNavigator() {
       const unsubNotif = subscribeSocketToStore(dispatch, { notificationReceived });
       dispatch(fetchUnreadCount());
       // Hydrate the profile so flags like `hasPinSet` are available before
-      // the user can hit a PIN-gated screen — keeps usePinGuard's pre-check
+      // the user can hit a PIN-gated screen - keeps usePinGuard's pre-check
       // from falling through to the server backstop on the first transaction.
       dispatch(fetchProfile());
       return () => {
@@ -330,7 +330,7 @@ export default function AppNavigator() {
     }
   }, [isAuthenticated, bioGate, dispatch]);
 
-  // Phase 5 — AppState handling. Backgrounding the app for >60s disconnects
+  // Phase 5 - AppState handling. Backgrounding the app for >60s disconnects
   // the socket (saves battery + server-side resources); foregrounding immediately
   // reconnects and re-joins the active request room so live tracking resumes
   // without manual refresh.
@@ -531,7 +531,7 @@ export default function AppNavigator() {
             <Stack.Screen name="MerchantMenu" component={MerchantMenuScreen} />
             <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
 
-            {/* Request Flow (unified — supersedes the legacy delivery flow) */}
+            {/* Request Flow (unified - supersedes the legacy delivery flow) */}
             <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
             <Stack.Screen name="Checkout" component={CheckoutScreen} />
             <Stack.Screen name="RequestTracking" component={RequestTrackingScreen} />
@@ -560,7 +560,7 @@ export default function AppNavigator() {
             {/* Notifications */}
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
 
-            {/* Support — tickets and disputes */}
+            {/* Support - tickets and disputes */}
             <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
             <Stack.Screen name="CreateSupportTicket" component={CreateTicketScreen} />
             <Stack.Screen name="SupportTicketDetail" component={TicketDetailScreen} />

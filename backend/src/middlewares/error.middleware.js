@@ -2,7 +2,7 @@
  * Global error handling middleware.
  *
  * This is the LAST middleware in the Express chain.
- * It catches all errors — operational (AppError) and unexpected.
+ * It catches all errors - operational (AppError) and unexpected.
  *
  * - Operational errors: sent to client with original message and status
  * - Prisma errors: translated to user-friendly messages
@@ -43,14 +43,14 @@ const handlePrismaError = (error) => {
 };
 
 /**
- * Global error handler — must have 4 parameters for Express to recognize it.
+ * Global error handler - must have 4 parameters for Express to recognize it.
  */
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, _next) => {
   let error = err;
 
   // Handle Prisma errors. Prisma codes follow the strict `P\d{4}` shape
-  // (P2002, P2025, …) — a loose `startsWith('P')` accidentally captures our
+  // (P2002, P2025, …) - a loose `startsWith('P')` accidentally captures our
   // own AppError codes like PIN_NOT_SET / PHONE_TAKEN / PRESCRIPTION_REQUIRED
   // and reroutes them through handlePrismaError, where they fall into the
   // default branch and surface to clients as a generic 500 INTERNAL_ERROR.

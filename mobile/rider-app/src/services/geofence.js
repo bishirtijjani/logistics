@@ -1,5 +1,5 @@
 /**
- * Geofence service — Phase 4.
+ * Geofence service - Phase 4.
  *
  * The rider's cockpit registers a soft fence around the pickup or dropoff
  * point. The fence watches incoming GPS fixes and fires `onEnter` either:
@@ -12,11 +12,11 @@
  *   - We subscribe to the same foreground GPS subscription `locationStream`
  *     already uses (no extra `watchPositionAsync`), via its `onFix` callback
  *     piped through riderSlice. That means the cockpit can derive arrival
- *     from the lastFix selector — but we expose a procedural API for clarity
+ *     from the lastFix selector - but we expose a procedural API for clarity
  *     because the cockpit also needs explicit `cancel()` semantics on
  *     status transitions (Phase 4's pickup fence cancels when the rider
  *     taps "Confirm pickup", before the dropoff fence is set up).
- *   - This module is intentionally state-only — no React hooks here so it
+ *   - This module is intentionally state-only - no React hooks here so it
  *     can be unit-tested without an RN harness.
  *   - `onEnter` is fired at most once per fence instance.
  */
@@ -76,7 +76,7 @@ class Geofence {
         this._armFallbackTimer();
       }
     } else if (this._lastInsideFallbackAt) {
-      // Drifted back out of the fallback band — reset the dwell timer.
+      // Drifted back out of the fallback band - reset the dwell timer.
       this._lastInsideFallbackAt = null;
       this._disarmFallbackTimer();
     }

@@ -16,7 +16,7 @@ const rateLimit = require('express-rate-limit');
 const { ApiResponse } = require('../utils/api-response');
 
 /**
- * Auth endpoints — 5 attempts per 2 minutes per IP.
+ * Auth endpoints - 5 attempts per 2 minutes per IP.
  */
 const authLimiter = rateLimit({
   windowMs: 2 * 60 * 1000,
@@ -28,7 +28,7 @@ const authLimiter = rateLimit({
 });
 
 /**
- * OTP endpoints — 3 attempts per 2 minutes per phone number.
+ * OTP endpoints - 3 attempts per 2 minutes per phone number.
  */
 const otpLimiter = rateLimit({
   windowMs: 2 * 60 * 1000,
@@ -40,7 +40,7 @@ const otpLimiter = rateLimit({
 });
 
 /**
- * PIN verification — 3 attempts per 5 minutes.
+ * PIN verification - 3 attempts per 5 minutes.
  */
 const pinLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -52,7 +52,7 @@ const pinLimiter = rateLimit({
 });
 
 /**
- * General API rate limit — 100 requests per minute.
+ * General API rate limit - 100 requests per minute.
  */
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -63,7 +63,7 @@ const generalLimiter = rateLimit({
 });
 
 /**
- * Registration — 3 accounts per IP per hour.
+ * Registration - 3 accounts per IP per hour.
  */
 const registrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -74,7 +74,7 @@ const registrationLimiter = rateLimit({
 });
 
 /**
- * Maps API limiter — 60 requests per minute per authenticated user. Maps
+ * Maps API limiter - 60 requests per minute per authenticated user. Maps
  * calls cost real money on Google's side; this caps a malicious or buggy
  * client from blowing the quota.
  */
@@ -88,7 +88,7 @@ const mapsLimiter = rateLimit({
 });
 
 /**
- * Request creation — 30 new orders per hour per authenticated user.
+ * Request creation - 30 new orders per hour per authenticated user.
  *
  * Single biggest abuse vector: a compromised account or buggy client
  * dispatching hundreds of orders in a loop, locking up rider matching and
@@ -108,7 +108,7 @@ const requestCreationLimiter = rateLimit({
 });
 
 /**
- * Quote endpoint — 120 quotes per hour per user. Quotes are cheap (no
+ * Quote endpoint - 120 quotes per hour per user. Quotes are cheap (no
  * escrow, no DB writes for the request itself), but each one calls Google
  * Maps for distance. Higher than create because the create flow re-quotes
  * on refresh + on address change.

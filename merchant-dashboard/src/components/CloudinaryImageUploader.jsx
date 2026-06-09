@@ -68,8 +68,8 @@ const uploadToCloudinary = async (file, sig) => {
  * The `secure_url` is fed back via `onChange`. The form persists only the URL.
  *
  * `size` controls thumbnail footprint:
- *   - "lg" (default): full-width upload zone with preview — for the main product image
- *   - "sm": compact 56×56 square — for variant / option-item rows
+ *   - "lg" (default): full-width upload zone with preview - for the main product image
+ *   - "sm": compact 56×56 square - for variant / option-item rows
  */
 export default function CloudinaryImageUploader({
   value,

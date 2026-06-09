@@ -1,5 +1,5 @@
 /**
- * Test helpers — inject in-memory stubs for the prisma and redis singletons
+ * Test helpers - inject in-memory stubs for the prisma and redis singletons
  * BEFORE the modules-under-test get required. Avoids needing a live DB/Redis
  * for unit tests of middleware and services.
  *
@@ -114,7 +114,7 @@ const makeRedisStub = () => {
 
 /**
  * In-memory stand-ins for the Prisma models the auth, address, notification,
- * and request services touch. Kept minimal — only the methods + columns each
+ * and request services touch. Kept minimal - only the methods + columns each
  * service actually reads/writes are implemented, and a few helpers (seed,
  * _rows, _byId) for tests to set up state.
  */
@@ -149,7 +149,7 @@ const makeAuthPrismaStub = () => {
     async create({ data }) {
       const id = data.id || newId();
       const row = { id, ...data };
-      // Inline relations (`wallet: { create: { ... } }`) — flatten so tests
+      // Inline relations (`wallet: { create: { ... } }`) - flatten so tests
       // can find e.g. user.wallet without a separate join.
       if (data.wallet?.create) row.wallet = { id: newId(), ...data.wallet.create, userId: id };
       if (data.merchant?.create) row.merchant = { id: newId(), ...data.merchant.create, userId: id };
@@ -395,7 +395,7 @@ const makeAuthPrismaStub = () => {
   // Generic in-memory model: matches on `where.id`, `where.id.in`, simple
   // equality predicates, `gte`/`lte` numeric ranges, and the `category: { slug }`
   // nested predicate the search service uses. Good enough for the search +
-  // nearby tests — not a full Prisma reimplementation.
+  // nearby tests - not a full Prisma reimplementation.
   const makeGenericModel = () => {
     const rows = new Map();
     const matches = (row, where) => {
@@ -516,7 +516,7 @@ const makeAuthPrismaStub = () => {
 
   // Transactional wrapper. Real Prisma rolls back on throw; stub just sequences
   // the callback against the same mutable maps so cross-model writes settle.
-  // If the callback throws, the maps already touched stay touched — fine for
+  // If the callback throws, the maps already touched stay touched - fine for
   // unit tests since each test installs fresh stubs.
   const $transaction = async (input) => {
     if (typeof input === 'function') return input(prismaStubInner);

@@ -13,7 +13,7 @@
 --   3. Reassign any merchants currently on `grocery-liquid` to `grocery`.
 --   4. Delete the `grocery-liquid` category row.
 --
--- All within a transaction — partial failure rolls back.
+-- All within a transaction - partial failure rolls back.
 
 BEGIN;
 
@@ -30,7 +30,7 @@ SET
     "updatedAt"       = CURRENT_TIMESTAMP
 WHERE "slug" = 'grocery';
 
--- Rename the Restaurant category to "Food" — the customer-facing concept is
+-- Rename the Restaurant category to "Food" - the customer-facing concept is
 -- food ordering, and the slug stays `restaurant` so routing isn't disturbed.
 UPDATE "merchant_categories"
 SET "name" = 'Food', "updatedAt" = CURRENT_TIMESTAMP

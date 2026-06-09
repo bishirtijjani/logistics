@@ -4,7 +4,7 @@ import { Platform } from "react-native";
  * Append an image to a Cloudinary multipart form in a cross-platform way.
  *
  * Native (iOS/Android): React Native's FormData takes a { uri, name, type }
- * descriptor and streams the file from disk — identical to the original code.
+ * descriptor and streams the file from disk - identical to the original code.
  * Web: FormData needs a real Blob (the { uri } descriptor would be serialised to
  * "[object Object]"), so fetch the data:/blob:/http: URI into a Blob and append
  * that. expo-image-picker on web returns exactly such a URI.

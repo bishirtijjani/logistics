@@ -1,5 +1,5 @@
 # Withdraw to a saved beneficiary; PIN bottom sheet authorises the transfer.
-# Idempotency key is set internally — re-running this flow within seconds
+# Idempotency key is set internally - re-running this flow within seconds
 # should NOT double-charge.
 appId: ng.iprime.rider
 env:

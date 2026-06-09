@@ -1,5 +1,5 @@
 /**
- * Merchant validator tests — confirms the type→categoryId migration.
+ * Merchant validator tests - confirms the type→categoryId migration.
  * Run with: node --test tests/merchant-validator.test.js
  */
 

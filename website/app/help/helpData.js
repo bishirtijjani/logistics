@@ -39,7 +39,7 @@ function toSearchText(body) {
 export async function loadIndex() {
   const manifest = await loadManifest();
   // The public web Help Center only publishes guides for "public" roles
-  // (merchants). Internal/admin docs are excluded here — they remain available
+  // (merchants). Internal/admin docs are excluded here - they remain available
   // only inside the authenticated admin dashboard's in-app help panel.
   const roles = (manifest.roles || []).filter((r) => r.public !== false);
   const publicRoleIds = new Set(roles.map((r) => r.id));

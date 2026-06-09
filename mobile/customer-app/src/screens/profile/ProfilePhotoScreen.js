@@ -36,7 +36,7 @@ export default function ProfilePhotoScreen({ navigation }) {
     let result;
 
     if (Platform.OS === "web") {
-      // Browser file dialog — go straight to it within the click gesture.
+      // Browser file dialog - go straight to it within the click gesture.
       const r = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsEditing: true,
@@ -114,7 +114,7 @@ export default function ProfilePhotoScreen({ navigation }) {
     formData.append('folder', String(signatureData.folder));
     formData.append('public_id', String(signatureData.publicId));
 
-    // Don't set Content-Type manually — fetch must add the multipart boundary.
+    // Don't set Content-Type manually - fetch must add the multipart boundary.
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/image/upload`,
       {

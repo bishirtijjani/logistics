@@ -1,5 +1,5 @@
 /**
- * CreateRequestScreen — PACKAGE flow (courier delivery, no merchant).
+ * CreateRequestScreen - PACKAGE flow (courier delivery, no merchant).
  *
  * Captures pickup + dropoff via the SavedAddresses picker, sender + recipient
  * contact info, package size, optional description, and submits to POST /requests

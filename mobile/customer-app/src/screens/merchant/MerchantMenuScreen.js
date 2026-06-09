@@ -1,5 +1,5 @@
 /**
- * MerchantMenuScreen — browse a merchant's catalogue and build a cart.
+ * MerchantMenuScreen - browse a merchant's catalogue and build a cart.
  *
  * Cart is single-merchant and lives in Redux (`cartSlice`). This screen:
  *   - Reads the cart from the store, but only renders the inline preview when
@@ -7,7 +7,7 @@
  *     would show another merchant's items).
  *   - Lets the customer edit/remove cart lines that belong here.
  *   - Dispatches `removeLine` directly; adds happen in ProductDetailScreen.
- *   - "View cart" CTA navigates to `Cart` (the dedicated review screen) —
+ *   - "View cart" CTA navigates to `Cart` (the dedicated review screen) -
  *     which in turn opens Checkout. Single source of truth for the cart UI.
  */
 
@@ -38,7 +38,7 @@ export default function MerchantMenuScreen() {
 
   const cart = useSelector(selectCart);
   // Only show the inline cart preview when the cart actually belongs to this
-  // merchant — otherwise we'd be showing another merchant's items in the
+  // merchant - otherwise we'd be showing another merchant's items in the
   // wrong context.
   const linesHere = useMemo(
     () => (cart.merchantId === merchantId ? cart.lines : []),
@@ -140,12 +140,12 @@ export default function MerchantMenuScreen() {
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.merchantName}>{merchant?.name}</Text>
             <Text style={styles.meta}>
-              <Ionicons name="star" size={12} color="#FFA500" /> {merchant?.averageRating?.toFixed?.(1) || '—'} · {merchant?.address}
+              <Ionicons name="star" size={12} color="#FFA500" /> {merchant?.averageRating?.toFixed?.(1) || '-'} · {merchant?.address}
             </Text>
           </View>
         </View>
 
-        {/* Cart preview — only when the cart belongs to this merchant. */}
+        {/* Cart preview - only when the cart belongs to this merchant. */}
         {linesHere.length > 0 && (
           <View style={styles.cartPanel}>
             <Text accessibilityRole="header" style={styles.cartHeader}>{t('merchant.yourOrder')}</Text>
@@ -164,7 +164,7 @@ export default function MerchantMenuScreen() {
                   {line.specialInstructions ? (
                     <Text style={styles.cartInstructions}>“{line.specialInstructions}”</Text>
                   ) : null}
-                  {/* Phase 8 — per-line markers. Substitution chip is grocery-only;
+                  {/* Phase 8 - per-line markers. Substitution chip is grocery-only;
                       Rx pill flags pharmacy items that need a prescription upload. */}
                   <View style={styles.chipsRow}>
                     {isGrocery && line.substitution ? (

@@ -1,5 +1,5 @@
 /**
- * Utility queue worker — calls AlRahuz Data API for utility purchases.
+ * Utility queue worker - calls AlRahuz Data API for utility purchases.
  *
  * FLOW:
  * 1. Wallet already deducted by utility.service
@@ -42,7 +42,7 @@ const startUtilityWorker = () => {
         case UTILITY_JOBS.PROCESS_ELECTRICITY: return processElectricity(job.data);
         case UTILITY_JOBS.POLL_PENDING:        return processPoll(job.data);
         case UTILITY_JOBS.REFUND_FAILED:       return processRefund(job.data);
-        // Throw on unknown — BullMQ will mark the job as failed and surface
+        // Throw on unknown - BullMQ will mark the job as failed and surface
         // it in the failed-jobs list. Returning silently here would leak the
         // payment as PENDING forever (the customer's wallet was already
         // debited at enqueue time). If you see this in logs, the enqueue
@@ -139,7 +139,7 @@ const refundPayment = async ({ paymentId, userId, amount, reference }) => {
     }
   } catch (err) {
     logger.error('Utility refund failed', { paymentId, error: err.message });
-    // Don't throw — log and continue; a human should resolve manually
+    // Don't throw - log and continue; a human should resolve manually
   }
 };
 
@@ -190,7 +190,7 @@ const _notifyOutcome = async ({ payment, status, token }) => {
 const _smsElectricityToken = async ({ payment, token }) => {
   if (!token || !payment?.phoneNumber) return;
   const amount = `₦${Number(payment.amount || 0).toLocaleString('en-NG')}`;
-  const msg = `Your ${payment.biller} token for meter ${payment.meterNumber} (${amount}): ${token}. — Katsina Logistics`;
+  const msg = `Your ${payment.biller} token for meter ${payment.meterNumber} (${amount}): ${token}. - Katsina Logistics`;
   try {
     await messagingService.sendSms(payment.phoneNumber, msg);
   } catch (err) {
@@ -322,7 +322,7 @@ const processElectricity = async ({ paymentId, userId, reference, discoId, meter
 };
 
 /**
- * POLL_PENDING — re-query AlRahuz by providerRequestId and route to the same
+ * POLL_PENDING - re-query AlRahuz by providerRequestId and route to the same
  * SUCCESS / PENDING / FAILURE branches. Recomputes ctx.type from the row so
  * the polling path is symmetric with the initial path (token + SMS still fire).
  */
@@ -338,14 +338,14 @@ const processPoll = async ({ paymentId, userId, reference, providerRequestId }) 
     result = await alrahuzService.queryTransaction(providerRequestId);
   } catch (err) {
     // Infra-level failure on the query. Treat as still-pending so handleResult
-    // increments the attempt counter and schedules the next poll — otherwise
+    // increments the attempt counter and schedules the next poll - otherwise
     // a single bad provider response would strand the payment in PENDING
     // forever with no future poll.
     logger.warn('Poll query failed, will be treated as still-pending', { paymentId, error: err.message });
     result = { status: 'pending' };
   }
 
-  // No result yet (provider hasn't materialised the transaction) — treat as
+  // No result yet (provider hasn't materialised the transaction) - treat as
   // pending so the attempt counter advances and we eventually refund.
   const synthetic = result ?? { status: 'pending' };
   await handleResult(synthetic, {

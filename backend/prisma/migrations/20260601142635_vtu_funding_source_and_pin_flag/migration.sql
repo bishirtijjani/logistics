@@ -9,7 +9,7 @@ ALTER TABLE "utility_payments" ADD COLUMN     "fundingSource" "UtilityFundingSou
 
 -- Backfill: existing CUSTOMER/RIDER who already have a PIN chose it themselves,
 -- so mark it as user-set. MERCHANTs are left false because they were seeded with
--- the default '000000' (and we can't tell if they changed it) — leaving false
+-- the default '000000' (and we can't tell if they changed it) - leaving false
 -- forces a real PIN before VTU spending, which is the desired security outcome.
 UPDATE "users"
 SET "transactionPinSetByUser" = true

@@ -1,5 +1,5 @@
 /**
- * Database seeder — creates initial data for development.
+ * Database seeder - creates initial data for development.
  *
  * Run with: npm run db:seed
  *
@@ -112,8 +112,8 @@ async function main() {
 
   console.log(`✅ Test rider created: ${riderUser.email} (approved, balance: ₦15,000)`);
 
-  // Seed default merchant categories (idempotent — admin can add more from the dashboard).
-  // Each category carries an attributeSchema — a UX hint that tells the merchant
+  // Seed default merchant categories (idempotent - admin can add more from the dashboard).
+  // Each category carries an attributeSchema - a UX hint that tells the merchant
   // product form which axes (size, color, …) and pack units to render.
   const defaultCategories = [
     {
@@ -127,7 +127,7 @@ async function main() {
       name: 'Groceries', slug: 'grocery', description: 'Shop supermarkets, drinks and household',
       icon: 'basket', color: '#7C3AED', sortOrder: 20, hasPreparation: true,
       // A single merchant typically carries both dry and liquid items, so the
-      // pack-unit list is the union of the two. Axes stays empty — merchants
+      // pack-unit list is the union of the two. Axes stays empty - merchants
       // add their own (flavor/size) per product when needed.
       attributeSchema: { axes: [], pack: true, packUnits: ['G', 'KG', 'PACK', 'SACHET', 'CARTON', 'ML', 'L', 'BOTTLE', 'PIECE'] },
     },
@@ -395,7 +395,7 @@ async function main() {
   if (pharmacyMerchant) {
     const existingRxProducts = await prisma.product.count({ where: { merchantId: pharmacyMerchant.id } });
     if (existingRxProducts === 0) {
-      // OTC analgesic — no prescription needed; pack-based variants.
+      // OTC analgesic - no prescription needed; pack-based variants.
       const paracetamol = await prisma.product.create({
         data: {
           merchantId: pharmacyMerchant.id,
@@ -416,17 +416,17 @@ async function main() {
         ],
       });
 
-      // Antibiotic — requires prescription. Two strengths.
+      // Antibiotic - requires prescription. Two strengths.
       const amoxicillin = await prisma.product.create({
         data: {
           merchantId: pharmacyMerchant.id,
           name: 'Amoxicillin',
-          description: 'Antibiotic — sold against valid prescription only',
+          description: 'Antibiotic - sold against valid prescription only',
           category: 'antibiotics',
           basePrice: 1500,
           stock: 0,
           requiresPrescription: true,
-          dosage: '1 capsule every 8 hours — complete the full course',
+          dosage: '1 capsule every 8 hours - complete the full course',
           isAvailable: true,
         },
       });
@@ -533,7 +533,7 @@ async function main() {
     { key: 'delivery.platformFeePercent', value: 10, description: 'Platform fee % on delivery subtotal' },
     { key: 'delivery.riderEarningPercent', value: 80, description: 'Rider earns this % of delivery fee' },
     { key: 'delivery.cancellationFee', value: 200, description: 'Fee charged for cancelling after rider assigned' },
-    // Phase 5 — Proof of Delivery gates. requirePodPhoto defaults to true so
+    // Phase 5 - Proof of Delivery gates. requirePodPhoto defaults to true so
     // every delivery in production has a doorstep photo on file. Signature is
     // opt-in (default false); admins can flip it on per environment. OTP gate
     // protects orders above ₦50k by requiring a 6-digit code shared by the
@@ -548,7 +548,7 @@ async function main() {
     // Feature flag for the rider-matching pipeline. Until the rider app
     // workstream ships a client that listens for `rider:job:new` and accepts
     // via the existing rider acceptance endpoint, set this to `false` in
-    // production — the worker will skip all rings and auto-cancel/refund
+    // production - the worker will skip all rings and auto-cancel/refund
     // immediately, preventing 4 minutes of phantom "searching..." per
     // delivery. Flip back to `true` once a rider app is in the wild.
     { key: 'delivery.matchingEnabled', value: true, description: 'Master switch for the rider matching worker' },
@@ -598,7 +598,7 @@ async function main() {
   // ─── VTU Networks (admin-managed catalogue of provider IDs) ────────────────
   // Networks/cable-names/discos live here so admin can edit provider IDs from
   // the dashboard without a deploy. VtuPlan rows reference these by
-  // (type, providerNetworkId) pair — kept in sync via sweep on network edit.
+  // (type, providerNetworkId) pair - kept in sync via sweep on network edit.
   const vtuNetworks = [
     // ── AIRTIME networks ──
     { type: 'AIRTIME', providerNetworkId: 1, name: 'MTN',     sortOrder: 1 },
@@ -607,7 +607,7 @@ async function main() {
     { type: 'AIRTIME', providerNetworkId: 4, name: 'AIRTEL',  sortOrder: 4 },
     { type: 'AIRTIME', providerNetworkId: 5, name: 'SMILE',   sortOrder: 5 },
 
-    // ── DATA networks (mirror AIRTIME — same provider IDs) ──
+    // ── DATA networks (mirror AIRTIME - same provider IDs) ──
     { type: 'DATA', providerNetworkId: 1, name: 'MTN',     sortOrder: 1 },
     { type: 'DATA', providerNetworkId: 2, name: 'GLO',     sortOrder: 2 },
     { type: 'DATA', providerNetworkId: 3, name: '9MOBILE', sortOrder: 3 },
@@ -645,80 +645,80 @@ async function main() {
   await prisma.vtuPlan.deleteMany({});
 
   const vtuPlans = [
-    // ── AIRTIME — amount-based; sellingPrice unused (user specifies amount) ──
+    // ── AIRTIME - amount-based; sellingPrice unused (user specifies amount) ──
     { type: 'AIRTIME', providerNetworkId: 1, networkName: 'MTN',     name: 'MTN Airtime',     costPrice: 0, sellingPrice: 0, sortOrder: 1 },
     { type: 'AIRTIME', providerNetworkId: 2, networkName: 'GLO',     name: 'GLO Airtime',     costPrice: 0, sellingPrice: 0, sortOrder: 2 },
     { type: 'AIRTIME', providerNetworkId: 4, networkName: 'AIRTEL',  name: 'AIRTEL Airtime',  costPrice: 0, sellingPrice: 0, sortOrder: 3 },
     { type: 'AIRTIME', providerNetworkId: 3, networkName: '9MOBILE', name: '9MOBILE Airtime', costPrice: 0, sellingPrice: 0, sortOrder: 4 },
 
-    // ── MTN DATA — SME ────────────────────────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 219, planType: 'SME', name: 'MTN 500MB — 7 days',   dataSize: '500MB', validity: '7 days',  costPrice: 485,   sellingPrice: 510,   sortOrder: 10 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 7,   planType: 'SME', name: 'MTN 1GB — 7 days',     dataSize: '1GB',   validity: '7 days',  costPrice: 780,   sellingPrice: 820,   sortOrder: 11 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 467, planType: 'SME', name: 'MTN 1.5GB — 7 days',   dataSize: '1.5GB', validity: '7 days',  costPrice: 965,   sellingPrice: 1020,  sortOrder: 12 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 8,   planType: 'SME', name: 'MTN 2GB — 30 days',    dataSize: '2GB',   validity: '30 days', costPrice: 1450,  sellingPrice: 1530,  sortOrder: 13 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 44,  planType: 'SME', name: 'MTN 3.5GB — 30 days',  dataSize: '3.5GB', validity: '30 days', costPrice: 2450,  sellingPrice: 2580,  sortOrder: 14 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 538, planType: 'SME', name: 'MTN 5GB — 30 days',    dataSize: '5GB',   validity: '30 days', costPrice: 1750,  sellingPrice: 1840,  sortOrder: 15 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 539, planType: 'SME', name: 'MTN 20GB — 30 days',   dataSize: '20GB',  validity: '30 days', costPrice: 7300,  sellingPrice: 7670,  sortOrder: 16 },
+    // ── MTN DATA - SME ────────────────────────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 219, planType: 'SME', name: 'MTN 500MB - 7 days',   dataSize: '500MB', validity: '7 days',  costPrice: 485,   sellingPrice: 510,   sortOrder: 10 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 7,   planType: 'SME', name: 'MTN 1GB - 7 days',     dataSize: '1GB',   validity: '7 days',  costPrice: 780,   sellingPrice: 820,   sortOrder: 11 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 467, planType: 'SME', name: 'MTN 1.5GB - 7 days',   dataSize: '1.5GB', validity: '7 days',  costPrice: 965,   sellingPrice: 1020,  sortOrder: 12 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 8,   planType: 'SME', name: 'MTN 2GB - 30 days',    dataSize: '2GB',   validity: '30 days', costPrice: 1450,  sellingPrice: 1530,  sortOrder: 13 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 44,  planType: 'SME', name: 'MTN 3.5GB - 30 days',  dataSize: '3.5GB', validity: '30 days', costPrice: 2450,  sellingPrice: 2580,  sortOrder: 14 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 538, planType: 'SME', name: 'MTN 5GB - 30 days',    dataSize: '5GB',   validity: '30 days', costPrice: 1750,  sellingPrice: 1840,  sortOrder: 15 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 539, planType: 'SME', name: 'MTN 20GB - 30 days',   dataSize: '20GB',  validity: '30 days', costPrice: 7300,  sellingPrice: 7670,  sortOrder: 16 },
 
-    // ── MTN DATA — SME2 ───────────────────────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 562, planType: 'SME2', name: 'MTN 1GB — 30 days (SME2)',    dataSize: '1GB',   validity: '30 days', costPrice: 500,   sellingPrice: 530,   sortOrder: 20 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 314, planType: 'SME2', name: 'MTN 2GB — 30 days (SME2)',    dataSize: '2GB',   validity: '30 days', costPrice: 1450,  sellingPrice: 1530,  sortOrder: 21 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 310, planType: 'SME2', name: 'MTN 3.5GB — 30 days (SME2)',  dataSize: '3.5GB', validity: '30 days', costPrice: 2450,  sellingPrice: 2580,  sortOrder: 22 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 466, planType: 'SME2', name: 'MTN 4.2GB — 30 days (SME2)',  dataSize: '4.2GB', validity: '30 days', costPrice: 2910,  sellingPrice: 3060,  sortOrder: 23 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 308, planType: 'SME2', name: 'MTN 7GB — 30 days (SME2)',    dataSize: '7GB',   validity: '30 days', costPrice: 3450,  sellingPrice: 3630,  sortOrder: 24 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 315, planType: 'SME2', name: 'MTN 10GB — 30 days (SME2)',   dataSize: '10GB',  validity: '30 days', costPrice: 4400,  sellingPrice: 4630,  sortOrder: 25 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 463, planType: 'SME2', name: 'MTN 12.5GB — 30 days (SME2)', dataSize: '12.5GB',validity: '30 days', costPrice: 5350,  sellingPrice: 5620,  sortOrder: 26 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 464, planType: 'SME2', name: 'MTN 16.5GB — 30 days (SME2)', dataSize: '16.5GB',validity: '30 days', costPrice: 6300,  sellingPrice: 6620,  sortOrder: 27 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 473, planType: 'SME2', name: 'MTN 36GB — 30 days (SME2)',   dataSize: '36GB',  validity: '30 days', costPrice: 10800, sellingPrice: 11350, sortOrder: 28 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 474, planType: 'SME2', name: 'MTN 65GB — 30 days (SME2)',   dataSize: '65GB',  validity: '30 days', costPrice: 15500, sellingPrice: 16280, sortOrder: 29 },
-    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 475, planType: 'SME2', name: 'MTN 75GB — 30 days (SME2)',   dataSize: '75GB',  validity: '30 days', costPrice: 17450, sellingPrice: 18330, sortOrder: 30 },
+    // ── MTN DATA - SME2 ───────────────────────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 562, planType: 'SME2', name: 'MTN 1GB - 30 days (SME2)',    dataSize: '1GB',   validity: '30 days', costPrice: 500,   sellingPrice: 530,   sortOrder: 20 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 314, planType: 'SME2', name: 'MTN 2GB - 30 days (SME2)',    dataSize: '2GB',   validity: '30 days', costPrice: 1450,  sellingPrice: 1530,  sortOrder: 21 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 310, planType: 'SME2', name: 'MTN 3.5GB - 30 days (SME2)',  dataSize: '3.5GB', validity: '30 days', costPrice: 2450,  sellingPrice: 2580,  sortOrder: 22 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 466, planType: 'SME2', name: 'MTN 4.2GB - 30 days (SME2)',  dataSize: '4.2GB', validity: '30 days', costPrice: 2910,  sellingPrice: 3060,  sortOrder: 23 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 308, planType: 'SME2', name: 'MTN 7GB - 30 days (SME2)',    dataSize: '7GB',   validity: '30 days', costPrice: 3450,  sellingPrice: 3630,  sortOrder: 24 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 315, planType: 'SME2', name: 'MTN 10GB - 30 days (SME2)',   dataSize: '10GB',  validity: '30 days', costPrice: 4400,  sellingPrice: 4630,  sortOrder: 25 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 463, planType: 'SME2', name: 'MTN 12.5GB - 30 days (SME2)', dataSize: '12.5GB',validity: '30 days', costPrice: 5350,  sellingPrice: 5620,  sortOrder: 26 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 464, planType: 'SME2', name: 'MTN 16.5GB - 30 days (SME2)', dataSize: '16.5GB',validity: '30 days', costPrice: 6300,  sellingPrice: 6620,  sortOrder: 27 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 473, planType: 'SME2', name: 'MTN 36GB - 30 days (SME2)',   dataSize: '36GB',  validity: '30 days', costPrice: 10800, sellingPrice: 11350, sortOrder: 28 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 474, planType: 'SME2', name: 'MTN 65GB - 30 days (SME2)',   dataSize: '65GB',  validity: '30 days', costPrice: 15500, sellingPrice: 16280, sortOrder: 29 },
+    { type: 'DATA', providerNetworkId: 1, networkName: 'MTN', providerPlanId: 475, planType: 'SME2', name: 'MTN 75GB - 30 days (SME2)',   dataSize: '75GB',  validity: '30 days', costPrice: 17450, sellingPrice: 18330, sortOrder: 30 },
 
-    // ── GLO DATA — SME ────────────────────────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 369, planType: 'SME', name: 'GLO 1.5GB — 1 day',   dataSize: '1.5GB', validity: '1 day',   costPrice: 295,  sellingPrice: 310,  sortOrder: 40 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 370, planType: 'SME', name: 'GLO 2.5GB — 2 days',  dataSize: '2.5GB', validity: '2 days',  costPrice: 485,  sellingPrice: 510,  sortOrder: 41 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 547, planType: 'SME', name: 'GLO 3.5GB — 7 days',  dataSize: '3.5GB', validity: '7 days',  costPrice: 1000, sellingPrice: 1050, sortOrder: 42 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 549, planType: 'SME', name: 'GLO 8.5GB — 7 days',  dataSize: '8.5GB', validity: '7 days',  costPrice: 2000, sellingPrice: 2100, sortOrder: 43 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 371, planType: 'SME', name: 'GLO 10GB — 7 days',   dataSize: '10GB',  validity: '7 days',  costPrice: 1950, sellingPrice: 2050, sortOrder: 44 },
+    // ── GLO DATA - SME ────────────────────────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 369, planType: 'SME', name: 'GLO 1.5GB - 1 day',   dataSize: '1.5GB', validity: '1 day',   costPrice: 295,  sellingPrice: 310,  sortOrder: 40 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 370, planType: 'SME', name: 'GLO 2.5GB - 2 days',  dataSize: '2.5GB', validity: '2 days',  costPrice: 485,  sellingPrice: 510,  sortOrder: 41 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 547, planType: 'SME', name: 'GLO 3.5GB - 7 days',  dataSize: '3.5GB', validity: '7 days',  costPrice: 1000, sellingPrice: 1050, sortOrder: 42 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 549, planType: 'SME', name: 'GLO 8.5GB - 7 days',  dataSize: '8.5GB', validity: '7 days',  costPrice: 2000, sellingPrice: 2100, sortOrder: 43 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 371, planType: 'SME', name: 'GLO 10GB - 7 days',   dataSize: '10GB',  validity: '7 days',  costPrice: 1950, sellingPrice: 2050, sortOrder: 44 },
 
-    // ── GLO DATA — Corporate Gifting ──────────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 290, planType: 'CORPORATE GIFTING', name: 'GLO 500MB — 30 days', dataSize: '500MB', validity: '30 days', costPrice: 200,  sellingPrice: 210,  sortOrder: 50 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 285, planType: 'CORPORATE GIFTING', name: 'GLO 1GB — 30 days',   dataSize: '1GB',   validity: '30 days', costPrice: 400,  sellingPrice: 420,  sortOrder: 51 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 286, planType: 'CORPORATE GIFTING', name: 'GLO 2GB — 30 days',   dataSize: '2GB',   validity: '30 days', costPrice: 800,  sellingPrice: 840,  sortOrder: 52 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 287, planType: 'CORPORATE GIFTING', name: 'GLO 3GB — 30 days',   dataSize: '3GB',   validity: '30 days', costPrice: 1200, sellingPrice: 1260, sortOrder: 53 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 288, planType: 'CORPORATE GIFTING', name: 'GLO 5GB — 30 days',   dataSize: '5GB',   validity: '30 days', costPrice: 2000, sellingPrice: 2100, sortOrder: 54 },
-    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 289, planType: 'CORPORATE GIFTING', name: 'GLO 10GB — 30 days',  dataSize: '10GB',  validity: '30 days', costPrice: 4000, sellingPrice: 4200, sortOrder: 55 },
+    // ── GLO DATA - Corporate Gifting ──────────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 290, planType: 'CORPORATE GIFTING', name: 'GLO 500MB - 30 days', dataSize: '500MB', validity: '30 days', costPrice: 200,  sellingPrice: 210,  sortOrder: 50 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 285, planType: 'CORPORATE GIFTING', name: 'GLO 1GB - 30 days',   dataSize: '1GB',   validity: '30 days', costPrice: 400,  sellingPrice: 420,  sortOrder: 51 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 286, planType: 'CORPORATE GIFTING', name: 'GLO 2GB - 30 days',   dataSize: '2GB',   validity: '30 days', costPrice: 800,  sellingPrice: 840,  sortOrder: 52 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 287, planType: 'CORPORATE GIFTING', name: 'GLO 3GB - 30 days',   dataSize: '3GB',   validity: '30 days', costPrice: 1200, sellingPrice: 1260, sortOrder: 53 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 288, planType: 'CORPORATE GIFTING', name: 'GLO 5GB - 30 days',   dataSize: '5GB',   validity: '30 days', costPrice: 2000, sellingPrice: 2100, sortOrder: 54 },
+    { type: 'DATA', providerNetworkId: 2, networkName: 'GLO', providerPlanId: 289, planType: 'CORPORATE GIFTING', name: 'GLO 10GB - 30 days',  dataSize: '10GB',  validity: '30 days', costPrice: 4000, sellingPrice: 4200, sortOrder: 55 },
 
-    // ── AIRTEL DATA — SME ─────────────────────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 428, planType: 'SME', name: 'AIRTEL 10GB — 30 days', dataSize: '10GB', validity: '30 days', costPrice: 3050, sellingPrice: 3210, sortOrder: 60 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 603, planType: 'SME', name: 'AIRTEL 8GB — 30 days',  dataSize: '8GB',  validity: '30 days', costPrice: 1950, sellingPrice: 2050, sortOrder: 61 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 595, planType: 'SME', name: 'AIRTEL 5GB — 7 days',   dataSize: '5GB',  validity: '7 days',  costPrice: 1460, sellingPrice: 1540, sortOrder: 62 },
+    // ── AIRTEL DATA - SME ─────────────────────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 428, planType: 'SME', name: 'AIRTEL 10GB - 30 days', dataSize: '10GB', validity: '30 days', costPrice: 3050, sellingPrice: 3210, sortOrder: 60 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 603, planType: 'SME', name: 'AIRTEL 8GB - 30 days',  dataSize: '8GB',  validity: '30 days', costPrice: 1950, sellingPrice: 2050, sortOrder: 61 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 595, planType: 'SME', name: 'AIRTEL 5GB - 7 days',   dataSize: '5GB',  validity: '7 days',  costPrice: 1460, sellingPrice: 1540, sortOrder: 62 },
 
-    // ── AIRTEL DATA — Corporate Gifting ───────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 516, planType: 'CORPORATE GIFTING', name: 'AIRTEL 1GB — 7 days',   dataSize: '1GB',  validity: '7 days',  costPrice: 784,  sellingPrice: 830,  sortOrder: 70 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 517, planType: 'CORPORATE GIFTING', name: 'AIRTEL 2GB — 30 days',  dataSize: '2GB',  validity: '30 days', costPrice: 1425, sellingPrice: 1500, sortOrder: 71 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 518, planType: 'CORPORATE GIFTING', name: 'AIRTEL 3GB — 30 days',  dataSize: '3GB',  validity: '30 days', costPrice: 1950, sellingPrice: 2050, sortOrder: 72 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 519, planType: 'CORPORATE GIFTING', name: 'AIRTEL 4GB — 30 days',  dataSize: '4GB',  validity: '30 days', costPrice: 2450, sellingPrice: 2580, sortOrder: 73 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 520, planType: 'CORPORATE GIFTING', name: 'AIRTEL 8GB — 30 days',  dataSize: '8GB',  validity: '30 days', costPrice: 2950, sellingPrice: 3100, sortOrder: 74 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 521, planType: 'CORPORATE GIFTING', name: 'AIRTEL 10GB — 30 days', dataSize: '10GB', validity: '30 days', costPrice: 3910, sellingPrice: 4110, sortOrder: 75 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 522, planType: 'CORPORATE GIFTING', name: 'AIRTEL 13GB — 30 days', dataSize: '13GB', validity: '30 days', costPrice: 4900, sellingPrice: 5150, sortOrder: 76 },
-    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 524, planType: 'CORPORATE GIFTING', name: 'AIRTEL 25GB — 30 days', dataSize: '25GB', validity: '30 days', costPrice: 7820, sellingPrice: 8220, sortOrder: 77 },
+    // ── AIRTEL DATA - Corporate Gifting ───────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 516, planType: 'CORPORATE GIFTING', name: 'AIRTEL 1GB - 7 days',   dataSize: '1GB',  validity: '7 days',  costPrice: 784,  sellingPrice: 830,  sortOrder: 70 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 517, planType: 'CORPORATE GIFTING', name: 'AIRTEL 2GB - 30 days',  dataSize: '2GB',  validity: '30 days', costPrice: 1425, sellingPrice: 1500, sortOrder: 71 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 518, planType: 'CORPORATE GIFTING', name: 'AIRTEL 3GB - 30 days',  dataSize: '3GB',  validity: '30 days', costPrice: 1950, sellingPrice: 2050, sortOrder: 72 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 519, planType: 'CORPORATE GIFTING', name: 'AIRTEL 4GB - 30 days',  dataSize: '4GB',  validity: '30 days', costPrice: 2450, sellingPrice: 2580, sortOrder: 73 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 520, planType: 'CORPORATE GIFTING', name: 'AIRTEL 8GB - 30 days',  dataSize: '8GB',  validity: '30 days', costPrice: 2950, sellingPrice: 3100, sortOrder: 74 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 521, planType: 'CORPORATE GIFTING', name: 'AIRTEL 10GB - 30 days', dataSize: '10GB', validity: '30 days', costPrice: 3910, sellingPrice: 4110, sortOrder: 75 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 522, planType: 'CORPORATE GIFTING', name: 'AIRTEL 13GB - 30 days', dataSize: '13GB', validity: '30 days', costPrice: 4900, sellingPrice: 5150, sortOrder: 76 },
+    { type: 'DATA', providerNetworkId: 4, networkName: 'AIRTEL', providerPlanId: 524, planType: 'CORPORATE GIFTING', name: 'AIRTEL 25GB - 30 days', dataSize: '25GB', validity: '30 days', costPrice: 7820, sellingPrice: 8220, sortOrder: 77 },
 
-    // ── 9MOBILE DATA — SME ────────────────────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 248, planType: 'SME', name: '9MOBILE 1GB — 1 month',   dataSize: '1GB',   validity: '1 month', costPrice: 220,  sellingPrice: 240,  sortOrder: 80 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 249, planType: 'SME', name: '9MOBILE 1.5GB — 1 month', dataSize: '1.5GB', validity: '1 month', costPrice: 330,  sellingPrice: 350,  sortOrder: 81 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 251, planType: 'SME', name: '9MOBILE 3GB — 1 month',   dataSize: '3GB',   validity: '1 month', costPrice: 660,  sellingPrice: 700,  sortOrder: 82 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 252, planType: 'SME', name: '9MOBILE 4GB — 1 month',   dataSize: '4GB',   validity: '1 month', costPrice: 880,  sellingPrice: 930,  sortOrder: 83 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 253, planType: 'SME', name: '9MOBILE 5GB — 1 month',   dataSize: '5GB',   validity: '1 month', costPrice: 1100, sellingPrice: 1160, sortOrder: 84 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 292, planType: 'SME', name: '9MOBILE 10GB — 30 days',  dataSize: '10GB',  validity: '30 days', costPrice: 2200, sellingPrice: 2320, sortOrder: 85 },
+    // ── 9MOBILE DATA - SME ────────────────────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 248, planType: 'SME', name: '9MOBILE 1GB - 1 month',   dataSize: '1GB',   validity: '1 month', costPrice: 220,  sellingPrice: 240,  sortOrder: 80 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 249, planType: 'SME', name: '9MOBILE 1.5GB - 1 month', dataSize: '1.5GB', validity: '1 month', costPrice: 330,  sellingPrice: 350,  sortOrder: 81 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 251, planType: 'SME', name: '9MOBILE 3GB - 1 month',   dataSize: '3GB',   validity: '1 month', costPrice: 660,  sellingPrice: 700,  sortOrder: 82 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 252, planType: 'SME', name: '9MOBILE 4GB - 1 month',   dataSize: '4GB',   validity: '1 month', costPrice: 880,  sellingPrice: 930,  sortOrder: 83 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 253, planType: 'SME', name: '9MOBILE 5GB - 1 month',   dataSize: '5GB',   validity: '1 month', costPrice: 1100, sellingPrice: 1160, sortOrder: 84 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 292, planType: 'SME', name: '9MOBILE 10GB - 30 days',  dataSize: '10GB',  validity: '30 days', costPrice: 2200, sellingPrice: 2320, sortOrder: 85 },
 
-    // ── 9MOBILE DATA — Corporate Gifting ──────────────────────────────────────
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 296, planType: 'CORPORATE GIFTING', name: '9MOBILE 1GB — 30 days',  dataSize: '1GB',  validity: '30 days', costPrice: 480,  sellingPrice: 510,  sortOrder: 90 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 297, planType: 'CORPORATE GIFTING', name: '9MOBILE 2GB — 30 days',  dataSize: '2GB',  validity: '30 days', costPrice: 960,  sellingPrice: 1010, sortOrder: 91 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 300, planType: 'CORPORATE GIFTING', name: '9MOBILE 5GB — 30 days',  dataSize: '5GB',  validity: '30 days', costPrice: 2400, sellingPrice: 2520, sortOrder: 92 },
-    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 301, planType: 'CORPORATE GIFTING', name: '9MOBILE 10GB — 30 days', dataSize: '10GB', validity: '30 days', costPrice: 4800, sellingPrice: 5050, sortOrder: 93 },
+    // ── 9MOBILE DATA - Corporate Gifting ──────────────────────────────────────
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 296, planType: 'CORPORATE GIFTING', name: '9MOBILE 1GB - 30 days',  dataSize: '1GB',  validity: '30 days', costPrice: 480,  sellingPrice: 510,  sortOrder: 90 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 297, planType: 'CORPORATE GIFTING', name: '9MOBILE 2GB - 30 days',  dataSize: '2GB',  validity: '30 days', costPrice: 960,  sellingPrice: 1010, sortOrder: 91 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 300, planType: 'CORPORATE GIFTING', name: '9MOBILE 5GB - 30 days',  dataSize: '5GB',  validity: '30 days', costPrice: 2400, sellingPrice: 2520, sortOrder: 92 },
+    { type: 'DATA', providerNetworkId: 3, networkName: '9MOBILE', providerPlanId: 301, planType: 'CORPORATE GIFTING', name: '9MOBILE 10GB - 30 days', dataSize: '10GB', validity: '30 days', costPrice: 4800, sellingPrice: 5050, sortOrder: 93 },
 
     // ── GOTV CABLE ────────────────────────────────────────────────────────────
-    { type: 'CABLE', providerNetworkId: 1, networkName: 'GOTV', providerPlanId: 34, name: 'GOtv Smallie — Monthly', validity: '1 month', costPrice: 1900,  sellingPrice: 2000,  sortOrder: 100 },
+    { type: 'CABLE', providerNetworkId: 1, networkName: 'GOTV', providerPlanId: 34, name: 'GOtv Smallie - Monthly', validity: '1 month', costPrice: 1900,  sellingPrice: 2000,  sortOrder: 100 },
     { type: 'CABLE', providerNetworkId: 1, networkName: 'GOTV', providerPlanId: 16, name: 'GOtv Jinja',             validity: '1 month', costPrice: 3900,  sellingPrice: 4100,  sortOrder: 101 },
     { type: 'CABLE', providerNetworkId: 1, networkName: 'GOTV', providerPlanId: 17, name: 'GOtv Jolli',             validity: '1 month', costPrice: 5800,  sellingPrice: 6100,  sortOrder: 102 },
     { type: 'CABLE', providerNetworkId: 1, networkName: 'GOTV', providerPlanId: 2,  name: 'GOtv Max',               validity: '1 month', costPrice: 8500,  sellingPrice: 8900,  sortOrder: 103 },
@@ -734,14 +734,14 @@ async function main() {
     { type: 'CABLE', providerNetworkId: 2, networkName: 'DSTV', providerPlanId: 9,  name: 'DStv Premium',      validity: '1 month', costPrice: 44500, sellingPrice: 46500, sortOrder: 115 },
 
     // ── STARTIME CABLE ────────────────────────────────────────────────────────
-    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 14, name: 'StarTimes Nova — Monthly',       validity: '1 month', costPrice: 2100, sellingPrice: 2200,  sortOrder: 120 },
-    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 12, name: 'StarTimes Basic — Monthly',      validity: '1 month', costPrice: 4000, sellingPrice: 4200,  sortOrder: 121 },
-    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 13, name: 'StarTimes Smart — Monthly',      validity: '1 month', costPrice: 5100, sellingPrice: 5400,  sortOrder: 122 },
-    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 11, name: 'StarTimes Classic — Monthly',    validity: '1 month', costPrice: 6000, sellingPrice: 6300,  sortOrder: 123 },
-    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 48, name: 'StarTimes Super — Monthly',      validity: '1 month', costPrice: 9000, sellingPrice: 9500,  sortOrder: 124 },
-    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 15, name: 'StarTimes Super Plus — Monthly', validity: '1 month', costPrice: 9800, sellingPrice: 10300, sortOrder: 125 },
+    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 14, name: 'StarTimes Nova - Monthly',       validity: '1 month', costPrice: 2100, sellingPrice: 2200,  sortOrder: 120 },
+    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 12, name: 'StarTimes Basic - Monthly',      validity: '1 month', costPrice: 4000, sellingPrice: 4200,  sortOrder: 121 },
+    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 13, name: 'StarTimes Smart - Monthly',      validity: '1 month', costPrice: 5100, sellingPrice: 5400,  sortOrder: 122 },
+    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 11, name: 'StarTimes Classic - Monthly',    validity: '1 month', costPrice: 6000, sellingPrice: 6300,  sortOrder: 123 },
+    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 48, name: 'StarTimes Super - Monthly',      validity: '1 month', costPrice: 9000, sellingPrice: 9500,  sortOrder: 124 },
+    { type: 'CABLE', providerNetworkId: 3, networkName: 'STARTIME', providerPlanId: 15, name: 'StarTimes Super Plus - Monthly', validity: '1 month', costPrice: 9800, sellingPrice: 10300, sortOrder: 125 },
 
-    // ── ELECTRICITY — amount-based; sellingPrice unused ───────────────────────
+    // ── ELECTRICITY - amount-based; sellingPrice unused ───────────────────────
     { type: 'ELECTRICITY', providerNetworkId: 1,  networkName: 'IKEDC', name: 'Ikeja Electric',         costPrice: 0, sellingPrice: 0, sortOrder: 130 },
     { type: 'ELECTRICITY', providerNetworkId: 2,  networkName: 'EKEDC', name: 'Eko Electric',           costPrice: 0, sellingPrice: 0, sortOrder: 131 },
     { type: 'ELECTRICITY', providerNetworkId: 3,  networkName: 'AEDC',  name: 'Abuja Electric',         costPrice: 0, sellingPrice: 0, sortOrder: 132 },
@@ -756,7 +756,7 @@ async function main() {
   ];
 
   await prisma.vtuPlan.createMany({ data: vtuPlans });
-  console.log(`✅ VTU plans seeded (${vtuPlans.length} plans — AlRahuz IDs from pricing doc)`);
+  console.log(`✅ VTU plans seeded (${vtuPlans.length} plans - AlRahuz IDs from pricing doc)`);
 
   console.log('\n🌱 Seeding complete!');
   console.log('---');

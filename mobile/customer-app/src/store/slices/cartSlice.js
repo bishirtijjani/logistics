@@ -1,5 +1,5 @@
 /**
- * cartSlice — single-merchant shopping cart, persisted to AsyncStorage.
+ * cartSlice - single-merchant shopping cart, persisted to AsyncStorage.
  *
  * Invariants:
  *   1. The cart is bound to at most one merchant at a time. Adding a line for
@@ -14,7 +14,7 @@
  *      latest mutation, which is acceptable for a cart.
  *
  * The slice is wiped on forced logout via the root reducer in
- * `store/index.js` — same pattern as wallet/profile/etc.
+ * `store/index.js` - same pattern as wallet/profile/etc.
  */
 
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
@@ -42,7 +42,7 @@ export const hydrateCartFromStorage = createAsyncThunk(
 );
 
 const persist = (state) => {
-  // Fire-and-forget — we never await this from the reducer.
+  // Fire-and-forget - we never await this from the reducer.
   AsyncStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({ merchantId: state.merchantId, merchant: state.merchant, lines: state.lines })
@@ -129,7 +129,7 @@ const cartSlice = createSlice({
     // the same user re-signing in after an interval) doesn't inherit it.
     // Forced logout is handled at the root-reducer level in store/index.js,
     // which already removes the persisted blob and resets every user-scoped
-    // slice — including this one — to its initialState.
+    // slice - including this one - to its initialState.
     builder.addCase(logout.fulfilled, (state) => {
       state.merchantId = null;
       state.merchant = null;

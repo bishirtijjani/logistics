@@ -26,7 +26,7 @@ import {
 import { uploadPodAsset } from "../../services/cloudinary";
 
 /**
- * PodCaptureSheet — full-screen camera for the doorstep photo.
+ * PodCaptureSheet - full-screen camera for the doorstep photo.
  *
  * Flow:
  *   1. Mount → request CAMERA permission via `expo-camera`.
@@ -59,7 +59,7 @@ export default function PodCaptureSheet({ visible, onClose, onContinue, requestI
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      // Abort any in-flight upload — the camera sheet is going away.
+      // Abort any in-flight upload - the camera sheet is going away.
       try { abortRef.current?.abort(); } catch (_) {}
     };
   }, []);
@@ -92,7 +92,7 @@ export default function PodCaptureSheet({ visible, onClose, onContinue, requestI
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.85,
         skipProcessing: false,
-        // Don't include base64 — it bloats memory and we re-encode below.
+        // Don't include base64 - it bloats memory and we re-encode below.
       });
       if (!isMountedRef.current) return;
       const compressedUri = await compress(photo.uri);
@@ -136,7 +136,7 @@ export default function PodCaptureSheet({ visible, onClose, onContinue, requestI
     } catch (err) {
       if (controller.signal.aborted) return;
       if (!isMountedRef.current) return;
-      const msg = err?.message || t("pod.capture.uploadFailedFallback", "Upload failed — try again.");
+      const msg = err?.message || t("pod.capture.uploadFailedFallback", "Upload failed. Try again.");
       dispatch(podPhotoUploadFailed({ message: msg }));
       Toast.show({ type: "error", text1: t("pod.capture.uploadFailed", "Upload failed"), text2: msg });
     } finally {
@@ -147,7 +147,7 @@ export default function PodCaptureSheet({ visible, onClose, onContinue, requestI
   // ── Render branches ─────────────────────────────────────────────────────
 
   const renderPermissionScreen = () => {
-    // OS-revoked permission with "Don't ask again" — system prompt won't show.
+    // OS-revoked permission with "Don't ask again" - system prompt won't show.
     // Send the user to Settings instead so they can manually re-grant.
     const blocked = !permission?.canAskAgain;
     const onPrimary = blocked

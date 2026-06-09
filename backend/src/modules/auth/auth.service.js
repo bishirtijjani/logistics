@@ -1,9 +1,9 @@
 /**
- * Auth service — business logic for authentication.
+ * Auth service - business logic for authentication.
  *
  * RULES:
  * - All database access goes through Prisma client
- * - Never access req/res here — this is a pure logic layer
+ * - Never access req/res here - this is a pure logic layer
  * - Throw AppError for any business rule violations
  * - All password/PIN operations use bcrypt
  */
@@ -30,7 +30,7 @@ const SALT_ROUNDS = 12;
 
 /**
  * Register a new user.
- * Stores registration data in Redis only — no DB write until OTP verified.
+ * Stores registration data in Redis only - no DB write until OTP verified.
  */
 const register = async ({
   email,
@@ -73,7 +73,7 @@ const register = async ({
 };
 
 /**
- * Login — verify credentials, return tokens.
+ * Login - verify credentials, return tokens.
  */
 const login = async ({ email, password }, sessionMeta = {}) => {
   const user = await prisma.user.findUnique({ 
@@ -184,7 +184,7 @@ const generateOtp = async (email, { checkCooldown = false } = {}) => {
  * For customer registrations, also issues an access/refresh token pair and
  * creates a session row so the client can drop straight into the authed app
  * (no second login step). Merchant registrations intentionally still return
- * verification-only — the merchant dashboard funnels them to /login because
+ * verification-only - the merchant dashboard funnels them to /login because
  * their merchant profile is PENDING_APPROVAL until an admin approves it.
  */
 const verifyOtp = async (email, code, sessionMeta = {}) => {
@@ -226,7 +226,7 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
 
   const pending = JSON.parse(pendingRaw);
 
-  // Merchant signups carry an extra `merchant` payload — provision the
+  // Merchant signups carry an extra `merchant` payload - provision the
   // merchant profile + merchantWallet inside the same transaction so a
   // partial failure leaves nothing behind.
   const isMerchant = pending.role === 'MERCHANT' && pending.merchant;
@@ -267,7 +267,7 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
               // after first login. Prisma still requires these columns, so
               // seed placeholders. Admin approval gates customer visibility
               // until real coords replace these.
-              address: m.businessAddress || 'Pending — set in onboarding',
+              address: m.businessAddress || 'Pending - set in onboarding',
               lat: typeof m.lat === 'number' ? m.lat : 0,
               lng: typeof m.lng === 'number' ? m.lng : 0,
               openingTime: m.openingTime,
@@ -329,7 +329,7 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
   // Per compliance (BVN required before any NUBAN is minted), provisioning
   // happens in `verifyBvn()` once KYC succeeds.
 
-  // Auto-login customers right after verification — the user just proved
+  // Auto-login customers right after verification - the user just proved
   // email ownership and we hold their password hash, so a second login step
   // adds nothing. Merchants skip this on purpose (see function-level note).
   if (user.role !== 'MERCHANT') {
@@ -432,7 +432,7 @@ const setTransactionPin = async (userId, pin) => {
 };
 
 /**
- * Change transaction PIN — requires current PIN.
+ * Change transaction PIN - requires current PIN.
  */
 const changeTransactionPin = async (userId, currentPin, newPin) => {
   await verifyTransactionPin(userId, currentPin);
@@ -448,7 +448,7 @@ const changeTransactionPin = async (userId, currentPin, newPin) => {
 };
 
 /**
- * Verify transaction PIN — used before any financial operation.
+ * Verify transaction PIN - used before any financial operation.
  * Tracks failed attempts in Redis and locks the user after too many failures.
  */
 const verifyTransactionPin = async (userId, pin) => {
@@ -512,7 +512,7 @@ const verifyTransactionPin = async (userId, pin) => {
 };
 
 /**
- * Request password reset — generates and returns OTP if user is ACTIVE.
+ * Request password reset - generates and returns OTP if user is ACTIVE.
  * Silently succeeds for unknown/inactive emails (don't leak existence).
  */
 const requestPasswordReset = async (email) => {
@@ -530,7 +530,7 @@ const requestPasswordReset = async (email) => {
 };
 
 /**
- * Reset password — verifies OTP then updates password atomically.
+ * Reset password - verifies OTP then updates password atomically.
  */
 const resetPassword = async (email, code, newPassword) => {
   // Verify OTP (also handles pending_reg cleanup if somehow present)
@@ -558,7 +558,7 @@ const resetPassword = async (email, code, newPassword) => {
       where: { email },
       data: { passwordHash },
     }),
-    // Revoke all existing sessions — force re-login on all devices
+    // Revoke all existing sessions - force re-login on all devices
     prisma.session.updateMany({
       where: { userId: user.id },
       data: { isRevoked: true },
@@ -672,7 +672,7 @@ const getProfile = async (userId) => {
 };
 
 /**
- * Update user profile — name, phone, address, dateOfBirth.
+ * Update user profile - name, phone, address, dateOfBirth.
  */
 const updateProfile = async (userId, data) => {
   // If phone is being changed, check uniqueness
@@ -730,7 +730,7 @@ const updateProfilePicture = async (userId, url) => {
 };
 
 /**
- * Verify BVN — stores hashed BVN, marks KYC verified, and provisions a KatPay
+ * Verify BVN - stores hashed BVN, marks KYC verified, and provisions a KatPay
  * virtual account. The DB writes (bvnHash + kycStatus) are atomic; the external
  * KatPay call runs after the transaction commits and is retried via the
  * payment queue if it fails (so the user always converges on a wallet NUBAN).
@@ -747,7 +747,7 @@ const updateProfilePicture = async (userId, url) => {
  */
 const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
   if (config.SKIP_KYC_PHONE_OTP) {
-    // OTP step is bypassed — short-circuit before touching Termii so a stale
+    // OTP step is bypassed - short-circuit before touching Termii so a stale
     // client that still calls this endpoint doesn't crash. The verify step
     // will accept the BVN payload without an OTP under the same flag.
     logger.info('KYC phone OTP request short-circuited (bypass flag on)', { userId, bvnPhone });
@@ -766,7 +766,7 @@ const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
   const otpKey = `kyc:phone:otp:${userId}`;
   const messagingService = require('../../services/messaging.service');
 
-  // Send via the active OTP provider first, persist second — if delivery fails
+  // Send via the active OTP provider first, persist second - if delivery fails
   // we don't want the user to see "OTP expired" later when it was never sent.
   // The WhatsApp auth template carries only the code; the "this is for KYC"
   // context lives in the OTP-entry UI, not the message body.
@@ -781,7 +781,7 @@ const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
   await redis.set(cooldownKey, '1', 'EX', 60);
 
   logger.info('KYC phone OTP generated', { userId, bvnPhone });
-  // Dev-only echo so QA can run the flow without a real phone — controller
+  // Dev-only echo so QA can run the flow without a real phone - controller
   // strips this in production.
   return { code };
 };
@@ -792,9 +792,9 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     // the user's submitted bvnPhone instead of proving ownership via SMS. The
     // BvnVerificationLog still captures the attempt so we can audit who was
     // verified during this window.
-    logger.warn('KYC phone OTP bypass active — trusting client-supplied bvnPhone', { userId, bvnPhone });
+    logger.warn('KYC phone OTP bypass active - trusting client-supplied bvnPhone', { userId, bvnPhone });
   } else {
-    // Gate the entire flow on the SMS OTP — we never want to provision a NUBAN
+    // Gate the entire flow on the SMS OTP - we never want to provision a NUBAN
     // against a phone the user can't prove ownership of.
     const otpKey = `kyc:phone:otp:${userId}`;
     const otpRaw = await redis.get(otpKey);
@@ -804,7 +804,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
       });
     }
     const { code: expectedOtp, phone: otpPhone } = JSON.parse(otpRaw);
-    // The phone on the verify call MUST match the one we SMSed — otherwise a
+    // The phone on the verify call MUST match the one we SMSed - otherwise a
     // user could OTP-verify one phone and then submit a different phone to
     // KatPay, defeating the whole point.
     if (otpPhone !== bvnPhone) {
@@ -815,7 +815,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     if (!otp || expectedOtp !== otp) {
       throw AppError.badRequest('Invalid verification code.', { code: 'KYC_OTP_INVALID' });
     }
-    // OTP is single-use — burn it before any external call so a failed KatPay
+    // OTP is single-use - burn it before any external call so a failed KatPay
     // call doesn't leak a reusable OTP window.
     await redis.del(otpKey);
   }
@@ -849,7 +849,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
 
   // Idempotency / recovery: if the user is already VERIFIED but has no NUBAN
   // (KatPay was down during the original KYC), let the call succeed and
-  // re-attempt provisioning. Otherwise the user is stuck — they can't
+  // re-attempt provisioning. Otherwise the user is stuck - they can't
   // re-verify (conflict) and the queue retry has already exhausted.
   const alreadyVerified = user.kycStatus === 'VERIFIED';
   if (alreadyVerified && user.wallet?.virtualAccountNumber) {
@@ -880,7 +880,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
 
     // The BVN-verified phone becomes user.phone. Hard requirement: every
     // verified account must have a phone (KatPay needs it; ops needs it).
-    // If another account already owns this phone, refuse verification — we
+    // If another account already owns this phone, refuse verification - we
     // can't have two users sharing one BVN-linked phone.
     const phoneOwner = await prisma.user.findUnique({
       where: { phone: bvnPhone },
@@ -914,7 +914,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     logger.info('BVN verified', { userId });
   } else {
     // Recovery path: user is already VERIFIED but provisioning never finished.
-    // Require them to re-submit the SAME BVN — otherwise anyone with a session
+    // Require them to re-submit the SAME BVN - otherwise anyone with a session
     // could trigger arbitrary KatPay calls on this account.
     if (!user.bvnHash) {
       await logAttempt('FAILED', 'Stored hash missing on recovery attempt');
@@ -951,7 +951,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
 
   // Try to provision the virtual account synchronously so the response payload
   // can carry the NUBAN. If it fails, enqueue a retry job and return the
-  // wallet without a NUBAN — the client will pick it up via socket / refetch.
+  // wallet without a NUBAN - the client will pick it up via socket / refetch.
   const katpayService = require('../../services/katpay.service');
   const messagingService = require('../../services/messaging.service');
   const notificationService = require('../../services/notification.service');
@@ -961,7 +961,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     virtualAccount = await katpayService.createVirtualAccount({
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
-      // Prefer the BVN-linked phone the user supplied on this call — that's
+      // Prefer the BVN-linked phone the user supplied on this call - that's
       // the phone tied to the identity KatPay is creating the NUBAN under.
       // Fall back to user.phone for the recovery path (where bvnPhone is
       // optional since the user has already verified once).
@@ -998,7 +998,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
     }
   }
 
-  // Welcome SMS + push — both best-effort. Failure here must not break KYC,
+  // Welcome SMS + push - both best-effort. Failure here must not break KYC,
   // because the user is verified and provisioning has its own retry path.
   // We only send these on first verification, not on the recovery path.
   if (!alreadyVerified) {
@@ -1006,7 +1006,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
       messagingService
         .sendSms(
           user.phone,
-          `Welcome to ${config.APP_NAME || 'iPrime'}! Your wallet is now active${virtualAccount ? ` — fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
+          `Welcome to ${config.APP_NAME || 'iPrime'}! Your wallet is now active${virtualAccount ? ` - fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
         )
         .catch((err) => logger.warn('KYC welcome SMS failed', { userId, error: err.message }));
     }
@@ -1049,7 +1049,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
 };
 
 /**
- * Logout — revoke the refresh token.
+ * Logout - revoke the refresh token.
  */
 const logout = async (refreshToken) => {
   await prisma.session.updateMany({
@@ -1136,21 +1136,21 @@ const UPLOAD_KINDS = {
   product: { root: "products", prefix: "prod" },
   dispute: { root: "disputes", prefix: "ev" },
   ticket: { root: "tickets", prefix: "att" },
-  // Phase 5 — Proof of Delivery assets. Stored under
+  // Phase 5 - Proof of Delivery assets. Stored under
   // `iprime/pod/{requestId}/...` so retention/lifecycle rules can be
   // scoped per delivery rather than per uploading user, and so disputes can
   // be investigated by listing the folder. Scope is `request` (not `user`).
   pod: { root: "pod", prefix: "pod", scope: "request" },
   pod_signature: { root: "pod", prefix: "sig", scope: "request" },
-  // Phase 7 — rider re-uploadable KYC documents (generic re-upload bucket
+  // Phase 7 - rider re-uploadable KYC documents (generic re-upload bucket
   // from the KYC status screen). Stored under `iprime/rider-docs/{userId}/...`.
   // Role-gated to RIDER below.
   rider_doc: { root: "rider-docs", prefix: "doc", scope: "rider" },
-  // Phase 1 — rider onboarding KYC kinds. Each doc type lands in its own
+  // Phase 1 - rider onboarding KYC kinds. Each doc type lands in its own
   // top-level folder so disputes / audits can list a single doc type across
   // riders without scanning a mixed folder. Scope is `rider_onboarding`:
   // user-folder-scoped (same as `rider`) but uploadable by an applicant who
-  // is NOT yet a RIDER — these docs are the prerequisite for /rider/register,
+  // is NOT yet a RIDER - these docs are the prerequisite for /rider/register,
   // so gating them to role===RIDER is a chicken-and-egg deadlock.
   rider_id: { root: "rider-id", prefix: "id", scope: "rider_onboarding" },
   rider_driver_license: { root: "rider-license", prefix: "lic", scope: "rider_onboarding" },
@@ -1165,7 +1165,7 @@ const UPLOAD_KINDS = {
  * `kind` controls folder layout + scope:
  *   - User-scoped kinds (default): `iprime/<root>/<userId>/...`
  *   - Request-scoped kinds (POD): `iprime/<root>/<requestId>/...`
- *     — caller MUST pass `scopeId = requestId` and the server verifies the
+ *     - caller MUST pass `scopeId = requestId` and the server verifies the
  *       user is the assigned rider on that request (or admin).
  */
 const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", scopeId = null) => {
@@ -1203,7 +1203,7 @@ const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", 
     // POD is captured before the DELIVERED PATCH lands, so the upload window
     // is strictly PICKED_UP and IN_TRANSIT. Once the trip transitions to
     // DELIVERED, SETTLED, or CANCELLED, the rider has no FSM path back to
-    // amend POD — uploads at that point would just orphan in Cloudinary.
+    // amend POD - uploads at that point would just orphan in Cloudinary.
     // Admins bypass for forensic re-uploads (e.g. disputed deliveries).
     const OPEN_STATUSES = ["PICKED_UP", "IN_TRANSIT"];
     if (!isAdmin && !OPEN_STATUSES.includes(request.status)) {
@@ -1214,7 +1214,7 @@ const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", 
     }
     folderScopeId = scopeId;
   }
-  // Phase 7 — rider_doc is RIDER-only (admins also allowed for forensic
+  // Phase 7 - rider_doc is RIDER-only (admins also allowed for forensic
   // re-uploads from the admin dashboard if we ever need that). Folder is
   // user-scoped so multiple docs share a single tree per rider.
   if (spec.scope === "rider") {
@@ -1222,7 +1222,7 @@ const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", 
       throw AppError.forbidden("Only riders can upload KYC documents");
     }
   }
-  // Phase 1 — onboarding KYC docs are uploaded BEFORE the applicant becomes a
+  // Phase 1 - onboarding KYC docs are uploaded BEFORE the applicant becomes a
   // RIDER (they're the prerequisite for /rider/register), so any authenticated
   // user may mint these. Still user-folder-scoped, so one applicant can never
   // write into another's folder. CUSTOMER/MERCHANT applying to ride is allowed;
@@ -1331,7 +1331,7 @@ const deleteAccount = async (userId) => {
     const { invalidateUserAuthCache } = require('../../sockets');
     invalidateUserAuthCache(userId);
   } catch (_) {
-    // Sockets not initialized in this process (e.g. CLI script) — ignore.
+    // Sockets not initialized in this process (e.g. CLI script) - ignore.
   }
 
   return { message: 'Account deleted successfully' };
@@ -1377,7 +1377,7 @@ const merchantRegister = async ({
   if (!category.isActive) throw AppError.badRequest('Category is no longer accepting merchants');
 
   // Only block if a verified user already owns this email/phone. Users who
-  // abandon a previous attempt can retry — the pending Redis entry is keyed
+  // abandon a previous attempt can retry - the pending Redis entry is keyed
   // by email and gets overwritten.
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -1428,7 +1428,7 @@ const merchantRegister = async ({
 };
 
 /**
- * Request a phone number change — verifies password, sends OTP (via SMS in
+ * Request a phone number change - verifies password, sends OTP (via SMS in
  * prod, dev-logged otherwise) to the new number. Stores the pending change
  * in Redis so the confirm step can look it up.
  *
@@ -1454,7 +1454,7 @@ const requestPhoneChange = async (userId, { newPhone, password }) => {
 
   // Send OTP to the NEW phone first; only stash the pending change in Redis
   // if delivery succeeded. If we stashed first and delivery failed, the user
-  // would see a generic "OTP expired" later — opaque and frustrating.
+  // would see a generic "OTP expired" later - opaque and frustrating.
   // Lazy-require to avoid circular import at boot.
   const messagingService = require('../../services/messaging.service');
   try {
@@ -1475,7 +1475,7 @@ const requestPhoneChange = async (userId, { newPhone, password }) => {
 };
 
 /**
- * Confirm a phone number change — verifies OTP and applies the new phone.
+ * Confirm a phone number change - verifies OTP and applies the new phone.
  * After applying, sends a security notice via SMS to the OLD phone (so a
  * fraudster who silently rotates the number out of an account can't do so
  * without leaving a trail with the legitimate owner).
@@ -1494,7 +1494,7 @@ const confirmPhoneChange = async (userId, { newPhone, otp }) => {
   await prisma.user.update({ where: { id: userId }, data: { phone: newPhone } });
   await redis.del(key);
 
-  // Notify the old number — fire-and-forget. Mask the new number for safety.
+  // Notify the old number - fire-and-forget. Mask the new number for safety.
   if (oldPhone) {
     const maskedNew = newPhone.length > 4 ? `****${newPhone.slice(-4)}` : newPhone;
     const messagingService = require('../../services/messaging.service');

@@ -36,7 +36,7 @@ const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 
 const createReferral = async (userId, { referredPhone }) => {
-  // Business logic here — use prisma.$transaction for financial ops
+  // Business logic here - use prisma.$transaction for financial ops
   logger.info('Referral created', { userId, referredPhone });
   return result;
 };

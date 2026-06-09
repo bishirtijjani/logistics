@@ -121,7 +121,7 @@ test('markRead: sets readAt on first call', async () => {
   assert.ok(prismaStub.notification._rows.get(n.id).readAt instanceof Date);
 });
 
-test('markRead: idempotent — second call is a no-op', async () => {
+test('markRead: idempotent - second call is a no-op', async () => {
   reset();
   const original = new Date('2026-05-10');
   const n = await prismaStub.notification.create({

@@ -14,14 +14,14 @@
  * (code 4000) transactions require manual reconciliation via the dashboard.
  *
  * Networks (case-sensitive in API): MTN, AIRTEL, GLO, 9MOBILE.
- *   9mobile rebranded as T2mobile but the API code is still 9MOBILE — keep it.
+ *   9mobile rebranded as T2mobile but the API code is still 9MOBILE - keep it.
  *
  * Consumer rate (per airtimetocash.com): 80% on all networks. We assume the
  * same baseline applies on the API tier unless a partner agreement says otherwise.
  *
  * Amount range (consumer-facing, what they actually honor): ₦500 min / ₦1M per
  * day. The API doc claims ₦50 min and per-network maxes (MTN 10k, Airtel/9mob 20k,
- * Glo 1k) but the live floor is ₦500 — enforce that.
+ * Glo 1k) but the live floor is ₦500 - enforce that.
  *
  * Rate limit: 60 rpm standard, 100 rpm max, per IP.
  */
@@ -52,7 +52,7 @@ const AMOUNT_LIMITS = {
   '9MOBILE': { min: 500, max: 20000 },
 };
 
-/** Consumer-facing payout rate from airtimetocash.com — 80% across all networks. */
+/** Consumer-facing payout rate from airtimetocash.com - 80% across all networks. */
 const PAYOUT_RATE = 0.8;
 
 const generateOtp = async ({ network, sender }) => {
@@ -114,7 +114,7 @@ const transferAirtime = async ({ network, sender, amount, reference, pin, sessio
   return data;
 };
 
-/** Provider response codes — body-level, not HTTP status. */
+/** Provider response codes - body-level, not HTTP status. */
 const CODES = {
   SUCCESS: 2000,
   FAILED: 3000,
@@ -128,7 +128,7 @@ const CODES = {
 const isSuccess = (responseData) => responseData?.code === CODES.SUCCESS;
 
 /**
- * Pending = code 4000 — the provider has accepted the transfer but it's stuck
+ * Pending = code 4000 - the provider has accepted the transfer but it's stuck
  * mid-flight. There is no query endpoint, so callers must mark the transaction
  * PENDING_RECONCILIATION and surface it for manual admin review.
  */

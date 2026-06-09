@@ -1,4 +1,4 @@
--- Phase 8 — Pharmacy & Grocery.
+-- Phase 8 - Pharmacy & Grocery.
 -- Adds a per-line grocery substitution preference and a request-level
 -- prescription URL captured at checkout for pharmacy orders. Both are nullable
 -- so existing rows (food, package, retail) are unaffected.

@@ -41,7 +41,7 @@
 
 ---
 
-## Authentication — `/auth`
+## Authentication - `/auth`
 
 ### POST `/auth/register`
 Register a new customer or rider account.
@@ -101,7 +101,7 @@ Verify OTP code.
 ### POST `/auth/refresh`
 **Body:** `{ "refreshToken": "jwt..." }`
 
-**Response:** `200` — `{ "accessToken": "jwt...", "refreshToken": "jwt..." }`
+**Response:** `200` - `{ "accessToken": "jwt...", "refreshToken": "jwt..." }`
 
 ### POST `/auth/password/forgot`
 **Body:** `{ "phone": "08012345678" }`
@@ -161,7 +161,7 @@ Delete account permanently.
 
 ---
 
-## Wallet — `/wallet`
+## Wallet - `/wallet`
 
 > Most wallet routes require authentication. `GET /banks` is public.
 
@@ -222,7 +222,7 @@ Withdraw to bank account via KatPay.
 ### POST `/wallet/fund` 🔒
 Initiate ad-hoc top-up via KatPay transfer link.
 
-**Response:** `200` — `{ "paymentLink": "https://...", "uuid": "..." }`
+**Response:** `200` - `{ "paymentLink": "https://...", "uuid": "..." }`
 
 ### GET `/wallet/fund/:uuid` 🔒
 Poll KatPay transfer payment status.
@@ -232,7 +232,7 @@ Verify bank account name before withdrawal.
 
 **Body:** `{ "bankCode": "044", "accountNumber": "0123456789" }`
 
-**Response:** `200` — `{ "accountName": "Bishir Tijjani" }`
+**Response:** `200` - `{ "accountName": "Bishir Tijjani" }`
 
 ### GET `/wallet/transactions` 🔒
 Paginated transaction history.
@@ -248,7 +248,7 @@ Get printable receipt for a transaction.
 
 ---
 
-## Requests — `/requests`
+## Requests - `/requests`
 
 The unified endpoint for all request types: `FOOD`, `GROCERY`, `PHARMACY`, `PACKAGE`.
 
@@ -313,7 +313,7 @@ Create a new request.
 }
 ```
 
-**Response:** `201` — full `Request` object
+**Response:** `201` - full `Request` object
 
 ### GET `/requests` 🔒
 List requests. Customers see theirs, riders see theirs, merchants see theirs.
@@ -366,7 +366,7 @@ Rate a completed request.
 
 ---
 
-## Merchants — `/merchants`
+## Merchants - `/merchants`
 
 > 🔒 All routes require authentication.
 
@@ -433,7 +433,7 @@ Toggle merchant open/closed status.
 
 ---
 
-## Utilities — `/utilities`
+## Utilities - `/utilities`
 
 > 🔒 👤 All routes: CUSTOMER role + authentication. All purchases require PIN.
 
@@ -500,7 +500,7 @@ Bill payment history. **Query:** `page`, `limit`, `type`
 
 ---
 
-## Rider — `/rider`
+## Rider - `/rider`
 
 > 🔒 Authentication required.
 
@@ -540,7 +540,7 @@ Accept a job. Prefer Socket.io `rider:job:accept` for real-time flow.
 
 ---
 
-## Admin — `/admin`
+## Admin - `/admin`
 
 > 🔒 🔑 All routes: ADMIN role + authentication.
 
@@ -632,7 +632,7 @@ Platform summary: revenue, active requests, users, riders, merchants.
 
 ---
 
-## Maps — `/maps`
+## Maps - `/maps`
 
 > No authentication required (used in address picker before login).
 
@@ -641,7 +641,7 @@ Google Places autocomplete for address search.
 
 **Query:** `input` (string), `sessionToken` (optional)
 
-**Response:** `200` — list of place suggestions
+**Response:** `200` - list of place suggestions
 
 ### GET `/maps/place-details`
 Resolve place ID to coordinates and formatted address.
@@ -665,7 +665,7 @@ Convert coordinates to a human-readable address.
 
 ---
 
-## Webhooks — `/webhooks`
+## Webhooks - `/webhooks`
 
 > No JWT authentication. Verified via provider-specific signatures.
 
@@ -674,7 +674,7 @@ Receives wallet funding (virtual account credits) and withdrawal status events f
 
 ---
 
-## Delivery — `/delivery` *(Legacy)*
+## Delivery - `/delivery` *(Legacy)*
 
 > **Deprecated.** This module is kept for backward compatibility during migration. New clients must use `/requests` instead.
 

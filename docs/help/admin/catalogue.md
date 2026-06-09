@@ -1,14 +1,14 @@
 # Categories, VTU networks & plans
 
 These three screens control what merchants can sell under and what bills
-customers can pay — the platform's catalogue and pricing.
+customers can pay - the platform's catalogue and pricing.
 
 ---
 
 ## Merchant categories
 
 The **Categories** page (*Merchant Categories*) is the master list of categories a
-merchant can belong to — Food, Groceries, Pharmacy, Fashion, and so on.
+merchant can belong to - Food, Groceries, Pharmacy, Fashion, and so on.
 
 ![Merchant categories](/help/screenshots/admin/categories.png)
 
@@ -34,7 +34,7 @@ without a code change.
 ## VTU plans & pricing
 
 The **VTU Plans** page (*VTU Pricing*) is where you manage the actual sellable
-items — data bundles, cable packages, and the cost/selling price for each.
+items - data bundles, cable packages, and the cost/selling price for each.
 
 ![VTU pricing](/help/screenshots/admin/vtu-plans.png)
 

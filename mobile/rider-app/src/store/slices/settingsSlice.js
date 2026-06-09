@@ -3,7 +3,7 @@ import api from "../../services/api";
 import { setCachedSettings } from "../../services/settings";
 
 /**
- * Settings slice — mirrors `/settings/public` into Redux so screens can
+ * Settings slice - mirrors `/settings/public` into Redux so screens can
  * subscribe via `useSelector` and re-render when settings load or change.
  */
 export const fetchPublicSettings = createAsyncThunk(

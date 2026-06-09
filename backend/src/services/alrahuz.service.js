@@ -1,5 +1,5 @@
 /**
- * AlRahuz Data API service — Nigerian VTU reseller.
+ * AlRahuz Data API service - Nigerian VTU reseller.
  * Base URL: https://alrahuzdata.com.ng
  * Auth: Token header
  *
@@ -110,7 +110,7 @@ const isSuccess = (responseData) => {
 };
 
 /**
- * AlRahuz returned `pending` / `processing` / no terminal status — caller must
+ * AlRahuz returned `pending` / `processing` / no terminal status - caller must
  * poll the transaction by ID until it resolves to success or failure.
  */
 const isPending = (responseData) => {

@@ -1,8 +1,8 @@
 /**
- * seed-rider.js — create (or refresh) a single APPROVED rider account.
+ * seed-rider.js - create (or refresh) a single APPROVED rider account.
  * BLK-RiderSeedScript.
  *
- * Purpose: hand App Store / Play Store reviewers — and QA — a rider login that
+ * Purpose: hand App Store / Play Store reviewers - and QA - a rider login that
  * lands straight in the app instead of getting stuck on the "Pending Approval"
  * gate. It creates a rider that is:
  *   - role RIDER, status ACTIVE, kycStatus VERIFIED
@@ -10,7 +10,7 @@
  *   - transaction PIN set (transactionPinSetByUser = true, so no PIN nag)
  *   - a wallet with a placeholder NUBAN (or a real KatPay NUBAN with --provision-nuban)
  *
- * Unlike `npm run db:seed`, this touches ONLY this one rider — safe to run
+ * Unlike `npm run db:seed`, this touches ONLY this one rider - safe to run
  * against a production database to prepare a reviewer account. Idempotent:
  * re-running repairs/refreshes the same account rather than duplicating it.
  *
@@ -32,7 +32,7 @@ const { prisma } = require('../src/config/database');
 const SALT_ROUNDS = 12;
 const PROVISION_NUBAN = process.argv.includes('--provision-nuban');
 
-// Reviewer/QA credentials — overridable via env so you don't bake secrets in.
+// Reviewer/QA credentials - overridable via env so you don't bake secrets in.
 const EMAIL = process.env.RIDER_EMAIL || 'rider.review@iprime.ng';
 const PASSWORD = process.env.RIDER_PASSWORD || 'RiderReview123!';
 const PIN = process.env.RIDER_PIN || '224466';
@@ -40,7 +40,7 @@ const PHONE = process.env.RIDER_PHONE || '08090000001';
 const FIRST_NAME = process.env.RIDER_FIRST_NAME || 'Review';
 const LAST_NAME = process.env.RIDER_LAST_NAME || 'Rider';
 
-// A placeholder NUBAN derived from the phone — only used when we don't
+// A placeholder NUBAN derived from the phone - only used when we don't
 // provision a real one. Mirrors the convention in prisma/seed.js.
 const PLACEHOLDER_NUBAN = PHONE.replace(/^0/, '8');
 
@@ -54,7 +54,7 @@ async function main() {
   const passwordHash = await bcrypt.hash(PASSWORD, SALT_ROUNDS);
   const transactionPin = await bcrypt.hash(PIN, SALT_ROUNDS);
 
-  // 1) User — upsert so a re-run repairs a half-broken account. We set the same
+  // 1) User - upsert so a re-run repairs a half-broken account. We set the same
   //    fields on create and update so the account is always left fully ACTIVE +
   //    VERIFIED with a real PIN, whatever state it was in before.
   const userFields = {
@@ -77,9 +77,9 @@ async function main() {
     update: userFields,
     create: { email: EMAIL, ...userFields },
   });
-  console.log(`  ✓ User ready (${user.id}) — role RIDER, status ACTIVE, KYC VERIFIED`);
+  console.log(`  ✓ User ready (${user.id}) - role RIDER, status ACTIVE, KYC VERIFIED`);
 
-  // 2) Wallet — upsert by userId. Keep an existing balance/NUBAN if present.
+  // 2) Wallet - upsert by userId. Keep an existing balance/NUBAN if present.
   const existingWallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
   const wallet = await prisma.wallet.upsert({
     where: { userId: user.id },
@@ -93,11 +93,11 @@ async function main() {
     },
   });
   console.log(
-    `  ✓ Wallet ready — balance ₦${Number(wallet.balance).toLocaleString()}, ` +
+    `  ✓ Wallet ready - balance ₦${Number(wallet.balance).toLocaleString()}, ` +
       `NUBAN ${wallet.virtualAccountNumber || '(none yet)'}`
   );
 
-  // 3) Rider — upsert by userId. APPROVED + OFFLINE with demo KYC docs filled in
+  // 3) Rider - upsert by userId. APPROVED + OFFLINE with demo KYC docs filled in
   //    so the admin KYC view and the rider profile both render fully.
   const riderFields = {
     vehicleType: 'MOTORCYCLE',
@@ -120,13 +120,13 @@ async function main() {
     update: riderFields,
     create: { userId: user.id, ...riderFields },
   });
-  console.log(`  ✓ Rider ready (${rider.id}) — status APPROVED, availability OFFLINE`);
+  console.log(`  ✓ Rider ready (${rider.id}) - status APPROVED, availability OFFLINE`);
 
   // 4) Optional: provision a real KatPay NUBAN, reusing the same path the KYC
   //    flow uses. Only meaningful when KatPay creds are configured (e.g. prod).
   if (PROVISION_NUBAN) {
     if (existingWallet?.virtualAccountNumber && existingWallet.virtualAccountNumber !== PLACEHOLDER_NUBAN) {
-      console.log(`  ↪ Skipping NUBAN provisioning — wallet already has a real NUBAN.`);
+      console.log(`  ↪ Skipping NUBAN provisioning - wallet already has a real NUBAN.`);
     } else {
       try {
         const katpayService = require('../src/services/katpay.service');

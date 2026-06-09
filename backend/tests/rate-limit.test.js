@@ -25,7 +25,7 @@ const stubModule = (filename, exports) => {
 
 // express-rate-limit accepts `max`, `windowMs`, `keyGenerator` etc. on
 // construction and returns a middleware. We don't exercise the limiter's
-// actual sliding-window state here — that's library-tested. Instead we
+// actual sliding-window state here - that's library-tested. Instead we
 // assert the configuration we hand it, which is what we want to keep stable.
 //
 // Replace `express-rate-limit` with a stub that records its constructor args
@@ -106,7 +106,7 @@ test('quoteLimiter: 120 per 1 hour, keyed by userId', () => {
 test('requestCreationLimiter is stricter than quoteLimiter (matches roadmap policy)', () => {
   assert.ok(
     limiters.requestCreationLimiter._opts.max < limiters.quoteLimiter._opts.max,
-    'creation limit must be tighter than quoting — orders cost real money',
+    'creation limit must be tighter than quoting - orders cost real money',
   );
 });
 

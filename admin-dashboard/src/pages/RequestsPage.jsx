@@ -413,7 +413,7 @@ export default function RequestsPage() {
                 </div>
               )}
 
-              {/* Phase 5 — POD card. Visible once the rider has captured at
+              {/* Phase 5 - POD card. Visible once the rider has captured at
                   least one POD artefact (photo / signature). Investigators
                   click through to the Cloudinary asset for the full-res view. */}
               {(selectedRequest.podPhotoUrl || selectedRequest.podSignatureUrl) ? (
@@ -591,7 +591,7 @@ export default function RequestsPage() {
                           {rider.user?.firstName} {rider.user?.lastName}
                           {isCurrent && <span className="ml-2 text-xs text-muted">(current)</span>}
                         </p>
-                        <p className="text-xs text-muted dark:text-dark-muted truncate">{rider.user?.phone || '—'}</p>
+                        <p className="text-xs text-muted dark:text-dark-muted truncate">{rider.user?.phone || '-'}</p>
                       </div>
                       <span className={`text-xs font-medium shrink-0 ${rider.availability === 'ONLINE' ? 'text-success' : 'text-muted'}`}>
                         {(rider.availability || 'OFFLINE').replace('_', ' ')}

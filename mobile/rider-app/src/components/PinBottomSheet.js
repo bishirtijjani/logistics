@@ -17,7 +17,7 @@ const { height } = Dimensions.get("window");
 const PIN_LENGTH = 6;
 // SecureStore key persists the lockout deadline so 6 wrong PINs followed by an
 // app restart still leave the user locked out (server is still the source of
-// truth — this just hides the keypad until the deadline passes locally too).
+// truth - this just hides the keypad until the deadline passes locally too).
 const LOCKED_UNTIL_KEY = "pin:lockedUntilEpochMs";
 
 /**
@@ -75,7 +75,7 @@ export default function PinBottomSheet({
       if (!Number.isNaN(parsed) && parsed > Date.now()) {
         setLockedUntil(parsed);
       } else if (!Number.isNaN(parsed)) {
-        // Stale lock — clean up.
+        // Stale lock - clean up.
         await SecureStore.deleteItemAsync(LOCKED_UNTIL_KEY);
       }
     })();
@@ -135,7 +135,7 @@ export default function PinBottomSheet({
     try {
       await SecureStore.setItemAsync(LOCKED_UNTIL_KEY, String(until));
     } catch {
-      // SecureStore failure is non-fatal — the in-memory lock still stands.
+      // SecureStore failure is non-fatal - the in-memory lock still stands.
     }
   }, []);
 
@@ -157,7 +157,7 @@ export default function PinBottomSheet({
       shake();
 
       if (err?.code === "PIN_NOT_SET") {
-        // The user has no transaction PIN yet — keypad is useless. Swap the
+        // The user has no transaction PIN yet - keypad is useless. Swap the
         // sheet into a "set up your PIN" state with a CTA that closes the
         // sheet and hands control back to the caller via `onSetupPin`.
         setNeedsSetup(true);
@@ -280,7 +280,7 @@ export default function PinBottomSheet({
 
           {renderLockBanner()}
 
-          {/* Setup prompt — shown when the server reports no PIN is set yet.
+          {/* Setup prompt - shown when the server reports no PIN is set yet.
               Replaces the silent "incorrect PIN" failure with a clear path to
               the SetPin screen. The keypad is disabled (handleKeyPress + the
               `disabled` flag below) while this is visible. */}

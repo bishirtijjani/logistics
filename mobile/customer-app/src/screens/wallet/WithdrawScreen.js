@@ -147,7 +147,7 @@ export default function WithdrawScreen({ navigation, route }) {
           }));
         }
       } else if (res.payload?.code === "PIN_NOT_SET") {
-        // User hasn't set a transaction PIN yet — bounce them back to the
+        // User hasn't set a transaction PIN yet - bounce them back to the
         // form step and route to SetPin so the keypad isn't left in a dead
         // state. Toast explains what happened in case the navigation feels
         // abrupt.

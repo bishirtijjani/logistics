@@ -1,5 +1,5 @@
 /**
- * Notification queue worker — sends push notifications and SMS.
+ * Notification queue worker - sends push notifications and SMS.
  */
 
 const { Worker } = require('bullmq');

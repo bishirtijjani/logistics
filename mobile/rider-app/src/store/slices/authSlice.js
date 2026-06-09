@@ -84,7 +84,7 @@ export const logout = createAsyncThunk(
     } finally {
       await SecureStore.deleteItemAsync("accessToken");
       await SecureStore.deleteItemAsync("refreshToken");
-      // Drop the persisted onboarding draft — a different user signing in on
+      // Drop the persisted onboarding draft - a different user signing in on
       // the same device must not inherit an in-progress KYC application.
       try { await clearOnboardingDraft(); } catch (_) {}
     }

@@ -1,12 +1,12 @@
 -- Disambiguate "merchant" across the schema.
 --
 -- The word "merchant" was overloaded across 3 unrelated concepts:
---   1. Actual business merchants (restaurants, supermarkets) — the legitimate
+--   1. Actual business merchants (restaurants, supermarkets) - the legitimate
 --      `Merchant` model and its relations. Left untouched.
---   2. Payment service providers (KatPay, AlRahuz) — renamed to "provider".
---   3. VTU billers (MTN, AEDC, IKEDC) — renamed to "biller".
+--   2. Payment service providers (KatPay, AlRahuz) - renamed to "provider".
+--   3. VTU billers (MTN, AEDC, IKEDC) - renamed to "biller".
 --
--- This is a column/enum rename only — no data changes. ALTER TYPE ... RENAME
+-- This is a column/enum rename only - no data changes. ALTER TYPE ... RENAME
 -- and ALTER TABLE ... RENAME COLUMN are catalog-only operations and do not
 -- rewrite the table, so this is safe under concurrent writes.
 

@@ -11,8 +11,8 @@ import { captureError as captureSentryError } from './sentry';
  *   - Looks up `errors.<code>` in the current language.
  *   - Falls back to the server-supplied English `message` when no
  *     translation exists (or when the response carried no `code`).
- * Lives here rather than in useT so the response interceptor — which
- * can't use hooks — has access to localized copy for its auto-toast.
+ * Lives here rather than in useT so the response interceptor - which
+ * can't use hooks - has access to localized copy for its auto-toast.
  */
 const translateError = (data, fallbackMessage) => {
   const code = data?.code;
@@ -37,7 +37,7 @@ const api = axios.create({
   },
 });
 
-// Cache device-identification headers — these never change at runtime, so
+// Cache device-identification headers - these never change at runtime, so
 // computing them once and reusing avoids touching the native bridge per request.
 const DEVICE_HEADERS = {
   'x-device-name': Device.deviceName || `${Platform.OS}-device`,
@@ -57,7 +57,7 @@ let _onForceLogout = null;
 export const registerForceLogout = (fn) => { _onForceLogout = fn; };
 
 // ============================================================
-// Request interceptor — auth header + device fingerprint
+// Request interceptor - auth header + device fingerprint
 // ============================================================
 api.interceptors.request.use(
   async (config) => {
@@ -74,7 +74,7 @@ api.interceptors.request.use(
 // ============================================================
 // Silent token refresh
 // ============================================================
-// Phase 5 — when any request 401s (except /auth/login and /auth/refresh
+// Phase 5 - when any request 401s (except /auth/login and /auth/refresh
 // themselves), transparently:
 //   1. Call POST /auth/refresh with the stored refresh token
 //   2. Persist the rotated token pair to SecureStore
@@ -167,7 +167,7 @@ api.interceptors.response.use(
       } catch (refreshErr) {
         // forceLogout already surfaces a single localized "session expired"
         // toast and clears tokens. Reject with a sentinel error and do NOT
-        // fall through to the generic toast block below — two toasts on
+        // fall through to the generic toast block below - two toasts on
         // session expiry is just noise.
         await forceLogout();
         const sessionErr = new Error(i18n.t('errors.REFRESH_TOKEN_INVALID'));
@@ -189,7 +189,7 @@ api.interceptors.response.use(
       : translateError(data, serverMessage);
     const code = data?.code || (isNetworkError ? 'NETWORK_ERROR' : null);
 
-    // Suppress the global toast for 401/423/429 — callers render contextual UI
+    // Suppress the global toast for 401/423/429 - callers render contextual UI
     // (PIN sheet, retry banner, session-expired toast already shown above).
     if (status !== 401 && status !== 423 && status !== 429) {
       Toast.show({
@@ -214,7 +214,7 @@ api.interceptors.response.use(
       if (!Number.isNaN(secs)) err.retryAfterSeconds = secs;
     }
     // Forward server-side 5xx + true network failures to Sentry. Skip 4xx
-    // operational errors (validation, insufficient balance, etc.) — they're
+    // operational errors (validation, insufficient balance, etc.) - they're
     // expected and would drown out real signal in the dashboard.
     const requestIdHeader = error.response?.headers?.['x-request-id'];
     if (isNetworkError || (status && status >= 500)) {

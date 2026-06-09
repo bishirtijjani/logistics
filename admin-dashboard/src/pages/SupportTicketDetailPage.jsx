@@ -169,7 +169,7 @@ export default function SupportTicketDetailPage() {
                 {selected.user?.firstName} {selected.user?.lastName}
               </div>
               <div className="text-muted dark:text-dark-muted">{selected.user?.email}</div>
-              <div className="text-muted dark:text-dark-muted">{selected.user?.phone || '—'}</div>
+              <div className="text-muted dark:text-dark-muted">{selected.user?.phone || '-'}</div>
               <div className="text-xs text-muted dark:text-dark-muted mt-2">Role: {selected.user?.role}</div>
             </div>
           </div>

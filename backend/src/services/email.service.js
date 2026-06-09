@@ -1,5 +1,5 @@
 /**
- * Email service — sends transactional emails via Gmail SMTP.
+ * Email service - sends transactional emails via Gmail SMTP.
  *
  * Uses Nodemailer with Gmail App Password.
  * Templates are defined here for consistency across the platform.
@@ -102,7 +102,7 @@ const sendOtpEmail = async (email, otp) => {
 
   return sendEmail({
     to: email,
-    subject: `${otp} — Your iPrime verification code`,
+    subject: `${otp} - Your iPrime verification code`,
     html,
     text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
   });
@@ -219,7 +219,7 @@ const sendPasswordResetEmail = async (email, otp) => {
 
   return sendEmail({
     to: email,
-    subject: `${otp} — Password reset code`,
+    subject: `${otp} - Password reset code`,
     html,
     text: `Your password reset code is: ${otp}. It expires in 10 minutes.`,
   });
@@ -276,7 +276,7 @@ const infoBox = (color, bg, items) =>
   </div>`;
 
 /**
- * Merchant application approved — welcome email with next steps.
+ * Merchant application approved - welcome email with next steps.
  */
 const sendMerchantApprovedEmail = async (email, merchantName) => {
   const html = emailBase(`
@@ -302,14 +302,14 @@ const sendMerchantApprovedEmail = async (email, merchantName) => {
 
   return sendEmail({
     to: email,
-    subject: `Your iPrime merchant application is approved — ${merchantName}`,
+    subject: `Your iPrime merchant application is approved - ${merchantName}`,
     html,
     text: `Congratulations! Your merchant application for ${merchantName} has been approved. Log in to your dashboard to get started.`,
   });
 };
 
 /**
- * Merchant application rejected — reason + how to reapply.
+ * Merchant application rejected - reason + how to reapply.
  */
 const sendMerchantRejectedEmail = async (email, merchantName, reason) => {
   const html = emailBase(`
@@ -342,7 +342,7 @@ const sendMerchantRejectedEmail = async (email, merchantName, reason) => {
 };
 
 /**
- * Merchant suspended — reason + contact info.
+ * Merchant suspended - reason + contact info.
  */
 const sendMerchantSuspendedEmail = async (email, merchantName, reason) => {
   const html = emailBase(`
@@ -370,7 +370,7 @@ const sendMerchantSuspendedEmail = async (email, merchantName, reason) => {
 };
 
 /**
- * Merchant unsuspended — access restored.
+ * Merchant unsuspended - access restored.
  */
 const sendMerchantUnsuspendedEmail = async (email, merchantName) => {
   const html = emailBase(`
@@ -392,14 +392,14 @@ const sendMerchantUnsuspendedEmail = async (email, merchantName) => {
 
   return sendEmail({
     to: email,
-    subject: `Your iPrime merchant account has been restored — ${merchantName}`,
+    subject: `Your iPrime merchant account has been restored - ${merchantName}`,
     html,
     text: `Dear ${merchantName}, your merchant account suspension has been lifted. You can now log in and resume operations.`,
   });
 };
 
 /**
- * Withdrawal approved — payout amount + reference.
+ * Withdrawal approved - payout amount + reference.
  */
 const sendWithdrawalApprovedEmail = async (email, merchantName, amount, reference) => {
   const formattedAmount = `₦${Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
@@ -412,7 +412,7 @@ const sendWithdrawalApprovedEmail = async (email, merchantName, amount, referenc
     ${infoBox('#10b981', '#f0fdf4', [
       ['Amount', `<strong style="font-size:18px;">${formattedAmount}</strong>`],
       ['Reference', `<code style="font-family:monospace;background:#e5e7eb;padding:2px 6px;border-radius:4px;">${reference}</code>`],
-      ['Status', 'Processing — funds typically arrive within 1–3 business hours'],
+      ['Status', 'Processing - funds typically arrive within 1–3 business hours'],
     ])}
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you don't receive the funds within 24 hours, please contact us at
@@ -423,14 +423,14 @@ const sendWithdrawalApprovedEmail = async (email, merchantName, amount, referenc
 
   return sendEmail({
     to: email,
-    subject: `Withdrawal of ${formattedAmount} approved — iPrime`,
+    subject: `Withdrawal of ${formattedAmount} approved - iPrime`,
     html,
     text: `Dear ${merchantName}, your withdrawal of ${formattedAmount} has been approved. Reference: ${reference}.`,
   });
 };
 
 /**
- * Withdrawal rejected — reason + funds returned to wallet.
+ * Withdrawal rejected - reason + funds returned to wallet.
  */
 const sendWithdrawalRejectedEmail = async (email, merchantName, amount, reason) => {
   const formattedAmount = `₦${Number(amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
@@ -455,14 +455,14 @@ const sendWithdrawalRejectedEmail = async (email, merchantName, amount, reason) 
 
   return sendEmail({
     to: email,
-    subject: `Withdrawal request could not be processed — iPrime`,
+    subject: `Withdrawal request could not be processed - iPrime`,
     html,
     text: `Dear ${merchantName}, your withdrawal of ${formattedAmount} could not be processed. Reason: ${reason}. The funds have been returned to your wallet.`,
   });
 };
 
 /**
- * Commission rate changed — notifies merchant of new rate.
+ * Commission rate changed - notifies merchant of new rate.
  */
 const sendCommissionChangedEmail = async (email, merchantName, previousRate, newRate) => {
   const direction = newRate < previousRate ? 'decreased' : 'increased';
@@ -477,7 +477,7 @@ const sendCommissionChangedEmail = async (email, merchantName, previousRate, new
     ${infoBox(color, newRate < previousRate ? '#f0fdf4' : '#fffbeb', [
       ['Previous Rate', `${previousRate}%`],
       ['New Rate', `<strong style="font-size:16px;color:${color};">${newRate}%</strong>`],
-      ['Effective', 'Immediately — applies to all future orders'],
+      ['Effective', 'Immediately - applies to all future orders'],
     ])}
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you have questions about this change, please contact your account manager or reach us at
@@ -534,7 +534,7 @@ const sendContactInquiryEmail = async ({ to, name, email, message, source }) => 
     from: `"iPrime Website" <${config.SMTP_USER}>`,
     to,
     replyTo: email,
-    subject: `Website contact — ${name}`,
+    subject: `Website contact - ${name}`,
     html,
     text: `New contact form submission\n\nFrom: ${name} <${email}>${source ? `\nFrom page: ${source}` : ''}\n\nMessage:\n${message}\n`,
   }).then((info) => {
@@ -562,14 +562,14 @@ const sendContactConfirmationEmail = async ({ name, email }) => {
         or message us on WhatsApp.
       </p>
     </div>
-    <p style="margin:0;font-size:13px;color:#9ca3af;">— The iPrime team</p>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">- The iPrime team</p>
   `);
 
   return sendEmail({
     to: email,
-    subject: 'We received your message — iPrime',
+    subject: 'We received your message - iPrime',
     html,
-    text: `Hi ${name},\n\nThanks for reaching out to iPrime. A human on our team will get back to you within one business day.\n\n— The iPrime team`,
+    text: `Hi ${name},\n\nThanks for reaching out to iPrime. A human on our team will get back to you within one business day.\n\n- The iPrime team`,
   });
 };
 

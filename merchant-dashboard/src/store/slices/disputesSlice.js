@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../lib/api'
 
 // ============================================================
-// Merchant — disputes raised against orders fulfilled by this merchant
+// Merchant - disputes raised against orders fulfilled by this merchant
 // ============================================================
 
 export const fetchMyDisputes = createAsyncThunk(

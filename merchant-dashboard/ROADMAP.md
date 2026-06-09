@@ -1,4 +1,4 @@
-# Merchant Dashboard — MVP to Production Roadmap
+# Merchant Dashboard - MVP to Production Roadmap
 
 This roadmap details all improvements needed to make the merchant dashboard 100% production-ready and state-of-the-art.
 
@@ -48,7 +48,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 
 ---
 
-## Phase 0 — Critical Fixes (✅ COMPLETED)
+## Phase 0 - Critical Fixes (✅ COMPLETED)
 ### 0.1 Fix Application Structure
 - [x] Replace App.jsx default Vite template with proper App component
 - [x] Fix main.jsx line 25: Change <Merchant> to <Provider> from react-redux
@@ -62,7 +62,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [x] Test login flow works end-to-end
 - [x] Test navigation between all pages
 
-## Phase 1 — Core Functionality Fixes (✅ COMPLETED)
+## Phase 1 - Core Functionality Fixes (✅ COMPLETED)
 ### 1.1 Analytics Page Real Data
 #### Tasks
 - [x] Remove hardcoded mock data from AnalyticsPage.jsx (lines 61-79)
@@ -105,7 +105,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [x] Add loading skeletons to SettingsPage
 - [x] Ensure all async actions show loading indicators
 
-## Phase 2 — Authentication & Security (✅ COMPLETED)
+## Phase 2 - Authentication & Security (✅ COMPLETED)
 
 ### 2.1 Password Management
 - [x] Add password change form to SettingsPage
@@ -133,7 +133,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [x] Add device management (view/remove devices)
 ---
 
-## Phase 3 — Orders Page Enhancements (✅ COMPLETED)
+## Phase 3 - Orders Page Enhancements (✅ COMPLETED)
 
 ### 3.1 Real-time Updates
 - [x] Add WebSocket connection for live order updates
@@ -176,7 +176,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [x] Add custom field selection for export
 ---
 
-## Phase 4 — Menu/Products Page Enhancements (✅ COMPLETED)
+## Phase 4 - Menu/Products Page Enhancements (✅ COMPLETED)
 
 ### 4.1 Image Management
 - [x] Add image upload functionality
@@ -218,7 +218,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [x] Add product templates
 ---
 
-## Phase 5 — Earnings/Wallet Page Enhancements
+## Phase 5 - Earnings/Wallet Page Enhancements
 
 ### 5.1 Transaction Details
 - [x] Add detailed transaction breakdown
@@ -256,7 +256,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - [x] Add custom report generation
 ---
 
-## Phase 6 — Analytics Page Enhancements
+## Phase 6 - Analytics Page Enhancements
 
 ### 6.1 Real Data Integration
 - [x] Remove all hardcoded mock data
@@ -284,7 +284,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 
 ---
 
-## Phase 7 — Settings Page Enhancements
+## Phase 7 - Settings Page Enhancements
 
 ### 7.1 Profile Management
 - [ ] Add profile picture upload
@@ -336,7 +336,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 
 ---
 
-## Phase 8 — UI/UX Polish
+## Phase 8 - UI/UX Polish
 
 ### 8.1 Responsive Design
 - [ ] Test on all breakpoints (mobile, tablet, desktop)
@@ -391,7 +391,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 
 ---
 
-## Phase 9 — Advanced Features
+## Phase 9 - Advanced Features
 
 ### 9.1 Real-time Features
 - [ ] Add live order tracking
@@ -414,7 +414,7 @@ This roadmap details all improvements needed to make the merchant dashboard 100%
 - ~~[ ] Add targeted promotions~~
 - ~~[ ] Add customer communication tools~~
 
-## Phase 10 — Developer API & Webhooks
+## Phase 10 - Developer API & Webhooks
 
 
 ## Priority Order

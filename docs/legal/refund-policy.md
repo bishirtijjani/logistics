@@ -12,12 +12,12 @@ This Refund Policy explains when and how **MH Prime** ("**iPrime**",
 app, rider app, or merchant tools. It applies to every transaction
 type the platform supports:
 
-1. **Bill payments** — airtime, data, electricity tokens, TV subscriptions,
+1. **Bill payments** - airtime, data, electricity tokens, TV subscriptions,
    and any future biller we add.
-2. **Wallet operations** — top-ups, withdrawals, and peer-to-peer transfers.
-3. **Delivery orders** — food, groceries, pharmacy, and parcel deliveries
+2. **Wallet operations** - top-ups, withdrawals, and peer-to-peer transfers.
+3. **Delivery orders** - food, groceries, pharmacy, and parcel deliveries
    from independent merchants and riders.
-4. **Cancellations** — orders cancelled by you, a rider, or a merchant before
+4. **Cancellations** - orders cancelled by you, a rider, or a merchant before
    completion.
 
 This policy sits alongside the [Terms of Service](/legal/terms) and the
@@ -29,7 +29,7 @@ preserved regardless of what this policy says.
 
 ## 2. The principle
 
-> **If we didn't deliver what you paid for, you get your money back —
+> **If we didn't deliver what you paid for, you get your money back -
 > usually automatically, and usually to your iPrime wallet within
 > minutes.**
 
@@ -56,7 +56,7 @@ entry confirming the reversal.
 | Order cancelled by you before a rider is assigned | Wallet | Instant |
 
 If you don't see the refund within the window above, contact us at
-**contact@iprime.ng** with the transaction ID — we'll investigate the
+**contact@iprime.ng** with the transaction ID - we'll investigate the
 same business day.
 
 ---
@@ -106,7 +106,7 @@ and resolve it under the **Automatic refunds** policy above.
 |---|---|
 | Before the merchant accepts the order | 100% to wallet, instant |
 | After the merchant accepts but before a rider is assigned | 100% to wallet, less a small platform fee where it has already been incurred |
-| After a rider has picked the order up | Not eligible — the goods have already been prepared / dispatched. Raise a help ticket if there's a quality issue when the order arrives. |
+| After a rider has picked the order up | Not eligible - the goods have already been prepared / dispatched. Raise a help ticket if there's a quality issue when the order arrives. |
 
 ### 6.2 Merchant- or rider-initiated cancellations
 
@@ -116,7 +116,7 @@ wallet automatically.
 
 ### 6.3 Force majeure
 
-We may pause or cancel orders during events outside our control —
+We may pause or cancel orders during events outside our control -
 violent weather, network outages, public emergencies, government
 restrictions. In every such case, customers are refunded 100% to the
 wallet and we don't charge cancellation fees on either side.
@@ -129,12 +129,12 @@ wallet and we don't charge cancellation fees on either side.
   good condition, the transaction is final.
 - **Successfully vended bills.** Airtime, data, tokens, or TV
   subscriptions delivered to the wrong number / meter / smartcard
-  *that you entered yourself* are not refundable — the system has no
+  *that you entered yourself* are not refundable - the system has no
   way to undo a successful vend on the operator's side. Always double-check
   the recipient before confirming.
 - **Tips paid to riders.** Once a tip is paid, it belongs to the rider.
 - **Promotional credits and referral bonuses.** These are platform
-  credits, not money you paid in — they cannot be withdrawn or
+  credits, not money you paid in - they cannot be withdrawn or
   refunded, only spent.
 - **Disputes raised more than 30 days after the transaction.** We keep
   detailed transaction logs but the operator-side evidence needed to
@@ -146,7 +146,7 @@ wallet and we don't charge cancellation fees on either side.
 
 If you funded your wallet by card or bank transfer and want to dispute
 that funding through your bank, you're entitled to do so under your
-bank's rules — this policy does not remove that right. However:
+bank's rules - this policy does not remove that right. However:
 
 - Raising a chargeback before contacting **contact@iprime.ng** delays
   resolution by weeks. We can almost always refund a legitimate complaint

@@ -1,5 +1,5 @@
 /**
- * Search & discovery service tests — covers the query-less path (uses Prisma
+ * Search & discovery service tests - covers the query-less path (uses Prisma
  * `findMany` + bbox), the query path (uses pg_trgm via `$queryRaw` then
  * hydrates via Prisma), and `nearby` Haversine sort. Raw SQL is mocked at the
  * `$queryRaw` boundary; the trgm logic itself lives in the DB.
@@ -95,7 +95,7 @@ test('search: no query + lat/lng → bounding-box excludes far-away merchants', 
   prismaStub.$queryRaw = async () => [];
   const out = await searchService.search({ q: '', lat: 13.0, lng: 7.6, radius: 10 });
   const ids = out.results.map((r) => r.id);
-  // m3 is at 14.0/8.5 — ~150km away, must be filtered out
+  // m3 is at 14.0/8.5 - ~150km away, must be filtered out
   assert.ok(!ids.includes('m3'));
   assert.ok(ids.includes('m1'));
   assert.ok(ids.includes('m2'));

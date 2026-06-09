@@ -75,7 +75,7 @@ export default function RegistrationPage() {
 
   // Resend-OTP cooldown countdown. Driving this from useEffect (instead of a
   // setInterval started inside handleResendOtp) means the timer is torn down
-  // automatically if the user navigates away mid-cooldown — the old
+  // automatically if the user navigates away mid-cooldown - the old
   // implementation kept ticking on an unmounted component and called
   // setResendCooldown after unmount.
   useEffect(() => {
@@ -816,7 +816,7 @@ export default function RegistrationPage() {
                     </span>
                     <span className="font-medium text-text dark:text-dark-text">
                       {categories.find((c) => c.id === businessInfo.categoryId)
-                        ?.name || "—"}
+                        ?.name || "-"}
                     </span>
                   </div>
                 </div>

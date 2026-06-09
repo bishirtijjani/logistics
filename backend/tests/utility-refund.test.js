@@ -1,10 +1,10 @@
 /**
- * Phase 7 — utility-refund money-path test.
+ * Phase 7 - utility-refund money-path test.
  *
  * Verifies:
  *   - When AlRahuz returns a definitive `failed` status, the worker marks the
  *     UtilityPayment as FAILED, credits the wallet back the EXACT amount, and
- *     creates a REFUND transaction row — all in a single Prisma transaction.
+ *     creates a REFUND transaction row - all in a single Prisma transaction.
  *   - The polling-window-exhausted path (AlRahuz keeps returning pending past
  *     MAX_ATTEMPTS) also auto-refunds the customer.
  *
@@ -17,7 +17,7 @@ const assert = require('node:assert/strict');
 const { installUtilityStubs } = require('./_utility-stubs');
 const stubs = installUtilityStubs();
 
-// Now require the worker — its imports resolve to the stubs we just installed.
+// Now require the worker - its imports resolve to the stubs we just installed.
 const { _internal } = require('../src/queues/workers/utility.worker');
 const { POLL_CONFIG } = require('../src/queues/jobs');
 

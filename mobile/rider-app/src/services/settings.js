@@ -3,9 +3,9 @@ import api from "./api";
 
 /**
  * Settings access surface.
- *   - `getSetting(key, default)` — synchronous cached read for thunks/services.
- *   - `usePlatformSetting(key, default)` — React hook backed by the settings slice.
- *   - `fetchPublicSettings()` — hits the backend and writes through the cache.
+ *   - `getSetting(key, default)` - synchronous cached read for thunks/services.
+ *   - `usePlatformSetting(key, default)` - React hook backed by the settings slice.
+ *   - `fetchPublicSettings()` - hits the backend and writes through the cache.
  */
 
 let cachedSettings = null;

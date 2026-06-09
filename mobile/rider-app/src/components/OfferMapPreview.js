@@ -19,7 +19,7 @@ export default function OfferMapPreview({ pickupLat, pickupLng, dropoffLat, drop
   const region = useMemo(() => {
     if (typeof pickupLat !== "number" || typeof pickupLng !== "number") return null;
     if (typeof dropoffLat !== "number" || typeof dropoffLng !== "number") {
-      // Drop-off coords missing — centre on pickup only.
+      // Drop-off coords missing - centre on pickup only.
       return {
         latitude: pickupLat,
         longitude: pickupLng,

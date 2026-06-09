@@ -73,7 +73,7 @@ test('idempotency: first request reserves the key, handler runs, response is cap
   assert.ok(reserved.requestHash);
   assert.equal(reserved.responseSnapshot, undefined);
 
-  // Simulate the controller writing a response — capture should fire.
+  // Simulate the controller writing a response - capture should fire.
   await res.status(201).json({ ok: true, id: 'req_1' });
 
   const updated = await prisma.idempotencyKey.findUnique({ where: { key } });
@@ -228,7 +228,7 @@ test('idempotency: returns 503 when the reservation create throws non-P2002', as
 
 // ── Concurrent reservation race ─────────────────────────────────────────────
 
-test('idempotency: two concurrent calls — only one passes through, the other replays', async () => {
+test('idempotency: two concurrent calls - only one passes through, the other replays', async () => {
   prisma.idempotencyKey._store.clear();
   const key = 'k-concurrent-' + Date.now();
 
@@ -246,7 +246,7 @@ test('idempotency: two concurrent calls — only one passes through, the other r
   let aPassedThrough = false;
   let bPassedThrough = false;
 
-  // Simulate a real controller — when next() fires, it writes the response,
+  // Simulate a real controller - when next() fires, it writes the response,
   // which is what makes the loser's poll terminate successfully.
   const handlerFor = (res, flag) => async () => {
     flag.value = true;
@@ -280,7 +280,7 @@ test('idempotency: race loser returns 409 if winner never responds in time', asy
   prisma.idempotencyKey._store.clear();
   const key = 'k-409-' + Date.now();
 
-  // Pre-create the reservation WITHOUT a snapshot — simulates the winner
+  // Pre-create the reservation WITHOUT a snapshot - simulates the winner
   // having reserved but not yet returned.
   await prisma.idempotencyKey.create({
     data: {

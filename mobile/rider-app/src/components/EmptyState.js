@@ -1,12 +1,12 @@
 /**
- * EmptyState — the placeholder a list renders when it has 0 rows.
+ * EmptyState - the placeholder a list renders when it has 0 rows.
  *
  * Three pieces, vertically stacked: an Ionicons glyph, a bold title, a
  * one-line muted subtitle. Optional CTA button below for "go do this thing
  * to fill this list" prompts.
  *
  * Standardizes empty-list copy across the app and makes the difference
- * between "loading", "empty", and "errored" visually obvious — three states
+ * between "loading", "empty", and "errored" visually obvious - three states
  * that frequently get conflated.
  */
 

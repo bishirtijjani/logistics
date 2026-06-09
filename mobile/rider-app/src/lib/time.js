@@ -1,5 +1,5 @@
 /**
- * Date helpers — pure, no React.
+ * Date helpers - pure, no React.
  *
  * `parseISODate("YYYY-MM-DD")` parses a date *as a UTC midnight* so it doesn't
  * shift across timezones. Returns `null` for malformed or semantically
@@ -15,7 +15,7 @@ export function parseISODate(value) {
   const [y, m, d] = value.split("-").map(Number);
   const ts = Date.UTC(y, m - 1, d);
   const parsed = new Date(ts);
-  // Confirm the components round-trip — catches "2024-02-30" (parses to Mar 1).
+  // Confirm the components round-trip - catches "2024-02-30" (parses to Mar 1).
   if (
     parsed.getUTCFullYear() !== y ||
     parsed.getUTCMonth() !== m - 1 ||

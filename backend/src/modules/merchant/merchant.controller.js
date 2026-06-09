@@ -1,5 +1,5 @@
 /**
- * Merchant controller — handles HTTP requests for merchant operations
+ * Merchant controller - handles HTTP requests for merchant operations
  */
 
 const merchantService = require('./merchant.service');

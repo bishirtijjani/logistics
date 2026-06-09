@@ -1,12 +1,12 @@
 /**
- * OfflineBanner — global "You're offline" strip rendered above the
+ * OfflineBanner - global "You're offline" strip rendered above the
  * NavigationContainer when connectivity is down.
  *
  * Source of truth is `services/connectivity.js`, which fuses socket
  * disconnects and API network errors into a single boolean. The banner
  * unmounts the moment connectivity returns, so there's no visual lag.
  *
- * Token-based styling — works correctly in light + dark mode.
+ * Token-based styling - works correctly in light + dark mode.
  */
 
 import React from "react";
@@ -44,7 +44,7 @@ export default function OfflineBanner() {
         numberOfLines={1}
         style={{ fontSize: 12, fontWeight: "700", color: tokens.status.warningStrong }}
       >
-        {t("offline.banner", "You're offline — actions will retry when you reconnect.")}
+        {t("offline.banner", "You're offline. Actions will retry when you reconnect.")}
       </Text>
     </View>
   );

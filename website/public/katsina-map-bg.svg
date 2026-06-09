@@ -1,0 +1,116 @@
+<!--
+  Katsina hero map: wide-format adaptation of the in-app tracking map.
+  Pure SVG, no tiles or external assets.
+
+  ViewBox 1920x1080. Designed to stretch/cover any hero section; the
+  composition is balanced so cropping at either edge still reads.
+
+  Layers, in paint order:
+    1. Sand canvas (#EDE2C9)        base
+    2. Building blocks (#E5D8B8)    grid of beige rectangles
+    3. White roads + grey hairlines the street network
+    4. Street name labels (#9CA3AF) Roboto 700 if available
+    5. Route polyline (#EA580C)     wrap in <g class="route">
+    6. Pickup + dropoff pins        same group
+    7. Rider marker (white arrow)   wrap in <g class="rider">
+
+  To calm the background, hide via CSS: .route, .rider { display:none }
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <!-- 1. canvas -->
+  <rect width="1920" height="1080" fill="#EDE2C9"/>
+
+  <!-- 2. building blocks: denser grid for landscape -->
+  <g fill="#E5D8B8">
+    <!-- row 1 -->
+    <rect x="40"   y="60"   width="220" height="140" rx="8"/>
+    <rect x="300"  y="40"   width="260" height="160" rx="8"/>
+    <rect x="600"  y="80"   width="200" height="120" rx="8"/>
+    <rect x="840"  y="50"   width="240" height="150" rx="8"/>
+    <rect x="1120" y="70"   width="220" height="130" rx="8"/>
+    <rect x="1380" y="40"   width="260" height="160" rx="8"/>
+    <rect x="1680" y="60"   width="200" height="140" rx="8"/>
+    <!-- row 2 -->
+    <rect x="40"   y="260"  width="180" height="180" rx="8"/>
+    <rect x="260"  y="240"  width="280" height="200" rx="8"/>
+    <rect x="580"  y="260"  width="220" height="180" rx="8"/>
+    <rect x="840"  y="250"  width="200" height="190" rx="8"/>
+    <rect x="1080" y="270"  width="260" height="170" rx="8"/>
+    <rect x="1380" y="250"  width="220" height="190" rx="8"/>
+    <rect x="1640" y="270"  width="240" height="170" rx="8"/>
+    <!-- row 3 -->
+    <rect x="40"   y="500"  width="240" height="180" rx="8"/>
+    <rect x="320"  y="480"  width="200" height="200" rx="8"/>
+    <rect x="560"  y="500"  width="260" height="180" rx="8"/>
+    <rect x="860"  y="490"  width="220" height="190" rx="8"/>
+    <rect x="1120" y="510"  width="240" height="170" rx="8"/>
+    <rect x="1400" y="490"  width="200" height="190" rx="8"/>
+    <rect x="1640" y="500"  width="240" height="180" rx="8"/>
+    <!-- row 4 -->
+    <rect x="40"   y="740"  width="200" height="200" rx="8"/>
+    <rect x="280"  y="720"  width="260" height="220" rx="8"/>
+    <rect x="580"  y="740"  width="220" height="200" rx="8"/>
+    <rect x="840"  y="730"  width="240" height="210" rx="8"/>
+    <rect x="1120" y="750"  width="200" height="190" rx="8"/>
+    <rect x="1360" y="730"  width="280" height="210" rx="8"/>
+    <rect x="1680" y="740"  width="200" height="200" rx="8"/>
+  </g>
+
+  <!-- 3. roads: thick white fills, thin grey hairlines for definition -->
+  <g stroke="#FAFAFA" stroke-width="32" fill="none" stroke-linecap="round">
+    <!-- horizontal east-west streets -->
+    <path d="M -40 230 Q 600 220 1920 250"/>
+    <path d="M -40 470 L 1960 480"/>
+    <path d="M -40 710 Q 700 700 1960 730"/>
+    <path d="M -40 970 L 1960 980"/>
+    <!-- vertical north-south streets -->
+    <path d="M 540 -40 L 560 1120"/>
+    <path d="M 1060 -40 L 1080 1120"/>
+    <path d="M 1620 -40 L 1640 1120"/>
+  </g>
+  <g stroke="#D1D5DB" stroke-width="2" fill="none">
+    <path d="M -40 230 Q 600 220 1920 250"/>
+    <path d="M -40 470 L 1960 480"/>
+    <path d="M -40 710 Q 700 700 1960 730"/>
+    <path d="M -40 970 L 1960 980"/>
+    <path d="M 540 -40 L 560 1120"/>
+    <path d="M 1060 -40 L 1080 1120"/>
+    <path d="M 1620 -40 L 1640 1120"/>
+  </g>
+
+  <!-- 4. street name labels: Roboto 700 (falls back gracefully) -->
+  <g font-family="'Roboto', system-ui, sans-serif" font-weight="700" font-size="18" fill="#9CA3AF" letter-spacing="2.5">
+    <text x="120" y="222">IBB WAY</text>
+    <text x="780" y="462">FILIN SAMJI</text>
+    <text x="180" y="702">GRA AVENUE</text>
+    <text x="1200" y="962">KANO ROAD</text>
+    <text x="568" y="200" transform="rotate(90 568 200)">KOFAR KAURA</text>
+    <text x="1088" y="200" transform="rotate(90 1088 200)">YANDAKA STREET</text>
+    <text x="1648" y="200" transform="rotate(90 1648 200)">SABUWAR UNGUWA</text>
+  </g>
+
+  <!-- 5. route polyline: orange path through the city -->
+  <g class="route">
+    <path d="M 280 180 Q 480 320 720 420 T 1180 600 T 1560 820"
+          fill="none" stroke="#EA580C" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  </g>
+
+  <!-- 6. pins: pickup (orange ring) and dropoff (ink dot) -->
+  <g class="route">
+    <g transform="translate(280 180)">
+      <circle r="18" fill="#fff" stroke="#EA580C" stroke-width="4"/>
+      <circle r="8"  fill="#EA580C"/>
+    </g>
+    <g transform="translate(1560 820)">
+      <circle r="22" fill="#09090b"/>
+      <circle r="8"  fill="#fff"/>
+    </g>
+  </g>
+
+  <!-- 7. rider marker: white navigation arrow on an orange puck -->
+  <g class="rider" transform="translate(900 480)">
+    <circle r="22" fill="#EA580C"/>
+    <circle r="22" fill="none" stroke="#fff" stroke-width="4"/>
+    <path d="M0 -10 L9 10 L0 4 L-9 10 Z" fill="#fff"/>
+  </g>
+</svg>

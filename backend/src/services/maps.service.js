@@ -1,5 +1,5 @@
 /**
- * Google Maps service — distance, geocoding, and directions.
+ * Google Maps service - distance, geocoding, and directions.
  */
 
 const axios = require("axios");
@@ -129,7 +129,7 @@ const getDirections = async (originLat, originLng, destLat, destLng) => {
 };
 
 /**
- * Places Autocomplete — using legacy Places Autocomplete API.
+ * Places Autocomplete - using legacy Places Autocomplete API.
  */
 const autocomplete = async (query, sessionToken) => {
   try {
@@ -159,7 +159,7 @@ const autocomplete = async (query, sessionToken) => {
 };
 
 /**
- * Place Details — get lat/lng and formatted address for a place ID using Places Details API.
+ * Place Details - get lat/lng and formatted address for a place ID using Places Details API.
  */
 const placeDetails = async (placeId, sessionToken) => {
   try {

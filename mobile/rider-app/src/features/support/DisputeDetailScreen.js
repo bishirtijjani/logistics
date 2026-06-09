@@ -1,5 +1,5 @@
 /**
- * DisputeDetailScreen — thread + composer for a single dispute. Read-only
+ * DisputeDetailScreen - thread + composer for a single dispute. Read-only
  * once status is RESOLVED or REJECTED.
  */
 

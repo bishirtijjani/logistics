@@ -1,5 +1,5 @@
 /**
- * SavedAddress service tests — list / create / update / setDefault / remove.
+ * SavedAddress service tests - list / create / update / setDefault / remove.
  * Focus on the isDefault invariant (at most one default per user) and the
  * orphan-default promotion when the default address gets deleted.
  *

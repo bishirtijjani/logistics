@@ -8,12 +8,12 @@ import { RIDER_STATUS } from "./constants";
  * keys off this one stage so the Home hero, the Me-tab row, the Earnings empty
  * state, and the availability toggle all agree without duplicating the logic.
  *
- *   NONE     — signed up, no rider record, no saved draft. Brand new.
- *   DRAFT    — started the application (a draft exists) but hasn't submitted.
- *   PENDING  — submitted; Rider.status === PENDING_APPROVAL. Awaiting admin.
- *   REJECTED — admin rejected; rider can fix + resubmit.
- *   APPROVED — good to go online and earn.
- *   SUSPENDED— banned; AppNavigator still walls this one off.
+ *   NONE     - signed up, no rider record, no saved draft. Brand new.
+ *   DRAFT    - started the application (a draft exists) but hasn't submitted.
+ *   PENDING  - submitted; Rider.status === PENDING_APPROVAL. Awaiting admin.
+ *   REJECTED - admin rejected; rider can fix + resubmit.
+ *   APPROVED - good to go online and earn.
+ *   SUSPENDED- banned; AppNavigator still walls this one off.
  */
 export const ONBOARDING_STAGE = Object.freeze({
   NONE: "NONE",

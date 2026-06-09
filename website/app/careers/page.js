@@ -17,14 +17,14 @@ import Footer from "../components/Footer";
 export const metadata = {
   title: "Careers",
   description:
-    "Help build Katsina's delivery and wallet super-app. Engineering, operations, rider success, and merchant growth roles — apply by email.",
+    "Help build Katsina's delivery and wallet super-app. Engineering, operations, rider success, and merchant growth roles - apply by email.",
   alternates: { canonical: "/careers" },
 };
 
 const values = [
   {
     Icon: Heart,
-    title: "Customers, riders, merchants — in that order.",
+    title: "Customers, riders, merchants - in that order.",
     body: "Every product decision starts with one of those three. We ship what helps them, and we cut what doesn't.",
   },
   {
@@ -35,7 +35,7 @@ const values = [
   {
     Icon: MapPin,
     title: "Built in Katsina, not parachuted in.",
-    body: "We're locals solving a local problem. The streets, the markets, the way people pay — that's the context the work is grounded in.",
+    body: "We're locals solving a local problem. The streets, the markets, the way people pay - that's the context the work is grounded in.",
   },
   {
     Icon: Wallet,
@@ -48,7 +48,7 @@ const tracks = [
   {
     Icon: Code,
     eyebrow: "Engineering",
-    title: "Mobile, backend, web — full-stack.",
+    title: "Mobile, backend, web - full-stack.",
     blurb:
       "React Native (Expo), Node.js, MongoDB, Redis. We want engineers who care about reliability on a 3G phone in Funtua just as much as on fibre in Lagos.",
   },
@@ -85,7 +85,7 @@ export default function CareersPage() {
                 We&apos;re a small team building the wallet, delivery, and bill
                 payment app that thousands of households across Katsina State
                 use every week. If you want real ownership, fast shipping, and
-                work that visibly changes how your neighbours live — read on.
+                work that visibly changes how your neighbours live - read on.
               </p>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function CareersPage() {
                 <span className="text-accent">we&apos;re building.</span>
               </h2>
               <p className="ui-sub">
-                We don&apos;t always have an open job posting for every role —
+                We don&apos;t always have an open job posting for every role -
                 but if you fit one of these tracks and want to work on iPrime,
                 we want to hear from you.
               </p>
@@ -173,14 +173,14 @@ export default function CareersPage() {
                   Open applications
                 </span>
                 <h2 className="text-3xl md:text-4xl font-black tracking-tighter leading-[1.05] mb-5">
-                  No formal openings right now —{" "}
+                  No formal openings right now -{" "}
                   <span className="text-accent">but we&apos;re still reading.</span>
                 </h2>
                 <p className="text-base md:text-lg text-white/70 font-medium leading-relaxed mb-8">
                   Tell us which track fits you, what you&apos;d want to own, and
                   attach whatever proves you can do it (CV, GitHub, a recorded
                   walkthrough, a list of merchants you&apos;ve already signed
-                  somewhere else — whichever is most honest). One human
+                  somewhere else - whichever is most honest). One human
                   reads every application.
                 </p>
 
@@ -199,7 +199,7 @@ export default function CareersPage() {
                 </div>
 
                 <p className="text-xs text-white/40 font-semibold mt-6">
-                  Riders: don&apos;t use this email — apply directly inside the
+                  Riders: don&apos;t use this email - apply directly inside the
                   iPrime Rider app, or via the{" "}
                   <Link href="/#contact" className="underline hover:text-white">
                     contact form

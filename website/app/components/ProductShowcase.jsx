@@ -2,24 +2,28 @@ import Image from "next/image";
 import { ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { APP_URL } from "../lib/links";
 
-// The original hero, moved down and repurposed as a product showcase. The
-// category grid up top is now the primary entry point; this section reinforces
-// the pitch with the app preview and the breadth of what's inside.
+// The original top-of-page hero, moved down UNCHANGED. Composition (type scale,
+// spacing, layout, the phone-with-packages image) is byte-identical to the
+// original Hero (commit c0a8077). The only edits are the two copy phrases the
+// user approved: the CTA now opens the web app (no store listings), and the
+// list says "Free to use". Heading is <h2> because the search hero owns the
+// page's single <h1>; the visual classes are the original's, so it looks the
+// same.
 export default function ProductShowcase() {
   return (
-    <section className="ui-section bg-bg-secondary overflow-hidden">
+    <section className="relative pt-8 pb-20 md:pt-12 md:pb-24 overflow-hidden bg-bg-secondary">
       <div className="ui-container">
         <div className="grid lg:grid-cols-[1fr_1.25fr] gap-12 lg:gap-16 items-center">
           <div className="text-center lg:text-left">
-            <span className="ui-eyebrow">The app</span>
-            <h2 className="text-3xl md:text-4xl xl:text-5xl font-black mb-6 tracking-tighter leading-[1.05] text-text-primary">
+            <h2 className="text-4xl md:text-5xl xl:text-[3.75rem] font-black mb-6 tracking-tighter leading-[1.02] text-text-primary">
               Anything you need,{" "}
               <span className="text-accent">delivered to your door</span>{" "}
+              <br className="hidden md:block" />
               across Katsina.
             </h2>
 
-            <p className="text-lg text-gray-600 mb-8 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
-              Food, groceries, pharmacy and parcels — picked up by a nearby
+            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
+              Food, groceries, pharmacy and parcels, picked up by a nearby
               rider, tracked live to your door. With a wallet and bill payments
               built in for everything else.
             </p>
@@ -59,6 +63,7 @@ export default function ProductShowcase() {
               alt="iPrime home screen showing wallet balance and category tiles"
               width={864}
               height={1222}
+              priority
               className="w-full h-auto"
             />
           </div>

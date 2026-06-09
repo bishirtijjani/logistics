@@ -1,5 +1,5 @@
 /**
- * SupportThread — reusable message list + composer used by TicketDetail and
+ * SupportThread - reusable message list + composer used by TicketDetail and
  * DisputeDetail screens. Renders `messages` as an iMessage-style bubble
  * thread and exposes an optional composer that calls `onSubmit({ body })`.
  *
@@ -170,7 +170,7 @@ export default function SupportThread({
         ListEmptyComponent={
           <View style={{ padding: 32, alignItems: "center" }}>
             <Text style={{ fontSize: 13, color: tokens.text.muted }}>
-              {t("support.thread.noMessages", "No messages yet — start the conversation.")}
+              {t("support.thread.noMessages", "No messages yet. Start the conversation.")}
             </Text>
           </View>
         }

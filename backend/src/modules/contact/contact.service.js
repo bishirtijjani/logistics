@@ -1,5 +1,5 @@
 /**
- * Contact service — forwards marketing-site contact-form messages to the
+ * Contact service - forwards marketing-site contact-form messages to the
  * support inbox and sends a confirmation auto-reply to the submitter.
  *
  * No persistence: the inbox is the system of record. If the SMTP send fails
@@ -16,7 +16,7 @@ const submitContactMessage = async (input) => {
   if (!config.SMTP_USER || !config.SMTP_PASS) {
     // Dev convenience: log + succeed so the form doesn't 500 on a fresh
     // clone before SMTP is wired up. Prod always has SMTP_* set (validated at boot).
-    logger.warn('SMTP not configured — contact message logged only', { submission: input });
+    logger.warn('SMTP not configured - contact message logged only', { submission: input });
     return { delivered: false, devLog: true };
   }
 

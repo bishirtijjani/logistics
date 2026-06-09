@@ -11,7 +11,7 @@ import { X, Lock, Eye, EyeOff } from 'lucide-react'
  *   - 423 + errors.lockedUntil       → countdown lockout, input disabled
  *
  * The parent owns success handling (toast, refresh, close). This modal only
- * closes itself on a thrown error path it can't recover from — on success the
+ * closes itself on a thrown error path it can't recover from - on success the
  * parent calls onClose.
  */
 const formatCountdown = (ms) => {
@@ -37,7 +37,7 @@ export default function PinModal({ open, title, subtitle, onConfirm, onClose }) 
     return () => clearTimeout(id)
   }, [])
 
-  // Lockout ticker — re-render every second while locked so the countdown moves.
+  // Lockout ticker - re-render every second while locked so the countdown moves.
   useEffect(() => {
     if (!lockedUntil) return undefined
     const id = setInterval(() => setNow(Date.now()), 1000)
@@ -55,7 +55,7 @@ export default function PinModal({ open, title, subtitle, onConfirm, onClose }) 
     setError('')
     try {
       await onConfirm(pin)
-      // Success — parent closes the modal. Clear local state defensively.
+      // Success - parent closes the modal. Clear local state defensively.
       setPin('')
     } catch (err) {
       const status = err?.status

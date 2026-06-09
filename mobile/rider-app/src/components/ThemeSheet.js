@@ -1,5 +1,5 @@
 /**
- * ThemeSheet — bottom-sheet modal for picking the app appearance.
+ * ThemeSheet - bottom-sheet modal for picking the app appearance.
  *
  * Used from the Profile screen's appearance row. Lets the user pick:
  *   - Light  → always light, regardless of OS setting
@@ -7,7 +7,7 @@
  *   - System → follow the OS-level color scheme (live)
  *
  * The chosen mode is persisted by ThemeProvider (AsyncStorage) and applied to
- * the whole tree via context — no per-screen wiring needed.
+ * the whole tree via context - no per-screen wiring needed.
  *
  * Patterned after `LocaleSheet` so it feels like the same surface.
  */
@@ -119,7 +119,7 @@ const ThemeSheet = ({ visible, onClose }) => {
   );
 };
 
-// Static-shape styles only — colors are applied inline from `tokens` above so
+// Static-shape styles only - colors are applied inline from `tokens` above so
 // every property reacts to mode changes. Keeping the StyleSheet.create gives
 // us shape-stable refs the diff can short-circuit on.
 const styles = StyleSheet.create({

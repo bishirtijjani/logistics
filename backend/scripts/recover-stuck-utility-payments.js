@@ -8,7 +8,7 @@
  *
  * What this does:
  *   1. Find UtilityPayment rows with status='PROCESSING' older than --olderThanMinutes
- *      (default 10) — anything fresher might still be in-flight legitimately.
+ *      (default 10) - anything fresher might still be in-flight legitimately.
  *   2. For each, enqueue a REFUND_FAILED job. The worker's `refundPayment`
  *      is idempotent (early-returns if status='REFUNDED' already), so
  *      re-running this is safe.
@@ -20,7 +20,7 @@
  *
  * Notes:
  *   - You MUST have the utility worker running for the refunds to actually
- *     fire — this script only enqueues. Start the worker (or the API
+ *     fire - this script only enqueues. Start the worker (or the API
  *     process that starts it) before running with --apply.
  *   - Run AFTER deploying the job-name fix; otherwise new airtime/data/cable
  *     buys keep landing in PROCESSING and you'll be chasing your tail.

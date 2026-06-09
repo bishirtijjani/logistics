@@ -5,7 +5,7 @@ import api from './api'
 import { logout, setCredentials } from '../store/slices/authSlice'
 
 // Access tokens live ~15m. Silently refresh once we're inside this buffer of
-// the expiry so the user never sees an interruption — the 7-day refresh token
+// the expiry so the user never sees an interruption - the 7-day refresh token
 // does the work in the background.
 const REFRESH_BUFFER_MS = 3 * 60 * 1000
 const POLL_MS = 60 * 1000
@@ -23,7 +23,7 @@ const getTokenExpiryMs = () => {
 
 /**
  * Session lifecycle hook. Keeps the access token fresh by silently refreshing
- * via /auth/refresh shortly before it expires — no modal, no manual "extend"
+ * via /auth/refresh shortly before it expires - no modal, no manual "extend"
  * click. The user only gets bounced to /login when the refresh itself fails
  * (refresh token expired or revoked).
  */
@@ -52,7 +52,7 @@ export const useAuthSession = () => {
       const response = await api.post('/auth/refresh', { refreshToken: stored })
       const tokens = response.data?.data
       if (!tokens?.accessToken) throw new Error('Malformed refresh response')
-      // Admin's authSlice keeps user identity stable across refresh — only
+      // Admin's authSlice keeps user identity stable across refresh - only
       // tokens rotate. Reuse setCredentials so both Redux and localStorage
       // pick up the new pair without forcing a re-login.
       const user = JSON.parse(localStorage.getItem('authUser') || 'null')
@@ -75,7 +75,7 @@ export const useAuthSession = () => {
       if (!expiry) return
       const remaining = expiry - Date.now()
       // Refresh proactively near expiry, and reactively if the token already
-      // lapsed (e.g. the laptop slept) — the refresh token may still be valid,
+      // lapsed (e.g. the laptop slept) - the refresh token may still be valid,
       // so try it before giving up. Guarded per-expiry to avoid double-firing.
       if (remaining <= REFRESH_BUFFER_MS && refreshedForRef.current !== expiry) {
         refreshedForRef.current = expiry

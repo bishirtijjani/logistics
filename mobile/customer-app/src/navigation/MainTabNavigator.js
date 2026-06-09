@@ -26,7 +26,7 @@ export default function MainTabNavigator() {
   return (
     <Tab.Navigator
       // Opaque per-scene background. bottom-tabs does NOT apply the navigation
-      // theme's `background` to tab scenes — they're transparent by default — so
+      // theme's `background` to tab scenes - they're transparent by default - so
       // without this, web tab switches briefly reveal the other tabs' content
       // through the incoming screen. `sceneStyle` is the intended API for it.
       sceneStyle={{ backgroundColor: tokens.bg.canvas }}
@@ -92,7 +92,7 @@ export default function MainTabNavigator() {
         component={CartScreen}
         options={{
           title: "Cart",
-          // `> 0 ? count : undefined` is required — passing 0 or null still
+          // `> 0 ? count : undefined` is required - passing 0 or null still
           // renders the empty badge dot in @react-navigation/bottom-tabs.
           tabBarBadge: cartCount > 0 ? (cartCount > 99 ? "99+" : cartCount) : undefined,
         }}

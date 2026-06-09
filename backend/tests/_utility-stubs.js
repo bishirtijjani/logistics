@@ -7,7 +7,7 @@
  *   - alrahuz.service (HTTP provider)
  *   - messaging.service (OTP + transactional SMS dispatcher)
  *   - notify.service (push + socket fan-out)
- *   - queues/index.js (BullMQ queues — themselves wrap redis)
+ *   - queues/index.js (BullMQ queues - themselves wrap redis)
  *
  * All of those need to be replaced before the worker module is required, or
  * Node will try to connect to the real services. This helper sets up an
@@ -87,7 +87,7 @@ const installUtilityStubs = () => {
     async $transaction(arg) {
       // Callback form
       if (typeof arg === 'function') return arg(prisma);
-      // Array form — execute each item which is already a thenable promise
+      // Array form - execute each item which is already a thenable promise
       // returned by the prisma methods above (we await them sequentially).
       const out = [];
       for (const p of arg) out.push(await p);

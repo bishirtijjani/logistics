@@ -1,5 +1,5 @@
 /**
- * RateRequestScreen — post-delivery rating for both merchant and rider.
+ * RateRequestScreen - post-delivery rating for both merchant and rider.
  * For PACKAGE requests only the rider section renders.
  */
 

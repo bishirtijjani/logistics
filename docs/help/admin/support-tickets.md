@@ -28,7 +28,7 @@ resolution.
 
 ## Tips
 
-- Keep replies clear and friendly — the customer sees them.
+- Keep replies clear and friendly - the customer sees them.
 - Use an **internal note** (where available) for context you don't want the
   customer to see.
 - If a ticket is really about an order dispute or a refund, handle the money side

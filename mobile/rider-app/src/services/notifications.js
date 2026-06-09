@@ -34,7 +34,7 @@ const configureAndroidChannels = async () => {
     sound: 'default',
     vibrationPattern: [0, 400, 200, 400, 200, 400],
     lightColor: '#EA580C',
-    // Pierce Do Not Disturb on Android — offers are time-critical (60 s window).
+    // Pierce Do Not Disturb on Android - offers are time-critical (60 s window).
     // Riders who don't want this can disable the channel from system settings.
     bypassDnd: true,
   });
@@ -64,10 +64,10 @@ const configureAndroidChannels = async () => {
 
 /**
  * Request notification permissions and register the FCM/APNs token with our backend.
- * Safe to call multiple times — no-ops if permission denied.
+ * Safe to call multiple times - no-ops if permission denied.
  */
 export const registerPushToken = async () => {
-  // On web there's no FCM/APNs — register a browser Push subscription instead.
+  // On web there's no FCM/APNs - register a browser Push subscription instead.
   // Dynamic import so the web-only module never loads into the native bundle.
   if (Platform.OS === 'web') {
     try {
@@ -95,7 +95,7 @@ export const registerPushToken = async () => {
   try {
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     // Best-effort: opt out of the global error toast. This fires right after
-    // the rider grants notification permission — a failed registration should
+    // the rider grants notification permission - a failed registration should
     // retry silently next launch, not surface "Something went wrong".
     await api.post('/auth/fcm-token', { fcmToken: token }, { suppressErrorToast: true });
     return token;

@@ -154,7 +154,7 @@ export default function SendMoneyScreen({ navigation, route }) {
           }));
         }
       } else if (res.payload?.code === "PIN_NOT_SET") {
-        // No transaction PIN yet — bounce back to the form and route to SetPin so
+        // No transaction PIN yet - bounce back to the form and route to SetPin so
         // the keypad isn't left in a dead state.
         setStep("form");
         setPin("");

@@ -7,7 +7,7 @@
  *      For every user wallet:
  *        Σ (completed credits to this wallet) − Σ (completed debits from this wallet) === wallet.balance
  *      If a wallet ever drifts from its transaction history, it means a wallet
- *      update happened outside the transaction-creating code paths — a bug we
+ *      update happened outside the transaction-creating code paths - a bug we
  *      want loud, not silent.
  *
  *   2. ESCROW CONSERVATION
@@ -33,7 +33,7 @@ const round2 = (n) => Math.round(Number(n) * 100) / 100;
  * Run the full reconciliation. Returns a JSON-serializable report.
  *
  * Heavy on a fresh DB scan; meant for off-peak (cron) or explicit admin calls.
- * Threshold parameter overrides the platform setting; defaults to ₦1 — anything
+ * Threshold parameter overrides the platform setting; defaults to ₦1 - anything
  * larger than rounding noise is worth investigating.
  */
 const runReconciliation = async ({ threshold } = {}) => {
@@ -44,7 +44,7 @@ const runReconciliation = async ({ threshold } = {}) => {
   const startedAt = new Date();
 
   // 1. Per-wallet ledger parity ─────────────────────────────────────────────
-  // Aggregate credits/debits in a single SQL pass each — N+1 across thousands
+  // Aggregate credits/debits in a single SQL pass each - N+1 across thousands
   // of wallets would blow the worker's wall time.
   const [credits, debits, wallets] = await Promise.all([
     prisma.transaction.groupBy({
@@ -115,10 +115,10 @@ const runReconciliation = async ({ threshold } = {}) => {
     }),
   ]);
 
-  // 4. Stuck withdrawals — payouts left on PROCESSING that KatPay never
+  // 4. Stuck withdrawals - payouts left on PROCESSING that KatPay never
   // confirmed. We can't auto-resolve (KatPay exposes no payout-status endpoint
   // and only documents payout.processed), and auto-refunding could double-pay a
-  // payout that actually succeeded — so we surface them loudly for an admin to
+  // payout that actually succeeded - so we surface them loudly for an admin to
   // fail+refund or chase with the provider.
   const stuckAfterHours = Number(await getSetting('withdrawal.stuckAfterHours', 24));
   const stuckCutoff = new Date(startedAt.getTime() - stuckAfterHours * 60 * 60 * 1000);
@@ -195,7 +195,7 @@ const runReconciliation = async ({ threshold } = {}) => {
   report.ok = report.escrow.ok && report.walletParity.ok && report.withdrawals.ok && report.userWithdrawals.ok;
 
   // Make zero-state visible. A reconciliation run with no wallets and no
-  // transactions reports `ok: true` but tells us nothing useful — it could
+  // transactions reports `ok: true` but tells us nothing useful - it could
   // mean a fresh DB or a corrupted one. The dedicated flag distinguishes
   // "all green" from "nothing to check".
   report.empty = wallets.length === 0 && totalHold === 0 && totalRelease === 0 && totalRefund === 0;

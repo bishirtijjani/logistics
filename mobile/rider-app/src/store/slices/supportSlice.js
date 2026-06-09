@@ -3,7 +3,7 @@ import api from "../../services/api";
 import { newIdempotencyKey } from "../../services/idempotency";
 
 /**
- * Support slice — tickets + disputes.
+ * Support slice - tickets + disputes.
  *
  * Phase 4 shipped `fetchTickets` + `createTicketFromTrip` (auto-filed from
  * the cockpit's contact sheet when the rider can't reach the counterparty).

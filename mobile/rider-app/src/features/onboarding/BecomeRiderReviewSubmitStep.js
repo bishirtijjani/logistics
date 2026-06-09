@@ -41,7 +41,7 @@ function Row({ label, value, tokens, mono }) {
         }}
         numberOfLines={1}
       >
-        {value || "—"}
+        {value || "-"}
       </Text>
     </View>
   );
@@ -99,7 +99,7 @@ export default function BecomeRiderReviewSubmitStep() {
       });
       // Refresh rider profile so the rider status reflects PENDING_APPROVAL.
       await dispatch(fetchRiderProfile());
-      // There's no onboarding wall to catch us anymore — return to Home, where
+      // There's no onboarding wall to catch us anymore - return to Home, where
       // the OnboardingHero now shows the "under review" (PENDING) state.
       navigation.reset({ index: 0, routes: [{ name: "MainTabs" }] });
     } else {
@@ -113,7 +113,7 @@ export default function BecomeRiderReviewSubmitStep() {
 
   const fullName = user
     ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
-    : "—";
+    : "-";
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>

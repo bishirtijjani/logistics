@@ -56,7 +56,7 @@ const idempotency = async (req, res, next) => {
   try {
     existing = await prisma.idempotencyKey.findUnique({ where: { key } });
   } catch (err) {
-    logger.error('Idempotency lookup failed — failing closed', { key, error: err.message });
+    logger.error('Idempotency lookup failed - failing closed', { key, error: err.message });
     return res.status(503).json({
       success: false,
       message: 'Service temporarily unavailable. Please retry.',
@@ -91,7 +91,7 @@ const idempotency = async (req, res, next) => {
         try {
           row = await prisma.idempotencyKey.findUnique({ where: { key } });
         } catch (err) {
-          logger.error('Idempotency poll failed — failing closed', { key, error: err.message });
+          logger.error('Idempotency poll failed - failing closed', { key, error: err.message });
           return res.status(503).json({
             success: false,
             message: 'Service temporarily unavailable. Please retry.',
@@ -119,7 +119,7 @@ const idempotency = async (req, res, next) => {
     });
   } catch (err) {
     if (err?.code === 'P2002') {
-      // We lost the create race — treat exactly like the concurrent-in-flight
+      // We lost the create race - treat exactly like the concurrent-in-flight
       // branch above: wait briefly, then replay.
       const deadline = Date.now() + CONCURRENT_WAIT_MS;
       while (Date.now() < deadline) {
@@ -128,7 +128,7 @@ const idempotency = async (req, res, next) => {
         try {
           row = await prisma.idempotencyKey.findUnique({ where: { key } });
         } catch (e) {
-          logger.error('Idempotency race-poll failed — failing closed', { key, error: e.message });
+          logger.error('Idempotency race-poll failed - failing closed', { key, error: e.message });
           return res.status(503).json({
             success: false,
             message: 'Service temporarily unavailable. Please retry.',
@@ -141,7 +141,7 @@ const idempotency = async (req, res, next) => {
         message: 'Request already in progress. Retry shortly.',
       });
     }
-    logger.error('Idempotency reserve failed — failing closed', { key, error: err.message });
+    logger.error('Idempotency reserve failed - failing closed', { key, error: err.message });
     return res.status(503).json({
       success: false,
       message: 'Service temporarily unavailable. Please retry.',
@@ -150,13 +150,13 @@ const idempotency = async (req, res, next) => {
 
   // ── 3. Intercept res.json to capture the eventual response ──────────────
   // ONLY successful responses (status < 400) are cached for replay. Any error
-  // releases the reservation so the client can retry with the SAME key — a 4xx
+  // releases the reservation so the client can retry with the SAME key - a 4xx
   // here (e.g. a wrong/locked PIN, which is checked BEFORE any ledger write)
   // means no side effect happened, so caching it would block the user from ever
   // completing that transfer/withdrawal under the same key. 5xx is released for
-  // the same reason (the side effect was atomic — it ran fully or not at all).
+  // the same reason (the side effect was atomic - it ran fully or not at all).
   //
-  // Capture failures here MUST NOT block the user response — log and continue.
+  // Capture failures here MUST NOT block the user response - log and continue.
   const originalJson = res.json.bind(res);
   res.json = async (body) => {
     const status = res.statusCode;

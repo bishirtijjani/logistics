@@ -10,7 +10,7 @@ const DEFAULT_TRIGGER =
 /**
  * Accessible, searchable single-select dropdown. Built for long option lists
  * (e.g. the Nigerian bank list, business categories) where scrolling a native
- * <select> or a grid of cards is painful — the user types to filter instead.
+ * <select> or a grid of cards is painful - the user types to filter instead.
  *
  * options: [{ value, label, description?, color? }]
  *   - description: muted second line shown under the label

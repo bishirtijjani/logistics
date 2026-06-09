@@ -67,7 +67,7 @@ const getSettings = async (keys) => {
 };
 
 /**
- * Update a setting (admin only — controller enforces auth).
+ * Update a setting (admin only - controller enforces auth).
  * Invalidates cache.
  */
 const setSetting = async (key, value, updatedBy) => {
@@ -107,7 +107,7 @@ const PUBLIC_KEYS = [
   'utility.electricityQuickAmounts',
   'utility.minAirtimeAmount',
   'utility.airtimeQuickAmounts',
-  // Airtime-to-cash — what % of airtime value the customer receives in wallet.
+  // Airtime-to-cash - what % of airtime value the customer receives in wallet.
   // Stored as a decimal string ("0.75" = customer gets ₦750 per ₦1000 of airtime).
   // Provider (airtimetocash.com) pays us 80% baseline; the spread is platform margin.
   'airtimeToCash.payoutRate',
@@ -118,7 +118,7 @@ const PUBLIC_KEYS = [
   'delivery.perKmRate',
   'delivery.platformFeePercent',
   'delivery.cancellationFee',
-  // Phase 5 — POD gates the rider client reads at "Complete delivery" time
+  // Phase 5 - POD gates the rider client reads at "Complete delivery" time
   // so it knows which sheets to mount (photo / signature / OTP). Server is
   // still authoritative; client uses these to avoid mounting sheets the
   // server would never gate on.

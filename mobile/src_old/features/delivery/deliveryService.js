@@ -1,5 +1,5 @@
 /**
- * Delivery API service — customer app.
+ * Delivery API service - customer app.
  */
 const api = require('../../services/api');
 

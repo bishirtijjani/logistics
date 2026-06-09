@@ -5,7 +5,7 @@ import socketService from "../../services/socket";
 import { newIdempotencyKey } from "../../services/idempotency";
 
 /**
- * Wallet slice — balance, virtual account, transactions, withdrawals,
+ * Wallet slice - balance, virtual account, transactions, withdrawals,
  * banks list, bank-account name lookup, beneficiaries.
  *
  * Ported from customer-app and extended with persistent idempotency for the
@@ -121,7 +121,7 @@ const pinErrorPayload = (err) => ({
 /**
  * Withdraw funds to a Nigerian bank. The Idempotency-Key is persisted to
  * SecureStore BEFORE the POST so a kill mid-flight lets us replay the same
- * key on next launch — the server's idempotency middleware returns the
+ * key on next launch - the server's idempotency middleware returns the
  * original response without re-debiting.
  *
  * Caller may pass `idempotencyKey` (e.g. from `hydratePendingWithdraw`) to
@@ -135,7 +135,7 @@ export const withdrawToBank = createAsyncThunk(
   ) => {
     const idempotencyKey = existingKey || newIdempotencyKey();
     const body = { bankCode, bankName, accountNumber, accountName, amount, pin };
-    // Snapshot without the PIN — never persist user secrets to disk.
+    // Snapshot without the PIN - never persist user secrets to disk.
     const { pin: _omit, ...safeBody } = body;
     await persistPendingWithdraw({ idempotencyKey, body: safeBody, startedAt: Date.now() });
     try {
@@ -148,7 +148,7 @@ export const withdrawToBank = createAsyncThunk(
       await clearPendingWithdraw();
       return envelope?.data || envelope || {};
     } catch (err) {
-      // Terminal 4xx errors — wrong PIN, validation, lock — also clear the
+      // Terminal 4xx errors - wrong PIN, validation, lock - also clear the
       // key. The user retries with a fresh key for their next attempt.
       // 5xx / NETWORK_ERROR leave the key in place so the hydrate path can
       // replay on next launch.
@@ -167,7 +167,7 @@ export const withdrawToBank = createAsyncThunk(
  * replays the original response (if it ever completed) or processes the
  * resubmit fresh (if the request never reached the server pre-crash).
  *
- * We deliberately do NOT auto-replay without the user's PIN — wallet
+ * We deliberately do NOT auto-replay without the user's PIN - wallet
  * actions are PIN-gated, and silently re-submitting on cold start with a
  * stripped PIN would 422 from the server.
  *
@@ -216,7 +216,7 @@ const initialState = {
   isLoading: false,
   isWithdrawing: false,
   provisioningInFlight: false,
-  // Last withdraw payload + receipt — used by the success screen.
+  // Last withdraw payload + receipt - used by the success screen.
   lastWithdraw: null,
   error: null,
   latestTxFetchId: null,
@@ -318,7 +318,7 @@ const slice = createSlice({
         if (page === 1) {
           state.transactions = list;
         } else {
-          // Dedupe by id / reference — socket may have prepended an
+          // Dedupe by id / reference - socket may have prepended an
           // optimistic row whose canonical version arrives in a later
           // pagination page, and we don't want both visible.
           const seen = new Set();

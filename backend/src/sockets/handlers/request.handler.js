@@ -1,9 +1,9 @@
 /**
- * Request socket handler — unified request architecture.
+ * Request socket handler - unified request architecture.
  *
  * ROOMS:
- * - request:{requestId} — customer, merchant, and rider join this room
- * - merchant:{merchantId} — merchant-specific room for new orders
+ * - request:{requestId} - customer, merchant, and rider join this room
+ * - merchant:{merchantId} - merchant-specific room for new orders
  * - Events in request room: status changes, rider location, completion
  */
 
@@ -185,7 +185,7 @@ const emitMerchantReady = (io, requestId, customerId) => {
  * Emit REQUEST.RIDER_ASSIGNED when rider is assigned.
  * Sends to customer's personal room and request room. Always carries `status`
  * so the mobile reducer (which merges socket payloads into currentRequest)
- * doesn't lag behind the canonical status — fixes the "rider found but
+ * doesn't lag behind the canonical status - fixes the "rider found but
  * UI still shows Searching" gap.
  */
 const emitRiderAssigned = (io, requestId, customerId, riderInfo) => {

@@ -34,7 +34,7 @@ import {
 } from "../../store/slices/beneficiariesSlice";
 
 /**
- * Withdraw flow — bank picker, account-number lookup, save-as-beneficiary,
+ * Withdraw flow - bank picker, account-number lookup, save-as-beneficiary,
  * PIN-gated submit. The idempotency key persists across kill+restart so the
  * server replays the original response instead of double-charging.
  *
@@ -97,7 +97,7 @@ export default function WithdrawScreen() {
   const [pendingBanner, setPendingBanner] = useState(false);
   const lookupTimerRef = useRef(null);
 
-  // Boot — banks, beneficiaries, wallet refresh + check for unfinished withdraw.
+  // Boot - banks, beneficiaries, wallet refresh + check for unfinished withdraw.
   useEffect(() => {
     dispatch(fetchBanks());
     dispatch(fetchBeneficiaries());
@@ -109,7 +109,7 @@ export default function WithdrawScreen() {
         setPendingBanner(true);
         // Prefill the form from the persisted snapshot so the rider can
         // re-confirm with PIN and submit the same key. Body has no PIN
-        // (deliberately stripped) — they enter it again.
+        // (deliberately stripped) - they enter it again.
         const b = snap.body || {};
         if (b.bankCode) setSelectedBank({ bankCode: b.bankCode, bankName: b.bankName });
         if (b.accountNumber) setAccountNumber(b.accountNumber);
@@ -128,7 +128,7 @@ export default function WithdrawScreen() {
     if (match) setSelectedBank(match);
   }, [banks, selectedBank]);
 
-  // Account-name lookup — debounced, fires once we have a bank + 10 digits.
+  // Account-name lookup - debounced, fires once we have a bank + 10 digits.
   // Skips the lookup if a saved beneficiary already provided the name for
   // this exact bank+account combo, so tapping a chip doesn't flicker
   // (clear→loading→reload) the name back to itself.
@@ -243,7 +243,7 @@ export default function WithdrawScreen() {
       }
       return;
     }
-    // Rejected — throw so PinBottomSheet shakes + shows the error.
+    // Rejected - throw so PinBottomSheet shakes + shows the error.
     const payload = res.payload || {};
     const err = new Error(payload.message || t("withdraw.failed", "Withdrawal failed"));
     err.code = payload.code;
@@ -366,7 +366,7 @@ export default function WithdrawScreen() {
                   {t("withdraw.pendingTitle", "Unfinished withdrawal")}
                 </Text>
                 <Text style={{ fontSize: 12, color: tokens.text.primary, marginTop: 2 }}>
-                  {t("withdraw.pendingBody", "We restored your last attempt. Confirm with PIN to resume — we won't double-charge you.")}
+                  {t("withdraw.pendingBody", "We restored your last attempt. Confirm with PIN to resume. We won't double-charge you.")}
                 </Text>
                 <TouchableOpacity
                   onPress={discardPending}
@@ -494,7 +494,7 @@ export default function WithdrawScreen() {
             </Text>
           ) : (accountNumber.length === 10 && selectedBank && !resolving) ? (
             <Text style={{ fontSize: 12, color: tokens.status.errorStrong, marginBottom: 12, marginLeft: 4 }}>
-              {t("withdraw.accountNotFound", "Account not found — check the number and bank.")}
+              {t("withdraw.accountNotFound", "Account not found. Check the number and bank.")}
             </Text>
           ) : null}
 

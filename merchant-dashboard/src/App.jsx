@@ -15,7 +15,7 @@ import MarketingPage from './pages/MarketingPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import BillsPage from './pages/BillsPage.jsx'
 
-// Decode a JWT's exp claim without verifying the signature — the server is
+// Decode a JWT's exp claim without verifying the signature - the server is
 // still the authority, this is just to keep stale tokens from flashing the
 // dashboard before the API kicks the user out.
 const isTokenLive = (token) => {

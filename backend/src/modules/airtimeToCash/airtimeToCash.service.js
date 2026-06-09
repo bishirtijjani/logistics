@@ -10,7 +10,7 @@
  *                  availability, return payout preview, advance to OTP_VERIFIED
  *   3. submit    → call provider transferAirtime; on success credit wallet and
  *                  mark COMPLETED. On provider pending (code 4000) mark
- *                  NEEDS_RECONCILIATION (no query API — admin resolves manually).
+ *                  NEEDS_RECONCILIATION (no query API - admin resolves manually).
  *
  * Economics:
  *   - Provider pays us ~80% baseline (per airtimetocash.com consumer page).
@@ -157,7 +157,7 @@ const verify = async (userId, { transactionId, otp }) => {
     amount: Number(tx.airtimeAmount),
   });
   if (provider.isRecipientUnavailable(quota)) {
-    throw AppError.serviceUnavailable('No recipient available for this amount — try a smaller amount or another network', {
+    throw AppError.serviceUnavailable('No recipient available for this amount - try a smaller amount or another network', {
       code: 'A2C_NO_RECIPIENT',
     });
   }
@@ -223,7 +223,7 @@ const submit = async (userId, { transactionId, simPin }) => {
     });
   }
   if (!tx.providerSessionId) {
-    throw AppError.badRequest('Session missing — re-verify OTP', {
+    throw AppError.badRequest('Session missing - re-verify OTP', {
       code: 'A2C_SESSION_MISSING',
     });
   }
@@ -250,7 +250,7 @@ const submit = async (userId, { transactionId, simPin }) => {
       sessionId: tx.providerSessionId,
     });
   } catch (err) {
-    // Network failure mid-transfer — we DON'T know if the provider actually
+    // Network failure mid-transfer - we DON'T know if the provider actually
     // moved the airtime. Park as NEEDS_RECONCILIATION; admin resolves.
     logger.error('A2C transferAirtime network error', { txId: tx.id, error: err.message });
     await prisma.airtimeToCashTransaction.update({
@@ -262,7 +262,7 @@ const submit = async (userId, { transactionId, simPin }) => {
       },
     });
     throw AppError.serviceUnavailable(
-      'Could not confirm with provider — admin will reconcile within 24h',
+      'Could not confirm with provider - admin will reconcile within 24h',
       { code: 'A2C_RECONCILE' },
     );
   }
@@ -310,7 +310,7 @@ const submit = async (userId, { transactionId, simPin }) => {
     return {
       transactionId: tx.id,
       status: 'NEEDS_RECONCILIATION',
-      message: 'Processing — usually resolves within 24h',
+      message: 'Processing - usually resolves within 24h',
     };
   }
 

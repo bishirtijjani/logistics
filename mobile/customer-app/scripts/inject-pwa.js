@@ -1,7 +1,7 @@
 /* Post-export step: turn the static web bundle into an installable PWA.
  *
  * Expo's `expo export` generates dist-web/index.html but doesn't link a manifest
- * or register a service worker. This script (run after export — see the
+ * or register a service worker. This script (run after export - see the
  * `build:web` npm script) copies the PWA static files into the export and injects
  * the manifest link, theme-color, apple-touch-icon, and SW registration into the
  * generated index.html. It's idempotent, so re-running is safe.
@@ -15,7 +15,7 @@ const pub = path.join(root, "public");
 const assets = path.join(root, "assets");
 
 if (!fs.existsSync(dist)) {
-  console.error("[pwa] dist-web not found — run `expo export --platform web` first.");
+  console.error("[pwa] dist-web not found - run `expo export --platform web` first.");
   process.exit(1);
 }
 

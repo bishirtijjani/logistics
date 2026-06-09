@@ -1,5 +1,5 @@
 /**
- * Merchant service — manages merchants (restaurants, grocery stores, pharmacies)
+ * Merchant service - manages merchants (restaurants, grocery stores, pharmacies)
  */
 
 const { v4: uuidv4 } = require('uuid');
@@ -8,7 +8,7 @@ const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const { getIO } = require('../../sockets');
 const { MERCHANT, getMerchantRoom } = require('../../sockets/events');
-// Phase 8 — merchant accept/reject/status routes delegate the actual lifecycle
+// Phase 8 - merchant accept/reject/status routes delegate the actual lifecycle
 // transition to request.service.updateStatus so socket emits, push
 // notifications, lifecycle timestamps, FSM checks, and rider-matching dispatch
 // all flow through a single pipeline. The merchant-side ownership guard runs
@@ -271,7 +271,7 @@ const getMerchantOrders = async (merchantId, userId, role, { status, page, limit
         customer: { select: { firstName: true, lastName: true, phone: true } },
         rider: { select: { vehicleType: true, plateNumber: true } },
         items: {
-          // Phase 8 — include product.requiresPrescription / dosage so the
+          // Phase 8 - include product.requiresPrescription / dosage so the
           // merchant kitchen ticket can render the Rx pill per line. The
           // substitution column is on RequestItem itself and comes back by default.
           include: {
@@ -546,7 +546,7 @@ const saveMerchantBankAccount = async (merchantId, userId, role, { bankCode, acc
   await loadOwnedMerchantWallet(merchantId, userId, role);
 
   // KatPay has no name-enquiry endpoint, so the account name can't be verified
-  // server-side — it's collected from the user and stored as given. It is also
+  // server-side - it's collected from the user and stored as given. It is also
   // the name we hand KatPay at payout time (payouts require account_name).
   if (!accountName || accountName.trim().length < 2) {
     throw AppError.badRequest('Account name is required');
@@ -563,7 +563,7 @@ const saveMerchantBankAccount = async (merchantId, userId, role, { bankCode, acc
 };
 
 const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) => {
-  // `wallet` here is the merchantWallet — it still holds the payout bank account
+  // `wallet` here is the merchantWallet - it still holds the payout bank account
   // + the admin hold flags. The spendable money now lives in the merchant's
   // User wallet (unified wallet), so that's what we validate + debit.
   const wallet = await loadOwnedMerchantWallet(merchantId, userId, role);
@@ -712,7 +712,7 @@ const VARIANT_CAP_PER_PRODUCT = 100;
 /**
  * Create a product. Inline `variants` and `optionGroups` are optional;
  * when omitted we synthesize one default variant from basePrice/stock so every
- * Product always has at least one variant (single SKU or many — same code path).
+ * Product always has at least one variant (single SKU or many - same code path).
  */
 const createMerchantProduct = async (merchantId, userId, role, productData) => {
   const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });

@@ -2,11 +2,11 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../services/api";
 
 /**
- * Earnings slice — dashboard summary + daily chart series + paginated
+ * Earnings slice - dashboard summary + daily chart series + paginated
  * per-request breakdown. Drives `EarningsDashboardScreen`,
  * `EarningsBreakdownScreen`, and the cockpit's settlement animation.
  *
- * Server payload (Phase 6 — `GET /rider/earnings?page=N&limit=N`):
+ * Server payload (Phase 6 - `GET /rider/earnings?page=N&limit=N`):
  *   {
  *     summary: { today, week, month, allTime }, // each { amount, count }
  *     daily:   [{ date: 'YYYY-MM-DD', amount, count }, ...],
@@ -75,12 +75,12 @@ const slice = createSlice({
   initialState,
   reducers: {
     /**
-     * Phase 5 / 6 — wallet:balance:updated socket emits a RIDER_EARNING
+     * Phase 5 / 6 - wallet:balance:updated socket emits a RIDER_EARNING
      * transaction on every settlement. We bump today's + allTime tallies
      * AND prepend a synthetic row to the breakdown list so the dashboard
      * reflects the new earning before the next fetch.
      *
-     * Dedup by `reference` — the same earning can arrive via both the
+     * Dedup by `reference` - the same earning can arrive via both the
      * socket bump AND a near-simultaneous fetch reconciliation; without
      * dedup the tallies would over-count by one when the fetch returns
      * canonical numbers that already include this earning. The settle
@@ -96,7 +96,7 @@ const slice = createSlice({
       if (dedupKey && state.seenSocketReferences.includes(dedupKey)) return;
       // Also dedupe against already-fetched canonical rows. The server's
       // recent list keys by tx id; if reference is exposed there too (it
-      // is — `select: { reference: true }`), we can match.
+      // is - `select: { reference: true }`), we can match.
       if (dedupKey) {
         const alreadyFetched = state.allIds.some((id) => {
           const row = state.byId[id];
@@ -171,7 +171,7 @@ const slice = createSlice({
         state.summary.allTime = s.allTime || { amount: 0, count: 0 };
         state.averageRating = Number(data.averageRating || 0);
         state.daily = Array.isArray(data.daily) ? data.daily : [];
-        // Recent — page 1 replaces; later pages append (via fetchMoreEarnings).
+        // Recent - page 1 replaces; later pages append (via fetchMoreEarnings).
         const list = Array.isArray(data.recent) ? data.recent : [];
         state.byId = {};
         state.allIds = [];

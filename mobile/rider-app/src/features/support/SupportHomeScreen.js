@@ -1,5 +1,5 @@
 /**
- * SupportHomeScreen — entry point for the rider's tickets + disputes lists.
+ * SupportHomeScreen - entry point for the rider's tickets + disputes lists.
  * Mirrors the customer-app MyTicketsScreen with two tabs: Tickets / Disputes,
  * and an "Open new ticket" CTA on the tickets tab.
  */

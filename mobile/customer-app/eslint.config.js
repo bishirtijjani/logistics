@@ -3,7 +3,7 @@
  *
  * The only rule we enforce here today is the api-path contract from Phase 0:
  * every `api.<method>(...)` call must use a path that begins with "/".
- * This catches a regression that has bitten us before — relative paths get
+ * This catches a regression that has bitten us before - relative paths get
  * concatenated against the wrong base URL and produce 404s in production.
  */
 

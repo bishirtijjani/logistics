@@ -27,7 +27,7 @@ On successful connection:
 
 | Event | Direction | Payload | Description |
 |---|---|---|---|
-| `connection` | Client → Server | — | Socket connected |
+| `connection` | Client → Server | - | Socket connected |
 | `disconnect` | Client → Server | `reason: string` | Socket disconnected |
 | `auth_error` | Server → Client | `{ message: string }` | Authentication failed |
 
@@ -66,7 +66,7 @@ These are the canonical events for all request types (food, grocery, pharmacy, p
 | `request:room:join` | Client → Server | `{ requestId: string }` | Join request tracking room |
 | `request:room:leave` | Client → Server | `{ requestId: string }` | Leave request tracking room |
 
-### Delivery Events (Legacy — Package Delivery Only)
+### Delivery Events (Legacy - Package Delivery Only)
 
 Kept for backward compatibility during migration. New code should use `request:*` events.
 
@@ -102,7 +102,7 @@ Kept for backward compatibility during migration. New code should use `request:*
 | `riders:available` | All online riders (auto on connect if role=RIDER) | Broadcasting new job requests |
 | `merchant:{merchantId}` | Merchant dashboard (auto on connect if role=MERCHANT) | New orders, merchant-specific events |
 | `request:{requestId}` | Customer + assigned rider + merchant (manual join) | Request tracking, status updates, rider location |
-| `delivery:{orderId}` | Customer + assigned rider — legacy (manual join) | Legacy package delivery tracking |
+| `delivery:{orderId}` | Customer + assigned rider - legacy (manual join) | Legacy package delivery tracking |
 
 ### Room Lifecycle
 

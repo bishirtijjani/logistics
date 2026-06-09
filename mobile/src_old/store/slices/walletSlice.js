@@ -1,5 +1,5 @@
 /**
- * Wallet slice — manages wallet balance and transaction history.
+ * Wallet slice - manages wallet balance and transaction history.
  */
 
 const { createSlice, createAsyncThunk } = require('@reduxjs/toolkit');

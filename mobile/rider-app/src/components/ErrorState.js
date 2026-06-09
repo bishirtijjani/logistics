@@ -1,5 +1,5 @@
 /**
- * ErrorState — the placeholder a list renders when its fetch failed.
+ * ErrorState - the placeholder a list renders when its fetch failed.
  *
  * Renders a red glyph, a localized title, the server-supplied message as a
  * secondary line, and a "Try again" button. Pair with the `tError(err)`

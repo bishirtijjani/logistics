@@ -24,7 +24,7 @@ export function ThemeProvider({ children }) {
           setModeState(stored);
         }
       } catch (_) {
-        // Storage read failure is non-fatal — we just stick with 'system'.
+        // Storage read failure is non-fatal - we just stick with 'system'.
       } finally {
         if (!cancelled) setHydrated(true);
       }
@@ -50,7 +50,7 @@ export function ThemeProvider({ children }) {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, next);
     } catch (_) {
-      // Persistence failure is non-fatal — choice still applies for this session.
+      // Persistence failure is non-fatal - choice still applies for this session.
     }
   }, []);
 
