@@ -47,6 +47,8 @@ import {
   X,
 } from 'lucide-react'
 import Pagination from '../components/Pagination'
+import api from '../lib/api'
+import { toast } from 'sonner'
 
 const STATUS_COLORS = {
   ACTIVE: 'bg-success/10 text-success',
@@ -499,6 +501,10 @@ export default function CustomerDetailPage() {
           tx={transactionReceipt.data}
           loading={transactionReceipt.loading}
           onClose={() => dispatch(clearTransactionReceipt())}
+          onRefunded={() => {
+            dispatch(fetchCustomerTransactions({ customerId, page: transactions.page, limit: transactions.limit }))
+            dispatch(fetchCustomerDetail(customerId))
+          }}
         />
       )}
 
@@ -756,13 +762,44 @@ function UtilityPaymentsTab({ state, onPageChange, onRowClick }) {
   )
 }
 
-export function TransactionReceiptModal({ tx, loading, onClose }) {
+// Mirrors the backend REFUND_BLOCKED_TYPES so the button only shows for
+// transactions the server will actually accept (clean UX). The server still
+// enforces the rules authoritatively.
+const REFUND_BLOCKED_TYPES = new Set([
+  'WALLET_FUNDING', 'P2P_TRANSFER_RECEIVED', 'DELIVERY_EARNING', 'AIRTIME_TO_CASH',
+  'REFUND', 'ESCROW_RELEASE', 'ESCROW_REFUND', 'PLATFORM_EARNING', 'RIDER_EARNING',
+  'MERCHANT_EARNING', 'WITHDRAWAL', 'P2P_TRANSFER_SENT', 'DELIVERY_PAYMENT', 'ESCROW_HOLD',
+])
+
+export function TransactionReceiptModal({ tx, loading, onClose, onRefunded }) {
+  const [showReason, setShowReason] = useState(false)
+  const [reason, setReason] = useState('')
+  const [refunding, setRefunding] = useState(false)
+
   if (loading) return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   )
   if (!tx) return null
+
+  const refundable = tx.direction === 'DEBIT' && tx.status !== 'REFUNDED' && !REFUND_BLOCKED_TYPES.has(tx.type)
+
+  const handleRefund = async () => {
+    if (!reason.trim() || refunding) return
+    setRefunding(true)
+    try {
+      const res = await api.post(`/admin/transactions/${tx.id}/refund`, { reason: reason.trim() })
+      toast.success(res.data?.message || 'Refund processed')
+      onRefunded?.()
+      onClose()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Refund failed')
+    } finally {
+      setRefunding(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
       <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
@@ -783,6 +820,11 @@ export function TransactionReceiptModal({ tx, loading, onClose }) {
               <div className="flex flex-col items-center gap-2">
                 <XCircle size={40} className="text-error" />
                 <span className="text-sm font-medium text-error">Failed</span>
+              </div>
+            ) : tx.status === 'REFUNDED' ? (
+              <div className="flex flex-col items-center gap-2">
+                <Eraser size={40} className="text-muted dark:text-dark-muted" />
+                <span className="text-sm font-medium text-muted dark:text-dark-muted">Refunded</span>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
@@ -809,6 +851,48 @@ export function TransactionReceiptModal({ tx, loading, onClose }) {
             <ReceiptRow label="Balance After" value={formatNGN(tx.balanceAfter)} />
             <ReceiptRow label="Date" value={new Date(tx.createdAt).toLocaleString()} />
           </div>
+
+          {/* Admin refund */}
+          {refundable && !showReason && (
+            <button
+              onClick={() => setShowReason(true)}
+              className="w-full px-4 py-2.5 rounded-lg border border-error/40 text-error hover:bg-error/10 text-sm font-medium transition-colors"
+            >
+              Refund this transaction
+            </button>
+          )}
+          {refundable && showReason && (
+            <div className="border border-surface-muted dark:border-dark-surface-muted rounded-xl p-3 space-y-2">
+              <p className="text-xs text-muted dark:text-dark-muted">
+                {tx.type === 'UTILITY_PAYMENT'
+                  ? 'For VTU, the provider is re-checked first - a delivered purchase is completed, not refunded.'
+                  : `Credits ${formatNGN(tx.amount)} back to the customer's wallet. This is audit-logged.`}
+              </p>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Reason for refund (required)..."
+                rows={2}
+                className="w-full px-3 py-2 border border-surface-muted dark:border-dark-surface-muted dark:bg-dark-surface-muted dark:text-dark-text rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowReason(false); setReason('') }}
+                  disabled={refunding}
+                  className="flex-1 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-sm disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRefund}
+                  disabled={!reason.trim() || refunding}
+                  className="flex-1 px-4 py-2 bg-error text-white rounded-lg hover:bg-error/90 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {refunding ? 'Processing...' : 'Confirm Refund'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

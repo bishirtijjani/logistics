@@ -2998,9 +2998,133 @@ const getMerchantUtilityPaymentById = async (merchantId, paymentId) => {
   return _getUserUtilityPaymentById(merchant.userId, paymentId);
 };
 
+// ── Admin manual refund ──────────────────────────────────────────────────────
+// Types an admin may NOT refund through this generic action:
+//  - credits to the user (nothing was taken to give back)
+//  - flows with their own reversal path (withdrawals) or an internal/external
+//    counterparty (P2P sent, deliveries, escrow) where a naive credit would
+//    mint money or break order accounting.
+// Everything else that is a wallet DEBIT (today: UTILITY_PAYMENT) is refundable.
+const REFUND_BLOCKED_TYPES = new Set([
+  'WALLET_FUNDING', 'P2P_TRANSFER_RECEIVED', 'DELIVERY_EARNING', 'AIRTIME_TO_CASH',
+  'REFUND', 'ESCROW_RELEASE', 'ESCROW_REFUND', 'PLATFORM_EARNING', 'RIDER_EARNING',
+  'MERCHANT_EARNING', 'WITHDRAWAL', 'P2P_TRANSFER_SENT', 'DELIVERY_PAYMENT', 'ESCROW_HOLD',
+]);
+
+/**
+ * Admin-initiated full refund of a single wallet transaction.
+ *
+ * - VTU (UTILITY_PAYMENT): re-queries AlRahuz via the worker reconciler first,
+ *   so a purchase that actually delivered is completed (NOT refunded); only a
+ *   genuinely failed/stuck one is refunded. Keeps both the UtilityPayment row
+ *   and the wallet ledger consistent.
+ * - Other eligible debits: credits the debited wallet, writes a REFUND ledger
+ *   entry, and marks the original REFUNDED, atomically.
+ *
+ * Guardrails: blocks credits, counterparty/own-flow types, and anything already
+ * REFUNDED. Full amount only. Every call is audit-logged with the reason.
+ */
+const adminRefundTransaction = async (adminUserId, transactionId, reason, ipAddress, userAgent) => {
+  const txn = await prisma.transaction.findUnique({ where: { id: transactionId } });
+  if (!txn) throw AppError.notFound('Transaction not found');
+  if (txn.status === 'REFUNDED') {
+    throw AppError.conflict('This transaction has already been refunded.', { code: 'ALREADY_REFUNDED' });
+  }
+  if (!txn.debitWalletId) {
+    throw AppError.badRequest('Only a wallet debit can be refunded.', { code: 'NOT_A_DEBIT' });
+  }
+  if (REFUND_BLOCKED_TYPES.has(txn.type)) {
+    throw AppError.badRequest(
+      `${txn.type.replace(/_/g, ' ').toLowerCase()} can't be refunded here - use the dispute or withdrawal flow.`,
+      { code: 'TYPE_NOT_REFUNDABLE' },
+    );
+  }
+
+  // ── VTU: reconcile (re-query provider → complete or refund) ──────────────
+  if (txn.type === 'UTILITY_PAYMENT') {
+    const payment = await prisma.utilityPayment.findFirst({
+      where: { OR: [{ transactionId: txn.reference }, { providerRequestId: txn.reference }] },
+      select: { id: true },
+    });
+    if (payment) {
+      const { reconcileOnePayment } = require('../../queues/workers/utility.worker');
+      await reconcileOnePayment(payment.id);
+      const [freshTxn, freshPayment] = await Promise.all([
+        prisma.transaction.findUnique({ where: { id: transactionId } }),
+        prisma.utilityPayment.findUnique({ where: { id: payment.id } }),
+      ]);
+      await createAuditLog(
+        adminUserId, 'REFUND_TRANSACTION', 'TRANSACTION', transactionId,
+        { type: txn.type, amount: Number(txn.amount), reason, mode: 'vtu-reconcile', resultStatus: freshPayment?.status },
+        ipAddress, userAgent,
+      );
+      const delivered = freshPayment?.status === 'COMPLETED';
+      return {
+        transaction: freshTxn,
+        utilityPayment: freshPayment,
+        mode: 'vtu-reconcile',
+        refunded: freshPayment?.status === 'REFUNDED',
+        message: delivered
+          ? 'Provider confirms this purchase was delivered, so it was NOT refunded.'
+          : freshPayment?.status === 'REFUNDED'
+            ? 'Purchase failed at the provider - customer refunded.'
+            : 'Purchase is still pending at the provider; a re-check was scheduled.',
+      };
+    }
+    // No UtilityPayment row (shouldn't happen) - fall through to a direct refund.
+  }
+
+  // ── Generic full refund ──────────────────────────────────────────────────
+  const result = await prisma.$transaction(async (tx) => {
+    const wallet = await tx.wallet.findUnique({ where: { id: txn.debitWalletId } });
+    if (!wallet) throw AppError.notFound('Wallet not found for refund');
+    const amount = Number(txn.amount);
+    const balance = Number(wallet.balance);
+
+    await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: amount } } });
+    const refundTxn = await tx.transaction.create({
+      data: {
+        reference: `ADMIN-REFUND-${txn.reference}`,
+        type: 'REFUND',
+        status: 'COMPLETED',
+        amount,
+        description: `Admin refund: ${reason}`.slice(0, 250),
+        creditWalletId: wallet.id,
+        balanceBefore: balance,
+        balanceAfter: balance + amount,
+      },
+    });
+    await tx.transaction.update({ where: { id: txn.id }, data: { status: 'REFUNDED' } });
+    return { userId: wallet.userId, amount, refundTxn };
+  });
+
+  await createAuditLog(
+    adminUserId, 'REFUND_TRANSACTION', 'TRANSACTION', transactionId,
+    { type: txn.type, amount: result.amount, reason, mode: 'direct' },
+    ipAddress, userAgent,
+  );
+
+  try {
+    const notifyService = require('../../services/notify.service');
+    await notifyService.onWalletEvent(result.userId, {
+      kind: 'REFUND',
+      amount: result.amount,
+      transactionId: txn.reference,
+      route: '/wallet',
+      description: `₦${Number(result.amount).toLocaleString('en-NG')} refunded to your wallet.`,
+    });
+  } catch (err) {
+    logger.warn('Admin refund notify failed (non-fatal)', { transactionId, error: err.message });
+  }
+
+  const freshTxn = await prisma.transaction.findUnique({ where: { id: transactionId } });
+  return { transaction: freshTxn, refundTransaction: result.refundTxn, mode: 'direct', refunded: true, message: 'Refund completed.' };
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
+  adminRefundTransaction,
   getAllCustomers,
   updateCustomerStatus,
   updateCustomer,

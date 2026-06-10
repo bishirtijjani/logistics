@@ -56,6 +56,7 @@ const {
   updatePlatformSettingsSchema,
   customerRequestsSchema,
   customerTransactionsSchema,
+  refundTransactionSchema,
   utilityPaymentsQuerySchema,
   listAllCustomersSchema,
   paginationSchema,
@@ -152,6 +153,8 @@ router.post('/customers/:customerId/wipe-kyc', validate(wipeCustomerKycSchema), 
 
 // Transaction oversight
 router.get('/transactions', validate(transactionOverviewSchema, 'query'), adminController.getTransactions);
+// Admin manual refund of a single wallet transaction (VTU-aware; guardrails in service).
+router.post('/transactions/:transactionId/refund', validate(refundTransactionSchema), adminController.refundTransaction);
 
 // Platform settings
 router.get('/settings', adminController.getPlatformSettings);

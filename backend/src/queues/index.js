@@ -7,7 +7,7 @@
 
 const { Queue } = require('bullmq');
 const { redis } = require('../config/redis');
-const { QUEUES, DEFAULT_JOB_OPTIONS, PAYMENT_JOBS, RIDER_JOBS } = require('./jobs');
+const { QUEUES, DEFAULT_JOB_OPTIONS, PAYMENT_JOBS, RIDER_JOBS, UTILITY_JOBS } = require('./jobs');
 const { logger } = require('../utils/logger');
 const { startPaymentWorker } = require('./workers/payment.worker');
 const { startNotificationWorker } = require('./workers/notification.worker');
@@ -65,6 +65,19 @@ const scheduleRecurringJobs = async () => {
         repeat: { pattern: '15 3 * * *' }, // 03:15 daily
         removeOnComplete: { count: 30 },
         removeOnFail: { count: 90 },
+      },
+    );
+    // VTU safety net: sweep payments stuck in PROCESSING/PENDING past the poll
+    // window and resolve them (re-query AlRahuz → complete or refund). Every
+    // 5 minutes so a stranded customer is made whole quickly, not hours later.
+    await utilityQueue.add(
+      UTILITY_JOBS.RECONCILE_STUCK,
+      {},
+      {
+        jobId: 'cron:reconcile-stuck-utility',
+        repeat: { pattern: '*/5 * * * *' }, // every 5 minutes
+        removeOnComplete: { count: 50 },
+        removeOnFail: { count: 50 },
       },
     );
     // Phase 7 - daily doc-expiry scan. Runs at 04:00 so it lands after the

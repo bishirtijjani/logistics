@@ -746,6 +746,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         tx={transactionReceipt.data}
         loading={transactionReceipt.loading}
         onClose={() => dispatch(clearMerchantTransactionReceipt())}
+        onRefunded={() => dispatch(fetchMerchantTransactions({ merchantId: merchant.id, page: merchantTransactions.page, limit: merchantTransactions.limit }))}
       />
     )}
     </>

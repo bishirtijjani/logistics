@@ -17,7 +17,7 @@
 
 const { Worker } = require('bullmq');
 const { redis } = require('../../config/redis');
-const { QUEUES, UTILITY_JOBS, POLL_CONFIG } = require('../jobs');
+const { QUEUES, UTILITY_JOBS, POLL_CONFIG, STUCK_PAYMENT_GRACE_MS } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const alrahuzService = require('../../services/alrahuz.service');
@@ -42,6 +42,7 @@ const startUtilityWorker = () => {
         case UTILITY_JOBS.PROCESS_ELECTRICITY: return processElectricity(job.data);
         case UTILITY_JOBS.POLL_PENDING:        return processPoll(job.data);
         case UTILITY_JOBS.REFUND_FAILED:       return processRefund(job.data);
+        case UTILITY_JOBS.RECONCILE_STUCK:     return reconcileStuckPayments();
         // Throw on unknown - BullMQ will mark the job as failed and surface
         // it in the failed-jobs list. Returning silently here would leak the
         // payment as PENDING forever (the customer's wallet was already
@@ -66,6 +67,22 @@ const startUtilityWorker = () => {
       jobId: job?.id,
       attemptsMade: job?.attemptsMade,
     });
+
+    // SAFETY NET: a permanently-failed processing job (e.g. AlRahuz threw a
+    // non-2xx because the reseller wallet was empty) would otherwise leave the
+    // payment stranded in PROCESSING with the customer's wallet already
+    // debited and no refund. Once BullMQ has exhausted its retries, reconcile
+    // the payment immediately: re-query the provider, then complete if it
+    // actually delivered, or refund. Idempotent, so it's safe alongside the
+    // cron sweep. Only the buy/poll jobs carry a paymentId.
+    const paymentId = job?.data?.paymentId;
+    const maxAttempts = job?.opts?.attempts ?? 1;
+    const isFinalAttempt = (job?.attemptsMade ?? 0) >= maxAttempts;
+    if (paymentId && isFinalAttempt) {
+      reconcileOnePayment(paymentId).catch((err) => {
+        logger.error('Post-failure reconcile errored', { paymentId, error: err.message });
+      });
+    }
   });
 
   return worker;
@@ -359,12 +376,80 @@ const processPoll = async ({ paymentId, userId, reference, providerRequestId }) 
 
 const processRefund = async (data) => refundPayment(data);
 
+/**
+ * Resolve a single payment that may be stuck. Re-runs the poll path: re-query
+ * AlRahuz by providerRequestId, then route through handleResult, which
+ * completes it if the provider actually delivered, reschedules a poll if it's
+ * genuinely still pending (within the attempt window), or marks it FAILED and
+ * refunds otherwise. A throw-path payment the provider never accepted re-queries
+ * to a 404 (null) → definitive failure → refund. Idempotent and safe to call
+ * from both the failure handler and the cron sweep.
+ */
+const reconcileOnePayment = async (paymentId) => {
+  const payment = await getPayment(paymentId);
+  if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
+
+  // reference == the wallet Transaction.reference; on create both
+  // transactionId and providerRequestId are set to the original reference.
+  const reference = payment.transactionId || payment.providerRequestId;
+  const providerRequestId = payment.providerRequestId || reference;
+
+  logger.info('Reconciling stuck utility payment', {
+    paymentId, status: payment.status, ageMs: Date.now() - new Date(payment.createdAt).getTime(),
+  });
+
+  await processPoll({
+    paymentId,
+    userId: payment.userId,
+    reference,
+    providerRequestId,
+  });
+};
+
+/**
+ * Cron sweep: find every payment still PROCESSING/PENDING past the grace window
+ * and reconcile it. This is the backstop that catches anything the live poll
+ * chain missed - provider throws that exhausted BullMQ retries, jobs lost on a
+ * Redis restart, or worker downtime. Bounded per run.
+ */
+const reconcileStuckPayments = async () => {
+  const cutoff = new Date(Date.now() - STUCK_PAYMENT_GRACE_MS);
+  const stuck = await prisma.utilityPayment.findMany({
+    where: { status: { in: ['PROCESSING', 'PENDING'] }, createdAt: { lt: cutoff } },
+    orderBy: { createdAt: 'asc' },
+    take: 200,
+    select: { id: true },
+  });
+
+  if (stuck.length === 0) {
+    logger.info('Reconcile sweep: no stuck utility payments');
+    return { scanned: 0 };
+  }
+
+  logger.warn('Reconcile sweep: resolving stuck utility payments', { count: stuck.length });
+  let resolved = 0;
+  for (const { id } of stuck) {
+    try {
+      await reconcileOnePayment(id);
+      resolved += 1;
+    } catch (err) {
+      logger.error('Reconcile sweep: payment errored', { paymentId: id, error: err.message });
+    }
+  }
+  logger.info('Reconcile sweep complete', { scanned: stuck.length, resolved });
+  return { scanned: stuck.length, resolved };
+};
+
 module.exports = {
   startUtilityWorker,
+  reconcileStuckPayments,
+  reconcileOnePayment,
   // Exported for tests
   _internal: {
     handleResult,
     refundPayment,
     processPoll,
+    reconcileOnePayment,
+    reconcileStuckPayments,
   },
 };

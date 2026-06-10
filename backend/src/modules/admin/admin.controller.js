@@ -173,6 +173,21 @@ const getCustomerTransactionById = async (req, res, next) => {
   }
 };
 
+const refundTransaction = async (req, res, next) => {
+  try {
+    const result = await adminService.adminRefundTransaction(
+      req.user.id,
+      req.params.transactionId,
+      req.body.reason,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success(result.message || 'Refund processed', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCustomerUtilityPayments = async (req, res, next) => {
   try {
     const { payments, total, page, limit } = await adminService.getCustomerUtilityPayments(
@@ -1028,6 +1043,7 @@ module.exports = {
   getCustomerRequests,
   getCustomerTransactions,
   getCustomerTransactionById,
+  refundTransaction,
   getCustomerAddresses,
   getCustomerUtilityPayments,
   getCustomerUtilityPaymentById,

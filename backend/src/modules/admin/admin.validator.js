@@ -188,6 +188,11 @@ const utilityPaymentsQuerySchema = z.object({
   status: z.enum(['PROCESSING', 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED']).optional(),
 });
 
+// Admin manual refund of a wallet transaction - reason is mandatory (audit).
+const refundTransactionSchema = z.object({
+  reason: z.string().trim().min(3, 'A reason is required').max(500),
+});
+
 const reassignRiderSchema = z.object({
   newRiderId: z.string().uuid(),
 });
@@ -377,6 +382,7 @@ module.exports = {
   transactionOverviewSchema,
   customerRequestsSchema,
   customerTransactionsSchema,
+  refundTransactionSchema,
   listAllRequestsSchema,
   reassignRiderSchema,
   forceCancelRequestSchema,

@@ -53,7 +53,17 @@ const UTILITY_JOBS = {
   /** Re-query AlRahuz for a payment whose initial response was `pending`.
    *  Scheduled with delay 30 s; auto-refunds after max attempts (5 min window). */
   POLL_PENDING: 'poll-pending',
+  /** Safety-net sweep: find payments stuck in PROCESSING/PENDING past the poll
+   *  window (lost jobs, provider throws, worker downtime) and resolve them -
+   *  re-query AlRahuz, then complete if delivered or refund the customer.
+   *  Runs every 5 minutes; the per-payment work is idempotent. */
+  RECONCILE_STUCK: 'reconcile-stuck',
 };
+
+// A payment is "stuck" once it's been non-terminal for longer than the normal
+// poll window (5 min) plus a safety margin. The reconcile sweep only touches
+// rows older than this so it never races the live poll chain.
+const STUCK_PAYMENT_GRACE_MS = 6 * 60 * 1000; // 6 minutes
 
 // Phase 7 - pending poll cadence (AlRahuz reconciliation)
 const POLL_CONFIG = {
@@ -107,4 +117,5 @@ module.exports = {
   RIDER_JOBS,
   DEFAULT_JOB_OPTIONS,
   POLL_CONFIG,
+  STUCK_PAYMENT_GRACE_MS,
 };

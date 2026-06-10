@@ -650,6 +650,7 @@ export default function RidersPage() {
           tx={transactionReceipt.data}
           loading={transactionReceipt.loading}
           onClose={() => dispatch(clearRiderTransactionReceipt())}
+          onRefunded={() => selectedRider && dispatch(fetchRiderTransactions({ riderId: selectedRider.id, page: riderTransactions.page, limit: riderTransactions.limit }))}
         />
       )}
 

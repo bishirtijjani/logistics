@@ -1,37 +1,37 @@
 /**
- * One-off recovery for utility payments that got stuck in PROCESSING because
- * of the PROCESS_AIRTIME / process-airtime job-name mismatch in
- * utility.service.js. Affected payments were debited from the wallet at
- * enqueue time, but the worker silently dropped the job (default branch in
- * the switch statement), so AlRahuz was never called and the customer's
- * wallet was never refunded.
+ * Recovery for utility payments stranded in PROCESSING/PENDING with the
+ * customer's wallet already debited.
  *
- * What this does:
- *   1. Find UtilityPayment rows with status='PROCESSING' older than --olderThanMinutes
- *      (default 10) - anything fresher might still be in-flight legitimately.
- *   2. For each, enqueue a REFUND_FAILED job. The worker's `refundPayment`
- *      is idempotent (early-returns if status='REFUNDED' already), so
- *      re-running this is safe.
+ * Why payments get stuck: when AlRahuz returns a non-2xx (e.g. the reseller
+ * wallet is empty), the buy call THROWS instead of returning a failure body,
+ * so the worker's "mark FAILED + refund" branch never runs. BullMQ retries a
+ * few times then permanently fails, and nothing refunds the customer. The same
+ * happens if poll jobs are lost on a Redis restart or the worker was down.
+ *
+ * What this does (per payment, idempotent):
+ *   Re-queries AlRahuz by providerRequestId via the worker's reconciler, then:
+ *     - delivered   → marks COMPLETED (no refund)
+ *     - still pending within the window → reschedules a poll
+ *     - failed / never accepted / window exhausted → marks FAILED + refunds
+ *   This is the SAME logic the every-5-minute cron sweep runs, so it's safe to
+ *   run by hand for an immediate fix.
  *
  * Usage (from backend/):
  *   node scripts/recover-stuck-utility-payments.js            # dry-run, lists candidates
- *   node scripts/recover-stuck-utility-payments.js --apply    # actually enqueue refunds
+ *   node scripts/recover-stuck-utility-payments.js --apply    # reconcile them now
  *   node scripts/recover-stuck-utility-payments.js --apply --olderThanMinutes=5
+ *   node scripts/recover-stuck-utility-payments.js --apply --id=<paymentId>
  *
- * Notes:
- *   - You MUST have the utility worker running for the refunds to actually
- *     fire - this script only enqueues. Start the worker (or the API
- *     process that starts it) before running with --apply.
- *   - Run AFTER deploying the job-name fix; otherwise new airtime/data/cable
- *     buys keep landing in PROCESSING and you'll be chasing your tail.
+ * Note: refunds are written inline by the reconciler (pure DB credit), so the
+ * worker does NOT need to be running for the money to be returned. A rescheduled
+ * poll (only for genuinely-pending provider responses) does need the worker.
  */
 
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const { prisma } = require('../src/config/database');
-const { utilityQueue } = require('../src/queues');
-const { UTILITY_JOBS } = require('../src/queues/jobs');
+const { reconcileOnePayment } = require('../src/queues/workers/utility.worker');
 const { logger } = require('../src/utils/logger');
 
 const parseArgs = () => {
@@ -39,55 +39,56 @@ const parseArgs = () => {
   const apply = args.includes('--apply');
   const olderArg = args.find((a) => a.startsWith('--olderThanMinutes='));
   const olderThanMinutes = olderArg ? Number(olderArg.split('=')[1]) : 10;
+  const idArg = args.find((a) => a.startsWith('--id='));
+  const id = idArg ? idArg.split('=')[1] : null;
   if (!Number.isFinite(olderThanMinutes) || olderThanMinutes < 0) {
     throw new Error(`--olderThanMinutes must be a non-negative number (got "${olderArg}")`);
   }
-  return { apply, olderThanMinutes };
+  return { apply, olderThanMinutes, id };
 };
 
 const main = async () => {
-  const { apply, olderThanMinutes } = parseArgs();
-  const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
+  const { apply, olderThanMinutes, id } = parseArgs();
 
-  const stuck = await prisma.utilityPayment.findMany({
-    where: { status: 'PROCESSING', createdAt: { lt: cutoff } },
-    orderBy: { createdAt: 'asc' },
-  });
+  const where = id
+    ? { id }
+    : { status: { in: ['PROCESSING', 'PENDING'] }, createdAt: { lt: new Date(Date.now() - olderThanMinutes * 60 * 1000) } };
 
-  console.log(`Found ${stuck.length} stuck utility payment(s) older than ${olderThanMinutes}m.`);
+  const stuck = await prisma.utilityPayment.findMany({ where, orderBy: { createdAt: 'asc' } });
+
+  console.log(
+    id
+      ? `Targeting payment ${id} (${stuck.length} match).`
+      : `Found ${stuck.length} stuck utility payment(s) older than ${olderThanMinutes}m.`,
+  );
   for (const p of stuck) {
     console.log(
-      `  - ${p.id}  ${p.type.padEnd(11)} ₦${Number(p.amount)}  ` +
+      `  - ${p.id}  ${p.type.padEnd(11)} ₦${Number(p.amount)}  ${p.status.padEnd(10)}  ` +
       `user=${p.userId}  ref=${p.providerRequestId}  created=${p.createdAt.toISOString()}`,
     );
   }
 
   if (!apply) {
-    console.log('\nDry-run. Re-run with --apply to enqueue refunds.');
+    console.log('\nDry-run. Re-run with --apply to reconcile (re-query → complete or refund).');
     return;
   }
-
   if (stuck.length === 0) {
     console.log('\nNothing to do.');
     return;
   }
 
-  console.log(`\nEnqueuing ${stuck.length} REFUND_FAILED job(s)...`);
+  console.log(`\nReconciling ${stuck.length} payment(s)...`);
   for (const p of stuck) {
-    await utilityQueue.add(
-      UTILITY_JOBS.REFUND_FAILED,
-      {
-        paymentId: p.id,
-        userId: p.userId,
-        amount: Number(p.amount),
-        reference: p.providerRequestId,
-      },
-      { attempts: 3, removeOnComplete: { age: 3600, count: 200 }, removeOnFail: { age: 86400 } },
-    );
-    console.log(`  ✓ enqueued refund for ${p.id}`);
+    try {
+      await reconcileOnePayment(p.id);
+      const after = await prisma.utilityPayment.findUnique({ where: { id: p.id }, select: { status: true } });
+      console.log(`  ✓ ${p.id} → ${after?.status}`);
+    } catch (err) {
+      console.log(`  ✗ ${p.id} errored: ${err.message}`);
+    }
   }
 
-  console.log('\nDone. Make sure the utility worker is running so the refunds actually process.');
+  console.log('\nDone. COMPLETED = provider had delivered; REFUNDED = customer made whole; PENDING = a fresh poll was scheduled (needs the worker running).');
 };
 
 main()
