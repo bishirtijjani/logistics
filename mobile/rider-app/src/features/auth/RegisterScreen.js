@@ -61,16 +61,7 @@ export default function RegisterScreen({ navigation }) {
 
   const onSubmit = async (data) => {
     dispatch(clearError());
-    // Register as a base user account. Role stays "CUSTOMER" until the user
-    // completes the Become Rider application; `POST /rider/register`
-    // upgrades them to RIDER on submission. AppNavigator's role gate routes
-    // non-RIDER authed users to the Become Rider stack.
-    const resultAction = await dispatch(
-      register({
-        ...data,
-        role: "CUSTOMER",
-      }),
-    );
+    const resultAction = await dispatch(register(data));
 
     if (register.fulfilled.match(resultAction)) {
       Toast.show({

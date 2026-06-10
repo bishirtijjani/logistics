@@ -5,6 +5,9 @@ import {
   fetchCustomerDetail,
   fetchCustomerRequests,
   fetchCustomerTransactions,
+  fetchCustomerTransactionReceipt,
+  fetchCustomerUtilityPayments,
+  fetchCustomerUtilityPaymentDetail,
   fetchCustomerAddresses,
   suspendCustomer,
   unsuspendCustomer,
@@ -14,6 +17,8 @@ import {
   setCustomerPin,
   clearCustomerPin,
   clearCustomerDetail,
+  clearTransactionReceipt,
+  clearUtilityPaymentDetail,
 } from '../store/slices/customersSlice'
 import {
   ArrowLeft,
@@ -37,6 +42,9 @@ import {
   Eye,
   EyeOff,
   Copy,
+  Zap,
+  ChevronRight,
+  X,
 } from 'lucide-react'
 import Pagination from '../components/Pagination'
 
@@ -73,6 +81,9 @@ const formatNGN = (n) =>
     Number(n) || 0,
   )
 
+// One unified Transactions tab mirrors what the user sees in-app: their wallet
+// ledger already carries VTU/utility purchases as UTILITY_PAYMENT rows, so there
+// is no separate "bills" history to split out.
 const TABS = [
   { key: 'requests', label: 'Requests', icon: Package },
   { key: 'transactions', label: 'Transactions', icon: Receipt },
@@ -82,7 +93,7 @@ const TABS = [
 export default function CustomerDetailPage() {
   const { customerId } = useParams()
   const dispatch = useDispatch()
-  const { detail, requests, transactions, addresses, pin } = useSelector((state) => state.customers)
+  const { detail, requests, transactions, transactionReceipt, utilityPayments, utilityPaymentDetail, addresses, pin } = useSelector((state) => state.customers)
   const [activeTab, setActiveTab] = useState('requests')
   const [showSuspendModal, setShowSuspendModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -416,9 +427,9 @@ export default function CustomerDetailPage() {
           )}
           {activeTab === 'transactions' && (
             <TransactionsTab
-              customerId={customerId}
               state={transactions}
               onPageChange={(page) => dispatch(fetchCustomerTransactions({ customerId, page, limit: transactions.limit }))}
+              onRowClick={(t) => dispatch(fetchCustomerTransactionReceipt({ customerId, transactionId: t.id }))}
             />
           )}
           {activeTab === 'addresses' && <AddressesTab state={addresses} />}
@@ -483,7 +494,14 @@ export default function CustomerDetailPage() {
         </div>
       )}
 
-      {/* Suspend Modal */}
+      {transactionReceipt.data && (
+        <TransactionReceiptModal
+          tx={transactionReceipt.data}
+          loading={transactionReceipt.loading}
+          onClose={() => dispatch(clearTransactionReceipt())}
+        />
+      )}
+
       {showSuspendModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md">
@@ -600,7 +618,7 @@ function RequestsTab({ state, onPageChange }) {
   )
 }
 
-function TransactionsTab({ state, onPageChange }) {
+function TransactionsTab({ state, onPageChange, onRowClick }) {
   if (state.loading && !state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">Loading...</p>
   if (!state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">No transactions yet.</p>
   return (
@@ -609,19 +627,24 @@ function TransactionsTab({ state, onPageChange }) {
         <table className="w-full">
           <thead className="bg-surface-muted dark:bg-dark-surface-muted">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Reference</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Description</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Direction</th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted dark:text-dark-muted uppercase">Amount</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Status</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Date</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
             {state.data.map((t) => (
-              <tr key={t.id} className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted">
-                <td className="px-4 py-3 text-xs text-muted dark:text-dark-muted font-mono break-all max-w-[160px]">{t.reference}</td>
-                <td className="px-4 py-3 text-sm text-text dark:text-dark-text whitespace-nowrap">{t.type}</td>
+              <tr
+                key={t.id}
+                onClick={() => onRowClick(t)}
+                className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted cursor-pointer"
+              >
+                <td className="px-4 py-3 text-sm text-text dark:text-dark-text whitespace-nowrap">{t.type?.replace(/_/g, ' ')}</td>
+                <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted max-w-[200px] truncate">{t.description || '-'}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${t.direction === 'CREDIT' ? 'bg-success/10 text-success' : 'bg-error/10 text-error'}`}>
                     {t.direction}
@@ -641,6 +664,9 @@ function TransactionsTab({ state, onPageChange }) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-muted dark:text-dark-muted">
+                  <ChevronRight size={16} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -656,6 +682,213 @@ function TransactionsTab({ state, onPageChange }) {
         />
       )}
     </>
+  )
+}
+
+const UTILITY_TYPE_LABELS = { AIRTIME: 'Airtime', DATA: 'Data', CABLE: 'Cable TV', ELECTRICITY: 'Electricity' }
+const UTILITY_STATUS_COLORS = {
+  COMPLETED: 'bg-success/10 text-success',
+  PROCESSING: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+  FAILED: 'bg-error/10 text-error',
+  REFUNDED: 'bg-surface-muted text-muted',
+}
+
+function UtilityPaymentsTab({ state, onPageChange, onRowClick }) {
+  if (state.loading && !state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">Loading...</p>
+  if (!state.data.length) return <p className="text-sm text-muted dark:text-dark-muted py-8 text-center">No bill payments yet.</p>
+  return (
+    <>
+      <div className="overflow-x-auto -mx-4 sm:-mx-6">
+        <table className="w-full">
+          <thead className="bg-surface-muted dark:bg-dark-surface-muted">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Service</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Biller</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Recipient</th>
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted dark:text-dark-muted uppercase">Amount</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted dark:text-dark-muted uppercase">Date</th>
+              <th className="px-4 py-3" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
+            {state.data.map((p) => (
+              <tr
+                key={p.id}
+                onClick={() => onRowClick(p)}
+                className="hover:bg-surface-muted dark:hover:bg-dark-surface-muted cursor-pointer"
+              >
+                <td className="px-4 py-3 text-sm text-text dark:text-dark-text whitespace-nowrap">
+                  {UTILITY_TYPE_LABELS[p.type] || p.type}
+                </td>
+                <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted whitespace-nowrap">{p.biller || '-'}</td>
+                <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted whitespace-nowrap">
+                  {p.phoneNumber || p.meterNumber || '-'}
+                </td>
+                <td className="px-4 py-3 text-sm font-medium text-right whitespace-nowrap text-error">
+                  -{formatNGN(p.amount)}
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${UTILITY_STATUS_COLORS[p.status] || 'bg-surface-muted text-muted'}`}>
+                    {p.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted whitespace-nowrap">{new Date(p.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-muted dark:text-dark-muted">
+                  <ChevronRight size={16} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {state.total > state.limit && (
+        <Pagination
+          currentPage={state.page}
+          totalPages={Math.ceil(state.total / state.limit)}
+          totalItems={state.total}
+          pageSize={state.limit}
+          onPageChange={onPageChange}
+        />
+      )}
+    </>
+  )
+}
+
+export function TransactionReceiptModal({ tx, loading, onClose }) {
+  if (loading) return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+  if (!tx) return null
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-surface-muted dark:border-dark-surface-muted">
+          <h3 className="font-semibold text-text dark:text-dark-text">Transaction Receipt</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center justify-center py-4">
+            {tx.status === 'COMPLETED' ? (
+              <div className="flex flex-col items-center gap-2">
+                <CheckCircle2 size={40} className="text-success" />
+                <span className="text-sm font-medium text-success">Successful</span>
+              </div>
+            ) : tx.status === 'FAILED' ? (
+              <div className="flex flex-col items-center gap-2">
+                <XCircle size={40} className="text-error" />
+                <span className="text-sm font-medium text-error">Failed</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                  <Receipt size={20} className="text-yellow-600" />
+                </div>
+                <span className="text-sm font-medium text-yellow-600">{tx.status}</span>
+              </div>
+            )}
+          </div>
+          <div className="text-center">
+            <p className={`text-2xl font-bold ${tx.direction === 'CREDIT' ? 'text-success' : 'text-error'}`}>
+              {tx.direction === 'CREDIT' ? '+' : '-'}{formatNGN(tx.amount)}
+            </p>
+            <p className="text-sm text-muted dark:text-dark-muted mt-1">{tx.description || tx.type?.replace(/_/g, ' ')}</p>
+          </div>
+          <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-xl p-4 space-y-3">
+            <ReceiptRow label="Type" value={tx.type?.replace(/_/g, ' ')} />
+            <ReceiptRow label="Direction" value={tx.direction} />
+            <ReceiptRow label="Reference" value={tx.reference} mono />
+            {tx.providerRef && <ReceiptRow label="Provider Ref" value={tx.providerRef} mono />}
+            {tx.provider && <ReceiptRow label="Provider" value={tx.provider} />}
+            <ReceiptRow label="Balance Before" value={formatNGN(tx.balanceBefore)} />
+            <ReceiptRow label="Balance After" value={formatNGN(tx.balanceAfter)} />
+            <ReceiptRow label="Date" value={new Date(tx.createdAt).toLocaleString()} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function UtilityPaymentDetailModal({ payment, loading, onClose }) {
+  if (loading) return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+  if (!payment) return null
+  const recipient = payment.phoneNumber || payment.meterNumber
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-surface-muted dark:border-dark-surface-muted">
+          <h3 className="font-semibold text-text dark:text-dark-text">
+            {UTILITY_TYPE_LABELS[payment.type] || payment.type} Receipt
+          </h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center justify-center py-4">
+            {payment.status === 'COMPLETED' ? (
+              <div className="flex flex-col items-center gap-2">
+                <CheckCircle2 size={40} className="text-success" />
+                <span className="text-sm font-medium text-success">Delivered</span>
+              </div>
+            ) : payment.status === 'FAILED' || payment.status === 'REFUNDED' ? (
+              <div className="flex flex-col items-center gap-2">
+                <XCircle size={40} className="text-error" />
+                <span className="text-sm font-medium text-error">{payment.status === 'REFUNDED' ? 'Failed (Refunded)' : 'Failed'}</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                  <Zap size={20} className="text-yellow-600" />
+                </div>
+                <span className="text-sm font-medium text-yellow-600">{payment.status}</span>
+              </div>
+            )}
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-error">-{formatNGN(payment.amount)}</p>
+            <p className="text-sm text-muted dark:text-dark-muted mt-1">{payment.biller} {UTILITY_TYPE_LABELS[payment.type]}</p>
+          </div>
+          <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-xl p-4 space-y-3">
+            <ReceiptRow label="Service" value={UTILITY_TYPE_LABELS[payment.type] || payment.type} />
+            <ReceiptRow label="Network / Biller" value={payment.biller} />
+            {recipient && <ReceiptRow label={payment.meterNumber ? 'Meter Number' : 'Phone Number'} value={recipient} />}
+            {payment.beneficiaryName && <ReceiptRow label="Beneficiary" value={payment.beneficiaryName} />}
+            {payment.plan && <ReceiptRow label="Plan" value={payment.plan} />}
+            {payment.token && (
+              <div className="pt-1">
+                <p className="text-xs text-muted dark:text-dark-muted mb-1">Token</p>
+                <p className="font-mono text-sm bg-surface dark:bg-dark-surface px-3 py-2 rounded-lg text-text dark:text-dark-text tracking-wider break-all">
+                  {payment.token}
+                </p>
+              </div>
+            )}
+            <ReceiptRow label="Reference" value={payment.transactionId || payment.providerRequestId} mono />
+            {payment.providerRef && <ReceiptRow label="Provider Ref" value={payment.providerRef} mono />}
+            <ReceiptRow label="Date" value={new Date(payment.createdAt).toLocaleString()} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ReceiptRow({ label, value, mono }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-xs text-muted dark:text-dark-muted shrink-0">{label}</span>
+      <span className={`text-xs text-right text-text dark:text-dark-text break-all ${mono ? 'font-mono' : ''}`}>{value ?? '-'}</span>
+    </div>
   )
 }
 

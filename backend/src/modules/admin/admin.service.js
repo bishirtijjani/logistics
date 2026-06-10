@@ -2793,6 +2793,211 @@ const seedTestOffer = async ({ target = 'both', pickupLat, pickupLng, fare = 150
   return { requestId: request.id, target };
 };
 
+// ─── Shared wallet transaction + utility payment helpers ─────────────────────
+// Used by customer / merchant / rider detail endpoints. All three roles share
+// a single User-level Wallet keyed by userId.
+
+const _getWalletTransactions = async (walletId, { page = 1, limit = 20, type, status } = {}) => {
+  if (!walletId) return { transactions: [], total: 0, page, limit };
+  const where = {
+    OR: [{ debitWalletId: walletId }, { creditWalletId: walletId }],
+    ...(type && { type }),
+    ...(status && { status }),
+  };
+  const [transactions, total] = await Promise.all([
+    prisma.transaction.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.transaction.count({ where }),
+  ]);
+  return {
+    transactions: transactions.map((t) => ({
+      ...t,
+      direction: t.debitWalletId === walletId ? 'DEBIT' : 'CREDIT',
+    })),
+    total,
+    page,
+    limit,
+  };
+};
+
+const _getWalletTransactionById = async (walletId, transactionId) => {
+  if (!walletId) throw AppError.notFound('Wallet not found');
+  const tx = await prisma.transaction.findFirst({
+    where: {
+      id: transactionId,
+      OR: [{ debitWalletId: walletId }, { creditWalletId: walletId }],
+    },
+  });
+  if (!tx) throw AppError.notFound('Transaction not found');
+  return { ...tx, direction: tx.debitWalletId === walletId ? 'DEBIT' : 'CREDIT' };
+};
+
+const _getUserUtilityPayments = async (userId, { page = 1, limit = 20, type, status } = {}) => {
+  const where = {
+    userId,
+    ...(type && { type }),
+    ...(status && { status }),
+  };
+  const [payments, total] = await Promise.all([
+    prisma.utilityPayment.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.utilityPayment.count({ where }),
+  ]);
+  return { payments, total, page, limit };
+};
+
+const _getUserUtilityPaymentById = async (userId, paymentId) => {
+  const payment = await prisma.utilityPayment.findFirst({
+    where: { id: paymentId, userId },
+  });
+  if (!payment) throw AppError.notFound('Utility payment not found');
+  return payment;
+};
+
+// ─── Customer transaction detail + utility payments ───────────────────────────
+
+const getCustomerTransactionById = async (customerId, transactionId) => {
+  const user = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true, wallet: { select: { id: true } } },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+  return _getWalletTransactionById(user.wallet?.id, transactionId);
+};
+
+const getCustomerUtilityPayments = async (customerId, options) => {
+  const user = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+  return _getUserUtilityPayments(customerId, options);
+};
+
+const getCustomerUtilityPaymentById = async (customerId, paymentId) => {
+  const user = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+  return _getUserUtilityPaymentById(customerId, paymentId);
+};
+
+// ─── Rider detail + transactions + utility payments ───────────────────────────
+
+const getRiderById = async (riderId) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          profilePicture: true,
+          status: true,
+          createdAt: true,
+          wallet: {
+            select: {
+              id: true,
+              balance: true,
+              isLocked: true,
+              virtualAccountNumber: true,
+              virtualAccountBank: true,
+              virtualAccountName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  const walletId = rider.user?.wallet?.id;
+  const [deliveryCount, transactionCount] = await Promise.all([
+    prisma.request.count({ where: { riderId, status: 'DELIVERED' } }),
+    walletId
+      ? prisma.transaction.count({
+          where: { OR: [{ debitWalletId: walletId }, { creditWalletId: walletId }] },
+        })
+      : Promise.resolve(0),
+  ]);
+
+  return { ...rider, counts: { deliveries: deliveryCount, transactions: transactionCount } };
+};
+
+const getRiderTransactions = async (riderId, options) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    select: { userId: true, user: { select: { wallet: { select: { id: true } } } } },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+  return _getWalletTransactions(rider.user?.wallet?.id, options);
+};
+
+const getRiderTransactionById = async (riderId, transactionId) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    select: { userId: true, user: { select: { wallet: { select: { id: true } } } } },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+  return _getWalletTransactionById(rider.user?.wallet?.id, transactionId);
+};
+
+const getRiderUtilityPayments = async (riderId, options) => {
+  const rider = await prisma.rider.findUnique({ where: { id: riderId }, select: { userId: true } });
+  if (!rider) throw AppError.notFound('Rider not found');
+  return _getUserUtilityPayments(rider.userId, options);
+};
+
+const getRiderUtilityPaymentById = async (riderId, paymentId) => {
+  const rider = await prisma.rider.findUnique({ where: { id: riderId }, select: { userId: true } });
+  if (!rider) throw AppError.notFound('Rider not found');
+  return _getUserUtilityPaymentById(rider.userId, paymentId);
+};
+
+// ─── Merchant transactions + utility payments ─────────────────────────────────
+
+const getMerchantTransactions = async (merchantId, options) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    select: { userId: true, user: { select: { wallet: { select: { id: true } } } } },
+  });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  return _getWalletTransactions(merchant.user?.wallet?.id, options);
+};
+
+const getMerchantTransactionById = async (merchantId, transactionId) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    select: { userId: true, user: { select: { wallet: { select: { id: true } } } } },
+  });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  return _getWalletTransactionById(merchant.user?.wallet?.id, transactionId);
+};
+
+const getMerchantUtilityPayments = async (merchantId, options) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { userId: true } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  return _getUserUtilityPayments(merchant.userId, options);
+};
+
+const getMerchantUtilityPaymentById = async (merchantId, paymentId) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { userId: true } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  return _getUserUtilityPaymentById(merchant.userId, paymentId);
+};
+
 module.exports = {
   getPendingRiders,
   reviewRider,
@@ -2806,7 +3011,10 @@ module.exports = {
   setCustomerPin,
   getCustomerRequests,
   getCustomerTransactions,
+  getCustomerTransactionById,
   getCustomerAddresses,
+  getCustomerUtilityPayments,
+  getCustomerUtilityPaymentById,
   getTransactionOverview,
   getDashboardStats,
   getAllRequests,
@@ -2815,6 +3023,10 @@ module.exports = {
   adminUpdateRequestStatus,
   getAllMerchants,
   getMerchantById,
+  getMerchantTransactions,
+  getMerchantTransactionById,
+  getMerchantUtilityPayments,
+  getMerchantUtilityPaymentById,
   approveMerchant,
   rejectMerchant,
   suspendMerchant,
@@ -2837,11 +3049,16 @@ module.exports = {
   updateCategoryAttributeSchema,
   deleteCategory,
   getAllRiders,
+  getRiderById,
   getRiderStats,
   suspendRider,
   unsuspendRider,
   getRiderEarnings,
   getRiderDeliveryHistory,
+  getRiderTransactions,
+  getRiderTransactionById,
+  getRiderUtilityPayments,
+  getRiderUtilityPaymentById,
   // Rider operations + safety/compliance (were defined but never exported,
   // so these endpoints 500'd with "is not a function").
   getRiderPerformance,

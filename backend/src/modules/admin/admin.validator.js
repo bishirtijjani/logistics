@@ -181,6 +181,13 @@ const customerTransactionsSchema = z.object({
   status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REVERSED']).optional(),
 });
 
+const utilityPaymentsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  type: z.enum(['AIRTIME', 'DATA', 'CABLE', 'ELECTRICITY']).optional(),
+  status: z.enum(['PROCESSING', 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED']).optional(),
+});
+
 const reassignRiderSchema = z.object({
   newRiderId: z.string().uuid(),
 });
@@ -397,4 +404,5 @@ module.exports = {
   forceOfflineRiderSchema,
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,
+  utilityPaymentsQuerySchema,
 };

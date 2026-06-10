@@ -11,8 +11,10 @@ import {
   fetchProcessingWithdrawals, failWithdrawal,
   fetchAllTags, createTag, updateTag, deleteTag, setMerchantTags,
   fetchBankList, updateMerchantBankAccount, resolveBankAccount,
+  fetchMerchantTransactions, fetchMerchantTransactionReceipt, clearMerchantTransactionReceipt,
   clearSelectedMerchant,
 } from '../store/slices/merchantsSlice'
+import { TransactionReceiptModal } from './CustomerDetailPage'
 import { fetchCategories } from '../store/slices/categoriesSlice'
 import { exportToCSV } from '../lib/exportToCSV'
 import Pagination from '../components/Pagination'
@@ -144,7 +146,7 @@ const Btn = ({ variant = 'primary', size = 'md', loading, children, className = 
 function MerchantDrawer({ merchant, onClose, onAction }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { commissionHistory, commissionHistoryLoading, banks } = useSelector((s) => s.merchants)
+  const { commissionHistory, commissionHistoryLoading, banks, merchantTransactions, transactionReceipt } = useSelector((s) => s.merchants)
   const [tab, setTab] = useState('info')
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState({})
@@ -159,6 +161,13 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
   useEffect(() => {
     if (merchant && tab === 'commission') {
       dispatch(fetchCommissionHistory({ merchantId: merchant.id }))
+    }
+  }, [merchant, tab, dispatch])
+
+  // Load the merchant's wallet ledger when the Transactions tab is opened.
+  useEffect(() => {
+    if (merchant && tab === 'transactions') {
+      dispatch(fetchMerchantTransactions({ merchantId: merchant.id, page: 1, limit: 20 }))
     }
   }, [merchant, tab, dispatch])
 
@@ -286,15 +295,17 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
     })
 
   const drawerTabs = [
-    { id: 'info',       label: 'Profile' },
-    { id: 'commission', label: 'Commission' },
-    { id: 'wallet',     label: 'Wallet' },
-    { id: 'tags',       label: 'Tags' },
+    { id: 'info',         label: 'Profile' },
+    { id: 'commission',   label: 'Commission' },
+    { id: 'wallet',       label: 'Wallet' },
+    { id: 'transactions', label: 'Transactions' },
+    { id: 'tags',         label: 'Tags' },
   ]
 
   const walletHeld = merchant.wallet?.withdrawalHeld
 
   return (
+    <>
     <div className="fixed inset-0 z-40 flex justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div
@@ -690,6 +701,37 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
             </div>
           )}
 
+          {/* ── Transactions Tab ── */}
+          {/* The merchant's wallet ledger already includes VTU/utility buys as
+              UTILITY_PAYMENT rows, mirroring what the merchant sees in-app. */}
+          {tab === 'transactions' && (
+            <div>
+              {merchantTransactions?.loading && !merchantTransactions?.data?.length ? (
+                <div className="flex justify-center py-8"><Spinner size={20} cls="border-primary" /></div>
+              ) : !merchantTransactions?.data?.length ? (
+                <p className="text-sm text-muted dark:text-dark-muted text-center py-6">No transactions yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {merchantTransactions.data.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => dispatch(fetchMerchantTransactionReceipt({ merchantId: merchant.id, transactionId: t.id }))}
+                      className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-muted dark:bg-dark-surface-muted text-left hover:opacity-90 transition-opacity"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text dark:text-dark-text truncate">{t.description || (t.type || '').replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-muted dark:text-dark-muted">{new Date(t.createdAt).toLocaleString()} · {t.status}</p>
+                      </div>
+                      <span className={`text-sm font-semibold shrink-0 ${t.direction === 'CREDIT' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text dark:text-dark-text'}`}>
+                        {t.direction === 'CREDIT' ? '+' : '-'}₦{Number(t.amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Tags Tab ── */}
           {tab === 'tags' && (
             <MerchantTagsPanel merchant={merchant} onSaved={onAction} />
@@ -697,6 +739,16 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         </div>
       </div>
     </div>
+
+    {/* Transaction receipt - mirrors the in-app receipt the merchant sees */}
+    {transactionReceipt.data && (
+      <TransactionReceiptModal
+        tx={transactionReceipt.data}
+        loading={transactionReceipt.loading}
+        onClose={() => dispatch(clearMerchantTransactionReceipt())}
+      />
+    )}
+    </>
   )
 }
 

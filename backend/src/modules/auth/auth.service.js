@@ -38,7 +38,7 @@ const register = async ({
   lastName,
   phone,
   password,
-  role,
+  role = 'CUSTOMER',
 }) => {
   // Only block if an ACTIVE (verified) user already has this email
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -243,7 +243,6 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
 
     if (isMerchant) {
       const m = pending.merchant;
-      const pinHash = await bcrypt.hash('000000', SALT_ROUNDS); // Default merchant PIN
 
       const created = await tx.user.create({
         data: {
@@ -252,7 +251,6 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
           firstName: pending.firstName,
           lastName: pending.lastName,
           passwordHash: pending.passwordHash,
-          transactionPin: pinHash,
           role: 'MERCHANT',
           status: 'ACTIVE',
           wallet: { create: { balance: 0 } },

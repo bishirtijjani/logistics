@@ -40,6 +40,34 @@ const register = async (req, res, next) => {
   }
 };
 
+const riderRegister = async (req, res, next) => {
+  try {
+    const result = await authService.register({ ...req.body, role: 'RIDER' });
+
+    const code = await authService.generateOtp(req.body.email);
+
+    const emailService = require("../../services/email.service");
+    const messagingService = require("../../services/messaging.service");
+
+    await emailService.sendOtpEmail(req.body.email, code);
+
+    if (req.body.phone) {
+      messagingService.sendOtp(req.body.phone, code).catch((err) => {
+        require("../../utils/logger").logger.warn("Phone OTP failed (non-fatal)", { error: err.message });
+      });
+    }
+
+    res.status(200).json(
+      ApiResponse.success(
+        "Registration successful. Check your email for the verification code.",
+        result,
+      ),
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 const merchantRegister = async (req, res, next) => {
   try {
     const { code, ...result } = await authService.merchantRegister(req.body);
@@ -359,6 +387,7 @@ const confirmPhoneChange = async (req, res, next) => {
 
 module.exports = {
   register,
+  riderRegister,
   login,
   sendOtp,
   verifyOtp,

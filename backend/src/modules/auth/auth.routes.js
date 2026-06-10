@@ -42,6 +42,12 @@ router.post(
   authController.register,
 );
 router.post(
+  "/rider/register",
+  registrationLimiter,
+  validate(registerSchema),
+  authController.riderRegister,
+);
+router.post(
   "/merchant/register",
   registrationLimiter,
   validate(merchantRegisterSchema),

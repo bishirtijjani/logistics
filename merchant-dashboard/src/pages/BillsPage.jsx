@@ -63,7 +63,7 @@ function Chip({ active, onClick, children, dotColor }) {
 export default function BillsPage() {
   const dispatch = useDispatch()
   const user = useSelector((s) => s.auth.user)
-  const hasPin = user?.transactionPinSetByUser === true
+  const hasPin = user?.hasPinSet === true || user?.transactionPinSetByUser === true
   const wallet = useSelector((s) => s.wallet)
   const balance = Number(wallet?.balance ?? 0)
 

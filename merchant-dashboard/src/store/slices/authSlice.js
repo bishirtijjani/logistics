@@ -65,9 +65,27 @@ export const fetchAuthProfile = createAsyncThunk(
   }
 )
 
+// Set the transaction PIN for the first time (no current PIN required).
+export const setTransactionPin = createAsyncThunk(
+  'auth/setTransactionPin',
+  async ({ pin }, { rejectWithValue }) => {
+    try {
+      const res = await api.post('/auth/pin', { pin })
+      return res.data.data
+    } catch (err) {
+      return rejectWithValue({
+        message: err?.response?.data?.message || apiErrorMessage(err, 'Failed to set PIN'),
+        status: err?.response?.status ?? null,
+        code: err?.response?.data?.code ?? null,
+        errors: err?.response?.data?.errors ?? null,
+      })
+    }
+  }
+)
+
 // Change the transaction PIN. Verifies the current PIN server-side, so a wrong
 // current PIN comes back 401 and the form surfaces the message. There is no
-// attempt lockout. Merchants start on the default '000000'.
+// attempt lockout.
 export const changeTransactionPin = createAsyncThunk(
   'auth/changeTransactionPin',
   async ({ currentPin, newPin }, { rejectWithValue }) => {
@@ -160,6 +178,17 @@ const authSlice = createSlice({
           localStorage.setItem('merchant_user', JSON.stringify(state.user))
         } catch {
           // ignore quota/serialization errors
+        }
+      })
+      .addCase(setTransactionPin.fulfilled, (state) => {
+        if (state.user) {
+          state.user.hasPinSet = true
+          state.user.transactionPinSetByUser = true
+        }
+        try {
+          localStorage.setItem('merchant_user', JSON.stringify(state.user))
+        } catch {
+          // ignore
         }
       })
       .addCase(changeTransactionPin.fulfilled, (state) => {

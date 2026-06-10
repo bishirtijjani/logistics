@@ -117,6 +117,36 @@ export const fetchCustomerAddresses = createAsyncThunk(
   }
 )
 
+export const fetchCustomerTransactionReceipt = createAsyncThunk(
+  'customers/fetchTransactionReceipt',
+  async ({ customerId, transactionId }) => {
+    const response = await api.get(`/admin/customers/${customerId}/transactions/${transactionId}`)
+    return response.data.data
+  }
+)
+
+export const fetchCustomerUtilityPayments = createAsyncThunk(
+  'customers/fetchUtilityPayments',
+  async ({ customerId, page, limit, type, status }) => {
+    const params = new URLSearchParams({
+      page: page || 1,
+      limit: limit || 20,
+      ...(type && { type }),
+      ...(status && { status }),
+    })
+    const response = await api.get(`/admin/customers/${customerId}/utility-payments?${params}`)
+    return { data: response.data.data, meta: response.data.meta }
+  }
+)
+
+export const fetchCustomerUtilityPaymentDetail = createAsyncThunk(
+  'customers/fetchUtilityPaymentDetail',
+  async ({ customerId, paymentId }) => {
+    const response = await api.get(`/admin/customers/${customerId}/utility-payments/${paymentId}`)
+    return response.data.data
+  }
+)
+
 const customersSlice = createSlice({
   name: 'customers',
   initialState: {
@@ -130,6 +160,9 @@ const customersSlice = createSlice({
     detail: { data: null, loading: false, error: null },
     requests: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
     transactions: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
+    transactionReceipt: { data: null, loading: false, error: null },
+    utilityPayments: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
+    utilityPaymentDetail: { data: null, loading: false, error: null },
     addresses: { data: [], loading: false, error: null },
     pin: { data: null, loading: false, saving: false, error: null },
   },
@@ -138,8 +171,17 @@ const customersSlice = createSlice({
       state.detail = { data: null, loading: false, error: null }
       state.requests = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
       state.transactions = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
+      state.transactionReceipt = { data: null, loading: false, error: null }
+      state.utilityPayments = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
+      state.utilityPaymentDetail = { data: null, loading: false, error: null }
       state.addresses = { data: [], loading: false, error: null }
       state.pin = { data: null, loading: false, saving: false, error: null }
+    },
+    clearTransactionReceipt: (state) => {
+      state.transactionReceipt = { data: null, loading: false, error: null }
+    },
+    clearUtilityPaymentDetail: (state) => {
+      state.utilityPaymentDetail = { data: null, loading: false, error: null }
     },
     clearCustomerPin: (state) => {
       state.pin = { data: null, loading: false, saving: false, error: null }
@@ -294,9 +336,48 @@ const customersSlice = createSlice({
         state.addresses.loading = false
         state.addresses.error = action.error.message
       })
+      .addCase(fetchCustomerTransactionReceipt.pending, (state) => {
+        state.transactionReceipt.loading = true
+        state.transactionReceipt.error = null
+      })
+      .addCase(fetchCustomerTransactionReceipt.fulfilled, (state, action) => {
+        state.transactionReceipt.loading = false
+        state.transactionReceipt.data = action.payload
+      })
+      .addCase(fetchCustomerTransactionReceipt.rejected, (state, action) => {
+        state.transactionReceipt.loading = false
+        state.transactionReceipt.error = action.error.message
+      })
+      .addCase(fetchCustomerUtilityPayments.pending, (state) => {
+        state.utilityPayments.loading = true
+        state.utilityPayments.error = null
+      })
+      .addCase(fetchCustomerUtilityPayments.fulfilled, (state, action) => {
+        state.utilityPayments.loading = false
+        state.utilityPayments.data = action.payload.data
+        state.utilityPayments.total = action.payload.meta?.total || 0
+        state.utilityPayments.page = action.payload.meta?.page || 1
+        state.utilityPayments.limit = action.payload.meta?.limit || 20
+      })
+      .addCase(fetchCustomerUtilityPayments.rejected, (state, action) => {
+        state.utilityPayments.loading = false
+        state.utilityPayments.error = action.error.message
+      })
+      .addCase(fetchCustomerUtilityPaymentDetail.pending, (state) => {
+        state.utilityPaymentDetail.loading = true
+        state.utilityPaymentDetail.error = null
+      })
+      .addCase(fetchCustomerUtilityPaymentDetail.fulfilled, (state, action) => {
+        state.utilityPaymentDetail.loading = false
+        state.utilityPaymentDetail.data = action.payload
+      })
+      .addCase(fetchCustomerUtilityPaymentDetail.rejected, (state, action) => {
+        state.utilityPaymentDetail.loading = false
+        state.utilityPaymentDetail.error = action.error.message
+      })
   },
 })
 
-export const { clearCustomerDetail, clearCustomerPin } = customersSlice.actions
+export const { clearCustomerDetail, clearCustomerPin, clearTransactionReceipt, clearUtilityPaymentDetail } = customersSlice.actions
 
 export default customersSlice.reducer

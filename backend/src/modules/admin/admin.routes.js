@@ -56,6 +56,7 @@ const {
   updatePlatformSettingsSchema,
   customerRequestsSchema,
   customerTransactionsSchema,
+  utilityPaymentsQuerySchema,
   listAllCustomersSchema,
   paginationSchema,
   paginationStatusSchema,
@@ -92,6 +93,10 @@ router.get('/merchants/:merchantId/commission-history', validate(paginationSchem
 router.patch('/merchants/:merchantId/withdrawal-hold', validate(setWithdrawalHoldSchema), adminController.setWithdrawalHold);
 router.put('/merchants/:merchantId/bank-account', validate(setMerchantBankAccountSchema), adminController.setMerchantBankAccount);
 router.get('/merchants/:merchantId/analytics', adminController.getMerchantAnalytics);
+router.get('/merchants/:merchantId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getMerchantTransactions);
+router.get('/merchants/:merchantId/transactions/:transactionId', adminController.getMerchantTransactionById);
+router.get('/merchants/:merchantId/utility-payments', validate(utilityPaymentsQuerySchema, 'query'), adminController.getMerchantUtilityPayments);
+router.get('/merchants/:merchantId/utility-payments/:paymentId', adminController.getMerchantUtilityPaymentById);
 router.post('/merchants/:merchantId/tags', validate(setMerchantTagsSchema), adminController.setMerchantTags);
 
 // Withdrawal bulk operations
@@ -116,11 +121,16 @@ router.delete('/categories/:categoryId', adminController.deleteCategory);
 router.get('/riders/pending', validate(listPendingRidersSchema, 'query'), adminController.getPendingRiders);
 router.get('/riders/stats', adminController.getRiderStats);
 router.get('/riders', validate(listAllRidersSchema, 'query'), adminController.getAllRiders);
+router.get('/riders/:riderId', adminController.getRiderById);
 router.patch('/riders/:riderId/review', validate(reviewRiderSchema), adminController.reviewRider);
 router.patch('/riders/:riderId/suspend', validate(suspendRiderSchema), adminController.suspendRider);
 router.patch('/riders/:riderId/unsuspend', validate(unsuspendRiderSchema), adminController.unsuspendRider);
 router.get('/riders/:riderId/earnings', validate(getRiderEarningsSchema, 'query'), adminController.getRiderEarnings);
 router.get('/riders/:riderId/deliveries', validate(paginationSchema, 'query'), adminController.getRiderDeliveryHistory);
+router.get('/riders/:riderId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getRiderTransactions);
+router.get('/riders/:riderId/transactions/:transactionId', adminController.getRiderTransactionById);
+router.get('/riders/:riderId/utility-payments', validate(utilityPaymentsQuerySchema, 'query'), adminController.getRiderUtilityPayments);
+router.get('/riders/:riderId/utility-payments/:paymentId', adminController.getRiderUtilityPaymentById);
 
 // Customer management
 router.get('/customers', validate(listAllCustomersSchema, 'query'), adminController.getAllCustomers);
@@ -129,6 +139,9 @@ router.get('/customers/stats', adminController.getCustomerStats);
 router.get('/customers/:customerId', adminController.getCustomerById);
 router.get('/customers/:customerId/requests', validate(customerRequestsSchema, 'query'), adminController.getCustomerRequests);
 router.get('/customers/:customerId/transactions', validate(customerTransactionsSchema, 'query'), adminController.getCustomerTransactions);
+router.get('/customers/:customerId/transactions/:transactionId', adminController.getCustomerTransactionById);
+router.get('/customers/:customerId/utility-payments', validate(utilityPaymentsQuerySchema, 'query'), adminController.getCustomerUtilityPayments);
+router.get('/customers/:customerId/utility-payments/:paymentId', adminController.getCustomerUtilityPaymentById);
 router.get('/customers/:customerId/addresses', adminController.getCustomerAddresses);
 // TEMPORARY testing aid: reveal/set a customer's transaction PIN (audit-logged).
 router.get('/customers/:customerId/pin', adminController.getCustomerPin);

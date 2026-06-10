@@ -59,6 +59,58 @@ export const fetchRiderDeliveryHistory = createAsyncThunk(
   }
 )
 
+export const fetchRiderDetail = createAsyncThunk(
+  'riders/fetchDetail',
+  async (riderId) => {
+    const response = await api.get(`/admin/riders/${riderId}`)
+    return response.data.data
+  }
+)
+
+export const fetchRiderTransactions = createAsyncThunk(
+  'riders/fetchTransactions',
+  async ({ riderId, page, limit, type, status }) => {
+    const params = new URLSearchParams({
+      page: page || 1,
+      limit: limit || 20,
+      ...(type && { type }),
+      ...(status && { status }),
+    })
+    const response = await api.get(`/admin/riders/${riderId}/transactions?${params}`)
+    return { data: response.data.data, meta: response.data.meta }
+  }
+)
+
+export const fetchRiderTransactionReceipt = createAsyncThunk(
+  'riders/fetchTransactionReceipt',
+  async ({ riderId, transactionId }) => {
+    const response = await api.get(`/admin/riders/${riderId}/transactions/${transactionId}`)
+    return response.data.data
+  }
+)
+
+export const fetchRiderUtilityPayments = createAsyncThunk(
+  'riders/fetchUtilityPayments',
+  async ({ riderId, page, limit, type, status }) => {
+    const params = new URLSearchParams({
+      page: page || 1,
+      limit: limit || 20,
+      ...(type && { type }),
+      ...(status && { status }),
+    })
+    const response = await api.get(`/admin/riders/${riderId}/utility-payments?${params}`)
+    return { data: response.data.data, meta: response.data.meta }
+  }
+)
+
+export const fetchRiderUtilityPaymentDetail = createAsyncThunk(
+  'riders/fetchUtilityPaymentDetail',
+  async ({ riderId, paymentId }) => {
+    const response = await api.get(`/admin/riders/${riderId}/utility-payments/${paymentId}`)
+    return response.data.data
+  }
+)
+
 // Approve/reject a rider awaiting approval. Folded in from the old
 // pendingRiders slice so review now happens inline on the Riders page.
 export const reviewRider = createAsyncThunk(
@@ -121,8 +173,13 @@ const ridersSlice = createSlice({
     pendingLoading: false,
     stats: null,
     selectedRider: null,
+    riderDetail: { data: null, loading: false, error: null },
     riderEarnings: null,
     riderDeliveries: null,
+    riderTransactions: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
+    transactionReceipt: { data: null, loading: false, error: null },
+    utilityPayments: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
+    utilityPaymentDetail: { data: null, loading: false, error: null },
     error: null,
   },
   reducers: {
@@ -130,6 +187,19 @@ const ridersSlice = createSlice({
       state.selectedRider = null
       state.riderEarnings = null
       state.riderDeliveries = null
+    },
+    clearRiderDetail: (state) => {
+      state.riderDetail = { data: null, loading: false, error: null }
+      state.riderTransactions = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
+      state.transactionReceipt = { data: null, loading: false, error: null }
+      state.utilityPayments = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
+      state.utilityPaymentDetail = { data: null, loading: false, error: null }
+    },
+    clearRiderTransactionReceipt: (state) => {
+      state.transactionReceipt = { data: null, loading: false, error: null }
+    },
+    clearRiderUtilityPaymentDetail: (state) => {
+      state.utilityPaymentDetail = { data: null, loading: false, error: null }
     },
     setSelectedRider: (state, action) => {
       state.selectedRider = action.payload
@@ -172,6 +242,72 @@ const ridersSlice = createSlice({
       .addCase(fetchRiderDeliveryHistory.fulfilled, (state, action) => {
         state.riderDeliveries = action.payload
       })
+      .addCase(fetchRiderDetail.pending, (state) => {
+        state.riderDetail.loading = true
+        state.riderDetail.error = null
+      })
+      .addCase(fetchRiderDetail.fulfilled, (state, action) => {
+        state.riderDetail.loading = false
+        state.riderDetail.data = action.payload
+      })
+      .addCase(fetchRiderDetail.rejected, (state, action) => {
+        state.riderDetail.loading = false
+        state.riderDetail.error = action.error.message
+      })
+      .addCase(fetchRiderTransactions.pending, (state) => {
+        state.riderTransactions.loading = true
+        state.riderTransactions.error = null
+      })
+      .addCase(fetchRiderTransactions.fulfilled, (state, action) => {
+        state.riderTransactions.loading = false
+        state.riderTransactions.data = action.payload.data
+        state.riderTransactions.total = action.payload.meta?.total || 0
+        state.riderTransactions.page = action.payload.meta?.page || 1
+        state.riderTransactions.limit = action.payload.meta?.limit || 20
+      })
+      .addCase(fetchRiderTransactions.rejected, (state, action) => {
+        state.riderTransactions.loading = false
+        state.riderTransactions.error = action.error.message
+      })
+      .addCase(fetchRiderTransactionReceipt.pending, (state) => {
+        state.transactionReceipt.loading = true
+        state.transactionReceipt.error = null
+      })
+      .addCase(fetchRiderTransactionReceipt.fulfilled, (state, action) => {
+        state.transactionReceipt.loading = false
+        state.transactionReceipt.data = action.payload
+      })
+      .addCase(fetchRiderTransactionReceipt.rejected, (state, action) => {
+        state.transactionReceipt.loading = false
+        state.transactionReceipt.error = action.error.message
+      })
+      .addCase(fetchRiderUtilityPayments.pending, (state) => {
+        state.utilityPayments.loading = true
+        state.utilityPayments.error = null
+      })
+      .addCase(fetchRiderUtilityPayments.fulfilled, (state, action) => {
+        state.utilityPayments.loading = false
+        state.utilityPayments.data = action.payload.data
+        state.utilityPayments.total = action.payload.meta?.total || 0
+        state.utilityPayments.page = action.payload.meta?.page || 1
+        state.utilityPayments.limit = action.payload.meta?.limit || 20
+      })
+      .addCase(fetchRiderUtilityPayments.rejected, (state, action) => {
+        state.utilityPayments.loading = false
+        state.utilityPayments.error = action.error.message
+      })
+      .addCase(fetchRiderUtilityPaymentDetail.pending, (state) => {
+        state.utilityPaymentDetail.loading = true
+        state.utilityPaymentDetail.error = null
+      })
+      .addCase(fetchRiderUtilityPaymentDetail.fulfilled, (state, action) => {
+        state.utilityPaymentDetail.loading = false
+        state.utilityPaymentDetail.data = action.payload
+      })
+      .addCase(fetchRiderUtilityPaymentDetail.rejected, (state, action) => {
+        state.utilityPaymentDetail.loading = false
+        state.utilityPaymentDetail.error = action.error.message
+      })
       .addCase(reviewRider.fulfilled, (state, action) => {
         const updated = action.payload
         patchRiderInState(state, updated)
@@ -209,5 +345,11 @@ const ridersSlice = createSlice({
   },
 })
 
-export const { clearSelectedRider, setSelectedRider } = ridersSlice.actions
+export const {
+  clearSelectedRider,
+  setSelectedRider,
+  clearRiderDetail,
+  clearRiderTransactionReceipt,
+  clearRiderUtilityPaymentDetail,
+} = ridersSlice.actions
 export default ridersSlice.reducer

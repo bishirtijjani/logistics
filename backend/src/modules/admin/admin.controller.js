@@ -164,6 +164,141 @@ const getCustomerAddresses = async (req, res, next) => {
   }
 };
 
+const getCustomerTransactionById = async (req, res, next) => {
+  try {
+    const tx = await adminService.getCustomerTransactionById(req.params.customerId, req.params.transactionId);
+    res.json(ApiResponse.success('Transaction', tx));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCustomerUtilityPayments = async (req, res, next) => {
+  try {
+    const { payments, total, page, limit } = await adminService.getCustomerUtilityPayments(
+      req.params.customerId,
+      req.query,
+    );
+    res.json(ApiResponse.paginated('Customer utility payments', payments, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getCustomerUtilityPaymentById = async (req, res, next) => {
+  try {
+    const payment = await adminService.getCustomerUtilityPaymentById(
+      req.params.customerId,
+      req.params.paymentId,
+    );
+    res.json(ApiResponse.success('Utility payment', payment));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderById = async (req, res, next) => {
+  try {
+    const rider = await adminService.getRiderById(req.params.riderId);
+    res.json(ApiResponse.success('Rider', rider));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderTransactions = async (req, res, next) => {
+  try {
+    const { transactions, total, page, limit } = await adminService.getRiderTransactions(
+      req.params.riderId,
+      req.query,
+    );
+    res.json(ApiResponse.paginated('Rider transactions', transactions, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderTransactionById = async (req, res, next) => {
+  try {
+    const tx = await adminService.getRiderTransactionById(req.params.riderId, req.params.transactionId);
+    res.json(ApiResponse.success('Transaction', tx));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderUtilityPayments = async (req, res, next) => {
+  try {
+    const { payments, total, page, limit } = await adminService.getRiderUtilityPayments(
+      req.params.riderId,
+      req.query,
+    );
+    res.json(ApiResponse.paginated('Rider utility payments', payments, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRiderUtilityPaymentById = async (req, res, next) => {
+  try {
+    const payment = await adminService.getRiderUtilityPaymentById(
+      req.params.riderId,
+      req.params.paymentId,
+    );
+    res.json(ApiResponse.success('Utility payment', payment));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMerchantTransactions = async (req, res, next) => {
+  try {
+    const { transactions, total, page, limit } = await adminService.getMerchantTransactions(
+      req.params.merchantId,
+      req.query,
+    );
+    res.json(ApiResponse.paginated('Merchant transactions', transactions, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMerchantTransactionById = async (req, res, next) => {
+  try {
+    const tx = await adminService.getMerchantTransactionById(
+      req.params.merchantId,
+      req.params.transactionId,
+    );
+    res.json(ApiResponse.success('Transaction', tx));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMerchantUtilityPayments = async (req, res, next) => {
+  try {
+    const { payments, total, page, limit } = await adminService.getMerchantUtilityPayments(
+      req.params.merchantId,
+      req.query,
+    );
+    res.json(ApiResponse.paginated('Merchant utility payments', payments, page, limit, total));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMerchantUtilityPaymentById = async (req, res, next) => {
+  try {
+    const payment = await adminService.getMerchantUtilityPaymentById(
+      req.params.merchantId,
+      req.params.paymentId,
+    );
+    res.json(ApiResponse.success('Utility payment', payment));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getTransactions = async (req, res, next) => {
   try {
     const { transactions, total, page, limit } = await adminService.getTransactionOverview(req.query);
@@ -892,7 +1027,10 @@ module.exports = {
   setCustomerPin,
   getCustomerRequests,
   getCustomerTransactions,
+  getCustomerTransactionById,
   getCustomerAddresses,
+  getCustomerUtilityPayments,
+  getCustomerUtilityPaymentById,
   getTransactions,
   getDashboard,
   getAllRequests,
@@ -901,6 +1039,10 @@ module.exports = {
   adminUpdateRequestStatus,
   getAllMerchants,
   getMerchantById,
+  getMerchantTransactions,
+  getMerchantTransactionById,
+  getMerchantUtilityPayments,
+  getMerchantUtilityPaymentById,
   approveMerchant,
   rejectMerchant,
   suspendMerchant,
@@ -923,11 +1065,16 @@ module.exports = {
   deleteCategory,
   setMerchantTags,
   getAllRiders,
+  getRiderById,
   getRiderStats,
   suspendRider,
   unsuspendRider,
   getRiderEarnings,
   getRiderDeliveryHistory,
+  getRiderTransactions,
+  getRiderTransactionById,
+  getRiderUtilityPayments,
+  getRiderUtilityPaymentById,
   getPlatformSettings,
   updatePlatformSettings,
   getAuditLogs,

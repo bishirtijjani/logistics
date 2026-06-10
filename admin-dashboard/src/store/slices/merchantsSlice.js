@@ -123,6 +123,50 @@ export const setWithdrawalHold = createAsyncThunk(
 // Per-Merchant Analytics
 // ============================================================
 
+export const fetchMerchantTransactions = createAsyncThunk(
+  'merchants/fetchTransactions',
+  async ({ merchantId, page, limit, type, status }) => {
+    const params = new URLSearchParams({
+      page: page || 1,
+      limit: limit || 20,
+      ...(type && { type }),
+      ...(status && { status }),
+    })
+    const response = await api.get(`/admin/merchants/${merchantId}/transactions?${params}`)
+    return { data: response.data.data, meta: response.data.meta }
+  }
+)
+
+export const fetchMerchantTransactionReceipt = createAsyncThunk(
+  'merchants/fetchTransactionReceipt',
+  async ({ merchantId, transactionId }) => {
+    const response = await api.get(`/admin/merchants/${merchantId}/transactions/${transactionId}`)
+    return response.data.data
+  }
+)
+
+export const fetchMerchantUtilityPayments = createAsyncThunk(
+  'merchants/fetchUtilityPayments',
+  async ({ merchantId, page, limit, type, status }) => {
+    const params = new URLSearchParams({
+      page: page || 1,
+      limit: limit || 20,
+      ...(type && { type }),
+      ...(status && { status }),
+    })
+    const response = await api.get(`/admin/merchants/${merchantId}/utility-payments?${params}`)
+    return { data: response.data.data, meta: response.data.meta }
+  }
+)
+
+export const fetchMerchantUtilityPaymentDetail = createAsyncThunk(
+  'merchants/fetchUtilityPaymentDetail',
+  async ({ merchantId, paymentId }) => {
+    const response = await api.get(`/admin/merchants/${merchantId}/utility-payments/${paymentId}`)
+    return response.data.data
+  }
+)
+
 export const fetchMerchantAnalytics = createAsyncThunk(
   'merchants/fetchAnalytics',
   async ({ merchantId, startDate, endDate, period } = {}) => {
@@ -322,6 +366,12 @@ const merchantsSlice = createSlice({
     merchantAnalytics: null,
     analyticsLoading: false,
 
+    // Transactions + utility payments (for detail page)
+    merchantTransactions: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
+    transactionReceipt: { data: null, loading: false, error: null },
+    utilityPayments: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
+    utilityPaymentDetail: { data: null, loading: false, error: null },
+
     // Tags
     tags: [],
     tagsTotal: 0,
@@ -344,6 +394,18 @@ const merchantsSlice = createSlice({
     },
     clearMerchantAnalytics(state) {
       state.merchantAnalytics = null
+    },
+    clearMerchantTransactionData(state) {
+      state.merchantTransactions = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
+      state.transactionReceipt = { data: null, loading: false, error: null }
+      state.utilityPayments = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
+      state.utilityPaymentDetail = { data: null, loading: false, error: null }
+    },
+    clearMerchantTransactionReceipt(state) {
+      state.transactionReceipt = { data: null, loading: false, error: null }
+    },
+    clearMerchantUtilityPaymentDetail(state) {
+      state.utilityPaymentDetail = { data: null, loading: false, error: null }
     },
   },
   extraReducers: (builder) => {
@@ -531,8 +593,71 @@ const merchantsSlice = createSlice({
           state.selectedMerchant.wallet = { ...state.selectedMerchant.wallet, ...bank }
         }
       })
+
+    // ── Merchant transactions + utility payments ──
+    builder
+      .addCase(fetchMerchantTransactions.pending, (state) => {
+        state.merchantTransactions.loading = true
+        state.merchantTransactions.error = null
+      })
+      .addCase(fetchMerchantTransactions.fulfilled, (state, action) => {
+        state.merchantTransactions.loading = false
+        state.merchantTransactions.data = action.payload.data
+        state.merchantTransactions.total = action.payload.meta?.total || 0
+        state.merchantTransactions.page = action.payload.meta?.page || 1
+        state.merchantTransactions.limit = action.payload.meta?.limit || 20
+      })
+      .addCase(fetchMerchantTransactions.rejected, (state, action) => {
+        state.merchantTransactions.loading = false
+        state.merchantTransactions.error = action.error.message
+      })
+      .addCase(fetchMerchantTransactionReceipt.pending, (state) => {
+        state.transactionReceipt.loading = true
+        state.transactionReceipt.error = null
+      })
+      .addCase(fetchMerchantTransactionReceipt.fulfilled, (state, action) => {
+        state.transactionReceipt.loading = false
+        state.transactionReceipt.data = action.payload
+      })
+      .addCase(fetchMerchantTransactionReceipt.rejected, (state, action) => {
+        state.transactionReceipt.loading = false
+        state.transactionReceipt.error = action.error.message
+      })
+      .addCase(fetchMerchantUtilityPayments.pending, (state) => {
+        state.utilityPayments.loading = true
+        state.utilityPayments.error = null
+      })
+      .addCase(fetchMerchantUtilityPayments.fulfilled, (state, action) => {
+        state.utilityPayments.loading = false
+        state.utilityPayments.data = action.payload.data
+        state.utilityPayments.total = action.payload.meta?.total || 0
+        state.utilityPayments.page = action.payload.meta?.page || 1
+        state.utilityPayments.limit = action.payload.meta?.limit || 20
+      })
+      .addCase(fetchMerchantUtilityPayments.rejected, (state, action) => {
+        state.utilityPayments.loading = false
+        state.utilityPayments.error = action.error.message
+      })
+      .addCase(fetchMerchantUtilityPaymentDetail.pending, (state) => {
+        state.utilityPaymentDetail.loading = true
+        state.utilityPaymentDetail.error = null
+      })
+      .addCase(fetchMerchantUtilityPaymentDetail.fulfilled, (state, action) => {
+        state.utilityPaymentDetail.loading = false
+        state.utilityPaymentDetail.data = action.payload
+      })
+      .addCase(fetchMerchantUtilityPaymentDetail.rejected, (state, action) => {
+        state.utilityPaymentDetail.loading = false
+        state.utilityPaymentDetail.error = action.error.message
+      })
   },
 })
 
-export const { clearSelectedMerchant, clearMerchantAnalytics } = merchantsSlice.actions
+export const {
+  clearSelectedMerchant,
+  clearMerchantAnalytics,
+  clearMerchantTransactionData,
+  clearMerchantTransactionReceipt,
+  clearMerchantUtilityPaymentDetail,
+} = merchantsSlice.actions
 export default merchantsSlice.reducer

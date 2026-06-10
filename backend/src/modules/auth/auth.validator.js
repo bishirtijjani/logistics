@@ -16,7 +16,6 @@ const registerSchema = z.object({
   firstName: z.string().min(2).max(50),
   lastName: z.string().min(2).max(50),
   password: z.string().min(8).max(72),
-  role: z.enum(["CUSTOMER", "RIDER", "MERCHANT"]).default("CUSTOMER"),
 });
 
 const loginSchema = z.object({

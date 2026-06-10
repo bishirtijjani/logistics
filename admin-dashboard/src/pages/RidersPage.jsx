@@ -5,9 +5,11 @@ import { toast } from 'sonner'
 import {
   fetchAllRiders, fetchPendingRiders, fetchRiderStats,
   fetchRiderEarnings, fetchRiderDeliveryHistory,
+  fetchRiderTransactions, fetchRiderTransactionReceipt, clearRiderTransactionReceipt,
   reviewRider, suspendRider, unsuspendRider, forceOfflineRider,
   setSelectedRider, clearSelectedRider,
 } from '../store/slices/ridersSlice'
+import { TransactionReceiptModal } from './CustomerDetailPage'
 import { exportToCSV } from '../lib/exportToCSV'
 import Pagination from '../components/Pagination'
 import ActionMenu from '../components/ActionMenu'
@@ -304,6 +306,7 @@ export default function RidersPage() {
     riders, total, page, loading,
     pending, pendingTotal, pendingLoading,
     stats, selectedRider, riderEarnings, riderDeliveries,
+    riderTransactions, transactionReceipt,
   } = useSelector((s) => s.riders)
 
   // Honour the dashboard deep-link /riders?status=PENDING_APPROVAL → open the
@@ -343,6 +346,7 @@ export default function RidersPage() {
     setDrawerTab('profile')
     dispatch(fetchRiderEarnings({ riderId: rider.id }))
     dispatch(fetchRiderDeliveryHistory({ riderId: rider.id, page: 1, limit: 20 }))
+    dispatch(fetchRiderTransactions({ riderId: rider.id, page: 1, limit: 20 }))
   }
   const closeDrawer = () => dispatch(clearSelectedRider())
 
@@ -628,6 +632,8 @@ export default function RidersPage() {
         rider={selectedRider}
         earnings={riderEarnings}
         deliveries={riderDeliveries}
+        transactions={riderTransactions}
+        onTxClick={(t) => selectedRider && dispatch(fetchRiderTransactionReceipt({ riderId: selectedRider.id, transactionId: t.id }))}
         tab={drawerTab}
         setTab={setDrawerTab}
         actionLoading={actionLoading}
@@ -637,6 +643,15 @@ export default function RidersPage() {
         onUnsuspend={handleUnsuspend}
         onForceOffline={(r) => setOfflineTarget(r)}
       />
+
+      {/* Transaction receipt - mirrors the in-app receipt the rider sees */}
+      {transactionReceipt.data && (
+        <TransactionReceiptModal
+          tx={transactionReceipt.data}
+          loading={transactionReceipt.loading}
+          onClose={() => dispatch(clearRiderTransactionReceipt())}
+        />
+      )}
 
       {/* Suspend (reason required) */}
       <Modal open={!!suspendTarget} onClose={() => { setSuspendTarget(null); setSuspendReason('') }} title={`Suspend - ${suspendTarget ? fullName(suspendTarget) : ''}`}>
@@ -696,9 +711,10 @@ const DRAWER_TABS = [
   { id: 'documents', label: 'Documents' },
   { id: 'earnings', label: 'Earnings' },
   { id: 'deliveries', label: 'Deliveries' },
+  { id: 'transactions', label: 'Transactions' },
 ]
 
-function RiderDrawer({ rider, earnings, deliveries, tab, setTab, actionLoading, onClose, onReview, onSuspend, onUnsuspend, onForceOffline }) {
+function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab, setTab, actionLoading, onClose, onReview, onSuspend, onUnsuspend, onForceOffline }) {
   if (!rider) return null
   const busy = actionLoading === rider.id
 
@@ -836,6 +852,34 @@ function RiderDrawer({ rider, earnings, deliveries, tab, setTab, actionLoading, 
                       </div>
                     )}
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'transactions' && (
+          <div>
+            {transactions?.loading && !transactions?.data?.length ? (
+              <div className="flex justify-center py-8"><Spinner size={24} cls="border-primary" /></div>
+            ) : !transactions?.data?.length ? (
+              <p className="text-sm text-muted dark:text-dark-muted text-center py-6">No transactions yet</p>
+            ) : (
+              <div className="space-y-2">
+                {transactions.data.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => onTxClick(t)}
+                    className="w-full flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-muted dark:bg-dark-surface-muted text-left hover:opacity-90 transition-opacity"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text dark:text-dark-text truncate">{t.description || (t.type || '').replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-muted dark:text-dark-muted">{new Date(t.createdAt).toLocaleString()} · {t.status}</p>
+                    </div>
+                    <span className={`text-sm font-semibold shrink-0 ${t.direction === 'CREDIT' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text dark:text-dark-text'}`}>
+                      {t.direction === 'CREDIT' ? '+' : '-'}{naira(t.amount)}
+                    </span>
+                  </button>
                 ))}
               </div>
             )}
