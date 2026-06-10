@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   FlatList,
   Modal,
   ActivityIndicator,
-  Animated,
   KeyboardAvoidingView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,9 +24,7 @@ import {
 import { useTheme } from "../../theme";
 import Toast from "react-native-toast-message";
 import { usePlatformSetting } from "../../services/settings";
-import { usePinGuard } from "../../lib/usePinGuard";
-
-const PIN_LENGTH = 6;
+import PinBottomSheet from "../../components/PinBottomSheet";
 
 const formatNaira = (n) => `₦${Number(n).toLocaleString()}`;
 const formatChip = (n) => (n >= 1000 ? `₦${n / 1000}k` : `₦${n}`);
@@ -43,7 +40,6 @@ export default function SendMoneyScreen({ navigation, route }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
   const { balance, banks, isSending, beneficiaries } = useSelector((s) => s.wallet);
-  const requirePin = usePinGuard();
 
   const minTransfer = Number(usePlatformSetting("wallet.minTransfer", 100));
   const maxTransfer = Number(usePlatformSetting("wallet.maxTransfer", 500000));
@@ -54,7 +50,7 @@ export default function SendMoneyScreen({ navigation, route }) {
 
   const prefill = route?.params ?? {};
 
-  const [step, setStep] = useState("form"); // form | pin | success
+  const [step, setStep] = useState("form"); // form | success
   const [selectedBank, setSelectedBank] = useState(
     prefill.bankCode ? { bankCode: prefill.bankCode, bankName: prefill.bankName } : null,
   );
@@ -64,9 +60,7 @@ export default function SendMoneyScreen({ navigation, route }) {
   const [bankSearch, setBankSearch] = useState("");
   const [showBankPicker, setShowBankPicker] = useState(false);
   const [resolving, setResolving] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState("");
-  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const [showPinSheet, setShowPinSheet] = useState(false);
 
   useEffect(() => {
     dispatch(fetchBanks());
@@ -112,70 +106,36 @@ export default function SendMoneyScreen({ navigation, route }) {
     if (!amt || amt < minTransfer) { Toast.show({ type: "error", text1: t("wallet.send_.minTransfer", { amount: formatNaira(minTransfer) }) }); return; }
     if (amt > maxTransfer) { Toast.show({ type: "error", text1: t("wallet.send_.maxTransfer", { amount: formatNaira(maxTransfer) }) }); return; }
     if (amt > balance) { Toast.show({ type: "error", text1: t("errors.INSUFFICIENT_BALANCE") }); return; }
-    if (!requirePin()) return;
-    setStep("pin");
-    setPin("");
-    setPinError("");
+    setShowPinSheet(true);
   };
 
-  const shake = () => {
-    Animated.sequence([
-      Animated.timing(shakeAnim, { toValue: 10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: -10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 10, duration: 60, useNativeDriver: true }),
-      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
-    ]).start();
-  };
+  // The sheet owns PIN entry (eye toggle, Confirm, and inline setup for no-PIN
+  // users). onConfirm must throw on failure; .unwrap() rethrows the thunk's
+  // rejectWithValue payload ({ message, code }) so the sheet can react -
+  // including switching to inline setup on PIN_NOT_SET.
+  const handlePinConfirm = async (enteredPin) => {
+    await dispatch(
+      sendMoney({
+        bankCode: selectedBank.bankCode || selectedBank.code,
+        bankName: selectedBank.bankName || selectedBank.name,
+        accountNumber,
+        accountName,
+        amount: parseFloat(amount),
+        pin: enteredPin,
+      }),
+    ).unwrap();
 
-  const handlePinInput = async (digit) => {
-    const newPin = (pin + digit).slice(0, PIN_LENGTH);
-    setPin(newPin);
-    setPinError("");
-
-    if (newPin.length === PIN_LENGTH) {
-      const res = await dispatch(
-        sendMoney({
-          bankCode: selectedBank.bankCode || selectedBank.code,
-          bankName: selectedBank.bankName || selectedBank.name,
-          accountNumber,
-          accountName,
-          amount: parseFloat(amount),
-          pin: newPin,
-        }),
-      );
-
-      if (sendMoney.fulfilled.match(res)) {
-        setStep("success");
-        if (accountName && !bankBeneficiaries.some((b) => b.accountNumber === accountNumber)) {
-          dispatch(saveBeneficiary({
-            name: accountName,
-            bankCode: selectedBank.bankCode || selectedBank.code,
-            accountNumber,
-            accountName,
-          }));
-        }
-      } else if (res.payload?.code === "PIN_NOT_SET") {
-        // No transaction PIN yet - bounce back to the form and route to SetPin so
-        // the keypad isn't left in a dead state.
-        setStep("form");
-        setPin("");
-        setPinError("");
-        Toast.show({
-          type: "info",
-          text1: res.payload?.message || t("wallet.send_.pinNotSetTitle"),
-          text2: t("wallet.send_.pinNotSetHint"),
-        });
-        navigation.navigate("SetPin");
-      } else {
-        shake();
-        const msg = res.payload?.message || res.payload || t("wallet.send_.transferFailed");
-        setPinError(typeof msg === "string" && (msg.includes("locked") || msg.includes("attempt")) ? msg : t("wallet.send_.incorrectPin"));
-        setPin("");
-      }
+    setShowPinSheet(false);
+    setStep("success");
+    if (accountName && !bankBeneficiaries.some((b) => b.accountNumber === accountNumber)) {
+      dispatch(saveBeneficiary({
+        name: accountName,
+        bankCode: selectedBank.bankCode || selectedBank.code,
+        accountNumber,
+        accountName,
+      }));
     }
   };
-
-  const pinDelete = () => setPin((p) => p.slice(0, -1));
 
   if (step === "success") {
     return (
@@ -203,76 +163,6 @@ export default function SendMoneyScreen({ navigation, route }) {
           >
             <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 15 }}>{t("wallet.send_.done")}</Text>
           </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (step === "pin") {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
-        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 16, marginBottom: 32 }}>
-          <TouchableOpacity
-            onPress={() => setStep("form")}
-            accessibilityRole="button"
-            accessibilityLabel={t("a11y.back")}
-          >
-            <Ionicons name="arrow-back" size={24} color={tokens.text.primary} />
-          </TouchableOpacity>
-          <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginLeft: 16 }}>
-            {t("wallet.send_.confirmTitle")}
-          </Text>
-        </View>
-
-        {/* Summary */}
-        <View style={{ marginHorizontal: 20, backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 16, marginBottom: 32 }}>
-          <Row label={t("wallet.send_.summaryTo")} value={accountName} />
-          <Row label={t("wallet.send_.summaryBank")} value={selectedBank?.bankName || selectedBank?.name} />
-          <Row label={t("wallet.send_.summaryAccount")} value={accountNumber} />
-          <Row label={t("wallet.send_.summaryAmount")} value={formatNaira(amount)} bold />
-        </View>
-
-        <View style={{ alignItems: "center", paddingHorizontal: 24 }}>
-          <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 32 }}>
-            {t("wallet.send_.enterPinSub")}
-          </Text>
-
-          <Animated.View style={{ flexDirection: "row", gap: 12, marginBottom: 12, transform: [{ translateX: shakeAnim }] }}>
-            {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-              <View key={i} style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: i < pin.length ? tokens.brand.default : tokens.border.default }} />
-            ))}
-          </Animated.View>
-
-          {pinError ? (
-            <Text accessibilityLiveRegion="polite" style={{ color: tokens.status.errorStrong, fontSize: 13, fontWeight: "600", marginBottom: 8 }}>
-              {pinError}
-            </Text>
-          ) : null}
-
-          <View style={{ width: "100%", maxWidth: 300, marginTop: 16 }}>
-            {[[1, 2, 3], [4, 5, 6], [7, 8, 9], ["", 0, "del"]].map((row, ri) => (
-              <View key={ri} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 12 }}>
-                {row.map((key, ki) => (
-                  <TouchableOpacity
-                    key={ki}
-                    onPress={() => { if (key === "del") pinDelete(); else if (key !== "") handlePinInput(String(key)); }}
-                    style={{ width: 84, height: 64, borderRadius: 16, backgroundColor: key === "" ? "transparent" : tokens.bg.surface, alignItems: "center", justifyContent: "center" }}
-                    disabled={isSending || key === ""}
-                    accessibilityRole={key === "" ? "none" : "button"}
-                    accessibilityLabel={key === "del" ? t("common.delete") : String(key)}
-                  >
-                    {key === "del" ? (
-                      <Ionicons name="backspace-outline" size={24} color={tokens.text.primary} />
-                    ) : key !== "" ? (
-                      <Text style={{ fontSize: 24, fontWeight: "700", color: tokens.text.primary }}>{key}</Text>
-                    ) : null}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ))}
-          </View>
-
-          {isSending && <ActivityIndicator color={tokens.brand.default} style={{ marginTop: 8 }} accessibilityLabel={t("common.loading")} />}
         </View>
       </SafeAreaView>
     );
@@ -482,17 +372,15 @@ export default function SendMoneyScreen({ navigation, route }) {
             )}
           </SafeAreaView>
         </Modal>
+
+        <PinBottomSheet
+          isVisible={showPinSheet}
+          onClose={() => setShowPinSheet(false)}
+          onConfirm={handlePinConfirm}
+          title={t("wallet.send_.confirmTitle")}
+          subtitle={`${formatNaira(amount)}${accountName ? ` to ${accountName}` : ""}`}
+        />
       </SafeAreaView>
     </KeyboardAvoidingView>
-  );
-}
-
-function Row({ label, value, bold }) {
-  const { tokens } = useTheme();
-  return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
-      <Text style={{ fontSize: 13, color: tokens.text.muted }}>{label}</Text>
-      <Text style={{ fontSize: 13, fontWeight: bold ? "800" : "600", color: bold ? tokens.brand.default : tokens.text.primary }}>{value}</Text>
-    </View>
   );
 }

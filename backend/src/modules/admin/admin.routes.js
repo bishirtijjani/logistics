@@ -24,7 +24,7 @@ const {
   updateCustomerStatusSchema,
   updateCustomerSchema,
   wipeCustomerKycSchema,
-  setCustomerPinSchema,
+  resetCustomerPinSchema,
   listPendingRidersSchema,
   transactionOverviewSchema,
   listAllRequestsSchema,
@@ -145,8 +145,7 @@ router.get('/customers/:customerId/utility-payments', validate(utilityPaymentsQu
 router.get('/customers/:customerId/utility-payments/:paymentId', adminController.getCustomerUtilityPaymentById);
 router.get('/customers/:customerId/addresses', adminController.getCustomerAddresses);
 // TEMPORARY testing aid: reveal/set a customer's transaction PIN (audit-logged).
-router.get('/customers/:customerId/pin', adminController.getCustomerPin);
-router.put('/customers/:customerId/pin', validate(setCustomerPinSchema), adminController.setCustomerPin);
+router.post('/customers/:customerId/pin/reset', validate(resetCustomerPinSchema), adminController.resetCustomerPin);
 router.patch('/customers/:customerId/status', validate(updateCustomerStatusSchema), adminController.updateCustomerStatus);
 router.patch('/customers/:customerId', validate(updateCustomerSchema), adminController.updateCustomer);
 router.post('/customers/:customerId/wipe-kyc', validate(wipeCustomerKycSchema), adminController.wipeCustomerKyc);

@@ -64,20 +64,12 @@ export const fetchCustomerDetail = createAsyncThunk(
   }
 )
 
-// TEMPORARY testing aid: reveal a customer's last-set plaintext PIN.
-export const fetchCustomerPin = createAsyncThunk(
-  'customers/fetchPin',
-  async (customerId) => {
-    const response = await api.get(`/admin/customers/${customerId}/pin`)
-    return response.data.data
-  }
-)
-
-// TEMPORARY testing aid: set/reset a customer's PIN on their behalf.
-export const setCustomerPin = createAsyncThunk(
-  'customers/setPin',
-  async ({ customerId, pin, reason }) => {
-    const response = await api.put(`/admin/customers/${customerId}/pin`, { pin, reason })
+// Reset (clear) a customer's PIN so they set a fresh one in-app. Admins never
+// see or choose the PIN.
+export const resetCustomerPin = createAsyncThunk(
+  'customers/resetPin',
+  async ({ customerId, reason }) => {
+    const response = await api.post(`/admin/customers/${customerId}/pin/reset`, { reason })
     return response.data.data
   }
 )
@@ -164,7 +156,7 @@ const customersSlice = createSlice({
     utilityPayments: { data: [], total: 0, page: 1, limit: 20, loading: false, error: null },
     utilityPaymentDetail: { data: null, loading: false, error: null },
     addresses: { data: [], loading: false, error: null },
-    pin: { data: null, loading: false, saving: false, error: null },
+    pinReset: { loading: false, error: null },
   },
   reducers: {
     clearCustomerDetail: (state) => {
@@ -175,16 +167,13 @@ const customersSlice = createSlice({
       state.utilityPayments = { data: [], total: 0, page: 1, limit: 20, loading: false, error: null }
       state.utilityPaymentDetail = { data: null, loading: false, error: null }
       state.addresses = { data: [], loading: false, error: null }
-      state.pin = { data: null, loading: false, saving: false, error: null }
+      state.pinReset = { loading: false, error: null }
     },
     clearTransactionReceipt: (state) => {
       state.transactionReceipt = { data: null, loading: false, error: null }
     },
     clearUtilityPaymentDetail: (state) => {
       state.utilityPaymentDetail = { data: null, loading: false, error: null }
-    },
-    clearCustomerPin: (state) => {
-      state.pin = { data: null, loading: false, saving: false, error: null }
     },
   },
   extraReducers: (builder) => {
@@ -254,33 +243,20 @@ const customersSlice = createSlice({
       .addCase(fetchCustomerStats.rejected, (state) => {
         state.stats.loading = false
       })
-      .addCase(fetchCustomerPin.pending, (state) => {
-        state.pin.loading = true
-        state.pin.error = null
+      .addCase(resetCustomerPin.pending, (state) => {
+        state.pinReset.loading = true
+        state.pinReset.error = null
       })
-      .addCase(fetchCustomerPin.fulfilled, (state, action) => {
-        state.pin.loading = false
-        state.pin.data = action.payload
-      })
-      .addCase(fetchCustomerPin.rejected, (state, action) => {
-        state.pin.loading = false
-        state.pin.error = action.error.message
-      })
-      .addCase(setCustomerPin.pending, (state) => {
-        state.pin.saving = true
-        state.pin.error = null
-      })
-      .addCase(setCustomerPin.fulfilled, (state, action) => {
-        state.pin.saving = false
-        state.pin.data = action.payload
+      .addCase(resetCustomerPin.fulfilled, (state) => {
+        state.pinReset.loading = false
         if (state.detail.data) {
-          state.detail.data.hasPinSet = true
-          state.detail.data.pinSetByUser = true
+          state.detail.data.hasPinSet = false
+          state.detail.data.pinSetByUser = false
         }
       })
-      .addCase(setCustomerPin.rejected, (state, action) => {
-        state.pin.saving = false
-        state.pin.error = action.error.message
+      .addCase(resetCustomerPin.rejected, (state, action) => {
+        state.pinReset.loading = false
+        state.pinReset.error = action.error.message
       })
       .addCase(fetchCustomerDetail.pending, (state) => {
         state.detail.loading = true
@@ -378,6 +354,6 @@ const customersSlice = createSlice({
   },
 })
 
-export const { clearCustomerDetail, clearCustomerPin, clearTransactionReceipt, clearUtilityPaymentDetail } = customersSlice.actions
+export const { clearCustomerDetail, clearTransactionReceipt, clearUtilityPaymentDetail } = customersSlice.actions
 
 export default customersSlice.reducer

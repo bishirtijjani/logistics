@@ -871,7 +871,8 @@
     "confirmA11y": "Confirm selected location",
     "useGpsA11y": "Use my current location",
     "clearSearchA11y": "Clear search",
-    "selectResultA11y": "Select {{name}}"
+    "selectResultA11y": "Select {{name}}",
+    "outOfArea": "We only operate in Katsina for now"
   },
   "addresses": {
     "title": "Saved Addresses",

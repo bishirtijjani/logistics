@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import * as ExpoLocation from "expo-location";
 import api from "../../services/api";
+import Toast from "react-native-toast-message";
 import { useTheme } from "../../theme";
 import { GEO_RESTRICTION, clampToBounds, isOutOfBounds } from "../../config/geoRestriction";
 
@@ -63,10 +64,18 @@ export default function LocationPickerScreen({ navigation, route }) {
   const [predictions, setPredictions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  // Set when a searched place resolves outside the operating area. Search is
-  // only biased to Katsina, so a result can land outside; the backend flags it
-  // with outOfArea and we refuse to move the pin there.
-  const [areaError, setAreaError] = useState("");
+  // Show the out-of-area notice at most once per few seconds so panning around
+  // the border doesn't spam toasts.
+  const lastAreaToast = useRef(0);
+  const notifyOutOfArea = useCallback(() => {
+    const now = Date.now();
+    if (now - lastAreaToast.current < 3000) return;
+    lastAreaToast.current = now;
+    Toast.show({
+      type: "info",
+      text1: t("locationPicker.outOfArea", `We only operate in ${GEO_RESTRICTION.label} for now`),
+    });
+  }, [t]);
 
   // Reverse geocode the map center when user stops dragging (debounced)
   const handleRegionChangeComplete = useCallback(
@@ -78,7 +87,11 @@ export default function LocationPickerScreen({ navigation, route }) {
         clamped.latitude !== raw.latitude || clamped.longitude !== raw.longitude;
       const newRegion = corrected ? { ...raw, ...clamped } : raw;
       setRegion(newRegion);
-      if (corrected) mapRef.current?.animateToRegion(newRegion, 300);
+      if (corrected) {
+        // User panned outside Katsina - snap back and let them know.
+        mapRef.current?.animateToRegion(newRegion, 300);
+        notifyOutOfArea();
+      }
       if (showSearch) return; // Don't geocode while searching
 
       if (geocodeTimeout.current) clearTimeout(geocodeTimeout.current);
@@ -100,13 +113,12 @@ export default function LocationPickerScreen({ navigation, route }) {
         }
       }, 600);
     },
-    [showSearch],
+    [showSearch, notifyOutOfArea],
   );
 
   // Autocomplete search
   const handleSearch = useCallback((text) => {
     setQuery(text);
-    setAreaError("");
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
     if (text.length < 2) {
@@ -147,9 +159,7 @@ export default function LocationPickerScreen({ navigation, route }) {
       // Search is biased, not strictly bounded - reject a result that resolves
       // outside the operating area instead of jumping the pin there.
       if (place?.outOfArea) {
-        setAreaError(
-          t("locationPicker.outOfArea", `We only operate in ${GEO_RESTRICTION.label} for now`),
-        );
+        notifyOutOfArea();
         return;
       }
 
@@ -162,7 +172,7 @@ export default function LocationPickerScreen({ navigation, route }) {
     } finally {
       setIsGeocoding(false);
     }
-  }, []);
+  }, [notifyOutOfArea]);
 
   // Cleanup pending timeouts on unmount so they don't fire on a stale component
   useEffect(() => {
@@ -278,16 +288,6 @@ export default function LocationPickerScreen({ navigation, route }) {
           </View>
         </View>
       </SafeAreaView>
-
-      {/* Out-of-area notice */}
-      {areaError.length > 0 && (
-        <View style={{ position: "absolute", top: 112, left: 16, right: 16, zIndex: 100, backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 }}>
-          <Ionicons name="alert-circle" size={18} color={tokens.brand.default} style={{ marginRight: 8 }} />
-          <Text style={{ flex: 1, fontSize: 13, fontWeight: "600", color: tokens.text.primary }} accessibilityLiveRegion="polite">
-            {areaError}
-          </Text>
-        </View>
-      )}
 
       {/* Search results */}
       {predictions.length > 0 && (

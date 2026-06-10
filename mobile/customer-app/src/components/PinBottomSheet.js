@@ -9,7 +9,7 @@ import {
   Dimensions,
   Vibration,
 } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import * as SecureStore from "../lib/storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
@@ -51,6 +51,11 @@ export default function PinBottomSheet({
 }) {
   const { tokens } = useTheme();
   const dispatch = useDispatch();
+  // A user with no PIN should land straight in inline setup, not a verify keypad.
+  // Read via a ref so flipping hasPinSet mid-flow (after a successful set) can't
+  // re-trigger the open effect and reset the sheet.
+  const hasPinSet = useSelector((s) => s.profile?.profile?.hasPinSet);
+  const hasPinSetRef = useRef(hasPinSet);
 
   const [stage, setStage] = useState("enter"); // enter | setup | reset
   const [step, setStep] = useState("create"); // create | confirm (setup) ; password | create | confirm (reset)
@@ -66,7 +71,7 @@ export default function PinBottomSheet({
   const slideAnimation = useRef(new Animated.Value(height)).current;
 
   const resetAll = useCallback(() => {
-    setStage("enter");
+    setStage(hasPinSetRef.current === false ? "setup" : "enter");
     setStep("create");
     setEntry("");
     setFirstPin("");
@@ -76,6 +81,9 @@ export default function PinBottomSheet({
     setError("");
     setSubmitting(false);
   }, []);
+
+  // Keep the ref current without making it an open-effect dependency.
+  useEffect(() => { hasPinSetRef.current = hasPinSet; }, [hasPinSet]);
 
   // One-time cleanup of any lockout deadline left by older builds.
   useEffect(() => {

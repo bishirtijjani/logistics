@@ -2,12 +2,8 @@
  * Admin service - rider approvals, user management, transaction oversight, request management, merchant management.
  */
 
-const bcrypt = require('bcryptjs');
 const { prisma } = require('../../config/database');
 const { Prisma } = require('@prisma/client');
-
-// Matches auth.service SALT_ROUNDS so admin-set PINs hash identically.
-const PIN_SALT_ROUNDS = 12;
 const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
@@ -410,69 +406,40 @@ const getCustomerStats = async () => {
 };
 
 /**
- * TEMPORARY testing aid: reveal a customer's last-set plaintext PIN so admins
- * can debug PIN complaints. Every reveal is audit-logged. Remove this (and the
- * transactionPinPlain column) once testing is done.
+ * Reset (clear) a customer's transaction PIN back to unset, the same state as a
+ * freshly created account. Use this to resolve PIN complaints: the customer is
+ * then prompted to set a brand-new PIN themselves in-app (the PIN sheet detects
+ * PIN_NOT_SET and runs its inline setup). Admins never see or choose the PIN.
+ * Audit-logged. Idempotent - clearing an already-unset PIN is a no-op success.
  */
-const getCustomerPin = async (customerId, adminUserId, ipAddress, userAgent) => {
-  const user = await prisma.user.findFirst({
-    where: { id: customerId, role: 'CUSTOMER' },
-    select: { id: true, transactionPin: true, transactionPinPlain: true, transactionPinSetByUser: true },
-  });
-  if (!user) throw AppError.notFound('Customer not found');
-
-  await createAuditLog(
-    adminUserId,
-    'VIEW_CUSTOMER_PIN',
-    'CUSTOMER',
-    customerId,
-    { hadPin: !!user.transactionPin, plaintextAvailable: !!user.transactionPinPlain },
-    ipAddress,
-    userAgent,
-  );
-
-  logger.warn('Customer PIN revealed by admin', { customerId, adminUserId });
-
-  return {
-    hasPinSet: !!user.transactionPin,
-    pinSetByUser: !!user.transactionPinSetByUser,
-    // null when a PIN exists but predates plaintext capture (set before this
-    // testing aid shipped) - the UI explains that case.
-    pin: user.transactionPinPlain || null,
-  };
-};
-
-/**
- * TEMPORARY testing aid: set/reset a customer's transaction PIN on their behalf.
- * Hashes the new PIN (so it works in the apps) and stores the plaintext mirror.
- * Audit-logged. Remove once testing is done.
- */
-const setCustomerPin = async (customerId, pin, reason, adminUserId, ipAddress, userAgent) => {
+const resetCustomerPin = async (customerId, reason, adminUserId, ipAddress, userAgent) => {
   const user = await prisma.user.findFirst({
     where: { id: customerId, role: 'CUSTOMER' },
     select: { id: true, transactionPin: true },
   });
   if (!user) throw AppError.notFound('Customer not found');
 
-  const hashedPin = await bcrypt.hash(pin, PIN_SALT_ROUNDS);
-  await prisma.user.update({
-    where: { id: customerId },
-    data: { transactionPin: hashedPin, transactionPinPlain: pin, transactionPinSetByUser: true },
-  });
+  const hadPin = !!user.transactionPin;
+  if (hadPin) {
+    await prisma.user.update({
+      where: { id: customerId },
+      data: { transactionPin: null, transactionPinSetByUser: false },
+    });
+  }
 
   await createAuditLog(
     adminUserId,
-    'SET_CUSTOMER_PIN',
+    'RESET_CUSTOMER_PIN',
     'CUSTOMER',
     customerId,
-    { replacedExisting: !!user.transactionPin, reason: reason || null },
+    { hadPin, reason: reason || null },
     ipAddress,
     userAgent,
   );
 
-  logger.warn('Customer PIN set by admin', { customerId, adminUserId, reason });
+  logger.warn('Customer PIN reset (cleared) by admin', { customerId, adminUserId, reason });
 
-  return { hasPinSet: true, pinSetByUser: true, pin };
+  return { hasPinSet: false, pinSetByUser: false, cleared: hadPin };
 };
 
 /**
@@ -3131,8 +3098,7 @@ module.exports = {
   wipeCustomerKyc,
   getCustomerById,
   getCustomerStats,
-  getCustomerPin,
-  setCustomerPin,
+  resetCustomerPin,
   getCustomerRequests,
   getCustomerTransactions,
   getCustomerTransactionById,

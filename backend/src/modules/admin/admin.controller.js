@@ -100,32 +100,18 @@ const getCustomerStats = async (req, res, next) => {
 };
 
 // TEMPORARY testing aid - reveal a customer's PIN (audit-logged).
-const getCustomerPin = async (req, res, next) => {
+// Clear a customer's transaction PIN so they set a fresh one in-app. The admin
+// never sees or chooses the PIN. Audit-logged.
+const resetCustomerPin = async (req, res, next) => {
   try {
-    const result = await adminService.getCustomerPin(
+    const result = await adminService.resetCustomerPin(
       req.params.customerId,
-      req.user.id,
-      req.ip,
-      req.headers['user-agent'],
-    );
-    res.json(ApiResponse.success('Customer PIN', result));
-  } catch (error) {
-    next(error);
-  }
-};
-
-// TEMPORARY testing aid - set/reset a customer's PIN (audit-logged).
-const setCustomerPin = async (req, res, next) => {
-  try {
-    const result = await adminService.setCustomerPin(
-      req.params.customerId,
-      req.body.pin,
       req.body.reason,
       req.user.id,
       req.ip,
       req.headers['user-agent'],
     );
-    res.json(ApiResponse.success('Customer PIN updated', result));
+    res.json(ApiResponse.success('Customer PIN reset', result));
   } catch (error) {
     next(error);
   }
@@ -1038,8 +1024,7 @@ module.exports = {
   wipeCustomerKyc,
   getCustomerById,
   getCustomerStats,
-  getCustomerPin,
-  setCustomerPin,
+  resetCustomerPin,
   getCustomerRequests,
   getCustomerTransactions,
   getCustomerTransactionById,

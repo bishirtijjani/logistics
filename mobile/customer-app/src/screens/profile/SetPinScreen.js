@@ -1,11 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StatusBar,
-  TextInput,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,6 +12,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { setTransactionPin } from "../../store/slices/profileSlice";
 import { useTheme } from "../../theme";
+import PinField from "../../components/PinField";
 
 const PIN_LENGTH = 6;
 
@@ -25,36 +24,28 @@ export default function SetPinScreen({ navigation }) {
   const [step, setStep] = useState("enter"); // "enter" | "confirm"
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const inputRef = useRef(null);
-
   const currentValue = step === "enter" ? pin : confirmPin;
   const setCurrentValue = step === "enter" ? setPin : setConfirmPin;
 
-  const handleDigitChange = (text) => {
-    const digits = text.replace(/\D/g, "").slice(0, PIN_LENGTH);
-    setCurrentValue(digits);
-
-    if (digits.length === PIN_LENGTH) {
-      if (step === "enter") {
-        setTimeout(() => {
-          setStep("confirm");
-          setConfirmPin("");
-        }, 200);
-      } else {
-        // Confirm step
-        if (digits === pin) {
-          handleSubmit(digits);
-        } else {
-          Toast.show({
-            type: "error",
-            text1: t("auth.pinMismatchToast"),
-            text2: t("auth.pinMismatchToastSub"),
-          });
-          setStep("enter");
-          setPin("");
-          setConfirmPin("");
-        }
-      }
+  const handleConfirm = () => {
+    if (currentValue.length !== PIN_LENGTH) return;
+    if (step === "enter") {
+      setStep("confirm");
+      setConfirmPin("");
+      return;
+    }
+    // Confirm step
+    if (confirmPin === pin) {
+      handleSubmit(confirmPin);
+    } else {
+      Toast.show({
+        type: "error",
+        text1: t("auth.pinMismatchToast"),
+        text2: t("auth.pinMismatchToastSub"),
+      });
+      setStep("enter");
+      setPin("");
+      setConfirmPin("");
     }
   };
 
@@ -170,105 +161,32 @@ export default function SetPinScreen({ navigation }) {
           {step === "enter" ? t("auth.pinCreateSub") : t("auth.pinConfirmSub")}
         </Text>
 
-        {/* PIN Dots */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            marginBottom: 32,
-          }}
-        >
-          {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-            <View
-              key={i}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 9,
-                marginHorizontal: 8,
-                backgroundColor:
-                  i < currentValue.length
-                    ? tokens.brand.default
-                    : tokens.border.default,
-              }}
-            />
-          ))}
-        </View>
-
-        {/* Hidden Input */}
-        <TextInput
-          ref={inputRef}
-          value={currentValue}
-          onChangeText={handleDigitChange}
-          keyboardType="number-pad"
-          maxLength={PIN_LENGTH}
-          autoFocus
-          accessibilityLabel={step === "enter" ? t("auth.pinCreate") : t("auth.pinConfirm")}
-          accessibilityHint={t("auth.form.pinInvalid")}
-          style={{
-            position: "absolute",
-            opacity: 0,
-            width: 1,
-            height: 1,
-          }}
-        />
-
-        {/* Tap to focus */}
-        <TouchableOpacity
-          onPress={() => inputRef.current?.focus()}
-          style={{
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={t("auth.pinFocusHint")}
-        >
-          <Text
-            style={{
-              fontSize: 13,
-              color: tokens.text.muted,
-              fontWeight: "600",
-            }}
-          >
-            {t("auth.pinFocusHint")}
-          </Text>
-        </TouchableOpacity>
+        <PinField key={step} value={currentValue} onChangeText={setCurrentValue} />
 
         {/* Step indicator */}
-        <View
-          style={{
-            flexDirection: "row",
-            marginTop: 20,
-          }}
-        >
-          <View
-            style={{
-              width: 32,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: tokens.brand.default,
-              marginHorizontal: 3,
-            }}
-          />
-          <View
-            style={{
-              width: 32,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor:
-                step === "confirm" ? tokens.brand.default : tokens.border.default,
-              marginHorizontal: 3,
-            }}
-          />
+        <View style={{ flexDirection: "row", marginTop: 20 }}>
+          <View style={{ width: 32, height: 4, borderRadius: 2, backgroundColor: tokens.brand.default, marginHorizontal: 3 }} />
+          <View style={{ width: 32, height: 4, borderRadius: 2, backgroundColor: step === "confirm" ? tokens.brand.default : tokens.border.default, marginHorizontal: 3 }} />
         </View>
 
-        {isUpdating && (
-          <ActivityIndicator
-            size="large"
-            color={tokens.brand.default}
-            style={{ marginTop: 24 }}
-          />
-        )}
+        <TouchableOpacity
+          onPress={handleConfirm}
+          disabled={currentValue.length !== PIN_LENGTH || isUpdating}
+          style={{
+            alignSelf: "stretch",
+            marginTop: 28,
+            paddingVertical: 15,
+            borderRadius: 14,
+            alignItems: "center",
+            backgroundColor: currentValue.length === PIN_LENGTH && !isUpdating ? tokens.brand.default : tokens.bg.surfaceMuted,
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={step === "enter" ? t("common.continue", "Continue") : t("common.confirm", "Confirm")}
+        >
+          <Text style={{ fontWeight: "800", fontSize: 15, color: currentValue.length === PIN_LENGTH && !isUpdating ? tokens.text.onBrand : tokens.text.muted }}>
+            {isUpdating ? t("common.pleaseWait", "Please wait...") : step === "enter" ? t("common.continue", "Continue") : t("common.confirm", "Confirm")}
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

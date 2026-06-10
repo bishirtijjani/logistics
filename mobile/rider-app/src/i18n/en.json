@@ -922,7 +922,8 @@
     "useCurrent": "Use my current location",
     "savedHeader": "Saved",
     "permissionRequired": "Location permission required",
-    "permissionHint": "Allow access so we can show options near you."
+    "permissionHint": "Allow access so we can show options near you.",
+    "outOfArea": "We only operate in Katsina for now"
   },
   "addresses": {
     "title": "Saved Addresses",

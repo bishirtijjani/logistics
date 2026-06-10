@@ -1,11 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StatusBar,
-  TextInput,
-  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { changeTransactionPin } from "../../store/slices/profileSlice";
 import { useTheme } from "../../theme";
+import PinField from "../../components/PinField";
 
 const PIN_LENGTH = 6;
 
@@ -26,7 +25,6 @@ export default function ChangePinScreen({ navigation }) {
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const inputRef = useRef(null);
 
   const stepConfig = {
     current: {
@@ -51,34 +49,28 @@ export default function ChangePinScreen({ navigation }) {
 
   const current = stepConfig[step];
 
-  const handleDigitChange = (text) => {
-    const digits = text.replace(/\D/g, "").slice(0, PIN_LENGTH);
-    current.setter(digits);
-
-    if (digits.length === PIN_LENGTH) {
-      setTimeout(() => {
-        if (step === "current") {
-          setStep("new");
-          setNewPin("");
-        } else if (step === "new") {
-          setStep("confirm");
-          setConfirmPin("");
-        } else {
-          // confirm step
-          if (digits === newPin) {
-            handleSubmit(currentPin, digits);
-          } else {
-            Toast.show({
-              type: "error",
-              text1: t("changePin.mismatch"),
-              text2: t("auth.pinMismatchToastSub"),
-            });
-            setStep("new");
-            setNewPin("");
-            setConfirmPin("");
-          }
-        }
-      }, 200);
+  const handleConfirm = () => {
+    if (current.value.length !== PIN_LENGTH) return;
+    if (step === "current") {
+      setStep("new");
+      setNewPin("");
+    } else if (step === "new") {
+      setStep("confirm");
+      setConfirmPin("");
+    } else {
+      // confirm step
+      if (confirmPin === newPin) {
+        handleSubmit(currentPin, confirmPin);
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("changePin.mismatch"),
+          text2: t("auth.pinMismatchToastSub"),
+        });
+        setStep("new");
+        setNewPin("");
+        setConfirmPin("");
+      }
     }
   };
 
@@ -207,61 +199,7 @@ export default function ChangePinScreen({ navigation }) {
           {current.sub}
         </Text>
 
-        {/* PIN Dots */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            marginBottom: 32,
-          }}
-        >
-          {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-            <View
-              key={i}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: 9,
-                marginHorizontal: 8,
-                backgroundColor:
-                  i < current.value.length
-                    ? tokens.brand.default
-                    : tokens.border.default,
-              }}
-            />
-          ))}
-        </View>
-
-        <TextInput
-          ref={inputRef}
-          key={step}
-          value={current.value}
-          onChangeText={handleDigitChange}
-          keyboardType="number-pad"
-          maxLength={PIN_LENGTH}
-          autoFocus
-          style={{
-            position: "absolute",
-            opacity: 0,
-            width: 1,
-            height: 1,
-          }}
-        />
-
-        <TouchableOpacity
-          onPress={() => inputRef.current?.focus()}
-          style={{ paddingVertical: 12, paddingHorizontal: 24 }}
-        >
-          <Text
-            style={{
-              fontSize: 13,
-              color: tokens.text.muted,
-              fontWeight: "600",
-            }}
-          >
-            Tap here if keyboard hides
-          </Text>
-        </TouchableOpacity>
+        <PinField key={step} value={current.value} onChangeText={current.setter} />
 
         {/* Step indicator */}
         <View style={{ flexDirection: "row", marginTop: 20 }}>
@@ -272,21 +210,29 @@ export default function ChangePinScreen({ navigation }) {
                 width: 24,
                 height: 4,
                 borderRadius: 2,
-                backgroundColor:
-                  i <= stepIndex ? tokens.brand.default : tokens.border.default,
+                backgroundColor: i <= stepIndex ? tokens.brand.default : tokens.border.default,
                 marginHorizontal: 3,
               }}
             />
           ))}
         </View>
 
-        {isUpdating && (
-          <ActivityIndicator
-            size="large"
-            color={tokens.brand.default}
-            style={{ marginTop: 24 }}
-          />
-        )}
+        <TouchableOpacity
+          onPress={handleConfirm}
+          disabled={current.value.length !== PIN_LENGTH || isUpdating}
+          style={{
+            alignSelf: "stretch",
+            marginTop: 28,
+            paddingVertical: 15,
+            borderRadius: 14,
+            alignItems: "center",
+            backgroundColor: current.value.length === PIN_LENGTH && !isUpdating ? tokens.brand.default : tokens.bg.surfaceMuted,
+          }}
+        >
+          <Text style={{ fontWeight: "800", fontSize: 15, color: current.value.length === PIN_LENGTH && !isUpdating ? tokens.text.onBrand : tokens.text.muted }}>
+            {isUpdating ? t("common.pleaseWait", "Please wait...") : step === "confirm" ? t("changePin.submit", "Change PIN") : t("common.continue", "Continue")}
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

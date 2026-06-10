@@ -52,6 +52,7 @@ export default function SettingsPage() {
   const [pinForm, setPinForm] = useState({ currentPin: '', newPin: '', confirmPin: '' })
   const [pinError, setPinError] = useState('')
   const [pinSubmitting, setPinSubmitting] = useState(false)
+  const [showPins, setShowPins] = useState(false)
   const hasPinSet = user?.hasPinSet === true || user?.transactionPinSetByUser === true
 
   const checkPasswordStrength = (password) => {
@@ -730,11 +731,21 @@ export default function SettingsPage() {
           )}
 
           <form onSubmit={handlePinSubmit} className="space-y-6">
+            <div className="flex justify-end -mb-2">
+              <button
+                type="button"
+                onClick={() => setShowPins((s) => !s)}
+                className="inline-flex items-center gap-1.5 text-sm text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
+              >
+                {showPins ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPins ? 'Hide PINs' : 'Show PINs'}
+              </button>
+            </div>
             {hasPinSet && (
             <div>
               <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Current PIN</label>
               <input
-                type="password"
+                type={showPins ? 'text' : 'password'}
                 inputMode="numeric"
                 maxLength={6}
                 value={pinForm.currentPin}
@@ -749,7 +760,7 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">New PIN</label>
                 <input
-                  type="password"
+                  type={showPins ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={6}
                   value={pinForm.newPin}
@@ -761,7 +772,7 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Confirm New PIN</label>
                 <input
-                  type="password"
+                  type={showPins ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={6}
                   value={pinForm.confirmPin}

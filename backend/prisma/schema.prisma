@@ -213,7 +213,6 @@ model User {
   lastName       String
   passwordHash   String? /// Hashed password for email/password login
   transactionPin String? /// Hashed 6-digit PIN for financial operations
-  transactionPinPlain String? /// TEMPORARY testing aid: last-set plaintext PIN, captured on set/change so admins can debug PIN complaints. Remove this column (and the admin reveal endpoint) once testing is done.
   transactionPinSetByUser Boolean @default(false) /// True once the user chose their own PIN. Stays false for merchants seeded with the default '000000' - used to force a real PIN before financial actions.
   bvnHash        String? /// Hashed BVN - never store plaintext
   profilePicture String? /// URL to profile picture (cloud storage)
