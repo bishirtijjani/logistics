@@ -26,6 +26,7 @@ import {
   useJsApiLoader,
   Marker as GMarker,
   Polyline as GPolyline,
+  Polygon as GPolygon,
   OverlayView,
 } from "@react-google-maps/api";
 
@@ -180,6 +181,31 @@ export const Polyline = ({
     <GPolyline
       path={path}
       options={{ strokeColor, strokeWeight: strokeWidth, strokeOpacity: 1 }}
+    />
+  );
+};
+
+// Operating-area boundary overlay. react-native-maps' Polygon takes a flat
+// `fillColor` (rgba with baked-in alpha); Google splits colour + opacity, so we
+// pass the rgba through and let fillOpacity=1 defer to its alpha channel.
+export const Polygon = ({
+  coordinates = [],
+  strokeColor = "#EA580C",
+  strokeWidth = 2,
+  fillColor = "rgba(234,88,12,0.06)",
+}) => {
+  const path = coordinates.map(toLatLng);
+  return (
+    <GPolygon
+      path={path}
+      options={{
+        strokeColor,
+        strokeWeight: strokeWidth,
+        strokeOpacity: 0.9,
+        fillColor,
+        fillOpacity: 1,
+        clickable: false,
+      }}
     />
   );
 };

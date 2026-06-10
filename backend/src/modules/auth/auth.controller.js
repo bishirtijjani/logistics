@@ -257,12 +257,14 @@ const updateProfile = async (req, res, next) => {
 
 const updateProfilePicture = async (req, res, next) => {
   try {
-    if (!req.file) {
+    // Clients use the Cloudinary signed-upload flow: they upload the image
+    // directly to Cloudinary, then send the resulting secure URL here in the
+    // body. `req.file` only exists if an upload middleware (multer) is mounted,
+    // which it isn't on this route - so guard on the resolved URL, not req.file.
+    const url = req.body.url || req.file?.location || req.file?.path;
+    if (!url) {
       return res.status(400).json(ApiResponse.error("No image file provided"));
     }
-    // req.file.location is set by multer-s3 or similar upload middleware
-    // For now we accept the URL directly in the body for flexibility
-    const url = req.body.url || req.file?.location || req.file?.path;
     await authService.updateProfilePicture(req.user.id, url);
     res.json(
       ApiResponse.success("Profile picture updated", { profilePicture: url }),
