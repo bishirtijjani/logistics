@@ -97,11 +97,20 @@ const initializeSocket = (httpServer) => {
         try {
           const row = await prisma.user.findUnique({
             where: { id: decoded.id },
-            select: { id: true, role: true, phone: true, status: true, deletedAt: true },
+            select: {
+              id: true, role: true, phone: true, status: true, deletedAt: true,
+              rider: { select: { status: true } },
+            },
           });
           if (!row) {
             return next(new Error('Account not found'));
           }
+          // Resolve approval once at connect so the dispatch-pool join and the
+          // location->GEOADD path don't have to hit the DB per message. A fresh
+          // RIDER (signed up but not yet applied/approved) has no rider row or a
+          // non-APPROVED one, and must stay out of the matcher's geo index.
+          row.isApprovedRider = row.rider?.status === 'APPROVED';
+          delete row.rider;
           user = row;
           cacheSet(decoded.id, user);
         } catch (dbErr) {
@@ -124,6 +133,7 @@ const initializeSocket = (httpServer) => {
         id: user.id,
         role: user.role,
         phone: user.phone,
+        isApprovedRider: !!user.isApprovedRider,
       };
 
       next();
@@ -142,8 +152,9 @@ const initializeSocket = (httpServer) => {
     // Join personal room (for wallet updates, notifications)
     socket.join(getUserRoom(id));
 
-    // If rider, join the available riders pool
-    if (role === 'RIDER') {
+    // Only APPROVED riders join the dispatch pool. A fresh, unapproved RIDER
+    // signup must not enter the job-broadcast pool.
+    if (role === 'RIDER' && socket.user.isApprovedRider) {
       socket.join(getRiderPoolRoom());
     }
 

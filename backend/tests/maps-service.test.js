@@ -108,6 +108,7 @@ test('geocodeAddress: returns lat/lng + placeId for a valid address', async () =
   assert.equal(out.lat, 13.0059);
   assert.equal(out.lng, 7.6019);
   assert.equal(out.placeId, 'ChIJxxx');
+  assert.equal(out.outOfArea, false, 'Katsina city is inside the operating polygon');
   // Geo-restriction (Katsina) scopes geocoding to the state via components.
   assert.equal(
     lastRequest.params.components,
@@ -135,7 +136,16 @@ test('reverseGeocode: returns formatted address for valid coords', async () => {
   const out = await mapsService.reverseGeocode(13.0, 7.6);
   assert.equal(out.formattedAddress, '1 Test Rd, Katsina');
   assert.equal(out.placeId, 'ChIJyyy');
+  assert.equal(out.outOfArea, false, '13.0,7.6 is inside the operating polygon');
   assert.equal(lastRequest.params.latlng, '13,7.6');
+});
+
+test('reverseGeocode: flags a point outside the operating polygon', async () => {
+  resetState();
+  // Lagos - well outside Katsina State.
+  queueResp({ results: [{ formatted_address: 'Lagos, Nigeria', place_id: 'ChIJlagos' }] });
+  const out = await mapsService.reverseGeocode(6.5244, 3.3792);
+  assert.equal(out.outOfArea, true, 'Lagos must be flagged out of area');
 });
 
 test('reverseGeocode: AppError.badRequest when no results', async () => {
@@ -172,10 +182,12 @@ test('autocomplete: returns flattened predictions', async () => {
   assert.equal(out[0].mainText, 'Sani Street');
   assert.equal(out[1].mainText, 'Sani Abacha Road');
   assert.equal(lastRequest.params.components, 'country:ng');
-  // Geo-restriction (Katsina) confines autocomplete to a strict circle.
-  assert.equal(lastRequest.params.strictbounds, true);
+  // Geo-restriction (Katsina) BIASES autocomplete to the area circle (not a
+  // strict bound - the real gate is point-in-polygon at placeDetails time).
   assert.equal(lastRequest.params.location, '12.4,7.6');
   assert.equal(lastRequest.params.radius, 150000);
+  assert.equal(lastRequest.params.strictbounds, undefined, 'must bias, not strict-bound');
+  assert.equal(lastRequest.params.types, undefined, 'combined types are invalid for legacy autocomplete');
 });
 
 test('autocomplete: empty array on ZERO_RESULTS (does not throw)', async () => {
@@ -211,6 +223,21 @@ test('placeDetails: returns geometry and formatted address for a placeId', async
   assert.equal(out.lng, 7.65);
   assert.equal(out.formattedAddress, 'X Building, Katsina');
   assert.equal(out.placeId, 'p1', 'placeId must be carried through');
+  assert.equal(out.outOfArea, false, '13.02,7.65 is inside the operating polygon');
+});
+
+test('placeDetails: flags a place outside the operating polygon', async () => {
+  resetState();
+  queueResp({
+    status: 'OK',
+    result: {
+      geometry: { location: { lat: 12.0022, lng: 8.5919 } }, // Kano city
+      formatted_address: 'Kano, Nigeria',
+      name: 'Kano',
+    },
+  });
+  const out = await mapsService.placeDetails('p2', 'tok');
+  assert.equal(out.outOfArea, true, 'Kano must be flagged out of area');
 });
 
 test('placeDetails: AppError.internal on non-OK Google status', async () => {

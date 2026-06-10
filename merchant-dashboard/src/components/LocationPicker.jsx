@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, useMap as useLeafletMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Polygon as LeafletPolygon, useMap as useLeafletMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   APIProvider,
@@ -8,7 +8,7 @@ import {
 } from '@vis.gl/react-google-maps'
 import { Search, MapPin, Loader2 } from 'lucide-react'
 import api from '../lib/api'
-import { clampToBounds } from '../config/geoRestriction'
+import { GEO_RESTRICTION, clampToBounds } from '../config/geoRestriction'
 
 const FALLBACK = { lat: 13.0059, lng: 7.6019 }
 
@@ -174,6 +174,27 @@ function GoogleCenterController({ center, recenterKey, onUserCenter }) {
   return null
 }
 
+// Draws the operating-area boundary (Katsina) on the Google map. @vis.gl has no
+// declarative Polygon, so we attach a google.maps.Polygon to the map instance.
+function GoogleAreaPolygon() {
+  const map = useGoogleMap()
+  useEffect(() => {
+    if (!map || !window.google || !GEO_RESTRICTION.enabled) return
+    const poly = new window.google.maps.Polygon({
+      paths: GEO_RESTRICTION.polygonPath,
+      strokeColor: PIN_COLOR,
+      strokeOpacity: 0.9,
+      strokeWeight: 2,
+      fillColor: PIN_COLOR,
+      fillOpacity: 0.06,
+      clickable: false,
+    })
+    poly.setMap(map)
+    return () => poly.setMap(null)
+  }, [map])
+  return null
+}
+
 function GoogleCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter }) {
   const [mapType, setMapType] = useState('roadmap')
   return (
@@ -190,6 +211,7 @@ function GoogleCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter }) 
           style={{ height: '100%', width: '100%' }}
         >
           <MapBasemap mapType={mapType} />
+          <GoogleAreaPolygon />
           <GoogleCenterController center={center} recenterKey={recenterKey} onUserCenter={onUserCenter} />
         </GoogleMap>
       </APIProvider>
@@ -281,6 +303,12 @@ function LeafletCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter })
           detectRetina
         />
         <MapAutoSize />
+        {GEO_RESTRICTION.enabled && (
+          <LeafletPolygon
+            positions={GEO_RESTRICTION.polygonPath.map((p) => [p.lat, p.lng])}
+            pathOptions={{ color: PIN_COLOR, weight: 2, fillColor: PIN_COLOR, fillOpacity: 0.06 }}
+          />
+        )}
         <LeafletCenterController center={center} recenterKey={recenterKey} onUserCenter={onUserCenter} />
       </MapContainer>
       <CenterPin color={PIN_COLOR} lifted={geocoding} />
@@ -317,6 +345,9 @@ export default function LocationPicker({ value, onChange }) {
   const [predictions, setPredictions] = useState([])
   const [searching, setSearching] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
+  // Set when a searched place resolves outside the operating area (search is
+  // biased, not strictly bounded - the backend flags it with outOfArea).
+  const [areaError, setAreaError] = useState('')
   // Bumped only on an external selection (autocomplete) to ask the map to slide
   // to the new point. The user's own panning never bumps it, so the map and the
   // user never fight over the centre.
@@ -365,6 +396,7 @@ export default function LocationPicker({ value, onChange }) {
 
   const handleSearch = (text) => {
     setQuery(text)
+    setAreaError('')
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     if (text.trim().length < 2) {
       setPredictions([])
@@ -396,6 +428,11 @@ export default function LocationPicker({ value, onChange }) {
       })
       const payload = response.data?.data
       sessionRef.current = `${Date.now()}-${Math.random()}`
+      // Search is biased, not strictly bounded - refuse a result outside the area.
+      if (payload?.outOfArea) {
+        setAreaError(`That place is outside our service area (${GEO_RESTRICTION.label}).`)
+        return
+      }
       if (payload?.lat != null && payload?.lng != null) {
         onChange({
           lat: payload.lat,
@@ -450,6 +487,13 @@ export default function LocationPicker({ value, onChange }) {
           </ul>
         )}
       </div>
+
+      {areaError && (
+        <div className="flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+          <MapPin size={16} className="flex-shrink-0" />
+          <span>{areaError}</span>
+        </div>
+      )}
 
       <div className="rounded-lg overflow-hidden border border-surface-muted dark:border-dark-surface-muted" style={{ height: 280 }}>
         {MAPS_KEY ? (

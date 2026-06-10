@@ -6,7 +6,7 @@ const axios = require("axios");
 const { config } = require("../config");
 const { logger } = require("../utils/logger");
 const { AppError } = require("../utils/api-error");
-const { GEO_RESTRICTION } = require("../config/geo-restriction");
+const { GEO_RESTRICTION, isInArea } = require("../config/geo-restriction");
 
 const MAPS_BASE = "https://maps.googleapis.com/maps/api";
 
@@ -66,11 +66,16 @@ const geocodeAddress = async (address) => {
     const result = response.data.results?.[0];
     if (!result) throw new Error("Address not found");
 
+    const lat = result.geometry.location.lat;
+    const lng = result.geometry.location.lng;
     return {
-      lat: result.geometry.location.lat,
-      lng: result.geometry.location.lng,
+      lat,
+      lng,
       formattedAddress: result.formatted_address,
       placeId: result.place_id,
+      // True when the resolved point sits outside the operating area. Always
+      // false when the restriction is disabled. See config/geo-restriction.js.
+      outOfArea: !isInArea(lat, lng),
     };
   } catch (error) {
     logger.error("Geocoding failed", { address, error: error.message });
@@ -96,6 +101,10 @@ const reverseGeocode = async (lat, lng) => {
     return {
       formattedAddress: result.formatted_address,
       placeId: result.place_id,
+      // True when the queried point sits outside the operating area. Lets the
+      // clients warn instead of accepting an out-of-state pin. Always false
+      // when the restriction is disabled. See config/geo-restriction.js.
+      outOfArea: !isInArea(lat, lng),
     };
   } catch (error) {
     logger.error("Reverse geocoding failed", { lat, lng });
@@ -141,15 +150,20 @@ const getDirections = async (originLat, originLng, destLat, destLng) => {
  */
 const autocomplete = async (query, sessionToken) => {
   try {
-    // Restrict results to the operating area when enabled. The legacy Places
-    // Autocomplete API only supports a circular restriction, so we bias to the
-    // area centre + radius and pass `strictbounds` to exclude anything outside.
-    // See config/geo-restriction.js to undo.
+    // BIAS (not strict-bound) results toward the operating area. A circle can't
+    // trace the state border, and `strictbounds` on a circle big enough to
+    // cover Katsina also admits a lot of neighbouring towns, so strict mode here
+    // gives a false sense of restriction. Instead we bias for relevance and do
+    // the real point-in-polygon gate at placeDetails() time, once we have
+    // coordinates. See config/geo-restriction.js to undo.
+    //
+    // Note: the legacy Autocomplete API rejects combined `types` like
+    // "geocode|establishment" - it accepts a single type or none. We omit it so
+    // both addresses and businesses come back.
     const restriction = GEO_RESTRICTION.enabled
       ? {
           location: `${GEO_RESTRICTION.search.center.lat},${GEO_RESTRICTION.search.center.lng}`,
           radius: GEO_RESTRICTION.search.radiusMeters,
-          strictbounds: true,
         }
       : {};
     const response = await axios.get(`${MAPS_BASE}/place/autocomplete/json`, {
@@ -157,7 +171,6 @@ const autocomplete = async (query, sessionToken) => {
         input: query,
         key: config.GOOGLE_MAPS_API_KEY,
         components: `country:${GEO_RESTRICTION.country.toLowerCase()}`,
-        types: "geocode|establishment",
         ...restriction,
       },
     });
@@ -196,11 +209,17 @@ const placeDetails = async (placeId, sessionToken) => {
     }
 
     const result = response.data.result;
+    const lat = result.geometry.location.lat;
+    const lng = result.geometry.location.lng;
     return {
-      lat: result.geometry.location.lat,
-      lng: result.geometry.location.lng,
+      lat,
+      lng,
       formattedAddress: result.formatted_address,
       placeId: placeId,
+      // The real operating-area gate: search is only biased, so a picked place
+      // can still land outside Katsina. Clients use this to reject it. Always
+      // false when the restriction is disabled. See config/geo-restriction.js.
+      outOfArea: !isInArea(lat, lng),
     };
   } catch (error) {
     logger.error("Place details failed", { placeId, error: error.message });

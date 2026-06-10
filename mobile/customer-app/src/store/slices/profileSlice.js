@@ -142,6 +142,19 @@ export const changeTransactionPin = createAsyncThunk(
   },
 );
 
+// Forgot-PIN recovery: re-auth with the account password, no current PIN needed.
+export const resetTransactionPin = createAsyncThunk(
+  "profile/resetPin",
+  async ({ password, pin }, { rejectWithValue }) => {
+    try {
+      const response = await api.post("/auth/pin/reset", { password, pin });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 const initialState = {
   profile: null,
   notificationPreferences: null,
@@ -263,6 +276,22 @@ const profileSlice = createSlice({
       state.isUpdating = false;
     });
     builder.addCase(changeTransactionPin.rejected, (state, action) => {
+      state.isUpdating = false;
+      state.error = action.payload;
+    });
+
+    // Reset PIN (forgot) - mark hasPinSet so the guard stops prompting.
+    builder.addCase(resetTransactionPin.pending, (state) => {
+      state.isUpdating = true;
+      state.error = null;
+    });
+    builder.addCase(resetTransactionPin.fulfilled, (state) => {
+      state.isUpdating = false;
+      if (state.profile) {
+        state.profile.hasPinSet = true;
+      }
+    });
+    builder.addCase(resetTransactionPin.rejected, (state, action) => {
       state.isUpdating = false;
       state.error = action.payload;
     });

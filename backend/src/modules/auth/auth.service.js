@@ -449,6 +449,42 @@ const changeTransactionPin = async (userId, currentPin, newPin) => {
 };
 
 /**
+ * Reset a FORGOTTEN transaction PIN by re-authenticating with the account
+ * password. Unlike changeTransactionPin this does NOT require the current PIN,
+ * so it is the recovery path for users who forgot it. Works whether or not a
+ * PIN was previously set.
+ */
+const resetTransactionPin = async (userId, password, newPin) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+
+  // Social-login accounts with no password can't use the password recovery path.
+  if (!user?.passwordHash) {
+    throw AppError.badRequest(
+      "This account has no password set, so the PIN can't be reset this way.",
+      { code: "NO_PASSWORD" },
+    );
+  }
+
+  const passwordValid = await bcrypt.compare(password, user.passwordHash);
+  if (!passwordValid) {
+    throw AppError.unauthorized("Incorrect account password", { code: "INVALID_PASSWORD" });
+  }
+
+  const hashedPin = await bcrypt.hash(newPin, SALT_ROUNDS);
+
+  await prisma.user.update({
+    where: { id: userId },
+    // transactionPinPlain: TEMPORARY testing aid (see setTransactionPin).
+    data: { transactionPin: hashedPin, transactionPinPlain: newPin, transactionPinSetByUser: true },
+  });
+
+  logger.info("Transaction PIN reset via password", { userId });
+};
+
+/**
  * Verify transaction PIN - used before any financial operation.
  * A wrong PIN is rejected, but there is intentionally NO attempt-counting or
  * lockout: the user can keep retrying. (Brute-force throttling was removed by
@@ -1480,6 +1516,7 @@ module.exports = {
   refreshAccessToken,
   setTransactionPin,
   changeTransactionPin,
+  resetTransactionPin,
   verifyTransactionPin,
   requestPasswordReset,
   resetPassword,

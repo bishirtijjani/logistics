@@ -103,6 +103,25 @@ export const changeTransactionPin = createAsyncThunk(
   }
 )
 
+// Reset a FORGOTTEN PIN by re-authenticating with the account password (no
+// current PIN required). Backs the "Forgot PIN?" recovery flow in PinModal.
+export const resetTransactionPin = createAsyncThunk(
+  'auth/resetTransactionPin',
+  async ({ password, pin }, { rejectWithValue }) => {
+    try {
+      const res = await api.post('/auth/pin/reset', { password, pin })
+      return res.data.data
+    } catch (err) {
+      return rejectWithValue({
+        message: err?.response?.data?.message || apiErrorMessage(err, 'Failed to reset PIN'),
+        status: err?.response?.status ?? null,
+        code: err?.response?.data?.code ?? null,
+        errors: err?.response?.data?.errors ?? null,
+      })
+    }
+  }
+)
+
 export const refreshToken = createAsyncThunk(
   'auth/refreshToken',
   async (_, { rejectWithValue }) => {
@@ -181,6 +200,17 @@ const authSlice = createSlice({
         }
       })
       .addCase(setTransactionPin.fulfilled, (state) => {
+        if (state.user) {
+          state.user.hasPinSet = true
+          state.user.transactionPinSetByUser = true
+        }
+        try {
+          localStorage.setItem('merchant_user', JSON.stringify(state.user))
+        } catch {
+          // ignore
+        }
+      })
+      .addCase(resetTransactionPin.fulfilled, (state) => {
         if (state.user) {
           state.user.hasPinSet = true
           state.user.transactionPinSetByUser = true

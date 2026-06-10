@@ -84,15 +84,14 @@ export default function BillsPage() {
   // the seeded default PIN, then opens the keypad. `action(pin)` performs the
   // dispatch+unwrap (throwing on failure so PinModal can render the reason).
   const requestPin = (action, { title, subtitle }) => {
-    if (!hasPin) {
-      showErrorToast('Set your transaction PIN in Settings → Security before paying bills.')
-      return
-    }
     setPinKey((k) => k + 1) // remount the modal so it opens with clean state
     setPinState({
       open: true,
       title,
       subtitle,
+      // No PIN yet? Open straight into the inline create+confirm flow instead of
+      // bouncing the merchant to Settings.
+      initialStage: hasPin ? 'enter' : 'setup',
       onConfirm: async (pin) => {
         await action(pin) // throws on failure → handled inside PinModal
         setPinState((s) => ({ ...s, open: false }))
@@ -178,6 +177,7 @@ export default function BillsPage() {
         title={pinState.title}
         subtitle={pinState.subtitle}
         onConfirm={pinState.onConfirm || (async () => {})}
+        initialStage={pinState.initialStage || 'enter'}
         onClose={closePin}
       />
     </div>

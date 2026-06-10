@@ -47,6 +47,16 @@ const changePinSchema = z.object({
     .regex(/^\d{6}$/, "PIN must be 6 digits"),
 });
 
+// Reset a forgotten PIN: re-auth with the account password instead of the
+// current PIN. Used by the in-app "Forgot PIN" recovery flow.
+const resetPinSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+  pin: z
+    .string()
+    .length(6)
+    .regex(/^\d{6}$/, "PIN must be 6 digits"),
+});
+
 const resetPasswordSchema = z.object({
   email: z.string().email(),
   code: z.string().length(6),
@@ -162,6 +172,7 @@ module.exports = {
   forgotPasswordSchema,
   setPinSchema,
   changePinSchema,
+  resetPinSchema,
   resetPasswordSchema,
   refreshTokenSchema,
   verifyBvnSchema,

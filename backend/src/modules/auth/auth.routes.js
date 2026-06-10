@@ -21,6 +21,7 @@ const {
   refreshTokenSchema,
   setPinSchema,
   changePinSchema,
+  resetPinSchema,
   resetPasswordSchema,
   updateFcmTokenSchema,
   verifyBvnSchema,
@@ -96,6 +97,14 @@ router.post(
   authenticate,
   validate(changePinSchema),
   authController.changePin,
+);
+// Forgot-PIN recovery: password re-auth, rate-limited to blunt password guessing.
+router.post(
+  "/pin/reset",
+  authenticate,
+  authLimiter,
+  validate(resetPinSchema),
+  authController.resetPin,
 );
 router.post(
   "/fcm-token",

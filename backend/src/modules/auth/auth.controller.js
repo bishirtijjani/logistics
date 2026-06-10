@@ -200,6 +200,19 @@ const changePin = async (req, res, next) => {
   }
 };
 
+const resetPin = async (req, res, next) => {
+  try {
+    await authService.resetTransactionPin(
+      req.user.id,
+      req.body.password,
+      req.body.pin,
+    );
+    res.json(ApiResponse.success("Transaction PIN reset"));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const resetPassword = async (req, res, next) => {
   try {
     await authService.resetPassword(
@@ -394,6 +407,7 @@ module.exports = {
   refreshToken,
   setPin,
   changePin,
+  resetPin,
   requestPasswordReset,
   resetPassword,
   updateFcmToken,

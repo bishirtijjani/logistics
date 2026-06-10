@@ -93,8 +93,10 @@ const maybePushEta = async (io, requestId, riderLat, riderLng) => {
 };
 
 const registerTrackingHandlers = (io, socket) => {
-  // Only riders send location updates
-  if (socket.user.role !== 'RIDER') return;
+  // Only APPROVED riders send location updates into the dispatch geo index.
+  // A fresh, unapproved RIDER signup must never reach the GEOADD below, or the
+  // matcher would offer them jobs (pickup address + fare) they can't accept.
+  if (socket.user.role !== 'RIDER' || !socket.user.isApprovedRider) return;
 
   /**
    * Handle rider:location:update
