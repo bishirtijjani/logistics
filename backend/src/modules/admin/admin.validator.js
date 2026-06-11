@@ -224,6 +224,7 @@ const listAllMerchantsSchema = z.object({
   categoryId: z.string().uuid().optional(),
   categorySlug: z.string().min(1).optional(),
   status: z.enum(['PENDING_APPROVAL', 'APPROVED', 'SUSPENDED', 'REJECTED']).optional(),
+  search: z.string().optional(),
 });
 
 const approveMerchantSchema = z.object({});

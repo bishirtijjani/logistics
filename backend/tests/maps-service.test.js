@@ -190,6 +190,37 @@ test('autocomplete: returns flattened predictions', async () => {
   assert.equal(lastRequest.params.types, undefined, 'combined types are invalid for legacy autocomplete');
 });
 
+test('autocomplete: filters out same-named places in other states', async () => {
+  resetState();
+  queueResp({
+    status: 'OK',
+    predictions: [
+      {
+        place_id: 'kt',
+        description: 'Tudun Wada, Katsina, Nigeria',
+        structured_formatting: { main_text: 'Tudun Wada', secondary_text: 'Katsina, Nigeria' },
+        terms: [{ value: 'Tudun Wada' }, { value: 'Katsina' }, { value: 'Nigeria' }],
+      },
+      {
+        place_id: 'kn',
+        description: 'Tudun Wada, Kano, Nigeria',
+        structured_formatting: { main_text: 'Tudun Wada', secondary_text: 'Kano, Nigeria' },
+        terms: [{ value: 'Tudun Wada' }, { value: 'Kano' }, { value: 'Nigeria' }],
+      },
+      {
+        // Street literally named "Katsina" but in Kaduna - must NOT slip through.
+        place_id: 'kd',
+        description: 'Katsina Road, Kaduna, Nigeria',
+        structured_formatting: { main_text: 'Katsina Road', secondary_text: 'Kaduna, Nigeria' },
+        terms: [{ value: 'Katsina Road' }, { value: 'Kaduna' }, { value: 'Nigeria' }],
+      },
+    ],
+  });
+  const out = await mapsService.autocomplete('Tudun Wada', 'tok');
+  assert.equal(out.length, 1, 'only the Katsina result survives');
+  assert.equal(out[0].placeId, 'kt');
+});
+
 test('autocomplete: empty array on ZERO_RESULTS (does not throw)', async () => {
   resetState();
   queueResp({ status: 'ZERO_RESULTS', predictions: [] });

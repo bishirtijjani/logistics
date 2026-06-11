@@ -483,7 +483,7 @@ export default function CustomerDetailPage() {
               rows={3}
             />
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3">
-              <button onClick={() => { setShowSuspendModal(false); setSuspendReason('') }} className="w-full sm:w-auto px-4 py-2 border border-surface-muted rounded-lg hover:bg-surface-muted">
+              <button onClick={() => { setShowSuspendModal(false); setSuspendReason('') }} className="w-full sm:w-auto px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-text dark:text-dark-text">
                 Cancel
               </button>
               <button

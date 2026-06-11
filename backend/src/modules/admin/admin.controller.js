@@ -117,6 +117,36 @@ const resetCustomerPin = async (req, res, next) => {
   }
 };
 
+const resetRiderPin = async (req, res, next) => {
+  try {
+    const result = await adminService.resetRiderPin(
+      req.params.riderId,
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Rider PIN reset', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetMerchantPin = async (req, res, next) => {
+  try {
+    const result = await adminService.resetMerchantPin(
+      req.params.merchantId,
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Merchant PIN reset', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getCustomerRequests = async (req, res, next) => {
   try {
     const { requests, total, page, limit } = await adminService.getCustomerRequests({
@@ -1025,6 +1055,8 @@ module.exports = {
   getCustomerById,
   getCustomerStats,
   resetCustomerPin,
+  resetRiderPin,
+  resetMerchantPin,
   getCustomerRequests,
   getCustomerTransactions,
   getCustomerTransactionById,

@@ -12,10 +12,12 @@ import {
   fetchAllTags, createTag, updateTag, deleteTag, setMerchantTags,
   fetchBankList, updateMerchantBankAccount, resolveBankAccount,
   fetchMerchantTransactions, fetchMerchantTransactionReceipt, clearMerchantTransactionReceipt,
+  resetMerchantPin,
   clearSelectedMerchant,
 } from '../store/slices/merchantsSlice'
 import { TransactionReceiptModal } from './CustomerDetailPage'
 import { fetchCategories } from '../store/slices/categoriesSlice'
+import { useDebounce } from '../lib/useDebounce'
 import { exportToCSV } from '../lib/exportToCSV'
 import Pagination from '../components/Pagination'
 import LocationPicker from '../components/LocationPicker'
@@ -26,7 +28,7 @@ import {
   ChevronRight, TrendingUp, Clock, Star, Hash, Tag, AlertCircle,
   PauseCircle, PlayCircle, CheckSquare, Square, RefreshCw, Plus,
   X, Search, Filter, ArrowUpRight, Building2, Users, BarChart2,
-  Banknote, History, ToggleLeft, ToggleRight, Pencil, Globe, Package,
+  Banknote, History, ToggleLeft, ToggleRight, Pencil, Globe, Package, KeyRound,
 } from 'lucide-react'
 
 // ── Design tokens ────────────────────────────────────────────
@@ -157,6 +159,8 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
   const [bankEditMode, setBankEditMode] = useState(false)
   const [bankForm, setBankForm] = useState({ bankCode: '', accountNumber: '', accountName: '' })
   const [resolvedBank, setResolvedBank] = useState(null)
+  const [showResetPin, setShowResetPin] = useState(false)
+  const [resetPinReason, setResetPinReason] = useState('')
 
   useEffect(() => {
     if (merchant && tab === 'commission') {
@@ -304,6 +308,18 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
 
   const walletHeld = merchant.wallet?.withdrawalHeld
 
+  const handleResetPin = () =>
+    act('resetPin', async () => {
+      const r = await dispatch(resetMerchantPin({ merchantId: merchant.id, reason: resetPinReason.trim() || undefined }))
+      if (resetMerchantPin.fulfilled.match(r)) {
+        toast.success("Merchant's PIN reset - they'll set a new one on their next transaction")
+        setShowResetPin(false)
+        setResetPinReason('')
+      } else {
+        toast.error(r.error?.message || 'Failed to reset PIN')
+      }
+    })
+
   return (
     <>
     <div className="fixed inset-0 z-40 flex justify-end" onClick={onClose}>
@@ -380,6 +396,9 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
             <Btn size="sm" variant="ghost"
               onClick={() => navigate(`/merchants/${merchant.id}/analytics`)}>
               <BarChart2 size={14} /> Analytics
+            </Btn>
+            <Btn size="sm" variant="ghost" onClick={() => setShowResetPin(true)}>
+              <KeyRound size={14} /> Reset PIN
             </Btn>
           </div>
 
@@ -749,6 +768,26 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         onRefunded={() => dispatch(fetchMerchantTransactions({ merchantId: merchant.id, page: merchantTransactions.page, limit: merchantTransactions.limit }))}
       />
     )}
+
+    {/* Reset PIN (clears it; merchant sets a fresh one in-app) */}
+    <Modal open={showResetPin} onClose={() => { setShowResetPin(false); setResetPinReason('') }} title="Reset transaction PIN">
+      <div className="space-y-4">
+        <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-xl p-4 flex gap-3">
+          <KeyRound size={18} className="text-primary shrink-0 mt-0.5" />
+          <p className="text-sm text-muted dark:text-dark-muted">
+            This clears <span className="font-medium text-text dark:text-dark-text">{merchant.name}</span>'s transaction PIN.
+            They'll be prompted to set a new one on their next bill payment. You won't see or choose it. Audit-logged.
+          </p>
+        </div>
+        <FormField label="Reason (optional)">
+          <Textarea rows={2} value={resetPinReason} onChange={(e) => setResetPinReason(e.target.value)} placeholder="e.g. merchant reported forgotten PIN" />
+        </FormField>
+        <div className="flex justify-end gap-2">
+          <Btn variant="outline" onClick={() => { setShowResetPin(false); setResetPinReason('') }}>Cancel</Btn>
+          <Btn variant="danger" loading={loading === 'resetPin'} onClick={handleResetPin}><KeyRound size={15} /> Reset PIN</Btn>
+        </div>
+      </div>
+    </Modal>
     </>
   )
 }
@@ -1008,6 +1047,7 @@ export default function MerchantsPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [filters, setFilters] = useState({ categoryId: '', status: '' })
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 500)
   const [pageSize, setPageSize] = useState(20)
 
   // Drawer
@@ -1053,7 +1093,7 @@ export default function MerchantsPage() {
 
   useEffect(() => {
     if (activeTab === 'overview') {
-      dispatch(fetchAllMerchants({ page: 1, limit: pageSize, ...filters }))
+      dispatch(fetchAllMerchants({ page: 1, limit: pageSize, ...filters, search: debouncedSearch.trim() }))
     } else if (activeTab === 'pending') {
       dispatch(fetchAllMerchants({ page: 1, limit: pageSize, status: 'PENDING_APPROVAL' }))
     } else if (activeTab === 'withdrawals') {
@@ -1062,12 +1102,11 @@ export default function MerchantsPage() {
     } else if (activeTab === 'tags') {
       dispatch(fetchAllTags())
     }
-  }, [dispatch, activeTab, filters, pageSize])
+  }, [dispatch, activeTab, filters, pageSize, debouncedSearch])
 
   const refreshMerchants = useCallback(() => {
-    const statusFilter = activeTab === 'pending' ? 'PENDING_APPROVAL' : filters.status
-    dispatch(fetchAllMerchants({ page: 1, limit: pageSize, ...filters, ...(activeTab === 'pending' && { status: 'PENDING_APPROVAL' }) }))
-  }, [dispatch, activeTab, filters, pageSize])
+    dispatch(fetchAllMerchants({ page: 1, limit: pageSize, ...filters, ...(activeTab === 'pending' ? { status: 'PENDING_APPROVAL' } : { search: debouncedSearch.trim() }) }))
+  }, [dispatch, activeTab, filters, pageSize, debouncedSearch])
 
   const pendingCount = merchants.filter((m) => m.status === 'PENDING_APPROVAL').length
 
@@ -1216,13 +1255,6 @@ export default function MerchantsPage() {
     )
   }
 
-  // Filtered merchants for table
-  const filteredMerchants = merchants.filter((m) => {
-    if (!search) return true
-    const q = search.toLowerCase()
-    return m.name.toLowerCase().includes(q) || m.email?.toLowerCase().includes(q) || m.phone?.includes(q)
-  })
-
   return (
     <div className="min-h-screen bg-background dark:bg-dark-background">
       {/* Page header */}
@@ -1336,11 +1368,11 @@ export default function MerchantsPage() {
               <div className="flex justify-center items-center py-16">
                 <Spinner size={32} cls="border-primary" />
               </div>
-            ) : filteredMerchants.length === 0 ? (
+            ) : merchants.length === 0 ? (
               <div className="text-center py-16 text-muted dark:text-dark-muted">
                 <Store size={40} className="mx-auto mb-3 opacity-30" />
                 <p className="font-medium">No merchants found</p>
-                <p className="text-sm mt-1">Try adjusting your filters</p>
+                <p className="text-sm mt-1">Try adjusting your search or filters</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1353,7 +1385,7 @@ export default function MerchantsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredMerchants.map((m) => (
+                    {merchants.map((m) => (
                       <tr
                         key={m.id}
                         className="border-t border-surface-muted dark:border-dark-surface-muted hover:bg-surface-muted/80 dark:hover:bg-dark-surface-muted/80 transition-colors group"
@@ -1608,8 +1640,8 @@ export default function MerchantsPage() {
           totalPages={Math.ceil(total / pageSize)}
           totalItems={total}
           pageSize={pageSize}
-          onPageChange={(p) => dispatch(fetchAllMerchants({ page: p, limit: pageSize, ...filters }))}
-          onPageSizeChange={(s) => { setPageSize(s); dispatch(fetchAllMerchants({ page: 1, limit: s, ...filters })) }}
+          onPageChange={(p) => dispatch(fetchAllMerchants({ page: p, limit: pageSize, ...filters, search: debouncedSearch.trim() }))}
+          onPageSizeChange={(s) => { setPageSize(s); dispatch(fetchAllMerchants({ page: 1, limit: s, ...filters, search: debouncedSearch.trim() })) }}
         />
       )}
 

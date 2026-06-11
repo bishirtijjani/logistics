@@ -406,40 +406,70 @@ const getCustomerStats = async () => {
 };
 
 /**
- * Reset (clear) a customer's transaction PIN back to unset, the same state as a
- * freshly created account. Use this to resolve PIN complaints: the customer is
- * then prompted to set a brand-new PIN themselves in-app (the PIN sheet detects
+ * Reset (clear) a user's transaction PIN back to unset, the same state as a
+ * freshly created account. Use this to resolve PIN complaints: the user is then
+ * prompted to set a brand-new PIN themselves in-app (the PIN sheet detects
  * PIN_NOT_SET and runs its inline setup). Admins never see or choose the PIN.
+ *
+ * PINs are user-level, so the same clear works for any role - the role-specific
+ * wrappers below just resolve the right userId and tag the audit entity.
  * Audit-logged. Idempotent - clearing an already-unset PIN is a no-op success.
  */
-const resetCustomerPin = async (customerId, reason, adminUserId, ipAddress, userAgent) => {
-  const user = await prisma.user.findFirst({
-    where: { id: customerId, role: 'CUSTOMER' },
+const _clearUserTransactionPin = async (userId, { entityType, entityId, reason, adminUserId, ipAddress, userAgent }) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
     select: { id: true, transactionPin: true },
   });
-  if (!user) throw AppError.notFound('Customer not found');
+  if (!user) throw AppError.notFound('User not found');
 
   const hadPin = !!user.transactionPin;
   if (hadPin) {
     await prisma.user.update({
-      where: { id: customerId },
+      where: { id: userId },
       data: { transactionPin: null, transactionPinSetByUser: false },
     });
   }
 
   await createAuditLog(
     adminUserId,
-    'RESET_CUSTOMER_PIN',
-    'CUSTOMER',
-    customerId,
+    `RESET_${entityType}_PIN`,
+    entityType,
+    entityId,
     { hadPin, reason: reason || null },
     ipAddress,
     userAgent,
   );
 
-  logger.warn('Customer PIN reset (cleared) by admin', { customerId, adminUserId, reason });
+  logger.warn('Transaction PIN reset (cleared) by admin', { userId, entityType, entityId, adminUserId, reason });
 
   return { hasPinSet: false, pinSetByUser: false, cleared: hadPin };
+};
+
+const resetCustomerPin = async (customerId, reason, adminUserId, ipAddress, userAgent) => {
+  const user = await prisma.user.findFirst({
+    where: { id: customerId, role: 'CUSTOMER' },
+    select: { id: true },
+  });
+  if (!user) throw AppError.notFound('Customer not found');
+  return _clearUserTransactionPin(customerId, {
+    entityType: 'CUSTOMER', entityId: customerId, reason, adminUserId, ipAddress, userAgent,
+  });
+};
+
+const resetRiderPin = async (riderId, reason, adminUserId, ipAddress, userAgent) => {
+  const rider = await prisma.rider.findUnique({ where: { id: riderId }, select: { userId: true } });
+  if (!rider) throw AppError.notFound('Rider not found');
+  return _clearUserTransactionPin(rider.userId, {
+    entityType: 'RIDER', entityId: riderId, reason, adminUserId, ipAddress, userAgent,
+  });
+};
+
+const resetMerchantPin = async (merchantId, reason, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId }, select: { userId: true } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  return _clearUserTransactionPin(merchant.userId, {
+    entityType: 'MERCHANT', entityId: merchantId, reason, adminUserId, ipAddress, userAgent,
+  });
 };
 
 /**
@@ -768,11 +798,26 @@ const adminUpdateRequestStatus = async (requestId, status, reason) => {
 /**
  * List all merchants with filtering.
  */
-const getAllMerchants = async ({ page = 1, limit = 20, categoryId, categorySlug, status }) => {
+const getAllMerchants = async ({ page = 1, limit = 20, categoryId, categorySlug, status, search }) => {
+  // Each search term must match somewhere on the merchant (business name/contact)
+  // or its owning user, so multi-word queries like "john bakery" match across fields.
+  const terms = (search || '').split(/\s+/).filter(Boolean);
   const where = {
     ...(categoryId && { categoryId }),
     ...(categorySlug && { category: { is: { slug: categorySlug } } }),
     ...(status && { status }),
+    ...(terms.length > 0 && {
+      AND: terms.map((t) => ({
+        OR: [
+          { name: { contains: t, mode: 'insensitive' } },
+          { email: { contains: t, mode: 'insensitive' } },
+          { phone: { contains: t, mode: 'insensitive' } },
+          { user: { is: { firstName: { contains: t, mode: 'insensitive' } } } },
+          { user: { is: { lastName: { contains: t, mode: 'insensitive' } } } },
+          { user: { is: { email: { contains: t, mode: 'insensitive' } } } },
+        ],
+      })),
+    }),
   };
 
   const [merchants, total] = await Promise.all([
@@ -3099,6 +3144,8 @@ module.exports = {
   getCustomerById,
   getCustomerStats,
   resetCustomerPin,
+  resetRiderPin,
+  resetMerchantPin,
   getCustomerRequests,
   getCustomerTransactions,
   getCustomerTransactionById,

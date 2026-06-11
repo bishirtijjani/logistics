@@ -7,13 +7,14 @@ import api from '../../lib/api'
 
 export const fetchAllMerchants = createAsyncThunk(
   'merchants/fetchAll',
-  async ({ page, limit, categoryId, categorySlug, status } = {}) => {
+  async ({ page, limit, categoryId, categorySlug, status, search } = {}) => {
     const params = new URLSearchParams({
       page: page || 1,
       limit: limit || 20,
       ...(categoryId && { categoryId }),
       ...(categorySlug && { categorySlug }),
       ...(status && { status }),
+      ...(search && { search }),
     })
     const response = await api.get(`/admin/merchants?${params}`)
     return response.data
@@ -163,6 +164,15 @@ export const fetchMerchantUtilityPaymentDetail = createAsyncThunk(
   'merchants/fetchUtilityPaymentDetail',
   async ({ merchantId, paymentId }) => {
     const response = await api.get(`/admin/merchants/${merchantId}/utility-payments/${paymentId}`)
+    return response.data.data
+  }
+)
+
+// Clear a merchant's transaction PIN so they set a fresh one in-app.
+export const resetMerchantPin = createAsyncThunk(
+  'merchants/resetPin',
+  async ({ merchantId, reason }) => {
+    const response = await api.post(`/admin/merchants/${merchantId}/pin/reset`, { reason })
     return response.data.data
   }
 )

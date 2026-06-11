@@ -179,7 +179,27 @@ const autocomplete = async (query, sessionToken) => {
       throw new Error(response.data.error_message || "Autocomplete failed");
     }
 
-    return (response.data.predictions || []).map((p) => ({
+    let predictions = response.data.predictions || [];
+
+    // Keep only suggestions whose STATE component is the operating area, so a
+    // search like "Tudun Wada" returns the Katsina one, not the Kano/Kaduna
+    // namesakes. Geographic restriction can't do this (Kano sits inside any box
+    // around Katsina); the admin component in `terms`/`secondary_text` can.
+    // We match the state as a distinct comma-separated term (or the secondary
+    // text), NOT a substring of the whole description, so "Katsina Road, Kaduna"
+    // is correctly excluded. See config/geo-restriction.js to undo.
+    if (GEO_RESTRICTION.enabled) {
+      const state = GEO_RESTRICTION.label.toLowerCase();
+      const inState = (p) => {
+        const secondary = (p.structured_formatting?.secondary_text || "").toLowerCase();
+        if (secondary.includes(state)) return true;
+        const terms = (p.terms || []).map((t) => (t.value || "").trim().toLowerCase());
+        return terms.includes(state);
+      };
+      predictions = predictions.filter(inState);
+    }
+
+    return predictions.map((p) => ({
       placeId: p.place_id,
       description: p.description,
       mainText: p.structured_formatting?.main_text,

@@ -98,6 +98,7 @@ router.get('/merchants/:merchantId/transactions', validate(customerTransactionsS
 router.get('/merchants/:merchantId/transactions/:transactionId', adminController.getMerchantTransactionById);
 router.get('/merchants/:merchantId/utility-payments', validate(utilityPaymentsQuerySchema, 'query'), adminController.getMerchantUtilityPayments);
 router.get('/merchants/:merchantId/utility-payments/:paymentId', adminController.getMerchantUtilityPaymentById);
+router.post('/merchants/:merchantId/pin/reset', validate(resetCustomerPinSchema), adminController.resetMerchantPin);
 router.post('/merchants/:merchantId/tags', validate(setMerchantTagsSchema), adminController.setMerchantTags);
 
 // Withdrawal bulk operations
@@ -132,6 +133,7 @@ router.get('/riders/:riderId/transactions', validate(customerTransactionsSchema,
 router.get('/riders/:riderId/transactions/:transactionId', adminController.getRiderTransactionById);
 router.get('/riders/:riderId/utility-payments', validate(utilityPaymentsQuerySchema, 'query'), adminController.getRiderUtilityPayments);
 router.get('/riders/:riderId/utility-payments/:paymentId', adminController.getRiderUtilityPaymentById);
+router.post('/riders/:riderId/pin/reset', validate(resetCustomerPinSchema), adminController.resetRiderPin);
 
 // Customer management
 router.get('/customers', validate(listAllCustomersSchema, 'query'), adminController.getAllCustomers);
@@ -144,7 +146,7 @@ router.get('/customers/:customerId/transactions/:transactionId', adminController
 router.get('/customers/:customerId/utility-payments', validate(utilityPaymentsQuerySchema, 'query'), adminController.getCustomerUtilityPayments);
 router.get('/customers/:customerId/utility-payments/:paymentId', adminController.getCustomerUtilityPaymentById);
 router.get('/customers/:customerId/addresses', adminController.getCustomerAddresses);
-// TEMPORARY testing aid: reveal/set a customer's transaction PIN (audit-logged).
+// Reset (clear) a user's transaction PIN so they set a fresh one in-app (audit-logged).
 router.post('/customers/:customerId/pin/reset', validate(resetCustomerPinSchema), adminController.resetCustomerPin);
 router.patch('/customers/:customerId/status', validate(updateCustomerStatusSchema), adminController.updateCustomerStatus);
 router.patch('/customers/:customerId', validate(updateCustomerSchema), adminController.updateCustomer);

@@ -6,7 +6,7 @@ import {
   fetchAllRiders, fetchPendingRiders, fetchRiderStats,
   fetchRiderEarnings, fetchRiderDeliveryHistory,
   fetchRiderTransactions, fetchRiderTransactionReceipt, clearRiderTransactionReceipt,
-  reviewRider, suspendRider, unsuspendRider, forceOfflineRider,
+  reviewRider, suspendRider, unsuspendRider, forceOfflineRider, resetRiderPin,
   setSelectedRider, clearSelectedRider,
 } from '../store/slices/ridersSlice'
 import { TransactionReceiptModal } from './CustomerDetailPage'
@@ -16,7 +16,7 @@ import ActionMenu from '../components/ActionMenu'
 import {
   Bike, Search, Eye, Check, X, Clock, Phone, Mail, Star, Package, MapPin,
   Power, ShieldCheck, Ban, FileText, ExternalLink, AlertTriangle, User,
-  Calendar, DollarSign, CheckCircle, Hash, Truck, Download, Users, Wifi,
+  Calendar, DollarSign, CheckCircle, Hash, Truck, Download, Users, Wifi, KeyRound,
 } from 'lucide-react'
 
 // ── Design tokens (mirrors MerchantsPage kit so the two pages match) ──────────
@@ -324,6 +324,8 @@ export default function RidersPage() {
   const [rejectTarget, setRejectTarget] = useState(null)
   const [offlineTarget, setOfflineTarget] = useState(null)
   const [offlineReason, setOfflineReason] = useState('')
+  const [resetPinTarget, setResetPinTarget] = useState(null)
+  const [resetPinReason, setResetPinReason] = useState('')
 
   // Stats once on mount.
   useEffect(() => { dispatch(fetchRiderStats()) }, [dispatch])
@@ -392,6 +394,16 @@ export default function RidersPage() {
       toast.success('Rider taken offline')
       setOfflineTarget(null); setOfflineReason('')
     } else toast.error(r.error?.message || 'Failed to take rider offline')
+  }
+
+  const confirmResetPin = async () => {
+    setActionLoading('resetPin')
+    const r = await dispatch(resetRiderPin({ riderId: resetPinTarget.id, reason: resetPinReason.trim() || undefined }))
+    setActionLoading(null)
+    if (r.meta.requestStatus === 'fulfilled') {
+      toast.success("Rider's PIN reset - they'll set a new one on their next transaction")
+      setResetPinTarget(null); setResetPinReason('')
+    } else toast.error(r.error?.message || 'Failed to reset PIN')
   }
 
   const handleExportCSV = () => {
@@ -642,6 +654,7 @@ export default function RidersPage() {
         onSuspend={(r) => setSuspendTarget(r)}
         onUnsuspend={handleUnsuspend}
         onForceOffline={(r) => setOfflineTarget(r)}
+        onResetPin={(r) => setResetPinTarget(r)}
       />
 
       {/* Transaction receipt - mirrors the in-app receipt the rider sees */}
@@ -701,6 +714,25 @@ export default function RidersPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Reset PIN (clears it; rider sets a fresh one in-app) */}
+      <Modal open={!!resetPinTarget} onClose={() => { setResetPinTarget(null); setResetPinReason('') }} title={`Reset PIN - ${resetPinTarget ? fullName(resetPinTarget) : ''}`}>
+        <div className="space-y-4">
+          <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-xl p-4 flex gap-3">
+            <KeyRound size={18} className="text-primary shrink-0 mt-0.5" />
+            <p className="text-sm text-muted dark:text-dark-muted">
+              This clears the rider's transaction PIN. They'll be prompted to set a new one on their next transaction. You won't see or choose it. Audit-logged.
+            </p>
+          </div>
+          <FormField label="Reason (optional)">
+            <Textarea rows={2} value={resetPinReason} onChange={(e) => setResetPinReason(e.target.value)} placeholder="e.g. rider reported forgotten PIN" />
+          </FormField>
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+            <Btn variant="outline" onClick={() => { setResetPinTarget(null); setResetPinReason('') }}>Cancel</Btn>
+            <Btn variant="danger" loading={actionLoading === 'resetPin'} onClick={confirmResetPin}><KeyRound size={15} /> Reset PIN</Btn>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -715,7 +747,7 @@ const DRAWER_TABS = [
   { id: 'transactions', label: 'Transactions' },
 ]
 
-function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab, setTab, actionLoading, onClose, onReview, onSuspend, onUnsuspend, onForceOffline }) {
+function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab, setTab, actionLoading, onClose, onReview, onSuspend, onUnsuspend, onForceOffline, onResetPin }) {
   if (!rider) return null
   const busy = actionLoading === rider.id
 
@@ -891,6 +923,7 @@ function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab
       {/* Contextual footer actions */}
       <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end border-t border-surface-muted dark:border-dark-surface-muted pt-4">
         <Btn variant="outline" onClick={onClose}>Close</Btn>
+        <Btn variant="ghost" onClick={() => onResetPin(rider)}><KeyRound size={15} /> Reset PIN</Btn>
         {rider.status === 'PENDING_APPROVAL' && (
           <>
             <Btn variant="danger" onClick={() => onReview(rider, 'reject')}><X size={15} /> Reject</Btn>

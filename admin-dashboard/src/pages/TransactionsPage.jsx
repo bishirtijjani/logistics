@@ -71,20 +71,20 @@ export default function TransactionsPage() {
         <div className="flex flex-col lg:flex-row lg:flex-wrap lg:items-center gap-3">
           <div className="flex flex-col sm:flex-row lg:flex-1 gap-2 sm:gap-3">
             <div className="relative flex-1">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted dark:text-dark-muted" />
               <input
                 type="text"
                 placeholder="Search by transaction ID or user..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text"
               />
             </div>
             <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
               <select
                 value={filters.type}
                 onChange={(e) => handleFilterChange('type', e.target.value)}
-                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text"
               >
                 <option value="">All Types</option>
                 <option value="PAYMENT">Payment</option>
@@ -96,7 +96,7 @@ export default function TransactionsPage() {
               <select
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text"
               >
                 <option value="">All Statuses</option>
                 <option value="PENDING">Pending</option>
@@ -107,13 +107,13 @@ export default function TransactionsPage() {
                 type="date"
                 value={filters.dateRange.from}
                 onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, from: e.target.value })}
-                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text"
               />
               <input
                 type="date"
                 value={filters.dateRange.to}
                 onChange={(e) => handleFilterChange('dateRange', { ...filters.dateRange, to: e.target.value })}
-                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm"
+                className="px-3 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text"
               />
             </div>
           </div>
@@ -202,14 +202,14 @@ export default function TransactionsPage() {
             <button
               onClick={() => handlePageChange(page - 1)}
               disabled={page === 1}
-              className="flex-1 sm:flex-none px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
             <button
               onClick={() => handlePageChange(page + 1)}
               disabled={page * 20 >= total}
-              className="flex-1 sm:flex-none px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:bg-dark-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg hover:bg-surface-muted dark:hover:bg-dark-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>
@@ -258,7 +258,7 @@ export default function TransactionsPage() {
                 </div>
                 <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
                   <p className="text-sm text-muted dark:text-dark-muted mb-1">Date</p>
-                  <p className="font-medium flex items-center gap-2">
+                  <p className="font-medium flex items-center gap-2 text-text dark:text-dark-text">
                     <Calendar size={16} />
                     {new Date(selectedTransaction.createdAt).toLocaleString()}
                   </p>

@@ -148,6 +148,15 @@ export const forceOfflineRider = createAsyncThunk(
   }
 )
 
+// Clear a rider's transaction PIN so they set a fresh one in-app.
+export const resetRiderPin = createAsyncThunk(
+  'riders/resetPin',
+  async ({ riderId, reason }) => {
+    const response = await api.post(`/admin/riders/${riderId}/pin/reset`, { reason })
+    return response.data.data
+  }
+)
+
 // Patch a rider in-place across the all-riders list + the open drawer, so a
 // mutation reflects immediately without a refetch.
 const patchRiderInState = (state, updated) => {
