@@ -273,17 +273,23 @@ export default function ProfileScreen({ navigation }) {
             <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
               {/* Profile is now a stack screen reached from the home avatar.
                   The back button gives iOS users (no hardware back) and
-                  every user a clear way out without relying on swipe-back. */}
-              {navigation.canGoBack() && (
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  accessibilityRole="button"
-                  accessibilityLabel={t("a11y.back")}
-                  style={{ padding: 6, marginRight: 8, marginLeft: -6 }}
-                >
-                  <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
-                </TouchableOpacity>
-              )}
+                  every user a clear way out without relying on swipe-back.
+                  It's always rendered: when there's no history to pop (e.g. a
+                  deep link / notification opened Profile as the root, where
+                  canGoBack() is false and there's no tab bar either), it falls
+                  back to Home so the user is never stranded. */}
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.canGoBack()
+                    ? navigation.goBack()
+                    : navigation.navigate("MainTabs", { screen: "HomeTab" })
+                }
+                accessibilityRole="button"
+                accessibilityLabel={t("a11y.back")}
+                style={{ padding: 6, marginRight: 8, marginLeft: -6 }}
+              >
+                <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
+              </TouchableOpacity>
               <Text
                 style={{
                   fontSize: 28,

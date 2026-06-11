@@ -272,20 +272,72 @@ export default function EditProfileScreen({ navigation }) {
             )}
           />
 
+          {/* Address is captured via the map picker (Katsina-restricted) so the
+              text and coordinates stay consistent, not free-typed. */}
           <Controller
             control={control}
             name="address"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <FormInput
-                label="Address"
-                icon="location-outline"
-                placeholder="Enter your address"
-                error={errors.address?.message}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                editable={!isUpdating}
-              />
+            render={({ field: { onChange, value } }) => (
+              <View style={{ marginBottom: 16 }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "600",
+                    color: tokens.text.muted,
+                    marginBottom: 6,
+                  }}
+                >
+                  Address
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("LocationPicker", {
+                      initial: value ? { address: value } : null,
+                      onSelect: (sel) => onChange(sel.address),
+                    })
+                  }
+                  disabled={isUpdating}
+                  accessibilityRole="button"
+                  accessibilityLabel="Address"
+                  activeOpacity={0.7}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: tokens.bg.surface,
+                    borderWidth: 1,
+                    borderColor: errors.address
+                      ? tokens.status.error
+                      : tokens.border.default,
+                    borderRadius: 14,
+                    paddingHorizontal: 16,
+                    paddingVertical: 14,
+                    opacity: isUpdating ? 0.6 : 1,
+                  }}
+                >
+                  <Ionicons
+                    name="location-outline"
+                    size={18}
+                    color={value ? tokens.brand.default : tokens.text.placeholder}
+                    style={{ marginRight: 10 }}
+                  />
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      flex: 1,
+                      fontSize: 15,
+                      color: value ? tokens.text.primary : tokens.text.placeholder,
+                    }}
+                  >
+                    {value || "Pick your address on the map"}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+                </TouchableOpacity>
+                {errors.address?.message ? (
+                  <Text style={{ fontSize: 12, color: tokens.status.error, marginTop: 4, marginLeft: 4 }}>
+                    {errors.address.message}
+                  </Text>
+                ) : null}
+              </View>
             )}
           />
 
