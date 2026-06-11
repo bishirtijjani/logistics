@@ -145,66 +145,100 @@ const getDirections = async (originLat, originLng, destLat, destLng) => {
   }
 };
 
+// Map a legacy autocomplete prediction to our suggestion shape.
+const fromPrediction = (p) => ({
+  placeId: p.place_id,
+  description: p.description,
+  mainText: p.structured_formatting?.main_text,
+  secondaryText: p.structured_formatting?.secondary_text,
+});
+
+// Map a geocoding result to our suggestion shape (split the formatted address
+// into a main/secondary line so the dropdown reads like an autocomplete row).
+const fromGeocode = (r) => {
+  const parts = (r.formatted_address || "").split(", ");
+  return {
+    placeId: r.place_id,
+    description: r.formatted_address,
+    mainText: parts[0] || r.formatted_address,
+    secondaryText: parts.slice(1).join(", "),
+  };
+};
+
 /**
- * Places Autocomplete - using legacy Places Autocomplete API.
+ * Places Autocomplete, restricted to the operating area (Katsina).
+ *
+ * Why it's not just one Autocomplete call: Google ranks autocomplete by
+ * prominence, and Kano (a far bigger city next door) buries Katsina's
+ * namesakes - a search like "Tudun Wada" returns five Kano/Kaduna rows and zero
+ * Katsina ones. A circle/box restriction can't fix this (Kano sits inside any
+ * box around Katsina). So when the restriction is on we merge TWO sources:
+ *   1. Autocomplete - keep only predictions whose text already names the state
+ *      as a distinct term (good for prominent Katsina POIs/businesses).
+ *   2. Geocoding with components=administrative_area:Katsina - a HARD state
+ *      filter that surfaces the Katsina areas/streets autocomplete buried,
+ *      skipping the bare "Katsina, Nigeria" whole-state fallback.
+ * Results are de-duped by placeId. See config/geo-restriction.js to undo.
  */
 const autocomplete = async (query, sessionToken) => {
   try {
-    // BIAS (not strict-bound) results toward the operating area. A circle can't
-    // trace the state border, and `strictbounds` on a circle big enough to
-    // cover Katsina also admits a lot of neighbouring towns, so strict mode here
-    // gives a false sense of restriction. Instead we bias for relevance and do
-    // the real point-in-polygon gate at placeDetails() time, once we have
-    // coordinates. See config/geo-restriction.js to undo.
-    //
-    // Note: the legacy Autocomplete API rejects combined `types` like
-    // "geocode|establishment" - it accepts a single type or none. We omit it so
-    // both addresses and businesses come back.
-    const restriction = GEO_RESTRICTION.enabled
-      ? {
-          location: `${GEO_RESTRICTION.search.center.lat},${GEO_RESTRICTION.search.center.lng}`,
-          radius: GEO_RESTRICTION.search.radiusMeters,
-        }
-      : {};
-    const response = await axios.get(`${MAPS_BASE}/place/autocomplete/json`, {
-      params: {
-        input: query,
-        key: config.GOOGLE_MAPS_API_KEY,
-        components: `country:${GEO_RESTRICTION.country.toLowerCase()}`,
-        ...restriction,
-      },
-    });
-
-    if (response.data.status !== "OK" && response.data.status !== "ZERO_RESULTS") {
-      throw new Error(response.data.error_message || "Autocomplete failed");
-    }
-
-    let predictions = response.data.predictions || [];
-
-    // Keep only suggestions whose STATE component is the operating area, so a
-    // search like "Tudun Wada" returns the Katsina one, not the Kano/Kaduna
-    // namesakes. Geographic restriction can't do this (Kano sits inside any box
-    // around Katsina); the admin component in `terms`/`secondary_text` can.
-    // We match the state as a distinct comma-separated term (or the secondary
-    // text), NOT a substring of the whole description, so "Katsina Road, Kaduna"
-    // is correctly excluded. See config/geo-restriction.js to undo.
+    const acParams = {
+      input: query,
+      key: config.GOOGLE_MAPS_API_KEY,
+      components: `country:${GEO_RESTRICTION.country.toLowerCase()}`,
+    };
     if (GEO_RESTRICTION.enabled) {
-      const state = GEO_RESTRICTION.label.toLowerCase();
-      const inState = (p) => {
-        const secondary = (p.structured_formatting?.secondary_text || "").toLowerCase();
-        if (secondary.includes(state)) return true;
-        const terms = (p.terms || []).map((t) => (t.value || "").trim().toLowerCase());
-        return terms.includes(state);
-      };
-      predictions = predictions.filter(inState);
+      // Bias autocomplete toward the area (helps, but doesn't restrict).
+      acParams.location = `${GEO_RESTRICTION.search.center.lat},${GEO_RESTRICTION.search.center.lng}`;
+      acParams.radius = GEO_RESTRICTION.search.radiusMeters;
+    }
+    const acReq = axios.get(`${MAPS_BASE}/place/autocomplete/json`, { params: acParams });
+
+    // Restriction off: plain autocomplete, all of the country.
+    if (!GEO_RESTRICTION.enabled) {
+      const response = await acReq;
+      if (response.data.status !== "OK" && response.data.status !== "ZERO_RESULTS") {
+        throw new Error(response.data.error_message || "Autocomplete failed");
+      }
+      return (response.data.predictions || []).map(fromPrediction);
     }
 
-    return predictions.map((p) => ({
-      placeId: p.place_id,
-      description: p.description,
-      mainText: p.structured_formatting?.main_text,
-      secondaryText: p.structured_formatting?.secondary_text,
-    }));
+    // Restriction on: run autocomplete + state-scoped geocoding in parallel.
+    const gcReq = axios.get(`${MAPS_BASE}/geocode/json`, {
+      params: { address: query, key: config.GOOGLE_MAPS_API_KEY, components: geocodeComponents() },
+    });
+    const [acRes, gcRes] = await Promise.all([acReq, gcReq]);
+
+    if (acRes.data.status !== "OK" && acRes.data.status !== "ZERO_RESULTS") {
+      throw new Error(acRes.data.error_message || "Autocomplete failed");
+    }
+
+    const state = GEO_RESTRICTION.label.toLowerCase();
+    const out = [];
+    const seen = new Set();
+
+    // 1) Autocomplete predictions already tagged with the state (as a term or in
+    //    the secondary line) - NOT a description substring, so "Katsina Road,
+    //    Kaduna" is not falsely kept.
+    for (const p of acRes.data.predictions || []) {
+      const secondary = (p.structured_formatting?.secondary_text || "").toLowerCase();
+      const terms = (p.terms || []).map((t) => (t.value || "").trim().toLowerCase());
+      if ((secondary.includes(state) || terms.includes(state)) && !seen.has(p.place_id)) {
+        seen.add(p.place_id);
+        out.push(fromPrediction(p));
+      }
+    }
+
+    // 2) Geocoding matches inside Katsina, skipping the whole-state fallback
+    //    (administrative_area_level_1) that geocoding returns for vague input.
+    for (const r of gcRes.data.results || []) {
+      if ((r.types || []).includes("administrative_area_level_1")) continue;
+      if (seen.has(r.place_id)) continue;
+      seen.add(r.place_id);
+      out.push(fromGeocode(r));
+    }
+
+    return out.slice(0, 8);
   } catch (error) {
     logger.error("Autocomplete failed", { query, error: error.message });
     throw AppError.internal("Unable to search places");

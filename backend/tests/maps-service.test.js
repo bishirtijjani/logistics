@@ -24,9 +24,11 @@ const stubModule = (filename, exports) => {
 // can express "first call returns A, second call returns B".
 const nextResponses = [];
 let lastRequest = null;
+const requests = []; // every call this test made, for assertions on parallel calls
 stubModule(require.resolve('axios'), {
   get: async (url, opts) => {
     lastRequest = { url, params: opts?.params };
+    requests.push(lastRequest);
     if (nextResponses.length === 0) {
       throw new Error('no axios response queued for this test');
     }
@@ -35,6 +37,9 @@ stubModule(require.resolve('axios'), {
     return next;
   },
 });
+
+// Find the request whose URL contains `fragment` (e.g. 'autocomplete', 'geocode').
+const requestTo = (fragment) => requests.find((r) => r.url.includes(fragment));
 
 stubModule(path.resolve(__dirname, '../src/config/index.js'), {
   config: { GOOGLE_MAPS_API_KEY: 'test-key' },
@@ -50,6 +55,7 @@ const queueResp = (data) => nextResponses.push({ data });
 const resetState = () => {
   nextResponses.length = 0;
   lastRequest = null;
+  requests.length = 0;
 };
 
 // --- getDistance ---
@@ -159,7 +165,7 @@ test('reverseGeocode: AppError.badRequest when no results', async () => {
 
 // --- autocomplete ---
 
-test('autocomplete: returns flattened predictions', async () => {
+test('autocomplete: keeps state-tagged predictions and biases the request', async () => {
   resetState();
   queueResp({
     status: 'OK',
@@ -168,29 +174,36 @@ test('autocomplete: returns flattened predictions', async () => {
         place_id: 'p1',
         description: 'Sani Street, Katsina',
         structured_formatting: { main_text: 'Sani Street', secondary_text: 'Katsina' },
+        terms: [{ value: 'Sani Street' }, { value: 'Katsina' }],
       },
       {
         place_id: 'p2',
         description: 'Sani Abacha Road, Katsina',
         structured_formatting: { main_text: 'Sani Abacha Road', secondary_text: 'Katsina' },
+        terms: [{ value: 'Sani Abacha Road' }, { value: 'Katsina' }],
       },
     ],
   });
+  queueResp({ status: 'OK', results: [] }); // the parallel geocoding call (no extra matches)
   const out = await mapsService.autocomplete('Sani', 'session-token-1');
   assert.equal(out.length, 2);
   assert.equal(out[0].placeId, 'p1');
   assert.equal(out[0].mainText, 'Sani Street');
   assert.equal(out[1].mainText, 'Sani Abacha Road');
-  assert.equal(lastRequest.params.components, 'country:ng');
-  // Geo-restriction (Katsina) BIASES autocomplete to the area circle (not a
-  // strict bound - the real gate is point-in-polygon at placeDetails time).
-  assert.equal(lastRequest.params.location, '12.4,7.6');
-  assert.equal(lastRequest.params.radius, 150000);
-  assert.equal(lastRequest.params.strictbounds, undefined, 'must bias, not strict-bound');
-  assert.equal(lastRequest.params.types, undefined, 'combined types are invalid for legacy autocomplete');
+
+  const ac = requestTo('autocomplete');
+  assert.equal(ac.params.components, 'country:ng');
+  // Autocomplete is BIASED to the area circle (not strict-bound).
+  assert.equal(ac.params.location, '12.4,7.6');
+  assert.equal(ac.params.radius, 150000);
+  assert.equal(ac.params.strictbounds, undefined, 'must bias, not strict-bound');
+  assert.equal(ac.params.types, undefined, 'combined types are invalid for legacy autocomplete');
+  // The parallel geocoding call hard-scopes to the state.
+  const gc = requestTo('geocode');
+  assert.equal(gc.params.components, 'country:NG|administrative_area:Katsina');
 });
 
-test('autocomplete: filters out same-named places in other states', async () => {
+test('autocomplete: drops other-state namesakes, keeps only the Katsina-tagged one', async () => {
   resetState();
   queueResp({
     status: 'OK',
@@ -208,7 +221,7 @@ test('autocomplete: filters out same-named places in other states', async () => 
         terms: [{ value: 'Tudun Wada' }, { value: 'Kano' }, { value: 'Nigeria' }],
       },
       {
-        // Street literally named "Katsina" but in Kaduna - must NOT slip through.
+        // Street literally named "Katsina" but in Kaduna - not a term match, dropped.
         place_id: 'kd',
         description: 'Katsina Road, Kaduna, Nigeria',
         structured_formatting: { main_text: 'Katsina Road', secondary_text: 'Kaduna, Nigeria' },
@@ -216,14 +229,46 @@ test('autocomplete: filters out same-named places in other states', async () => 
       },
     ],
   });
+  queueResp({ status: 'OK', results: [] }); // geocoding adds nothing here
   const out = await mapsService.autocomplete('Tudun Wada', 'tok');
   assert.equal(out.length, 1, 'only the Katsina result survives');
   assert.equal(out[0].placeId, 'kt');
 });
 
+test('autocomplete: surfaces Katsina results from geocoding that autocomplete buried', async () => {
+  resetState();
+  // Autocomplete returns only out-of-state namesakes (Kano), all dropped.
+  queueResp({
+    status: 'OK',
+    predictions: [
+      {
+        place_id: 'kn',
+        description: 'Tudun Wada, Kano, Nigeria',
+        structured_formatting: { main_text: 'Tudun Wada', secondary_text: 'Kano, Nigeria' },
+        terms: [{ value: 'Tudun Wada' }, { value: 'Kano' }, { value: 'Nigeria' }],
+      },
+    ],
+  });
+  // Geocoding (state-scoped) returns the real Katsina matches + a bare-state row.
+  queueResp({
+    status: 'OK',
+    results: [
+      { place_id: 'g1', formatted_address: 'Tudun Wada 831101, Katsina, Nigeria', types: ['locality'] },
+      { place_id: 'g2', formatted_address: 'Tudun Wada 832102, Katsina, Nigeria', types: ['locality'] },
+      { place_id: 'gstate', formatted_address: 'Katsina, Nigeria', types: ['administrative_area_level_1', 'political'] },
+    ],
+  });
+  const out = await mapsService.autocomplete('Tudun Wada', 'tok2');
+  assert.equal(out.length, 2, 'two geocoding localities, bare-state fallback dropped');
+  assert.deepEqual(out.map((o) => o.placeId), ['g1', 'g2']);
+  assert.equal(out[0].mainText, 'Tudun Wada 831101');
+  assert.equal(out[0].secondaryText, 'Katsina, Nigeria');
+});
+
 test('autocomplete: empty array on ZERO_RESULTS (does not throw)', async () => {
   resetState();
   queueResp({ status: 'ZERO_RESULTS', predictions: [] });
+  queueResp({ status: 'ZERO_RESULTS', results: [] }); // parallel geocoding call
   const out = await mapsService.autocomplete('nonsense', 'tok');
   assert.deepEqual(out, []);
 });
@@ -231,6 +276,7 @@ test('autocomplete: empty array on ZERO_RESULTS (does not throw)', async () => {
 test('autocomplete: throws AppError.internal on API error status', async () => {
   resetState();
   queueResp({ status: 'REQUEST_DENIED', error_message: 'bad key' });
+  queueResp({ status: 'OK', results: [] }); // parallel geocoding call still fires
   await assert.rejects(
     () => mapsService.autocomplete('x', 'tok'),
     (err) => err.statusCode === 500,
