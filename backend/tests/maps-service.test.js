@@ -185,7 +185,8 @@ test('autocomplete: keeps state-tagged predictions and biases the request', asyn
     ],
   });
   queueResp({ status: 'OK', results: [] }); // the parallel geocoding call (no extra matches)
-  const out = await mapsService.autocomplete('Sani', 'session-token-1');
+  // Query chosen to NOT match the local index, so this isolates the Google merge.
+  const out = await mapsService.autocomplete('qwerty', 'session-token-1');
   assert.equal(out.length, 2);
   assert.equal(out[0].placeId, 'p1');
   assert.equal(out[0].mainText, 'Sani Street');
@@ -230,7 +231,7 @@ test('autocomplete: drops other-state namesakes, keeps only the Katsina-tagged o
     ],
   });
   queueResp({ status: 'OK', results: [] }); // geocoding adds nothing here
-  const out = await mapsService.autocomplete('Tudun Wada', 'tok');
+  const out = await mapsService.autocomplete('qwerty', 'tok'); // no local-index match
   assert.equal(out.length, 1, 'only the Katsina result survives');
   assert.equal(out[0].placeId, 'kt');
 });
@@ -258,11 +259,39 @@ test('autocomplete: surfaces Katsina results from geocoding that autocomplete bu
       { place_id: 'gstate', formatted_address: 'Katsina, Nigeria', types: ['administrative_area_level_1', 'political'] },
     ],
   });
-  const out = await mapsService.autocomplete('Tudun Wada', 'tok2');
+  const out = await mapsService.autocomplete('qwerty', 'tok2'); // no local-index match
   assert.equal(out.length, 2, 'two geocoding localities, bare-state fallback dropped');
   assert.deepEqual(out.map((o) => o.placeId), ['g1', 'g2']);
   assert.equal(out[0].mainText, 'Tudun Wada 831101');
   assert.equal(out[0].secondaryText, 'Katsina, Nigeria');
+});
+
+// --- local index ---
+
+test('autocomplete: local index returns instant Katsina matches, ranked first', async () => {
+  resetState();
+  queueResp({ status: 'ZERO_RESULTS', predictions: [] }); // Google autocomplete buries it
+  queueResp({ status: 'OK', results: [] }); // geocoding adds nothing for the short prefix
+  const out = await mapsService.autocomplete('tudun', 'tok');
+  assert.ok(out.length > 0, 'local index yields suggestions for a short prefix');
+  assert.ok(out[0].placeId.startsWith('local:'), 'local results rank first');
+  assert.ok(/tudun/i.test(out[0].mainText), 'matches the typed prefix');
+});
+
+test('autocomplete: de-dupes geocoding rows that restate a local result', async () => {
+  resetState();
+  queueResp({ status: 'ZERO_RESULTS', predictions: [] });
+  // Geocoding returns postal variants of a name the local index already has.
+  queueResp({
+    status: 'OK',
+    results: [
+      { place_id: 'g1', formatted_address: 'Tudun Wada 831101, Katsina, Nigeria', types: ['locality'] },
+    ],
+  });
+  const out = await mapsService.autocomplete('tudun wada', 'tok');
+  const ids = out.map((o) => o.placeId);
+  assert.ok(ids.some((id) => id.startsWith('local:')), 'local Tudun Wada present');
+  assert.ok(!ids.includes('g1'), 'the geocoded postal variant is de-duped away');
 });
 
 test('autocomplete: empty array on ZERO_RESULTS (does not throw)', async () => {
@@ -324,6 +353,35 @@ test('placeDetails: AppError.internal on non-OK Google status', async () => {
     () => mapsService.placeDetails('p1', 'tok'),
     (err) => err.statusCode === 500,
   );
+});
+
+test('placeDetails: local pick with stored coords returns them without any API call', async () => {
+  resetState();
+  const { places } = require('../src/data/katsina-places.json');
+  const withCoords = places.find((p) => p.lat != null && p.lng != null);
+  assert.ok(withCoords, 'dataset has at least one entry with coordinates');
+  // No queued response: localPlaceDetails must NOT hit axios when coords exist.
+  const out = await mapsService.placeDetails(`local:${withCoords.id}`, 'tok');
+  assert.equal(out.lat, withCoords.lat);
+  assert.equal(out.lng, withCoords.lng);
+  assert.equal(out.placeId, `local:${withCoords.id}`);
+  assert.equal(out.outOfArea, false, 'a Katsina place is in-area');
+});
+
+test('placeDetails: local pick without coords is geocoded live (state-scoped)', async () => {
+  resetState();
+  const { places } = require('../src/data/katsina-places.json');
+  const noCoords = places.find((p) => p.lat == null);
+  assert.ok(noCoords, 'dataset has a curated entry without coordinates');
+  queueResp({
+    status: 'OK',
+    results: [{ geometry: { location: { lat: 12.99, lng: 7.6 } }, formatted_address: `${noCoords.name}, Katsina, Nigeria`, types: ['neighborhood'] }],
+  });
+  const out = await mapsService.placeDetails(`local:${noCoords.id}`, 'tok');
+  assert.equal(out.lat, 12.99);
+  assert.equal(out.lng, 7.6);
+  assert.equal(out.outOfArea, false);
+  assert.equal(lastRequest.params.components, 'country:NG|administrative_area:Katsina', 'resolved within the state');
 });
 
 // --- getDirections ---

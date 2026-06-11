@@ -17,6 +17,66 @@ const geocodeComponents = () =>
     ? `country:${GEO_RESTRICTION.country}|administrative_area:${GEO_RESTRICTION.adminArea}`
     : `country:${GEO_RESTRICTION.country}`;
 
+// ---- Local Katsina places index ----------------------------------------
+// A curated/open-data list of Katsina wards, OSM places and neighbourhoods so
+// short prefixes ("tudun") return Katsina suggestions INSTANTLY, instead of
+// being buried under Kano in Google's prominence ranking. Built by
+// scripts/build-katsina-places.js. Google stays as the live source for
+// businesses + anything not in this list (see autocomplete below).
+const KATSINA_PLACES = (() => {
+  try {
+    return require("../data/katsina-places.json").places || [];
+  } catch {
+    return [];
+  }
+})();
+
+const normalizePlace = (s) =>
+  (s || "")
+    .toLowerCase()
+    .replace(/['’`]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const placeById = new Map();
+const placeIndex = KATSINA_PLACES.map((p) => {
+  placeById.set(p.id, p);
+  return { p, norm: normalizePlace(p.name) };
+});
+
+const toLocalSuggestion = (p) => ({
+  placeId: `local:${p.id}`,
+  description: p.lga ? `${p.name}, ${p.lga}, Katsina` : `${p.name}, Katsina`,
+  mainText: p.name,
+  secondaryText: p.lga ? `${p.lga}, Katsina` : "Katsina",
+});
+
+/**
+ * Prefix/substring search over the local Katsina index. Ranks exact > whole-name
+ * prefix > any-word prefix > substring, then by name length.
+ */
+const localSearch = (query, limit = 6) => {
+  const q = normalizePlace(query);
+  if (!q) return [];
+  const scored = [];
+  for (const { p, norm } of placeIndex) {
+    let score = -1;
+    if (norm === q) score = 0;
+    else if (norm.startsWith(q)) score = 1;
+    else if (norm.split(" ").some((w) => w.startsWith(q))) score = 2;
+    else if (norm.includes(q)) score = 3;
+    if (score >= 0) scored.push({ p, score });
+  }
+  scored.sort(
+    (a, b) =>
+      a.score - b.score ||
+      a.p.name.length - b.p.name.length ||
+      a.p.name.localeCompare(b.p.name),
+  );
+  return scored.slice(0, limit).map(({ p }) => toLocalSuggestion(p));
+};
+
 /**
  * Get distance and duration between two points using Distance Matrix API.
  */
@@ -217,9 +277,19 @@ const autocomplete = async (query, sessionToken) => {
     const out = [];
     const seen = new Set();
 
+    // 0) Local Katsina index first - instant, natural prefix matches for known
+    //    districts/areas/neighbourhoods.
+    const localResults = localSearch(query);
+    const localNames = [];
+    for (const r of localResults) {
+      out.push(r);
+      seen.add(r.placeId);
+      localNames.push(normalizePlace(r.mainText));
+    }
+
     // 1) Autocomplete predictions already tagged with the state (as a term or in
     //    the secondary line) - NOT a description substring, so "Katsina Road,
-    //    Kaduna" is not falsely kept.
+    //    Kaduna" is not falsely kept. These cover businesses/POIs by name.
     for (const p of acRes.data.predictions || []) {
       const secondary = (p.structured_formatting?.secondary_text || "").toLowerCase();
       const terms = (p.terms || []).map((t) => (t.value || "").trim().toLowerCase());
@@ -230,10 +300,13 @@ const autocomplete = async (query, sessionToken) => {
     }
 
     // 2) Geocoding matches inside Katsina, skipping the whole-state fallback
-    //    (administrative_area_level_1) that geocoding returns for vague input.
+    //    (administrative_area_level_1) and any row that just restates a local
+    //    result (e.g. local "Tudun Wada" vs geocoded "Tudun Wada 831101").
     for (const r of gcRes.data.results || []) {
       if ((r.types || []).includes("administrative_area_level_1")) continue;
       if (seen.has(r.place_id)) continue;
+      const gk = normalizePlace((r.formatted_address || "").split(", ")[0]);
+      if (localNames.some((ln) => gk === ln || gk.startsWith(`${ln} `))) continue;
       seen.add(r.place_id);
       out.push(fromGeocode(r));
     }
@@ -246,9 +319,50 @@ const autocomplete = async (query, sessionToken) => {
 };
 
 /**
+ * Resolve a local-index pick ("local:<id>") to coordinates. Wards/OSM entries
+ * carry coordinates; curated neighbourhoods don't, so those are geocoded live
+ * (state-scoped) on selection - we never persist Google content, just resolve
+ * on demand. Falls back to the entry's own coords if geocoding finds nothing.
+ */
+const localPlaceDetails = async (id) => {
+  const entry = placeById.get(id);
+  if (!entry) throw AppError.badRequest("Unknown place");
+
+  let { lat, lng } = entry;
+  let formattedAddress = entry.lga
+    ? `${entry.name}, ${entry.lga}, Katsina, Nigeria`
+    : `${entry.name}, Katsina, Nigeria`;
+
+  if (lat == null || lng == null) {
+    const response = await axios.get(`${MAPS_BASE}/geocode/json`, {
+      params: {
+        address: `${entry.name}, Katsina`,
+        key: config.GOOGLE_MAPS_API_KEY,
+        components: geocodeComponents(),
+      },
+    });
+    const r = (response.data.results || []).find(
+      (x) => !(x.types || []).includes("administrative_area_level_1"),
+    );
+    if (r) {
+      lat = r.geometry.location.lat;
+      lng = r.geometry.location.lng;
+      formattedAddress = r.formatted_address;
+    }
+  }
+
+  if (lat == null || lng == null) throw AppError.badRequest("Could not locate place");
+  return { lat, lng, formattedAddress, placeId: `local:${id}`, outOfArea: !isInArea(lat, lng) };
+};
+
+/**
  * Place Details - get lat/lng and formatted address for a place ID using Places Details API.
  */
 const placeDetails = async (placeId, sessionToken) => {
+  // Local-index pick: resolve from our dataset (and live geocode if needed).
+  if (typeof placeId === "string" && placeId.startsWith("local:")) {
+    return localPlaceDetails(placeId.slice("local:".length));
+  }
   try {
     const response = await axios.get(`${MAPS_BASE}/place/details/json`, {
       params: {
