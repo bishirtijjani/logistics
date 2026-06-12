@@ -4,8 +4,8 @@ import api from '../../lib/api'
 /**
  * The merchant's standard User wallet - the single wallet that now holds order
  * earnings AND top-ups, and that VTU + withdrawals draw from (merchants work
- * like riders/customers). Funding uses the same ad-hoc Paystack checkout rail
- * every role uses (`/wallet/fund`), so no virtual account / BVN is needed.
+ * like riders/customers). Funding uses the same ad-hoc KatPay transfer-payment
+ * rail every role uses (`/wallet/fund`), so no virtual account / BVN is needed.
  */
 
 export const fetchWallet = createAsyncThunk(
@@ -24,7 +24,7 @@ export const fetchTransactions = createAsyncThunk(
   }
 )
 
-// Start an ad-hoc top-up. Returns { authorizationUrl, accessCode, reference } (Paystack).
+// Start an ad-hoc top-up. Returns { uuid, checkout_url, payment_account, expires_at }.
 export const initiateFunding = createAsyncThunk(
   'wallet/initiateFunding',
   async ({ amount }) => {

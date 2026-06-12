@@ -8,7 +8,7 @@ const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const { REDIS_KEYS } = require('../../utils/constants');
-const paystackService = require('../../services/paystack.service');
+const katpayService = require('../../services/katpay.service');
 const emailService = require('../../services/email.service');
 const { createAuditLog } = require('../../utils/audit');
 
@@ -2204,20 +2204,8 @@ const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent
     throw AppError.badRequest('This merchant\'s withdrawals are currently on hold');
   }
 
-  // Guard: a payout bank code saved before the Paystack migration (a fintech
-  // KatPay code) may be invalid on Paystack. Refuse to dispatch to it - the
-  // merchant should re-add their payout account so it carries a Paystack code.
-  if (!(await paystackService.isSupportedBankCode(withdrawal.bankCode))) {
-    throw AppError.badRequest(
-      'This merchant\'s saved bank code is no longer supported. Ask them to re-add their payout account, then approve again.',
-    );
-  }
-
-  // Initiate Paystack transfer (async: a successful initiate means QUEUED; the
-  // terminal COMPLETED/FAILED arrives via the transfer.* webhook, matched on our
-  // own `reference`). A definitive 4xx here (bad account, insufficient balance)
-  // throws and leaves the row PENDING for the admin to retry, as before.
-  const payout = await paystackService.initiatePayout({
+  // Initiate KatPay payout
+  const payout = await katpayService.initiatePayout({
     amount: Number(withdrawal.amount),
     bank_code: withdrawal.bankCode,
     account_number: withdrawal.accountNumber,
@@ -2226,13 +2214,12 @@ const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent
     description: `Merchant payout - ${withdrawal.merchantWallet.merchantId}`,
   });
 
-  // Mark PROCESSING; store the Paystack transfer_code (in the legacy
-  // katpayReference column, repurposed) for traceability. COMPLETED via webhook.
+  // Mark as PROCESSING with KatPay reference; final COMPLETED arrives via webhook
   const updatedWithdrawal = await prisma.merchantWalletTransaction.update({
     where: { id: withdrawalId },
     data: {
       status: 'PROCESSING',
-      katpayReference: payout?.transferCode || withdrawal.reference,
+      katpayReference: payout?.reference || payout?.id || withdrawal.reference,
       processedAt: new Date(),
     },
   });

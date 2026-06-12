@@ -872,23 +872,21 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone }, context
   // Try to provision the virtual account synchronously so the response payload
   // can carry the NUBAN. If it fails, enqueue a retry job and return the
   // wallet without a NUBAN - the client will pick it up via socket / refetch.
-  const paystackService = require('../../services/paystack.service');
+  const katpayService = require('../../services/katpay.service');
   const messagingService = require('../../services/messaging.service');
   const notificationService = require('../../services/notification.service');
 
   let virtualAccount = null;
   try {
-    virtualAccount = await paystackService.createVirtualAccount({
+    virtualAccount = await katpayService.createVirtualAccount({
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      // Prefer the BVN-linked phone the user supplied on this call - that's the
-      // phone tied to the identity the DVA is created under. Fall back to
-      // user.phone for the recovery path (bvnPhone optional once verified).
-      phone: bvnPhone || user.phone || '',
-      // Reuse an existing Paystack customer if this wallet already has one
-      // (recovery path) so we don't create a duplicate customer record.
-      customerCode: user.wallet?.paystackCustomerCode || undefined,
+      name: `${user.firstName} ${user.lastName}`,
+      // Prefer the BVN-linked phone the user supplied on this call - that's
+      // the phone tied to the identity KatPay is creating the NUBAN under.
+      // Fall back to user.phone for the recovery path (where bvnPhone is
+      // optional since the user has already verified once).
+      phoneNumber: bvnPhone || user.phone || '',
+      bankCodes: ['PALMPAY', 'OPAY'],
     });
 
     await prisma.wallet.update({
@@ -897,8 +895,6 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone }, context
         virtualAccountNumber: virtualAccount.accountNumber,
         virtualAccountBank: virtualAccount.bankName,
         virtualAccountName: virtualAccount.accountName,
-        paystackCustomerCode: virtualAccount.customerCode,
-        dedicatedAccountId: virtualAccount.dedicatedAccountId,
       },
     });
     logger.info('Virtual account provisioned synchronously on KYC', { userId });
@@ -910,12 +906,10 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone }, context
         {
           userId: user.id,
           email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
+          name: `${user.firstName} ${user.lastName}`,
           // Carry the BVN-linked phone into the retry so the worker provisions
           // the NUBAN under the same identity, not the login phone.
-          phone: bvnPhone || user.phone,
-          customerCode: user.wallet?.paystackCustomerCode || undefined,
+          phoneNumber: bvnPhone || user.phone,
         },
         { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
       );

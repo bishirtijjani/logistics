@@ -573,65 +573,6 @@ const sendContactConfirmationEmail = async ({ name, email }) => {
   });
 };
 
-/**
- * Nudge a user who funded their OLD (KatPay) account number to switch to their
- * new Paystack account. Sent from the inbound KatPay drain after we credit the
- * wallet, so it always carries the (already-credited) amount + the new NUBAN.
- * Self-contained template (not emailBase, which is labelled "Merchant").
- */
-const sendLegacyAccountFundingWarningEmail = async (email, name, { amount, newAccountNumber, newBankName }) => {
-  const safeName = escapeHtml(name) || 'there';
-  const amt = `₦${Number(amount).toLocaleString('en-NG')}`;
-  const bank = escapeHtml(newBankName) || 'your iPrime account';
-  const acct = escapeHtml(newAccountNumber);
-
-  const html = `
-<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="100%" style="max-width:520px;background-color:#ffffff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
-        <tr><td style="background:linear-gradient(135deg,#EA580C,#C2410C);padding:28px 32px;border-radius:16px 16px 0 0;">
-          <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">iPrime</h1>
-          <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">Wallet Notice</p>
-        </td></tr>
-        <tr><td style="padding:32px;">
-          <h2 style="margin:0 0 8px;font-size:20px;color:#111827;font-weight:700;">Please use your new account number</h2>
-          <p style="margin:0 0 16px;font-size:15px;color:#374151;">Hi ${safeName},</p>
-          <p style="margin:0 0 16px;font-size:15px;color:#6b7280;line-height:1.6;">
-            We received <strong>${amt}</strong> and credited your iPrime wallet. You sent it to your
-            <strong>old funding account</strong>, which we are retiring.
-          </p>
-          <p style="margin:0 0 8px;font-size:15px;color:#6b7280;line-height:1.6;">
-            From now on, please fund your wallet using your new account number:
-          </p>
-          <div style="background-color:#fff7ed;border-left:4px solid #EA580C;border-radius:0 8px 8px 0;padding:16px 20px;margin:16px 0;">
-            <p style="margin:0 0 4px;font-size:13px;color:#9a3412;">${bank}</p>
-            <p style="margin:0;font-size:24px;font-weight:800;letter-spacing:2px;color:#111827;">${acct}</p>
-          </div>
-          <p style="margin:16px 0 0;font-size:14px;color:#6b7280;line-height:1.6;">
-            Tip: update the saved beneficiary in your bank app so future transfers go to the new
-            account automatically. Your money is safe either way.
-          </p>
-        </td></tr>
-        <tr><td style="padding:0 32px 28px;text-align:center;border-top:1px solid #f3f4f6;">
-          <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} iPrime. All rights reserved.</p>
-          <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@iprime.ng" style="color:#EA580C;text-decoration:none;">support@iprime.ng</a></p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-
-  return sendEmail({
-    to: email,
-    subject: 'Use your new iPrime account number for funding',
-    html,
-    text: `Hi ${name || 'there'}, we received ${amt} to your OLD iPrime funding account (which we are retiring) and credited your wallet. From now on, please fund using your new account number: ${newBankName || ''} ${newAccountNumber || ''}. Your money is safe either way.`,
-  });
-};
-
 module.exports = {
   sendEmail,
   sendOtpEmail,
@@ -646,5 +587,4 @@ module.exports = {
   sendCommissionChangedEmail,
   sendContactInquiryEmail,
   sendContactConfirmationEmail,
-  sendLegacyAccountFundingWarningEmail,
 };

@@ -618,7 +618,7 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
         amount,
         description: `Withdrawal to ${wallet.bankCode} - ${wallet.accountNumber}`,
         debitWalletId: userWallet.id,
-        provider: 'PAYSTACK',
+        provider: 'KATPAY',
         balanceBefore: balance,
         balanceAfter: balance - amount,
         metadata: { merchantId, requiresApproval: true },

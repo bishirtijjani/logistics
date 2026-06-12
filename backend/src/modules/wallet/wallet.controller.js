@@ -1,6 +1,6 @@
 const walletService = require('./wallet.service');
 const authService = require('../auth/auth.service');
-const paystackService = require('../../services/paystack.service');
+const katpayService = require('../../services/katpay.service');
 const { ApiResponse } = require('../../utils/api-response');
 
 const getWallet = async (req, res, next) => {
@@ -39,13 +39,8 @@ const withdraw = async (req, res, next) => {
 
 const getBanks = async (req, res, next) => {
   try {
-    const banks = await paystackService.getBankList();
-    // Normalize to { bankCode, bankName } for the apps; keep code/name too since
-    // the pickers read either shape.
-    const normalized = banks.map((b) => ({
-      bankCode: b.code, bankName: b.name, code: b.code, name: b.name,
-    }));
-    res.json(ApiResponse.success('Banks retrieved', normalized));
+    const banks = await katpayService.getBankList();
+    res.json(ApiResponse.success('Banks retrieved', banks));
   } catch (error) {
     next(error);
   }
@@ -73,8 +68,7 @@ const initiateFunding = async (req, res, next) => {
 
 const getTransferPaymentStatus = async (req, res, next) => {
   try {
-    // The path param now carries our Paystack top-up reference (TOPUP-...).
-    const result = await paystackService.verifyTransaction(req.params.uuid);
+    const result = await katpayService.getTransferPayment(req.params.uuid);
     res.json(ApiResponse.success('Payment status', result));
   } catch (error) {
     next(error);
