@@ -2204,6 +2204,15 @@ const approveWithdrawal = async (withdrawalId, adminUserId, ipAddress, userAgent
     throw AppError.badRequest('This merchant\'s withdrawals are currently on hold');
   }
 
+  // Guard: a payout bank code saved before the Paystack migration (a fintech
+  // KatPay code) may be invalid on Paystack. Refuse to dispatch to it - the
+  // merchant should re-add their payout account so it carries a Paystack code.
+  if (!(await paystackService.isSupportedBankCode(withdrawal.bankCode))) {
+    throw AppError.badRequest(
+      'This merchant\'s saved bank code is no longer supported. Ask them to re-add their payout account, then approve again.',
+    );
+  }
+
   // Initiate Paystack transfer (async: a successful initiate means QUEUED; the
   // terminal COMPLETED/FAILED arrives via the transfer.* webhook, matched on our
   // own `reference`). A definitive 4xx here (bad account, insufficient balance)

@@ -59,6 +59,16 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
   const isTransfer = opts.kind === 'transfer';
   const reference = `${isTransfer ? 'TRF' : 'WIT'}-${uuidv4()}`;
 
+  // A bank code saved before the Paystack migration (a fintech KatPay code) may
+  // not be valid on Paystack. Fail fast with a re-select prompt BEFORE debiting,
+  // rather than debiting and then refunding when Paystack rejects the recipient.
+  if (!(await paystackService.isSupportedBankCode(bankCode))) {
+    throw AppError.badRequest(
+      'This bank selection is out of date. Please re-select the bank and try again.',
+      { code: 'BANK_CODE_UNSUPPORTED' },
+    );
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw AppError.notFound('Wallet not found');

@@ -318,6 +318,23 @@ const getBankList = async () => {
 };
 
 /**
+ * Is `bankCode` a code Paystack actually recognizes? Used to fail a transfer fast
+ * when a bank code saved in the KatPay era (fintech codes differ across providers)
+ * is no longer valid. Fails OPEN if the bank list can't be fetched - we don't
+ * block legitimate transfers on a transient outage; Paystack's recipient creation
+ * is the definitive backstop.
+ */
+const isSupportedBankCode = async (bankCode) => {
+  if (!bankCode) return false;
+  try {
+    const banks = await getBankList();
+    return banks.some((b) => String(b.code) === String(bankCode));
+  } catch {
+    return true;
+  }
+};
+
+/**
  * Resolve the account holder name. `bankCode` is now a Paystack bank code
  * directly (the apps populate their picker from Paystack's bank list), so there
  * is no cross-provider code mapping any more. Throws AppError.badRequest on any
@@ -378,6 +395,7 @@ module.exports = {
   initializeTransaction,
   verifyTransaction,
   getBankList,
+  isSupportedBankCode,
   resolveAccountName,
   verifyWebhookSignature,
 };
