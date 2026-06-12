@@ -169,8 +169,9 @@ export default function EarningsPage() {
     setTopUpLoading(true);
     try {
       const res = await dispatch(initiateFunding({ amount })).unwrap();
-      if (res?.checkout_url) {
-        window.open(res.checkout_url, "_blank", "noopener");
+      const checkoutUrl = res?.authorizationUrl || res?.checkout_url;
+      if (checkoutUrl) {
+        window.open(checkoutUrl, "_blank", "noopener");
         showSuccessToast("Complete your payment in the new tab - your balance updates automatically.");
         setShowTopUpModal(false);
         setTopUpAmount("");

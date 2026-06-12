@@ -8,7 +8,7 @@
  *   - role RIDER, status ACTIVE, kycStatus VERIFIED
  *   - Rider.status APPROVED, availability OFFLINE
  *   - transaction PIN set (transactionPinSetByUser = true, so no PIN nag)
- *   - a wallet with a placeholder NUBAN (or a real KatPay NUBAN with --provision-nuban)
+ *   - a wallet with a placeholder NUBAN (or a real Paystack NUBAN with --provision-nuban)
  *
  * Unlike `npm run db:seed`, this touches ONLY this one rider - safe to run
  * against a production database to prepare a reviewer account. Idempotent:
@@ -16,7 +16,7 @@
  *
  * Usage (from the backend/ folder, with your DB running + migrated):
  *   node scripts/seed-rider.js                    # create/refresh with defaults
- *   node scripts/seed-rider.js --provision-nuban  # also provision a real KatPay NUBAN
+ *   node scripts/seed-rider.js --provision-nuban  # also provision a real Paystack NUBAN
  *
  * Override any field via env vars:
  *   RIDER_EMAIL=review@iprime.ng RIDER_PASSWORD='Secret123!' RIDER_PIN=224466 \
@@ -122,19 +122,19 @@ async function main() {
   });
   console.log(`  ✓ Rider ready (${rider.id}) - status APPROVED, availability OFFLINE`);
 
-  // 4) Optional: provision a real KatPay NUBAN, reusing the same path the KYC
-  //    flow uses. Only meaningful when KatPay creds are configured (e.g. prod).
+  // 4) Optional: provision a real Paystack DVA, reusing the same path the KYC
+  //    flow uses. Only meaningful when Paystack creds are configured (e.g. prod).
   if (PROVISION_NUBAN) {
     if (existingWallet?.virtualAccountNumber && existingWallet.virtualAccountNumber !== PLACEHOLDER_NUBAN) {
       console.log(`  ↪ Skipping NUBAN provisioning - wallet already has a real NUBAN.`);
     } else {
       try {
-        const katpayService = require('../src/services/katpay.service');
-        const va = await katpayService.createVirtualAccount({
+        const paystackService = require('../src/services/paystack.service');
+        const va = await paystackService.createVirtualAccount({
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          phoneNumber: user.phone || '',
-          bankCodes: ['PALMPAY', 'OPAY'],
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone || '',
         });
         await prisma.wallet.update({
           where: { userId: user.id },
@@ -142,9 +142,11 @@ async function main() {
             virtualAccountNumber: va.accountNumber,
             virtualAccountBank: va.bankName,
             virtualAccountName: va.accountName,
+            paystackCustomerCode: va.customerCode,
+            dedicatedAccountId: va.dedicatedAccountId,
           },
         });
-        console.log(`  ✓ Real KatPay NUBAN provisioned: ${va.accountNumber} (${va.bankName})`);
+        console.log(`  ✓ Real Paystack NUBAN provisioned: ${va.accountNumber} (${va.bankName})`);
       } catch (err) {
         console.warn(`  ⚠ NUBAN provisioning failed (kept placeholder): ${err.message}`);
       }
@@ -159,7 +161,7 @@ async function main() {
   console.log('---');
   console.log('Put these in the App Store / Play Store reviewer notes.');
   if (!PROVISION_NUBAN) {
-    console.log('Tip: pass --provision-nuban to create a real KatPay NUBAN for wallet top-up.');
+    console.log('Tip: pass --provision-nuban to create a real Paystack NUBAN for wallet top-up.');
   }
 }
 

@@ -115,11 +115,12 @@ const runReconciliation = async ({ threshold } = {}) => {
     }),
   ]);
 
-  // 4. Stuck withdrawals - payouts left on PROCESSING that KatPay never
-  // confirmed. We can't auto-resolve (KatPay exposes no payout-status endpoint
-  // and only documents payout.processed), and auto-refunding could double-pay a
-  // payout that actually succeeded - so we surface them loudly for an admin to
-  // fail+refund or chase with the provider.
+  // 4. Stuck withdrawals - payouts left on PROCESSING/SENT that no transfer
+  // webhook settled. Unlike KatPay, Paystack exposes GET /transfer/verify
+  // (paystackService.getTransferStatus), so an admin or a follow-up automation
+  // can CONFIRM the real outcome before acting instead of guessing. We still only
+  // surface them here - auto-refunding a payout that actually succeeded would
+  // double-pay - so resolution stays a deliberate, confirmed step.
   const stuckAfterHours = Number(await getSetting('withdrawal.stuckAfterHours', 24));
   const stuckCutoff = new Date(startedAt.getTime() - stuckAfterHours * 60 * 60 * 1000);
   const stuckRows = await prisma.merchantWalletTransaction.findMany({

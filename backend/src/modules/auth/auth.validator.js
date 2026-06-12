@@ -71,17 +71,9 @@ const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
-// Step 1 of KYC: request an SMS OTP to the BVN-linked phone so we can prove
-// the user actually owns the phone they're about to attach to KatPay.
-const requestKycPhoneOtpSchema = z.object({
-  bvnPhone: z
-    .string()
-    .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
-});
-
-// Step 2 of KYC: submit the full KYC payload plus the OTP that proves
-// ownership of bvnPhone. The service rejects if the OTP doesn't match what we
-// SMSed in step 1.
+// KYC verification (trust-based): the user submits their BVN, name, and the
+// phone linked to their BVN. There is no SMS OTP step - the service accepts
+// the submitted bvnPhone as-is and logs the attempt for audit.
 const verifyBvnSchema = z.object({
   bvn: z
     .string()
@@ -92,14 +84,6 @@ const verifyBvnSchema = z.object({
   bvnPhone: z
     .string()
     .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
-  // Optional at the schema level so the request can succeed without one when
-  // SKIP_KYC_PHONE_OTP is on. The service still enforces the OTP when the flag
-  // is off - schema permissiveness here does NOT relax that gate.
-  otp: z
-    .string()
-    .length(6)
-    .regex(/^\d{6}$/, "OTP must be 6 digits")
-    .optional(),
 });
 
 const updateFcmTokenSchema = z.object({
@@ -176,7 +160,6 @@ module.exports = {
   resetPasswordSchema,
   refreshTokenSchema,
   verifyBvnSchema,
-  requestKycPhoneOtpSchema,
   updateFcmTokenSchema,
   updateProfileSchema,
   updateProfilePictureSchema,

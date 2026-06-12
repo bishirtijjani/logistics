@@ -286,15 +286,6 @@ const verifyBvn = async (req, res, next) => {
   }
 };
 
-const requestKycPhoneOtp = async (req, res, next) => {
-  try {
-    await authService.requestKycPhoneOtp(req.user.id, req.body);
-    res.json(ApiResponse.success('Verification code sent to your BVN phone'));
-  } catch (error) {
-    next(error);
-  }
-};
-
 const logout = async (req, res, next) => {
   try {
     await authService.logout(req.body.refreshToken);
@@ -417,7 +408,6 @@ module.exports = {
   updateProfile,
   updateProfilePicture,
   verifyBvn,
-  requestKycPhoneOtp,
   logout,
   listSessions,
   revokeSession,

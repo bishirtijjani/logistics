@@ -658,10 +658,12 @@ const getProfile = async (userId) => {
     ...user,
     hasPinSet: !!user.transactionPin,
     transactionPin: undefined, // Never expose the hash
-    // Tells the client whether the KYC phone-OTP step is currently required.
-    // While false, the client should show the BVN confirmation sheet instead
-    // of the OTP entry step.
-    kycPhoneOtpEnabled: !config.SKIP_KYC_PHONE_OTP,
+    // DEPRECATED compat shim. KYC is now trust-based only - there is no phone
+    // OTP step. Pinned to false so any older web bundle still cached in a
+    // customer's browser keeps showing the BVN confirmation sheet (it reads
+    // `kycPhoneOtpEnabled !== false`). Safe to delete once no pre-cutover
+    // clients remain.
+    kycPhoneOtpEnabled: false,
   };
 };
 
@@ -732,87 +734,11 @@ const updateProfilePicture = async (userId, url) => {
  * Returns the wallet payload (with NUBAN if provisioned synchronously) so the
  * client can show "your account is ready" immediately.
  */
-/**
- * Step 1 of KYC: send an SMS OTP to the BVN-linked phone the user supplied.
- * Stores the code + the phone in Redis so the verify step can prove:
- *   (a) the user knows the code (owns the phone)
- *   (b) the phone they submit on verify is the same one we SMSed
- * 60s resend cooldown keyed by userId to limit SMS spend.
- */
-const requestKycPhoneOtp = async (userId, { bvnPhone }) => {
-  if (config.SKIP_KYC_PHONE_OTP) {
-    // OTP step is bypassed - short-circuit before touching Termii so a stale
-    // client that still calls this endpoint doesn't crash. The verify step
-    // will accept the BVN payload without an OTP under the same flag.
-    logger.info('KYC phone OTP request short-circuited (bypass flag on)', { userId, bvnPhone });
-    return { bypassed: true };
-  }
-
-  const cooldownKey = `kyc:phone:otp:cooldown:${userId}`;
-  const ttl = await redis.ttl(cooldownKey);
-  if (ttl > 0) {
-    throw AppError.tooManyRequests(
-      `Please wait ${ttl} second${ttl === 1 ? '' : 's'} before requesting another code.`,
-    );
-  }
-
-  const code = String(Math.floor(100000 + Math.random() * 900000));
-  const otpKey = `kyc:phone:otp:${userId}`;
-  const messagingService = require('../../services/messaging.service');
-
-  // Send via the active OTP provider first, persist second - if delivery fails
-  // we don't want the user to see "OTP expired" later when it was never sent.
-  // The WhatsApp auth template carries only the code; the "this is for KYC"
-  // context lives in the OTP-entry UI, not the message body.
-  try {
-    await messagingService.sendOtp(bvnPhone, code);
-  } catch (err) {
-    logger.warn('KYC phone OTP send failed', { userId, error: err.message });
-    throw AppError.serviceUnavailable('Could not send verification code. Please try again shortly.');
-  }
-
-  await redis.set(otpKey, JSON.stringify({ code, phone: bvnPhone }), 'EX', 10 * 60);
-  await redis.set(cooldownKey, '1', 'EX', 60);
-
-  logger.info('KYC phone OTP generated', { userId, bvnPhone });
-  // Dev-only echo so QA can run the flow without a real phone - controller
-  // strips this in production.
-  return { code };
-};
-
-const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, context = {}) => {
-  if (config.SKIP_KYC_PHONE_OTP) {
-    // Temporary bypass: while Termii sender ID approval is pending, we trust
-    // the user's submitted bvnPhone instead of proving ownership via SMS. The
-    // BvnVerificationLog still captures the attempt so we can audit who was
-    // verified during this window.
-    logger.warn('KYC phone OTP bypass active - trusting client-supplied bvnPhone', { userId, bvnPhone });
-  } else {
-    // Gate the entire flow on the SMS OTP - we never want to provision a NUBAN
-    // against a phone the user can't prove ownership of.
-    const otpKey = `kyc:phone:otp:${userId}`;
-    const otpRaw = await redis.get(otpKey);
-    if (!otpRaw) {
-      throw AppError.badRequest('Verification code expired or not requested. Please request a new code.', {
-        code: 'KYC_OTP_EXPIRED',
-      });
-    }
-    const { code: expectedOtp, phone: otpPhone } = JSON.parse(otpRaw);
-    // The phone on the verify call MUST match the one we SMSed - otherwise a
-    // user could OTP-verify one phone and then submit a different phone to
-    // KatPay, defeating the whole point.
-    if (otpPhone !== bvnPhone) {
-      throw AppError.badRequest('Phone number does not match the one the code was sent to.', {
-        code: 'KYC_OTP_PHONE_MISMATCH',
-      });
-    }
-    if (!otp || expectedOtp !== otp) {
-      throw AppError.badRequest('Invalid verification code.', { code: 'KYC_OTP_INVALID' });
-    }
-    // OTP is single-use - burn it before any external call so a failed KatPay
-    // call doesn't leak a reusable OTP window.
-    await redis.del(otpKey);
-  }
+const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone }, context = {}) => {
+  // KYC is trust-based: we accept the user's submitted bvnPhone without an SMS
+  // OTP proof of ownership. The BvnVerificationLog below still captures every
+  // attempt for compliance/audit.
+  logger.info('Verifying BVN (trust-based, no phone OTP)', { userId, bvnPhone });
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -946,21 +872,23 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
   // Try to provision the virtual account synchronously so the response payload
   // can carry the NUBAN. If it fails, enqueue a retry job and return the
   // wallet without a NUBAN - the client will pick it up via socket / refetch.
-  const katpayService = require('../../services/katpay.service');
+  const paystackService = require('../../services/paystack.service');
   const messagingService = require('../../services/messaging.service');
   const notificationService = require('../../services/notification.service');
 
   let virtualAccount = null;
   try {
-    virtualAccount = await katpayService.createVirtualAccount({
+    virtualAccount = await paystackService.createVirtualAccount({
       email: user.email,
-      name: `${user.firstName} ${user.lastName}`,
-      // Prefer the BVN-linked phone the user supplied on this call - that's
-      // the phone tied to the identity KatPay is creating the NUBAN under.
-      // Fall back to user.phone for the recovery path (where bvnPhone is
-      // optional since the user has already verified once).
-      phoneNumber: bvnPhone || user.phone || '',
-      bankCodes: ['PALMPAY', 'OPAY'],
+      firstName: user.firstName,
+      lastName: user.lastName,
+      // Prefer the BVN-linked phone the user supplied on this call - that's the
+      // phone tied to the identity the DVA is created under. Fall back to
+      // user.phone for the recovery path (bvnPhone optional once verified).
+      phone: bvnPhone || user.phone || '',
+      // Reuse an existing Paystack customer if this wallet already has one
+      // (recovery path) so we don't create a duplicate customer record.
+      customerCode: user.wallet?.paystackCustomerCode || undefined,
     });
 
     await prisma.wallet.update({
@@ -969,6 +897,8 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
         virtualAccountNumber: virtualAccount.accountNumber,
         virtualAccountBank: virtualAccount.bankName,
         virtualAccountName: virtualAccount.accountName,
+        paystackCustomerCode: virtualAccount.customerCode,
+        dedicatedAccountId: virtualAccount.dedicatedAccountId,
       },
     });
     logger.info('Virtual account provisioned synchronously on KYC', { userId });
@@ -980,10 +910,12 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone, otp }, co
         {
           userId: user.id,
           email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
+          firstName: user.firstName,
+          lastName: user.lastName,
           // Carry the BVN-linked phone into the retry so the worker provisions
           // the NUBAN under the same identity, not the login phone.
-          phoneNumber: bvnPhone || user.phone,
+          phone: bvnPhone || user.phone,
+          customerCode: user.wallet?.paystackCustomerCode || undefined,
         },
         { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
       );
@@ -1521,7 +1453,6 @@ module.exports = {
   updateProfile,
   updateProfilePicture,
   verifyBvn,
-  requestKycPhoneOtp,
   logout,
   listSessions,
   revokeSession,

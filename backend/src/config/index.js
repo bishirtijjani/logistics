@@ -89,15 +89,6 @@ const envSchema = z.object({
   WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().optional().default(''),
   WHATSAPP_APP_SECRET: z.string().optional().default(''),
 
-  // Temporary bypass for KYC phone-OTP. Set to 'true' while Termii sender ID
-  // approval is pending so users can verify BVN without proving phone
-  // ownership. Trust-based - DO NOT leave on in steady-state production.
-  SKIP_KYC_PHONE_OTP: z
-    .string()
-    .optional()
-    .transform((v) => v === 'true')
-    .default('false'),
-
   // Email (SMTP) - required in production, optional in dev so a fresh clone
   // boots even before transactional mail is wired up. Outbound mail attempts
   // fail at request time with a clear error rather than blocking startup.
@@ -108,18 +99,26 @@ const envSchema = z.object({
   // to the public support address; override to route to a shared inbox.
   CONTACT_INBOX_EMAIL: z.string().email().default('hello@iprime.ng'),
 
-  // KatPay - required in production, optional in dev
+  // KatPay - DEPRECATED as an active provider after the Paystack migration.
+  // Retained ONLY to verify the inbound funding webhook: KatPay cannot
+  // deactivate old NUBANs, so straggler transfers still arrive and must credit
+  // the wallet. No new provisioning or payouts go through KatPay. Only
+  // KATPAY_API_SECRET (the webhook HMAC key) is still needed in prod; the rest
+  // are optional now that all outbound KatPay calls are gone.
   KATPAY_BASE_URL: z.string().default('https://api.katpay.co'),
   KATPAY_API_SECRET: isDev ? z.string().default('') : z.string().min(1),
-  KATPAY_PUBLIC_KEY: isDev ? z.string().default('') : z.string().min(1),
-  KATPAY_MERCHANT_ID: isDev ? z.string().default('') : z.string().min(1),
-  KATPAY_CALLBACK_URL: isDev ? z.string().default('http://localhost:3000/webhooks/katpay') : z.string().url(),
+  KATPAY_PUBLIC_KEY: z.string().optional().default(''),
+  KATPAY_MERCHANT_ID: z.string().optional().default(''),
+  KATPAY_CALLBACK_URL: z.string().optional().default('http://localhost:3000/webhooks/katpay'),
 
-  // Paystack - used ONLY for bank-account name verification (resolve account).
-  // Optional everywhere: when unset, verification is skipped and the account
-  // name is taken as typed. Payouts always go through KatPay, never Paystack.
+  // Paystack - PRIMARY payment provider: funding via Dedicated Virtual Accounts,
+  // payouts via Transfers, bank list + account-name resolve, and ad-hoc top-up
+  // via Initialize Transaction. The secret key ALSO validates inbound webhooks
+  // (HMAC-SHA512 over the raw body), so no separate webhook secret is needed.
+  // Required in prod; optional in dev so a fresh clone still boots. PUBLIC_KEY is
+  // only needed for client-side inline checkout, so it stays optional.
   PAYSTACK_BASE_URL: z.string().default('https://api.paystack.co'),
-  PAYSTACK_SECRET_KEY: z.string().default(''),
+  PAYSTACK_SECRET_KEY: isDev ? z.string().default('') : z.string().min(1),
   PAYSTACK_PUBLIC_KEY: z.string().default(''),
 
   // Delivery Pricing

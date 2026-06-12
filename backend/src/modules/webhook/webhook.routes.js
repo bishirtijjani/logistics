@@ -4,7 +4,11 @@ const webhookController = require('./webhook.controller');
 
 const router = Router();
 
-// KatPay webhook - uses raw body parser for HMAC verification
+// Paystack webhook (primary) - raw body parser for HMAC-SHA512 verification
+router.post('/paystack', express.raw({ type: '*/*' }), webhookController.handlePaystack);
+
+// KatPay webhook - DEPRECATED, inbound-only: credits straggler funding to old
+// NUBANs (KatPay cannot deactivate them). Raw body parser for HMAC verification.
 router.post('/katpay', express.raw({ type: '*/*' }), webhookController.handleKatpay);
 
 // WhatsApp Cloud API.

@@ -4,52 +4,26 @@ const { config } = require('../../config');
 const { ApiResponse } = require('../../utils/api-response');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
+const paystackService = require('../../services/paystack.service');
 const { Queue } = require('bullmq');
 const { redis } = require('../../config/redis');
 const { QUEUES, PAYMENT_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs');
 
 const paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
 
-// Resolve the merchant withdrawal a payout webhook refers to. katpayReference is
-// not DB-unique, so guard against an ambiguous match rather than acting on an
-// arbitrary row (which could refund/complete the WRONG withdrawal).
-const findWithdrawalByKatpayRef = async (katpayRef) => {
-  const rows = await prisma.merchantWalletTransaction.findMany({
-    where: { katpayReference: katpayRef },
-    take: 2,
-  });
-  if (rows.length > 1) {
-    logger.error('Multiple withdrawals share one katpayReference - refusing to act', { katpayRef });
-    return null;
-  }
-  return rows[0] || null;
-};
-
-// Apply a payout-failure signal: refund the merchant if the withdrawal is still
-// in flight. Terminal states are handled WITHOUT throwing (so the webhook can be
-// marked processed and KatPay stops retrying); only a genuine infra error during
-// the refund propagates, leaving the event unprocessed for KatPay to retry.
-const applyPayoutFailure = async (katpayRef, reason) => {
-  const mwt = await findWithdrawalByKatpayRef(katpayRef);
-  if (!mwt) return;
-  if (mwt.status === 'COMPLETED') {
-    logger.error('KatPay reports payout failed but withdrawal is already COMPLETED - manual reconciliation needed', {
-      katpayRef, withdrawalId: mwt.id, reference: mwt.reference,
-    });
-    return;
-  }
-  if (mwt.status !== 'PROCESSING') return; // FAILED / REJECTED - already terminal
-  const adminService = require('../admin/admin.service');
-  await adminService.failWithdrawal(mwt.id, reason, { adminUserId: 'SYSTEM' });
-};
-
 /**
- * Handle KatPay webhook - wallet funding and payout confirmations.
+ * Handle the KatPay webhook - DEPRECATED, INBOUND FUNDING ONLY.
+ *
+ * After the Paystack migration KatPay is no longer an active provider: we never
+ * provision NUBANs or send payouts through it. But KatPay cannot deactivate the
+ * old NUBANs, so a customer who saved their old number can still transfer to it.
+ * This handler keeps crediting those straggler payments (the worker resolves the
+ * wallet via legacyKatpayAccountNumber). Payout / transfer-payment events are no
+ * longer handled.
  *
  * Security:
  * - HMAC-SHA256 signature verified against raw request body
  * - Timestamp freshness checked (5-minute window)
- * - Idempotency via X-KatPay-Delivery-Id
  */
 const handleKatpay = async (req, res, next) => {
   try {
@@ -134,98 +108,10 @@ const handleKatpay = async (req, res, next) => {
             break;
           }
 
-          case 'transfer_payment.completed': {
-            const amount = Number(data.amount_received ?? data.amount ?? 0);
-            const metadata = data.metadata || {};
-            const ref = data.merchant_reference || transactionRef;
-            await paymentQueue.add(
-              PAYMENT_JOBS.PROCESS_TRANSFER_PAYMENT_WEBHOOK,
-              { transactionRef, amount, ref, metadata, eventData: payload },
-              DEFAULT_JOB_OPTIONS
-            );
-            break;
-          }
-
-          // Defensive: KatPay only documents payout.processed, but some providers
-          // reuse that event for failures (status in the payload) and/or emit
-          // dedicated failure events. Route any failure signal to the refund path
-          // so a bounced payout never leaves the merchant's funds stranded.
-          case 'payout.failed':
-          case 'payout.reversed':
-          case 'payout.rejected':
-          case 'payout.declined': {
-            const katpayRef = data.reference;
-            if (katpayRef) {
-              const why = data.reason || data.message || eventType.replace('payout.', 'payout ');
-              await applyPayoutFailure(katpayRef, why);
-            }
-            // Reached only if applyPayoutFailure didn't throw (transient infra
-            // errors propagate to the outer catch, leaving the event unprocessed
-            // so KatPay's retry re-enters).
-            await prisma.webhookEvent.update({
-              where: { transactionRef },
-              data: { processed: true, processedAt: new Date() },
-            });
-            break;
-          }
-
-          case 'payout.processed': {
-            const katpayRef = data.reference;
-            const payoutStatus = String(data.status || data.transaction?.status || '').toLowerCase();
-            if (katpayRef && /fail|revers|declin|cancel/.test(payoutStatus)) {
-              // payout.processed actually carrying a failure status → refund.
-              await applyPayoutFailure(katpayRef, `Payout ${payoutStatus}`);
-            } else if (katpayRef) {
-              const mwt = await findWithdrawalByKatpayRef(katpayRef);
-              if (mwt) {
-                // Complete MWT + mirror ledger atomically so a crash can't leave
-                // them inconsistent. Conflict detection reads COMMITTED state (the
-                // updateMany result), never a stale pre-write read.
-                await prisma.$transaction(async (tx) => {
-                  const completed = await tx.merchantWalletTransaction.updateMany({
-                    where: { id: mwt.id, status: { in: ['PENDING', 'PROCESSING'] } },
-                    data: { status: 'COMPLETED', processedAt: new Date() },
-                  });
-                  if (completed.count === 1) {
-                    // New unified withdrawals carry a mirror Transaction on the
-                    // merchant's User wallet (funds already debited at request
-                    // time) → complete it. Legacy rows reserved funds in
-                    // merchantWallet.pendingBalance → release that.
-                    const ledger = await tx.transaction.findFirst({ where: { reference: mwt.reference } });
-                    if (ledger) {
-                      await tx.transaction.updateMany({
-                        where: { id: ledger.id, status: { in: ['PENDING', 'PROCESSING'] } },
-                        data: { status: 'COMPLETED' },
-                      });
-                    } else {
-                      await tx.merchantWallet.update({
-                        where: { id: mwt.merchantWalletId },
-                        data: { pendingBalance: { decrement: mwt.amount } },
-                      });
-                    }
-                  } else {
-                    // Didn't win the completion - re-read committed state. If a
-                    // fail/refund beat us, the payout both SUCCEEDED (per KatPay)
-                    // and was refunded: a hard conflict for a human to reconcile.
-                    const fresh = await tx.merchantWalletTransaction.findUnique({ where: { id: mwt.id } });
-                    if (fresh && fresh.status === 'FAILED') {
-                      logger.error('Payout reported success AFTER being failed/refunded - manual reconciliation needed', {
-                        withdrawalId: mwt.id, reference: mwt.reference, katpayRef,
-                      });
-                    }
-                  }
-                });
-              }
-            }
-            await prisma.webhookEvent.update({
-              where: { transactionRef },
-              data: { processed: true, processedAt: new Date() },
-            });
-            break;
-          }
-
           default:
-            logger.info('KatPay webhook event type not handled', { eventType, transactionRef });
+            // Payout / transfer-payment events are no longer expected from KatPay
+            // (we don't initiate them any more). Acknowledge and mark processed.
+            logger.info('KatPay webhook event ignored (inbound-only mode)', { eventType, transactionRef });
             await prisma.webhookEvent.update({
               where: { transactionRef },
               data: { processed: true, processedAt: new Date() },
@@ -379,8 +265,127 @@ const handleWhatsapp = async (req, res, next) => {
   }
 };
 
+/**
+ * Handle Paystack webhooks - the PRIMARY provider after migration.
+ *
+ * Security:
+ *  - HMAC-SHA512 of the raw body with the secret key, header x-paystack-signature
+ *  - Idempotency via webhookEvent.transactionRef (derived from event + resource ref)
+ *
+ * Events consumed:
+ *  - charge.success                      → credit wallet (DVA funding / top-up)
+ *  - transfer.success/failed/reversed    → settle a withdrawal
+ *  - dedicatedaccount.assign.success/failed → informational (we provision via API)
+ */
+const handlePaystack = async (req, res, next) => {
+  try {
+    const signature = req.headers['x-paystack-signature'];
+    // Raw body parser (express.raw) is applied on this route for HMAC verification.
+    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body || '');
+
+    if (!paystackService.verifyWebhookSignature(rawBody, signature)) {
+      logger.warn('Invalid Paystack webhook signature', { ip: req.ip });
+      return res.status(401).json(ApiResponse.error('Invalid signature'));
+    }
+
+    const payload = JSON.parse(rawBody);
+    const event = payload.event;
+    const data = payload.data || {};
+
+    // Paystack sends no delivery id, so derive a stable idempotency key from the
+    // event type + the resource's own reference/id.
+    const resourceRef = data.reference || (data.id != null ? String(data.id) : null) || `paystack-${Date.now()}`;
+    const transactionRef = `paystack:${event}:${resourceRef}`;
+
+    const existing = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
+    if (existing && existing.processed) {
+      logger.info('Duplicate Paystack webhook ignored (already processed)', { transactionRef });
+      return res.json(ApiResponse.success('Already processed'));
+    }
+    if (!existing) {
+      await prisma.webhookEvent.create({
+        data: { provider: 'paystack', eventType: event || 'UNKNOWN', transactionRef, payload, processed: false },
+      });
+    }
+
+    // Respond fast - Paystack retries on non-2xx.
+    res.json(ApiResponse.success('Webhook received'));
+
+    setImmediate(async () => {
+      try {
+        // metadata can arrive as an object or a JSON string - normalize it.
+        let meta = data.metadata;
+        if (typeof meta === 'string') {
+          try { meta = JSON.parse(meta); } catch { meta = {}; }
+        }
+        meta = meta || {};
+
+        switch (event) {
+          case 'charge.success': {
+            const amount = paystackService.fromKobo(data.amount ?? 0);
+            // DVA funding carries the receiver account; top-ups carry our userId.
+            let accountNumber = meta.receiver_account_number || meta.receiverAccountNumber || null;
+            const userId = meta.userId || null;
+            // Fall back to mapping the Paystack customer to a wallet (DVA case).
+            if (!accountNumber && !userId && data.customer?.customer_code) {
+              const w = await prisma.wallet.findUnique({
+                where: { paystackCustomerCode: data.customer.customer_code },
+                select: { virtualAccountNumber: true },
+              });
+              accountNumber = w?.virtualAccountNumber || null;
+            }
+            await paymentQueue.add(
+              PAYMENT_JOBS.PROCESS_PAYSTACK_CHARGE,
+              { transactionRef, accountNumber, userId, amount, reference: data.reference, eventData: payload },
+              DEFAULT_JOB_OPTIONS,
+            );
+            break;
+          }
+
+          case 'transfer.success':
+          case 'transfer.failed':
+          case 'transfer.reversed': {
+            const status = event.split('.')[1]; // success | failed | reversed
+            const reason = data.reason || data.message || data.gateway_response || null;
+            await paymentQueue.add(
+              PAYMENT_JOBS.PROCESS_PAYSTACK_TRANSFER,
+              { transactionRef, reference: data.reference, status, reason, eventData: payload },
+              DEFAULT_JOB_OPTIONS,
+            );
+            break;
+          }
+
+          case 'dedicatedaccount.assign.success':
+          case 'dedicatedaccount.assign.failed':
+            // DVAs are provisioned synchronously via the API, so these are
+            // informational only.
+            logger.info('Paystack DVA assign event', { event, customer: data.customer?.customer_code });
+            await prisma.webhookEvent.update({
+              where: { transactionRef }, data: { processed: true, processedAt: new Date() },
+            });
+            break;
+
+          default:
+            logger.info('Paystack webhook event not handled', { event, transactionRef });
+            await prisma.webhookEvent.update({
+              where: { transactionRef }, data: { processed: true, processedAt: new Date() },
+            });
+        }
+      } catch (err) {
+        logger.error('Paystack webhook async processing failed', { transactionRef, error: err.message });
+        await prisma.webhookEvent.update({
+          where: { transactionRef }, data: { error: err.message },
+        }).catch(() => {});
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   handleKatpay,
+  handlePaystack,
   verifyWhatsapp,
   handleWhatsapp,
 };

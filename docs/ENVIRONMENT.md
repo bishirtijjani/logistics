@@ -37,17 +37,29 @@ All variables required to run the backend. Copy `.env.example` to `.env` and fil
 | `JWT_ACCESS_EXPIRY` | No | `15m` | Access token lifetime |
 | `JWT_REFRESH_EXPIRY` | No | `7d` | Refresh token lifetime |
 
-## KatPay (Wallet Funding, Virtual Accounts & Withdrawals)
+## Paystack (Wallet Funding, Virtual Accounts & Withdrawals)
 
-Sole payment provider - issues NUBAN virtual accounts per user, processes inbound funding via webhook, and handles bank disbursements (withdrawals).
+PRIMARY payment provider. Issues Dedicated Virtual Accounts (DVA) per user for funding, processes inbound funding via the `charge.success` webhook, handles bank disbursements via Transfers (settled via the `transfer.*` webhook), provides the bank list + account-name resolve, and powers ad-hoc top-ups via Initialize Transaction. The secret key also validates webhooks (HMAC-SHA512), so no separate webhook secret is needed.
+
+Dashboard prerequisites: Dedicated Virtual Accounts enabled, OTP disabled for Transfers (Preferences), settlement set to "Paystack balance" (or a PT account kept funded) so `source: balance` payouts work, and the webhook URL set to `/webhooks/paystack`.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `PAYSTACK_BASE_URL` | No | `https://api.paystack.co` | Paystack API base URL |
+| `PAYSTACK_SECRET_KEY` | Prod | - | Paystack secret key (API calls + webhook HMAC) |
+| `PAYSTACK_PUBLIC_KEY` | No | - | Paystack public key (client-side inline checkout only) |
+
+## KatPay (DEPRECATED - inbound funding drain only)
+
+No longer an active provider. KatPay cannot deactivate the old NUBANs it issued, so a customer who saved their old account number can still transfer to it. The KatPay webhook is kept ONLY to credit those straggler payments (the wallet is resolved via `legacyKatpayAccountNumber`); the accumulated KatPay balance is withdrawn MANUALLY by staff from KatPay's dashboard. No provisioning or payouts go through KatPay. Only `KATPAY_API_SECRET` (webhook HMAC key) is still needed; the rest are optional.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `KATPAY_BASE_URL` | No | `https://api.katpay.co` | KatPay API base URL |
-| `KATPAY_API_SECRET` | Prod | - | KatPay API secret key |
-| `KATPAY_PUBLIC_KEY` | Prod | - | KatPay public key |
-| `KATPAY_MERCHANT_ID` | Prod | - | KatPay merchant ID |
-| `KATPAY_CALLBACK_URL` | Prod | `http://localhost:3000/webhooks/katpay` | Webhook callback URL for payment events |
+| `KATPAY_API_SECRET` | Prod | - | KatPay webhook HMAC key (inbound straggler funding only) |
+| `KATPAY_PUBLIC_KEY` | No | - | Unused (kept for backward compat) |
+| `KATPAY_MERCHANT_ID` | No | - | Unused (kept for backward compat) |
+| `KATPAY_CALLBACK_URL` | No | `http://localhost:3000/webhooks/katpay` | Inbound webhook URL |
 
 ## AlRahuz (Utility Payments)
 

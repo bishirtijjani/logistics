@@ -161,6 +161,7 @@ enum AirtimeNetwork {
 enum PaymentProvider {
   ALRAHUZ
   KATPAY
+  PAYSTACK
 }
 
 // ============================================================
@@ -260,10 +261,21 @@ model Wallet {
   id                   String  @id @default(uuid())
   userId               String  @unique
   balance              Decimal @default(0) @db.Decimal(15, 2)
-  virtualAccountNumber String? @unique /// KatPay virtual account number
+  virtualAccountNumber String? @unique /// Active funding NUBAN (Paystack DVA post-migration; was KatPay)
   virtualAccountBank   String? /// Bank name for virtual account
   virtualAccountName   String? /// Account name for virtual account
   isLocked             Boolean @default(false) /// Freeze wallet for fraud prevention
+
+  // Paystack Dedicated Virtual Account linkage. customerCode is needed to
+  // create/track the DVA and to match the funding customer on charge.success.
+  paystackCustomerCode String? @unique /// Paystack customer code (CUS_...)
+  dedicatedAccountId   String? /// Paystack dedicated_account id (numeric, stored as string)
+
+  // Old KatPay NUBAN, retained after the Paystack cutover so a straggler transfer
+  // to a number a user saved in their bank app still credits the wallet (the
+  // inbound KatPay webhook resolves the wallet by this field). KatPay cannot
+  // deactivate NUBANs, so this is the only way late funding stays automatic.
+  legacyKatpayAccountNumber String? @unique /// Pre-Paystack KatPay NUBAN
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

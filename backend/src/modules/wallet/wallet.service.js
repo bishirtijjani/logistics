@@ -13,7 +13,7 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
-const katpayService = require('../../services/katpay.service');
+const paystackService = require('../../services/paystack.service');
 const notifyService = require('../../services/notify.service');
 const { Queue } = require('bullmq');
 const { redis } = require('../../config/redis');
@@ -84,7 +84,7 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
           ? `Transfer to ${accountName || accountNumber}`
           : `Withdrawal to ${bankName || bankCode} - ${accountNumber}`,
         debitWalletId: wallet.id,
-        provider: 'KATPAY',
+        provider: 'PAYSTACK',
         metadata: { bankCode, bankName, accountNumber, accountName, ...(isTransfer ? { kind: 'transfer' } : {}) },
         balanceBefore: balance,
         balanceAfter: balance - amount,
@@ -125,7 +125,7 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
           amount,
           description: 'Withdrawal reversed - could not queue payout',
           creditWalletId: result.walletId,
-          provider: 'KATPAY',
+          provider: 'PAYSTACK',
         },
       });
       return true;
@@ -167,10 +167,11 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
 const transferToBank = (userId, params) => withdrawToBank(userId, params, { kind: 'transfer' });
 
 /**
- * Process wallet funding from KatPay webhook.
- * Uses reference-based idempotency - safe to call multiple times.
+ * Process wallet funding from a provider webhook (Paystack DVA charge.success,
+ * or a straggler KatPay transfer to an old NUBAN). Reference-based idempotency -
+ * safe to call multiple times. `provider` tags the ledger row.
  */
-const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
+const fundWallet = async ({ accountNumber, amount, reference, metadata, provider = 'PAYSTACK' }) => {
   const existing = await prisma.transaction.findUnique({ where: { reference } });
   if (existing) {
     logger.warn('Duplicate funding attempt', { reference });
@@ -178,7 +179,12 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.findUnique({ where: { virtualAccountNumber: accountNumber } });
+    // Match the active Paystack DVA first; fall back to the retained KatPay NUBAN
+    // so a straggler transfer to a number a user saved in their bank app lands.
+    let wallet = await tx.wallet.findUnique({ where: { virtualAccountNumber: accountNumber } });
+    if (!wallet) {
+      wallet = await tx.wallet.findUnique({ where: { legacyKatpayAccountNumber: accountNumber } });
+    }
     if (!wallet) throw AppError.notFound('Wallet not found for account number');
 
     const currentBalance = Number(wallet.balance);
@@ -193,7 +199,7 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
         amount,
         description: 'Wallet funding via bank transfer',
         creditWalletId: wallet.id,
-        provider: 'KATPAY',
+        provider,
         providerRef: reference,
         metadata,
         balanceBefore: currentBalance,
@@ -207,7 +213,7 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
   logger.info('Wallet funded', { accountNumber, amount, reference });
 
   // Live wallet-balance nudge + Notification Center row + push.
-  const ownerWallet = await prisma.wallet.findUnique({ where: { virtualAccountNumber: accountNumber }, select: { userId: true, balance: true } });
+  const ownerWallet = await prisma.wallet.findUnique({ where: { id: result.wallet.id }, select: { userId: true, balance: true } });
   if (ownerWallet) {
     notifyService.balanceUpdated(ownerWallet.userId, { balance: Number(ownerWallet.balance) });
     notifyService.fundingReceived(ownerWallet.userId, { amount, reference });
@@ -268,9 +274,9 @@ const getTransactionHistory = async (userId, { page, limit, type, startDate, end
 /**
  * Bank account name lookup (cached 6h on success).
  *
- * KatPay has no name-enquiry endpoint, so we resolve against Paystack's free
- * `/bank/resolve` (works on test keys, before business approval). `bankCode` is
- * the KatPay code the dashboards use; the Paystack service maps it across.
+ * Resolves against Paystack's `/bank/resolve`. `bankCode` is a Paystack bank
+ * code directly (the pickers are populated from Paystack's bank list), so there
+ * is no cross-provider code mapping any more.
  *
  * Verification is ADVISORY: this never throws and never 500s. On success it
  * returns the resolved name with `resolved: true`; if Paystack is unconfigured,
@@ -285,7 +291,6 @@ const lookupBankAccount = async ({ bankCode, accountNumber }) => {
     if (cached) return JSON.parse(cached);
   } catch (_) {}
 
-  const paystackService = require('../../services/paystack.service');
   let result;
   try {
     const r = await paystackService.resolveAccountName({ accountNumber, bankCode });
@@ -302,7 +307,9 @@ const lookupBankAccount = async ({ bankCode, accountNumber }) => {
 };
 
 /**
- * Initiate a one-time KatPay transfer payment for ad-hoc wallet top-ups.
+ * Initiate a one-time Paystack checkout for ad-hoc wallet top-ups. Returns the
+ * authorization_url the client opens; funding is confirmed via charge.success
+ * (the webhook credits the wallet using metadata.userId).
  */
 const initiateTransferPaymentFunding = async (userId, { amount }) => {
   const user = await prisma.user.findUnique({
@@ -312,14 +319,14 @@ const initiateTransferPaymentFunding = async (userId, { amount }) => {
   if (!user) throw AppError.notFound('User not found');
 
   const providerRef = `TOPUP-${uuidv4()}`;
-  const result = await katpayService.initiateTransferPayment({
+  const result = await paystackService.initializeTransaction({
+    email: user.email,
     amount,
-    customer: { email: user.email, name: `${user.firstName} ${user.lastName}`, phone: user.phone },
-    merchant_reference: providerRef, // KatPay API field name - do not rename the key
+    reference: providerRef,
     metadata: { userId, purpose: 'WALLET_TOPUP' },
   });
 
-  logger.info('Transfer payment funding initiated', { userId, amount, providerRef });
+  logger.info('Top-up checkout initiated', { userId, amount, providerRef });
   return result;
 };
 
@@ -440,8 +447,10 @@ const retryVirtualAccountProvisioning = async (userId) => {
     {
       userId: user.id,
       email: user.email,
-      name: `${user.firstName} ${user.lastName}`.trim(),
-      phoneNumber,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: phoneNumber,
+      customerCode: user.wallet?.paystackCustomerCode || undefined,
     },
     { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
   );

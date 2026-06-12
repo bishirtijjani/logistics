@@ -37,28 +37,15 @@ export const updateProfilePicture = createAsyncThunk(
   },
 );
 
-export const requestKycPhoneOtp = createAsyncThunk(
-  "profile/requestKycPhoneOtp",
-  async ({ bvnPhone }, { rejectWithValue }) => {
-    try {
-      const response = await api.post("/auth/kyc/request-phone-otp", { bvnPhone });
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  },
-);
-
 export const verifyBvn = createAsyncThunk(
   "profile/verifyBvn",
-  async ({ bvn, firstName, lastName, bvnPhone, otp }, { rejectWithValue }) => {
+  async ({ bvn, firstName, lastName, bvnPhone }, { rejectWithValue }) => {
     try {
       const response = await api.post("/auth/kyc/verify-bvn", {
         bvn,
         firstName,
         lastName,
         bvnPhone,
-        ...(otp && { otp }),
       });
       return response.data;
     } catch (error) {

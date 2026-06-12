@@ -19,13 +19,15 @@ const QUEUES = {
 // --- Job types per queue ---
 
 const PAYMENT_JOBS = {
-  /** Process KatPay virtual account payment - credit user wallet */
+  /** Process Paystack charge.success - credit user wallet (DVA funding or top-up) */
+  PROCESS_PAYSTACK_CHARGE: 'process-paystack-charge',
+  /** Process Paystack transfer.success/failed/reversed - settle a withdrawal */
+  PROCESS_PAYSTACK_TRANSFER: 'process-paystack-transfer',
+  /** Process a straggler KatPay virtual-account payment - credit user wallet */
   PROCESS_KATPAY_WEBHOOK: 'process-katpay-webhook',
-  /** Process KatPay transfer_payment.completed - credit user wallet */
-  PROCESS_TRANSFER_PAYMENT_WEBHOOK: 'process-transfer-payment-webhook',
-  /** Process withdrawal - call KatPay payout API */
+  /** Process withdrawal - dispatch a Paystack transfer */
   PROCESS_WITHDRAWAL: 'process-withdrawal',
-  /** Provision KatPay virtual account for new user */
+  /** Provision a Paystack dedicated virtual account for a new user */
   PROVISION_VIRTUAL_ACCOUNT: 'provision-virtual-account',
   /** Retry a failed transaction */
   RETRY_FAILED_TRANSACTION: 'retry-failed-transaction',

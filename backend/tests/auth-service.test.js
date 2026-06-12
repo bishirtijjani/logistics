@@ -36,7 +36,6 @@ stubModule(path.resolve(__dirname, '../src/config/index.js'), {
     JWT_ACCESS_EXPIRY: '15m',
     JWT_REFRESH_EXPIRY: '7d',
     APP_NAME: 'iPrime',
-    SKIP_KYC_PHONE_OTP: true,
     CLOUDINARY_CLOUD_NAME: 'test',
     CLOUDINARY_API_KEY: 'test',
     CLOUDINARY_API_SECRET: 'test',
@@ -64,8 +63,19 @@ stubModule(path.resolve(__dirname, '../src/services/messaging.service.js'), {
   assertConfiguredForProd: () => {},
   getActiveOtpProvider: () => 'whatsapp',
 });
+// Paystack is the provider that provisions DVAs on BVN verify - stub it so the
+// BVN path doesn't make a real API call.
+stubModule(path.resolve(__dirname, '../src/services/paystack.service.js'), {
+  createVirtualAccount: async () => ({
+    accountNumber: '1234567890', bankName: 'Wema Bank', accountName: 'TEST',
+    customerCode: 'CUS_test', dedicatedAccountId: '1',
+  }),
+  isConfigured: () => true,
+});
+// KatPay is now inbound-webhook-only; keep a benign stub in case a path requires it.
 stubModule(path.resolve(__dirname, '../src/services/katpay.service.js'), {
-  createVirtualAccount: async () => ({ accountNumber: '1234567890', bankName: 'PALMPAY', accountName: 'TEST' }),
+  verifyWebhookSignature: () => true,
+  isTimestampFresh: () => true,
 });
 stubModule(path.resolve(__dirname, '../src/services/notification.service.js'), {
   sendToDevice: async () => ({ ok: true }),
