@@ -94,6 +94,7 @@ enum TransactionType {
 enum TransactionStatus {
   PENDING
   PROCESSING
+  SENT // payout dispatched to provider, outcome not yet confirmed (at-most-once dispatch lock)
   COMPLETED
   FAILED
   REVERSED
