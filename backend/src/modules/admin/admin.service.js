@@ -647,6 +647,7 @@ const getDashboardStats = async () => {
     totalRequests,
     activeRequests,
     totalTransactionVolume,
+    totalUserWalletBalance,
   ] = await Promise.all([
     prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
     prisma.rider.count({ where: { status: 'APPROVED' } }),
@@ -659,6 +660,12 @@ const getDashboardStats = async () => {
       where: { status: 'COMPLETED' },
       _sum: { amount: true },
     }),
+    // Total float held across every user wallet (customers, riders and
+    // merchants share one unified wallet), i.e. the platform's standing
+    // liability to users. Decimal -> Number so the frontend can toLocaleString().
+    prisma.wallet.aggregate({
+      _sum: { balance: true },
+    }),
   ]);
 
   return {
@@ -668,6 +675,7 @@ const getDashboardStats = async () => {
     totalRequests,
     activeRequests,
     totalRevenue: totalTransactionVolume._sum.amount || 0,
+    totalUserWalletBalance: Number(totalUserWalletBalance._sum.balance || 0),
   };
 };
 

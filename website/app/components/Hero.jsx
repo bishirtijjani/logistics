@@ -124,7 +124,7 @@ export default function Hero() {
 
       <div className="ui-container relative z-10">
         <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] text-text-primary drop-shadow-[0_2px_8px_rgba(0,0,0,0.18)]">
+          <h1 className="text-5xl md:text-6xl xl:text-7xl font-black tracking-tighter leading-[0.95] text-text-primary [text-shadow:0_2px_4px_rgba(0,0,0,0.18),0_6px_20px_rgba(0,0,0,0.28)]">
             Get <span className="text-accent">anything</span> delivered
             <br className="hidden sm:block" /> across Katsina.
           </h1>
