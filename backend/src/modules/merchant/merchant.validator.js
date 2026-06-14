@@ -97,6 +97,7 @@ const updateMerchantProfileSchema = z.object({
   closingTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   logoUrl: z.string().url().optional(),
   coverImageUrl: z.string().url().optional(),
+  isOpen: z.boolean().optional(),
 });
 
 const merchantOrdersSchema = z.object({

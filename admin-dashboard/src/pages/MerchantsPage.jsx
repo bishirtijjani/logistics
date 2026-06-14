@@ -161,6 +161,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
   const [resolvedBank, setResolvedBank] = useState(null)
   const [showResetPin, setShowResetPin] = useState(false)
   const [resetPinReason, setResetPinReason] = useState('')
+  const [openState, setOpenState] = useState(true)
 
   useEffect(() => {
     if (merchant && tab === 'commission') {
@@ -200,6 +201,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
           : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         adminActiveOverride: merchant.adminActiveOverride !== false,
       })
+      setOpenState(merchant.isOpen !== false)
       setCommissionValue(merchant.commissionRate?.toString() || '15')
     }
   }, [merchant])
@@ -393,13 +395,14 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
               </Btn>
             )}
             {merchant.status === 'APPROVED' && (
-              <Btn size="sm" variant={merchant.isOpen ? 'warning' : 'success'} loading={loading === 'toggleOpen'}
+              <Btn size="sm" variant={openState ? 'warning' : 'success'} loading={loading === 'toggleOpen'}
                 onClick={() => act('toggleOpen', async () => {
-                  const r = await dispatch(toggleMerchantOpen({ merchantId: merchant.id, isOpen: !merchant.isOpen }))
-                  if (r.meta.requestStatus === 'fulfilled') { toast.success(merchant.isOpen ? 'Merchant marked closed' : 'Merchant marked open'); onAction?.() }
+                  const next = !openState
+                  const r = await dispatch(toggleMerchantOpen({ merchantId: merchant.id, isOpen: next }))
+                  if (r.meta.requestStatus === 'fulfilled') { setOpenState(next); toast.success(next ? 'Merchant marked open' : 'Merchant marked closed'); onAction?.() }
                   else toast.error(r.error?.message || 'Failed')
                 })}>
-                {merchant.isOpen ? <><PauseCircle size={14} /> Set Closed</> : <><PlayCircle size={14} /> Set Open</>}
+                {openState ? <><PauseCircle size={14} /> Set Closed</> : <><PlayCircle size={14} /> Set Open</>}
               </Btn>
             )}
             <Btn size="sm" variant="ghost"
