@@ -77,6 +77,14 @@ export const updateMerchantProfile = createAsyncThunk(
   }
 )
 
+export const toggleMerchantOpen = createAsyncThunk(
+  'merchants/toggleOpen',
+  async ({ merchantId, isOpen }) => {
+    const response = await api.patch(`/merchants/${merchantId}/status`, { isOpen })
+    return response.data.data
+  }
+)
+
 export const createMerchant = createAsyncThunk(
   'merchants/create',
   async (merchantData) => {
@@ -472,6 +480,7 @@ const merchantsSlice = createSlice({
       .addCase(unsuspendMerchant.fulfilled, patchMerchant)
       .addCase(updateMerchantCommission.fulfilled, patchMerchant)
       .addCase(updateMerchantProfile.fulfilled, patchMerchant)
+      .addCase(toggleMerchantOpen.fulfilled, patchMerchant)
 
     builder
       .addCase(createMerchant.fulfilled, (state, action) => {

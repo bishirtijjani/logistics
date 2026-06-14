@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   fetchAllMerchants, fetchMerchantById, approveMerchant, rejectMerchant,
-  suspendMerchant, unsuspendMerchant, updateMerchantCommission, updateMerchantProfile,
+  suspendMerchant, unsuspendMerchant, updateMerchantCommission, updateMerchantProfile, toggleMerchantOpen,
   createMerchant, deleteMerchant, fetchCommissionHistory,
   setWithdrawalHold, fetchPendingWithdrawals, fetchWithdrawalHistory,
   approveWithdrawal, rejectWithdrawal, bulkApproveWithdrawals,
@@ -390,6 +390,16 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                   else toast.error(r.error?.message || 'Failed')
                 })}>
                 <Shield size={14} /> Unsuspend
+              </Btn>
+            )}
+            {merchant.status === 'APPROVED' && (
+              <Btn size="sm" variant={merchant.isOpen ? 'warning' : 'success'} loading={loading === 'toggleOpen'}
+                onClick={() => act('toggleOpen', async () => {
+                  const r = await dispatch(toggleMerchantOpen({ merchantId: merchant.id, isOpen: !merchant.isOpen }))
+                  if (r.meta.requestStatus === 'fulfilled') { toast.success(merchant.isOpen ? 'Merchant marked closed' : 'Merchant marked open'); onAction?.() }
+                  else toast.error(r.error?.message || 'Failed')
+                })}>
+                {merchant.isOpen ? <><PauseCircle size={14} /> Set Closed</> : <><PlayCircle size={14} /> Set Open</>}
               </Btn>
             )}
             <Btn size="sm" variant="ghost"
