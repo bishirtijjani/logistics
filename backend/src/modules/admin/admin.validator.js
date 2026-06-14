@@ -254,6 +254,7 @@ const updateMerchantProfileSchema = z.object({
   lng: z.number().min(-180).max(180).optional(),
   openingTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   closingTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  openingDays: z.array(z.enum(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])).optional(),
   logoUrl: z.string().url().optional().or(z.literal('')),
   coverImageUrl: z.string().url().optional().or(z.literal('')),
   adminActiveOverride: z.boolean().optional(),

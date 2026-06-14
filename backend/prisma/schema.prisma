@@ -623,8 +623,9 @@ model Merchant {
   lng     Float
 
   // Operating hours
-  openingTime String @default("08:00")
-  closingTime String @default("22:00")
+  openingTime String   @default("08:00")
+  closingTime String   @default("22:00")
+  openingDays String[] @default(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
 
   // Media
   logoUrl       String?

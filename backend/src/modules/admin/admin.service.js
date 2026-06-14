@@ -646,8 +646,8 @@ const getDashboardStats = async () => {
     totalMerchants,
     totalRequests,
     activeRequests,
-    totalTransactionVolume,
-    totalUserWalletBalance,
+    platformRevenue,
+    customerWalletBalance,
   ] = await Promise.all([
     prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
     prisma.rider.count({ where: { status: 'APPROVED' } }),
@@ -656,14 +656,20 @@ const getDashboardStats = async () => {
     prisma.request.count({
       where: { status: { in: ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'RIDER_ASSIGNED', 'RIDER_EN_ROUTE', 'PICKED_UP', 'IN_TRANSIT'] } },
     }),
+    // Platform revenue = the commission the platform actually earns, recorded as
+    // PLATFORM_EARNING ledger rows (one per settled request + cancellation fees).
+    // Summing every COMPLETED transaction instead double-counts the whole ledger
+    // (fundings, P2P both legs, escrow hold/release, earnings, withdrawals).
     prisma.transaction.aggregate({
-      where: { status: 'COMPLETED' },
+      where: { status: 'COMPLETED', type: 'PLATFORM_EARNING' },
       _sum: { amount: true },
     }),
-    // Total float held across every user wallet (customers, riders and
-    // merchants share one unified wallet), i.e. the platform's standing
-    // liability to users. Decimal -> Number so the frontend can toLocaleString().
+    // Money customers are holding. Scoped to CUSTOMER wallets: riders and
+    // merchants share the same unified wallet table but carry their accumulated
+    // earnings, which would dwarf the customer float. System/escrow balances live
+    // in a separate `systemWallet` table and are correctly excluded here.
     prisma.wallet.aggregate({
+      where: { user: { role: 'CUSTOMER', deletedAt: null } },
       _sum: { balance: true },
     }),
   ]);
@@ -674,8 +680,8 @@ const getDashboardStats = async () => {
     totalMerchants,
     totalRequests,
     activeRequests,
-    totalRevenue: totalTransactionVolume._sum.amount || 0,
-    totalUserWalletBalance: Number(totalUserWalletBalance._sum.balance || 0),
+    totalRevenue: Number(platformRevenue._sum.amount || 0),
+    totalUserWalletBalance: Number(customerWalletBalance._sum.balance || 0),
   };
 };
 
@@ -1077,7 +1083,7 @@ const updateMerchantProfile = async (merchantId, data, adminUserId, ipAddress, u
 
   const allowedFields = [
     'name', 'description', 'phone', 'email', 'address', 'lat', 'lng',
-    'openingTime', 'closingTime', 'logoUrl', 'coverImageUrl', 'adminActiveOverride',
+    'openingTime', 'closingTime', 'openingDays', 'logoUrl', 'coverImageUrl', 'adminActiveOverride',
   ];
   const updateData = {};
   for (const key of allowedFields) {

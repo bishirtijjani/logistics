@@ -195,6 +195,9 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         lng: typeof merchant.lng === 'number' ? merchant.lng : 0,
         openingTime: merchant.openingTime || '08:00',
         closingTime: merchant.closingTime || '22:00',
+        openingDays: Array.isArray(merchant.openingDays) && merchant.openingDays.length
+          ? merchant.openingDays
+          : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         adminActiveOverride: merchant.adminActiveOverride !== false,
       })
       setCommissionValue(merchant.commissionRate?.toString() || '15')
@@ -459,6 +462,28 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                       <Input type="time" value={editData.closingTime} onChange={(e) => setEditData({ ...editData, closingTime: e.target.value })} />
                     </FormField>
                   </div>
+                  <FormField label="Opening Days">
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                        const active = (editData.openingDays || []).includes(day)
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => setEditData({
+                              ...editData,
+                              openingDays: active
+                                ? editData.openingDays.filter((d) => d !== day)
+                                : [...(editData.openingDays || []), day],
+                            })}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${active ? 'bg-primary/10 border-primary text-primary' : 'bg-surface-muted dark:bg-dark-surface-muted border-surface-muted dark:border-dark-surface-muted text-muted dark:text-dark-muted'}`}
+                          >
+                            {day}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </FormField>
                   <FormField label="Admin Visibility Override">
                     <div className="flex items-center gap-3 mt-1">
                       <button
