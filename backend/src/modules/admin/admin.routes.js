@@ -221,20 +221,20 @@ router.get('/safety/incidents', authorize('ADMIN', PERMISSIONS.MANAGE_SUPPORT), 
 router.get('/safety/compliance', authorize('ADMIN', PERMISSIONS.MANAGE_SUPPORT), adminController.getComplianceReport);
 
 // VTU plan management
-router.get('/vtu-plans', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.getVtuPlans);
-router.post('/vtu-plans', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.createVtuPlan);
-router.post('/vtu-plans/bulk', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.bulkCreateVtuPlans);
-router.put('/vtu-plans/:planId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.updateVtuPlan);
-router.delete('/vtu-plans/:planId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.deleteVtuPlan);
+router.get('/vtu-plans', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.getVtuPlans);
+router.post('/vtu-plans', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.createVtuPlan);
+router.post('/vtu-plans/bulk', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.bulkCreateVtuPlans);
+router.put('/vtu-plans/:planId', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.updateVtuPlan);
+router.delete('/vtu-plans/:planId', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.deleteVtuPlan);
 
-// Upstream VTU provider float balance (read-only)
-router.get('/vtu-provider-balance', authorize('ADMIN', PERMISSIONS.MANAGE_FINANCE), adminController.getVtuProviderBalance);
+// Upstream VTU provider float balance (read-only). VTU or Finance managers may view it.
+router.get('/vtu-provider-balance', authorize('ADMIN', PERMISSIONS.MANAGE_VTU, PERMISSIONS.MANAGE_FINANCE), adminController.getVtuProviderBalance);
 
 // VTU network/disco/cable-name catalogue (provider IDs admin can edit)
-router.get('/vtu-networks', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.getVtuNetworks);
-router.post('/vtu-networks', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.createVtuNetwork);
-router.put('/vtu-networks/:networkId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.updateVtuNetwork);
-router.delete('/vtu-networks/:networkId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.deleteVtuNetwork);
+router.get('/vtu-networks', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.getVtuNetworks);
+router.post('/vtu-networks', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.createVtuNetwork);
+router.put('/vtu-networks/:networkId', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.updateVtuNetwork);
+router.delete('/vtu-networks/:networkId', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.deleteVtuNetwork);
 
 // Phase 8 - Rider force-offline (real admin use + Maestro 05-force-offline).
 router.post('/riders/:riderId/force-offline', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_SUPPORT), validate(forceOfflineRiderSchema), adminController.forceOfflineRider);

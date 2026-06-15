@@ -25,7 +25,8 @@ const PERMISSIONS = [
   { id: 'MANAGE_MERCHANTS', label: 'Merchants', description: 'Manage Merchants, Categories, and Tags' },
   { id: 'MANAGE_FINANCE', label: 'Finance', description: 'Transactions, Revenue, and Payouts' },
   { id: 'MANAGE_SUPPORT', label: 'Support', description: 'Tickets, Disputes, and Safety incidents' },
-  { id: 'MANAGE_SETTINGS', label: 'Settings', description: 'Platform settings, VTU plans, and Marketing' },
+  { id: 'MANAGE_SETTINGS', label: 'Settings', description: 'Platform settings, Marketing, and Banners' },
+  { id: 'MANAGE_VTU', label: 'VTU', description: 'VTU plans and networks' },
   { id: 'MANAGE_STAFF', label: 'Staff', description: 'Create and manage other admin staff' },
 ]
 
