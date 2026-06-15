@@ -25,34 +25,37 @@ import {
   Wifi,
   Network,
   Tags,
-  ListChecks
+  ListChecks,
+  UserPlus
 } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Breadcrumb from './Breadcrumb'
 import HelpPanel from './HelpPanel'
 import { useTheme } from '../contexts/ThemeContext'
 import { useAuthSession } from '../lib/useAuthSession'
+import { usePermissions } from '../lib/usePermissions'
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/requests', icon: Package, label: 'Requests' },
-  { path: '/merchants', icon: Store, label: 'Merchants' },
-  { path: '/categories', icon: Tags, label: 'Categories' },
-  { path: '/riders', icon: Bike, label: 'Riders' },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { path: '/financial', icon: DollarSign, label: 'Financial' },
-  { path: '/disputes', icon: MessageCircle, label: 'Disputes' },
-  { path: '/support', icon: Headphones, label: 'Support' },
-  { path: '/marketing', icon: Megaphone, label: 'Marketing' },
-  { path: '/waitlist', icon: ListChecks, label: 'Waitlist' },
-  { path: '/rider-operations', icon: Bike, label: 'Rider Ops' },
-  { path: '/safety', icon: Shield, label: 'Safety' },
-  { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans' },
-  { path: '/vtu-networks', icon: Network, label: 'VTU Networks' },
-  { path: '/customers', icon: Users, label: 'Customers' },
-  { path: '/audit-logs', icon: FileText, label: 'Audit Logs' },
-  { path: '/transactions', icon: Receipt, label: 'Transactions' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/requests', icon: Package, label: 'Requests', permissions: ['MANAGE_USERS', 'MANAGE_MERCHANTS'] },
+  { path: '/merchants', icon: Store, label: 'Merchants', permissions: ['MANAGE_MERCHANTS'] },
+  { path: '/categories', icon: Tags, label: 'Categories', permissions: ['MANAGE_MERCHANTS'] },
+  { path: '/riders', icon: Bike, label: 'Riders', permissions: ['MANAGE_USERS'] },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics', permissions: ['MANAGE_FINANCE', 'MANAGE_USERS', 'MANAGE_MERCHANTS'] },
+  { path: '/financial', icon: DollarSign, label: 'Financial', permissions: ['MANAGE_FINANCE'] },
+  { path: '/disputes', icon: MessageCircle, label: 'Disputes', permissions: ['MANAGE_SUPPORT'] },
+  { path: '/support', icon: Headphones, label: 'Support', permissions: ['MANAGE_SUPPORT'] },
+  { path: '/marketing', icon: Megaphone, label: 'Marketing', permissions: ['MANAGE_SETTINGS'] },
+  { path: '/waitlist', icon: ListChecks, label: 'Waitlist', permissions: ['MANAGE_USERS'] },
+  { path: '/rider-operations', icon: Bike, label: 'Rider Ops', permissions: ['MANAGE_USERS'] },
+  { path: '/safety', icon: Shield, label: 'Safety', permissions: ['MANAGE_SUPPORT'] },
+  { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans', permissions: ['MANAGE_SETTINGS'] },
+  { path: '/vtu-networks', icon: Network, label: 'VTU Networks', permissions: ['MANAGE_SETTINGS'] },
+  { path: '/customers', icon: Users, label: 'Customers', permissions: ['MANAGE_USERS'] },
+  { path: '/staff', icon: UserPlus, label: 'Staff', permissions: ['MANAGE_STAFF'] },
+  { path: '/audit-logs', icon: FileText, label: 'Audit Logs', permissions: ['MANAGE_STAFF'] },
+  { path: '/transactions', icon: Receipt, label: 'Transactions', permissions: ['MANAGE_FINANCE'] },
+  { path: '/settings', icon: Settings, label: 'Settings', permissions: ['MANAGE_SETTINGS'] },
 ]
 
 export default function Layout() {
@@ -62,6 +65,11 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isDark, toggleTheme } = useTheme()
   const { handleLogout } = useAuthSession()
+  const { hasPermission } = usePermissions()
+
+  const filteredNavItems = navItems.filter(item => 
+    !item.permissions || hasPermission(item.permissions)
+  )
 
   // Mobile drawer: lock background scroll and close on Escape while open.
   useEffect(() => {
@@ -131,7 +139,7 @@ export default function Layout() {
 
         <nav className="flex-1 p-4 overflow-y-auto">
           <ul className="space-y-1">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const Icon = item.icon
               const isActive = isActivePath(item.path)
               return (

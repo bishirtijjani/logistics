@@ -3245,6 +3245,11 @@ module.exports = {
   // Phase 8 - Maestro support
   forceOfflineRider,
   seedTestOffer,
+  // Staff management
+  listStaff,
+  createStaff,
+  updateStaffPermissions,
+  updateStaffProfile,
 };
 
 // ─── VTU Plan Management ──────────────────────────────────────────────────────
@@ -3450,4 +3455,164 @@ async function deleteVtuNetwork(id) {
 
   await prisma.vtuNetwork.delete({ where: { id } });
   await _invalidateVtuCaches();
+}
+
+/**
+ * List all staff members (users with role=ADMIN).
+ */
+async function listStaff() {
+  return prisma.user.findMany({
+    where: { role: 'ADMIN' },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      status: true,
+      permissions: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+/**
+ * A super admin is an ADMIN whose permissions are null/undefined (legacy =
+ * full access) or whose permission list contains 'ALL'. An explicit empty
+ * array [] is a scoped admin with no permissions.
+ */
+function _isSuperAdmin(actor) {
+  return (
+    actor.permissions == null ||
+    (Array.isArray(actor.permissions) && actor.permissions.includes('ALL'))
+  );
+}
+
+/**
+ * Create a new staff member.
+ */
+async function createStaff(data, actor, ipAddress, userAgent) {
+  const { email, password, firstName, lastName, phone, permissions } = data;
+
+  if ((permissions || []).includes('ALL') && !_isSuperAdmin(actor)) {
+    throw AppError.forbidden('Only a super admin can grant full (ALL) access');
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw AppError.conflict('Email already in use');
+
+  const bcrypt = require('bcryptjs');
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const staff = await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      firstName,
+      lastName,
+      phone,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      permissions: permissions || [],
+    },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      permissions: true,
+    }
+  });
+
+  await createAuditLog(
+    actor.id,
+    'CREATE_STAFF',
+    'User',
+    staff.id,
+    { email: staff.email, permissions: staff.permissions },
+    ipAddress,
+    userAgent
+  );
+
+  return staff;
+}
+
+/**
+ * Update staff permissions.
+ */
+async function updateStaffPermissions(staffId, permissions, actor, ipAddress, userAgent) {
+  if (staffId === actor.id) {
+    throw AppError.forbidden('You cannot modify your own permissions');
+  }
+  if ((permissions || []).includes('ALL') && !_isSuperAdmin(actor)) {
+    throw AppError.forbidden('Only a super admin can grant full (ALL) access');
+  }
+
+  const staff = await prisma.user.findUnique({ where: { id: staffId } });
+  if (!staff || staff.role !== 'ADMIN') throw AppError.notFound('Staff member not found');
+
+  const updated = await prisma.user.update({
+    where: { id: staffId },
+    data: { permissions },
+    select: {
+      id: true,
+      email: true,
+      permissions: true,
+    }
+  });
+
+  await createAuditLog(
+    actor.id,
+    'UPDATE_STAFF_PERMISSIONS',
+    'User',
+    staffId,
+    { oldPermissions: staff.permissions, newPermissions: permissions },
+    ipAddress,
+    userAgent
+  );
+
+  return updated;
+}
+
+/**
+ * Update staff profile (name/phone/status).
+ */
+async function updateStaffProfile(staffId, data, actor, ipAddress, userAgent) {
+  if (staffId === actor.id && data.status && data.status !== 'ACTIVE') {
+    throw AppError.forbidden('You cannot suspend or deactivate your own account');
+  }
+
+  const staff = await prisma.user.findUnique({ where: { id: staffId } });
+  if (!staff || staff.role !== 'ADMIN') throw AppError.notFound('Staff member not found');
+
+  const updated = await prisma.user.update({
+    where: { id: staffId },
+    data: {
+      ...(data.firstName && { firstName: data.firstName }),
+      ...(data.lastName && { lastName: data.lastName }),
+      ...(data.phone && { phone: data.phone }),
+      ...(data.status && { status: data.status }),
+    },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      status: true,
+    }
+  });
+
+  await createAuditLog(
+    actor.id,
+    'UPDATE_STAFF_PROFILE',
+    'User',
+    staffId,
+    { data },
+    ipAddress,
+    userAgent
+  );
+
+  return updated;
 }

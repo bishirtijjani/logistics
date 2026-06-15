@@ -134,6 +134,7 @@ const login = async ({ email, password }, sessionMeta = {}) => {
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      permissions: user.permissions ?? null,
       status: user.status,
       hasPinSet: !!user.transactionPin,
       transactionPinSetByUser: user.transactionPinSetByUser,
@@ -645,6 +646,7 @@ const getProfile = async (userId) => {
       address: true,
       kycStatus: true,
       role: true,
+      permissions: true,
       status: true,
       transactionPin: true,
       transactionPinSetByUser: true,
@@ -701,6 +703,7 @@ const updateProfile = async (userId, data) => {
       address: true,
       kycStatus: true,
       role: true,
+      permissions: true,
       status: true,
       transactionPin: true,
       createdAt: true,
@@ -1260,7 +1263,12 @@ const deleteAccount = async (userId) => {
 // --- Internal helpers ---
 
 const generateTokens = (user) => {
-  const payload = { id: user.id, role: user.role, email: user.email };
+  const payload = {
+    id: user.id,
+    role: user.role,
+    email: user.email,
+    ...(user.role === 'ADMIN' && { permissions: user.permissions ?? null }),
+  };
 
   const accessToken = jwt.sign(payload, config.JWT_ACCESS_SECRET, {
     expiresIn: config.JWT_ACCESS_EXPIRY,

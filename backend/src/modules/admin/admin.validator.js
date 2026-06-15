@@ -366,6 +366,26 @@ const updatePlatformSettingsSchema = z.object({
   itemPlatformFeePercent: z.number().min(0).max(100).optional(),
 });
 
+const createStaffSchema = z.object({
+  email: z.string().email().max(120),
+  password: z.string().min(8).max(50),
+  firstName: z.string().min(1).max(50),
+  lastName: z.string().min(1).max(50),
+  phone: z.string().min(7).max(20),
+  permissions: z.array(z.string()).optional(),
+});
+
+const updateStaffPermissionsSchema = z.object({
+  permissions: z.array(z.string()),
+});
+
+const updateStaffProfileSchema = z.object({
+  firstName: z.string().min(1).max(50).optional(),
+  lastName: z.string().min(1).max(50).optional(),
+  phone: z.string().min(7).max(20).optional(),
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']).optional(),
+});
+
 module.exports = {
   reviewRiderSchema,
   updateCustomerStatusSchema,
@@ -412,4 +432,7 @@ module.exports = {
   getRiderEarningsSchema,
   updatePlatformSettingsSchema,
   utilityPaymentsQuerySchema,
+  createStaffSchema,
+  updateStaffPermissionsSchema,
+  updateStaffProfileSchema,
 };

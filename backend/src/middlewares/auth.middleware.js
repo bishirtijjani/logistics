@@ -33,6 +33,7 @@ const authenticate = (req, _res, next) => {
       id: decoded.id,
       role: decoded.role,
       phone: decoded.phone,
+      permissions: decoded.permissions ?? null,
     };
 
     next();

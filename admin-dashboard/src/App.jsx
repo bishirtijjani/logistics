@@ -33,6 +33,7 @@ import VtuPlansPage from './pages/VtuPlansPage'
 import VtuNetworksPage from './pages/VtuNetworksPage'
 import CategoriesPage from './pages/CategoriesPage'
 import WaitlistPage from './pages/WaitlistPage'
+import StaffManagementPage from './pages/StaffManagementPage'
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('accessToken')
@@ -103,6 +104,7 @@ function App() {
           <Route path="vtu-plans" element={<VtuPlansPage />} />
           <Route path="vtu-networks" element={<VtuNetworksPage />} />
           <Route path="waitlist" element={<WaitlistPage />} />
+          <Route path="staff" element={<StaffManagementPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

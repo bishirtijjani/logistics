@@ -1151,6 +1151,11 @@ module.exports = {
   // Phase 8 - Maestro support
   forceOfflineRider,
   seedTestOffer,
+  // Staff management
+  listStaff,
+  createStaff,
+  updateStaffPermissions,
+  updateStaffProfile,
 };
 
 // ─── VTU Plan Controllers ─────────────────────────────────────────────────────
@@ -1227,4 +1232,46 @@ async function getVtuProviderBalance(req, res, next) {
     const result = await adminService.getVtuProviderBalance();
     res.json(ApiResponse.success('VTU provider balance', result));
   } catch (error) { next(error); }
+}
+
+async function listStaff(req, res, next) {
+  try {
+    const staff = await adminService.listStaff();
+    res.json(ApiResponse.success('Staff members', staff));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function createStaff(req, res, next) {
+  try {
+    const staff = await adminService.createStaff(
+      req.body, req.user, req.ip, req.headers['user-agent']
+    );
+    res.status(201).json(ApiResponse.success('Staff member created', staff));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateStaffPermissions(req, res, next) {
+  try {
+    const result = await adminService.updateStaffPermissions(
+      req.params.staffId, req.body.permissions, req.user, req.ip, req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Staff permissions updated', result));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updateStaffProfile(req, res, next) {
+  try {
+    const result = await adminService.updateStaffProfile(
+      req.params.staffId, req.body, req.user, req.ip, req.headers['user-agent']
+    );
+    res.json(ApiResponse.success('Staff profile updated', result));
+  } catch (error) {
+    next(error);
+  }
 }

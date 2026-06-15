@@ -223,8 +223,9 @@ model User {
   address        String? /// Primary address text
   kycStatus      KycStatus  @default(NONE)
   role           UserRole   @default(CUSTOMER)
+  permissions    Json? /// Array of permission strings for ADMIN role. null/['ALL'] = super admin.
   status         UserStatus @default(PENDING)
-  fcmToken       String? /// Firebase Cloud Messaging token for push notifications
+  fcmToken       String? /// Firebase Cloud Messaging token for push notifications   
   deletedAt      DateTime? /// Soft delete
 
   createdAt DateTime @default(now())
