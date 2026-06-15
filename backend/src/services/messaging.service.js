@@ -17,12 +17,12 @@
  * and the boot guard.
  */
 
-const { config } = require('../config');
-const { logger } = require('../utils/logger');
-const whatsappService = require('./whatsapp.service');
-const termiiService = require('./termii.service');
+const { config } = require("../config");
+const { logger } = require("../utils/logger");
+const whatsappService = require("./whatsapp.service");
+const termiiService = require("./termii.service");
 
-const activeOtpProvider = () => config.OTP_PROVIDER || 'whatsapp';
+const activeOtpProvider = () => config.OTP_PROVIDER || "whatsapp";
 
 /**
  * Boot guard. Delegates to whichever provider is currently active so we fail
@@ -32,7 +32,12 @@ const assertConfiguredForProd = () => {
   const provider = activeOtpProvider();
   logger.info(`Messaging: active OTP provider = ${provider}`);
 
-  if (provider === 'whatsapp') {
+  if (provider === "email") {
+    termiiService.assertConfiguredForProd(); // dormant transactional channel
+    return;
+  }
+
+  if (provider === "whatsapp") {
     whatsappService.assertConfiguredForProd();
   } else {
     termiiService.assertConfiguredForProd();
@@ -41,7 +46,7 @@ const assertConfiguredForProd = () => {
   // Always run the Termii guard too - when WhatsApp is active, Termii is the
   // dormant transactional channel, and its own guard knows to log instead of
   // throw in that mode. Skipped if already invoked above to avoid double logs.
-  if (provider !== 'termii') {
+  if (provider !== "termii") {
     termiiService.assertConfiguredForProd();
   }
 };
@@ -54,7 +59,7 @@ const assertConfiguredForProd = () => {
  */
 const sendOtp = async (phoneNumber, code) => {
   const provider = activeOtpProvider();
-  if (provider === 'whatsapp') {
+  if (provider === "whatsapp") {
     return whatsappService.sendOtp(phoneNumber, code);
   }
   return termiiService.sendOtp(phoneNumber, code);
