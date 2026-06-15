@@ -1,8 +1,9 @@
 /**
- * Utility service - airtime, data, cable, electricity, education pins via AlRahuz Data API.
+ * Utility service - airtime, data, cable, electricity, education pins via the
+ * BilalSadaSub VTU API.
  *
- * FLOW: wallet deduction → BullMQ job → worker calls AlRahuz → update status.
- * On AlRahuz failure: mark FAILED, refund via worker.
+ * FLOW: wallet deduction → BullMQ job → worker calls the provider → update status.
+ * On provider failure: mark FAILED, refund via worker.
  */
 
 const { v4: uuidv4 } = require('uuid');
@@ -15,7 +16,7 @@ const {
   REDIS_TTL,
   detectNetworkFromPhone,
 } = require('../../utils/constants');
-const alrahuzService = require('../../services/alrahuz.service');
+const vtuProvider = require('../../services/bilalsada.service');
 const { addUtilityJob } = require('../../queues');
 const { UTILITY_JOBS } = require('../../queues/jobs');
 
@@ -45,7 +46,7 @@ const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, mete
         amount,
         description: `${biller} ${type.toLowerCase()} ${phoneNumber || meterNumber || ''}`.trim(),
         debitWalletId: wallet.id,
-        provider: 'ALRAHUZ',
+        provider: 'BILALSADASUB',
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -261,7 +262,7 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
   // payload always carries beneficiaryName (Phase 7 AC: must be returned to client).
   let beneficiaryName = null;
   try {
-    const meta = await alrahuzService.validateMeter({
+    const meta = await vtuProvider.validateMeter({
       meterNumber,
       discoId: Number(discoId),
       meterType,
@@ -307,11 +308,11 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
 };
 
 const validateIuc = async ({ smartCardNumber, cableNameId }) => {
-  return alrahuzService.validateIuc({ smartCardNumber, cableNameId: Number(cableNameId) });
+  return vtuProvider.validateIuc({ smartCardNumber, cableNameId: Number(cableNameId) });
 };
 
 const validateMeter = async ({ meterNumber, discoId, meterType }) => {
-  return alrahuzService.validateMeter({ meterNumber, discoId: Number(discoId), meterType });
+  return vtuProvider.validateMeter({ meterNumber, discoId: Number(discoId), meterType });
 };
 
 const getBillHistory = async (userId, { page, limit, type, status }) => {

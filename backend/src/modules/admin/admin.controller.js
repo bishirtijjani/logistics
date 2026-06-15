@@ -1147,6 +1147,7 @@ module.exports = {
   createVtuNetwork,
   updateVtuNetwork,
   deleteVtuNetwork,
+  getVtuProviderBalance,
   // Phase 8 - Maestro support
   forceOfflineRider,
   seedTestOffer,
@@ -1216,5 +1217,14 @@ async function deleteVtuNetwork(req, res, next) {
   try {
     await adminService.deleteVtuNetwork(req.params.networkId);
     res.json(ApiResponse.success('Network deleted'));
+  } catch (error) { next(error); }
+}
+
+// ─── VTU Provider Balance ─────────────────────────────────────────────────────
+
+async function getVtuProviderBalance(req, res, next) {
+  try {
+    const result = await adminService.getVtuProviderBalance();
+    res.json(ApiResponse.success('VTU provider balance', result));
   } catch (error) { next(error); }
 }

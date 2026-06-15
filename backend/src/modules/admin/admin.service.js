@@ -8,7 +8,9 @@ const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const { REDIS_KEYS } = require('../../utils/constants');
+const { config } = require('../../config');
 const katpayService = require('../../services/katpay.service');
+const vtuProvider = require('../../services/bilalsada.service');
 const emailService = require('../../services/email.service');
 const { createAuditLog } = require('../../utils/audit');
 
@@ -3040,7 +3042,7 @@ const REFUND_BLOCKED_TYPES = new Set([
 /**
  * Admin-initiated full refund of a single wallet transaction.
  *
- * - VTU (UTILITY_PAYMENT): re-queries AlRahuz via the worker reconciler first,
+ * - VTU (UTILITY_PAYMENT): re-queries the provider via the worker reconciler first,
  *   so a purchase that actually delivered is completed (NOT refunded); only a
  *   genuinely failed/stuck one is refunded. Keeps both the UtilityPayment row
  *   and the wallet ledger consistent.
@@ -3239,6 +3241,7 @@ module.exports = {
   createVtuNetwork,
   updateVtuNetwork,
   deleteVtuNetwork,
+  getVtuProviderBalance,
   // Phase 8 - Maestro support
   forceOfflineRider,
   seedTestOffer,
@@ -3284,6 +3287,31 @@ async function deleteVtuPlan(id) {
 
 async function bulkCreateVtuPlans(plans) {
   return prisma.vtuPlan.createMany({ data: plans, skipDuplicates: true });
+}
+
+/**
+ * Live wallet balance held with the upstream VTU provider (BilalSadaSub). This
+ * is the float every customer airtime/data/bill purchase is vended from, so
+ * admins need it visible to top it up before it runs dry. Requires the optional
+ * BILALSADASUB_USERNAME/PASSWORD (Basic-auth balance endpoint); when those
+ * aren't set we report `configured: false` instead of erroring.
+ */
+async function getVtuProviderBalance() {
+  if (!config.BILALSADASUB_USERNAME || !config.BILALSADASUB_PASSWORD) {
+    return { configured: false, provider: 'BILALSADASUB', balance: null, username: null };
+  }
+  try {
+    const data = await vtuProvider.getAccountBalance();
+    return {
+      configured: true,
+      provider: 'BILALSADASUB',
+      balance: data?.balance != null ? Number(data.balance) : null,
+      username: data?.username || null,
+    };
+  } catch (err) {
+    logger.warn('VTU provider balance fetch failed', { error: err.message });
+    throw AppError.serviceUnavailable('Could not reach VTU provider for balance');
+  }
 }
 
 // ─── VTU Network Management ───────────────────────────────────────────────────

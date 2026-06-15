@@ -52,8 +52,12 @@ const NETWORK_PREFIXES = {
   '9MOBILE': ['0809','0817','0818','0908','0909'],
 };
 
-// AlRahuz provider IDs - single source of truth. Mobile/static endpoints read these.
-const NETWORK_IDS = { MTN: 1, GLO: 2, '9MOBILE': 3, AIRTEL: 4, SMILE: 5 };
+// BilalSadaSub provider IDs - fallback only. The live providerNetworkId is
+// resolved from the admin-managed VtuNetwork table at request time, so a
+// provider renumber needs no code change; this constant just keeps the static
+// network-detection helper aligned. NB: BilalSada drops SMILE and reorders
+// GLO/AIRTEL/9MOBILE vs AlRahuz (MTN=1, AIRTEL=2, GLO=3, 9MOBILE=4).
+const NETWORK_IDS = { MTN: 1, AIRTEL: 2, GLO: 3, '9MOBILE': 4 };
 
 const NETWORKS = [
   { id: NETWORK_IDS.MTN,       name: 'MTN' },

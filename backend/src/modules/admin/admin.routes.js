@@ -217,6 +217,9 @@ router.post('/vtu-plans/bulk', adminController.bulkCreateVtuPlans);
 router.put('/vtu-plans/:planId', adminController.updateVtuPlan);
 router.delete('/vtu-plans/:planId', adminController.deleteVtuPlan);
 
+// Upstream VTU provider float balance (read-only)
+router.get('/vtu-provider-balance', adminController.getVtuProviderBalance);
+
 // VTU network/disco/cable-name catalogue (provider IDs admin can edit)
 router.get('/vtu-networks', adminController.getVtuNetworks);
 router.post('/vtu-networks', adminController.createVtuNetwork);

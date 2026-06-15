@@ -160,7 +160,8 @@ enum AirtimeNetwork {
 }
 
 enum PaymentProvider {
-  ALRAHUZ
+  ALRAHUZ // legacy: retained so historical utility transactions keep their label
+  BILALSADASUB
   KATPAY
   PAYSTACK
 }
@@ -527,8 +528,8 @@ model VtuPlan {
 
 /// Provider-agnostic catalogue of networks/cable names/discos. Admin edits
 /// these from the dashboard so a provider ID change does not require a deploy.
-/// Switching VTU providers = swap the alrahuz adapter + admin re-enters the
-/// new provider's IDs here.
+/// Switching VTU providers = swap the provider adapter (currently
+/// bilalsada.service) + reload this catalogue with the new provider's IDs.
 model VtuNetwork {
   id                String      @id @default(uuid())
   type              VtuPlanType

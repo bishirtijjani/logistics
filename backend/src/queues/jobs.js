@@ -50,12 +50,13 @@ const UTILITY_JOBS = {
   PROCESS_CABLE: 'process-cable',
   PROCESS_ELECTRICITY: 'process-electricity',
   REFUND_FAILED: 'refund-failed',
-  /** Re-query AlRahuz for a payment whose initial response was `pending`.
-   *  Scheduled with delay 30 s; auto-refunds after max attempts (5 min window). */
+  /** Re-query the provider for a payment whose initial response was `pending`.
+   *  Scheduled with delay 30 s; auto-refunds after max attempts (5 min window).
+   *  NB: BilalSada has no query endpoint, so this always resolves to a refund. */
   POLL_PENDING: 'poll-pending',
   /** Safety-net sweep: find payments stuck in PROCESSING/PENDING past the poll
    *  window (lost jobs, provider throws, worker downtime) and resolve them -
-   *  re-query AlRahuz, then complete if delivered or refund the customer.
+   *  re-query the provider, then complete if delivered or refund the customer.
    *  Runs every 5 minutes; the per-payment work is idempotent. */
   RECONCILE_STUCK: 'reconcile-stuck',
 };
@@ -65,7 +66,7 @@ const UTILITY_JOBS = {
 // rows older than this so it never races the live poll chain.
 const STUCK_PAYMENT_GRACE_MS = 6 * 60 * 1000; // 6 minutes
 
-// Phase 7 - pending poll cadence (AlRahuz reconciliation)
+// Phase 7 - pending poll cadence (provider reconciliation)
 const POLL_CONFIG = {
   INTERVAL_MS: 30_000, // 30 s between polls
   MAX_ATTEMPTS: 10,    // ~5 minute window (10 × 30 s)

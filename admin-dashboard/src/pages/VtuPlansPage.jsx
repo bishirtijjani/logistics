@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import {
   Plus, Search, X, Pencil, Trash2, Check, Power, AlertTriangle,
   LayoutGrid, List, ChevronDown, ChevronRight, Smartphone, Wifi,
-  Tv, Zap, Filter, MoreHorizontal,
+  Tv, Zap, Filter, MoreHorizontal, Wallet, RefreshCw,
 } from 'lucide-react'
 import api from '../lib/api'
 import NumberInput from '../components/NumberInput.jsx'
@@ -298,14 +298,17 @@ export default function VtuPlansPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text">VTU Pricing</h1>
           <p className="text-sm text-muted dark:text-dark-muted mt-1">
-            Manage AlRahuz networks, plans, and customer prices.
+            Manage BilalSadaSub networks, plans, and customer prices.
           </p>
         </div>
-        <button onClick={openCreate} className={cls.btnPrimary}>
-          <Plus size={16} />
-          <span className="hidden xs:inline sm:inline">Add {currentTab?.label || 'Plan'}</span>
-          <span className="xs:hidden sm:hidden">Add</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <ProviderBalanceCard />
+          <button onClick={openCreate} className={cls.btnPrimary}>
+            <Plus size={16} />
+            <span className="hidden xs:inline sm:inline">Add {currentTab?.label || 'Plan'}</span>
+            <span className="xs:hidden sm:hidden">Add</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs (horizontally scrollable on small screens) */}
@@ -514,6 +517,68 @@ function EmptyState({ typeLabel, onAdd }) {
       <p className="text-sm text-muted dark:text-dark-muted mb-6">Add your first plan to start selling.</p>
       <button onClick={onAdd} className={cls.btnPrimary + ' mx-auto'}>
         <Plus size={16} /> Add {typeLabel}
+      </button>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Provider float balance card (BilalSadaSub)
+// ────────────────────────────────────────────────────────────────────────────
+
+function ProviderBalanceCard() {
+  const [state, setState] = useState({ status: 'loading' }) // loading | ok | unconfigured | error
+  const [data, setData] = useState(null)
+
+  const load = useCallback(async () => {
+    setState((s) => ({ ...s, status: s.status === 'ok' ? 'refreshing' : 'loading' }))
+    try {
+      const res = await api.get('/admin/vtu-provider-balance')
+      const d = res.data.data || {}
+      setData(d)
+      setState({ status: d.configured ? 'ok' : 'unconfigured' })
+    } catch {
+      setState({ status: 'error' })
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const busy = state.status === 'loading' || state.status === 'refreshing'
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface px-3.5 py-2">
+      <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+        <Wallet size={16} />
+      </div>
+      <div className="min-w-[120px]">
+        <div className="text-[10px] uppercase tracking-wide text-muted dark:text-dark-muted leading-tight">
+          Provider balance
+        </div>
+        {state.status === 'loading' ? (
+          <div className="h-5 w-20 rounded bg-surface-muted dark:bg-dark-surface-muted animate-pulse mt-0.5" />
+        ) : state.status === 'unconfigured' ? (
+          <div className="text-xs text-muted dark:text-dark-muted mt-0.5" title="Set BILALSADASUB_USERNAME and BILALSADASUB_PASSWORD to enable">
+            Not configured
+          </div>
+        ) : state.status === 'error' ? (
+          <div className="text-sm font-semibold text-error leading-tight mt-0.5">Unavailable</div>
+        ) : (
+          <div className="text-base font-bold text-text dark:text-dark-text leading-tight">
+            {fmt(data?.balance)}
+            {data?.username && (
+              <span className="ml-1.5 text-[10px] font-normal text-muted dark:text-dark-muted">{data.username}</span>
+            )}
+          </div>
+        )}
+      </div>
+      <button
+        onClick={load}
+        disabled={busy}
+        className="p-1.5 rounded-lg text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted disabled:opacity-50 transition-colors"
+        title="Refresh balance"
+      >
+        <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
       </button>
     </div>
   )
@@ -1056,7 +1121,7 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={cls.label}>Cost (₦) *</label>
-                <NumberInput decimal required value={form.costPrice} onChange={(val) => setField('costPrice', val)} className={cls.input} placeholder="AlRahuz price" />
+                <NumberInput decimal required value={form.costPrice} onChange={(val) => setField('costPrice', val)} className={cls.input} placeholder="Provider price" />
               </div>
               <div>
                 <label className={cls.label}>Selling (₦) *</label>

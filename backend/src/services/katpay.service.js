@@ -124,7 +124,12 @@ const initiateTransferPayment = async ({
       `${BASE_URL()}/v1/transfer-payments`,
       {
         amount,
-        customer,
+        // KatPay expects flat customer_* fields here, not a nested `customer`
+        // object. It rejects the request with "customer_email and customer_name
+        // are required" if they are absent.
+        customer_email: customer?.email,
+        customer_name: customer?.name,
+        customer_phone: customer?.phone,
         callback_url: callback_url || config.KATPAY_CALLBACK_URL,
         success_url,
         merchant_reference,

@@ -49,13 +49,23 @@ Sole payment provider - issues NUBAN virtual accounts per user, processes inboun
 | `KATPAY_MERCHANT_ID` | Prod | - | KatPay merchant ID |
 | `KATPAY_CALLBACK_URL` | Prod | `http://localhost:3000/webhooks/katpay` | Webhook callback URL for payment events |
 
-## AlRahuz (Utility Payments)
+## BilalSadaSub (Utility Payments)
 
 Nigerian VTU provider for airtime, data bundles, electricity, and cable TV.
 
+Auth: provide **username + password** (preferred) and the adapter generates the
+`Authorization: Token` value from them via Basic auth on `POST /api/user` (the
+same call powers the admin balance card). Or paste a `TOKEN` from the dashboard
+to skip generation. In non-dev, at least one method is required. See
+`docs/providers/bilalsada.md`.
+
 | Variable | Required | Description |
 |---|---|---|
-| `ALRAHUZ_TOKEN` | Prod | API token from alrahuzdata.com.ng. See `docs/providers/alrahuz.md` for full API reference. |
+| `BILALSADASUB_USERNAME` | Prod\* | Dashboard username. Used to mint the API token + read the wallet balance. |
+| `BILALSADASUB_PASSWORD` | Prod\* | Dashboard password. Paired with the username. |
+| `BILALSADASUB_TOKEN` | Optional | Pre-generated token from the dashboard; an alternative to username/password (but then the balance card stays "Not configured"). |
+
+\* Provide **either** `USERNAME` + `PASSWORD` **or** `TOKEN`; boot fails in non-dev if neither is set.
 
 ## Google Maps
 
@@ -117,6 +127,8 @@ Required in prod **only** when `OTP_PROVIDER=termii`. When WhatsApp is active, T
 | `TERMII_API_KEY` | Prod (if active) | - | Termii API key |
 | `TERMII_SECRET_KEY` | Prod (if active) | - | Termii secret key |
 | `TERMII_SENDER_ID` | Prod (if active) | - | Registered sender ID for SMS |
+
+**Parking transactional SMS:** to turn transactional SMS off without a code change, leave `TERMII_API_KEY` empty (or under 10 chars). `sendSms` then skips with a warning instead of calling Termii, and the welcome/electricity-token/security-notice messages fall back to in-app + push only. Note: if `TERMII_API_KEY` is set but `TERMII_SENDER_ID` is not an approved sender on the Termii account, Termii rejects every send with `ApplicationSenderId not found for senderName` - either approve the sender ID or clear the key to park the channel.
 
 ## Email (SMTP)
 

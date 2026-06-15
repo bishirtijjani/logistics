@@ -1,18 +1,20 @@
 /**
- * Utility queue worker - calls AlRahuz Data API for utility purchases.
+ * Utility queue worker - calls the BilalSadaSub VTU API for utility purchases.
  *
  * FLOW:
  * 1. Wallet already deducted by utility.service
  * 2. Check payment status for idempotency (skip if already settled)
- * 3. Call AlRahuz API
+ * 3. Call the provider API (with the unique request-id = our reference)
  * 4a. SUCCESS → mark COMPLETED, emit token (electricity) via push + SMS, fan-out events
  * 4b. PENDING → mark PENDING, schedule POLL_PENDING (30s, ≤10 attempts ≈ 5 min)
  * 4c. DEFINITIVE FAILURE → mark FAILED + refund inline, do NOT throw
- * 4d. INFRA error (network/5xx) → propagate so BullMQ retries
+ * 4d. INFRA error (network/5xx) → propagate so BullMQ retries (the shared
+ *     request-id makes the retry idempotent on the provider side)
  *
- * Reconciliation: POLL_PENDING re-queries AlRahuz by providerRequestId, then
- * applies the same SUCCESS/PENDING/FAILURE branches. After MAX_ATTEMPTS we
- * treat the payment as failed and refund the customer.
+ * Reconciliation: BilalSada has no query endpoint, so POLL_PENDING's
+ * queryTransaction returns null. A payment that ever lands PENDING (or whose
+ * buy we couldn't confirm) is therefore refunded once MAX_ATTEMPTS expires
+ * rather than polled to completion.
  */
 
 const { Worker } = require('bullmq');
@@ -20,7 +22,7 @@ const { redis } = require('../../config/redis');
 const { QUEUES, UTILITY_JOBS, POLL_CONFIG, STUCK_PAYMENT_GRACE_MS } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
-const alrahuzService = require('../../services/alrahuz.service');
+const vtuProvider = require('../../services/bilalsada.service');
 const messagingService = require('../../services/messaging.service');
 const notifyService = require('../../services/notify.service');
 // NB: lazy-require `../index` inside the call site below to break the circular
@@ -68,7 +70,7 @@ const startUtilityWorker = () => {
       attemptsMade: job?.attemptsMade,
     });
 
-    // SAFETY NET: a permanently-failed processing job (e.g. AlRahuz threw a
+    // SAFETY NET: a permanently-failed processing job (e.g. the provider threw a
     // non-2xx because the reseller wallet was empty) would otherwise leave the
     // payment stranded in PROCESSING with the customer's wallet already
     // debited and no refund. Once BullMQ has exhausted its retries, reconcile
@@ -217,7 +219,7 @@ const _smsElectricityToken = async ({ payment, token }) => {
   }
 };
 
-// Extract a token + optional beneficiary name from an AlRahuz electricity response.
+// Extract a token + optional beneficiary name from a provider electricity response.
 const _extractElectricityMeta = (result) => {
   const token = result?.token || result?.purchased_token || result?.Token || null;
   const beneficiaryName = result?.Customer_Name || result?.customer_name || result?.name || null;
@@ -239,7 +241,7 @@ const handleResult = async (result, ctx, { isPoll = false } = {}) => {
   }
 
   // ── Definitive success ────────────────────────────────────────────────────
-  if (alrahuzService.isSuccess(result)) {
+  if (vtuProvider.isSuccess(result)) {
     const { token, beneficiaryName } = type === 'ELECTRICITY'
       ? _extractElectricityMeta(result)
       : { token: null, beneficiaryName: null };
@@ -260,13 +262,13 @@ const handleResult = async (result, ctx, { isPoll = false } = {}) => {
   }
 
   // ── Provider says still pending → schedule a poll ─────────────────────────
-  if (alrahuzService.isPending(result)) {
+  if (vtuProvider.isPending(result)) {
     const payment = await getPayment(paymentId);
     const attempts = (payment?.pollAttempts || 0) + 1;
 
     if (attempts > POLL_CONFIG.MAX_ATTEMPTS) {
       // Exhausted the 5-minute window. Treat as failure + refund.
-      logger.warn('AlRahuz pending window exhausted, refunding', { paymentId, attempts });
+      logger.warn('Provider pending window exhausted, refunding', { paymentId, attempts });
       await markPayment(paymentId, reference, 'FAILED', {
         providerRef: String(result?.id || ''),
       });
@@ -298,7 +300,7 @@ const handleResult = async (result, ctx, { isPoll = false } = {}) => {
   await markPayment(paymentId, reference, 'FAILED', {
     providerRef: String(result?.id || ''),
   });
-  logger.warn('AlRahuz returned failure, refunding', { paymentId, result });
+  logger.warn('Provider returned failure, refunding', { paymentId, result });
   const fresh = await getPayment(paymentId);
   await _notifyOutcome({ payment: fresh, status: 'FAILED' });
   await refundPayment({ paymentId, userId, amount, reference });
@@ -310,7 +312,7 @@ const processAirtime = async ({ paymentId, userId, reference, networkId, phone, 
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
-  const result = await alrahuzService.buyAirtime({ networkId, phone, amount });
+  const result = await vtuProvider.buyAirtime({ networkId, phone, amount, requestId: reference });
   await handleResult(result, { paymentId, userId, amount, reference, type: 'AIRTIME' });
 };
 
@@ -318,7 +320,7 @@ const processData = async ({ paymentId, userId, reference, networkId, providerPl
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
-  const result = await alrahuzService.buyData({ networkId, phone, planId: providerPlanId });
+  const result = await vtuProvider.buyData({ networkId, phone, planId: providerPlanId, requestId: reference });
   await handleResult(result, { paymentId, userId, amount, reference, type: 'DATA' });
 };
 
@@ -326,7 +328,7 @@ const processCable = async ({ paymentId, userId, reference, cableNameId, cablePl
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
-  const result = await alrahuzService.buyCable({ cableNameId, cablePlanId, smartCardNumber });
+  const result = await vtuProvider.buyCable({ cableNameId, cablePlanId, smartCardNumber, requestId: reference });
   await handleResult(result, { paymentId, userId, amount, reference, type: 'CABLE' });
 };
 
@@ -334,14 +336,16 @@ const processElectricity = async ({ paymentId, userId, reference, discoId, meter
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
 
-  const result = await alrahuzService.payElectricity({ discoId, meterNumber, meterType, amount });
+  const result = await vtuProvider.payElectricity({ discoId, meterNumber, meterType, amount, requestId: reference });
   await handleResult(result, { paymentId, userId, amount, reference, type: 'ELECTRICITY' });
 };
 
 /**
- * POLL_PENDING - re-query AlRahuz by providerRequestId and route to the same
- * SUCCESS / PENDING / FAILURE branches. Recomputes ctx.type from the row so
- * the polling path is symmetric with the initial path (token + SMS still fire).
+ * POLL_PENDING - re-query the provider by providerRequestId and route to the
+ * same SUCCESS / PENDING / FAILURE branches. Recomputes ctx.type from the row
+ * so the polling path is symmetric with the initial path (token + SMS still
+ * fire). NB: BilalSada's queryTransaction is a no-op (null), so in practice
+ * this path advances the attempt counter until the window closes and refunds.
  */
 const processPoll = async ({ paymentId, userId, reference, providerRequestId }) => {
   const payment = await getPayment(paymentId);
@@ -352,7 +356,7 @@ const processPoll = async ({ paymentId, userId, reference, providerRequestId }) 
 
   let result;
   try {
-    result = await alrahuzService.queryTransaction(providerRequestId);
+    result = await vtuProvider.queryTransaction(providerRequestId);
   } catch (err) {
     // Infra-level failure on the query. Treat as still-pending so handleResult
     // increments the attempt counter and schedules the next poll - otherwise
@@ -378,7 +382,7 @@ const processRefund = async (data) => refundPayment(data);
 
 /**
  * Resolve a single payment that may be stuck. Re-runs the poll path: re-query
- * AlRahuz by providerRequestId, then route through handleResult, which
+ * the provider by providerRequestId, then route through handleResult, which
  * completes it if the provider actually delivered, reschedules a poll if it's
  * genuinely still pending (within the attempt window), or marks it FAILED and
  * refunds otherwise. A throw-path payment the provider never accepted re-queries

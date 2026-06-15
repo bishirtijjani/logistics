@@ -31,8 +31,17 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRY: z.string().default('15m'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
 
-  // AlRahuz Data - Nigerian VTU provider
-  ALRAHUZ_TOKEN: isDev ? z.string().default('') : z.string().min(1),
+  // BilalSadaSub - Nigerian VTU/bills provider. Auth (per their docs): the
+  // purchase token (`Authorization: Token <...>`) is generated from your
+  // username + password via Basic auth on GET /api/user, which also returns the
+  // wallet balance. Preferred: set USERNAME + PASSWORD and the adapter mints +
+  // caches the token (and powers the admin balance card). Alternatively paste a
+  // TOKEN copied from the dashboard to skip generation. Fields are optional so a
+  // dev clone boots bare; in non-dev at least one auth method is required (see
+  // the superRefine after this object).
+  BILALSADASUB_TOKEN: z.string().optional().default(''),
+  BILALSADASUB_USERNAME: z.string().optional().default(''),
+  BILALSADASUB_PASSWORD: z.string().optional().default(''),
 
   // AirtimeToCash Automation - customer sells airtime → wallet credit
   AIRTIMETOCASH_TOKEN: isDev ? z.string().default('') : z.string().min(1),
@@ -146,6 +155,19 @@ const envSchema = z.object({
   CORS_ALLOWED_ORIGINS: isDev
     ? z.string().optional().default('*')
     : z.string().min(1, 'CORS_ALLOWED_ORIGINS must be set in non-dev'),
+}).superRefine((data, ctx) => {
+  // BilalSada needs SOME way to authenticate in non-dev: either the username +
+  // password (preferred - the adapter generates the token) or a pasted token.
+  const inProd = data.NODE_ENV === 'production' || data.NODE_ENV === 'staging';
+  const hasToken = !!data.BILALSADASUB_TOKEN;
+  const hasBasic = !!(data.BILALSADASUB_USERNAME && data.BILALSADASUB_PASSWORD);
+  if (inProd && !hasToken && !hasBasic) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['BILALSADASUB_TOKEN'],
+      message: 'Set BILALSADASUB_USERNAME + BILALSADASUB_PASSWORD (or BILALSADASUB_TOKEN)',
+    });
+  }
 });
 
 let config;

@@ -4,7 +4,7 @@
  * The utility worker imports:
  *   - prisma (database)
  *   - redis (queue / cache)
- *   - alrahuz.service (HTTP provider)
+ *   - bilalsada.service (HTTP provider)
  *   - messaging.service (OTP + transactional SMS dispatcher)
  *   - notify.service (push + socket fan-out)
  *   - queues/index.js (BullMQ queues - themselves wrap redis)
@@ -106,7 +106,7 @@ const installUtilityStubs = () => {
   // ── Config / logger ───────────────────────────────────────────────────────
   const config = {
     NODE_ENV: 'test',
-    ALRAHUZ_TOKEN: 'test',
+    BILALSADASUB_TOKEN: 'test',
     OTP_PROVIDER: 'whatsapp',
     TERMII_API_KEY: 'k', TERMII_BASE_URL: 'http://termii', TERMII_SENDER_ID: 'KAT',
   };

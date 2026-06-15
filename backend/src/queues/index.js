@@ -68,7 +68,7 @@ const scheduleRecurringJobs = async () => {
       },
     );
     // VTU safety net: sweep payments stuck in PROCESSING/PENDING past the poll
-    // window and resolve them (re-query AlRahuz → complete or refund). Every
+    // window and resolve them (re-query provider → complete or refund). Every
     // 5 minutes so a stranded customer is made whole quickly, not hours later.
     await utilityQueue.add(
       UTILITY_JOBS.RECONCILE_STUCK,
@@ -101,8 +101,8 @@ const scheduleRecurringJobs = async () => {
 const addUtilityJob = (jobName, data) => utilityQueue.add(jobName, data, DEFAULT_JOB_OPTIONS);
 
 /**
- * Schedule a delayed POLL_PENDING job. Used by the utility worker when AlRahuz
- * returns `pending` - we re-query the same providerRef after `delayMs`.
+ * Schedule a delayed POLL_PENDING job. Used by the utility worker when the
+ * provider returns `pending` - we re-query the same providerRef after `delayMs`.
  * Single-attempt: if the poll itself fails infra-wise, the *next* scheduled
  * poll will catch the eventual state. We don't compound retries onto delays.
  */
