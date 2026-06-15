@@ -685,6 +685,7 @@
     "dataScreen": {
       "title": "Buy Data",
       "selectNetwork": "Select Network",
+      "selectType": "Data Type",
       "recent": "Recent",
       "phoneLabel": "Phone Number",
       "selectPlan": "Select Plan",

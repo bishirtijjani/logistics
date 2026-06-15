@@ -12,6 +12,7 @@ import {
 import { fetchWallet } from '../store/slices/walletSlice'
 import { fetchAuthProfile } from '../store/slices/authSlice'
 import { showSuccessToast, showErrorToast } from '../utils/toast'
+import { availableDataTypes, planMatchesType } from '../utils/dataPlanTypes'
 import PinModal from '../components/PinModal'
 
 const naira = (n) => `₦${Number(n || 0).toLocaleString()}`
@@ -262,15 +263,27 @@ function DataTab({ balance, naira, requestPin, dispatch }) {
   const [networkId, setNetworkId] = useState(null)
   const [phone, setPhone] = useState('')
   const [planId, setPlanId] = useState(null)
+  const [typeKey, setTypeKey] = useState(null)
 
-  const network = networks.find((n) => n.id === networkId) || networks[0] || null
+  const network = networks.find((n) => n.id === networkId) || null
   const dataPlans = network ? (plans[`DATA-${network.providerNetworkId}`] || []) : []
-  // Deriving the plan from planId means it auto-clears when the network (and so
-  // the plan list) changes - no reset effect needed.
-  const plan = dataPlans.find((p) => p.id === planId) || null
 
-  // Effect only synchronizes the external store (fetch plans); no setState here.
+  // Frontend-only type filter, derived live from the plans the DB returned.
+  // Stepped flow, nothing auto-selected: pick a network to reveal its types,
+  // pick a type to reveal its plans. effectiveType is only the user's choice if
+  // it still exists for this network, else null (which keeps plans hidden).
+  const dataTypes = useMemo(() => availableDataTypes(dataPlans), [dataPlans])
+  const effectiveType = dataTypes.find((tp) => tp.key === typeKey)?.key ?? null
+  const visiblePlans = effectiveType ? dataPlans.filter((p) => planMatchesType(p, effectiveType)) : []
+
+  // Deriving the plan from planId within the visible list means it auto-clears
+  // when the network or the type filter changes - no reset effect needed.
+  const plan = visiblePlans.find((p) => p.id === planId) || null
+
+  // Fetch this network's plans and clear the type pick, so the user re-chooses a
+  // type (which re-reveals plans) for each network.
   useEffect(() => {
+    setTypeKey(null)
     if (network) dispatch(fetchPlans({ type: 'DATA', networkId: network.providerNetworkId }))
   }, [network?.providerNetworkId, dispatch])
 
@@ -305,30 +318,44 @@ function DataTab({ balance, naira, requestPin, dispatch }) {
           <input className={inputCls} inputMode="numeric" maxLength={11} placeholder="080XXXXXXXX"
             value={phone} onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))} />
         </div>
-        <div>
-          <label className={labelCls}>Plan</label>
-          {isLoading && !dataPlans.length ? (
-            <p className="text-sm text-muted dark:text-dark-muted">Loading plans…</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {dataPlans.map((p) => (
-                <button key={p.id} type="button" onClick={() => setPlanId(p.id)}
-                  className={`text-left p-4 rounded-xl border-2 transition-colors ${
-                    plan?.id === p.id ? 'border-primary bg-primary/5 dark:bg-primary/10' : 'border-surface-muted dark:border-dark-surface-muted hover:border-primary/50'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-text dark:text-dark-text">{p.name}</span>
-                    <span className="font-bold text-primary">{naira(p.sellingPrice)}</span>
-                  </div>
-                  <p className="text-xs text-muted dark:text-dark-muted mt-1">
-                    {p.planType ? `${p.planType} • ` : ''}Validity: {p.validity || 'N/A'}
-                  </p>
-                </button>
+        {dataTypes.length > 0 && (
+          <div>
+            <label className={labelCls}>Data Type</label>
+            <div className="flex flex-wrap gap-2">
+              {dataTypes.map((tp) => (
+                <Chip key={tp.key} active={effectiveType === tp.key} onClick={() => { setTypeKey(tp.key); setPlanId(null) }}>
+                  {tp.label}
+                </Chip>
               ))}
-              {!dataPlans.length && <p className="text-sm text-muted dark:text-dark-muted">No plans for this network.</p>}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+        {effectiveType && (
+          <div>
+            <label className={labelCls}>Plan</label>
+            {isLoading && !dataPlans.length ? (
+              <p className="text-sm text-muted dark:text-dark-muted">Loading plans…</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {visiblePlans.map((p) => (
+                  <button key={p.id} type="button" onClick={() => setPlanId(p.id)}
+                    className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                      plan?.id === p.id ? 'border-primary bg-primary/5 dark:bg-primary/10' : 'border-surface-muted dark:border-dark-surface-muted hover:border-primary/50'
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-text dark:text-dark-text">{p.name}</span>
+                      <span className="font-bold text-primary">{naira(p.sellingPrice)}</span>
+                    </div>
+                    <p className="text-xs text-muted dark:text-dark-muted mt-1">
+                      {p.planType ? `${p.planType} • ` : ''}Validity: {p.validity || 'N/A'}
+                    </p>
+                  </button>
+                ))}
+                {!visiblePlans.length && <p className="text-sm text-muted dark:text-dark-muted">No plans for this network.</p>}
+              </div>
+            )}
+          </div>
+        )}
         <button type="button" onClick={pay} disabled={!plan} className={payBtnCls}>
           {plan ? `Pay ${naira(plan.sellingPrice)}` : 'Select a plan'}
         </button>
