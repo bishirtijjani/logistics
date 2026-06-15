@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -56,7 +57,7 @@ export default function RateRequestScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
       <View style={{ flexDirection: 'row', padding: 14, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default, alignItems: 'center' }}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}
         >

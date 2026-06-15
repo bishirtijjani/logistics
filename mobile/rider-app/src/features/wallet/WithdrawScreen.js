@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   ActivityIndicator,
   FlatList,
@@ -305,7 +306,7 @@ export default function WithdrawScreen() {
               </TouchableOpacity>
             ) : null}
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => goBackOr(navigation)}
               accessibilityRole="button"
               accessibilityLabel={t("withdraw.done", "Done")}
               style={{
@@ -336,7 +337,7 @@ export default function WithdrawScreen() {
           }}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("common.back", "Back")}
             hitSlop={8}

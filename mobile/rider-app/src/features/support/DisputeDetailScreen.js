@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -93,7 +94,7 @@ export default function DisputeDetailScreen() {
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={{ padding: 4 }}>
+          <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={8} style={{ padding: 4 }}>
             <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
           </TouchableOpacity>
           <View style={{ marginLeft: 10, flex: 1 }}>

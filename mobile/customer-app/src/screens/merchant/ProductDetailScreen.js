@@ -19,6 +19,7 @@
  */
 
 import React, { useMemo, useRef, useState } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import {
   View, Text, ScrollView, Image, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Alert,
@@ -206,7 +207,7 @@ export default function ProductDetailScreen() {
     // dispatch updateLine straight through.
     if (editingLineId) {
       dispatch(updateLine(line));
-      navigation.goBack();
+      goBackOr(navigation);
       return;
     }
 
@@ -232,7 +233,7 @@ export default function ProductDetailScreen() {
             onPress: () => {
               dispatch(clearCart());
               dispatch(addLine(line, snapshot));
-              navigation.goBack();
+              goBackOr(navigation);
             },
           },
         ],
@@ -241,7 +242,7 @@ export default function ProductDetailScreen() {
     }
 
     dispatch(addLine(line, snapshot));
-    navigation.goBack();
+    goBackOr(navigation);
   };
 
   if (!product) {
@@ -263,7 +264,7 @@ export default function ProductDetailScreen() {
           <View style={{ padding: 16 }}>
             <View style={styles.headerRow}>
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
+                onPress={() => goBackOr(navigation)}
                 style={styles.backBtn}
                 accessibilityRole="button"
                 accessibilityLabel={t('a11y.back')}

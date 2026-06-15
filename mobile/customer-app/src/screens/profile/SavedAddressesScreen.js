@@ -15,6 +15,7 @@
  */
 
 import React, { useCallback, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -110,7 +111,7 @@ export default function SavedAddressesScreen() {
       longitude: item.lng,
       placeId: item.placeId,
     });
-    navigation.goBack();
+    goBackOr(navigation);
   };
 
   const saveEdit = async () => {
@@ -246,7 +247,7 @@ export default function SavedAddressesScreen() {
           latitude: loc.latitude,
           longitude: loc.longitude,
         });
-        navigation.goBack();
+        goBackOr(navigation);
       },
     });
   };
@@ -282,7 +283,7 @@ export default function SavedAddressesScreen() {
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
             style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: tokens.bg.surfaceMuted, alignItems: "center", justifyContent: "center", marginRight: 14 }}

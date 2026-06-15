@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -123,7 +124,7 @@ export default function AirtimeScreen({ navigation }) {
       <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             style={{ marginRight: 16 }}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}

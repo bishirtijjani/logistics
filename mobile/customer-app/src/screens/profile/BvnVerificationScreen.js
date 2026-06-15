@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -151,7 +152,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
           }}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             style={{
               width: 40,
               height: 40,
@@ -289,7 +290,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
           ) : null}
 
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             style={{
               marginTop: 28,
               backgroundColor: tokens.brand.default,
@@ -327,7 +328,7 @@ export default function BvnVerificationScreen({ navigation, route }) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
           style={{

@@ -1,4 +1,5 @@
 import React from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -45,7 +46,7 @@ export default function HelpSupportScreen({ navigation }) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
           style={{

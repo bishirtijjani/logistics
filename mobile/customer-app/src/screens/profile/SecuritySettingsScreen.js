@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -284,7 +285,7 @@ export default function SecuritySettingsScreen({ navigation }) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
           style={{

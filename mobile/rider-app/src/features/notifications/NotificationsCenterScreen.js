@@ -6,6 +6,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -157,7 +158,7 @@ export default function NotificationsCenterScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("common.back", "Back")}
           hitSlop={8}

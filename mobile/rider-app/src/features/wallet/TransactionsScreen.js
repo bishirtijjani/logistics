@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   ActivityIndicator,
   FlatList,
@@ -177,7 +178,7 @@ export default function TransactionsScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("common.back", "Back")}
           hitSlop={8}

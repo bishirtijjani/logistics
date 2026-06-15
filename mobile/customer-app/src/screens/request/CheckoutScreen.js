@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import {
   View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Platform, Alert,
 } from 'react-native';
@@ -332,7 +333,7 @@ export default function CheckoutScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}
         >

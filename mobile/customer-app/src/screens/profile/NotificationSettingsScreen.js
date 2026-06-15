@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -224,7 +225,7 @@ export default function NotificationSettingsScreen({ navigation }) {
       >
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
             style={{

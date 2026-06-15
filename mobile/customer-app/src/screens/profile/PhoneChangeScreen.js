@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -56,7 +57,7 @@ export default function PhoneChangeScreen({ navigation }) {
       setLoading(true);
       await api.post("/auth/phone/confirm-change", { newPhone: newPhone.replace(/\D/g, ""), otp });
       Toast.show({ type: "success", text1: "Phone number updated successfully" });
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       Toast.show({ type: "error", text1: err.message || "Invalid OTP" });
     } finally {
@@ -71,7 +72,7 @@ export default function PhoneChangeScreen({ navigation }) {
 
         <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
           <TouchableOpacity
-            onPress={() => (step === "verify" ? setStep("request") : navigation.goBack())}
+            onPress={() => (step === "verify" ? setStep("request") : goBackOr(navigation))}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
           >

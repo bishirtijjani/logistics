@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -64,7 +65,7 @@ export default function PhoneChangeScreen() {
       setLoading(true);
       await api.post("/auth/phone/confirm-change", { newPhone: newPhone.replace(/\D/g, ""), otp });
       Toast.show({ type: "success", text1: t("phoneChange.success", "Phone number updated") });
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       Toast.show({ type: "error", text1: err?.message || t("phoneChange.otpInvalid", "Invalid OTP") });
     } finally {
@@ -84,7 +85,7 @@ export default function PhoneChangeScreen() {
           }}
         >
           <TouchableOpacity
-            onPress={() => (step === "verify" ? setStep("request") : navigation.goBack())}
+            onPress={() => (step === "verify" ? setStep("request") : goBackOr(navigation))}
             hitSlop={8}
             style={{ padding: 4 }}
           >

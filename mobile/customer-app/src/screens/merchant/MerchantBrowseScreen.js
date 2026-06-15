@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -91,7 +92,7 @@ const MerchantBrowseScreen = () => {
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
       <View style={styles.headerTopRow}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           style={styles.backCircle}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}

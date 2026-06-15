@@ -12,6 +12,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import {
   View, Text, Image, TouchableOpacity, ActivityIndicator, ScrollView, StyleSheet,
 } from 'react-native';
@@ -136,7 +137,7 @@ export default function MerchantMenuScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: linesHere.length > 0 ? 110 : 24 }}>
         {merchant?.coverImageUrl && <Image source={{ uri: merchant.coverImageUrl }} style={styles.cover} />}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => goBackOr(navigation)}>
             <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>

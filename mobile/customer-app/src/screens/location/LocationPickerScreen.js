@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -232,7 +233,7 @@ export default function LocationPickerScreen({ navigation, route }) {
     } else {
       dispatch(setLocation(selected));
     }
-    navigation.goBack();
+    goBackOr(navigation);
   }, [dispatch, region, address, navigation, route.params]);
 
   return (
@@ -295,7 +296,7 @@ export default function LocationPickerScreen({ navigation, route }) {
       <SafeAreaView style={{ position: 'absolute', top: 0, left: 0, right: 0 }} edges={["top"]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 }}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
             style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: tokens.bg.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 }}

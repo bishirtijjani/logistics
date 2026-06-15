@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -105,7 +106,7 @@ export default function CreateDisputeScreen() {
           }}
         >
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("a11y.back")}
             style={{
@@ -151,7 +152,7 @@ export default function CreateDisputeScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
           style={{

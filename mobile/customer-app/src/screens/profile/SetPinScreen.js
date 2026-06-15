@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -57,7 +58,7 @@ export default function SetPinScreen({ navigation }) {
         text1: t("auth.pinSetToast"),
         text2: t("auth.pinSetToastSub"),
       });
-      navigation.goBack();
+      goBackOr(navigation);
     } else {
       setStep("enter");
       setPin("");
@@ -86,7 +87,7 @@ export default function SetPinScreen({ navigation }) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           style={{
             width: 40,
             height: 40,

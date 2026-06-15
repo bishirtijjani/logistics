@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -86,7 +87,7 @@ export default function ChangePinScreen({ navigation }) {
         // as a change, not a fresh setup.
         text2: t("changePin.successSub"),
       });
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       // The rejected payload is the server message string (e.g. "Incorrect
       // PIN" when the current PIN is wrong). Surface it instead of silently
@@ -127,7 +128,7 @@ export default function ChangePinScreen({ navigation }) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
           style={{

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -84,7 +85,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       >
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 32 }}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => goBackOr(navigation)}
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}
             >

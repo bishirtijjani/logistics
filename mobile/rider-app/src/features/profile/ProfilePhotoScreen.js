@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -50,7 +51,7 @@ export default function ProfilePhotoScreen() {
       await dispatch(updateProfilePicture(secureUrl)).unwrap();
       Toast.show({ type: "success", text1: t("photo.saved", "Photo updated"), text2: t("photo.savedSub", "Your profile photo has been saved.") });
       dispatch(fetchProfile()).catch?.(() => {});
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       Toast.show({ type: "error", text1: t("photo.uploadFailed", "Upload failed"), text2: err?.message });
     } finally {
@@ -70,7 +71,7 @@ export default function ProfilePhotoScreen() {
           borderBottomWidth: 1, borderBottomColor: tokens.border.default,
         }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={{ padding: 4 }}>
+        <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={8} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text accessibilityRole="header" style={{ marginLeft: 10, fontSize: 17, fontWeight: "800", color: tokens.text.primary }}>

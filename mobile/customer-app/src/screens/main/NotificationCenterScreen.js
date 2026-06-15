@@ -6,6 +6,7 @@
  */
 
 import React, { useCallback, useEffect } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import {
   View, Text, TouchableOpacity, FlatList, RefreshControl, ActivityIndicator,
 } from 'react-native';
@@ -142,7 +143,7 @@ export default function NotificationCenterScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           style={{ padding: 6, marginRight: 4 }}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}

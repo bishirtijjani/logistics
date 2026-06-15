@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -159,7 +160,7 @@ export default function ProfilePhotoScreen({ navigation }) {
           text1: t("photo.saved"),
           text2: t("photo.savedSub"),
         });
-        navigation.goBack();
+        goBackOr(navigation);
       } else {
         throw new Error(result.payload || 'Failed to save profile picture');
       }
@@ -195,7 +196,7 @@ export default function ProfilePhotoScreen({ navigation }) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
           style={{

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -78,7 +79,7 @@ export default function SavedBeneficiariesScreen({ navigation }) {
       {/* Header */}
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 }}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
         >

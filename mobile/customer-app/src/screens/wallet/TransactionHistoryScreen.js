@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -202,7 +203,7 @@ export default function TransactionHistoryScreen({ navigation }) {
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => goBackOr(navigation)}
               style={{ marginRight: 16 }}
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}

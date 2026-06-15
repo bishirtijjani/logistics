@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -156,7 +157,7 @@ export default function SendMoneyScreen({ navigation, route }) {
             {t("wallet.send_.successHint")}
           </Text>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("wallet.send_.done")}
             style={{ backgroundColor: tokens.brand.default, paddingHorizontal: 48, paddingVertical: 14, borderRadius: 14 }}
@@ -176,7 +177,7 @@ export default function SendMoneyScreen({ navigation, route }) {
         <ScrollView contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 28 }}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
+              onPress={() => goBackOr(navigation)}
               accessibilityRole="button"
               accessibilityLabel={t("a11y.back")}
             >

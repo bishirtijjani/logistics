@@ -12,6 +12,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -284,7 +285,7 @@ const RequestTrackingScreen = () => {
         <Text style={{ fontSize: 14, marginBottom: 24, color: tokens.text.muted }}>{t('errors.NOT_FOUND')}</Text>
         <TouchableOpacity
           style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, backgroundColor: tokens.brand.default }}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >
@@ -326,7 +327,7 @@ const RequestTrackingScreen = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           style={{ padding: 8 }}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.back')}

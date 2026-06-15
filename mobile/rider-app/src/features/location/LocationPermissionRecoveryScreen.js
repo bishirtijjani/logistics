@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -18,7 +19,7 @@ import { useTheme } from "../../theme";
  * location permission is denied OR device location services are off.
  *
  * Auto-rechecks on `active` AppState events so once the rider returns from
- * Settings the screen pops itself back via `navigation.goBack()`.
+ * Settings the screen pops itself back via `goBackOr(navigation)`.
  */
 export default function LocationPermissionRecoveryScreen({ navigation }) {
   const { tokens } = useTheme();
@@ -31,7 +32,7 @@ export default function LocationPermissionRecoveryScreen({ navigation }) {
       const next = { permission: status, servicesEnabled };
       setCheck(next);
       if (next.permission === "granted" && next.servicesEnabled) {
-        navigation.goBack();
+        goBackOr(navigation);
       }
     } catch (_) {}
   }, [navigation]);
@@ -89,7 +90,7 @@ export default function LocationPermissionRecoveryScreen({ navigation }) {
       <View style={{ height: 4, backgroundColor: tokens.status.warningStrong }} />
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 56 }}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel="Back"
           style={{ marginBottom: 24 }}

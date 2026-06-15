@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -89,7 +90,7 @@ export default function ChangePinScreen() {
         // as a change, not a fresh setup.
         text2: t("changePin.successSub", "Your transaction PIN has been updated."),
       });
-      navigation.goBack();
+      goBackOr(navigation);
     } catch (err) {
       // Rejected payload is the server message string (e.g. "Incorrect PIN"),
       // so reach for the string itself before err.message.
@@ -118,7 +119,7 @@ export default function ChangePinScreen() {
           borderBottomWidth: 1, borderBottomColor: tokens.border.default,
         }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={{ padding: 4 }}>
+        <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={8} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text accessibilityRole="header" style={{ marginLeft: 10, fontSize: 17, fontWeight: "800", color: tokens.text.primary }}>

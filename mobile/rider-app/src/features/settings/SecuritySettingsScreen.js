@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -115,7 +116,7 @@ export default function SecuritySettingsScreen() {
           borderBottomWidth: 1, borderBottomColor: tokens.border.default,
         }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={{ padding: 4 }}>
+        <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={8} style={{ padding: 4 }}>
           <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
         </TouchableOpacity>
         <Text accessibilityRole="header" style={{ marginLeft: 10, fontSize: 17, fontWeight: "800", color: tokens.text.primary }}>

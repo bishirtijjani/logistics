@@ -12,6 +12,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { goBackOr } from "../../lib/goBack";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator,
   KeyboardAvoidingView,
@@ -216,7 +217,7 @@ export default function CreateRequestScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t('a11y.back')}
           >

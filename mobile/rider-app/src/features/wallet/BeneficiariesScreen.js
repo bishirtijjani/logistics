@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   ActivityIndicator,
   Alert,
@@ -78,7 +79,7 @@ export default function BeneficiariesScreen() {
       >
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("common.back", "Back")}
             hitSlop={8}

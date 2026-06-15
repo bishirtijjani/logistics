@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -88,7 +89,7 @@ export default function EditProfileScreen({ navigation }) {
         type: "success",
         text1: t("edit.saved"),
       });
-      navigation.goBack();
+      goBackOr(navigation);
     }
   };
 
@@ -113,7 +114,7 @@ export default function EditProfileScreen({ navigation }) {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}
           style={{

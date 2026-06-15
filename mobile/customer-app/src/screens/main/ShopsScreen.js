@@ -8,6 +8,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -85,7 +86,7 @@ export default function ShopsScreen() {
         }}
       >
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackOr(navigation)}
           style={{ padding: 6, marginRight: 4 }}
           accessibilityRole="button"
           accessibilityLabel={t("a11y.back")}

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   ActivityIndicator,
   ScrollView,
@@ -144,7 +145,7 @@ export default function TransactionDetailScreen() {
         <Text style={{ marginTop: 12, fontSize: 15, color: tokens.text.muted }}>
           {t("receipt.notFound", "Transaction not found")}
         </Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={6} style={{ marginTop: 20 }}>
+        <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={6} style={{ marginTop: 20 }}>
           <Text style={{ color: tokens.brand.default, fontWeight: "700" }}>{t("common.back", "Back")}</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -167,7 +168,7 @@ export default function TransactionDetailScreen() {
         }}
       >
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={{ padding: 4 }} accessibilityRole="button" accessibilityLabel={t("common.back", "Back")}>
+          <TouchableOpacity onPress={() => goBackOr(navigation)} hitSlop={8} style={{ padding: 4 }} accessibilityRole="button" accessibilityLabel={t("common.back", "Back")}>
             <Ionicons name="arrow-back" size={22} color={tokens.text.primary} />
           </TouchableOpacity>
           <Text accessibilityRole="header" style={{ marginLeft: 10, fontSize: 17, fontWeight: "800", color: tokens.text.primary }}>

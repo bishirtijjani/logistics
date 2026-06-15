@@ -6,6 +6,7 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { goBackOr } from "../../lib/goBack";
 import {
   View,
   Text,
@@ -124,7 +125,7 @@ export default function TicketDetailScreen() {
       >
         <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackOr(navigation)}
             accessibilityRole="button"
             accessibilityLabel={t("common.back", "Back")}
             hitSlop={8}
