@@ -30,17 +30,24 @@ export default function RegisterScreen({ navigation }) {
   const lastNameRef = useRef(null);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
 
   // Schema lives inside the component so validation messages localize.
   // Memoized on `t` so it only rebuilds when the locale changes.
   const registerSchema = useMemo(
     () =>
-      z.object({
-        firstName: z.string().min(2, t("auth.form.firstNameRequired")),
-        lastName: z.string().min(2, t("auth.form.lastNameRequired")),
-        email: z.string().email(t("auth.form.emailInvalid")),
-        password: z.string().min(8, t("auth.form.passwordTooShort")),
-      }),
+      z
+        .object({
+          firstName: z.string().min(2, t("auth.form.firstNameRequired")),
+          lastName: z.string().min(2, t("auth.form.lastNameRequired")),
+          email: z.string().email(t("auth.form.emailInvalid")),
+          password: z.string().min(8, t("auth.form.passwordTooShort")),
+          confirmPassword: z.string(),
+        })
+        .refine((data) => data.password === data.confirmPassword, {
+          message: t("auth.form.passwordMismatch"),
+          path: ["confirmPassword"],
+        }),
     [t],
   );
 
@@ -50,7 +57,13 @@ export default function RegisterScreen({ navigation }) {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { firstName: "", lastName: "", email: "", password: "" },
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
   // Start with a clean error state so a previous screen's failure doesn't
@@ -193,6 +206,27 @@ export default function RegisterScreen({ navigation }) {
                 onChangeText={onChange}
                 value={value}
                 error={errors.password?.message}
+                secureTextEntry
+                editable={!isLoading}
+                returnKeyType="next"
+                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormInput
+                ref={confirmPasswordRef}
+                label={t("auth.confirmPasswordLabel")}
+                icon="lock-closed-outline"
+                placeholder={t("auth.confirmPasswordLabel")}
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                error={errors.confirmPassword?.message}
                 secureTextEntry
                 editable={!isLoading}
                 returnKeyType="join"

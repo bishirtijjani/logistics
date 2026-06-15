@@ -116,6 +116,7 @@
     "email": "Email",
     "phone": "Phone number",
     "password": "Password",
+    "confirmPasswordLabel": "Confirm password",
     "firstName": "First name",
     "lastName": "Last name",
     "forgotPassword": "Forgot password?",

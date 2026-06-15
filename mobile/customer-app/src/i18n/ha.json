@@ -120,6 +120,7 @@
     "email": "Imel",
     "phone": "Lambar waya",
     "password": "Kalmar sirri",
+    "confirmPasswordLabel": "Tabbatar da kalmar sirri",
     "firstName": "Sunan farko",
     "lastName": "Sunan ƙarshe",
     "forgotPassword": "Ku manta kalmar sirri?",
