@@ -76,9 +76,9 @@ const register = async ({
  * Login - verify credentials, return tokens.
  */
 const login = async ({ email, password }, sessionMeta = {}) => {
-  const user = await prisma.user.findUnique({ 
+  const user = await prisma.user.findUnique({
     where: { email },
-    include: { merchant: true }
+    include: { merchant: true, rider: true }
   });
 
   if (!user) {
@@ -139,6 +139,15 @@ const login = async ({ email, password }, sessionMeta = {}) => {
       hasPinSet: !!user.transactionPin,
       transactionPinSetByUser: user.transactionPinSetByUser,
       merchantId: user.merchant?.id || null,
+      riderId: user.rider?.id || null,
+      // Capability set: one account can be customer + rider + merchant at once.
+      // Apps read this to show the right home (or an enroll prompt) instead of
+      // gating login on the single `role`. Customer is always true (wallet).
+      roles: {
+        customer: true,
+        rider: user.rider ? user.rider.status : null,
+        merchant: user.merchant ? user.merchant.status : null,
+      },
     },
     tokens,
   };
@@ -1356,6 +1365,85 @@ const merchantRegister = async ({
 };
 
 /**
+ * Enroll an EXISTING, already-verified user as a merchant.
+ *
+ * Unlike merchantRegister (a fresh signup that mints a User after OTP), this
+ * runs inside an authenticated session: no new account, no new email, no OTP.
+ * It just attaches a Merchant profile + MerchantWallet to the caller's user so
+ * one person can be customer + rider + merchant on a single login. Mirrors the
+ * merchant-creation block in verifyOtp so behaviour stays identical.
+ */
+const enrollMerchant = async (userId, data) => {
+  const {
+    businessName,
+    categoryId,
+    businessPhone,
+    businessEmail,
+    businessAddress,
+    lat,
+    lng,
+    openingTime,
+    closingTime,
+  } = data || {};
+
+  const required = { businessName, categoryId, businessPhone, openingTime, closingTime };
+  for (const [key, value] of Object.entries(required)) {
+    if (!value) {
+      throw AppError.badRequest(`Missing required field: ${key}`, { code: "VALIDATION_FAILED" });
+    }
+  }
+
+  const category = await prisma.merchantCategory.findUnique({ where: { id: categoryId } });
+  if (!category) throw AppError.badRequest("Category not found");
+  if (!category.isActive) throw AppError.badRequest("Category is no longer accepting merchants");
+
+  const existing = await prisma.merchant.findUnique({ where: { userId }, select: { id: true } });
+  if (existing) {
+    throw AppError.conflict("This account already has a merchant profile", { code: "MERCHANT_EXISTS" });
+  }
+
+  const merchant = await prisma.$transaction(async (tx) => {
+    const created = await tx.merchant.create({
+      data: {
+        userId,
+        categoryId,
+        name: businessName,
+        description: `${category.name || ""} business`.trim(),
+        phone: businessPhone,
+        email: businessEmail || null,
+        // Real location is captured in the dashboard onboarding wizard after
+        // enrolling; seed placeholders so the required columns are satisfied.
+        // Admin approval gates customer visibility until then.
+        address: businessAddress || "Pending - set in onboarding",
+        lat: typeof lat === "number" ? lat : 0,
+        lng: typeof lng === "number" ? lng : 0,
+        openingTime,
+        closingTime,
+        status: "PENDING_APPROVAL",
+        averageRating: 0,
+        isOpen: false,
+        isActive: true,
+      },
+    });
+
+    await tx.merchantWallet.create({
+      data: {
+        merchantId: created.id,
+        availableBalance: 0,
+        pendingBalance: 0,
+        totalEarnings: 0,
+      },
+    });
+
+    return created;
+  });
+
+  logger.info("Merchant profile enrolled for existing user", { userId, merchantId: merchant.id });
+
+  return { merchantId: merchant.id, status: merchant.status };
+};
+
+/**
  * Request a phone number change - verifies password, sends OTP (via SMS in
  * prod, dev-logged otherwise) to the new number. Stores the pending change
  * in Redis so the confirm step can look it up.
@@ -1440,6 +1528,7 @@ const confirmPhoneChange = async (userId, { newPhone, otp }) => {
 module.exports = {
   register,
   merchantRegister,
+  enrollMerchant,
   login,
   generateOtp,
   verifyOtp,

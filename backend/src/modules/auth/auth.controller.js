@@ -391,9 +391,22 @@ const confirmPhoneChange = async (req, res, next) => {
   }
 };
 
+// Authenticated: attach a merchant profile to the logged-in user (no new account).
+const merchantEnroll = async (req, res, next) => {
+  try {
+    const result = await authService.enrollMerchant(req.user.id, req.body);
+    res.status(201).json(
+      ApiResponse.success("Merchant profile created. Pending approval.", result),
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   riderRegister,
+  merchantEnroll,
   login,
   sendOtp,
   verifyOtp,

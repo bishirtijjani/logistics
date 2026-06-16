@@ -366,6 +366,10 @@ const getCustomerById = async (customerId) => {
           createdAt: true,
         },
       },
+      // One account can also run a store / ride. Surfaced so the admin UI can
+      // warn that suspending this person (account-level) bans those facets too.
+      merchant: { select: { id: true, status: true } },
+      rider: { select: { id: true, status: true } },
     },
   });
   if (!user) throw AppError.notFound('Customer not found');
@@ -383,13 +387,19 @@ const getCustomerById = async (customerId) => {
 
   // Never leak the PIN hash; expose only whether one is set and who set it.
   // The plaintext lives behind the dedicated, audited reveal endpoint.
-  const { bvnHash, transactionPin, transactionPinSetByUser, ...safeUser } = user;
+  const { bvnHash, transactionPin, transactionPinSetByUser, merchant, rider, ...safeUser } = user;
   return {
     ...safeUser,
     hasBvn: !!bvnHash,
     hasPinSet: !!transactionPin,
     pinSetByUser: !!transactionPinSetByUser,
     counts: { requests: requestCount, addresses: addressCount, transactions: transactionCount },
+    // Null when this user only acts as a customer. Drives the cross-facet
+    // suspension warning - account suspension blocks these facets too.
+    otherProfiles: {
+      merchant: merchant ? { id: merchant.id, status: merchant.status } : null,
+      rider: rider ? { id: rider.id, status: rider.status } : null,
+    },
   };
 };
 

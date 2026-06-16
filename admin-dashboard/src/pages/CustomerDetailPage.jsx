@@ -475,6 +475,20 @@ export default function CustomerDetailPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
           <div className="bg-surface dark:bg-dark-surface rounded-t-xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md">
             <h3 className="text-lg font-semibold text-text dark:text-dark-text mb-4">Suspend Customer</h3>
+            {(customer.otherProfiles?.merchant || customer.otherProfiles?.rider) && (
+              <div className="mb-4 p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-sm text-orange-800 dark:text-orange-300">
+                <span className="font-semibold">Heads up:</span> this person also runs a{' '}
+                {[
+                  customer.otherProfiles?.merchant && 'merchant store',
+                  customer.otherProfiles?.rider && 'rider profile',
+                ]
+                  .filter(Boolean)
+                  .join(' and ')}
+                . Suspending the account blocks <span className="font-semibold">all</span> of
+                their logins and locks their shared wallet. The store/rider status itself is
+                managed on the Merchants/Riders pages.
+              </div>
+            )}
             <textarea
               value={suspendReason}
               onChange={(e) => setSuspendReason(e.target.value)}

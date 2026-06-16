@@ -14,9 +14,20 @@ import {
 import { showErrorToast, showSuccessToast } from "../utils/toast.js";
 import SearchableSelect from "../components/SearchableSelect.jsx";
 
-export default function RegistrationPage() {
+export default function RegistrationPage({ enroll = false }) {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
+  // Enroll mode: an already-logged-in user (customer/rider) is adding a
+  // merchant profile to their existing account. We skip the personal-info step
+  // and the email OTP entirely - they're already verified - and POST only the
+  // business fields to /auth/merchant/enroll with their bearer token.
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("merchant_user") || "null");
+    } catch {
+      return null;
+    }
+  })();
+  const [currentStep, setCurrentStep] = useState(enroll ? 2 : 1);
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -174,13 +185,47 @@ export default function RegistrationPage() {
   };
 
   const handleBack = () => {
-    setCurrentStep(currentStep - 1);
+    setCurrentStep(Math.max(currentStep - 1, enroll ? 2 : 1));
   };
 
   const handleSubmit = async () => {
     setLoading(true);
 
     try {
+      if (enroll) {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${API_URL}/auth/merchant/enroll`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ ...businessInfo }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Could not create your business");
+        }
+        // Persist the new merchantId so the dashboard's merchant-scoped pages
+        // work immediately, without forcing a re-login.
+        try {
+          const merged = {
+            ...(storedUser || {}),
+            merchantId: data?.data?.merchantId,
+            role: "MERCHANT",
+          };
+          localStorage.setItem("merchant_user", JSON.stringify(merged));
+        } catch {
+          // ignore storage errors
+        }
+        showSuccessToast("Business created! It's now pending admin approval.");
+        // Hard navigation so the Redux store re-hydrates from localStorage with
+        // the new merchantId - a client-side route change would leave
+        // state.auth.user.merchantId null and break merchant-scoped pages.
+        window.location.assign("/dashboard");
+        return;
+      }
+
       const response = await fetch(`${API_URL}/auth/merchant/register`, {
         method: "POST",
         headers: {
@@ -374,16 +419,18 @@ export default function RegistrationPage() {
             className="text-4xl font-bold text-text dark:text-dark-text mb-2"
             style={{ fontFamily: "Roboto, sans-serif" }}
           >
-            Join iPrime
+            {enroll ? "Register your business" : "Join iPrime"}
           </h1>
           <p className="text-muted dark:text-dark-muted">
-            Start delivering your products to customers in Katsina
+            {enroll
+              ? "Add a merchant profile to your existing iPrime account"
+              : "Start delivering your products to customers in Katsina"}
           </p>
         </div>
 
         {/* Progress Steps */}
         <div className="flex items-center justify-center mb-8">
-          {[1, 2, 3].map((step) => (
+          {(enroll ? [2, 3] : [1, 2, 3]).map((step) => (
             <div key={step} className="flex items-center">
               <div
                 className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold ${
@@ -791,7 +838,9 @@ export default function RegistrationPage() {
                       Name:
                     </span>
                     <span className="font-medium text-text dark:text-dark-text">
-                      {personalInfo.firstName} {personalInfo.lastName}
+                      {enroll
+                        ? `${storedUser?.firstName || ""} ${storedUser?.lastName || ""}`
+                        : `${personalInfo.firstName} ${personalInfo.lastName}`}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -799,7 +848,7 @@ export default function RegistrationPage() {
                       Email:
                     </span>
                     <span className="font-medium text-text dark:text-dark-text">
-                      {personalInfo.email}
+                      {enroll ? storedUser?.email : personalInfo.email}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -852,24 +901,32 @@ export default function RegistrationPage() {
                 disabled={loading}
                 className="flex-1 py-3 bg-success text-white rounded-xl font-semibold hover:bg-success-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? "Creating Account..." : "Complete Registration"}
+                {loading
+                  ? enroll
+                    ? "Creating..."
+                    : "Creating Account..."
+                  : enroll
+                    ? "Create business"
+                    : "Complete Registration"}
                 <Check className="w-5 h-5" />
               </button>
             )}
           </div>
 
           {/* Login Link */}
-          <div className="mt-6 text-center">
-            <p className="text-muted dark:text-dark-muted">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="text-primary hover:underline font-semibold"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
+          {!enroll && (
+            <div className="mt-6 text-center">
+              <p className="text-muted dark:text-dark-muted">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="text-primary hover:underline font-semibold"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

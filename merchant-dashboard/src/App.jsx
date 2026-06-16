@@ -28,6 +28,16 @@ const isTokenLive = (token) => {
   }
 }
 
+// True when the persisted user carries a merchantId (i.e. owns a merchant
+// profile). Gates the dashboard vs. the enrollment flow.
+function hasMerchantProfile() {
+  try {
+    return !!JSON.parse(localStorage.getItem('merchant_user') || 'null')?.merchantId
+  } catch {
+    return false
+  }
+}
+
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token')
   if (!isTokenLive(token)) {
@@ -38,7 +48,20 @@ function ProtectedRoute({ children }) {
     localStorage.removeItem('merchant_user')
     return <Navigate to="/login" replace />
   }
+  // Logged in on a live token but no merchant profile yet → route to
+  // enrollment instead of a broken merchant-scoped dashboard. One iPrime
+  // account can be a customer/rider and add a merchant profile later.
+  if (!hasMerchantProfile()) return <Navigate to="/enroll" replace />
   return children
+}
+
+// Enrollment is reachable by any logged-in user without a merchant profile.
+// Existing merchants are bounced to the dashboard.
+function EnrollRoute() {
+  const token = localStorage.getItem('token')
+  if (!isTokenLive(token)) return <Navigate to="/login" replace />
+  if (hasMerchantProfile()) return <Navigate to="/dashboard" replace />
+  return <RegistrationPage enroll />
 }
 
 function AppContent() {
@@ -47,6 +70,7 @@ function AppContent() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegistrationPage />} />
+          <Route path="/enroll" element={<EnrollRoute />} />
           <Route
             path="/dashboard/*"
             element={

@@ -111,6 +111,14 @@ router.post(
   validate(updateFcmTokenSchema),
   authController.updateFcmToken,
 );
+// Authenticated merchant enrollment: an existing user (customer/rider) adds a
+// merchant profile to the same account - no second email, no new signup.
+router.post(
+  "/merchant/enroll",
+  authenticate,
+  registrationLimiter,
+  authController.merchantEnroll,
+);
 router.get("/profile", authenticate, authController.getProfile);
 router.patch(
   "/profile",

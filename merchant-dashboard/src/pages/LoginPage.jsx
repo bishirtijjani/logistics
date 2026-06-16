@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { API_URL } from '../lib/api'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
-import { login, logout } from '../store/slices/authSlice.js'
+import { login } from '../store/slices/authSlice.js'
 import { Store, Lock, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
@@ -51,14 +51,12 @@ export default function LoginPage() {
       if (result.user.merchantId) {
         navigate('/dashboard')
       } else {
-        // The backend treats this user as a valid login, but they have no
-        // merchant profile to enter the dashboard with. Without dispatching
-        // logout here we'd leave the token + auth state set - on the next
-        // page refresh ProtectedRoute would happily wave them into the
-        // dashboard based on the live token alone, and they'd then watch
-        // every page fail to load merchant-scoped data.
-        await dispatch(logout())
-        setError('No merchant account is associated with this email. Please register as a merchant first.')
+        // Valid iPrime login but no merchant profile yet. Instead of logging
+        // them back out, keep the session and send them to merchant enrollment
+        // so an existing customer/rider can add a merchant profile to the same
+        // account - no second email, same wallet. ProtectedRoute applies the
+        // same gate on refresh, so a live token alone can't reach the dashboard.
+        navigate('/enroll')
       }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.')
