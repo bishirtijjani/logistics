@@ -20,6 +20,10 @@ export default function SettingsPage() {
     maxDeliveryFee: 5000,
     supportEmail: 'support@iprime.ng',
     supportPhone: '+2348000000000',
+    withdrawalFee: 20,
+    withdrawalFeePayer: 'PLATFORM',
+    fundingFeePercent: 1,
+    fundingFeePayer: 'PLATFORM',
   })
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
@@ -46,6 +50,10 @@ export default function SettingsPage() {
         maxDeliveryFee: platformSettings.maxDeliveryFee || 5000,
         supportEmail: platformSettings.supportEmail || 'support@iprime.ng',
         supportPhone: platformSettings.supportPhone || '+2348000000000',
+        withdrawalFee: platformSettings.wallet?.withdrawalFee || platformSettings.withdrawalFee || 20,
+        withdrawalFeePayer: platformSettings.withdrawalFeePayer || 'PLATFORM',
+        fundingFeePercent: platformSettings.fundingFeePercent || 1,
+        fundingFeePayer: platformSettings.fundingFeePayer || 'PLATFORM',
       })
       setNotificationSettings({
         emailNotifications: platformSettings.emailNotifications ?? true,
@@ -66,6 +74,8 @@ export default function SettingsPage() {
     defaultRiderCommission: Number(platformForm.defaultRiderCommission) || 0,
     minDeliveryFee: Number(platformForm.minDeliveryFee) || 0,
     maxDeliveryFee: Number(platformForm.maxDeliveryFee) || 0,
+    withdrawalFee: Number(platformForm.withdrawalFee) || 0,
+    fundingFeePercent: Number(platformForm.fundingFeePercent) || 0,
   })
 
   const handlePlatformSave = async () => {
@@ -197,66 +207,128 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeTab === 'commissions' && (
+          {activeTab === 'fees' && (
             <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
-              <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Commission Defaults</h2>
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-6">Fees & Commissions</h2>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Default Merchant Commission (%)</label>
-                  <div className="relative">
-                    <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                    <input
-                      type="number"
-                      value={platformForm.defaultMerchantCommission}
-                      onChange={(e) => setPlatformForm({ ...platformForm, defaultMerchantCommission: parseFloat(e.target.value) })}
-                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                      min="0"
-                      max="100"
-                    />
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Default Merchant Commission (%)</label>
+                    <div className="relative">
+                      <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                      <input
+                        type="number"
+                        value={platformForm.defaultMerchantCommission}
+                        onChange={(e) => setPlatformForm({ ...platformForm, defaultMerchantCommission: parseFloat(e.target.value) })}
+                        className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                        min="0"
+                        max="100"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Default Rider Commission (%)</label>
+                    <div className="relative">
+                      <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                      <input
+                        type="number"
+                        value={platformForm.defaultRiderCommission}
+                        onChange={(e) => setPlatformForm({ ...platformForm, defaultRiderCommission: parseFloat(e.target.value) })}
+                        className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                        min="0"
+                        max="100"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Default Rider Commission (%)</label>
-                  <div className="relative">
-                    <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                    <input
-                      type="number"
-                      value={platformForm.defaultRiderCommission}
-                      onChange={(e) => setPlatformForm({ ...platformForm, defaultRiderCommission: parseFloat(e.target.value) })}
-                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                      min="0"
-                      max="100"
-                    />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Minimum Delivery Fee</label>
+                    <div className="relative">
+                      <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                      <NumberInput
+                        decimal
+                        value={platformForm.minDeliveryFee}
+                        onChange={(val) => setPlatformForm({ ...platformForm, minDeliveryFee: val })}
+                        className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Maximum Delivery Fee</label>
+                    <div className="relative">
+                      <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                      <NumberInput
+                        decimal
+                        value={platformForm.maxDeliveryFee}
+                        onChange={(val) => setPlatformForm({ ...platformForm, maxDeliveryFee: val })}
+                        className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Minimum Delivery Fee</label>
-                  <div className="relative">
-                    <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                    <NumberInput
-                      decimal
-                      value={platformForm.minDeliveryFee}
-                      onChange={(val) => setPlatformForm({ ...platformForm, minDeliveryFee: val })}
-                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                    />
+
+                <hr className="border-surface-muted dark:border-dark-surface-muted" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Withdrawal Fee (Flat NGN)</label>
+                    <div className="relative">
+                      <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                      <NumberInput
+                        decimal
+                        value={platformForm.withdrawalFee}
+                        onChange={(val) => setPlatformForm({ ...platformForm, withdrawalFee: val })}
+                        className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Withdrawal Fee Payer</label>
+                    <select
+                      value={platformForm.withdrawalFeePayer}
+                      onChange={(e) => setPlatformForm({ ...platformForm, withdrawalFeePayer: e.target.value })}
+                      className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                    >
+                      <option value="PLATFORM">Platform pays (Waived for user)</option>
+                      <option value="USER">User pays (Deducted from balance)</option>
+                    </select>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Maximum Delivery Fee</label>
-                  <div className="relative">
-                    <DollarSign size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                    <NumberInput
-                      decimal
-                      value={platformForm.maxDeliveryFee}
-                      onChange={(val) => setPlatformForm({ ...platformForm, maxDeliveryFee: val })}
-                      className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                    />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Wallet Funding Fee (%)</label>
+                    <div className="relative">
+                      <Percent size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                      <input
+                        type="number"
+                        value={platformForm.fundingFeePercent}
+                        onChange={(e) => setPlatformForm({ ...platformForm, fundingFeePercent: parseFloat(e.target.value) })}
+                        className="w-full pl-10 pr-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Funding Fee Payer</label>
+                    <select
+                      value={platformForm.fundingFeePayer}
+                      onChange={(e) => setPlatformForm({ ...platformForm, fundingFeePayer: e.target.value })}
+                      className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                    >
+                      <option value="PLATFORM">Platform pays (Waived for user)</option>
+                      <option value="USER">User pays (Deducted from credit)</option>
+                    </select>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-8 flex justify-end">
                 <button
                   onClick={handlePlatformSave}
                   disabled={saving}

@@ -12,6 +12,7 @@ const { config } = require('../../config');
 const katpayService = require('../../services/katpay.service');
 const vtuProvider = require('../../services/bilalsada.service');
 const emailService = require('../../services/email.service');
+const settingsService = require('../../services/settings.service');
 const { createAuditLog } = require('../../utils/audit');
 
 /**
@@ -1850,8 +1851,17 @@ const getRiderDeliveryHistory = async (riderId, { page = 1, limit = 20 }) => {
  * Get platform settings.
  */
 const getPlatformSettings = async () => {
-  // In a real implementation, these would be fetched from a settings table or environment variables
-  // For now, return default settings
+  // Wallet fee settings are persisted in the platformSetting table (the same
+  // wallet.* keys the wallet/merchant services read at debit time and the apps
+  // read via /settings/public). The rest are static defaults for now. Flatten
+  // the namespaced keys so the admin form can bind to them directly.
+  const [withdrawalFee, withdrawalFeePayer, fundingFeePercent, fundingFeePayer] = await Promise.all([
+    settingsService.getSetting('wallet.withdrawalFee', 20),
+    settingsService.getSetting('wallet.withdrawalFeePayer', 'PLATFORM'),
+    settingsService.getSetting('wallet.fundingFeePercent', 1),
+    settingsService.getSetting('wallet.fundingFeePayer', 'PLATFORM'),
+  ]);
+
   return {
     platformName: 'iPrime',
     defaultCurrency: 'NGN',
@@ -1862,6 +1872,10 @@ const getPlatformSettings = async () => {
     maxDeliveryFee: 5000,
     supportEmail: 'support@iprime.ng',
     supportPhone: '+2348000000000',
+    withdrawalFee: Number(withdrawalFee),
+    withdrawalFeePayer,
+    fundingFeePercent: Number(fundingFeePercent),
+    fundingFeePayer,
     emailNotifications: true,
     pushNotifications: true,
     smsNotifications: false,
@@ -1872,11 +1886,24 @@ const getPlatformSettings = async () => {
 };
 
 /**
- * Update platform settings.
+ * Update platform settings. The wallet fee fields are persisted to the
+ * platformSetting table (mapping the flat admin-form keys to their namespaced
+ * wallet.* keys); everything else is currently log-only.
  */
-const updatePlatformSettings = async (settings) => {
-  // In a real implementation, these would be stored in a settings table or environment variables
-  // For now, we'll just log the change
+const updatePlatformSettings = async (settings, adminUserId = 'ADMIN') => {
+  const feeKeyMap = {
+    withdrawalFee: 'wallet.withdrawalFee',
+    withdrawalFeePayer: 'wallet.withdrawalFeePayer',
+    fundingFeePercent: 'wallet.fundingFeePercent',
+    fundingFeePayer: 'wallet.fundingFeePayer',
+  };
+
+  await Promise.all(
+    Object.entries(feeKeyMap)
+      .filter(([formKey]) => settings[formKey] !== undefined)
+      .map(([formKey, settingKey]) => settingsService.setSetting(settingKey, settings[formKey], adminUserId))
+  );
+
   logger.info('Platform settings updated', { settings });
 
   return { success: true, settings };
@@ -2313,9 +2340,11 @@ const rejectWithdrawal = async (withdrawalId, reason, adminUserId, ipAddress, us
         data: { status: 'REVERSED' },
       });
       if (rev.count === 1) {
+        // Reserved funds = amount + any user-paid fee withheld at request time.
+        const refundAmount = Number(withdrawal.amount) + Number(ledger.fee || 0);
         await tx.wallet.update({
           where: { id: ledger.debitWalletId },
-          data: { balance: { increment: withdrawal.amount } },
+          data: { balance: { increment: refundAmount } },
         });
       }
     }
@@ -2406,9 +2435,11 @@ const failWithdrawal = async (withdrawalId, reason, { adminUserId = 'SYSTEM', ip
         data: { status: 'REVERSED' },
       });
       if (rev.count === 1) {
+        // Reserved funds = amount + any user-paid fee withheld at request time.
+        const refundAmount = Number(existing.amount) + Number(ledger.fee || 0);
         await tx.wallet.update({
           where: { id: ledger.debitWalletId },
-          data: { balance: { increment: existing.amount } },
+          data: { balance: { increment: refundAmount } },
         });
         return { refunded: true, conflict: false, alreadyHandled: false };
       }

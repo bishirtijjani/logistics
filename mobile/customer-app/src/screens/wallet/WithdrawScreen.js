@@ -38,7 +38,10 @@ export default function WithdrawScreen({ navigation, route }) {
 
   const minWithdraw = Number(usePlatformSetting("wallet.minWithdraw", 500));
   const maxWithdraw = Number(usePlatformSetting("wallet.maxWithdraw", 500000));
-  const withdrawalFee = Number(usePlatformSetting("wallet.withdrawalFee", 25));
+  const withdrawalFee = Number(usePlatformSetting("wallet.withdrawalFee", 20));
+  const withdrawalFeePayer = usePlatformSetting("wallet.withdrawalFeePayer", "PLATFORM");
+  const fee = withdrawalFeePayer === "USER" ? withdrawalFee : 0;
+
   const quickChipsSetting = usePlatformSetting("wallet.withdrawQuickAmounts", null);
   const quickChips = Array.isArray(quickChipsSetting) && quickChipsSetting.length > 0
     ? quickChipsSetting.map(Number)
@@ -99,7 +102,7 @@ export default function WithdrawScreen({ navigation, route }) {
     const amt = parseFloat(amount);
     if (!amt || amt < minWithdraw) { Toast.show({ type: "error", text1: t("wallet.withdraw_.minWithdraw", { amount: formatNaira(minWithdraw) }) }); return; }
     if (amt > maxWithdraw) { Toast.show({ type: "error", text1: t("wallet.withdraw_.maxWithdraw", { amount: formatNaira(maxWithdraw) }) }); return; }
-    if (amt > balance) { Toast.show({ type: "error", text1: t("errors.INSUFFICIENT_BALANCE") }); return; }
+    if (amt + fee > balance) { Toast.show({ type: "error", text1: t("errors.INSUFFICIENT_BALANCE") }); return; }
     setShowPinSheet(true);
   };
 
@@ -144,6 +147,11 @@ export default function WithdrawScreen({ navigation, route }) {
           <Text style={{ fontSize: 32, fontWeight: "900", color: tokens.brand.default, letterSpacing: -1, marginBottom: 4 }}>
             {formatNaira(amount)}
           </Text>
+          {fee > 0 && (
+            <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 16 }}>
+              {t("wallet.withdraw_.feeWas", { amount: formatNaira(fee) })}
+            </Text>
+          )}
           <Text style={{ fontSize: 15, color: tokens.text.muted, marginBottom: 4 }}>{accountName}</Text>
           <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 8 }}>{selectedBank?.bankName || selectedBank?.name} · {accountNumber}</Text>
           <Text style={{ fontSize: 12, color: tokens.text.muted, marginBottom: 40, textAlign: "center", paddingHorizontal: 24 }}>

@@ -76,7 +76,9 @@ export default function WithdrawScreen() {
 
   const minWithdraw = Number(settings["wallet.minWithdraw"] ?? 500);
   const maxWithdraw = Number(settings["wallet.maxWithdraw"] ?? 500000);
-  const withdrawalFee = Number(settings["wallet.withdrawalFee"] ?? 0);
+  const withdrawalFee = Number(settings["wallet.withdrawalFee"] ?? 20);
+  const withdrawalFeePayer = settings["wallet.withdrawalFeePayer"] ?? "PLATFORM";
+  const fee = withdrawalFeePayer === "USER" ? withdrawalFee : 0;
   const quickChips = Array.isArray(settings["wallet.withdrawQuickAmounts"])
     && settings["wallet.withdrawQuickAmounts"].length > 0
     ? settings["wallet.withdrawQuickAmounts"].map(Number)
@@ -198,7 +200,7 @@ export default function WithdrawScreen() {
       });
       return;
     }
-    if (amt > balance) {
+    if (amt + fee > balance) {
       Toast.show({ type: "error", text1: t("withdraw.errBalance", "Insufficient balance") });
       return;
     }
@@ -522,14 +524,14 @@ export default function WithdrawScreen() {
               style={{ flex: 1, paddingVertical: 14, fontSize: 22, fontWeight: "800", color: tokens.text.primary }}
             />
           </View>
-          <Text style={{ fontSize: 11, color: tokens.text.muted, marginBottom: 12, marginLeft: 4 }}>
-            {withdrawalFee > 0
-              ? t("withdraw.minFee", "Min {{min}} · Fee {{fee}}", {
-                  min: formatNaira(minWithdraw),
-                  fee: formatNaira(withdrawalFee),
-                })
-              : t("withdraw.min", "Min {{min}}", { min: formatNaira(minWithdraw) })}
+          <Text style={{ fontSize: 11, color: tokens.text.muted, marginBottom: 4, marginLeft: 4 }}>
+            {t("withdraw.min", "Min {{min}}", { min: formatNaira(minWithdraw) })}
           </Text>
+          {fee > 0 && (
+            <Text style={{ fontSize: 11, color: tokens.text.warning || "#d97706", marginBottom: 12, marginLeft: 4, fontWeight: "600" }}>
+              {t("withdraw.feeHint", "A flat fee of {{fee}} applies", { fee: formatNaira(fee) })}
+            </Text>
+          )}
 
           {/* Quick amounts */}
           <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>

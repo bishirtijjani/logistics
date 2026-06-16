@@ -342,6 +342,7 @@
       "accountLabel": "ACCOUNT NUMBER",
       "amountLabel": "AMOUNT (₦)",
       "minFee": "Min: {{min}} · Fee: {{fee}}",
+      "feeWas": "Fee: {{amount}}",
       "continue": "Continue",
       "selectABank": "Select a bank",
       "enterAccount": "Enter account number",
@@ -440,7 +441,8 @@
       "notReadyBody": "Verify your identity (BVN) to activate your virtual account. It takes about a minute and unlocks wallet funding, transfers, and bigger limits.",
       "verifyCta": "Verify identity",
       "provisioningTitle": "Setting up your account",
-      "provisioningBody": "Your virtual account is being set up. This usually takes a few seconds. Pull to refresh."
+      "provisioningBody": "Your virtual account is being set up. This usually takes a few seconds. Pull to refresh.",
+      "feeNotice": "A {{percent}}% processing fee will be deducted from your deposit."
     },
     "fund": "Fund"
   },

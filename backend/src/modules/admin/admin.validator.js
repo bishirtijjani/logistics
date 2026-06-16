@@ -364,7 +364,12 @@ const updatePlatformSettingsSchema = z.object({
   deliveryPerKmRate: z.number().min(0).optional(),
   deliveryPlatformFeePercent: z.number().min(0).max(100).optional(),
   itemPlatformFeePercent: z.number().min(0).max(100).optional(),
-});
+  // Wallet fee controls (flat keys -> wallet.* settings; persisted by the service).
+  withdrawalFee: z.number().min(0).optional(),
+  withdrawalFeePayer: z.enum(['USER', 'PLATFORM']).optional(),
+  fundingFeePercent: z.number().min(0).max(100).optional(),
+  fundingFeePayer: z.enum(['USER', 'PLATFORM']).optional(),
+}).passthrough();
 
 const createStaffSchema = z.object({
   email: z.string().email().max(120),

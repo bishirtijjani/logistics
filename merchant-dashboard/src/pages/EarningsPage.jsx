@@ -16,6 +16,7 @@ import {
   fetchTransactions as fetchWalletTransactions,
   initiateFunding,
 } from "../store/slices/walletSlice.js";
+import { fetchPlatformSettings } from "../store/slices/platformSettingsSlice.js";
 import {
   Wallet,
   ArrowUpRight,
@@ -63,6 +64,13 @@ export default function EarningsPage() {
   } = useSelector((state) => state.earnings);
   // The unified spendable wallet (earnings + top-ups + VTU + withdrawals).
   const userWallet = useSelector((state) => state.wallet);
+  const { settings: platformSettings } = useSelector((state) => state.platformSettings);
+
+  const withdrawalFee = Number(platformSettings?.['wallet.withdrawalFee'] ?? 20);
+  const withdrawalFeePayer = platformSettings?.['wallet.withdrawalFeePayer'] ?? 'PLATFORM';
+  const fundingFeePercent = Number(platformSettings?.['wallet.fundingFeePercent'] ?? 1);
+  const fundingFeePayer = platformSettings?.['wallet.fundingFeePayer'] ?? 'PLATFORM';
+
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
@@ -154,6 +162,7 @@ export default function EarningsPage() {
     dispatch(fetchWalletTransactions({ page: 1, limit: 20 }));
     dispatch(fetchBankList());
     dispatch(fetchBankAccount({ merchantId }));
+    dispatch(fetchPlatformSettings());
   }, [dispatch, merchantId]);
 
   // Add money to the unified wallet via the standard ad-hoc KatPay top-up. We
@@ -2191,6 +2200,11 @@ Thank you for your business!
                     </button>
                   ))}
                 </div>
+                {fundingFeePayer === 'USER' && (
+                  <p className="mt-2 text-xs text-orange-600 dark:text-orange-400 font-medium">
+                    Note: A {fundingFeePercent}% processing fee will be deducted from your deposit.
+                  </p>
+                )}
               </div>
               <p className="text-xs text-muted dark:text-dark-muted">
                 You'll be taken to a secure payment page to transfer the amount. Your wallet is credited automatically once payment is confirmed.
@@ -2251,6 +2265,11 @@ Thank you for your business!
                     Min: ₦{withdrawalLimits.minAmount.toLocaleString()} | Max: ₦
                     {withdrawalLimits.maxAmount.toLocaleString()}
                   </p>
+                  {withdrawalFeePayer === 'USER' && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                      A flat fee of ₦{withdrawalFee.toLocaleString()} will be charged per withdrawal.
+                    </p>
+                  )}
                 </div>
               </div>
 

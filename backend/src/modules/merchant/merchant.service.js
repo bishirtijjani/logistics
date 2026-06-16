@@ -595,6 +595,11 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
 
   const reference = `MWD-${uuidv4()}`;
 
+  const feeFlat = await settingsService.getSetting('wallet.withdrawalFee', 20);
+  const feePayer = await settingsService.getSetting('wallet.withdrawalFeePayer', 'PLATFORM');
+  const fee = feePayer === 'USER' ? Number(feeFlat) : 0;
+  const totalDebit = amount + fee;
+
   const withdrawal = await prisma.$transaction(async (tx) => {
     // Reserve the funds by debiting the User wallet NOW; admin approval gates the
     // actual payout (approveWithdrawal). On rejection the funds are credited back
@@ -605,9 +610,9 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
     if (!w) throw AppError.notFound('Wallet not found');
     if (w.isLocked) throw AppError.badRequest('Your wallet is currently locked');
     const balance = Number(w.balance);
-    if (balance < amount) throw AppError.badRequest('Insufficient balance');
+    if (balance < totalDebit) throw AppError.badRequest('Insufficient balance');
 
-    await tx.wallet.update({ where: { id: w.id }, data: { balance: { decrement: amount } } });
+    await tx.wallet.update({ where: { id: w.id }, data: { balance: { decrement: totalDebit } } });
 
     // Ledger entry on the merchant's wallet (shows in their transactions list).
     await tx.transaction.create({
@@ -616,12 +621,13 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
         type: 'WITHDRAWAL',
         status: 'PENDING',
         amount,
+        fee,
         description: `Withdrawal to ${wallet.bankCode} - ${wallet.accountNumber}`,
         debitWalletId: userWallet.id,
         provider: 'KATPAY',
         balanceBefore: balance,
-        balanceAfter: balance - amount,
-        metadata: { merchantId, requiresApproval: true },
+        balanceAfter: balance - totalDebit,
+        metadata: { merchantId, requiresApproval: true, fee },
       },
     });
 
@@ -640,7 +646,7 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
     });
   });
 
-  logger.info('Merchant withdrawal requested', { merchantId, amount, reference });
+  logger.info('Merchant withdrawal requested', { merchantId, amount, reference, fee });
 
   return withdrawal;
 };

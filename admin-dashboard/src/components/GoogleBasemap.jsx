@@ -40,10 +40,12 @@ export function useBrandPinIcon(color, size = 34) {
   }, [apiLoaded, color, size])
 }
 
-// Overlaid Tailwind segmented control for picking the basemap.
-export function BasemapSwitcher({ value, onChange }) {
+// Overlaid Tailwind segmented control for picking the basemap. `position`
+// overrides the corner it docks to (e.g. 'top-2 left-2' when a control needs
+// the top-right corner instead).
+export function BasemapSwitcher({ value, onChange, position = 'top-2 right-2' }) {
   return (
-    <div className="absolute top-2 right-2 z-[400] flex rounded-lg overflow-hidden shadow-md border border-surface-muted dark:border-dark-surface-muted">
+    <div className={`absolute ${position} z-[400] flex rounded-lg overflow-hidden shadow-md border border-surface-muted dark:border-dark-surface-muted`}>
       {BASEMAPS.map((b) => {
         const active = value === b.id
         return (

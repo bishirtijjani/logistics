@@ -15,6 +15,7 @@ const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
 const notifyService = require('../../services/notify.service');
+const settingsService = require('../../services/settings.service');
 const { Queue } = require('bullmq');
 const { redis } = require('../../config/redis');
 const { QUEUES, PAYMENT_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs');
@@ -59,6 +60,11 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
   const isTransfer = opts.kind === 'transfer';
   const reference = `${isTransfer ? 'TRF' : 'WIT'}-${uuidv4()}`;
 
+  const feeFlat = await settingsService.getSetting('wallet.withdrawalFee', 20);
+  const feePayer = await settingsService.getSetting('wallet.withdrawalFeePayer', 'PLATFORM');
+  const fee = feePayer === 'USER' ? Number(feeFlat) : 0;
+  const totalDebit = amount + fee;
+
   const result = await prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw AppError.notFound('Wallet not found');
@@ -69,8 +75,8 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
     // under the UPDATE's row lock; a read-then-decrement overdraws under READ
     // COMMITTED and would dispatch a real payout for money the user never had).
     const debit = await tx.wallet.updateMany({
-      where: { id: wallet.id, isLocked: false, balance: { gte: amount } },
-      data: { balance: { decrement: amount } },
+      where: { id: wallet.id, isLocked: false, balance: { gte: totalDebit } },
+      data: { balance: { decrement: totalDebit } },
     });
     if (debit.count !== 1) throw AppError.insufficientBalance();
 
@@ -80,18 +86,19 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
         type: 'WITHDRAWAL',
         status: 'PROCESSING',
         amount,
+        fee,
         description: isTransfer
           ? `Transfer to ${accountName || accountNumber}`
           : `Withdrawal to ${bankName || bankCode} - ${accountNumber}`,
         debitWalletId: wallet.id,
         provider: 'KATPAY',
-        metadata: { bankCode, bankName, accountNumber, accountName, ...(isTransfer ? { kind: 'transfer' } : {}) },
+        metadata: { bankCode, bankName, accountNumber, accountName, fee, ...(isTransfer ? { kind: 'transfer' } : {}) },
         balanceBefore: balance,
-        balanceAfter: balance - amount,
+        balanceAfter: balance - totalDebit,
       },
     });
 
-    return { walletId: wallet.id, transactionRef: reference, amount, newBalance: balance - amount, status: 'PROCESSING' };
+    return { walletId: wallet.id, transactionRef: reference, amount, fee, totalDebit, newBalance: balance - totalDebit, status: 'PROCESSING' };
   });
 
   // The debit has committed. If we can't enqueue the payout job, the funds would
@@ -116,13 +123,13 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
         data: { status: 'FAILED' },
       });
       if (claim.count !== 1) return false;
-      await tx.wallet.update({ where: { id: result.walletId }, data: { balance: { increment: amount } } });
+      await tx.wallet.update({ where: { id: result.walletId }, data: { balance: { increment: totalDebit } } });
       await tx.transaction.create({
         data: {
           reference: `REF-${reference}`,
           type: 'REFUND',
           status: 'COMPLETED',
-          amount,
+          amount: totalDebit,
           description: 'Withdrawal reversed - could not queue payout',
           creditWalletId: result.walletId,
           provider: 'KATPAY',
@@ -183,37 +190,43 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
 
     const currentBalance = Number(wallet.balance);
 
-    await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: amount } } });
+    const feePercent = await settingsService.getSetting('wallet.fundingFeePercent', 1);
+    const feePayer = await settingsService.getSetting('wallet.fundingFeePayer', 'PLATFORM');
+    const fee = feePayer === 'USER' ? (amount * Number(feePercent)) / 100 : 0;
+    const creditAmount = amount - fee;
+
+    await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: creditAmount } } });
 
     const transaction = await tx.transaction.create({
       data: {
         reference,
         type: 'WALLET_FUNDING',
         status: 'COMPLETED',
-        amount,
+        amount: creditAmount,
+        fee,
         description: 'Wallet funding via bank transfer',
         creditWalletId: wallet.id,
         provider: 'KATPAY',
         providerRef: reference,
-        metadata,
+        metadata: { ...metadata, originalAmount: amount, fee },
         balanceBefore: currentBalance,
-        balanceAfter: currentBalance + amount,
+        balanceAfter: currentBalance + creditAmount,
       },
     });
 
-    return { transaction, wallet, newBalance: currentBalance + amount };
+    return { transaction, wallet, creditAmount, fee, newBalance: currentBalance + creditAmount };
   });
 
-  logger.info('Wallet funded', { accountNumber, amount, reference });
+  logger.info('Wallet funded', { accountNumber, amount, reference, fee: result.fee });
 
   // Live wallet-balance nudge + Notification Center row + push.
   const ownerWallet = await prisma.wallet.findUnique({ where: { virtualAccountNumber: accountNumber }, select: { userId: true, balance: true } });
   if (ownerWallet) {
     notifyService.balanceUpdated(ownerWallet.userId, { balance: Number(ownerWallet.balance) });
-    notifyService.fundingReceived(ownerWallet.userId, { amount, reference });
+    notifyService.fundingReceived(ownerWallet.userId, { amount: result.creditAmount, reference });
     notifyService.onWalletEvent(ownerWallet.userId, {
       kind: 'FUNDING',
-      amount,
+      amount: result.creditAmount,
       transactionId: reference,
       route: '/wallet',
     }).catch((err) => logger.warn('FUNDING notification failed', { error: err.message }));

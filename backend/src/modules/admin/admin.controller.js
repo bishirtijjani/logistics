@@ -790,7 +790,7 @@ const getPlatformSettings = async (req, res, next) => {
 
 const updatePlatformSettings = async (req, res, next) => {
   try {
-    const result = await adminService.updatePlatformSettings(req.body);
+    const result = await adminService.updatePlatformSettings(req.body, req.user?.id || 'ADMIN');
     res.json(ApiResponse.success('Platform settings updated', result));
   } catch (error) {
     next(error);

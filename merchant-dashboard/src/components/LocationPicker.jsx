@@ -6,7 +6,7 @@ import {
   Map as GoogleMap,
   useMap as useGoogleMap,
 } from '@vis.gl/react-google-maps'
-import { Search, MapPin, Loader2 } from 'lucide-react'
+import { Search, MapPin, Loader2, Pencil, Check } from 'lucide-react'
 import api from '../lib/api'
 import { GEO_RESTRICTION, clampToBounds } from '../config/geoRestriction'
 
@@ -79,6 +79,32 @@ function CenterPin({ color, lifted }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Edit lock                                                           */
+/* ------------------------------------------------------------------ */
+
+// The map is non-interactive until the user taps "Edit". This stops a scroll of
+// the page (or the form) from accidentally dragging the map and silently
+// changing the saved address - the centre-pin pattern made that far too easy.
+// Tapping again ("Done") re-locks it. Search and recentering still work while
+// locked because those move the map programmatically, not via gestures.
+function MapLockToggle({ locked, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`absolute top-2 right-2 z-[500] flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-md border transition-colors ${
+        locked
+          ? 'bg-white dark:bg-dark-surface text-text dark:text-dark-text border-surface-muted dark:border-dark-surface-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
+          : 'bg-blue-600 hover:bg-blue-700 text-white border-transparent'
+      }`}
+    >
+      {locked ? <Pencil size={14} /> : <Check size={14} />}
+      {locked ? 'Edit' : 'Done'}
+    </button>
+  )
+}
+
+/* ------------------------------------------------------------------ */
 /* Google engine (preferred when VITE_GOOGLE_MAPS_API_KEY is set)      */
 /* ------------------------------------------------------------------ */
 
@@ -88,10 +114,11 @@ const BASEMAPS = [
   { id: 'esri', label: 'Esri' },
 ]
 
-// Overlaid Tailwind segmented control for picking the basemap.
+// Overlaid Tailwind segmented control for picking the basemap. Sits top-left so
+// the "Edit" lock toggle can own the top-right corner.
 function BasemapSwitcher({ value, onChange }) {
   return (
-    <div className="absolute top-2 right-2 z-[400] flex rounded-lg overflow-hidden shadow-md border border-surface-muted dark:border-dark-surface-muted">
+    <div className="absolute top-2 left-2 z-[400] flex rounded-lg overflow-hidden shadow-md border border-surface-muted dark:border-dark-surface-muted">
       {BASEMAPS.map((b) => {
         const active = value === b.id
         return (
@@ -197,13 +224,15 @@ function GoogleAreaPolygon() {
 
 function GoogleCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter }) {
   const [mapType, setMapType] = useState('roadmap')
+  // Locked by default so the map can't be panned until the user opts in.
+  const [locked, setLocked] = useState(true)
   return (
     <div className="relative h-full w-full">
       <APIProvider apiKey={MAPS_KEY}>
         <GoogleMap
           defaultCenter={{ lat: center.lat, lng: center.lng }}
           defaultZoom={hasPin ? 16 : 13}
-          gestureHandling="greedy"
+          gestureHandling={locked ? 'none' : 'greedy'}
           mapTypeControl={false}
           streetViewControl={false}
           fullscreenControl={false}
@@ -216,6 +245,7 @@ function GoogleCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter }) 
         </GoogleMap>
       </APIProvider>
       <CenterPin color={PIN_COLOR} lifted={geocoding} />
+      <MapLockToggle locked={locked} onToggle={() => setLocked((v) => !v)} />
       <BasemapSwitcher value={mapType} onChange={setMapType} />
       {mapType === 'esri' && (
         <span className="absolute bottom-0 left-0 z-[400] bg-white/80 dark:bg-black/60 px-1 text-[10px] text-text dark:text-dark-text">
@@ -286,14 +316,33 @@ function MapAutoSize() {
   return null
 }
 
+// Enables/disables Leaflet's interaction handlers in step with the lock state.
+// react-leaflet only reads its interaction props at init, so the toggle has to
+// happen imperatively against the live map.
+function LeafletLock({ locked }) {
+  const map = useLeafletMap()
+  useEffect(() => {
+    const handlers = ['dragging', 'scrollWheelZoom', 'doubleClickZoom', 'touchZoom', 'boxZoom', 'keyboard', 'tap']
+    handlers.forEach((name) => {
+      const handler = map[name]
+      if (!handler) return
+      if (locked) handler.disable()
+      else handler.enable()
+    })
+  }, [map, locked])
+  return null
+}
+
 function LeafletCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter }) {
+  // Locked by default so the map can't be panned until the user opts in.
+  const [locked, setLocked] = useState(true)
   return (
     <div className="relative h-full w-full">
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={hasPin ? 16 : 13}
         style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom
+        scrollWheelZoom={false}
       >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -303,6 +352,7 @@ function LeafletCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter })
           detectRetina
         />
         <MapAutoSize />
+        <LeafletLock locked={locked} />
         {GEO_RESTRICTION.enabled && (
           <LeafletPolygon
             positions={GEO_RESTRICTION.polygonPath.map((p) => [p.lat, p.lng])}
@@ -312,6 +362,7 @@ function LeafletCanvas({ center, recenterKey, hasPin, geocoding, onUserCenter })
         <LeafletCenterController center={center} recenterKey={recenterKey} onUserCenter={onUserCenter} />
       </MapContainer>
       <CenterPin color={PIN_COLOR} lifted={geocoding} />
+      <MapLockToggle locked={locked} onToggle={() => setLocked((v) => !v)} />
     </div>
   )
 }
@@ -511,7 +562,7 @@ export default function LocationPicker({ value, onChange }) {
           ) : address ? (
             <span className="text-text dark:text-dark-text">{address}</span>
           ) : (
-            <span className="text-muted dark:text-dark-muted">Drag the map to place the pin, or search above</span>
+            <span className="text-muted dark:text-dark-muted">Tap “Edit” to move the map, or search above</span>
           )}
           <div className="text-xs text-muted dark:text-dark-muted mt-0.5">
             {hasPin ? `${lat.toFixed(5)}, ${lng.toFixed(5)}` : 'No pin set'}

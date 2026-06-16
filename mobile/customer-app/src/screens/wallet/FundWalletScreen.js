@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme";
 import { fetchWallet, retryProvisioning } from "../../store/slices/walletSlice";
 import { fetchProfile } from "../../store/slices/profileSlice";
+import { usePlatformSetting } from "../../services/settings";
 
 export default function FundWalletScreen({ navigation }) {
   const dispatch = useDispatch();
@@ -27,6 +28,10 @@ export default function FundWalletScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [didInitialFetch, setDidInitialFetch] = useState(false);
+
+  const fundingFeePercent = Number(usePlatformSetting("wallet.fundingFeePercent", 1));
+  const fundingFeePayer = usePlatformSetting("wallet.fundingFeePayer", "PLATFORM");
+  const showFeeNotice = fundingFeePayer === "USER";
 
   // Profile is fetched alongside the wallet so kycStatus is fresh - without it
   // we can't tell "user needs to verify" from "verified but provisioning still
@@ -328,6 +333,23 @@ export default function FundWalletScreen({ navigation }) {
                   {bankName || t("wallet.fund_.fallbackBank")}
                 </Text>
               </View>
+
+              {showFeeNotice && (
+                <View
+                  style={{
+                    marginTop: 16,
+                    padding: 12,
+                    backgroundColor: "rgba(255,255,255,0.05)",
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.1)",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: tokens.text.muted, textAlign: "center" }}>
+                    {t("wallet.fund_.feeNotice", { percent: fundingFeePercent })}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Instructions */}
