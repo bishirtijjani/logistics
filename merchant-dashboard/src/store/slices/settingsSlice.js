@@ -17,6 +17,14 @@ export const updateSettings = createAsyncThunk(
   }
 )
 
+export const toggleStoreStatus = createAsyncThunk(
+  'settings/toggleStatus',
+  async ({ merchantId, isOpen }) => {
+    const response = await api.patch(`/merchants/${merchantId}/status`, { isOpen })
+    return response.data.data
+  }
+)
+
 const settingsSlice = createSlice({
   name: 'settings',
   initialState: {
@@ -41,6 +49,11 @@ const settingsSlice = createSlice({
       })
       .addCase(updateSettings.fulfilled, (state, action) => {
         state.settings = action.payload
+      })
+      .addCase(toggleStoreStatus.fulfilled, (state, action) => {
+        if (state.settings) {
+          state.settings.isOpen = action.payload.isOpen
+        }
       })
   },
 })

@@ -64,6 +64,7 @@ const haversineKm = (la1, lo1, la2, lo2) => {
 const MERCHANT_VISIBLE_FILTER = {
   isActive: true,
   adminActiveOverride: true,
+  status: 'APPROVED',
 };
 
 const includeMerchantCategory = {
@@ -148,6 +149,7 @@ const search = async ({ q, type, category, lat, lng, radius }) => {
         CROSS JOIN q
         WHERE m."isActive" = true
           AND m."adminActiveOverride" = true
+          AND m."status" = 'APPROVED'
           AND (
             m."search_vector" @@ q.tsq
             OR to_tsvector('simple',
@@ -228,6 +230,7 @@ const search = async ({ q, type, category, lat, lng, radius }) => {
       WHERE p."isAvailable" = true
         AND m."isActive" = true
         AND m."adminActiveOverride" = true
+        AND m."status" = 'APPROVED'
         AND (
           p."search_vector" @@ q.tsq
           OR to_tsvector('simple',

@@ -90,9 +90,10 @@ const getMerchants = async (filters) => {
   const where = {
     ...(categoryId && { categoryId }),
     ...(categorySlug && { category: { is: { slug: categorySlug } } }),
-    ...(status && { status }),
+    status: status || 'APPROVED',
     ...(openNow && { isOpen: true }),
     isActive: true,
+    adminActiveOverride: true,
   };
 
   // If location provided, filter by radius
@@ -185,6 +186,12 @@ const updateMerchant = async (merchantId, userId, role, updateData) => {
   });
   
   logger.info('Merchant updated', { merchantId });
+
+  // Phase 8 - if status or isOpen changed, broadcast to customers so they see
+  // real-time store opening/closing.
+  if (updateData.isOpen !== undefined) {
+    broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', isOpen: updated.isOpen });
+  }
   
   return updated;
 };
@@ -211,6 +218,7 @@ const toggleMerchantStatus = async (merchantId, userId, role, { isOpen }) => {
   });
   
   logger.info('Merchant status toggled', { merchantId, isOpen });
+  broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', isOpen });
   
   return updated;
 };
@@ -347,6 +355,7 @@ const approveMerchant = async (merchantId, adminId) => {
   });
 
   logger.info('Merchant approved', { merchantId, adminId });
+  broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', status: 'APPROVED', isOpen: updated.isOpen });
 
   return updated;
 };
@@ -367,6 +376,7 @@ const rejectMerchant = async (merchantId, reason, adminId) => {
   });
 
   logger.info('Merchant rejected', { merchantId, reason, adminId });
+  broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', status: 'REJECTED', isOpen: updated.isOpen });
 
   return updated;
 };
@@ -387,6 +397,7 @@ const suspendMerchant = async (merchantId, reason, adminId) => {
   });
 
   logger.info('Merchant suspended', { merchantId, reason, adminId });
+  broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', status: 'SUSPENDED', isOpen: updated.isOpen });
 
   return updated;
 };
@@ -407,6 +418,7 @@ const unsuspendMerchant = async (merchantId, adminId) => {
   });
 
   logger.info('Merchant unsuspended', { merchantId, adminId });
+  broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', status: 'APPROVED', isOpen: updated.isOpen });
 
   return updated;
 };
@@ -425,6 +437,7 @@ const deleteMerchant = async (merchantId, adminId) => {
   });
 
   logger.info('Merchant deleted', { merchantId, adminId });
+  broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', isActive: false, isOpen: updated.isOpen });
 
   return updated;
 };

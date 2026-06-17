@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { API_URL } from '../lib/api'
 import { useSelector, useDispatch } from 'react-redux'
-import { fetchSettings, updateSettings } from '../store/slices/settingsSlice.js'
+import { fetchSettings, updateSettings, toggleStoreStatus } from '../store/slices/settingsSlice.js'
 import { setTransactionPin, changeTransactionPin, fetchAuthProfile } from '../store/slices/authSlice.js'
-import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound, ShieldAlert } from 'lucide-react'
+import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound, ShieldAlert, AlertCircle } from 'lucide-react'
 import { CardSkeleton } from '../components/LoadingSkeleton.jsx'
 import LocationPicker from '../components/LocationPicker.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
@@ -209,12 +209,24 @@ export default function SettingsPage() {
     }
   }
 
+  const handleToggleStatus = async (isOpen) => {
+    try {
+      await dispatch(toggleStoreStatus({ merchantId, isOpen })).unwrap()
+      setFormData(prev => ({ ...prev, isOpen }))
+      showSuccessToast(isOpen ? 'Shop is now open for orders' : 'Shop is now closed')
+    } catch (err) {
+      showErrorToast('Failed to update shop status')
+    }
+  }
+
   const handleProfileSave = async (e) => {
     e.preventDefault()
     try {
+      // Remove isOpen from profile update to avoid accidental overwrite
+      const { isOpen, ...updateData } = formData
       await dispatch(updateSettings({
         merchantId,
-        ...formData,
+        ...updateData,
       })).unwrap()
       showSuccessToast('Profile updated successfully')
     } catch (err) {
@@ -449,22 +461,39 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 border border-surface-muted dark:border-dark-surface-muted rounded-lg">
-              <div>
-                <p className="font-medium text-text dark:text-dark-text">Open for orders</p>
-                <p className="text-sm text-muted dark:text-dark-muted">
-                  When off, your shop is hidden from customers and won't receive new orders.
-                </p>
+            <div className={`p-4 border rounded-lg transition-colors ${
+              settings?.adminActiveOverride === false 
+                ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800' 
+                : 'border-surface-muted dark:border-dark-surface-muted'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-text dark:text-dark-text">Open for orders</p>
+                  <p className="text-sm text-muted dark:text-dark-muted">
+                    When off, your shop is hidden from customers and won't receive new orders.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isOpen}
+                    onChange={(e) => handleToggleStatus(e.target.checked)}
+                    className="sr-only peer"
+                    disabled={settings?.adminActiveOverride === false}
+                  />
+                  <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted dark:border-dark-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-disabled:opacity-50" />
+                </label>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isOpen}
-                  onChange={(e) => setFormData({ ...formData, isOpen: e.target.checked })}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-surface-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-surface-muted dark:border-dark-surface-muted after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary" />
-              </label>
+
+              {settings?.adminActiveOverride === false && (
+                <div className="mt-4 flex gap-3 p-3 bg-white dark:bg-dark-surface/40 rounded-lg border border-red-100 dark:border-red-900/30">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <p className="text-sm text-red-700 dark:text-red-400">
+                    <strong>Admin Override Active:</strong> Your shop has been hidden by an administrator. 
+                    You cannot toggle your status until the override is lifted. Please contact support if you believe this is an error.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
