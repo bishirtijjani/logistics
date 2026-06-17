@@ -1916,7 +1916,9 @@ const updatePlatformSettings = async (settings, adminUserId = 'ADMIN') => {
 
   logger.info('Platform settings updated', { settings });
 
-  return { success: true, settings };
+  // Return the full refreshed settings object so the frontend state remains
+  // consistent and doesn't revert to defaults due to missing fields.
+  return getPlatformSettings();
 };
 
 // ============================================================
