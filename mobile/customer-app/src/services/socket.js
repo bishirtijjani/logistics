@@ -159,6 +159,9 @@ class SocketService {
     // --- Merchant catalogue (86 propagation) ---
     this.socket.on("merchant:menu:updated", (data) => this.emit("merchantMenuUpdated", data));
 
+    // --- Merchant open/closed status (broadcast to all clients, no room join needed) ---
+    this.socket.on("merchant:status:changed", (data) => this.emit("merchantStatusChanged", data));
+
     // --- Generic notifications ---
     this.socket.on("notification:new", (data) => {
       // Suppress the toast if the user is already on the Notification Center
@@ -214,6 +217,7 @@ class SocketService {
   onWalletTransferReceived(cb)    { return this.on("walletTransferReceived", cb); }
   onWalletFundingReceived(cb)     { return this.on("walletFundingReceived", cb); }
   onMerchantMenuUpdated(cb)       { return this.on("merchantMenuUpdated", cb); }
+  onMerchantStatusChanged(cb)     { return this.on("merchantStatusChanged", cb); }
 
   // Phase 5 - expose the socket's connect/disconnect state for the
   // connection-quality banner. Listeners receive `true` on connect and

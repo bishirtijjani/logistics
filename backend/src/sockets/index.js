@@ -14,7 +14,7 @@ const jwt = require('jsonwebtoken');
 const { config } = require('../config');
 const { logger } = require('../utils/logger');
 const { prisma } = require('../config/database');
-const { CONNECTION, getUserRoom, getRiderPoolRoom } = require('./events');
+const { CONNECTION, getUserRoom, getRiderPoolRoom, getMerchantsBroadcastRoom, getAdminRoom } = require('./events');
 const { registerTrackingHandlers } = require('./handlers/tracking.handler');
 const { registerRequestHandlers } = require('./handlers/request.handler');
 const notifyService = require('../services/notify.service');
@@ -151,6 +151,16 @@ const initializeSocket = (httpServer) => {
 
     // Join personal room (for wallet updates, notifications)
     socket.join(getUserRoom(id));
+
+    // Every socket joins the merchant-status broadcast room so browse
+    // screens see open/closed changes live without subscribing per-merchant.
+    socket.join(getMerchantsBroadcastRoom());
+
+    // Admins join their own room so the dashboard gets merchant status
+    // updates without polling/refreshing.
+    if (role === 'ADMIN') {
+      socket.join(getAdminRoom());
+    }
 
     // Only APPROVED riders join the dispatch pool. A fresh, unapproved RIDER
     // signup must not enter the job-broadcast pool.

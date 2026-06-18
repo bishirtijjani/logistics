@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import api from '../../services/api';
+import socketService from '../../services/socket';
 import { useTheme } from '../../theme';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import EmptyState from '../../components/EmptyState';
@@ -74,6 +75,23 @@ const MerchantBrowseScreen = () => {
   useEffect(() => {
     fetchMerchants();
   }, [categorySlug, lat, lng]); // eslint-disable-line
+
+  // Live open/closed status: merchant self-toggle or admin override both
+  // emit `merchant:status:changed` to every connected client, so patch the
+  // matching card in place instead of waiting for the next manual refresh.
+  useEffect(() => {
+    const unsub = socketService.onMerchantStatusChanged((data) => {
+      if (!data?.merchantId) return;
+      setMerchants((prev) => {
+        if (!prev.some((m) => m.id === data.merchantId)) return prev;
+        const updated = prev.map((m) =>
+          m.id === data.merchantId ? { ...m, isOpen: data.effectiveOpen } : m
+        );
+        return [...updated].sort((a, b) => Number(b.isOpen) - Number(a.isOpen));
+      });
+    });
+    return () => unsub?.();
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);

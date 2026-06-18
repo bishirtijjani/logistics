@@ -7,7 +7,7 @@ const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const { getIO } = require('../../sockets');
-const { MERCHANT, getMerchantRoom } = require('../../sockets/events');
+const { MERCHANT, getMerchantRoom, getMerchantsBroadcastRoom, getAdminRoom } = require('../../sockets/events');
 // Phase 8 - merchant accept/reject/status routes delegate the actual lifecycle
 // transition to request.service.updateStatus so socket emits, push
 // notifications, lifecycle timestamps, FSM checks, and rider-matching dispatch
@@ -37,6 +37,41 @@ const broadcastMenuUpdate = (merchantId, payload = {}) => {
     });
   } catch (err) {
     logger.warn('broadcastMenuUpdate failed (non-fatal)', { merchantId, error: err.message });
+  }
+};
+
+/**
+ * Whether the merchant actually reads as "open" to customers - the
+ * merchant's own toggle AND the admin's visibility override both have to
+ * agree, since a suspended/hidden merchant shouldn't show as open even if
+ * it never flipped its own switch.
+ */
+const isEffectivelyOpen = (merchant) => merchant.isOpen === true && merchant.adminActiveOverride !== false;
+
+/**
+ * Broadcast a merchant open/closed status change to:
+ * - the merchant's own room (customers on its menu screen)
+ * - the global merchants-broadcast room (browse/list screens)
+ * - the admin dashboard room
+ *
+ * Either the merchant (self-toggle) or an admin (adminActiveOverride) can
+ * trigger this, so callers pass the merchant row after the update.
+ */
+const broadcastMerchantStatus = (merchant) => {
+  try {
+    const io = getIO();
+    const payload = {
+      merchantId: merchant.id,
+      isOpen: merchant.isOpen,
+      adminActiveOverride: merchant.adminActiveOverride,
+      effectiveOpen: isEffectivelyOpen(merchant),
+      timestamp: Date.now(),
+    };
+    io.to(getMerchantRoom(merchant.id)).emit(MERCHANT.STATUS_CHANGED, payload);
+    io.to(getMerchantsBroadcastRoom()).emit(MERCHANT.STATUS_CHANGED, payload);
+    io.to(getAdminRoom()).emit(MERCHANT.STATUS_CHANGED, payload);
+  } catch (err) {
+    logger.warn('broadcastMerchantStatus failed (non-fatal)', { merchantId: merchant.id, error: err.message });
   }
 };
 
@@ -191,8 +226,9 @@ const updateMerchant = async (merchantId, userId, role, updateData) => {
   // real-time store opening/closing.
   if (updateData.isOpen !== undefined) {
     broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', isOpen: updated.isOpen });
+    broadcastMerchantStatus(updated);
   }
-  
+
   return updated;
 };
 
@@ -219,7 +255,8 @@ const toggleMerchantStatus = async (merchantId, userId, role, { isOpen }) => {
   
   logger.info('Merchant status toggled', { merchantId, isOpen });
   broadcastMenuUpdate(merchantId, { kind: 'STORE_STATUS', isOpen });
-  
+  broadcastMerchantStatus(updated);
+
   return updated;
 };
 
@@ -1380,6 +1417,8 @@ module.exports = {
   getMerchantById,
   updateMerchant,
   toggleMerchantStatus,
+  broadcastMerchantStatus,
+  isEffectivelyOpen,
   getMerchantWallet,
   getMerchantOrders,
   updateMerchantCommission,

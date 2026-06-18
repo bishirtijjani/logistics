@@ -98,6 +98,12 @@ const MERCHANT = {
   // Server → anyone watching the merchant: a product/variant/option was changed.
   // Customers viewing this merchant's menu refetch on receipt.
   MENU_UPDATED: 'merchant:menu:updated',
+
+  // Server → everyone (merchant room + global browse room + admin room): the
+  // merchant's open/closed state changed (self-toggle or admin override).
+  // Broadcast broadly so browse lists and the admin dashboard update live,
+  // without each client having to join every merchant's room.
+  STATUS_CHANGED: 'merchant:status:changed',
 };
 
 // --- Wallet events ---
@@ -141,6 +147,18 @@ const getUserRoom = (userId) => `user:${userId}`;
  */
 const getRiderPoolRoom = () => 'riders:available';
 
+/**
+ * Global room every connected socket joins. Used for broadcasts that any
+ * client may care about regardless of role/screen, e.g. merchant
+ * open/closed status changes for browse lists.
+ */
+const getMerchantsBroadcastRoom = () => 'merchants:broadcast';
+
+/**
+ * Room joined only by ADMIN-role sockets (the admin dashboard).
+ */
+const getAdminRoom = () => 'admin:dashboard';
+
 module.exports = {
   CONNECTION,
   RIDER,
@@ -152,4 +170,6 @@ module.exports = {
   getMerchantRoom,
   getUserRoom,
   getRiderPoolRoom,
+  getMerchantsBroadcastRoom,
+  getAdminRoom,
 };

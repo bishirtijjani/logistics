@@ -14,7 +14,9 @@ import {
   fetchMerchantTransactions, fetchMerchantTransactionReceipt, clearMerchantTransactionReceipt,
   resetMerchantPin,
   clearSelectedMerchant,
+  merchantStatusChanged,
 } from '../store/slices/merchantsSlice'
+import adminSocket from '../services/socket'
 import { TransactionReceiptModal } from './CustomerDetailPage'
 import { fetchCategories } from '../store/slices/categoriesSlice'
 import { useDebounce } from '../lib/useDebounce'
@@ -1115,6 +1117,26 @@ export default function MerchantsPage() {
   // Create merchant
   const [newMerchant, setNewMerchant] = useState({ name: '', categoryId: '', email: '', phone: '', address: '', lat: 0, lng: 0 })
   const [actionLoading, setActionLoading] = useState(null)
+
+  // Live open/closed status: merchant self-toggle or admin override on any
+  // client emits `merchant:status:changed`, so patch the list, the redux
+  // selectedMerchant, and the locally-held drawer snapshot in place - no
+  // refresh needed to see another admin's (or the merchant's own) change.
+  useEffect(() => {
+    const unsub = adminSocket.onMerchantStatusChanged((data) => {
+      if (!data?.merchantId) return
+      dispatch(merchantStatusChanged(data))
+      setDrawerMerchant((prev) => {
+        if (!prev || prev.id !== data.merchantId) return prev
+        return {
+          ...prev,
+          ...(data.isOpen !== undefined && { isOpen: data.isOpen }),
+          ...(data.adminActiveOverride !== undefined && { adminActiveOverride: data.adminActiveOverride }),
+        }
+      })
+    })
+    return () => unsub?.()
+  }, [dispatch])
 
   // Load categories once for the filter + create modal
   useEffect(() => {

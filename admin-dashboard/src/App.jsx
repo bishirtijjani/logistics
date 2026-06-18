@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { Toaster } from 'sonner'
 import api from './lib/api'
+import adminSocket from './services/socket'
 import { setUser } from './store/slices/authSlice'
 import Layout from './components/Layout'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -60,6 +61,15 @@ function useUserBootstrap() {
       })
       .catch(() => { /* 401 interceptor handles auth failures */ })
   }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!token) {
+      adminSocket.disconnect()
+      return
+    }
+    adminSocket.connect()
+    return () => adminSocket.disconnect()
+  }, [token])
 
   return { user, token }
 }

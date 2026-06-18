@@ -1117,6 +1117,14 @@ const updateMerchantProfile = async (merchantId, data, adminUserId, ipAddress, u
 
   logger.info('Merchant profile updated by admin', { merchantId, fields: Object.keys(updateData) });
 
+  // Admin's visibility override affects the merchant's *effective* open
+  // status just as much as the merchant's own toggle, so broadcast the same
+  // way so browse screens and the dashboard stay live.
+  if (updateData.adminActiveOverride !== undefined) {
+    const merchantService = require('../merchant/merchant.service');
+    merchantService.broadcastMerchantStatus(updated);
+  }
+
   return updated;
 };
 

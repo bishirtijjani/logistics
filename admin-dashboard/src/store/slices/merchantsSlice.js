@@ -425,6 +425,21 @@ const merchantsSlice = createSlice({
     clearMerchantUtilityPaymentDetail(state) {
       state.utilityPaymentDetail = { data: null, loading: false, error: null }
     },
+    // Live patch from the `merchant:status:changed` socket event (self-toggle
+    // or admin override, from any admin/merchant client).
+    merchantStatusChanged(state, action) {
+      const { merchantId, isOpen, adminActiveOverride } = action.payload || {}
+      if (!merchantId) return
+      const idx = state.merchants.findIndex((m) => m.id === merchantId)
+      if (idx !== -1) {
+        if (isOpen !== undefined) state.merchants[idx].isOpen = isOpen
+        if (adminActiveOverride !== undefined) state.merchants[idx].adminActiveOverride = adminActiveOverride
+      }
+      if (state.selectedMerchant?.id === merchantId) {
+        if (isOpen !== undefined) state.selectedMerchant.isOpen = isOpen
+        if (adminActiveOverride !== undefined) state.selectedMerchant.adminActiveOverride = adminActiveOverride
+      }
+    },
   },
   extraReducers: (builder) => {
     // ── Merchant list ──
@@ -678,5 +693,6 @@ export const {
   clearMerchantTransactionData,
   clearMerchantTransactionReceipt,
   clearMerchantUtilityPaymentDetail,
+  merchantStatusChanged,
 } = merchantsSlice.actions
 export default merchantsSlice.reducer
