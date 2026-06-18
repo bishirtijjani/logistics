@@ -372,11 +372,11 @@ const updatePlatformSettingsSchema = z.object({
 }).passthrough();
 
 const createStaffSchema = z.object({
-  email: z.string().email().max(120),
-  password: z.string().min(8).max(50),
-  firstName: z.string().min(1).max(50),
-  lastName: z.string().min(1).max(50),
-  phone: z.string().min(7).max(20),
+  email: z.string().email(),
+  password: z.string().min(1),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  phone: z.string().min(1),
   permissions: z.array(z.string()).optional(),
 });
 
