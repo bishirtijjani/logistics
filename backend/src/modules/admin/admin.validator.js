@@ -376,7 +376,6 @@ const createStaffSchema = z.object({
   password: z.string().min(1),
   firstName: z.string().min(1),
   lastName: z.string().min(1),
-  phone: z.string().min(1),
   permissions: z.array(z.string()).optional(),
 });
 

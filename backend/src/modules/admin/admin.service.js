@@ -3536,7 +3536,7 @@ function _isSuperAdmin(actor) {
  * Create a new staff member.
  */
 async function createStaff(data, actor, ipAddress, userAgent) {
-  const { email, password, firstName, lastName, phone, permissions } = data;
+  const { email, password, firstName, lastName, permissions } = data;
 
   if ((permissions || []).includes('ALL') && !_isSuperAdmin(actor)) {
     throw AppError.forbidden('Only a super admin can grant full (ALL) access');
@@ -3554,7 +3554,6 @@ async function createStaff(data, actor, ipAddress, userAgent) {
       passwordHash,
       firstName,
       lastName,
-      phone,
       role: 'ADMIN',
       status: 'ACTIVE',
       permissions: permissions || [],

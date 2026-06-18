@@ -47,7 +47,6 @@ export default function StaffManagementPage() {
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',
     password: '',
     status: 'ACTIVE',
     permissions: []
@@ -85,7 +84,7 @@ export default function StaffManagementPage() {
       toast.success('Staff member created successfully')
       setShowCreateModal(false)
       fetchStaff()
-      setFormData({ firstName: '', lastName: '', email: '', phone: '', password: '', status: 'ACTIVE', permissions: [] })
+      setFormData({ firstName: '', lastName: '', email: '', password: '', status: 'ACTIVE', permissions: [] })
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create staff member')
     }
@@ -259,27 +258,15 @@ export default function StaffManagementPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text dark:text-dark-text">Email Address</label>
-                  <input
-                    required
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-surface-muted dark:border-dark-surface-muted bg-background dark:bg-dark-background text-text dark:text-dark-text focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text dark:text-dark-text">Phone Number</label>
-                  <input
-                    required
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg border border-surface-muted dark:border-dark-surface-muted bg-background dark:bg-dark-background text-text dark:text-dark-text focus:ring-2 focus:ring-primary/20 transition-all outline-none"
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-text dark:text-dark-text">Email Address</label>
+                <input
+                  required
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-surface-muted dark:border-dark-surface-muted bg-background dark:bg-dark-background text-text dark:text-dark-text focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-text dark:text-dark-text">Temporary Password</label>
