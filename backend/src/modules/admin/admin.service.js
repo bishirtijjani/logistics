@@ -11,6 +11,8 @@ const { REDIS_KEYS } = require('../../utils/constants');
 const { config } = require('../../config');
 const katpayService = require('../../services/katpay.service');
 const vtuProvider = require('../../services/bilalsada.service');
+const alrahuzProvider = require('../../services/alrahuz.service');
+const vtuRouter = require('../../services/vtu/router');
 const emailService = require('../../services/email.service');
 const settingsService = require('../../services/settings.service');
 const { createAuditLog } = require('../../utils/audit');
@@ -1873,15 +1875,19 @@ const getPlatformSettings = async () => {
   // wallet.* keys the wallet/merchant services read at debit time and the apps
   // read via /settings/public). The rest are static defaults for now. Flatten
   // the namespaced keys so the admin form can bind to them directly.
-  const [withdrawalFee, withdrawalFeePayer, fundingFeePercent, fundingFeePayer] = await Promise.all([
+  const [withdrawalFee, withdrawalFeePayer, fundingFeePercent, fundingFeePayer, vtuProviderMode] = await Promise.all([
     settingsService.getSetting('wallet.withdrawalFee', 20),
     settingsService.getSetting('wallet.withdrawalFeePayer', 'PLATFORM'),
     settingsService.getSetting('wallet.fundingFeePercent', 1),
     settingsService.getSetting('wallet.fundingFeePayer', 'PLATFORM'),
+    settingsService.getSetting(vtuRouter.SETTING_KEY, vtuRouter.DEFAULT_MODE),
   ]);
 
   return {
     platformName: 'iPrime',
+    // Active VTU routing: BILALSADASUB_ONLY | ALRAHUZ_ONLY | BOTH (Bilal primary,
+    // AlRahuz failover). Drives whether a failed purchase is refunded or retried.
+    vtuProviderMode,
     defaultCurrency: 'NGN',
     timezone: 'Africa/Lagos',
     defaultMerchantCommission: 15,
@@ -1921,6 +1927,16 @@ const updatePlatformSettings = async (settings, adminUserId = 'ADMIN') => {
       .filter(([formKey]) => settings[formKey] !== undefined)
       .map(([formKey, settingKey]) => settingsService.setSetting(settingKey, settings[formKey], adminUserId))
   );
+
+  // VTU provider routing mode - validate against the known modes before persist.
+  if (settings.vtuProviderMode !== undefined) {
+    if (!vtuRouter.MODES[settings.vtuProviderMode]) {
+      throw AppError.badRequest(
+        `Invalid vtuProviderMode. Expected one of: ${Object.keys(vtuRouter.MODES).join(', ')}`,
+      );
+    }
+    await settingsService.setSetting(vtuRouter.SETTING_KEY, settings.vtuProviderMode, adminUserId);
+  }
 
   logger.info('Platform settings updated', { settings });
 
@@ -3325,14 +3341,24 @@ async function listVtuPlans({ type, networkId, isActive, page = 1, limit = 100 }
   return { plans, total, page: p, limit: l };
 }
 
+// Normalize the optional AlRahuz id fields so a blank form value ('') becomes a
+// real null rather than failing the Int column. Only touches keys that are
+// present, leaving everything else untouched.
+const _normalizeAltIds = (data) => {
+  const out = { ...data };
+  if ('altProviderNetworkId' in out) out.altProviderNetworkId = _optInt(out.altProviderNetworkId);
+  if ('altProviderPlanId' in out) out.altProviderPlanId = _optInt(out.altProviderPlanId);
+  return out;
+};
+
 async function createVtuPlan(data) {
-  return prisma.vtuPlan.create({ data });
+  return prisma.vtuPlan.create({ data: _normalizeAltIds(data) });
 }
 
 async function updateVtuPlan(id, data) {
   const plan = await prisma.vtuPlan.findUnique({ where: { id } });
   if (!plan) throw AppError.notFound('VTU plan not found');
-  return prisma.vtuPlan.update({ where: { id }, data });
+  return prisma.vtuPlan.update({ where: { id }, data: _normalizeAltIds(data) });
 }
 
 async function deleteVtuPlan(id) {
@@ -3353,6 +3379,20 @@ async function bulkCreateVtuPlans(plans) {
  * aren't set we report `configured: false` instead of erroring.
  */
 async function getVtuProviderBalance() {
+  // Primary (BilalSada) - resolved first so its fields stay top-level for
+  // backward-compatibility with the existing admin balance card.
+  const bilal = await _bilalsadaBalance();
+
+  // Secondary (AlRahuz) - only meaningful when a token is configured.
+  const alrahuz = await _alrahuzBalance();
+
+  return {
+    ...bilal,
+    providers: [bilal, alrahuz],
+  };
+}
+
+const _bilalsadaBalance = async () => {
   if (!config.BILALSADASUB_USERNAME || !config.BILALSADASUB_PASSWORD) {
     return { configured: false, provider: 'BILALSADASUB', balance: null, username: null };
   }
@@ -3365,10 +3405,29 @@ async function getVtuProviderBalance() {
       username: data?.username || null,
     };
   } catch (err) {
-    logger.warn('VTU provider balance fetch failed', { error: err.message });
-    throw AppError.serviceUnavailable('Could not reach VTU provider for balance');
+    logger.warn('BilalSada balance fetch failed', { error: err.message });
+    return { configured: true, provider: 'BILALSADASUB', balance: null, username: null, error: 'unreachable' };
   }
-}
+};
+
+const _alrahuzBalance = async () => {
+  if (!config.ALRAHUZ_TOKEN) {
+    return { configured: false, provider: 'ALRAHUZ', balance: null, username: null };
+  }
+  try {
+    const data = await alrahuzProvider.getAccountBalance();
+    const balance = data?.balance ?? data?.Account_Balance ?? data?.user?.Account_Balance;
+    return {
+      configured: true,
+      provider: 'ALRAHUZ',
+      balance: balance != null ? Number(balance) : null,
+      username: data?.username || data?.user?.username || null,
+    };
+  } catch (err) {
+    logger.warn('AlRahuz balance fetch failed', { error: err.message });
+    return { configured: true, provider: 'ALRAHUZ', balance: null, username: null, error: 'unreachable' };
+  }
+};
 
 // ─── VTU Network Management ───────────────────────────────────────────────────
 // Networks (and discos / cable names - same shape, different `type`) are the
@@ -3410,16 +3469,25 @@ async function listVtuNetworks({ type, isActive } = {}) {
   });
 }
 
+// Coerce an optional numeric id field: '' / null / undefined → null, else Number.
+const _optInt = (v) =>
+  v === undefined || v === null || v === '' ? null : Number(v);
+
 async function createVtuNetwork(data) {
+  const altProviderNetworkId = _optInt(data.altProviderNetworkId);
   const payload = {
     type: data.type,
     providerNetworkId: Number(data.providerNetworkId),
+    altProviderNetworkId,
     name: String(data.name).trim(),
     isActive: data.isActive !== false,
     sortOrder: Number(data.sortOrder || 0),
   };
   if (!payload.type) throw AppError.badRequest('type is required');
   if (!Number.isFinite(payload.providerNetworkId)) throw AppError.badRequest('providerNetworkId must be a number');
+  if (altProviderNetworkId !== null && !Number.isFinite(altProviderNetworkId)) {
+    throw AppError.badRequest('altProviderNetworkId must be a number');
+  }
   if (!payload.name) throw AppError.badRequest('name is required');
 
   let network;
@@ -3444,6 +3512,9 @@ async function updateVtuNetwork(id, data) {
     ...(data.providerNetworkId !== undefined && {
       providerNetworkId: Number(data.providerNetworkId),
     }),
+    ...(data.altProviderNetworkId !== undefined && {
+      altProviderNetworkId: _optInt(data.altProviderNetworkId),
+    }),
     ...(data.isActive !== undefined && { isActive: !!data.isActive }),
     ...(data.sortOrder !== undefined && { sortOrder: Number(data.sortOrder) }),
   };
@@ -3453,6 +3524,8 @@ async function updateVtuNetwork(id, data) {
   // and recreating is the safer path if admin truly needs to change it.
   const idChanged = next.providerNetworkId !== undefined && next.providerNetworkId !== existing.providerNetworkId;
   const nameChanged = next.name !== undefined && next.name !== existing.name;
+  const altIdChanged =
+    next.altProviderNetworkId !== undefined && next.altProviderNetworkId !== existing.altProviderNetworkId;
 
   const updated = await prisma.$transaction(async (tx) => {
     if (idChanged) {
@@ -3471,7 +3544,7 @@ async function updateVtuNetwork(id, data) {
 
     const network = await tx.vtuNetwork.update({ where: { id }, data: next });
 
-    if (idChanged || nameChanged) {
+    if (idChanged || nameChanged || altIdChanged) {
       await tx.vtuPlan.updateMany({
         where: {
           type: existing.type,
@@ -3480,6 +3553,7 @@ async function updateVtuNetwork(id, data) {
         data: {
           ...(idChanged && { providerNetworkId: next.providerNetworkId }),
           ...(nameChanged && { networkName: next.name }),
+          ...(altIdChanged && { altProviderNetworkId: next.altProviderNetworkId }),
         },
       });
     }

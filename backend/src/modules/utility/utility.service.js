@@ -1,9 +1,14 @@
 /**
- * Utility service - airtime, data, cable, electricity, education pins via the
- * BilalSadaSub VTU API.
+ * Utility service - airtime, data, cable, electricity via interchangeable VTU
+ * providers (BilalSada primary, AlRahuz secondary; see services/vtu/router).
  *
- * FLOW: wallet deduction → BullMQ job → worker calls the provider → update status.
- * On provider failure: mark FAILED, refund via worker.
+ * FLOW: wallet deduction → BullMQ job → worker calls the provider → update
+ * status. On provider failure: when a secondary is configured the worker
+ * re-attempts on it (so the sale isn't lost); otherwise mark FAILED + refund.
+ *
+ * Each job carries BOTH providers' numeric IDs (a `providers` map) so the worker
+ * can fail over without re-reading the catalogue. The catalogue's primary
+ * columns are always the BilalSada IDs; the `alt*` columns are the AlRahuz IDs.
  */
 
 const { v4: uuidv4 } = require('uuid');
@@ -16,9 +21,33 @@ const {
   REDIS_TTL,
   detectNetworkFromPhone,
 } = require('../../utils/constants');
-const vtuProvider = require('../../services/bilalsada.service');
+const vtuRouter = require('../../services/vtu/router');
 const { addUtilityJob } = require('../../queues');
 const { UTILITY_JOBS } = require('../../queues/jobs');
+
+/**
+ * Build the per-provider numeric-ID map attached to every utility job. The
+ * catalogue's primary columns hold the BilalSada IDs and the `alt*` columns
+ * hold the AlRahuz IDs, so the mapping is provider-identity fixed regardless of
+ * which one is currently primary. AlRahuz is null when its IDs aren't mapped for
+ * this plan, which simply means that purchase can't fail over to it.
+ */
+const _buildProviderIds = (type, plan) => {
+  const needsPlanId = type === 'DATA' || type === 'CABLE';
+  const bilal = {
+    networkId: plan.providerNetworkId,
+    ...(needsPlanId ? { planId: plan.providerPlanId } : {}),
+  };
+  const hasAlt =
+    plan.altProviderNetworkId != null && (!needsPlanId || plan.altProviderPlanId != null);
+  const alrahuz = hasAlt
+    ? {
+        networkId: plan.altProviderNetworkId,
+        ...(needsPlanId ? { planId: plan.altProviderPlanId } : {}),
+      }
+    : null;
+  return { BILALSADASUB: bilal, ALRAHUZ: alrahuz };
+};
 
 /**
  * Debit the payer's User wallet and create the PROCESSING UtilityPayment,
@@ -27,7 +56,7 @@ const { UTILITY_JOBS } = require('../../queues/jobs');
  * (order earnings + top-ups both land in this wallet). The worker later flips
  * the paired Transaction to COMPLETED/FAILED and refunds this wallet on failure.
  */
-const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, meterNumber, plan, reference }) => {
+const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, meterNumber, plan, reference, provider, providers }) => {
   return prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw AppError.notFound('Wallet not found');
@@ -46,7 +75,7 @@ const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, mete
         amount,
         description: `${biller} ${type.toLowerCase()} ${phoneNumber || meterNumber || ''}`.trim(),
         debitWalletId: wallet.id,
-        provider: 'BILALSADASUB',
+        provider: provider || 'BILALSADASUB',
         balanceBefore: balance,
         balanceAfter: balance - amount,
       },
@@ -61,6 +90,8 @@ const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, mete
         phoneNumber,
         meterNumber,
         plan,
+        provider: provider || 'BILALSADASUB',
+        ...(providers ? { providerIds: providers } : {}),
         providerRequestId: reference,
         status: 'PROCESSING',
         transactionId: reference,
@@ -170,19 +201,24 @@ const buyAirtime = async (userId, { phone, networkId, amount }) => {
   });
   if (!plan) throw AppError.notFound('Network not available');
 
+  const { primary } = await vtuRouter.resolveProviders();
+  const providers = _buildProviderIds('AIRTIME', plan);
+
   const { payment } = await deductAndCreate(userId, {
     type: 'AIRTIME',
     biller: plan.networkName,
     amount,
     phoneNumber: phone,
     reference,
+    provider: primary,
+    providers,
   });
 
   await addUtilityJob(UTILITY_JOBS.PROCESS_AIRTIME, {
     paymentId: payment.id,
     userId,
     reference,
-    networkId: Number(networkId),
+    providers,
     phone,
     amount,
   });
@@ -198,6 +234,9 @@ const buyData = async (userId, { phone, planId }) => {
   });
   if (!plan) throw AppError.notFound('Data plan not found or unavailable');
 
+  const { primary } = await vtuRouter.resolveProviders();
+  const providers = _buildProviderIds('DATA', plan);
+
   const { payment } = await deductAndCreate(userId, {
     type: 'DATA',
     biller: plan.networkName,
@@ -205,14 +244,15 @@ const buyData = async (userId, { phone, planId }) => {
     phoneNumber: phone,
     plan: plan.name,
     reference,
+    provider: primary,
+    providers,
   });
 
   await addUtilityJob(UTILITY_JOBS.PROCESS_DATA, {
     paymentId: payment.id,
     userId,
     reference,
-    networkId: plan.providerNetworkId,
-    providerPlanId: plan.providerPlanId,
+    providers,
     phone,
     amount: Number(plan.sellingPrice),
   });
@@ -228,6 +268,9 @@ const buyCable = async (userId, { smartCardNumber, planId }) => {
   });
   if (!plan) throw AppError.notFound('Cable plan not found or unavailable');
 
+  const { primary } = await vtuRouter.resolveProviders();
+  const providers = _buildProviderIds('CABLE', plan);
+
   const { payment } = await deductAndCreate(userId, {
     type: 'CABLE',
     biller: plan.networkName,
@@ -235,14 +278,15 @@ const buyCable = async (userId, { smartCardNumber, planId }) => {
     meterNumber: smartCardNumber,  // reuse meterNumber field to store smart card
     plan: plan.name,
     reference,
+    provider: primary,
+    providers,
   });
 
   await addUtilityJob(UTILITY_JOBS.PROCESS_CABLE, {
     paymentId: payment.id,
     userId,
     reference,
-    cableNameId: plan.providerNetworkId,
-    cablePlanId: plan.providerPlanId,
+    providers,
     smartCardNumber,
     amount: Number(plan.sellingPrice),
   });
@@ -258,13 +302,18 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
   });
   if (!disco) throw AppError.notFound('Electricity provider not available');
 
+  const { primary } = await vtuRouter.resolveProviders();
+  const providers = _buildProviderIds('ELECTRICITY', disco);
+  const primaryAdapter = vtuRouter.getAdapter(primary);
+  const primaryDiscoId = providers[primary]?.networkId ?? Number(discoId);
+
   // Best-effort: try to capture meter holder name pre-flight so the post-success
   // payload always carries beneficiaryName (Phase 7 AC: must be returned to client).
   let beneficiaryName = null;
   try {
-    const meta = await vtuProvider.validateMeter({
+    const meta = await primaryAdapter.validateMeter({
       meterNumber,
-      discoId: Number(discoId),
+      discoId: primaryDiscoId,
       meterType,
     });
     beneficiaryName = meta?.Customer_Name || meta?.name || null;
@@ -282,6 +331,8 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     phoneNumber: phone,
     plan: meterType,
     reference,
+    provider: primary,
+    providers,
   });
 
   if (beneficiaryName) {
@@ -296,7 +347,7 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     paymentId: payment.id,
     userId,
     reference,
-    discoId: Number(discoId),
+    providers,
     meterNumber,
     meterType,
     amount,
@@ -307,12 +358,33 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
   return payment;
 };
 
+/**
+ * Resolve the network/cable/disco id the *primary* provider expects. The client
+ * always sends the catalogue (BilalSada) id; when the primary is AlRahuz we map
+ * it to the row's altProviderNetworkId so the provider sees its own id. Falls
+ * back to the original id when no mapping exists.
+ */
+const _primaryNetworkId = async (type, clientNetworkId) => {
+  const { primary } = await vtuRouter.resolveProviders();
+  if (primary === 'BILALSADASUB') return { adapter: vtuRouter.getAdapter(primary), networkId: Number(clientNetworkId) };
+  const net = await prisma.vtuNetwork.findFirst({
+    where: { type, providerNetworkId: Number(clientNetworkId) },
+    select: { altProviderNetworkId: true },
+  });
+  return {
+    adapter: vtuRouter.getAdapter(primary),
+    networkId: net?.altProviderNetworkId ?? Number(clientNetworkId),
+  };
+};
+
 const validateIuc = async ({ smartCardNumber, cableNameId }) => {
-  return vtuProvider.validateIuc({ smartCardNumber, cableNameId: Number(cableNameId) });
+  const { adapter, networkId } = await _primaryNetworkId('CABLE', cableNameId);
+  return adapter.validateIuc({ smartCardNumber, cableNameId: networkId });
 };
 
 const validateMeter = async ({ meterNumber, discoId, meterType }) => {
-  return vtuProvider.validateMeter({ meterNumber, discoId: Number(discoId), meterType });
+  const { adapter, networkId } = await _primaryNetworkId('ELECTRICITY', discoId);
+  return adapter.validateMeter({ meterNumber, discoId: networkId, meterType });
 };
 
 const getBillHistory = async (userId, { page, limit, type, status }) => {

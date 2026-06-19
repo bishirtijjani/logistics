@@ -138,7 +138,8 @@ export default function VtuNetworksPage() {
             <thead className="bg-surface-muted dark:bg-dark-surface-muted">
               <tr className="text-left text-xs uppercase tracking-wide text-muted dark:text-dark-muted">
                 <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3 text-right">Provider ID</th>
+                <th className="px-3 py-3 text-right">BilalSada ID</th>
+                <th className="px-3 py-3 text-right">AlRahuz ID</th>
                 <th className="px-3 py-3 text-right">Sort order</th>
                 <th className="px-3 py-3 text-center">Active</th>
                 <th className="px-3 py-3 w-20" />
@@ -149,6 +150,7 @@ export default function VtuNetworksPage() {
                 <tr key={n.id} className="border-t border-surface-muted dark:border-dark-surface-muted hover:bg-surface-muted/40 dark:hover:bg-dark-surface-muted/40">
                   <td className="px-3 py-2.5 font-medium text-text dark:text-dark-text">{n.name}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-text dark:text-dark-text">{n.providerNetworkId}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-muted dark:text-dark-muted">{n.altProviderNetworkId ?? '—'}</td>
                   <td className="px-3 py-2.5 text-right text-muted dark:text-dark-muted">{n.sortOrder}</td>
                   <td className="px-3 py-2.5 text-center">
                     <button
@@ -203,6 +205,7 @@ function NetworkSheet({ mode, initial, onClose, onSaved }) {
   const [form, setForm] = useState({
     type: initial?.type || 'AIRTIME',
     providerNetworkId: initial?.providerNetworkId ?? '',
+    altProviderNetworkId: initial?.altProviderNetworkId ?? '',
     name: initial?.name ?? '',
     sortOrder: initial?.sortOrder ?? 0,
     isActive: initial?.isActive ?? true,
@@ -217,6 +220,7 @@ function NetworkSheet({ mode, initial, onClose, onSaved }) {
     const payload = {
       type: form.type,
       providerNetworkId: Number(form.providerNetworkId),
+      altProviderNetworkId: form.altProviderNetworkId !== '' ? Number(form.altProviderNetworkId) : null,
       name: form.name.trim(),
       sortOrder: Number(form.sortOrder || 0),
       isActive: !!form.isActive,
@@ -282,7 +286,7 @@ function NetworkSheet({ mode, initial, onClose, onSaved }) {
           </div>
 
           <div>
-            <label className={cls.label}>Provider ID *</label>
+            <label className={cls.label}>BilalSada ID *</label>
             <input
               required
               type="number"
@@ -292,7 +296,21 @@ function NetworkSheet({ mode, initial, onClose, onSaved }) {
               placeholder="e.g. 1"
             />
             <p className="text-xs text-muted dark:text-dark-muted mt-1">
-              The integer the upstream VTU provider expects in API calls (network, disco_name, cablename).
+              The integer the primary provider (BilalSada) expects in API calls (network, disco, cable).
+            </p>
+          </div>
+
+          <div>
+            <label className={cls.label}>AlRahuz ID</label>
+            <input
+              type="number"
+              value={form.altProviderNetworkId}
+              onChange={(e) => setField('altProviderNetworkId', e.target.value)}
+              className={cls.input}
+              placeholder="e.g. 4 (leave blank if not mapped)"
+            />
+            <p className="text-xs text-muted dark:text-dark-muted mt-1">
+              The id the secondary provider (AlRahuz) expects. Required for this network to fail over to AlRahuz; AlRahuz often numbers networks differently (e.g. AIRTEL=4 vs BilalSada's 2).
             </p>
           </div>
 

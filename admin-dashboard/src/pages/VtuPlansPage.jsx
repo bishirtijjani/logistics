@@ -106,7 +106,7 @@ export default function VtuPlansPage() {
       for (const n of res.data.data || []) {
         if (!n.isActive) continue
         if (!grouped[n.type]) grouped[n.type] = []
-        grouped[n.type].push({ id: n.providerNetworkId, name: n.name })
+        grouped[n.type].push({ id: n.providerNetworkId, name: n.name, altId: n.altProviderNetworkId ?? null })
       }
       setNetworksByType(grouped)
     }).catch(() => toast.error('Failed to load networks'))
@@ -950,8 +950,10 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
   const [form, setForm] = useState({
     type: startType,
     providerNetworkId: initial?.providerNetworkId ?? '',
+    altProviderNetworkId: initial?.altProviderNetworkId ?? '',
     networkName: initial?.networkName ?? '',
     providerPlanId: initial?.providerPlanId ?? '',
+    altProviderPlanId: initial?.altProviderPlanId ?? '',
     name: initial?.name ?? '',
     dataSize: initial?.dataSize ?? '',
     validity: initial?.validity ?? '',
@@ -983,8 +985,10 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
     const payload = {
       type: form.type,
       providerNetworkId: form.providerNetworkId !== '' ? Number(form.providerNetworkId) : null,
+      altProviderNetworkId: form.altProviderNetworkId !== '' && form.altProviderNetworkId != null ? Number(form.altProviderNetworkId) : null,
       networkName: form.networkName || null,
       providerPlanId: form.providerPlanId !== '' ? Number(form.providerPlanId) : null,
+      altProviderPlanId: form.altProviderPlanId !== '' && form.altProviderPlanId != null ? Number(form.altProviderPlanId) : null,
       name: form.name,
       dataSize: form.dataSize || null,
       validity: form.validity || null,
@@ -1052,7 +1056,7 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => setForm((f) => ({ ...f, providerNetworkId: n.id, networkName: n.name }))}
+                    onClick={() => setForm((f) => ({ ...f, providerNetworkId: n.id, networkName: n.name, altProviderNetworkId: n.altId ?? '' }))}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                       Number(form.providerNetworkId) === n.id
                         ? 'bg-primary text-white border-primary'
@@ -1066,16 +1070,35 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
             </div>
 
             {showProviderPlan && (
-              <div>
-                <label className={cls.label}>Provider plan ID</label>
-                <input
-                  type="number"
-                  value={form.providerPlanId}
-                  onChange={(e) => setField('providerPlanId', e.target.value)}
-                  className={cls.input}
-                  placeholder="e.g. 206"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={cls.label}>BilalSada plan ID</label>
+                  <input
+                    type="number"
+                    value={form.providerPlanId}
+                    onChange={(e) => setField('providerPlanId', e.target.value)}
+                    className={cls.input}
+                    placeholder="e.g. 206"
+                  />
+                </div>
+                <div>
+                  <label className={cls.label}>AlRahuz plan ID</label>
+                  <input
+                    type="number"
+                    value={form.altProviderPlanId}
+                    onChange={(e) => setField('altProviderPlanId', e.target.value)}
+                    className={cls.input}
+                    placeholder="blank = no failover"
+                  />
+                </div>
               </div>
+            )}
+            {form.providerNetworkId !== '' && (
+              <p className="text-xs text-muted dark:text-dark-muted">
+                AlRahuz network ID:{' '}
+                <span className="font-mono">{form.altProviderNetworkId !== '' && form.altProviderNetworkId != null ? form.altProviderNetworkId : '— (set it on the network)'}</span>
+                {showProviderPlan ? ' · a plan only fails over to AlRahuz when both its AlRahuz IDs are set.' : ' · inherited from the network for failover.'}
+              </p>
             )}
           </Section>
 

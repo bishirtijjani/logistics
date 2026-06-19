@@ -47,6 +47,14 @@ const envSchema = z
     BILALSADASUB_USERNAME: z.string().optional().default(""),
     BILALSADASUB_PASSWORD: z.string().optional().default(""),
 
+    // AlRahuz Data - the secondary VTU/bills provider. Used as the failover
+    // target: when admin runs in "both" mode and a BilalSada purchase would
+    // otherwise be refunded, we re-attempt it on AlRahuz before crediting the
+    // wallet back. Auth is a single static API token (`Authorization: Token
+    // <ALRAHUZ_TOKEN>`). Optional so a clone boots bare; only required when the
+    // active provider mode includes AlRahuz (asserted lazily in the adapter).
+    ALRAHUZ_TOKEN: z.string().optional().default(""),
+
     // AirtimeToCash Automation - customer sells airtime → wallet credit
     AIRTIMETOCASH_TOKEN: isDev ? z.string().default("") : z.string().min(1),
 

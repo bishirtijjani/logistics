@@ -1,20 +1,25 @@
 /**
- * Utility queue worker - calls the BilalSadaSub VTU API for utility purchases.
+ * Utility queue worker - vends airtime/data/cable/electricity via the active VTU
+ * provider(s). Adapters are interchangeable (see services/vtu/router): BilalSada
+ * is the synchronous primary, AlRahuz the asynchronous secondary/failover.
  *
  * FLOW:
- * 1. Wallet already deducted by utility.service
+ * 1. Wallet already deducted by utility.service; job carries a `providers` map
+ *    of each provider's numeric IDs.
  * 2. Check payment status for idempotency (skip if already settled)
- * 3. Call the provider API (with the unique request-id = our reference)
- * 4a. SUCCESS → mark COMPLETED, emit token (electricity) via push + SMS, fan-out events
+ * 3. Call the active provider (with the unique request-id = our reference)
+ * 4a. SUCCESS → mark COMPLETED, emit token (electricity) via push + SMS, fan-out
  * 4b. PENDING → mark PENDING, schedule POLL_PENDING (30s, ≤10 attempts ≈ 5 min)
- * 4c. DEFINITIVE FAILURE → mark FAILED + refund inline, do NOT throw
- * 4d. INFRA error (network/5xx) → propagate so BullMQ retries (the shared
- *     request-id makes the retry idempotent on the provider side)
+ * 4c. DEFINITIVE FAILURE → ESCALATE: if a secondary provider is configured and
+ *     mapped for this plan, re-attempt the purchase on it (so we don't lose the
+ *     sale); only when there's no usable secondary do we mark FAILED + refund.
+ * 4d. INFRA error (network/5xx) on the *primary* → propagate so BullMQ retries
+ *     (the shared request-id makes the retry idempotent on BilalSada's side).
+ *     The same error on a *failover* attempt is treated as a failure → refund.
  *
- * Reconciliation: BilalSada has no query endpoint, so POLL_PENDING's
- * queryTransaction returns null. A payment that ever lands PENDING (or whose
- * buy we couldn't confirm) is therefore refunded once MAX_ATTEMPTS expires
- * rather than polled to completion.
+ * Reconciliation: BilalSada has no query endpoint (queryTransaction → null), so
+ * any payment stuck on it is refunded once the window expires; a payment on
+ * AlRahuz is polled by its provider txn id until it resolves.
  */
 
 const { Worker } = require('bullmq');
@@ -22,7 +27,7 @@ const { redis } = require('../../config/redis');
 const { QUEUES, UTILITY_JOBS, POLL_CONFIG, STUCK_PAYMENT_GRACE_MS } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
-const vtuProvider = require('../../services/bilalsada.service');
+const vtuRouter = require('../../services/vtu/router');
 const messagingService = require('../../services/messaging.service');
 const notifyService = require('../../services/notify.service');
 // NB: lazy-require `../index` inside the call site below to break the circular
@@ -95,10 +100,16 @@ const startUtilityWorker = () => {
 const getPayment = (paymentId) =>
   prisma.utilityPayment.findUnique({ where: { id: paymentId } });
 
+// `extra` may carry a `provider` (the adapter that actually served the payment)
+// which we mirror onto the paired wallet Transaction so its label stays accurate
+// after a failover.
 const markPayment = (paymentId, reference, status, extra = {}) =>
   prisma.$transaction([
     prisma.utilityPayment.update({ where: { id: paymentId }, data: { status, ...extra } }),
-    prisma.transaction.updateMany({ where: { reference }, data: { status: _txStatus(status) } }),
+    prisma.transaction.updateMany({
+      where: { reference },
+      data: { status: _txStatus(status), ...(extra.provider ? { provider: extra.provider } : {}) },
+    }),
   ]);
 
 // Wallet transaction status mirrors the payment lifecycle but uses the
@@ -226,8 +237,109 @@ const _extractElectricityMeta = (result) => {
   return { token, beneficiaryName };
 };
 
+// Per-type purchase dispatch. `ids` is the chosen provider's numeric IDs
+// ({ networkId } or { networkId, planId }); `ctx` carries the common fields.
+const PURCHASE = {
+  AIRTIME: (adapter, ids, ctx) =>
+    adapter.buyAirtime({ networkId: ids.networkId, phone: ctx.phone, amount: ctx.amount, requestId: ctx.reference }),
+  DATA: (adapter, ids, ctx) =>
+    adapter.buyData({ networkId: ids.networkId, phone: ctx.phone, planId: ids.planId, requestId: ctx.reference }),
+  CABLE: (adapter, ids, ctx) =>
+    adapter.buyCable({ cableNameId: ids.networkId, cablePlanId: ids.planId, smartCardNumber: ctx.smartCardNumber, requestId: ctx.reference }),
+  ELECTRICITY: (adapter, ids, ctx) =>
+    adapter.payElectricity({ discoId: ids.networkId, meterNumber: ctx.meterNumber, meterType: ctx.meterType, amount: ctx.amount, requestId: ctx.reference }),
+};
+
+/**
+ * Attempt a purchase on `ctx.provider`. On the primary (live) attempt an infra
+ * error propagates so BullMQ retries idempotently; on a failover attempt the
+ * same error is treated as a failure (we then refund, since the secondary is
+ * the last resort). A provider with no mapped IDs for this plan can't vend, so
+ * we escalate straight away.
+ */
+const attemptPurchase = async (ctx, { isFailover = false } = {}) => {
+  const { paymentId, type, provider, providers } = ctx;
+  const payment = await getPayment(paymentId);
+  if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
+
+  const ids = providers?.[provider];
+  if (!ids) {
+    logger.warn('No provider IDs mapped, escalating', { paymentId, provider, type });
+    return escalate(ctx, { result: null });
+  }
+
+  const adapter = vtuRouter.getAdapter(provider);
+  let result;
+  try {
+    result = await PURCHASE[type](adapter, ids, ctx);
+  } catch (err) {
+    if (!isFailover) throw err; // primary: let BullMQ retry (idempotent request-id)
+    logger.warn('Failover provider buy errored, treating as failure', {
+      paymentId, provider, error: err.message,
+    });
+    return escalate(ctx, { result: null });
+  }
+  return handleResult(result, ctx);
+};
+
+/**
+ * A purchase on `ctx.provider` didn't succeed. If a secondary provider is
+ * configured, differs from the one that just failed, and has IDs mapped for this
+ * plan, re-attempt the sale on it. Otherwise mark FAILED and refund the wallet.
+ */
+// Refill purchase params (phone/meter/etc.) + the provider-ID map from the
+// persisted payment row. The live path already has these on the job; the
+// reconcile/poll path does not, so a failover from there needs them rehydrated.
+const _enrichCtx = async (ctx) => {
+  const payment = await getPayment(ctx.paymentId);
+  if (!payment) return ctx;
+  return {
+    ...ctx,
+    type: ctx.type || payment.type,
+    amount: ctx.amount ?? Number(payment.amount),
+    phone: ctx.phone ?? payment.phoneNumber,
+    meterNumber: ctx.meterNumber ?? payment.meterNumber,
+    // Cable stores the smart-card number in meterNumber; electricity stores the
+    // meter type in `plan`.
+    smartCardNumber: ctx.smartCardNumber ?? payment.meterNumber,
+    meterType: ctx.meterType ?? payment.plan,
+    providers: ctx.providers || payment.providerIds || undefined,
+  };
+};
+
+const escalate = async (ctx, { result }) => {
+  const provider = ctx.provider || 'BILALSADASUB';
+  const { paymentId, userId, amount, reference } = ctx;
+  const { secondary } = await vtuRouter.resolveProviders();
+  const providers = ctx.providers || (await getPayment(paymentId))?.providerIds || undefined;
+
+  if (secondary && provider !== secondary && providers?.[secondary]) {
+    logger.warn('Primary VTU provider failed, failing over to secondary', {
+      paymentId, from: provider, to: secondary,
+    });
+    // Stay PROCESSING; reset the poll counter so the secondary gets its own window.
+    await prisma.utilityPayment.update({
+      where: { id: paymentId },
+      data: { provider: secondary, pollAttempts: 0, providerRef: null },
+    });
+    const enriched = await _enrichCtx({ ...ctx, providers });
+    return attemptPurchase({ ...enriched, provider: secondary }, { isFailover: true });
+  }
+
+  await markPayment(paymentId, reference, 'FAILED', { providerRef: String(result?.id || '') });
+  logger.warn('VTU purchase failed with no failover available, refunding', { paymentId, provider });
+  const fresh = await getPayment(paymentId);
+  await _notifyOutcome({ payment: fresh, status: 'FAILED' });
+  await refundPayment({ paymentId, userId, amount, reference });
+};
+
 const handleResult = async (result, ctx, { isPoll = false } = {}) => {
-  const { paymentId, userId, amount, reference, type } = ctx;
+  // Null provider == the (default) primary, BilalSada - mirrors the schema's
+  // nullable `provider` column and keeps direct callers (tests) simple.
+  const provider = ctx.provider || 'BILALSADASUB';
+  ctx = { ...ctx, provider };
+  const { paymentId, amount, reference, type } = ctx;
+  const adapter = vtuRouter.getAdapter(provider);
 
   // ── Replay guard ──────────────────────────────────────────────────────────
   // If the payment is already in a terminal state (COMPLETED/FAILED/REFUNDED),
@@ -241,17 +353,18 @@ const handleResult = async (result, ctx, { isPoll = false } = {}) => {
   }
 
   // ── Definitive success ────────────────────────────────────────────────────
-  if (vtuProvider.isSuccess(result)) {
+  if (adapter.isSuccess(result)) {
     const { token, beneficiaryName } = type === 'ELECTRICITY'
       ? _extractElectricityMeta(result)
       : { token: null, beneficiaryName: null };
 
     await markPayment(paymentId, reference, 'COMPLETED', {
+      provider,
       providerRef: String(result?.id || result?.ident || ''),
       ...(token ? { token } : {}),
       ...(beneficiaryName ? { beneficiaryName } : {}),
     });
-    logger.info('Utility payment completed', { paymentId, reference, isPoll });
+    logger.info('Utility payment completed', { paymentId, reference, provider, isPoll });
 
     const fresh = await getPayment(paymentId);
     await _notifyOutcome({ payment: fresh, status: 'COMPLETED', token });
@@ -262,101 +375,82 @@ const handleResult = async (result, ctx, { isPoll = false } = {}) => {
   }
 
   // ── Provider says still pending → schedule a poll ─────────────────────────
-  if (vtuProvider.isPending(result)) {
+  if (adapter.isPending(result)) {
     const payment = await getPayment(paymentId);
     const attempts = (payment?.pollAttempts || 0) + 1;
 
     if (attempts > POLL_CONFIG.MAX_ATTEMPTS) {
-      // Exhausted the 5-minute window. Treat as failure + refund.
-      logger.warn('Provider pending window exhausted, refunding', { paymentId, attempts });
-      await markPayment(paymentId, reference, 'FAILED', {
-        providerRef: String(result?.id || ''),
-      });
-      const fresh = await getPayment(paymentId);
-      await _notifyOutcome({ payment: fresh, status: 'FAILED' });
-      await refundPayment({ paymentId, userId, amount, reference });
-      return;
+      // Exhausted the window. There's no second async provider to fall over to
+      // (only AlRahuz is pending-capable), so escalate → refund.
+      logger.warn('Provider pending window exhausted', { paymentId, attempts, provider });
+      return escalate(ctx, { result });
     }
 
+    // AlRahuz is polled by its own txn id (the `id` it returned), not our ref.
+    const providerRef = String(result?.id || payment?.providerRef || '');
     await prisma.utilityPayment.update({
       where: { id: paymentId },
       data: {
         status: 'PENDING',
+        provider,
         pollAttempts: attempts,
         lastPolledAt: new Date(),
-        ...(result?.id ? { providerRef: String(result.id) } : {}),
+        ...(providerRef ? { providerRef } : {}),
       },
     });
 
     await _schedulePollPending(
-      { paymentId, userId, amount, reference, type, providerRequestId: reference },
+      { paymentId, userId: ctx.userId, amount, reference, type, provider, providers: ctx.providers, providerRequestId: providerRef || reference },
       POLL_CONFIG.INTERVAL_MS,
     );
-    logger.info('Utility payment pending, scheduled poll', { paymentId, attempts });
+    logger.info('Utility payment pending, scheduled poll', { paymentId, attempts, provider });
     return;
   }
 
-  // ── Definitive failure → refund ──────────────────────────────────────────
-  await markPayment(paymentId, reference, 'FAILED', {
-    providerRef: String(result?.id || ''),
-  });
-  logger.warn('Provider returned failure, refunding', { paymentId, result });
-  const fresh = await getPayment(paymentId);
-  await _notifyOutcome({ payment: fresh, status: 'FAILED' });
-  await refundPayment({ paymentId, userId, amount, reference });
+  // ── Definitive failure → escalate (failover, else refund) ─────────────────
+  logger.warn('Provider returned failure', { paymentId, provider, result });
+  return escalate(ctx, { result });
 };
 
 // ─── Job processors ───────────────────────────────────────────────────────────
+// Each entry-point resolves the live primary, then hands off to attemptPurchase
+// which handles success / pending / failover. `providers` is the per-provider ID
+// map attached at enqueue time by utility.service.
 
-const processAirtime = async ({ paymentId, userId, reference, networkId, phone, amount }) => {
+const _startPurchase = async (type, { paymentId, userId, reference, providers, ...rest }) => {
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
-
-  const result = await vtuProvider.buyAirtime({ networkId, phone, amount, requestId: reference });
-  await handleResult(result, { paymentId, userId, amount, reference, type: 'AIRTIME' });
+  const { primary } = await vtuRouter.resolveProviders();
+  await attemptPurchase({ paymentId, userId, reference, providers, provider: primary, type, ...rest });
 };
 
-const processData = async ({ paymentId, userId, reference, networkId, providerPlanId, phone, amount }) => {
-  const payment = await getPayment(paymentId);
-  if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
-
-  const result = await vtuProvider.buyData({ networkId, phone, planId: providerPlanId, requestId: reference });
-  await handleResult(result, { paymentId, userId, amount, reference, type: 'DATA' });
-};
-
-const processCable = async ({ paymentId, userId, reference, cableNameId, cablePlanId, smartCardNumber, amount }) => {
-  const payment = await getPayment(paymentId);
-  if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
-
-  const result = await vtuProvider.buyCable({ cableNameId, cablePlanId, smartCardNumber, requestId: reference });
-  await handleResult(result, { paymentId, userId, amount, reference, type: 'CABLE' });
-};
-
-const processElectricity = async ({ paymentId, userId, reference, discoId, meterNumber, meterType, amount }) => {
-  const payment = await getPayment(paymentId);
-  if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
-
-  const result = await vtuProvider.payElectricity({ discoId, meterNumber, meterType, amount, requestId: reference });
-  await handleResult(result, { paymentId, userId, amount, reference, type: 'ELECTRICITY' });
-};
+const processAirtime = (data) => _startPurchase('AIRTIME', data);
+const processData = (data) => _startPurchase('DATA', data);
+const processCable = (data) => _startPurchase('CABLE', data);
+const processElectricity = (data) => _startPurchase('ELECTRICITY', data);
 
 /**
- * POLL_PENDING - re-query the provider by providerRequestId and route to the
- * same SUCCESS / PENDING / FAILURE branches. Recomputes ctx.type from the row
- * so the polling path is symmetric with the initial path (token + SMS still
- * fire). NB: BilalSada's queryTransaction is a no-op (null), so in practice
- * this path advances the attempt counter until the window closes and refunds.
+ * POLL_PENDING - re-query the provider that holds the payment by its txn id and
+ * route to the same SUCCESS / PENDING / FAILURE branches. The provider is read
+ * from the row (set when the payment landed PENDING) so the right adapter is
+ * used after a failover. NB: BilalSada's queryTransaction is a no-op (null), so
+ * for it this path advances the counter until the window closes; AlRahuz is
+ * polled for real.
  */
-const processPoll = async ({ paymentId, userId, reference, providerRequestId }) => {
+const processPoll = async ({ paymentId, userId, reference, provider, providers, providerRequestId }) => {
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) {
     logger.info('Poll skipped (already settled)', { paymentId, status: payment?.status });
     return;
   }
 
+  const activeProvider = payment.provider || provider || 'BILALSADASUB';
+  const adapter = vtuRouter.getAdapter(activeProvider);
+  const queryId = providerRequestId || payment.providerRef || reference;
+
   let result;
   try {
-    result = await vtuProvider.queryTransaction(providerRequestId);
+    result = await adapter.queryTransaction(queryId);
   } catch (err) {
     // Infra-level failure on the query. Treat as still-pending so handleResult
     // increments the attempt counter and schedules the next poll - otherwise
@@ -375,6 +469,8 @@ const processPoll = async ({ paymentId, userId, reference, providerRequestId }) 
     amount: Number(payment.amount),
     reference,
     type: payment.type,
+    provider: activeProvider,
+    providers,
   }, { isPoll: true });
 };
 
@@ -396,16 +492,20 @@ const reconcileOnePayment = async (paymentId) => {
   // reference == the wallet Transaction.reference; on create both
   // transactionId and providerRequestId are set to the original reference.
   const reference = payment.transactionId || payment.providerRequestId;
-  const providerRequestId = payment.providerRequestId || reference;
+  // Poll the provider that holds it by its own txn id (providerRef for AlRahuz).
+  const providerRequestId = payment.providerRef || payment.providerRequestId || reference;
 
   logger.info('Reconciling stuck utility payment', {
-    paymentId, status: payment.status, ageMs: Date.now() - new Date(payment.createdAt).getTime(),
+    paymentId, status: payment.status, provider: payment.provider,
+    ageMs: Date.now() - new Date(payment.createdAt).getTime(),
   });
 
   await processPoll({
     paymentId,
     userId: payment.userId,
     reference,
+    provider: payment.provider,
+    providers: payment.providerIds || undefined,
     providerRequestId,
   });
 };
@@ -451,8 +551,11 @@ module.exports = {
   // Exported for tests
   _internal: {
     handleResult,
+    attemptPurchase,
+    escalate,
     refundPayment,
     processPoll,
+    processAirtime,
     reconcileOnePayment,
     reconcileStuckPayments,
   },

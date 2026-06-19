@@ -143,6 +143,60 @@ const installUtilityStubs = () => {
     initializeQueues() {},
   };
 
+  // ── VTU router (in-memory adapters) ───────────────────────────────────────
+  // The worker resolves providers + adapters through services/vtu/router. We
+  // stub it so tests control which provider is primary/secondary and what each
+  // provider's buy/query returns, without any HTTP or settings/DB lookups.
+  // `isSuccess/isPending/isFailure` mirror the real adapters' status logic.
+  calls.buys = [];
+  const providerState = {
+    // Default: single-provider (BilalSada) - secondary null → failures refund.
+    mode: { mode: 'BILALSADASUB_ONLY', primary: 'BILALSADASUB', secondary: null },
+    buyResponses: {},   // key → response | [responses] | Error (thrown)
+    queryResponses: {}, // key → response | [responses]
+  };
+  const _status = (r) => String(r?.Status || r?.status || '').toLowerCase();
+  const isSuccess = (r) => {
+    if (!r) return false;
+    const s = _status(r);
+    return s === 'success' || s === 'successful' || s === 'delivered' ||
+      r?.api_response?.toLowerCase?.()?.includes('successful');
+  };
+  const isPending = (r) => {
+    if (!r) return false;
+    const s = _status(r);
+    return s === 'pending' || s === 'processing' || s === 'queued';
+  };
+  const isFailure = (r) => !isSuccess(r) && !isPending(r);
+  const _next = (map, key) => {
+    const v = map[key];
+    const out = Array.isArray(v) ? (v.length ? v.shift() : null) : (v ?? null);
+    if (out instanceof Error) throw out;
+    return out;
+  };
+  const makeAdapter = (key) => {
+    const buy = (type) => async () => { calls.buys.push({ key, type }); return _next(providerState.buyResponses, key); };
+    return {
+      buyAirtime: buy('AIRTIME'),
+      buyData: buy('DATA'),
+      buyCable: buy('CABLE'),
+      payElectricity: buy('ELECTRICITY'),
+      validateMeter: async () => ({}),
+      validateIuc: async () => ({}),
+      getAccountBalance: async () => ({ balance: 0 }),
+      queryTransaction: async () => _next(providerState.queryResponses, key),
+      isSuccess, isPending, isFailure,
+    };
+  };
+  const vtuRouter = {
+    PROVIDERS: { BILALSADASUB: makeAdapter('BILALSADASUB'), ALRAHUZ: makeAdapter('ALRAHUZ') },
+    MODES: { BILALSADASUB_ONLY: 'BILALSADASUB_ONLY', ALRAHUZ_ONLY: 'ALRAHUZ_ONLY', BOTH: 'BOTH' },
+    getAdapter(k) { return this.PROVIDERS[k] || null; },
+    async resolveProviders() { return { ...providerState.mode }; },
+    async getMode() { return providerState.mode.mode; },
+    async getPrimaryAdapter() { return this.getAdapter(providerState.mode.primary); },
+  };
+
   // ── Install ───────────────────────────────────────────────────────────────
   stub('src/config/database.js', { prisma });
   stub('src/config/redis.js', { redis });
@@ -152,8 +206,9 @@ const installUtilityStubs = () => {
   stub('src/services/messaging.service.js', messaging);
   stub('src/services/termii.service.js', termii);
   stub('src/queues/index.js', queuesModule);
+  stub('src/services/vtu/router.js', vtuRouter);
 
-  return { prisma, state, calls, redis };
+  return { prisma, state, calls, redis, providerState, vtuRouter };
 };
 
 module.exports = { installUtilityStubs };

@@ -441,16 +441,23 @@ model UtilityPayment {
   meterNumber String? /// For electricity
   plan        String? /// Data plan code or description
 
-  // Provider tracking (AlRahuz)
-  providerRequestId String? @unique
-  providerRef       String?
+  // Provider tracking. `provider` records which VTU adapter currently holds the
+  // payment, so the poll/reconcile loop queries the right API and a failover to
+  // the secondary stays on that provider. Null = the (default) primary.
+  provider          PaymentProvider?
+  providerRequestId String?          @unique
+  providerRef       String? /// The provider's own txn id (used to poll AlRahuz)
+  // Per-provider numeric IDs for this purchase ({ BILALSADASUB: {...}, ALRAHUZ:
+  // {...}|null }). Persisted so the reconcile/sweep paths can fail over to the
+  // secondary too, not just the live worker pass.
+  providerIds       Json?
 
   // Result
   token           String? /// Electricity token returned (delivered + STKN)
   beneficiaryName String? /// Verified meter / IUC owner name
   transactionId   String? /// Reference to wallet Transaction
 
-  // Reconciliation (AlRahuz pending → poll)
+  // Reconciliation (async provider pending → poll)
   pollAttempts Int       @default(0)
   lastPolledAt DateTime?
 
@@ -508,9 +515,13 @@ model AirtimeToCashTransaction {
 model VtuPlan {
   id                String      @id @default(uuid())
   type              VtuPlanType
-  providerNetworkId Int? /// Provider's network/cable/disco ID
+  providerNetworkId Int? /// Primary (BilalSada) network/cable/disco ID
   networkName       String? /// "MTN", "GOTV" etc. (denormalized)
-  providerPlanId    Int? /// Provider's plan ID (data/cable plans)
+  providerPlanId    Int? /// Primary (BilalSada) plan ID (data/cable plans)
+  // Secondary (AlRahuz) IDs - used when a purchase fails over to AlRahuz. Null
+  // when AlRahuz isn't mapped for this plan; such a plan simply can't fail over.
+  altProviderNetworkId Int?
+  altProviderPlanId    Int?
   name              String /// Display name e.g. "1GB - 30 Days"
   dataSize          String? /// "1GB" for data plans
   validity          String? /// "30 Days"
@@ -534,7 +545,8 @@ model VtuPlan {
 model VtuNetwork {
   id                String      @id @default(uuid())
   type              VtuPlanType
-  providerNetworkId Int /// The integer the provider expects in its API
+  providerNetworkId Int /// The integer the primary (BilalSada) API expects
+  altProviderNetworkId Int? /// The integer AlRahuz expects (failover); null = unmapped
   name              String /// Display name e.g. "MTN", "DSTV", "Ikeja"
   isActive          Boolean     @default(true)
   sortOrder         Int         @default(0)

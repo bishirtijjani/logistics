@@ -24,6 +24,7 @@ export default function SettingsPage() {
     withdrawalFeePayer: 'PLATFORM',
     fundingFeePercent: 1,
     fundingFeePayer: 'PLATFORM',
+    vtuProviderMode: 'BILALSADASUB_ONLY',
   })
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
@@ -54,6 +55,7 @@ export default function SettingsPage() {
         withdrawalFeePayer: platformSettings.withdrawalFeePayer || 'PLATFORM',
         fundingFeePercent: platformSettings.fundingFeePercent || 1,
         fundingFeePayer: platformSettings.fundingFeePayer || 'PLATFORM',
+        vtuProviderMode: platformSettings.vtuProviderMode || 'BILALSADASUB_ONLY',
       })
       setNotificationSettings({
         emailNotifications: platformSettings.emailNotifications ?? true,
@@ -324,6 +326,24 @@ export default function SettingsPage() {
                       <option value="PLATFORM">Platform pays (Waived for user)</option>
                       <option value="USER">User pays (Deducted from credit)</option>
                     </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">VTU Provider Routing</label>
+                    <select
+                      value={platformForm.vtuProviderMode}
+                      onChange={(e) => setPlatformForm({ ...platformForm, vtuProviderMode: e.target.value })}
+                      className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                    >
+                      <option value="BILALSADASUB_ONLY">BilalSada only</option>
+                      <option value="ALRAHUZ_ONLY">AlRahuz only</option>
+                      <option value="BOTH">Both — BilalSada primary, AlRahuz failover</option>
+                    </select>
+                    <p className="text-xs text-muted dark:text-dark-muted mt-1">
+                      In “Both” mode a purchase that BilalSada fails is retried on AlRahuz before any refund — so a failed transaction doesn’t lose the sale. Requires the network/plan’s AlRahuz IDs to be set.
+                    </p>
                   </div>
                 </div>
               </div>
