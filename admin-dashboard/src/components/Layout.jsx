@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   ShieldCheck,
-  Package, 
-  Store, 
+  Package,
+  Store,
   Bike,
+  Map,
   Users,
-  Receipt, 
+  Receipt,
   FileText,
-  Settings, 
+  Settings,
   LogOut,
   Menu,
   X,
@@ -35,27 +36,64 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useAuthSession } from '../lib/useAuthSession'
 import { usePermissions } from '../lib/usePermissions'
 
-const navItems = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/requests', icon: Package, label: 'Requests', permissions: ['MANAGE_USERS', 'MANAGE_MERCHANTS'] },
-  { path: '/merchants', icon: Store, label: 'Merchants', permissions: ['MANAGE_MERCHANTS'] },
-  { path: '/categories', icon: Tags, label: 'Categories', permissions: ['MANAGE_MERCHANTS'] },
-  { path: '/riders', icon: Bike, label: 'Riders', permissions: ['MANAGE_USERS'] },
-  { path: '/analytics', icon: BarChart3, label: 'Analytics', permissions: ['MANAGE_FINANCE', 'MANAGE_USERS', 'MANAGE_MERCHANTS'] },
-  { path: '/financial', icon: DollarSign, label: 'Financial', permissions: ['MANAGE_FINANCE'] },
-  { path: '/disputes', icon: MessageCircle, label: 'Disputes', permissions: ['MANAGE_SUPPORT'] },
-  { path: '/support', icon: Headphones, label: 'Support', permissions: ['MANAGE_SUPPORT'] },
-  { path: '/marketing', icon: Megaphone, label: 'Marketing', permissions: ['MANAGE_SETTINGS'] },
-  { path: '/waitlist', icon: ListChecks, label: 'Waitlist', permissions: ['MANAGE_USERS'] },
-  { path: '/rider-operations', icon: Bike, label: 'Rider Ops', permissions: ['MANAGE_USERS'] },
-  { path: '/safety', icon: Shield, label: 'Safety', permissions: ['MANAGE_SUPPORT'] },
-  { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans', permissions: ['MANAGE_VTU'] },
-  { path: '/vtu-networks', icon: Network, label: 'VTU Networks', permissions: ['MANAGE_VTU'] },
-  { path: '/customers', icon: Users, label: 'Customers', permissions: ['MANAGE_USERS'] },
-  { path: '/staff', icon: UserPlus, label: 'Staff', permissions: ['MANAGE_STAFF'] },
-  { path: '/audit-logs', icon: FileText, label: 'Audit Logs', permissions: ['MANAGE_STAFF'] },
-  { path: '/transactions', icon: Receipt, label: 'Transactions', permissions: ['MANAGE_FINANCE'] },
-  { path: '/settings', icon: Settings, label: 'Settings', permissions: ['MANAGE_SETTINGS'] },
+// Sidebar items grouped by workflow so related screens sit together.
+// A section disappears entirely once permission filtering empties it.
+const navSections = [
+  {
+    label: 'Overview',
+    items: [
+      { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/analytics', icon: BarChart3, label: 'Analytics', permissions: ['MANAGE_FINANCE', 'MANAGE_USERS', 'MANAGE_MERCHANTS'] },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { path: '/requests', icon: Package, label: 'Requests', permissions: ['MANAGE_USERS', 'MANAGE_MERCHANTS'] },
+      { path: '/merchants', icon: Store, label: 'Merchants', permissions: ['MANAGE_MERCHANTS'] },
+      { path: '/categories', icon: Tags, label: 'Categories', permissions: ['MANAGE_MERCHANTS'] },
+      { path: '/riders', icon: Bike, label: 'Riders', permissions: ['MANAGE_USERS'] },
+      { path: '/rider-operations', icon: Map, label: 'Rider Ops', permissions: ['MANAGE_USERS'] },
+    ],
+  },
+  {
+    label: 'Growth',
+    items: [
+      { path: '/customers', icon: Users, label: 'Customers', permissions: ['MANAGE_USERS'] },
+      { path: '/waitlist', icon: ListChecks, label: 'Waitlist', permissions: ['MANAGE_USERS'] },
+      { path: '/marketing', icon: Megaphone, label: 'Marketing', permissions: ['MANAGE_SETTINGS'] },
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
+      { path: '/financial', icon: DollarSign, label: 'Financial', permissions: ['MANAGE_FINANCE'] },
+      { path: '/transactions', icon: Receipt, label: 'Transactions', permissions: ['MANAGE_FINANCE'] },
+    ],
+  },
+  {
+    label: 'Support & Safety',
+    items: [
+      { path: '/disputes', icon: MessageCircle, label: 'Disputes', permissions: ['MANAGE_SUPPORT'] },
+      { path: '/support', icon: Headphones, label: 'Support', permissions: ['MANAGE_SUPPORT'] },
+      { path: '/safety', icon: Shield, label: 'Safety', permissions: ['MANAGE_SUPPORT'] },
+    ],
+  },
+  {
+    label: 'VTU Services',
+    items: [
+      { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans', permissions: ['MANAGE_VTU'] },
+      { path: '/vtu-networks', icon: Network, label: 'VTU Networks', permissions: ['MANAGE_VTU'] },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { path: '/staff', icon: UserPlus, label: 'Staff', permissions: ['MANAGE_STAFF'] },
+      { path: '/audit-logs', icon: FileText, label: 'Audit Logs', permissions: ['MANAGE_STAFF'] },
+      { path: '/settings', icon: Settings, label: 'Settings', permissions: ['MANAGE_SETTINGS'] },
+    ],
+  },
 ]
 
 export default function Layout() {
@@ -67,9 +105,12 @@ export default function Layout() {
   const { handleLogout } = useAuthSession()
   const { hasPermission } = usePermissions()
 
-  const filteredNavItems = navItems.filter(item => 
-    !item.permissions || hasPermission(item.permissions)
-  )
+  const filteredNavSections = navSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => !item.permissions || hasPermission(item.permissions)),
+    }))
+    .filter(section => section.items.length > 0)
 
   // Mobile drawer: lock background scroll and close on Escape while open.
   useEffect(() => {
@@ -137,29 +178,39 @@ export default function Layout() {
           </button>
         </div>
 
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <ul className="space-y-1">
-            {filteredNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = isActivePath(item.path)
-              return (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-primary/10 dark:bg-primary/20 text-primary font-medium'
-                        : 'text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
-                    }`}
-                  >
-                    <Icon size={20} />
-                    {item.label}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+        <nav className="flex-1 px-4 py-4 overflow-y-auto">
+          {filteredNavSections.map((section, index) => (
+            <div
+              key={section.label}
+              className={index === 0 ? '' : 'mt-5 pt-4 border-t border-surface-muted dark:border-dark-surface-muted'}
+            >
+              <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted dark:text-dark-muted">
+                {section.label}
+              </p>
+              <ul className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon
+                  const isActive = isActivePath(item.path)
+                  return (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                          isActive
+                            ? 'bg-primary/10 dark:bg-primary/20 text-primary font-medium'
+                            : 'text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
+                        }`}
+                      >
+                        <Icon size={18} />
+                        {item.label}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-surface-muted dark:border-dark-surface-muted">
