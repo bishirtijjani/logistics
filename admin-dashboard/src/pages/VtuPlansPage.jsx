@@ -651,7 +651,8 @@ function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggl
             </th>
             <th className="px-3 py-3">Plan</th>
             {tab === 'DATA' && <th className="px-3 py-3">Type</th>}
-            <th className="px-3 py-3 text-right">Cost</th>
+            <th className="px-3 py-3 text-right">Cost · BilalSada</th>
+            <th className="px-3 py-3 text-right">Cost · AlRahuz</th>
             <th className="px-3 py-3 text-right">Selling</th>
             <th className="px-3 py-3 text-right">Margin</th>
             <th className="px-3 py-3 text-center">Active</th>
@@ -730,6 +731,7 @@ function PlanRow({ plan, tab, checked, onCheck, onEdit, onDelete, onToggleActive
         </td>
       )}
       <td className="px-3 py-2.5 text-right text-muted dark:text-dark-muted">{fmt(plan.costPrice)}</td>
+      <td className="px-3 py-2.5 text-right text-muted dark:text-dark-muted">{plan.altCostPrice != null ? fmt(plan.altCostPrice) : '—'}</td>
       <td className="px-3 py-2.5 text-right">
         <InlinePrice value={plan.sellingPrice} onCommit={onInlinePrice} />
       </td>
@@ -920,6 +922,11 @@ function DataMatrix({ plans, networks, onEditCell, onAddEmpty, onInlinePrice }) 
                         <div className="text-[10px] text-muted dark:text-dark-muted">
                           cost {fmt(plan.costPrice)}
                         </div>
+                        {plan.altCostPrice != null && (
+                          <div className="text-[10px] text-muted dark:text-dark-muted">
+                            alr {fmt(plan.altCostPrice)}
+                          </div>
+                        )}
                         <div className="mt-1">
                           <MarginBadge cost={plan.costPrice} sell={plan.sellingPrice} />
                         </div>
@@ -959,6 +966,7 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
     validity: initial?.validity ?? '',
     planType: initial?.planType ?? (startType === 'DATA' ? 'SME' : ''),
     costPrice: initial?.costPrice ?? '',
+    altCostPrice: initial?.altCostPrice ?? '',
     sellingPrice: initial?.sellingPrice ?? '',
     isActive: initial?.isActive ?? true,
     sortOrder: initial?.sortOrder ?? 0,
@@ -994,6 +1002,7 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
       validity: form.validity || null,
       planType: form.planType || null,
       costPrice: Number(form.costPrice || 0),
+      altCostPrice: form.altCostPrice !== '' && form.altCostPrice != null ? Number(form.altCostPrice) : null,
       sellingPrice: Number(form.sellingPrice || 0),
       isActive: !!form.isActive,
       sortOrder: Number(form.sortOrder || 0),
@@ -1143,16 +1152,20 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
           <Section title="Pricing">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={cls.label}>Cost (₦) *</label>
-                <NumberInput decimal required value={form.costPrice} onChange={(val) => setField('costPrice', val)} className={cls.input} placeholder="Provider price" />
+                <label className={cls.label}>BilalSada cost (₦) *</label>
+                <NumberInput decimal required value={form.costPrice} onChange={(val) => setField('costPrice', val)} className={cls.input} placeholder="Primary provider price" />
               </div>
               <div>
-                <label className={cls.label}>Selling (₦) *</label>
-                <NumberInput decimal required value={form.sellingPrice} onChange={(val) => setField('sellingPrice', val)} className={cls.input} placeholder="Customer price" />
+                <label className={cls.label}>AlRahuz cost (₦)</label>
+                <NumberInput decimal value={form.altCostPrice} onChange={(val) => setField('altCostPrice', val)} className={cls.input} placeholder="Failover price (optional)" />
               </div>
             </div>
+            <div>
+              <label className={cls.label}>Selling (₦) *</label>
+              <NumberInput decimal required value={form.sellingPrice} onChange={(val) => setField('sellingPrice', val)} className={cls.input} placeholder="Customer price" />
+            </div>
             <div className="rounded-lg bg-surface-muted dark:bg-dark-surface-muted p-3 flex items-center justify-between">
-              <span className="text-xs text-muted dark:text-dark-muted">Live margin</span>
+              <span className="text-xs text-muted dark:text-dark-muted">Live margin (BilalSada)</span>
               <MarginBadge cost={form.costPrice} sell={form.sellingPrice} />
             </div>
           </Section>

@@ -3348,6 +3348,9 @@ const _normalizeAltIds = (data) => {
   const out = { ...data };
   if ('altProviderNetworkId' in out) out.altProviderNetworkId = _optInt(out.altProviderNetworkId);
   if ('altProviderPlanId' in out) out.altProviderPlanId = _optInt(out.altProviderPlanId);
+  // AlRahuz cost is optional: a blank ('') must become null, not 0, so an
+  // unpriced plan stays distinguishable from a genuinely free one.
+  if ('altCostPrice' in out) out.altCostPrice = _optInt(out.altCostPrice);
   return out;
 };
 

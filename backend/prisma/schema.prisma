@@ -209,24 +209,24 @@ enum SubstitutionPreference {
 /// Core user identity - shared by customers, riders, and admins.
 /// Role determines which parts of the system the user can access.
 model User {
-  id             String     @id @default(uuid())
-  email          String     @unique
-  phone          String?    @unique
-  firstName      String
-  lastName       String
-  passwordHash   String? /// Hashed password for email/password login
-  transactionPin String? /// Hashed 6-digit PIN for financial operations
-  transactionPinSetByUser Boolean @default(false) /// True once the user chose their own PIN. Stays false for merchants seeded with the default '000000' - used to force a real PIN before financial actions.
-  bvnHash        String? /// Hashed BVN - never store plaintext
-  profilePicture String? /// URL to profile picture (cloud storage)
-  dateOfBirth    DateTime? /// For KYC identity confirmation
-  address        String? /// Primary address text
-  kycStatus      KycStatus  @default(NONE)
-  role           UserRole   @default(CUSTOMER)
-  permissions    Json? /// Array of permission strings for ADMIN role. null/['ALL'] = super admin.
-  status         UserStatus @default(PENDING)
-  fcmToken       String? /// Firebase Cloud Messaging token for push notifications   
-  deletedAt      DateTime? /// Soft delete
+  id                      String     @id @default(uuid())
+  email                   String     @unique
+  phone                   String?    @unique
+  firstName               String
+  lastName                String
+  passwordHash            String? /// Hashed password for email/password login
+  transactionPin          String? /// Hashed 6-digit PIN for financial operations
+  transactionPinSetByUser Boolean    @default(false) /// True once the user chose their own PIN. Stays false for merchants seeded with the default '000000' - used to force a real PIN before financial actions.
+  bvnHash                 String? /// Hashed BVN - never store plaintext
+  profilePicture          String? /// URL to profile picture (cloud storage)
+  dateOfBirth             DateTime? /// For KYC identity confirmation
+  address                 String? /// Primary address text
+  kycStatus               KycStatus  @default(NONE)
+  role                    UserRole   @default(CUSTOMER)
+  permissions             Json? /// Array of permission strings for ADMIN role. null/['ALL'] = super admin.
+  status                  UserStatus @default(PENDING)
+  fcmToken                String? /// Firebase Cloud Messaging token for push notifications   
+  deletedAt               DateTime? /// Soft delete
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -513,25 +513,29 @@ model AirtimeToCashTransaction {
 /// `providerNetworkId` + `networkName` are kept in sync with the parent
 /// VtuNetwork row via a server-side sweep when the network is edited.
 model VtuPlan {
-  id                String      @id @default(uuid())
-  type              VtuPlanType
-  providerNetworkId Int? /// Primary (BilalSada) network/cable/disco ID
-  networkName       String? /// "MTN", "GOTV" etc. (denormalized)
-  providerPlanId    Int? /// Primary (BilalSada) plan ID (data/cable plans)
+  id                   String      @id @default(uuid())
+  type                 VtuPlanType
+  providerNetworkId    Int? /// Primary (BilalSada) network/cable/disco ID
+  networkName          String? /// "MTN", "GOTV" etc. (denormalized)
+  providerPlanId       Int? /// Primary (BilalSada) plan ID (data/cable plans)
   // Secondary (AlRahuz) IDs - used when a purchase fails over to AlRahuz. Null
   // when AlRahuz isn't mapped for this plan; such a plan simply can't fail over.
   altProviderNetworkId Int?
   altProviderPlanId    Int?
-  name              String /// Display name e.g. "1GB - 30 Days"
-  dataSize          String? /// "1GB" for data plans
-  validity          String? /// "30 Days"
-  planType          String? /// "SME", "GIFTING" etc. for data plans
-  costPrice         Decimal     @db.Decimal(15, 2)
-  sellingPrice      Decimal     @db.Decimal(15, 2)
-  isActive          Boolean     @default(true)
-  sortOrder         Int         @default(0)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  name                 String /// Display name e.g. "1GB - 30 Days"
+  dataSize             String? /// "1GB" for data plans
+  validity             String? /// "30 Days"
+  planType             String? /// "SME", "GIFTING" etc. for data plans
+  costPrice            Decimal     @db.Decimal(15, 2) /// Primary (BilalSada) cost price
+  // Secondary (AlRahuz) cost price - what AlRahuz charges for this same plan.
+  // Null when AlRahuz isn't mapped/priced for this plan. Selling price stays the
+  // same regardless of which provider fulfils the sale.
+  altCostPrice         Decimal?    @db.Decimal(15, 2)
+  sellingPrice         Decimal     @db.Decimal(15, 2)
+  isActive             Boolean     @default(true)
+  sortOrder            Int         @default(0)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   @@index([type, isActive])
   @@index([providerNetworkId, type])
@@ -543,15 +547,15 @@ model VtuPlan {
 /// Switching VTU providers = swap the provider adapter (currently
 /// bilalsada.service) + reload this catalogue with the new provider's IDs.
 model VtuNetwork {
-  id                String      @id @default(uuid())
-  type              VtuPlanType
-  providerNetworkId Int /// The integer the primary (BilalSada) API expects
+  id                   String      @id @default(uuid())
+  type                 VtuPlanType
+  providerNetworkId    Int /// The integer the primary (BilalSada) API expects
   altProviderNetworkId Int? /// The integer AlRahuz expects (failover); null = unmapped
-  name              String /// Display name e.g. "MTN", "DSTV", "Ikeja"
-  isActive          Boolean     @default(true)
-  sortOrder         Int         @default(0)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  name                 String /// Display name e.g. "MTN", "DSTV", "Ikeja"
+  isActive             Boolean     @default(true)
+  sortOrder            Int         @default(0)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
   @@unique([type, providerNetworkId])
   @@index([type, isActive])
@@ -1215,12 +1219,12 @@ model NotificationPreferences {
 /// PushManager subscription here. Pruned automatically when the push service
 /// reports the endpoint as gone (404/410).
 model PushSubscription {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   userId    String
-  endpoint  String   @unique
+  endpoint  String  @unique
   p256dh    String /// client public key (base64url) from the browser subscription
   auth      String /// auth secret (base64url) from the browser subscription
-  userAgent String?  @db.VarChar(500)
+  userAgent String? @db.VarChar(500)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
