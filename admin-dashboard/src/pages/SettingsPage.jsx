@@ -120,6 +120,16 @@ export default function SettingsPage() {
               Fees & Commissions
             </button>
             <button
+              onClick={() => setActiveTab('vtu')}
+              className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-2 rounded-lg transition-colors text-sm whitespace-nowrap ${
+                activeTab === 'vtu'
+                  ? 'bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary font-medium'
+                  : 'text-muted dark:text-dark-muted hover:bg-surface-muted dark:hover:bg-dark-surface-muted'
+              }`}
+            >
+              VTU Providers
+            </button>
+            <button
               onClick={() => setActiveTab('notifications')}
               className={`flex-1 lg:flex-none lg:w-full text-left px-4 py-2 rounded-lg transition-colors text-sm whitespace-nowrap ${
                 activeTab === 'notifications'
@@ -328,23 +338,43 @@ export default function SettingsPage() {
                     </select>
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">VTU Provider Routing</label>
-                    <select
-                      value={platformForm.vtuProviderMode}
-                      onChange={(e) => setPlatformForm({ ...platformForm, vtuProviderMode: e.target.value })}
-                      className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
-                    >
-                      <option value="BILALSADASUB_ONLY">BilalSada only</option>
-                      <option value="ALRAHUZ_ONLY">AlRahuz only</option>
-                      <option value="BOTH">Both — BilalSada primary, AlRahuz failover</option>
-                    </select>
-                    <p className="text-xs text-muted dark:text-dark-muted mt-1">
-                      In “Both” mode a purchase that BilalSada fails is retried on AlRahuz before any refund — so a failed transaction doesn’t lose the sale. Requires the network/plan’s AlRahuz IDs to be set.
-                    </p>
-                  </div>
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={handlePlatformSave}
+                  disabled={saving}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 w-full sm:w-auto"
+                >
+                  <Save size={18} />
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'vtu' && (
+            <div className="bg-surface dark:bg-dark-surface rounded-xl shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-1">VTU Providers</h2>
+              <p className="text-sm text-muted dark:text-dark-muted mb-6">
+                Choose which upstream VTU provider(s) vend airtime, data, cable and electricity. Per-network and per-plan provider IDs are managed on the VTU Networks and VTU Plans pages.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-text dark:text-dark-text mb-2">Provider Routing</label>
+                  <select
+                    value={platformForm.vtuProviderMode}
+                    onChange={(e) => setPlatformForm({ ...platformForm, vtuProviderMode: e.target.value })}
+                    className="w-full px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none dark:bg-dark-surface-muted dark:text-dark-text"
+                  >
+                    <option value="BILALSADASUB_ONLY">BilalSada only</option>
+                    <option value="ALRAHUZ_ONLY">AlRahuz only</option>
+                    <option value="BOTH">Both — BilalSada primary, AlRahuz failover</option>
+                  </select>
+                  <p className="text-xs text-muted dark:text-dark-muted mt-1">
+                    In “Both” mode a purchase that BilalSada fails is retried on AlRahuz before any refund — so a failed transaction doesn’t lose the sale. A purchase only fails over when that network/plan has its AlRahuz IDs set.
+                  </p>
                 </div>
               </div>
 
