@@ -268,6 +268,7 @@ const createRequest = async (customerId, requestData) => {
     pin,
     quoteToken,
     prescriptionUrl,
+    paymentMethod, // validated, but not a Request column - wallet is the only flow
     ...locationData
   } = requestData;
 
