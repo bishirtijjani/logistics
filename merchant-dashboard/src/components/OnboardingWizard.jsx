@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import api from '../lib/api'
 import { useDispatch, useSelector } from 'react-redux'
-import { X, ArrowRight, ArrowLeft, Check, Store, Package, Plus, Sparkles, MapPin } from 'lucide-react'
+import { X, ArrowRight, ArrowLeft, Check, Store, Package, Plus, Sparkles, MapPin, ImagePlus } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
 import { updateSettings } from '../store/slices/settingsSlice.js'
 import { createProduct } from '../store/slices/productsSlice.js'
 import LocationPicker from './LocationPicker.jsx'
+import CloudinaryImageUploader from './CloudinaryImageUploader.jsx'
 import { ProductCreateModal } from '../pages/MenuPage.jsx'
 
 /**
@@ -26,6 +27,11 @@ export default function OnboardingWizard({ open, onClose }) {
   // logic so a merchant reopening the wizard just to add their first product
   // isn't forced to re-pin a location they already have.
   const merchantProfile = useSelector((state) => state.settings.settings)
+  // Existing products (populated by Layout's fetchProducts). A merchant who
+  // already has products only needs to add a cover here, so the product step is
+  // treated as done and isn't forced again.
+  const { products, total: productTotal } = useSelector((state) => state.products)
+  const alreadyHasProducts = (productTotal || 0) > 0 || (products?.length || 0) > 0
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
 
@@ -46,6 +52,17 @@ export default function OnboardingWizard({ open, onClose }) {
   // is gated by `locationSaved` and the step cannot be skipped.
   const [locationData, setLocationData] = useState({ address: '', lat: 0, lng: 0 })
   const [locationSaved, setLocationSaved] = useState(false)
+
+  // Store photo step: cover is required, logo is optional. `photoSaved` tracks
+  // whether the current cover has been persisted to the merchant profile (the
+  // uploader returns a Cloudinary URL immediately, but it isn't on the profile
+  // until the PATCH lands - which is what flips Layout's onboarding signal).
+  const [photoData, setPhotoData] = useState({ logoUrl: '', coverImageUrl: '' })
+  const [photoSaved, setPhotoSaved] = useState(false)
+  const photoAlreadySet = !!merchantProfile?.coverImageUrl
+  // The product step is complete if one was added in this session OR the
+  // merchant already had products before opening the wizard.
+  const productDone = onboardingData.hasAddedProduct || alreadyHasProducts
 
   // Placeholder coords are 0,0 and a "Pending…" address - either means the
   // merchant hasn't pinned a real location yet (mirrors Layout's check).
@@ -78,16 +95,35 @@ export default function OnboardingWizard({ open, onClose }) {
     setLocationSaved(true)
   }, [locationAlreadySet, merchantProfile])
 
-  // Choose the starting step once per open: jump straight to the product step
-  // when location is already pinned and the only thing left is the first
-  // product. Wait for the profile so we don't misjudge and start at step 1.
+  // Prefill any already-saved store imagery once so a returning merchant sees
+  // their existing cover/logo instead of an empty uploader.
+  const photoPrefilledRef = useRef(false)
+  useEffect(() => {
+    if (photoPrefilledRef.current || !merchantProfile) return
+    photoPrefilledRef.current = true
+    setPhotoData({
+      logoUrl: merchantProfile.logoUrl || '',
+      coverImageUrl: merchantProfile.coverImageUrl || '',
+    })
+    setPhotoSaved(!!merchantProfile.coverImageUrl)
+  }, [merchantProfile])
+
+  // Choose the starting step once per open: jump straight to the first
+  // incomplete step so a returning merchant isn't walked back through work
+  // they've already done. Order: location (2) -> store photo (3) -> product (4).
+  // Wait for the profile so we don't misjudge and start at step 1.
   const initializedRef = useRef(false)
   useEffect(() => {
     if (!open) { initializedRef.current = false; return }
     if (initializedRef.current || !merchantProfile) return
     initializedRef.current = true
-    setCurrentStep(locationAlreadySet && !onboardingData.hasAddedProduct ? 3 : 1)
-  }, [open, merchantProfile, locationAlreadySet, onboardingData.hasAddedProduct])
+    let start = 1
+    if (locationAlreadySet) {
+      if (!photoAlreadySet) start = 3
+      else if (!productDone) start = 4
+    }
+    setCurrentStep(start)
+  }, [open, merchantProfile, locationAlreadySet, photoAlreadySet, productDone])
 
   const handleSkip = () => {
     onClose?.()
@@ -97,6 +133,11 @@ export default function OnboardingWizard({ open, onClose }) {
     // Step 2 (location) is required - block advance until the pin is saved.
     if (currentStep === 2 && !locationSaved) {
       const ok = await saveLocation()
+      if (!ok) return
+    }
+    // Step 3 (store photo) is required - block advance until the cover is saved.
+    if (currentStep === 3 && !photoSaved) {
+      const ok = await savePhoto()
       if (!ok) return
     }
     setCurrentStep(currentStep + 1)
@@ -135,6 +176,38 @@ export default function OnboardingWizard({ open, onClose }) {
     }
   }
 
+  const savePhoto = async () => {
+    if (!photoData.coverImageUrl) {
+      showErrorToast('Add a cover photo so customers can see your store')
+      return false
+    }
+    if (!merchantId) {
+      showErrorToast('Missing merchant context - try logging out and back in')
+      return false
+    }
+    setLoading(true)
+    try {
+      // Persist via Redux so Layout's `coverMissing` signal flips immediately and
+      // the dashboard banner self-dismisses. Logo is only sent when set (the
+      // server validates it as a URL, so an empty string would be rejected).
+      await dispatch(
+        updateSettings({
+          merchantId,
+          coverImageUrl: photoData.coverImageUrl,
+          ...(photoData.logoUrl ? { logoUrl: photoData.logoUrl } : {}),
+        }),
+      ).unwrap()
+      setPhotoSaved(true)
+      showSuccessToast('Store photo saved!')
+      return true
+    } catch (err) {
+      showErrorToast(err?.message || 'Failed to save photo. Please try again.')
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleBack = () => {
     setCurrentStep(currentStep - 1)
   }
@@ -155,9 +228,13 @@ export default function OnboardingWizard({ open, onClose }) {
   }
 
   const handleComplete = () => {
-    // Onboarding isn't complete without a first product - the Complete button
-    // is disabled in this case, but guard here too.
-    if (!onboardingData.hasAddedProduct) {
+    // Onboarding isn't complete without a cover photo or a first product - the
+    // Complete button is disabled in these cases, but guard here too.
+    if (!photoData.coverImageUrl) {
+      showErrorToast('Add a cover photo to finish setup')
+      return
+    }
+    if (!productDone) {
       showErrorToast('Add your first product to finish setup')
       return
     }
@@ -184,7 +261,7 @@ export default function OnboardingWizard({ open, onClose }) {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
-                Set your business hours
+                Add your store photo
               </li>
               <li className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -232,18 +309,74 @@ export default function OnboardingWizard({ open, onClose }) {
     },
     {
       id: 3,
+      icon: ImagePlus,
+      title: 'Add Your Store Photo',
+      description: 'A cover photo of what you sell or your business - this is the first thing customers see.',
+      component: (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+              Cover photo <span className="text-error">*</span>
+            </label>
+            <CloudinaryImageUploader
+              kind="merchant_cover"
+              value={photoData.coverImageUrl}
+              onChange={(url) => {
+                setPhotoData((d) => ({ ...d, coverImageUrl: url }))
+                setPhotoSaved(false)
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+              Logo <span className="font-normal text-muted dark:text-dark-muted">(optional)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <CloudinaryImageUploader
+                kind="merchant_logo"
+                size="sm"
+                value={photoData.logoUrl}
+                onChange={(url) => {
+                  setPhotoData((d) => ({ ...d, logoUrl: url }))
+                  setPhotoSaved(false)
+                }}
+              />
+              <p className="text-sm text-muted dark:text-dark-muted">
+                If you skip this, we'll use your business initial.
+              </p>
+            </div>
+          </div>
+
+          {photoSaved && (
+            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-sm text-green-700 dark:text-green-400">
+              <Check className="w-4 h-4 flex-shrink-0" />
+              Photo saved. Click Next to continue.
+            </div>
+          )}
+          <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl text-sm text-orange-700 dark:text-orange-400">
+            A cover photo is required - until you add one, customers see a generic
+            default and your setup stays incomplete.
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 4,
       icon: Package,
       title: 'Add Your First Product',
       description: 'Add at least one product so customers have something to order.',
       component: (
         <div className="space-y-6">
-          {onboardingData.hasAddedProduct ? (
+          {productDone ? (
             <div className="text-center space-y-4 py-2">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full">
                 <Check className="w-10 h-10 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h4 className="text-lg font-bold text-text dark:text-dark-text">First product added!</h4>
+                <h4 className="text-lg font-bold text-text dark:text-dark-text">
+                  {onboardingData.hasAddedProduct ? 'First product added!' : "You're all set!"}
+                </h4>
                 <p className="text-sm text-muted dark:text-dark-muted mt-1">
                   You can add more anytime from the Products page. Click “Complete Setup” to finish.
                 </p>
@@ -377,8 +510,14 @@ export default function OnboardingWizard({ open, onClose }) {
             ) : (
               <button
                 onClick={handleComplete}
-                disabled={loading || !onboardingData.hasAddedProduct}
-                title={!onboardingData.hasAddedProduct ? 'Add your first product to finish' : undefined}
+                disabled={loading || !photoData.coverImageUrl || !productDone}
+                title={
+                  !photoData.coverImageUrl
+                    ? 'Add a cover photo to finish'
+                    : !productDone
+                    ? 'Add your first product to finish'
+                    : undefined
+                }
                 className="flex-1 py-3 bg-gradient-to-r from-success to-emerald-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Complete Setup

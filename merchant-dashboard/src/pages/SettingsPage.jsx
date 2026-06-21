@@ -6,6 +6,7 @@ import { setTransactionPin, changeTransactionPin, fetchAuthProfile } from '../st
 import { Store, Save, Bell, Clock, Lock, Eye, EyeOff, Smartphone, KeyRound, ShieldAlert, AlertCircle } from 'lucide-react'
 import { CardSkeleton } from '../components/LoadingSkeleton.jsx'
 import LocationPicker from '../components/LocationPicker.jsx'
+import CloudinaryImageUploader from '../components/CloudinaryImageUploader.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 
 export default function SettingsPage() {
@@ -25,6 +26,8 @@ export default function SettingsPage() {
     openingTime: '08:00',
     closingTime: '22:00',
     isOpen: true,
+    logoUrl: '',
+    coverImageUrl: '',
   })
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -137,6 +140,8 @@ export default function SettingsPage() {
         openingTime: settings.openingTime || '08:00',
         closingTime: settings.closingTime || '22:00',
         isOpen: settings.isOpen ?? true,
+        logoUrl: settings.logoUrl || '',
+        coverImageUrl: settings.coverImageUrl || '',
       })
       setNotificationSettings({
         emailNotifications: settings.emailNotifications ?? true,
@@ -224,6 +229,10 @@ export default function SettingsPage() {
     try {
       // Remove isOpen from profile update to avoid accidental overwrite
       const { isOpen, ...updateData } = formData
+      // logoUrl/coverImageUrl are validated as `url().optional()` server-side, so
+      // an empty string would 400. Only send them when actually set.
+      if (!updateData.logoUrl) delete updateData.logoUrl
+      if (!updateData.coverImageUrl) delete updateData.coverImageUrl
       await dispatch(updateSettings({
         merchantId,
         ...updateData,
@@ -401,6 +410,41 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+            {/* Storefront imagery. Cover is the hero customers see in the browse
+                list; logo is optional and falls back to the business initial. */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+                  Store cover photo
+                </label>
+                <p className="text-xs text-muted dark:text-dark-muted mb-2">
+                  An image of what you sell or your business. Customers see this first.
+                </p>
+                <CloudinaryImageUploader
+                  kind="merchant_cover"
+                  value={formData.coverImageUrl}
+                  onChange={(url) => setFormData({ ...formData, coverImageUrl: url })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">
+                  Logo <span className="font-normal text-muted dark:text-dark-muted">(optional)</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <CloudinaryImageUploader
+                    kind="merchant_logo"
+                    size="sm"
+                    value={formData.logoUrl}
+                    onChange={(url) => setFormData({ ...formData, logoUrl: url })}
+                  />
+                  <p className="text-xs text-muted dark:text-dark-muted">
+                    A square logo or profile photo. If you skip this, we'll use your
+                    business initial.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-text dark:text-dark-text mb-1">Business Name</label>

@@ -1066,6 +1066,12 @@ const UPLOAD_KINDS = {
   prescription: { root: "prescriptions", prefix: "rx" },
   return: { root: "returns", prefix: "return" },
   product: { root: "products", prefix: "prod" },
+  // Merchant storefront imagery. User-folder-scoped (the merchant's own user id),
+  // so a merchant can only write into their own logo/cover tree. No extra role
+  // gate needed beyond `authenticate` - same trust model as `product`, which the
+  // merchant dashboard already mints.
+  merchant_logo: { root: "merchant-logos", prefix: "logo" },
+  merchant_cover: { root: "merchant-covers", prefix: "cover" },
   dispute: { root: "disputes", prefix: "ev" },
   ticket: { root: "tickets", prefix: "att" },
   // Phase 5 - Proof of Delivery assets. Stored under

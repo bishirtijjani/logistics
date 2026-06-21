@@ -227,7 +227,13 @@ export default function MerchantMenuScreen() {
                 accessibilityLabel={p.name}
                 accessibilityHint={p.description || ''}
               >
-                <Image source={{ uri: p.imageUrl || 'https://via.placeholder.com/100' }} style={styles.productImage} />
+                {p.imageUrl ? (
+                  <Image source={{ uri: p.imageUrl }} style={styles.productImage} />
+                ) : (
+                  <View style={[styles.productImage, styles.productImageFallback]}>
+                    <Ionicons name="fast-food-outline" size={26} color={tokens.text.muted} />
+                  </View>
+                )}
                 <View style={styles.productInfo}>
                   <Text style={styles.productName}>{p.name}</Text>
                   {p.description ? (
@@ -295,6 +301,7 @@ const makeStyles = (tokens) => StyleSheet.create({
   productCard: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: tokens.bg.surface, borderRadius: 12, marginBottom: 10 },
   productCardHighlight: { borderWidth: 1.5, borderColor: tokens.brand.default },
   productImage: { width: 64, height: 64, borderRadius: 8, marginRight: 12 },
+  productImageFallback: { backgroundColor: tokens.bg.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   productInfo: { flex: 1 },
   productName: { fontSize: 15, fontWeight: '600', color: tokens.text.primary },
   productDesc: { fontSize: 12, color: tokens.text.muted, marginTop: 2 },

@@ -71,10 +71,14 @@ SkeletonLoader.MerchantCard = function MerchantCard() {
   const styles = useMemo(() => makeStyles(tokens), [tokens]);
   return (
     <View style={styles.merchantCard}>
-      <SkeletonLoader width="100%" height={120} radius={12} />
-      <View style={{ padding: 10 }}>
-        <SkeletonLoader width="70%" height={14} style={{ marginBottom: 6 }} />
-        <SkeletonLoader width="40%" height={12} />
+      <SkeletonLoader width="100%" height={140} radius={0} />
+      <View style={styles.merchantCardInfo}>
+        <SkeletonLoader width={48} height={48} radius={12} style={{ marginRight: 12 }} />
+        <View style={{ flex: 1 }}>
+          <SkeletonLoader width="60%" height={15} style={{ marginBottom: 7 }} />
+          <SkeletonLoader width="40%" height={12} style={{ marginBottom: 7 }} />
+          <SkeletonLoader width="75%" height={12} />
+        </View>
       </View>
     </View>
   );
@@ -110,9 +114,16 @@ const makeStyles = (tokens) => StyleSheet.create({
   },
   merchantCard: {
     backgroundColor: tokens.bg.surface,
-    borderRadius: 14,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: tokens.border.subtle,
+  },
+  merchantCardInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
   },
 });
 

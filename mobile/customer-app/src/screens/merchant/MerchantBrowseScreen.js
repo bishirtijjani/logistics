@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
@@ -24,6 +25,104 @@ import { useTheme } from '../../theme';
 import SkeletonLoader from '../../components/SkeletonLoader';
 import EmptyState from '../../components/EmptyState';
 import SearchModal from '../../components/SearchModal';
+
+const initialFor = (name = '') =>
+  (name || '?').trim().charAt(0).toUpperCase() || '?';
+
+// Cover banner. Shows the merchant's uploaded cover when present; otherwise our
+// own branded default (a brand-gradient panel with a storefront glyph + the
+// shop name) so the banner is never an empty box. `onBrand` text/icon keeps
+// contrast correct in both light and dark mode. Onboarding now requires a
+// cover, so this default is only seen for merchants who registered earlier.
+const CoverBanner = ({ item, styles, tokens }) => {
+  const [coverFailed, setCoverFailed] = useState(false);
+
+  if (item.coverImageUrl && !coverFailed) {
+    return (
+      <Image
+        source={{ uri: item.coverImageUrl }}
+        style={styles.cover}
+        onError={() => setCoverFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <LinearGradient
+      colors={[tokens.brand.default, tokens.brand.strong]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.cover, styles.coverDefault]}
+    >
+      <Ionicons name="storefront" size={34} color={tokens.text.onBrand} style={{ opacity: 0.92 }} />
+      <Text style={styles.coverDefaultText} numberOfLines={1}>{item.name}</Text>
+    </LinearGradient>
+  );
+};
+
+// One merchant as a rich card: full-width cover banner (real photo or branded
+// default) with the open/closed badge floated on it, then a row with the logo
+// (or generated initial), name, rating, and address. The logo Image falls back
+// to the initial on error so a broken/missing URL never leaves an empty box.
+const MerchantRow = ({ item, styles, tokens, t, onPress }) => {
+  const [logoFailed, setLogoFailed] = useState(false);
+  const showLogo = !!item.logoUrl && !logoFailed;
+  const initial = initialFor(item.name);
+
+  return (
+    <TouchableOpacity
+      style={[styles.merchantCard, !item.isOpen && styles.merchantCardClosed]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}. ${item.isOpen ? t('merchant.openNow') : t('merchant.closed')}`}
+      accessibilityHint={item.address}
+    >
+      <View>
+        <CoverBanner item={item} styles={styles} tokens={tokens} />
+        <View style={[styles.coverBadge, item.isOpen ? styles.openBadge : styles.closedBadge]}>
+          <Text style={item.isOpen ? styles.openText : styles.closedText}>
+            {item.isOpen ? t('merchant.openNow') : t('merchant.closed')}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.infoRow}>
+        {showLogo ? (
+          <Image
+            source={{ uri: item.logoUrl }}
+            style={styles.logo}
+            onError={() => setLogoFailed(true)}
+          />
+        ) : (
+          <View style={[styles.logo, styles.logoFallback]}>
+            <Text style={styles.logoInitial}>{initial}</Text>
+          </View>
+        )}
+
+        <View style={styles.merchantInfo}>
+          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={13} color="#FFA500" />
+            <Text style={styles.rating}>{item.averageRating.toFixed(1)}</Text>
+            <Text style={styles.orderCount}>
+              {t('merchant.ordersCount', { count: item.totalOrders })}
+            </Text>
+            {!!item.category?.name && (
+              <>
+                <Text style={styles.dot}>·</Text>
+                <Text style={styles.type} numberOfLines={1}>{item.category.name}</Text>
+              </>
+            )}
+          </View>
+          <Text style={styles.address} numberOfLines={1}>{item.address}</Text>
+        </View>
+
+        <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const MerchantBrowseScreen = () => {
   const navigation = useNavigation();
@@ -135,51 +234,15 @@ const MerchantBrowseScreen = () => {
   );
 
   const renderMerchant = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.merchantCard, !item.isOpen && styles.merchantCardClosed]}
-      onPress={() => navigation.navigate('MerchantMenu', { merchantId: item.id, categorySlug })}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.name}. ${item.isOpen ? t('merchant.openNow') : t('merchant.closed')}`}
-      accessibilityHint={item.address}
-    >
-      <Image
-        source={{ uri: item.coverImageUrl || 'https://via.placeholder.com/400x200' }}
-        style={styles.coverImage}
-      />
-      <View style={styles.merchantInfo}>
-        <View style={styles.headerRow}>
-          <Image
-            source={{ uri: item.logoUrl || 'https://via.placeholder.com/50' }}
-            style={styles.logo}
-          />
-          <View style={styles.nameContainer}>
-            <Text style={styles.name}>{item.name}</Text>
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color="#FFA500" />
-              <Text style={styles.rating}>{item.averageRating.toFixed(1)}</Text>
-              <Text style={styles.orderCount}>{t('merchant.ordersCount', { count: item.totalOrders })}</Text>
-            </View>
-          </View>
-          {item.isOpen ? (
-            <View style={styles.openBadge}>
-              <Text style={styles.openText}>{t('merchant.openNow')}</Text>
-            </View>
-          ) : (
-            <View style={styles.closedBadge}>
-              <Text style={styles.closedText}>{t('merchant.closed')}</Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.address} numberOfLines={1}>
-          {item.address}
-        </Text>
-        <View style={styles.footerRow}>
-          <Text style={styles.type}>{item.category?.name || ''}</Text>
-          <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
-        </View>
-      </View>
-    </TouchableOpacity>
+    <MerchantRow
+      item={item}
+      styles={styles}
+      tokens={tokens}
+      t={t}
+      onPress={() =>
+        navigation.navigate('MerchantMenu', { merchantId: item.id, categorySlug })
+      }
+    />
   );
 
   return (
@@ -297,102 +360,142 @@ const makeStyles = (tokens) => ({
   listContent: {
     padding: 16,
   },
+  // Rich card: full-width cover banner on top, info row (logo + text + chevron)
+  // below.
   merchantCard: {
     backgroundColor: tokens.bg.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: tokens.border.subtle,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   // Closed merchants stay visible but dimmed so they read as inactive while the
   // open ones (sorted first) remain the primary choice.
   merchantCardClosed: {
     opacity: 0.55,
   },
-  coverImage: {
+  cover: {
     width: '100%',
-    height: 120,
+    height: 140,
     resizeMode: 'cover',
+    backgroundColor: tokens.bg.surfaceMuted,
   },
-  merchantInfo: {
-    padding: 12,
+  // Our own default cover: centered storefront glyph + shop name on a brand
+  // gradient (the gradient colors are applied inline by LinearGradient).
+  coverDefault: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerRow: {
+  coverDefaultText: {
+    marginTop: 6,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    color: tokens.text.onBrand,
+  },
+  // Open/closed pill floated on the top-right of the cover.
+  coverBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    padding: 12,
   },
   logo: {
     width: 48,
     height: 48,
-    borderRadius: 8,
+    borderRadius: 12,
     marginRight: 12,
+    backgroundColor: tokens.bg.surfaceMuted,
   },
-  nameContainer: {
+  logoFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tokens.brand.soft,
+  },
+  logoInitial: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: tokens.brand.default,
+  },
+  merchantInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
   name: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: tokens.text.primary,
-    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 3,
   },
   rating: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     color: tokens.text.primary,
-    marginLeft: 4,
+    marginLeft: 3,
   },
   orderCount: {
     fontSize: 12,
     color: tokens.text.muted,
     marginLeft: 4,
   },
+  dot: {
+    fontSize: 12,
+    color: tokens.text.muted,
+    marginHorizontal: 6,
+  },
   openBadge: {
-    backgroundColor: tokens.status.success,
+    backgroundColor: tokens.status.successSoft,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   openText: {
     fontSize: 10,
-    fontWeight: '600',
-    color: tokens.text.onBrand,
+    fontWeight: '700',
+    color: tokens.status.successStrong,
   },
   closedBadge: {
-    backgroundColor: tokens.status.error,
+    backgroundColor: tokens.status.errorSoft,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
   closedText: {
     fontSize: 10,
-    fontWeight: '600',
-    color: tokens.text.onBrand,
+    fontWeight: '700',
+    color: tokens.status.errorStrong,
   },
   address: {
     fontSize: 13,
     color: tokens.text.muted,
-    marginBottom: 8,
-  },
-  footerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    marginTop: 3,
   },
   type: {
-    fontSize: 11,
-    color: tokens.brand.default,
-    fontWeight: '500',
-    textTransform: 'uppercase',
+    flexShrink: 1,
+    fontSize: 12,
+    color: tokens.brand.strong,
+    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,

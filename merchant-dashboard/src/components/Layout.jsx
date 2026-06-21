@@ -75,7 +75,14 @@ export default function Layout() {
   const hasProducts = (productTotal || 0) > 0 || (products?.length || 0) > 0
   const productMissing = !!merchantProfile && productsChecked && !hasProducts
 
-  const needsOnboarding = locationMissing || productMissing
+  // A storefront with no cover photo shows as a generic default in the customer
+  // browse list, so onboarding stays incomplete until one is uploaded. Merchants
+  // who registered before this requirement are re-engaged through the same
+  // banner + wizard. Logo is optional (falls back to the business initial), so
+  // it does not gate completion.
+  const coverMissing = !!merchantProfile && !merchantProfile.coverImageUrl
+
+  const needsOnboarding = locationMissing || coverMissing || productMissing
 
   // Auto-open once per page load - after the user dismisses, the banner is
   // the entry point. Layout persists across route changes, so this won't
