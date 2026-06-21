@@ -98,17 +98,28 @@ export default function CheckoutScreen() {
 
   const itemsForServer = useMemo(() => toServerItems(cart), [cart]);
 
+  // Resolve dropoff coords up front so the memo can key on the actual
+  // location. One-off (map-picked) addresses arrive without an `id`, so
+  // keying the payload on `selectedAddress?.id` left it stuck at its initial
+  // `null`: the id stayed undefined across the null→one-off transition, the
+  // memo never recomputed, the quote was never fetched, and the cost
+  // breakdown spun forever. Saved addresses carry an id, which is why the bug
+  // only surfaced for one-off locations. Key on the coordinates that actually
+  // drive the quote instead.
+  const dropoffLat = selectedAddress ? (selectedAddress.lat || selectedAddress.latitude || 0) : null;
+  const dropoffLng = selectedAddress ? (selectedAddress.lng || selectedAddress.longitude || 0) : null;
+
   const quotePayload = useMemo(() => {
     if (!selectedAddress) return null;
     return {
       type: 'MERCHANT_ORDER',
       merchantId,
       pickupLat, pickupLng,
-      dropoffLat: selectedAddress.lat || selectedAddress.latitude || 0,
-      dropoffLng: selectedAddress.lng || selectedAddress.longitude || 0,
+      dropoffLat,
+      dropoffLng,
       items: itemsForServer,
     };
-  }, [selectedAddress?.id, merchantId, pickupLat, pickupLng, itemsForServer]); // eslint-disable-line
+  }, [dropoffLat, dropoffLng, merchantId, pickupLat, pickupLng, itemsForServer]); // eslint-disable-line
 
   // Refetch quote whenever the dropoff changes.
   const fetchQuote = async () => {

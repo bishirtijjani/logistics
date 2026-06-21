@@ -77,17 +77,28 @@ export default function CreateRequestScreen() {
     return () => clearInterval(id);
   }, [quote]);
 
+  // One-off (map-picked) pickup/dropoff arrive without an `id`. Keying this
+  // memo on `pickup?.id`/`dropoff?.id` meant selecting a one-off location
+  // never changed the deps (the id stays undefined), so payloadBase stayed
+  // null, the quote was never fetched, and the cost breakdown spun forever.
+  // Key on the coordinates that actually drive the quote so both saved and
+  // one-off locations refetch correctly.
+  const pickupLat = pickup ? (pickup.lat || pickup.latitude || 0) : null;
+  const pickupLng = pickup ? (pickup.lng || pickup.longitude || 0) : null;
+  const dropoffLat = dropoff ? (dropoff.lat || dropoff.latitude || 0) : null;
+  const dropoffLng = dropoff ? (dropoff.lng || dropoff.longitude || 0) : null;
+
   const payloadBase = useMemo(() => {
     if (!pickup || !dropoff) return null;
     return {
       type: 'PACKAGE',
-      pickupLat: pickup.lat || pickup.latitude || 0,
-      pickupLng: pickup.lng || pickup.longitude || 0,
-      dropoffLat: dropoff.lat || dropoff.latitude || 0,
-      dropoffLng: dropoff.lng || dropoff.longitude || 0,
+      pickupLat,
+      pickupLng,
+      dropoffLat,
+      dropoffLng,
       package: { size },
     };
-  }, [pickup?.id, dropoff?.id, size]); // eslint-disable-line
+  }, [pickupLat, pickupLng, dropoffLat, dropoffLng, size]); // eslint-disable-line
 
   const fetchQuote = async () => {
     if (!payloadBase) return;
