@@ -89,12 +89,22 @@ const getDistance = async (originLat, originLng, destLat, destLng) => {
         key: config.GOOGLE_MAPS_API_KEY,
         units: "metric",
       },
+      // Without a timeout, axios waits forever on a stalled upstream and the
+      // /requests/quote call hangs with it - the client just spins. Cap it so
+      // a slow/hung Maps response fails fast and surfaces a real error.
+      timeout: 10000,
     });
 
+    // Surface the actual Maps failure reason (REQUEST_DENIED, ZERO_RESULTS,
+    // OVER_QUERY_LIMIT, ...) so logs explain *why* a quote couldn't price.
+    const topStatus = response.data.status;
     const element = response.data.rows?.[0]?.elements?.[0];
 
+    if (topStatus && topStatus !== "OK") {
+      throw new Error(`Distance Matrix ${topStatus}: ${response.data.error_message || "no detail"}`);
+    }
     if (!element || element.status !== "OK") {
-      throw new Error("Unable to calculate distance");
+      throw new Error(`Unable to calculate distance (element status: ${element?.status || "missing"})`);
     }
 
     return {

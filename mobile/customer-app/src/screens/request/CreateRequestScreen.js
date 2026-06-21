@@ -63,6 +63,7 @@ export default function CreateRequestScreen() {
   const [quote, setQuote] = useState(null);
   const [quoteFetchedAt, setQuoteFetchedAt] = useState(null);
   const [quoting, setQuoting] = useState(false);
+  const [quoteError, setQuoteError] = useState(null);
   const [now, setNow] = useState(Date.now());
 
   const [pinVisible, setPinVisible] = useState(false);
@@ -91,11 +92,14 @@ export default function CreateRequestScreen() {
   const fetchQuote = async () => {
     if (!payloadBase) return;
     setQuoting(true);
+    setQuoteError(null);
     try {
       const r = await api.post('/requests/quote', payloadBase);
       setQuote(r?.data);
       setQuoteFetchedAt(Date.now());
+      setQuoteError(null);
     } catch (err) {
+      setQuoteError(err?.message || t('request.toast.quoteFailed'));
       Toast.show({ type: 'error', text1: t('request.toast.quoteFailed'), text2: err?.message });
     } finally {
       setQuoting(false);
@@ -106,18 +110,22 @@ export default function CreateRequestScreen() {
     if (!payloadBase) {
       setQuote(null);
       setQuoteFetchedAt(null);
+      setQuoteError(null);
       return undefined;
     }
     let alive = true;
     (async () => {
       setQuoting(true);
+      setQuoteError(null);
       try {
         const r = await api.post('/requests/quote', payloadBase);
         if (!alive) return;
         setQuote(r?.data);
         setQuoteFetchedAt(Date.now());
+        setQuoteError(null);
       } catch (err) {
         if (!alive) return;
+        setQuoteError(err?.message || t('request.toast.quoteFailed'));
         Toast.show({ type: 'error', text1: t('request.toast.quoteFailed'), text2: err?.message });
       } finally {
         if (alive) setQuoting(false);
@@ -291,6 +299,24 @@ export default function CreateRequestScreen() {
               <Text style={{ color: tokens.text.muted, textAlign: 'center' }}>
                 {t('request.quote.needAddresses')}
               </Text>
+            ) : quoteError && !quoting ? (
+              <View style={{ alignItems: 'center', paddingVertical: 6 }}>
+                <Ionicons name="cloud-offline-outline" size={26} color={tokens.status.error} />
+                <Text style={{ color: tokens.text.primary, fontWeight: '700', marginTop: 8 }}>
+                  {t('request.toast.quoteFailed')}
+                </Text>
+                <Text style={{ color: tokens.text.muted, fontSize: 12, textAlign: 'center', marginTop: 4 }}>
+                  {quoteError}
+                </Text>
+                <TouchableOpacity
+                  onPress={fetchQuote}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.retry')}
+                  style={{ marginTop: 12, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, backgroundColor: tokens.brand.default }}
+                >
+                  <Text style={{ color: tokens.text.onBrand, fontWeight: '700' }}>{t('common.retry')}</Text>
+                </TouchableOpacity>
+              </View>
             ) : quoting || !quote ? (
               <ActivityIndicator color={tokens.brand.default} accessibilityLabel={t('common.loading')} />
             ) : (

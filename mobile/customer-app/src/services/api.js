@@ -32,6 +32,11 @@ export const SOCKET_URL = BASE_URL;
 
 const api = axios.create({
   baseURL: BASE_URL,
+  // Without a timeout, a stalled or unreachable backend leaves every request
+  // pending forever - the caller never gets a resolve OR a reject, so loading
+  // spinners (e.g. the quote screen) hang indefinitely. 30s is generous for a
+  // mobile network yet still fails fast enough to show an error + retry.
+  timeout: 30_000,
   headers: {
     'Content-Type': 'application/json',
   },
