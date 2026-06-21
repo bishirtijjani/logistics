@@ -25,6 +25,16 @@ export const toggleStoreStatus = createAsyncThunk(
   }
 )
 
+// Resubmits a rejected application for review. `settings` may carry any
+// profile fields the merchant fixed in response to the rejection reason.
+export const resubmitApplication = createAsyncThunk(
+  'settings/resubmit',
+  async ({ merchantId, ...settings }) => {
+    const response = await api.patch(`/merchants/merchant/${merchantId}/resubmit`, settings)
+    return response.data.data
+  }
+)
+
 const settingsSlice = createSlice({
   name: 'settings',
   initialState: {
@@ -54,6 +64,9 @@ const settingsSlice = createSlice({
         if (state.settings) {
           state.settings.isOpen = action.payload.isOpen
         }
+      })
+      .addCase(resubmitApplication.fulfilled, (state, action) => {
+        state.settings = action.payload
       })
   },
 })

@@ -233,6 +233,44 @@ const updateMerchant = async (merchantId, userId, role, updateData) => {
 };
 
 // ============================================================
+// Resubmit Merchant Application (after rejection)
+// ============================================================
+
+/**
+ * Let a rejected merchant fix their profile and go straight back into the
+ * review queue, mirroring the rider document re-upload recovery path.
+ * Without this, REJECTED is a dead end the merchant can never get out of.
+ */
+const resubmitMerchant = async (merchantId, userId, role, updateData = {}) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+  });
+
+  if (!merchant) throw AppError.notFound('Merchant not found');
+
+  if (role === 'MERCHANT' && merchant.userId !== userId) {
+    throw AppError.forbidden('Not your merchant profile');
+  }
+
+  if (merchant.status !== 'REJECTED') {
+    throw AppError.badRequest('Only a rejected application can be resubmitted');
+  }
+
+  const updated = await prisma.merchant.update({
+    where: { id: merchantId },
+    data: {
+      ...updateData,
+      status: 'PENDING_APPROVAL',
+      rejectionReason: null,
+    },
+  });
+
+  logger.info('Merchant resubmitted for review', { merchantId });
+
+  return updated;
+};
+
+// ============================================================
 // Toggle Merchant Open/Closed Status
 // ============================================================
 
@@ -1416,6 +1454,7 @@ module.exports = {
   getMerchants,
   getMerchantById,
   updateMerchant,
+  resubmitMerchant,
   toggleMerchantStatus,
   broadcastMerchantStatus,
   isEffectivelyOpen,
