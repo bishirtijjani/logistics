@@ -103,6 +103,32 @@ const updateMerchant = async (req, res, next) => {
 };
 
 // ============================================================
+// Resubmit Merchant Application (after rejection)
+// ============================================================
+
+const resubmitMerchant = async (req, res, next) => {
+  try {
+    const { merchantId } = req.params;
+    const userId = req.user.id;
+    const role = req.user.role;
+    const updateData = req.body;
+
+    const merchant = await merchantService.resubmitMerchant(
+      merchantId,
+      userId,
+      role,
+      updateData
+    );
+
+    res.json(
+      ApiResponse.success('Application resubmitted for review', merchant)
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================
 // Toggle Merchant Open/Closed Status
 // ============================================================
 
@@ -678,6 +704,7 @@ module.exports = {
   getMerchants,
   getMerchantById,
   updateMerchant,
+  resubmitMerchant,
   toggleMerchantStatus,
   getMerchantWallet,
   getMerchantOrders,

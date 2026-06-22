@@ -102,6 +102,9 @@ router.delete('/:merchantId', authorize('ADMIN'), merchantController.deleteMerch
 router.get('/merchant/:merchantId/profile', authorize('MERCHANT'), merchantController.getMerchantProfile);
 router.patch('/merchant/:merchantId/profile', authorize('MERCHANT'), validate(updateMerchantProfileSchema), merchantController.updateMerchant);
 
+// Resubmit a rejected application for review (optionally fixing profile fields in the same call)
+router.patch('/merchant/:merchantId/resubmit', authorize('MERCHANT'), validate(updateMerchantProfileSchema), merchantController.resubmitMerchant);
+
 // Merchant orders
 router.get('/merchant/:merchantId/orders', authorize('MERCHANT'), validate(merchantOrdersSchema, 'query'), merchantController.getMerchantOrders);
 router.patch('/merchant/:merchantId/orders/:requestId/accept', authorize('MERCHANT'), merchantController.acceptMerchantOrder);
