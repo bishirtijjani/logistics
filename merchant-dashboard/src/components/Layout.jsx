@@ -1,12 +1,13 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/slices/authSlice.js'
-import { fetchSettings } from '../store/slices/settingsSlice.js'
+import { fetchSettings, resubmitApplication } from '../store/slices/settingsSlice.js'
 import { fetchProducts } from '../store/slices/productsSlice.js'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import { useAuthSession } from '../lib/useAuthSession.js'
 import OnboardingWizard from './OnboardingWizard.jsx'
 import HelpPanel from './HelpPanel.jsx'
+import { showSuccessToast, showErrorToast } from '../utils/toast.js'
 import {
   ShoppingBag,
   Package,
@@ -39,6 +40,7 @@ export default function Layout() {
   const { isDark, toggleTheme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [wizardOpen, setWizardOpen] = useState(false)
+  const [resubmitting, setResubmitting] = useState(false)
   const autoOpenedRef = useRef(false)
   // Mounted purely for its side effect: silently refreshes the access token
   // before it expires so the merchant is never interrupted by a modal.
@@ -110,6 +112,21 @@ export default function Layout() {
   const handleLogout = async () => {
     await dispatch(logout())
     navigate('/login')
+  }
+
+  const isRejected = merchantProfile?.status === 'REJECTED'
+
+  const handleResubmit = async () => {
+    if (!merchantId) return
+    setResubmitting(true)
+    try {
+      await dispatch(resubmitApplication({ merchantId })).unwrap()
+      showSuccessToast('Application resubmitted - admin will review it shortly.')
+    } catch (err) {
+      showErrorToast(err?.message || 'Failed to resubmit. Please try again.')
+    } finally {
+      setResubmitting(false)
+    }
   }
 
   const navigation = [
@@ -254,6 +271,37 @@ export default function Layout() {
 
         {/* Page content */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          {isRejected && (
+            <div className="w-full mb-6 flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-900/40 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-700 dark:text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-red-900 dark:text-red-200">
+                  Your application was rejected
+                </div>
+                <div className="text-sm text-red-800/80 dark:text-red-300/80 mt-1">
+                  {merchantProfile?.rejectionReason || 'No reason was provided.'}
+                </div>
+                <div className="flex items-center gap-3 mt-3">
+                  <Link
+                    to="/dashboard/settings"
+                    className="text-sm font-medium text-red-900 dark:text-red-200 underline"
+                  >
+                    Update your profile
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleResubmit}
+                    disabled={resubmitting}
+                    className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {resubmitting ? 'Resubmitting…' : 'Resubmit for review'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {needsOnboarding && !wizardOpen && (
             <button
               type="button"
