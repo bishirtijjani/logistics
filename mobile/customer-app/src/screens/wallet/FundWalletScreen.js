@@ -15,7 +15,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../theme";
 import { fetchWallet, retryProvisioning } from "../../store/slices/walletSlice";
-import { fetchProfile } from "../../store/slices/profileSlice";
 import { usePlatformSetting } from "../../services/settings";
 
 export default function FundWalletScreen({ navigation }) {
@@ -23,7 +22,6 @@ export default function FundWalletScreen({ navigation }) {
   const { tokens } = useTheme();
   const { t } = useTranslation();
   const { accountNumber, bankName, isLoading } = useSelector((state) => state.wallet);
-  const { profile } = useSelector((state) => state.profile);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -33,16 +31,13 @@ export default function FundWalletScreen({ navigation }) {
   const fundingFeePayer = usePlatformSetting("wallet.fundingFeePayer", "PLATFORM");
   const showFeeNotice = fundingFeePayer === "USER";
 
-  // Profile is fetched alongside the wallet so kycStatus is fresh - without it
-  // we can't tell "user needs to verify" from "verified but provisioning still
-  // pending", and both states need different copy + CTA. We wait for BOTH to
-  // resolve before deciding what to render, otherwise the brief window where
-  // profile has loaded (kycStatus=VERIFIED) but wallet hasn't (accountNumber=null)
-  // flips showProvisioning true and fires handleRetry on a perfectly-good NUBAN.
+  // The NUBAN is minted at signup from the user's phone (no BVN/KYC). We wait
+  // for the wallet fetch to resolve before deciding what to render, so a
+  // verified account with a NUBAN never flashes the "provisioning" spinner.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      await Promise.all([dispatch(fetchWallet()), dispatch(fetchProfile())]);
+      await dispatch(fetchWallet());
       if (!cancelled) setDidInitialFetch(true);
     })();
     return () => {
@@ -53,7 +48,7 @@ export default function FundWalletScreen({ navigation }) {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await Promise.all([dispatch(fetchWallet()), dispatch(fetchProfile())]);
+      await dispatch(fetchWallet());
     } finally {
       setRefreshing(false);
     }
@@ -75,31 +70,27 @@ export default function FundWalletScreen({ navigation }) {
   ];
 
   const hasAccount = Boolean(accountNumber);
-  const isVerified = profile?.kycStatus === "VERIFIED";
-  // Three render states (only valid AFTER the initial fetches resolve - see
-  // didInitialFetch). Rendering early shows whichever of wallet/profile loaded
-  // first, which briefly mis-classifies a verified-with-NUBAN user as "still
-  // provisioning" and triggers the retry-loop spinner unnecessarily.
-  //   hasAccount             → happy path (account card + fund instructions)
-  //   !isVerified            → BVN gate not cleared yet, route to KYC
-  //   isVerified && !account → KatPay provisioning still pending (queue retry)
-  const showVerifyCta = didInitialFetch && !hasAccount && !isVerified;
-  const showProvisioning = didInitialFetch && !hasAccount && isVerified;
+  // Two render states (only valid AFTER the wallet fetch resolves - see
+  // didInitialFetch). Rendering early would briefly mis-classify a wallet that
+  // already has a NUBAN as "still provisioning" and fire handleRetry on it.
+  //   hasAccount  → happy path (account card + fund instructions)
+  //   !hasAccount → NUBAN not minted yet (KatPay was down at signup) - retry
+  const showProvisioning = didInitialFetch && !hasAccount;
   const showInitialLoader = !didInitialFetch && !hasAccount;
 
-  // Self-heal: when the user lands here in the stuck state, fire one retry on
-  // mount, then poll the wallet for ~30s to pick up the NUBAN. Server enforces
-  // its own 30s throttle so a quick screen re-mount won't spam KatPay.
-  // If the backend reports BVN_PHONE_MISSING the user is verified but has no
-  // phone on file (legacy account verified before bvnPhone was adopted into
-  // User.phone). Route them to the BVN screen in recovery mode to re-submit.
+  // Self-heal: when the user lands here without a NUBAN, fire one retry on
+  // mount, then poll the wallet for ~30s to pick it up. Server enforces its own
+  // 30s throttle so a quick screen re-mount won't spam KatPay.
+  // If the backend reports PHONE_REQUIRED the account predates signup-time
+  // provisioning and has no phone on file - route them to the one-time
+  // phone-capture screen to add one, which then provisions the NUBAN.
   const handleRetry = async () => {
     if (isRetrying) return;
     setIsRetrying(true);
     try {
       const res = await dispatch(retryProvisioning());
-      if (retryProvisioning.rejected.match(res) && res.payload?.code === "BVN_PHONE_MISSING") {
-        navigation.replace("BvnVerification", { recovery: true });
+      if (retryProvisioning.rejected.match(res) && res.payload?.code === "PHONE_REQUIRED") {
+        navigation.replace("PhoneCapture");
         return;
       }
       for (let i = 0; i < 6; i += 1) {
@@ -148,58 +139,6 @@ export default function FundWalletScreen({ navigation }) {
         {showInitialLoader ? (
           <View style={{ paddingVertical: 80, alignItems: "center" }}>
             <ActivityIndicator color={tokens.brand.default} size="large" />
-          </View>
-        ) : showVerifyCta ? (
-          <View
-            style={{
-              backgroundColor: tokens.brand.soft,
-              borderRadius: 20,
-              padding: 24,
-              marginTop: 8,
-              borderWidth: 1,
-              borderColor: tokens.brand.softBorder,
-            }}
-          >
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 28,
-                backgroundColor: tokens.brand.soft,
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Ionicons name="shield-checkmark" size={28} color={tokens.brand.default} />
-            </View>
-            <Text
-              accessibilityRole="header"
-              style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary, marginBottom: 8 }}
-            >
-              {t("wallet.fund_.notReadyTitle")}
-            </Text>
-            <Text style={{ fontSize: 14, color: tokens.text.muted, lineHeight: 20, marginBottom: 20 }}>
-              {t("wallet.fund_.notReadyBody")}
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("BvnVerification")}
-              accessibilityRole="button"
-              accessibilityLabel={t("wallet.fund_.verifyCta")}
-              style={{
-                backgroundColor: tokens.brand.default,
-                paddingVertical: 14,
-                borderRadius: 14,
-                alignItems: "center",
-                flexDirection: "row",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "700", marginRight: 8 }}>
-                {t("wallet.fund_.verifyCta")}
-              </Text>
-              <Ionicons name="arrow-forward" size={18} color={tokens.text.onBrand} />
-            </TouchableOpacity>
           </View>
         ) : showProvisioning ? (
           <View

@@ -47,7 +47,7 @@ import MainTabNavigator from "./MainTabNavigator";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 import EditProfileScreen from "../screens/profile/EditProfileScreen";
 import ProfilePhotoScreen from "../screens/profile/ProfilePhotoScreen";
-import BvnVerificationScreen from "../screens/profile/BvnVerificationScreen";
+import PhoneCaptureScreen from "../screens/profile/PhoneCaptureScreen";
 import SetPinScreen from "../screens/profile/SetPinScreen";
 import ChangePinScreen from "../screens/profile/ChangePinScreen";
 import SecuritySettingsScreen from "../screens/profile/SecuritySettingsScreen";
@@ -81,7 +81,6 @@ import ReceiptScreen from "../screens/wallet/ReceiptScreen";
 
 // Security / Sessions
 import SessionsScreen from "../screens/profile/SessionsScreen";
-import PhoneChangeScreen from "../screens/profile/PhoneChangeScreen";
 
 // Utility Screens
 import AirtimeScreen from "../screens/utility/AirtimeScreen";
@@ -494,8 +493,8 @@ export default function AppNavigator() {
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="ProfilePhoto" component={ProfilePhotoScreen} />
             <Stack.Screen
-              name="BvnVerification"
-              component={BvnVerificationScreen}
+              name="PhoneCapture"
+              component={PhoneCaptureScreen}
             />
             <Stack.Screen name="SetPin" component={SetPinScreen} />
             <Stack.Screen name="ChangePin" component={ChangePinScreen} />
@@ -547,7 +546,6 @@ export default function AppNavigator() {
 
             {/* Security */}
             <Stack.Screen name="Sessions" component={SessionsScreen} />
-            <Stack.Screen name="PhoneChange" component={PhoneChangeScreen} />
 
             {/* Utility Screens */}
             <Stack.Screen name="Airtime" component={AirtimeScreen} />

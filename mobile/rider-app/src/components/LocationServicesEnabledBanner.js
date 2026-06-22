@@ -14,13 +14,13 @@ import { useTheme } from "../theme";
  */
 export default function LocationServicesEnabledBanner() {
   const { tokens } = useTheme();
-  const [check, setCheck] = useState({ permission: "granted", servicesEnabled: true });
+  const [check, setCheck] = useState({ permission: "granted", canAskAgain: true, servicesEnabled: true });
 
   const recheck = async () => {
     try {
-      const { status } = await Location.getForegroundPermissionsAsync();
+      const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
       const servicesEnabled = await Location.hasServicesEnabledAsync();
-      setCheck({ permission: status, servicesEnabled });
+      setCheck({ permission: status, canAskAgain, servicesEnabled });
     } catch (_) {
       // Don't crash if the platform API misbehaves.
     }
@@ -64,6 +64,23 @@ export default function LocationServicesEnabledBanner() {
     }
   };
 
+  const handleFix = async () => {
+    // For a permission issue, show the native prompt directly while the OS still
+    // allows it. Only deep-link to Settings once it's been permanently denied
+    // (canAskAgain === false) or when the underlying problem is services being off.
+    if (isPermissionIssue && check.canAskAgain) {
+      try {
+        await Location.requestForegroundPermissionsAsync();
+      } catch (_) {
+        await openSettings();
+      }
+      // The prompt doesn't fire AppState, so refresh the banner ourselves.
+      await recheck();
+      return;
+    }
+    await openSettings();
+  };
+
   return (
     <View
       style={{
@@ -89,7 +106,7 @@ export default function LocationServicesEnabledBanner() {
         </Text>
       </View>
       <TouchableOpacity
-        onPress={openSettings}
+        onPress={handleFix}
         accessibilityRole="button"
         style={{
           backgroundColor: tokens.status.warningStrong,

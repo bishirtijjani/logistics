@@ -29,15 +29,6 @@ export default function ProfileScreen({ navigation }) {
   const [localeSheetVisible, setLocaleSheetVisible] = useState(false);
   const [themeSheetVisible, setThemeSheetVisible] = useState(false);
   const { mode, tokens, isDark } = useTheme();
-  // KYC badge metadata. `labelKey` resolves via t() at render so labels switch
-  // with locale; colors are status-coded and locale-agnostic. Defined inside
-  // the component so the status tokens react to the active theme.
-  const KYC_BADGE = {
-    NONE: { labelKey: "settings.rows.kycNotVerified", color: tokens.text.muted, bg: tokens.bg.surfaceMuted },
-    PENDING: { labelKey: "settings.rows.kycPending", color: tokens.status.warning, bg: tokens.status.warningSoft },
-    VERIFIED: { labelKey: "settings.rows.kycVerified", color: tokens.status.successStrong, bg: tokens.status.successSoft },
-    FAILED: { labelKey: "settings.rows.kycFailed", color: tokens.status.error, bg: tokens.status.errorSoft },
-  };
   const themeSubLabel =
     mode === 'light' ? t('theme.rowSubLight')
     : mode === 'dark' ? t('theme.rowSubDark')
@@ -48,8 +39,6 @@ export default function ProfileScreen({ navigation }) {
   }, [dispatch]);
 
   const p = profile || user || {};
-  const kycMeta = KYC_BADGE[p.kycStatus] || KYC_BADGE.NONE;
-  const kycLabel = t(kycMeta.labelKey);
   const initials = (p.firstName?.[0] || "") + (p.lastName?.[0] || "");
 
   const accountItems = [
@@ -68,15 +57,6 @@ export default function ProfileScreen({ navigation }) {
   ];
 
   const verificationItems = [
-    {
-      icon: "shield-checkmark-outline",
-      label: t("settings.rows.kyc"),
-      sub: kycLabel,
-      badgeColor: kycMeta.color,
-      badgeBg: kycMeta.bg,
-      screen: "BvnVerification",
-      disabled: p.kycStatus === "VERIFIED",
-    },
     {
       icon: "keypad-outline",
       label: t("settings.rows.transactionPin"),
@@ -411,77 +391,12 @@ export default function ProfileScreen({ navigation }) {
                 </Text>
               ) : null}
             </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <View
-                style={{
-                  backgroundColor: kycMeta.bg,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                  borderRadius: 8,
-                  marginBottom: 6,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 10,
-                    fontWeight: "700",
-                    color: kycMeta.color,
-                  }}
-                >
-                  {kycLabel}
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={tokens.text.muted}
-              />
-            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={tokens.text.muted}
+            />
           </TouchableOpacity>
-
-          {/* KYC Prompt Banner */}
-          {p.kycStatus !== "VERIFIED" && (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("BvnVerification")}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={t("settings.kycBanner.title")}
-              accessibilityHint={t("settings.kycBanner.subtitle")}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: tokens.brand.soft,
-                borderRadius: 14,
-                padding: 14,
-                marginTop: 14,
-                borderWidth: 1,
-                borderColor: tokens.brand.softBorder,
-              }}
-            >
-              <Ionicons
-                name="alert-circle"
-                size={22}
-                color={tokens.brand.default}
-                style={{ marginRight: 10 }}
-              />
-              <View style={{ flex: 1 }}>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: "700",
-                    color: tokens.text.primary,
-                    marginBottom: 1,
-                  }}
-                >
-                  {t("settings.kycBanner.title")}
-                </Text>
-                <Text style={{ fontSize: 12, color: tokens.text.muted }}>
-                  {t("settings.kycBanner.subtitle")}
-                </Text>
-              </View>
-              <Ionicons name="arrow-forward" size={18} color={tokens.brand.default} />
-            </TouchableOpacity>
-          )}
 
           {/* PIN Prompt Banner */}
           {!p.hasPinSet && (

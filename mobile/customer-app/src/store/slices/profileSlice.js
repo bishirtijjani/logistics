@@ -37,23 +37,6 @@ export const updateProfilePicture = createAsyncThunk(
   },
 );
 
-export const verifyBvn = createAsyncThunk(
-  "profile/verifyBvn",
-  async ({ bvn, firstName, lastName, bvnPhone }, { rejectWithValue }) => {
-    try {
-      const response = await api.post("/auth/kyc/verify-bvn", {
-        bvn,
-        firstName,
-        lastName,
-        bvnPhone,
-      });
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  },
-);
-
 export const fetchNotificationPreferences = createAsyncThunk(
   "profile/fetchNotificationPreferences",
   async (_, { rejectWithValue }) => {
@@ -192,22 +175,6 @@ const profileSlice = createSlice({
       if (state.profile) {
         state.profile.profilePicture = action.payload.profilePicture;
       }
-    });
-
-    // Verify BVN
-    builder.addCase(verifyBvn.pending, (state) => {
-      state.isUpdating = true;
-      state.error = null;
-    });
-    builder.addCase(verifyBvn.fulfilled, (state, action) => {
-      state.isUpdating = false;
-      if (state.profile) {
-        state.profile.kycStatus = action.payload.kycStatus;
-      }
-    });
-    builder.addCase(verifyBvn.rejected, (state, action) => {
-      state.isUpdating = false;
-      state.error = action.payload;
     });
 
     // Fetch notification preferences

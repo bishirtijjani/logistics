@@ -402,9 +402,10 @@ const _walletIdForUser = async (userId) => {
 };
 
 /**
- * Re-enqueue a virtual-account provisioning job for a user who is KYC-verified
- * but whose wallet has no NUBAN (KatPay was down/misconfigured at original
- * verification). Throttled per-user via Redis so the client can't spam KatPay.
+ * Re-enqueue a virtual-account provisioning job for a user whose wallet has no
+ * NUBAN yet (KatPay was down/misconfigured at signup, or a legacy account that
+ * predates signup-time provisioning). Requires a phone on file - no BVN/NIN.
+ * Throttled per-user via Redis so the client can't spam KatPay.
  *
  * Worker handler is idempotent - short-circuits if accountNumber already set.
  */
@@ -414,28 +415,18 @@ const retryVirtualAccountProvisioning = async (userId) => {
     include: { wallet: true },
   });
   if (!user) throw AppError.notFound('User not found');
-  if (user.kycStatus !== 'VERIFIED') {
-    throw AppError.badRequest('Complete BVN verification first', { code: 'KYC_NOT_VERIFIED' });
-  }
   if (user.wallet?.virtualAccountNumber) {
     return { alreadyProvisioned: true };
   }
 
-  // KatPay requires phoneNumber. We adopt the BVN-verified phone into
-  // user.phone at verification time, so it should always be set by here.
-  // If it isn't, the user is from before that fix landed - revert their
-  // kycStatus so the BVN screen lets them back in to re-submit. Without
-  // this revert the screen would render the "already verified" success
-  // view and they'd have no way to fix the missing phone.
+  // KatPay mints the NUBAN under the user's phone - no BVN/NIN needed. Phone is
+  // required at signup, so it's normally present. Legacy accounts created before
+  // that requirement may have none: signal the client to capture one (the
+  // one-time phone-capture screen) and then call this again.
   if (!user.phone) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { kycStatus: 'NONE' },
-    });
-    logger.warn('Reverted kycStatus to NONE: verified user has no phone on file', { userId });
     throw AppError.badRequest(
-      'No phone on file. Please re-submit your BVN to recover your account.',
-      { code: 'BVN_PHONE_MISSING' },
+      'Add your phone number to activate your wallet account.',
+      { code: 'PHONE_REQUIRED' },
     );
   }
   const phoneNumber = user.phone;

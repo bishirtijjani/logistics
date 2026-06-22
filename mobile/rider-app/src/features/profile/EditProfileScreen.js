@@ -1,6 +1,6 @@
 /**
  * EditProfileScreen - first name / last name / DOB / address.
- * Email is locked (use support); phone changes flow through PhoneChangeScreen.
+ * Email is locked (use support); phone is edited inline (plain save, no OTP).
  */
 
 import React, { useEffect, useState } from "react";
@@ -35,6 +35,7 @@ export default function EditProfileScreen() {
 
   const [firstName, setFirstName] = useState(profile?.firstName || "");
   const [lastName, setLastName] = useState(profile?.lastName || "");
+  const [phone, setPhone] = useState(profile?.phone || "");
   const [address, setAddress] = useState(profile?.address || "");
   const [dateOfBirth, setDateOfBirth] = useState(
     profile?.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split("T")[0] : "",
@@ -45,6 +46,7 @@ export default function EditProfileScreen() {
     if (profile) {
       setFirstName(profile.firstName || "");
       setLastName(profile.lastName || "");
+      setPhone(profile.phone || "");
       setAddress(profile.address || "");
       setDateOfBirth(profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split("T")[0] : "");
     }
@@ -64,10 +66,15 @@ export default function EditProfileScreen() {
       Toast.show({ type: "error", text1: t("edit.dobInvalid", "Use date format YYYY-MM-DD") });
       return;
     }
+    if (phone && !/^0[789][01]\d{8}$/.test(phone.trim())) {
+      Toast.show({ type: "error", text1: t("edit.phoneInvalid", "Enter a valid Nigerian phone number") });
+      return;
+    }
     const payload = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
     };
+    if (phone.trim()) payload.phone = phone.trim();
     if (address.trim()) payload.address = address.trim();
     if (dateOfBirth) payload.dateOfBirth = dateOfBirth;
 
@@ -129,9 +136,11 @@ export default function EditProfileScreen() {
             tokens={tokens}
             label={t("edit.phone", "Phone")}
             icon="call-outline"
-            value={profile?.phone || "-"}
-            readOnly
-            hint={t("edit.phoneNote", "Phone changes require verification. Use 'Change phone number' in Security.")}
+            value={phone}
+            onChangeText={onChange(setPhone)}
+            editable={!isUpdating}
+            keyboardType="phone-pad"
+            maxLength={11}
           />
           <DatePickerField
             label={t("edit.dob", "Date of birth")}
@@ -210,7 +219,7 @@ export default function EditProfileScreen() {
   );
 }
 
-function Field({ tokens, label, icon, value, onChangeText, placeholder, editable = true, readOnly, hint }) {
+function Field({ tokens, label, icon, value, onChangeText, placeholder, editable = true, readOnly, hint, keyboardType, maxLength }) {
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={{ fontSize: 12, fontWeight: "700", color: tokens.text.muted, marginBottom: 6 }}>
@@ -229,6 +238,8 @@ function Field({ tokens, label, icon, value, onChangeText, placeholder, editable
           placeholder={placeholder}
           placeholderTextColor={tokens.text.placeholder}
           editable={!readOnly && editable}
+          keyboardType={keyboardType}
+          maxLength={maxLength}
           style={{
             flex: 1, paddingVertical: 12, paddingLeft: 10,
             fontSize: 14, color: readOnly ? tokens.text.muted : tokens.text.primary,

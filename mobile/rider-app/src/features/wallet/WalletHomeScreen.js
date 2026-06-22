@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../theme";
 import { useT } from "../../i18n/useT";
@@ -44,12 +44,21 @@ export default function WalletHomeScreen() {
   const provisioningInFlight = useSelector((s) => s.wallet?.provisioningInFlight);
 
   const [refreshing, setRefreshing] = useState(false);
+  // Legacy accounts created before phone became a signup requirement have no
+  // phone on file, so provisioning can't proceed. We surface an "add phone"
+  // CTA instead of looping the retry silently.
+  const [needsPhone, setNeedsPhone] = useState(false);
   const popAnim = useRef(new Animated.Value(1)).current;
   const lastBalanceRef = useRef(balance);
 
-  useEffect(() => {
-    dispatch(fetchWallet());
-  }, [dispatch]);
+  // Refetch on focus (covers initial mount + returning from phone capture) and
+  // clear the CTA so a freshly added phone lets provisioning resume.
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(fetchWallet());
+      setNeedsPhone(false);
+    }, [dispatch]),
+  );
 
   // Pop animation on balance increase (settlement, funding, refund).
   useEffect(() => {
@@ -62,14 +71,25 @@ export default function WalletHomeScreen() {
     lastBalanceRef.current = balance;
   }, [balance, popAnim]);
 
-  // If NUBAN isn't provisioned, retry on a timer until it is.
+  // Retry provisioning; route legacy phone-less accounts to capture a phone,
+  // and pull the wallet on success so the NUBAN appears as soon as it's minted.
+  const runProvisionRetry = useCallback(async () => {
+    const res = await dispatch(retryProvisioning());
+    if (retryProvisioning.rejected.match(res)) {
+      if (res.payload?.code === "PHONE_REQUIRED") setNeedsPhone(true);
+      return;
+    }
+    setNeedsPhone(false);
+    dispatch(fetchWallet());
+  }, [dispatch]);
+
+  // While the NUBAN isn't provisioned (and a phone is on file), retry on a timer.
   useEffect(() => {
-    if (accountNumber) return undefined;
-    const id = setInterval(() => {
-      dispatch(retryProvisioning());
-    }, PROVISIONING_POLL_MS);
+    if (accountNumber || needsPhone) return undefined;
+    runProvisionRetry();
+    const id = setInterval(runProvisionRetry, PROVISIONING_POLL_MS);
     return () => clearInterval(id);
-  }, [accountNumber, dispatch]);
+  }, [accountNumber, needsPhone, runProvisionRetry]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -175,6 +195,29 @@ export default function WalletHomeScreen() {
               </View>
             </View>
           </TouchableOpacity>
+        ) : needsPhone ? (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("PhoneCapture")}
+            accessibilityRole="button"
+            accessibilityLabel={t("wallet.addPhoneTitle", "Add your phone number")}
+            style={{
+              backgroundColor: tokens.bg.surface,
+              borderRadius: 14, padding: 16, marginBottom: 16,
+              borderWidth: 1, borderColor: tokens.status.warningSoft,
+              flexDirection: "row", alignItems: "center",
+            }}
+          >
+            <Ionicons name="call-outline" size={22} color={tokens.status.warningStrong} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: "800", color: tokens.text.primary }}>
+                {t("wallet.addPhoneTitle", "Add your phone number")}
+              </Text>
+              <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                {t("wallet.addPhonePrompt", "We need your phone number to create your wallet account.")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={tokens.brand.default} />
+          </TouchableOpacity>
         ) : (
           <View
             style={{
@@ -197,7 +240,7 @@ export default function WalletHomeScreen() {
               <ActivityIndicator size="small" color={tokens.brand.default} />
             ) : (
               <TouchableOpacity
-                onPress={() => dispatch(retryProvisioning())}
+                onPress={runProvisionRetry}
                 accessibilityRole="button"
                 accessibilityLabel={t("wallet.retry", "Retry")}
                 hitSlop={6}

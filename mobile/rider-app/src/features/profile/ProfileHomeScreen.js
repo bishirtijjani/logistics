@@ -204,7 +204,7 @@ export default function ProfileHomeScreen() {
         <Card tokens={tokens}>
           <Row tokens={tokens} icon="lock-closed-outline" label={t("profile.security", "Security & PIN")} sub={t("profile.securitySub", "PIN, biometrics, sessions")} onPress={() => navigation.navigate("SecuritySettings")} />
           <Divider tokens={tokens} />
-          <Row tokens={tokens} icon="call-outline" label={t("profile.phone", "Phone number")} sub={profile?.phone || "-"} onPress={() => navigation.navigate("PhoneChange")} />
+          <Row tokens={tokens} icon="call-outline" label={t("profile.phone", "Phone number")} sub={profile?.phone || "-"} onPress={() => navigation.navigate("EditProfile")} />
         </Card>
 
         {/* Section: Preferences */}

@@ -158,12 +158,6 @@ export default function SecuritySettingsScreen({ navigation }) {
       sub: t("security.pinSub"),
       onPress: handleChangePin,
     },
-    {
-      icon: "call-outline",
-      label: t("security.phone"),
-      sub: t("security.phoneSub"),
-      onPress: () => navigation.navigate("PhoneChange"),
-    },
   ];
 
   const sessionItems = [

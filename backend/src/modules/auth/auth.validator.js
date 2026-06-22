@@ -9,10 +9,12 @@ const { z } = require("zod");
 
 const registerSchema = z.object({
   email: z.string().email(),
+  // Phone is required at signup: it's the identity KatPay mints the wallet
+  // NUBAN under (provisioned right after OTP verification). No BVN/NIN is
+  // collected - a Tier-1 wallet only needs name + phone.
   phone: z
     .string()
-    .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number")
-    .optional(),
+    .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number"),
   firstName: z.string().min(2).max(50),
   lastName: z.string().min(2).max(50),
   password: z.string().min(8).max(72),

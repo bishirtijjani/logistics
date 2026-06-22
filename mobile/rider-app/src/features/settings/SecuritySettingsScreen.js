@@ -135,14 +135,6 @@ export default function SecuritySettingsScreen() {
             sub={hasPinSet ? t("security.pinSub", "Update your 6-digit PIN") : t("security.pinSetSub", "You haven't set a PIN yet")}
             onPress={() => navigation.navigate("ChangePin")}
           />
-          <Divider tokens={tokens} />
-          <Row
-            tokens={tokens}
-            icon="call-outline"
-            label={t("security.phone", "Change Phone Number")}
-            sub={t("security.phoneSub", "Update your registered phone number")}
-            onPress={() => navigation.navigate("PhoneChange")}
-          />
         </Card>
 
         {/* Biometrics */}

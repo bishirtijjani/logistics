@@ -252,6 +252,28 @@ test('verifyOtp: customer signup creates user + wallet + auto-login session', as
   assert.equal(redisStub._store.get('otp:new@x.com'), undefined);
 });
 
+test('verifyOtp: customer signup provisions a wallet NUBAN from phone alone (no BVN)', async () => {
+  await resetState();
+  const hash = await bcrypt.hash('password123', 4);
+  redisStub._store.set('otp:nuban@x.com', '123456');
+  redisStub._store.set(
+    'pending_reg:nuban@x.com',
+    JSON.stringify({
+      email: 'nuban@x.com', firstName: 'Nu', lastName: 'Ban',
+      phone: '08088888888', passwordHash: hash, role: 'CUSTOMER',
+    }),
+  );
+
+  await authService.verifyOtp('nuban@x.com', '123456', { ipAddress: '1.2.3.4' });
+
+  // The KatPay stub returns 1234567890/PALMPAY - it must land on the wallet
+  // without any BVN/KYC step having run.
+  const wallets = [...prismaStub.wallet._rows.values()];
+  assert.equal(wallets.length, 1);
+  assert.equal(wallets[0].virtualAccountNumber, '1234567890');
+  assert.equal(wallets[0].virtualAccountBank, 'PALMPAY');
+});
+
 // --- refreshAccessToken ---
 
 test('refreshAccessToken: REFRESH_TOKEN_INVALID when token unknown', async () => {

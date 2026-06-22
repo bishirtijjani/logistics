@@ -54,6 +54,7 @@ import TripCockpitScreen from "../features/trip/TripCockpitScreen";
 
 import EarningsBreakdownScreen from "../features/earnings/EarningsBreakdownScreen";
 import WithdrawScreen from "../features/wallet/WithdrawScreen";
+import WalletPhoneCaptureScreen from "../features/wallet/PhoneCaptureScreen";
 import BeneficiariesScreen from "../features/wallet/BeneficiariesScreen";
 import TransactionsScreen from "../features/wallet/TransactionsScreen";
 import TransactionDetailScreen from "../features/wallet/TransactionDetailScreen";
@@ -76,7 +77,6 @@ import PerformanceScreen from "../features/profile/PerformanceScreen";
 import SecuritySettingsScreen from "../features/settings/SecuritySettingsScreen";
 import SessionsScreen from "../features/settings/SessionsScreen";
 import ChangePinScreen from "../features/settings/ChangePinScreen";
-import PhoneChangeScreen from "../features/settings/PhoneChangeScreen";
 import BiometricSettingsScreen from "../features/settings/BiometricSettingsScreen";
 import LanguageScreen from "../features/settings/LanguageScreen";
 import ThemeScreen from "../features/settings/ThemeScreen";
@@ -156,7 +156,6 @@ const NAV_LINKING = {
       SecuritySettings: "security",
       Sessions: "security/sessions",
       ChangePin: "security/pin",
-      PhoneChange: "security/phone",
       BiometricSettings: "security/biometric",
       Language: "settings/language",
       Theme: "settings/theme",
@@ -542,6 +541,7 @@ export default function AppNavigator() {
             />
             <Stack.Screen name="EarningsBreakdown" component={EarningsBreakdownScreen} />
             <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+            <Stack.Screen name="PhoneCapture" component={WalletPhoneCaptureScreen} />
             <Stack.Screen name="Beneficiaries" component={BeneficiariesScreen} />
             <Stack.Screen name="Transactions" component={TransactionsScreen} />
             <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
@@ -561,7 +561,6 @@ export default function AppNavigator() {
             <Stack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
             <Stack.Screen name="Sessions" component={SessionsScreen} />
             <Stack.Screen name="ChangePin" component={ChangePinScreen} />
-            <Stack.Screen name="PhoneChange" component={PhoneChangeScreen} />
             <Stack.Screen name="BiometricSettings" component={BiometricSettingsScreen} />
             <Stack.Screen name="Language" component={LanguageScreen} />
             <Stack.Screen name="Theme" component={ThemeScreen} />

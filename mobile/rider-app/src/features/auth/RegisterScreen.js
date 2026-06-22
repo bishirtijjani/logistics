@@ -29,6 +29,7 @@ export default function RegisterScreen({ navigation }) {
   // Focus Refs for Keyboard Navigation
   const lastNameRef = useRef(null);
   const emailRef = useRef(null);
+  const phoneRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
@@ -41,6 +42,9 @@ export default function RegisterScreen({ navigation }) {
           firstName: z.string().min(2, t("auth.form.firstNameRequired")),
           lastName: z.string().min(2, t("auth.form.lastNameRequired")),
           email: z.string().email(t("auth.form.emailInvalid")),
+          phone: z
+            .string()
+            .regex(/^0[789][01]\d{8}$/, t("auth.form.phoneInvalid")),
           password: z.string().min(8, t("auth.form.passwordTooShort")),
           confirmPassword: z.string(),
         })
@@ -61,6 +65,7 @@ export default function RegisterScreen({ navigation }) {
       firstName: "",
       lastName: "",
       email: "",
+      phone: "",
       password: "",
       confirmPassword: "",
     },
@@ -186,6 +191,28 @@ export default function RegisterScreen({ navigation }) {
                 error={errors.email?.message}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                editable={!isLoading}
+                returnKeyType="next"
+                onSubmitEditing={() => phoneRef.current?.focus()}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <FormInput
+                ref={phoneRef}
+                label={t("auth.phone")}
+                icon="call-outline"
+                placeholder="08012345678"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                error={errors.phone?.message}
+                keyboardType="phone-pad"
+                autoComplete="tel"
                 editable={!isLoading}
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}

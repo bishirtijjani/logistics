@@ -189,6 +189,94 @@ const generateOtp = async (email, { checkCooldown = false } = {}) => {
 };
 
 /**
+ * Provision a KatPay virtual account (NUBAN) for a user's wallet using only
+ * their name + phone. A Tier-1 wallet needs no BVN/NIN, so this is all KatPay
+ * requires. Tries synchronously so the wallet has its account number by first
+ * load; on ANY failure it enqueues an idempotent retry job, so the caller
+ * (signup) never blocks on or fails because of KatPay. A best-effort welcome
+ * SMS/push announces the new account. Returns the account, or null if deferred.
+ */
+const provisionWalletNuban = async (user) => {
+  const katpayService = require('../../services/katpay.service');
+  const messagingService = require('../../services/messaging.service');
+  const notificationService = require('../../services/notification.service');
+
+  // A wallet row is created alongside every user, but be defensive: ensure one
+  // exists, and short-circuit if a NUBAN was already minted (idempotent).
+  const existing = await prisma.wallet.findUnique({ where: { userId: user.id } });
+  if (!existing) {
+    await prisma.wallet.create({ data: { userId: user.id, balance: 0 } });
+  } else if (existing.virtualAccountNumber) {
+    return {
+      accountNumber: existing.virtualAccountNumber,
+      bankName: existing.virtualAccountBank,
+      accountName: existing.virtualAccountName,
+    };
+  }
+
+  let virtualAccount = null;
+  try {
+    virtualAccount = await katpayService.createVirtualAccount({
+      email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
+      phoneNumber: user.phone || '',
+      bankCodes: ['PALMPAY', 'OPAY'],
+    });
+    await prisma.wallet.update({
+      where: { userId: user.id },
+      data: {
+        virtualAccountNumber: virtualAccount.accountNumber,
+        virtualAccountBank: virtualAccount.bankName,
+        virtualAccountName: virtualAccount.accountName,
+      },
+    });
+    logger.info('Virtual account provisioned synchronously at signup', { userId: user.id });
+  } catch (err) {
+    logger.warn('Synchronous virtual account provisioning failed; queuing retry', { userId: user.id, error: err.message });
+    try {
+      await getPaymentQueue().add(
+        PAYMENT_JOBS.PROVISION_VIRTUAL_ACCOUNT,
+        {
+          userId: user.id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          phoneNumber: user.phone,
+        },
+        { ...DEFAULT_JOB_OPTIONS, attempts: 5 },
+      );
+    } catch (queueErr) {
+      logger.error('Failed to enqueue virtual account provisioning retry', { userId: user.id, error: String(queueErr) });
+    }
+  }
+
+  // Welcome announcement - best-effort, must never break signup.
+  if (user.phone) {
+    messagingService
+      .sendSms(
+        user.phone,
+        `Welcome to ${config.APP_NAME || 'iPrime'}! Your wallet is now active${virtualAccount ? ` - fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
+      )
+      .catch((err) => logger.warn('Signup welcome SMS failed', { userId: user.id, error: err.message }));
+  }
+  if (user.fcmToken) {
+    notificationService
+      .sendToDevice(user.fcmToken, {
+        title: 'Welcome aboard 🎉',
+        body: virtualAccount
+          ? `Your wallet is ready. Fund it via ${virtualAccount.accountNumber} (${virtualAccount.bankName}).`
+          : 'Your wallet account is being set up.',
+        data: {
+          type: 'WALLET_READY',
+          virtualAccountNumber: virtualAccount?.accountNumber || '',
+        },
+      })
+      .catch((err) => logger.warn('Signup welcome push failed', { userId: user.id, error: err.message }));
+  }
+
+  return virtualAccount;
+};
+
+/**
  * Verify OTP and create user from pending registration data.
  *
  * For customer registrations, also issues an access/refresh token pair and
@@ -333,9 +421,14 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
     role: user.role,
   });
 
-  // NOTE: Virtual-account provisioning is intentionally NOT triggered here.
-  // Per compliance (BVN required before any NUBAN is minted), provisioning
-  // happens in `verifyBvn()` once KYC succeeds.
+  // Provision the wallet's KatPay NUBAN now that we have the user's phone.
+  // A Tier-1 wallet needs only name + phone (no BVN/NIN), so we mint it right
+  // here. Queue-backed and best-effort, so signup never blocks on or fails
+  // because of KatPay. Merchants fund via the ad-hoc transfer rail and use no
+  // NUBAN, so they're skipped.
+  if (user.role !== 'MERCHANT') {
+    await provisionWalletNuban(user);
+  }
 
   // Auto-login customers right after verification - the user just proved
   // email ownership and we hold their password hash, so a second login step
