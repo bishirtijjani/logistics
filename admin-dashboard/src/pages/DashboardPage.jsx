@@ -42,6 +42,13 @@ export default function DashboardPage() {
     { title: 'Active Requests', value: stats?.activeRequests || 0, icon: TrendingUp },
     { title: 'Total Revenue', value: `₦${(stats?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign },
     { title: 'Total Users Wallet', value: `₦${(stats?.totalUserWalletBalance || 0).toLocaleString()}`, icon: Wallet },
+    {
+      title: 'BilalSada Wallet',
+      value: stats?.bilalsadaWalletBalance != null
+        ? `₦${stats.bilalsadaWalletBalance.toLocaleString()}`
+        : 'Unavailable',
+      icon: Wallet,
+    },
     { title: 'Merchants', value: stats?.totalMerchants || 0, icon: Store },
     { title: 'Riders', value: stats?.totalRiders || 0, icon: Bike },
     { title: 'Users', value: stats?.totalUsers || 0, icon: Users },

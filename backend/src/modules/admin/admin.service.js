@@ -652,6 +652,29 @@ const getTransactionOverview = async ({ page = 1, limit = 50, type, status }) =>
 };
 
 /**
+ * Resolve our BilalSada VTU float balance for the dashboard. Prefers the figure
+ * the worker caches from live transactions (refreshed the instant a purchase
+ * settles); if that's absent or stale - no recent transactions, or a manual
+ * top-up of the float that never passed through our flow - pulls a fresh reading
+ * straight from the provider, which also repopulates the cache. Degrades to the
+ * last-known value, then null, so a provider/Redis hiccup never breaks the page.
+ */
+const BILALSADA_BALANCE_STALE_MS = 10 * 60 * 1000;
+const resolveBilalsadaBalance = async () => {
+  const cached = await vtuProvider.getCachedBalance().catch(() => null);
+  if (cached && Date.now() - cached.at < BILALSADA_BALANCE_STALE_MS) {
+    return cached.balance;
+  }
+  try {
+    const account = await vtuProvider.getAccountBalance();
+    if (account?.balance != null) return Number(account.balance);
+  } catch (err) {
+    logger.warn('Dashboard: BilalSada live balance fetch failed', { error: err.message });
+  }
+  return cached?.balance ?? null;
+};
+
+/**
  * Get platform dashboard stats.
  */
 const getDashboardStats = async () => {
@@ -663,6 +686,7 @@ const getDashboardStats = async () => {
     activeRequests,
     platformRevenue,
     customerWalletBalance,
+    bilalsadaWalletBalance,
   ] = await Promise.all([
     prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
     prisma.rider.count({ where: { status: 'APPROVED' } }),
@@ -687,6 +711,9 @@ const getDashboardStats = async () => {
       where: { user: { role: 'CUSTOMER', deletedAt: null } },
       _sum: { balance: true },
     }),
+    // Our BilalSada VTU float - cached from live transactions, with a stale
+    // fallback to a direct provider read (see resolveBilalsadaBalance).
+    resolveBilalsadaBalance(),
   ]);
 
   return {
@@ -697,6 +724,7 @@ const getDashboardStats = async () => {
     activeRequests,
     totalRevenue: Number(platformRevenue._sum.amount || 0),
     totalUserWalletBalance: Number(customerWalletBalance._sum.balance || 0),
+    bilalsadaWalletBalance,
   };
 };
 

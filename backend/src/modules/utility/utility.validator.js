@@ -35,7 +35,9 @@ const payElectricitySchema = z.object({
   meterNumber: z.string().min(11).max(15),
   discoId: z.coerce.number().int().min(1),
   meterType: z.enum(['PREPAID', 'POSTPAID']),
-  amount: z.coerce.number().int().min(500),
+  // Business minimum is enforced in the service against the
+  // `utility.minElectricityAmount` platform setting; here we only ensure shape.
+  amount: z.coerce.number().int().positive(),
   phone,
   pin,
 });

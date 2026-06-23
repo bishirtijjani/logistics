@@ -4,11 +4,13 @@ const { config } = require('../../config');
 const { ApiResponse } = require('../../utils/api-response');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
+const bilalsadaService = require('../../services/bilalsada.service');
 const { Queue } = require('bullmq');
 const { redis } = require('../../config/redis');
-const { QUEUES, PAYMENT_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs');
+const { QUEUES, PAYMENT_JOBS, UTILITY_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs');
 
 const paymentQueue = new Queue(QUEUES.PAYMENT, { connection: redis });
+const utilityQueue = new Queue(QUEUES.UTILITY, { connection: redis });
 
 // Resolve the merchant withdrawal a payout webhook refers to. katpayReference is
 // not DB-unique, so guard against an ambiguous match rather than acting on an
@@ -245,6 +247,126 @@ const handleKatpay = async (req, res, next) => {
 };
 
 /**
+ * Handle a BilalSada purchase callback (VTU/bills delivery confirmation).
+ *
+ * This webhook is a pure ACCELERATOR. The synchronous buy response, the pending
+ * poll, and the reconcile sweep already settle every utility payment without it
+ * (see utility.worker.js), so the platform behaves identically whether or not a
+ * callback ever arrives. Its only job is to close the one gap the sync path
+ * can't: a buy whose HTTP response we never saw (timeout) that BilalSada did
+ * vend - which would otherwise be refunded at window close. A verified callback
+ * lets us COMPLETE that payment instead.
+ *
+ * Because the callback can *complete* a payment (move money's-worth to the
+ * customer), it must be trusted only when verified. Verification is gated on
+ * BILALSADASUB_WEBHOOK_SECRET: with no secret set the endpoint is inert (every
+ * delivery is rejected) - i.e. shipping this changes nothing until an operator
+ * enables it and configures the matching secret in the BilalSada dashboard.
+ *
+ * Security / safety:
+ * - HMAC-SHA256 over the raw request body (fails closed when unconfigured)
+ * - Idempotency via the WebhookEvent table, keyed by request-id + status
+ * - Settlement runs in the utility worker through the same idempotent
+ *   handleResult branches a poll uses, so a duplicate or racing callback is a
+ *   no-op once the payment is terminal.
+ */
+const handleBilalsada = async (req, res, next) => {
+  try {
+    // Inert until an operator opts in. A clear 503 (vs. a 401 "bad signature")
+    // tells anyone testing the endpoint that the secret simply isn't set yet.
+    if (!config.BILALSADASUB_WEBHOOK_SECRET) {
+      logger.warn('BilalSada webhook hit but BILALSADASUB_WEBHOOK_SECRET is unset - ignoring', { ip: req.ip });
+      return res.status(503).json(ApiResponse.error('Webhook not configured'));
+    }
+
+    const signature =
+      req.headers['x-bilalsada-signature'] ||
+      req.headers['x-webhook-signature'] ||
+      req.headers['x-signature'];
+
+    // Raw body is available because this route uses express.raw().
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(req.body || '');
+
+    if (!bilalsadaService.verifyWebhookSignature(rawBody, signature)) {
+      logger.warn('Invalid BilalSada webhook signature', { ip: req.ip });
+      return res.status(401).json(ApiResponse.error('Invalid signature'));
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(rawBody.toString('utf8') || '{}');
+    } catch {
+      logger.warn('BilalSada webhook body is not valid JSON', { ip: req.ip });
+      return res.status(400).json(ApiResponse.error('Invalid payload'));
+    }
+
+    const requestId = bilalsadaService.extractWebhookRequestId(payload);
+    const status = String(payload.status || payload.Status || payload.data?.status || 'unknown').toLowerCase();
+    const eventType = String(payload.type || payload.event || `status.${status}`);
+    // One row per (request-id, status) so distinct transitions are recorded but
+    // exact retries dedupe. Fall back to a body hash when no request-id is sent.
+    const transactionRef = requestId
+      ? `bilalsada:${requestId}:${status}`
+      : `bilalsada:${crypto.createHash('sha256').update(rawBody).digest('hex')}`;
+
+    // Idempotency - short-circuit only when a prior delivery actually FINISHED.
+    const existing = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
+    if (existing && existing.processed) {
+      logger.info('Duplicate BilalSada webhook ignored (already processed)', { transactionRef });
+      return res.json(ApiResponse.success('Already processed'));
+    }
+    if (!existing) {
+      await prisma.webhookEvent.create({
+        data: { provider: 'bilalsada', eventType, transactionRef, payload, processed: false },
+      });
+    }
+
+    // Respond immediately; settle asynchronously.
+    res.json(ApiResponse.success('Webhook received'));
+
+    setImmediate(async () => {
+      try {
+        // Map the echoed request-id back to the payment. On create we set
+        // providerRequestId == the wallet reference == the request-id we sent on
+        // the buy, and it's unique - so this resolves to exactly one payment.
+        const payment = requestId
+          ? await prisma.utilityPayment.findUnique({ where: { providerRequestId: requestId } })
+          : null;
+
+        if (!payment) {
+          logger.warn('BilalSada webhook has no matching payment - acknowledged, no action', {
+            transactionRef, requestId,
+          });
+        } else {
+          // Hand the verified payload to the worker as the provider result. The
+          // worker routes it through handleResult exactly like a poll, so a
+          // success completes (and the customer is made whole if a refund was
+          // about to fire), a failure refunds, and anything terminal is a no-op.
+          await utilityQueue.add(
+            UTILITY_JOBS.RESOLVE_FROM_WEBHOOK,
+            { paymentId: payment.id, result: payload },
+            DEFAULT_JOB_OPTIONS,
+          );
+        }
+
+        await prisma.webhookEvent.update({
+          where: { transactionRef },
+          data: { processed: true, processedAt: new Date() },
+        });
+      } catch (err) {
+        logger.error('BilalSada webhook async processing failed', { transactionRef, error: err.message });
+        await prisma.webhookEvent.update({
+          where: { transactionRef },
+          data: { error: err.message },
+        }).catch(() => {});
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Meta uses `X-Hub-Signature-256: sha256=<hex>`. Constant-time compare to
  * avoid leaking signature shape via response timing.
  */
@@ -381,6 +503,7 @@ const handleWhatsapp = async (req, res, next) => {
 
 module.exports = {
   handleKatpay,
+  handleBilalsada,
   verifyWhatsapp,
   handleWhatsapp,
 };

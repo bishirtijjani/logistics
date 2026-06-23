@@ -59,6 +59,13 @@ const UTILITY_JOBS = {
    *  re-query the provider, then complete if delivered or refund the customer.
    *  Runs every 5 minutes; the per-payment work is idempotent. */
   RECONCILE_STUCK: 'reconcile-stuck',
+  /** Settle a payment from a provider-pushed callback (currently BilalSada,
+   *  which has no query endpoint). Carries the verified webhook payload as the
+   *  provider result and routes it through the same success/pending/failure
+   *  branches as a poll. Purely additive: nothing enqueues this unless a
+   *  verified webhook arrives, and handleResult's replay guard makes it a no-op
+   *  once the payment is already terminal. */
+  RESOLVE_FROM_WEBHOOK: 'resolve-from-webhook',
 };
 
 // A payment is "stuck" once it's been non-terminal for longer than the normal

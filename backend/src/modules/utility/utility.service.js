@@ -22,6 +22,7 @@ const {
   detectNetworkFromPhone,
 } = require('../../utils/constants');
 const vtuRouter = require('../../services/vtu/router');
+const settingsService = require('../../services/settings.service');
 const { addUtilityJob } = require('../../queues');
 const { UTILITY_JOBS } = require('../../queues/jobs');
 
@@ -296,6 +297,14 @@ const buyCable = async (userId, { smartCardNumber, planId }) => {
 };
 
 const payElectricity = async (userId, { meterNumber, discoId, meterType, amount, phone }) => {
+  // Minimum vend amount is platform-configurable (single source of truth); the
+  // zod schema only guarantees a positive integer. The 500 fallback applies only
+  // if the setting row is missing.
+  const minAmount = Number(await settingsService.getSetting('utility.minElectricityAmount', 500));
+  if (amount < minAmount) {
+    throw AppError.badRequest(`Minimum electricity payment is ₦${minAmount.toLocaleString()}`);
+  }
+
   const reference = `ELEC-${uuidv4()}`;
   const disco = await prisma.vtuPlan.findFirst({
     where: { type: 'ELECTRICITY', providerNetworkId: Number(discoId), isActive: true },

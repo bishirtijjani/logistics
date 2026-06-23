@@ -46,6 +46,14 @@ const envSchema = z
     BILALSADASUB_TOKEN: z.string().optional().default(""),
     BILALSADASUB_USERNAME: z.string().optional().default(""),
     BILALSADASUB_PASSWORD: z.string().optional().default(""),
+    // Optional shared secret for the BilalSada purchase callback (POST
+    // /webhooks/bilalsada). The webhook is a pure accelerator: the synchronous
+    // buy response + poll + reconcile sweep already settle every payment without
+    // it. Left unset, the endpoint stays dormant (every delivery is rejected,
+    // unverified), so the system behaves exactly as it does today. Set it (and
+    // configure the same secret in the BilalSada dashboard) to let verified
+    // callbacks settle payments faster.
+    BILALSADASUB_WEBHOOK_SECRET: z.string().optional().default(""),
 
     // AlRahuz Data - the secondary VTU/bills provider. Used as the failover
     // target: when admin runs in "both" mode and a BilalSada purchase would

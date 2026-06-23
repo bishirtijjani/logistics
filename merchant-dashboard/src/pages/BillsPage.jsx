@@ -11,6 +11,7 @@ import {
 } from '../store/slices/utilitySlice'
 import { fetchWallet } from '../store/slices/walletSlice'
 import { fetchAuthProfile } from '../store/slices/authSlice'
+import { fetchPlatformSettings } from '../store/slices/platformSettingsSlice'
 import { showSuccessToast, showErrorToast } from '../utils/toast'
 import { availableDataTypes, planMatchesType } from '../utils/dataPlanTypes'
 import PinModal from '../components/PinModal'
@@ -33,7 +34,9 @@ const NETWORK_COLORS = { MTN: '#FFCC00', GLO: '#00AA00', '9MOBILE': '#0066CC', A
 const AIRTIME_QUICK = [100, 200, 500, 1000, 2000, 5000]
 const ELEC_QUICK = [1000, 2000, 5000, 10000, 20000]
 const MIN_AIRTIME = 100 // Provider floor; buys below this hang in PROCESSING.
-const MIN_ELEC = 500
+// Electricity minimum comes from the `utility.minElectricityAmount` platform
+// setting (single source of truth); this is only the fallback if it hasn't loaded.
+const MIN_ELEC_FALLBACK = 500
 
 const TABS = [
   { key: 'airtime', label: 'Airtime', icon: Phone },
@@ -77,6 +80,7 @@ export default function BillsPage() {
   useEffect(() => {
     dispatch(fetchWallet())
     dispatch(fetchAuthProfile())
+    dispatch(fetchPlatformSettings())
     dispatch(fetchPlans({ type: 'AIRTIME' }))
     dispatch(fetchPlans({ type: 'ELECTRICITY' }))
   }, [dispatch])
@@ -481,6 +485,7 @@ function ElectricityTab({ balance, naira, requestPin, dispatch }) {
   const discos = useSelector((s) => s.utility.plans.ELECTRICITY || [])
   const isValidating = useSelector((s) => s.utility.isValidating)
   const validationResult = useSelector((s) => s.utility.validationResult)
+  const minElec = Number(useSelector((s) => s.platformSettings.settings?.['utility.minElectricityAmount'])) || MIN_ELEC_FALLBACK
   const [discoId, setDiscoId] = useState(null)
   const [meterType, setMeterType] = useState('PREPAID')
   const [meter, setMeter] = useState('')
@@ -508,7 +513,7 @@ function ElectricityTab({ balance, naira, requestPin, dispatch }) {
     if (!validated) return showErrorToast('Verify the meter first')
     if (!phone || phone.length < 10) return showErrorToast('Enter a valid phone number')
     const amt = Number(amount)
-    if (!amt || amt < MIN_ELEC) return showErrorToast(`Minimum is ${naira(MIN_ELEC)}`)
+    if (!amt || amt < minElec) return showErrorToast(`Minimum is ${naira(minElec)}`)
     if (amt > balance) return showErrorToast('Insufficient balance')
     requestPin(
       async (pin) => {

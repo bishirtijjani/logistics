@@ -50,6 +50,7 @@ const startUtilityWorker = () => {
         case UTILITY_JOBS.POLL_PENDING:        return processPoll(job.data);
         case UTILITY_JOBS.REFUND_FAILED:       return processRefund(job.data);
         case UTILITY_JOBS.RECONCILE_STUCK:     return reconcileStuckPayments();
+        case UTILITY_JOBS.RESOLVE_FROM_WEBHOOK: return processWebhookResult(job.data);
         // Throw on unknown - BullMQ will mark the job as failed and surface
         // it in the failed-jobs list. Returning silently here would leak the
         // payment as PENDING forever (the customer's wallet was already
@@ -477,6 +478,40 @@ const processPoll = async ({ paymentId, userId, reference, provider, providers, 
 const processRefund = async (data) => refundPayment(data);
 
 /**
+ * RESOLVE_FROM_WEBHOOK - settle a payment from a provider-pushed callback.
+ *
+ * Pure accelerator. The synchronous buy response, the pending poll, and the
+ * reconcile sweep already resolve every payment without any webhook; this only
+ * runs when a verified callback actually arrives. Its value is the one gap the
+ * sync path can't close: a buy whose HTTP response we never saw but which the
+ * provider did vend. With no query endpoint (BilalSada) that payment is refunded
+ * at window close; a callback bearing the real result lets us COMPLETE it
+ * instead. We feed the verified payload through the same handleResult branches a
+ * poll uses, so success completes + notifies, an explicit failure refunds, and
+ * anything else just lets the existing poll/sweep carry on. handleResult's
+ * replay guard makes it a no-op once the payment is terminal, so a callback that
+ * races the live buy or the sweep is harmless.
+ */
+const processWebhookResult = async ({ paymentId, result }) => {
+  const payment = await getPayment(paymentId);
+  if (!payment || SETTLED_STATUSES.includes(payment.status)) {
+    logger.info('Webhook resolve skipped (already settled)', { paymentId, status: payment?.status });
+    return;
+  }
+  const reference = payment.transactionId || payment.providerRequestId;
+  logger.info('Resolving utility payment from webhook', { paymentId, provider: payment.provider });
+  await handleResult(result, {
+    paymentId,
+    userId: payment.userId,
+    amount: Number(payment.amount),
+    reference,
+    type: payment.type,
+    provider: payment.provider,
+    providers: payment.providerIds || undefined,
+  }, { isPoll: true });
+};
+
+/**
  * Resolve a single payment that may be stuck. Re-runs the poll path: re-query
  * the provider by providerRequestId, then route through handleResult, which
  * completes it if the provider actually delivered, reschedules a poll if it's
@@ -555,6 +590,7 @@ module.exports = {
     escalate,
     refundPayment,
     processPoll,
+    processWebhookResult,
     processAirtime,
     reconcileOnePayment,
     reconcileStuckPayments,

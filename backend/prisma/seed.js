@@ -562,7 +562,7 @@ async function main() {
     { key: 'wallet.minTransfer', value: 50, description: 'Minimum P2P transfer amount in NGN' },
     { key: 'wallet.transferQuickAmounts', value: [500, 1000, 2000, 5000], description: 'Quick-amount chips on Send Money screen' },
     { key: 'wallet.withdrawQuickAmounts', value: [1000, 5000, 10000, 20000], description: 'Quick-amount chips on Withdraw screen' },
-    { key: 'utility.minElectricityAmount', value: 500, description: 'Minimum electricity payment in NGN' },
+    { key: 'utility.minElectricityAmount', value: 1000, description: 'Minimum electricity payment in NGN' },
     { key: 'utility.electricityQuickAmounts', value: [1000, 2000, 5000, 10000, 20000], description: 'Quick-amount chips on Electricity screen' },
     { key: 'utility.minAirtimeAmount', value: 100, description: 'Minimum airtime purchase in NGN (provider floor; below this hangs in PROCESSING)' },
     { key: 'utility.airtimeQuickAmounts', value: [100, 200, 500, 1000, 2000, 5000], description: 'Quick-amount chips on Airtime screen' },
