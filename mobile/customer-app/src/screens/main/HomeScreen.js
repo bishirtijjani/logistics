@@ -134,6 +134,13 @@ const vtuServices = [
   },
   {
     id: "v4",
+    key: "cable",
+    screen: "Cable",
+    icon: "tv-outline",
+    type: "Ionicons",
+  },
+  {
+    id: "v5",
     key: "transfer",
     screen: "SendMoney",
     icon: "swap-horizontal-outline",

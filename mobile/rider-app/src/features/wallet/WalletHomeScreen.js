@@ -3,12 +3,14 @@ import {
   ActivityIndicator,
   Animated,
   Clipboard,
+  Platform,
   RefreshControl,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,6 +22,27 @@ import { formatNaira } from "../../lib/formatters";
 import { fetchWallet, retryProvisioning } from "../../store/slices/walletSlice";
 
 const PROVISIONING_POLL_MS = 30_000;
+
+// VTU services for the "Pay bills" section. `key` ties each row to the i18n
+// catalog (utility.*) and to its `category.*` accent token (so the gradient
+// chips re-tone in dark mode); `screen` is the navigation target. Airtime is
+// promoted to a wide featured hero card, the rest sit in a 3-up grid below -
+// mirroring the customer app's Bills & Utilities layout.
+const VTU_SERVICES = [
+  { key: "airtime", screen: "Airtime", icon: "phone-portrait-outline" },
+  { key: "data", screen: "Data", icon: "wifi-outline" },
+  { key: "electricity", screen: "Electricity", icon: "flash-outline" },
+  { key: "cable", screen: "Cable", icon: "tv-outline" },
+];
+
+// Suffix a hex color with an alpha byte ("#EA580C" + "B3" -> "#EA580CB3").
+// Falls back to the input when the color isn't a clean 6-hex.
+const withAlpha = (hex, alpha) =>
+  /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}${alpha}` : hex;
+
+// Resolve a VTU service's accent from its category token (reactive in dark mode).
+const vtuColor = (item, tokens) =>
+  tokens.category?.[item.key] || tokens.brand.default;
 
 /**
  * Wallet home - balance, virtual NUBAN, quick actions. On balance change
@@ -272,9 +295,13 @@ export default function WalletHomeScreen() {
           />
         </View>
 
-        {/* Pay bills - VTU from wallet balance */}
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <Text style={{ fontSize: 15, fontWeight: "800", color: tokens.text.primary }}>
+        {/* Pay bills - VTU from wallet balance. Bento layout mirroring the
+            customer app: Airtime promotes to a wide featured hero card, while
+            Data / Electricity / Cable sit below in a 3-up grid. Each chip is a
+            per-service gradient with a 1px specular highlight so the row reads
+            as distinct services instead of one monolithic orange block. */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <Text style={{ fontSize: 17, fontWeight: "800", color: tokens.text.primary, letterSpacing: -0.3 }}>
             {t("wallet.payBills", "Pay bills")}
           </Text>
           <TouchableOpacity
@@ -287,32 +314,109 @@ export default function WalletHomeScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-          <ActionTile
-            tokens={tokens}
-            icon="phone-portrait-outline"
-            label={t("utility.airtime", "Airtime")}
-            onPress={() => navigation.navigate("Airtime")}
-          />
-          <ActionTile
-            tokens={tokens}
-            icon="wifi-outline"
-            label={t("utility.data", "Data")}
-            onPress={() => navigation.navigate("Data")}
-          />
-          <ActionTile
-            tokens={tokens}
-            icon="flash-outline"
-            label={t("utility.electricity", "Electricity")}
-            onPress={() => navigation.navigate("Electricity")}
-          />
-          <ActionTile
-            tokens={tokens}
-            icon="tv-outline"
-            label={t("utility.cable", "Cable")}
-            onPress={() => navigation.navigate("Cable")}
-          />
-        </View>
+
+        {(() => {
+          const [hero, ...rest] = VTU_SERVICES;
+          const heroColor = vtuColor(hero, tokens);
+          const heroLabel = t(`utility.${hero.key}`, hero.key);
+          return (
+            <View style={{ marginBottom: 16 }}>
+              {/* Hero - Airtime: faint color wash bleeds from the icon side for
+                  a soft branded glow without overpowering the white surface. */}
+              <TouchableOpacity
+                onPress={() => navigation.navigate(hero.screen)}
+                activeOpacity={0.9}
+                accessibilityRole="button"
+                accessibilityLabel={heroLabel}
+                style={{
+                  backgroundColor: tokens.bg.surface,
+                  borderRadius: 22, padding: 16,
+                  flexDirection: "row", alignItems: "center",
+                  borderWidth: 1, borderColor: tokens.border.default,
+                  shadowColor: heroColor, shadowOpacity: 0.14,
+                  shadowOffset: { width: 0, height: 10 }, shadowRadius: 20,
+                  elevation: 4, marginBottom: 12, overflow: "hidden",
+                  ...(Platform.OS === "ios" && { borderCurve: "continuous" }),
+                }}
+              >
+                <LinearGradient
+                  colors={[withAlpha(heroColor, "1A"), "transparent"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0.8 }}
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+                />
+                <View style={{ width: 60, height: 60, borderRadius: 18, overflow: "hidden", marginRight: 14 }}>
+                  <LinearGradient
+                    colors={[heroColor, withAlpha(heroColor, "B3")]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Ionicons name={hero.icon} size={28} color={tokens.text.onBrand} />
+                  </LinearGradient>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 10, fontWeight: "800", color: heroColor, letterSpacing: 1.4, textTransform: "uppercase", marginBottom: 2 }}>
+                    {t("home.billsHero.tag", "Top up")}
+                  </Text>
+                  <Text numberOfLines={1} style={{ fontSize: 18, fontWeight: "900", color: tokens.text.primary, letterSpacing: -0.5 }}>
+                    {heroLabel}
+                  </Text>
+                  <Text numberOfLines={1} style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+                    {t("home.billsHero.blurb", "Recharge any network instantly")}
+                  </Text>
+                </View>
+                <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: heroColor, alignItems: "center", justifyContent: "center", marginLeft: 8 }}>
+                  <Ionicons name="arrow-forward" size={16} color={tokens.text.onBrand} />
+                </View>
+              </TouchableOpacity>
+
+              {/* Rest - 3-up grid. `marginHorizontal: -5` + per-cell padding
+                  yields even gutters without growing the section's padding. */}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5, rowGap: 10 }}>
+                {rest.map((item) => {
+                  const color = vtuColor(item, tokens);
+                  const label = t(`utility.${item.key}`, item.key);
+                  return (
+                    <View key={item.key} style={{ width: "33.333%", paddingHorizontal: 5 }}>
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate(item.screen)}
+                        activeOpacity={0.85}
+                        accessibilityRole="button"
+                        accessibilityLabel={label}
+                        style={{
+                          backgroundColor: tokens.bg.surface,
+                          borderRadius: 18, paddingVertical: 16, paddingHorizontal: 8,
+                          alignItems: "center",
+                          borderWidth: 1, borderColor: tokens.border.default,
+                          shadowColor: "#09090b", shadowOpacity: 0.06,
+                          shadowOffset: { width: 0, height: 6 }, shadowRadius: 16,
+                          elevation: 3,
+                          ...(Platform.OS === "ios" && { borderCurve: "continuous" }),
+                        }}
+                      >
+                        <View style={{ width: 48, height: 48, borderRadius: 15, overflow: "hidden", marginBottom: 9 }}>
+                          <LinearGradient
+                            colors={[color, withAlpha(color, "B3")]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+                          >
+                            <Ionicons name={item.icon} size={24} color={tokens.text.onBrand} />
+                          </LinearGradient>
+                          <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 1, backgroundColor: "rgba(255,255,255,0.45)" }} />
+                        </View>
+                        <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: "700", color: tokens.text.primary, textAlign: "center", letterSpacing: -0.2 }}>
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          );
+        })()}
 
         <View
           style={{

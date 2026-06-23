@@ -59,6 +59,7 @@ export const light = {
     airtime:     '#EA580C',
     data:        '#2563EB',
     electricity: '#D97706',
+    cable:       '#7C3AED',
     transfer:    '#059669',
   },
   overlay: {
@@ -118,6 +119,7 @@ export const dark = {
     airtime:     '#FB923C',
     data:        '#60A5FA',
     electricity: '#FBBF24',
+    cable:       '#A78BFA',
     transfer:    '#34D399',
   },
   overlay: {
