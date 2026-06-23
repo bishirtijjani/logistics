@@ -51,7 +51,7 @@ export const fetchRecentActivity = createAsyncThunk(
       ? (reqsRes.value?.data || []).map((r) => ({
           kind: 'request',
           id: r.id,
-          title: r.merchant?.name || (r.type === 'PACKAGE' ? 'Package delivery' : 'Order'),
+          title: r.merchant?.name || (r.type === 'PACKAGE' ? 'Delivery' : 'Order'),
           subtitle: r.dropoffAddress || r.pickupAddress || '',
           amount: Number(r.total ?? r.customerPaid ?? 0),
           status: r.status,

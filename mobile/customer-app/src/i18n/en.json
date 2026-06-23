@@ -201,7 +201,7 @@
     "active": {
       "trackCta": "Track",
       "orderFallback": "Order",
-      "packageFallback": "Package delivery",
+      "packageFallback": "Delivery",
       "trackingFallback": "Tracking…"
     },
     "walletSheet": {
@@ -210,8 +210,8 @@
       "fund": "Fund Wallet",
       "send": "Send Money"
     },
-    "package": "Package",
-    "packageDescription": "Send or receive packages",
+    "package": "Delivery",
+    "packageDescription": "Send or receive deliveries",
     "shops": "Shops"
   },
   "tabs": {
@@ -383,23 +383,23 @@
       "enterAccount": "Enter account number",
       "accountNotResolved": "Account name not resolved yet",
       "accountNotFound": "Account not found. Check number or bank",
-      "minTransfer": "Minimum transfer is {{amount}}",
-      "maxTransfer": "Maximum transfer is {{amount}}",
-      "confirmTitle": "Confirm Transfer",
+      "minTransfer": "Minimum withdrawal is {{amount}}",
+      "maxTransfer": "Maximum withdrawal is {{amount}}",
+      "confirmTitle": "Confirm Withdrawal",
       "summaryTo": "To",
       "summaryBank": "Bank",
       "summaryAccount": "Account",
       "summaryAmount": "Amount",
       "enterPinSub": "Enter your 6-digit transaction PIN",
       "successTitle": "Processing",
-      "successHint": "Your transfer is being processed. You'll get a notification when it's done.",
+      "successHint": "Your withdrawal is being processed. You'll get a notification when it's done.",
       "done": "Done",
       "bankPickerTitle": "Select Bank",
       "bankSearchPh": "Search bank...",
-      "transferFailed": "Transfer failed",
+      "transferFailed": "Withdrawal failed",
       "incorrectPin": "Incorrect PIN",
       "pinNotSetTitle": "Set up your transaction PIN",
-      "pinNotSetHint": "You need a 6-digit PIN to authorize transfers."
+      "pinNotSetHint": "You need a 6-digit PIN to authorize withdrawals."
     },
     "amount": "Amount",
     "recipientPhone": "Recipient phone",
@@ -653,7 +653,7 @@
     "data": "Data",
     "electricity": "Electricity",
     "cable": "Cable",
-    "transfer": "Transfer",
+    "transfer": "Withdraw",
     "purchasing": "Processing…",
     "pickProvider": "Choose provider",
     "amount": "Amount",
