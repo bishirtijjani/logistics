@@ -267,6 +267,32 @@ const resubmitMerchant = async (merchantId, userId, role, updateData = {}) => {
 
   logger.info('Merchant resubmitted for review', { merchantId });
 
+  // Ping the admin dashboard so the resubmission doesn't sit silently in the
+  // pending queue. Non-fatal: a socket failure must never block the resubmit.
+  try {
+    getIO().to(getAdminRoom()).emit(MERCHANT.RESUBMITTED, {
+      merchantId: updated.id,
+      name: updated.name,
+      timestamp: Date.now(),
+    });
+  } catch (err) {
+    logger.warn('resubmit admin notify failed (non-fatal)', { merchantId, error: err.message });
+  }
+
+  // Email the team inbox too, so a resubmission is caught even when no admin has
+  // the dashboard open. Best-effort: a mail failure must never block the resubmit.
+  const emailService = require('../../services/email.service');
+  const { config } = require('../../config');
+  emailService
+    .sendMerchantApplicationAlertEmail({
+      to: config.CONTACT_INBOX_EMAIL,
+      merchantName: updated.name,
+      contactEmail: updated.email,
+      contactPhone: updated.phone,
+      isResubmission: true,
+    })
+    .catch((err) => logger.warn('resubmit team email failed (non-fatal)', { merchantId, error: err.message }));
+
   return updated;
 };
 

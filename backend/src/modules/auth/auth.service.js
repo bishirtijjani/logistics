@@ -415,6 +415,21 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
   // Clean up Redis
   await redis.del(pendingKey);
 
+  // Alert the team inbox about the new merchant application (best-effort - a
+  // mail failure must never fail the signup the user just completed).
+  if (isMerchant && user.merchant) {
+    const emailService = require("../../services/email.service");
+    emailService
+      .sendMerchantApplicationAlertEmail({
+        to: config.CONTACT_INBOX_EMAIL,
+        merchantName: user.merchant.name,
+        contactEmail: user.merchant.email,
+        contactPhone: user.merchant.phone,
+        isResubmission: false,
+      })
+      .catch((err) => logger.warn("New merchant application team email failed (non-fatal)", { merchantId: user.merchant.id, error: err.message }));
+  }
+
   logger.info("OTP verified, user created", {
     userId: user.id,
     email,
@@ -1538,6 +1553,18 @@ const enrollMerchant = async (userId, data) => {
   });
 
   logger.info("Merchant profile enrolled for existing user", { userId, merchantId: merchant.id });
+
+  // Alert the team inbox about the new merchant application (best-effort).
+  const emailService = require("../../services/email.service");
+  emailService
+    .sendMerchantApplicationAlertEmail({
+      to: config.CONTACT_INBOX_EMAIL,
+      merchantName: merchant.name,
+      contactEmail: merchant.email,
+      contactPhone: merchant.phone,
+      isResubmission: false,
+    })
+    .catch((err) => logger.warn("New merchant application team email failed (non-fatal)", { merchantId: merchant.id, error: err.message }));
 
   return { merchantId: merchant.id, status: merchant.status };
 };

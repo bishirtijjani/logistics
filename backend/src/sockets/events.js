@@ -104,6 +104,11 @@ const MERCHANT = {
   // Broadcast broadly so browse lists and the admin dashboard update live,
   // without each client having to join every merchant's room.
   STATUS_CHANGED: 'merchant:status:changed',
+
+  // Server → admin room: a rejected merchant resubmitted their application, so
+  // it is back in PENDING_APPROVAL. Lets the admin dashboard surface it live
+  // instead of the resubmission sitting silently in the queue.
+  RESUBMITTED: 'merchant:resubmitted',
 };
 
 // --- Wallet events ---

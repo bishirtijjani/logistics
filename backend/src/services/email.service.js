@@ -573,6 +573,37 @@ const sendContactConfirmationEmail = async ({ name, email }) => {
   });
 };
 
+/**
+ * Internal team alert: a merchant application needs review. Fires on a brand-new
+ * application and on a resubmission after rejection, so the pending queue is
+ * never silent. Sent to the team inbox (CONTACT_INBOX_EMAIL), not the merchant.
+ */
+const sendMerchantApplicationAlertEmail = async ({ to, merchantName, contactEmail, contactPhone, isResubmission = false }) => {
+  const heading = isResubmission ? 'Merchant application resubmitted' : 'New merchant application';
+  const lead = isResubmission
+    ? 'A previously rejected merchant has fixed their profile and resubmitted for review.'
+    : 'A new merchant has registered and is waiting for approval.';
+
+  const html = emailBase(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#EA580C;font-weight:700;">${heading}</h2>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">${lead}</p>
+    ${infoBox('#EA580C', '#fff7ed', [
+      ['Business', escapeHtml(merchantName || '-')],
+      ...(contactEmail ? [['Email', escapeHtml(contactEmail)]] : []),
+      ...(contactPhone ? [['Phone', escapeHtml(contactPhone)]] : []),
+      ['Status', 'Pending approval'],
+    ])}
+    <p style="margin:0;font-size:13px;color:#9ca3af;">Open the admin dashboard to review it under Merchants → Pending.</p>
+  `);
+
+  return sendEmail({
+    to,
+    subject: `${isResubmission ? 'Resubmitted' : 'New'} merchant application - ${merchantName || 'Unknown'}`,
+    html,
+    text: `${lead}\n\nBusiness: ${merchantName || '-'}${contactEmail ? `\nEmail: ${contactEmail}` : ''}${contactPhone ? `\nPhone: ${contactPhone}` : ''}\nStatus: Pending approval\n\nReview it in the admin dashboard under Merchants > Pending.`,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendOtpEmail,
@@ -582,6 +613,7 @@ module.exports = {
   sendMerchantRejectedEmail,
   sendMerchantSuspendedEmail,
   sendMerchantUnsuspendedEmail,
+  sendMerchantApplicationAlertEmail,
   sendWithdrawalApprovedEmail,
   sendWithdrawalRejectedEmail,
   sendCommissionChangedEmail,

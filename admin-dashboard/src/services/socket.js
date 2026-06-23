@@ -24,6 +24,7 @@ class AdminSocketService {
     })
 
     this.socket.on('merchant:status:changed', (data) => this.emit('merchantStatusChanged', data))
+    this.socket.on('merchant:resubmitted', (data) => this.emit('merchantResubmitted', data))
   }
 
   disconnect() {
@@ -35,6 +36,10 @@ class AdminSocketService {
 
   onMerchantStatusChanged(cb) {
     return this.on('merchantStatusChanged', cb)
+  }
+
+  onMerchantResubmitted(cb) {
+    return this.on('merchantResubmitted', cb)
   }
 
   on(event, callback) {

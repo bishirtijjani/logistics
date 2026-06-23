@@ -531,7 +531,6 @@ export default function CheckoutScreen() {
             <>
               <Row label={t('request.checkout.subtotal')} value={money(quote.subtotal)} />
               <Row label={t('request.checkout.deliveryFee')} value={money(quote.deliveryFee)} />
-              <Row label={t('request.checkout.platformFee')} value={money(quote.platformFee)} />
               {Number(quote.tax) > 0 && <Row label={t('request.checkout.tax')} value={money(quote.tax)} />}
               <View style={{ borderTopWidth: 1, borderTopColor: tokens.border.default, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Text style={{ fontWeight: '700', color: tokens.text.primary }}>{t('request.checkout.total')}</Text>

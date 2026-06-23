@@ -333,7 +333,6 @@ export default function CreateRequestScreen() {
             ) : (
               <>
                 <Row label={t('request.quote.deliveryFee')} value={money(quote.deliveryFee)} />
-                <Row label={t('request.quote.platformFee')} value={money(quote.platformFee)} />
                 <View style={{ borderTopWidth: 1, borderTopColor: tokens.border.default, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>
                   <Text style={{ fontWeight: '700', color: tokens.text.primary }}>{t('request.quote.total')}</Text>
                   <Text style={{ fontWeight: '700', color: tokens.brand.default }}>{money(quote.total)}</Text>

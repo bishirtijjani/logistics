@@ -952,16 +952,22 @@ const approveMerchant = async (merchantId, adminUserId, ipAddress, userAgent) =>
     include: { user: { select: { email: true, firstName: true } } },
   });
   if (!merchant) throw AppError.notFound('Merchant not found');
-  if (merchant.status !== 'PENDING_APPROVAL') throw AppError.badRequest('Merchant is not pending approval');
+  // PENDING_APPROVAL is the normal path; REJECTED is the admin "changed my mind"
+  // path - approving a rejected merchant reverses the rejection and clears the
+  // stale reason so it doesn't linger on the now-active profile.
+  if (merchant.status !== 'PENDING_APPROVAL' && merchant.status !== 'REJECTED') {
+    throw AppError.badRequest('Only a pending or rejected merchant can be approved');
+  }
+  const reversedRejection = merchant.status === 'REJECTED';
 
   const updated = await prisma.merchant.update({
     where: { id: merchantId },
-    data: { status: 'APPROVED' },
+    data: { status: 'APPROVED', rejectionReason: null },
   });
 
-  await createAuditLog(adminUserId, 'APPROVE_MERCHANT', 'MERCHANT', merchantId, { merchantName: merchant.name }, ipAddress, userAgent);
+  await createAuditLog(adminUserId, 'APPROVE_MERCHANT', 'MERCHANT', merchantId, { merchantName: merchant.name, reversedRejection }, ipAddress, userAgent);
 
-  logger.info('Merchant approved', { merchantId });
+  logger.info('Merchant approved', { merchantId, reversedRejection });
 
   const recipientEmail = merchant.email || merchant.user?.email;
   if (recipientEmail) {

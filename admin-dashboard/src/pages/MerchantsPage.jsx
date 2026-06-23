@@ -380,6 +380,16 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
                 </Btn>
               </>
             )}
+            {merchant.status === 'REJECTED' && (
+              <Btn size="sm" variant="success" loading={loading === 'approve'}
+                onClick={() => act('approve', async () => {
+                  const r = await dispatch(approveMerchant(merchant.id))
+                  if (r.meta.requestStatus === 'fulfilled') { toast.success('Rejection reversed - merchant approved, welcome email sent'); onAction?.() }
+                  else toast.error(r.error?.message || 'Failed')
+                })}>
+                <CheckCircle size={14} /> Approve anyway
+              </Btn>
+            )}
             {merchant.status === 'APPROVED' && (
               <Btn size="sm" variant="warning" loading={loading === 'suspend'}
                 onClick={() => onAction?.('suspend', merchant)}>
@@ -1137,6 +1147,19 @@ export default function MerchantsPage() {
     })
     return () => unsub?.()
   }, [dispatch])
+
+  // A rejected merchant resubmitting flips them back to PENDING_APPROVAL. Surface
+  // it live so it isn't silent in the queue; refresh the pending tab when it's on
+  // screen so the resubmitted application shows up without a manual reload.
+  useEffect(() => {
+    const unsub = adminSocket.onMerchantResubmitted((data) => {
+      toast.success(`${data?.name || 'A merchant'} resubmitted their application for review`)
+      if (activeTab === 'pending') {
+        dispatch(fetchAllMerchants({ page: 1, limit: pageSize, status: 'PENDING_APPROVAL' }))
+      }
+    })
+    return () => unsub?.()
+  }, [dispatch, activeTab, pageSize])
 
   // Load categories once for the filter + create modal
   useEffect(() => {
