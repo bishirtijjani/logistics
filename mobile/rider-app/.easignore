@@ -1,0 +1,33 @@
+# Dependencies (EAS installs these on the build server from the lockfile)
+node_modules/
+
+# Expo / JS build outputs (not needed for the native build)
+.expo/
+dist/
+dist-web/
+web-build/
+expo-env.d.ts
+
+# Native folders (EAS prebuilds these)
+/ios
+/android
+.kotlin/
+
+# Secrets / signing material (never upload)
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+.env
+.env*.local
+
+# Misc
+*.orig.*
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.tsbuildinfo
