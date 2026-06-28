@@ -171,12 +171,26 @@ export default function JobOfferScreen() {
     onAccept();
   }, [dispatch, onAccept]);
 
+  // Rider is blocked for unpaid cash fees: dismiss the offer and send them to
+  // the wallet to top up. The offer goes back to the pool for other riders.
+  const onGoToWallet = useCallback(() => {
+    const id = activeOfferId;
+    dispatch(clearOfferError());
+    if (id) dispatch(offerDismissed({ requestId: id, outcome: "rider-owes-fees" }));
+    navigation.navigate("MainTabs", { screen: "WalletTab" });
+  }, [activeOfferId, dispatch, navigation]);
+
   if (!active) return null; // Overlay parent already guards this; defensive.
 
   const p = active.payload || {};
   const fare = p.fare ?? p.estimatedFare ?? p.riderEarning;
   const distanceKm = p.distanceKm;
   const eta = p.eta || p.estimatedMinutes;
+  const isCash = p.paymentMethod === "CASH";
+  const collectAmount = Number(p.collectAmount || 0);
+  // A rider blocked for unpaid cash-delivery fees (HTTP 403). "Try again" won't
+  // help - they must top up - so we show a wallet CTA instead.
+  const isOwed = isError && (error?.code === "RIDER_OUTSTANDING_FEES" || error?.status === 403);
 
   const isAccepting = status === "accepting";
   const isTaken = status === "taken";
@@ -246,9 +260,34 @@ export default function JobOfferScreen() {
           <Badge
             tokens={tokens}
             kind="error"
-            icon="warning-outline"
+            icon={isOwed ? "wallet-outline" : "warning-outline"}
             text={error?.message || t("offer.errorBadge", "Couldn't accept this offer")}
           />
+        ) : null}
+
+        {/* Cash-on-delivery banner - the rider must collect this amount in cash. */}
+        {isCash ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: tokens.status.successSoft || tokens.brand.soft,
+              borderRadius: 12,
+              paddingHorizontal: 14,
+              paddingVertical: 12,
+              marginBottom: 14,
+            }}
+          >
+            <Ionicons name="cash-outline" size={20} color={tokens.status.successStrong || tokens.brand.strong} />
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={{ color: tokens.status.successStrong || tokens.brand.strong, fontWeight: "800", fontSize: 14 }}>
+                {t("offer.cashCollect", "Cash job · collect {{amount}}", { amount: collectAmount ? formatNaira(collectAmount) : "-" })}
+              </Text>
+              <Text style={{ color: tokens.text.muted, fontSize: 12, marginTop: 2 }}>
+                {t("offer.cashCollectSub", "Collect this in cash on handover. The platform fee comes out of your wallet.")}
+              </Text>
+            </View>
+          </View>
         ) : null}
 
         {/* Earnings + distance + ETA */}
@@ -326,7 +365,24 @@ export default function JobOfferScreen() {
           gap: 12,
         }}
       >
-        {isError ? (
+        {isOwed ? (
+          <TouchableOpacity
+            onPress={onGoToWallet}
+            accessibilityRole="button"
+            accessibilityLabel={t("offer.topUpCta", "Top up wallet")}
+            style={{
+              flex: 1,
+              padding: 16,
+              borderRadius: 14,
+              alignItems: "center",
+              backgroundColor: tokens.brand.default,
+            }}
+          >
+            <Text style={{ color: tokens.text.onBrand, fontSize: 15, fontWeight: "800" }}>
+              {t("offer.topUpCta", "Top up wallet")}
+            </Text>
+          </TouchableOpacity>
+        ) : isError ? (
           <TouchableOpacity
             onPress={onTryAgain}
             accessibilityRole="button"

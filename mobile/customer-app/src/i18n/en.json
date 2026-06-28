@@ -480,6 +480,14 @@
     "instructions": "Instructions",
     "instructionsPh": "Anything the rider should know?",
     "specialInstructions": "Special instructions (optional)",
+    "payment": {
+      "title": "Payment method",
+      "wallet": "Wallet",
+      "walletHint": "Pay now from your iPrime balance",
+      "cash": "Cash on delivery",
+      "cashHint": "Pay the rider in cash on handover",
+      "cashBanner": "You'll pay {{amount}} in cash to your rider on handover. Nothing leaves your wallet now."
+    },
     "quote": {
       "needAddresses": "Pick both addresses to see your fare.",
       "deliveryFee": "Delivery fee",
@@ -490,6 +498,7 @@
     "cta": {
       "placeRequest": "Place request",
       "placeRequestWith": "Place request · {{amount}}",
+      "placeRequestCash": "Place request · Pay {{amount}} cash",
       "placing": "Placing…",
       "quoteExpired": "Quote expired. Refresh"
     },
@@ -560,6 +569,10 @@
       "orderDetails": "Order Details",
       "orderIdLabel": "Order ID",
       "totalLabel": "Total",
+      "paymentLabel": "Payment",
+      "payWithCash": "Cash on delivery",
+      "payWithWallet": "Wallet",
+      "cashDueBanner": "Pay {{amount}} in cash to your rider on handover.",
       "deliveryAddressLabel": "Delivery address",
       "noMessagesYet": "No messages yet. Send one to start.",
       "messagePlaceholder": "Type a message…",

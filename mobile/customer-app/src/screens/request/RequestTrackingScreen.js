@@ -408,6 +408,17 @@ const RequestTrackingScreen = () => {
           </View>
         )}
 
+        {/* Cash-on-delivery reminder - shown while there's still cash to hand
+            over (i.e. not cancelled or fully settled). */}
+        {currentRequest.paymentMethod === 'CASH' && !['CANCELLED', 'SETTLED'].includes(currentRequest.status) ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, padding: 14, borderRadius: 12, backgroundColor: tokens.status.warningSoft }}>
+            <Ionicons name="cash-outline" size={20} color={tokens.status.warningStrong} />
+            <Text style={{ flex: 1, marginLeft: 10, fontSize: 13, color: tokens.status.warningStrong, fontWeight: '600' }}>
+              {t('request.tracking.cashDueBanner', { amount: money(currentRequest.total) })}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Status Timeline */}
         <View style={{ marginBottom: 24 }}>
           <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
@@ -772,6 +783,14 @@ const RequestTrackingScreen = () => {
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
               <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t('request.tracking.totalLabel')}</Text>
               <Text style={{ fontSize: 14, fontWeight: '500', color: tokens.text.primary }}>{money(currentRequest.total)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
+              <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t('request.tracking.paymentLabel')}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '500', color: tokens.text.primary }}>
+                {currentRequest.paymentMethod === 'CASH'
+                  ? t('request.tracking.payWithCash')
+                  : t('request.tracking.payWithWallet')}
+              </Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
               <Text style={{ fontSize: 14, color: tokens.text.muted }}>{t('request.tracking.deliveryAddressLabel')}</Text>

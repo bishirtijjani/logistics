@@ -482,6 +482,14 @@
     "instructions": "Umurni",
     "instructionsPh": "Akwai abin da rider yake bukatar sani?",
     "specialInstructions": "Umurni na musamman (na zaɓi)",
+    "payment": {
+      "title": "Hanyar biya",
+      "wallet": "Wallet",
+      "walletHint": "Biya yanzu daga ma'ajiyar iPrime",
+      "cash": "Kuɗi a hannu",
+      "cashHint": "Biya direba kuɗi a hannu lokacin mika kaya",
+      "cashBanner": "Za ka biya {{amount}} kuɗi a hannu ga direba lokacin mika kaya. Babu abin da zai fita daga wallet yanzu."
+    },
     "quote": {
       "needAddresses": "Zaɓi adireshi biyu don ganin kuɗin.",
       "deliveryFee": "Kuɗin isar",
@@ -492,6 +500,7 @@
     "cta": {
       "placeRequest": "Yi roko",
       "placeRequestWith": "Yi roko · {{amount}}",
+      "placeRequestCash": "Yi roko · Biya {{amount}} kuɗi",
       "placing": "Ana aikawa…",
       "quoteExpired": "Kuɗin ya kare. Sabunta"
     },
@@ -562,6 +571,10 @@
       "orderDetails": "Bayanan oda",
       "orderIdLabel": "Lambar oda",
       "totalLabel": "Jimilla",
+      "paymentLabel": "Biya",
+      "payWithCash": "Kuɗi a hannu",
+      "payWithWallet": "Wallet",
+      "cashDueBanner": "Biya {{amount}} kuɗi a hannu ga direba lokacin mika kaya.",
       "deliveryAddressLabel": "Adireshin isar",
       "noMessagesYet": "Babu saƙo har yanzu. Aiko ɗaya don farawa.",
       "messagePlaceholder": "Rubuta saƙo…",

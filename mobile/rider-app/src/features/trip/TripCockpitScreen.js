@@ -130,6 +130,9 @@ export default function TripCockpitScreen({ route }) {
   const cancelledBanner = useSelector((s) => s.trip.cancelled);
   const settings = useSelector((s) => s.settings?.values || {});
   const fareTotal = useSelector((s) => s.trip.fare);
+  const paymentMethod = useSelector((s) => s.trip.paymentMethod);
+  const collectAmount = useSelector((s) => s.trip.collectAmount);
+  const isCashTrip = paymentMethod === "CASH";
 
   // If the trip is force-cancelled mid-POD (admin / customer), tear down any
   // open POD sheet so the cancellation overlay isn't covered by the camera.
@@ -724,6 +727,32 @@ export default function TripCockpitScreen({ route }) {
 
         {/* Bottom sheet contents */}
         <View style={{ padding: 14 }}>
+          {/* Cash-on-delivery: standing reminder of the amount to collect, shown
+              through every active stage so it's in front of the rider at handover. */}
+          {isCashTrip && (isPickupStage || isDropoffStage) ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: tokens.status.successSoft || tokens.brand.soft,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                marginBottom: 12,
+              }}
+            >
+              <Ionicons name="cash-outline" size={20} color={tokens.status.successStrong || tokens.brand.strong} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={{ color: tokens.status.successStrong || tokens.brand.strong, fontWeight: "800", fontSize: 14 }}>
+                  {t("trip.cashCollect", "Collect ₦{{amount}} cash", { amount: Number(collectAmount || fareTotal || 0).toLocaleString("en-NG") })}
+                </Text>
+                <Text style={{ color: tokens.text.muted, fontSize: 12, marginTop: 2 }}>
+                  {t("trip.cashCollectSub", "The platform fee is deducted from your wallet on completion.")}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
           {/* Stage card */}
           {isPickupStage ? (
             <PickupCard

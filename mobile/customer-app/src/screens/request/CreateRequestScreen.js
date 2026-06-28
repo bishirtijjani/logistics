@@ -59,6 +59,11 @@ export default function CreateRequestScreen() {
   const [recipientName, setRecipientName] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [instructions, setInstructions] = useState('');
+  // Wallet (pay-now from balance, via escrow) vs Cash (pay the rider on
+  // handover). Cash skips the wallet balance check and the PIN sheet since no
+  // money leaves the wallet at create time.
+  const [paymentMethod, setPaymentMethod] = useState('WALLET');
+  const isCash = paymentMethod === 'CASH';
 
   const [quote, setQuote] = useState(null);
   const [quoteFetchedAt, setQuoteFetchedAt] = useState(null);
@@ -175,7 +180,8 @@ export default function CreateRequestScreen() {
       Toast.show({ type: 'error', text1: t('request.toast.quoteExpired'), text2: t('request.toast.quoteExpiredSub') });
       return false;
     }
-    if (Number(balance) < Number(quote.total)) {
+    // Cash is paid to the rider on handover, so wallet balance is irrelevant.
+    if (!isCash && Number(balance) < Number(quote.total)) {
       Toast.show({
         type: 'error',
         text1: t('request.toast.insufficientBalance'),
@@ -188,13 +194,19 @@ export default function CreateRequestScreen() {
 
   const requirePin = usePinGuard();
 
-  const openPin = () => {
+  // Cash needs no PIN (nothing leaves the wallet) - submit straight away.
+  // Wallet needs the PIN sheet to authorise the escrow debit.
+  const onPlace = () => {
     if (!validateForm()) return;
+    if (isCash) {
+      doSubmit(undefined);
+      return;
+    }
     if (!requirePin()) return;
     setPinVisible(true);
   };
 
-  const submitWithPin = async (pin) => {
+  const doSubmit = async (pin) => {
     setSubmitting(true);
     try {
       const result = await dispatch(
@@ -213,9 +225,9 @@ export default function CreateRequestScreen() {
             recipientPhone,
             instructions: instructions.trim() || undefined,
           },
-          paymentMethod: 'WALLET',
+          paymentMethod,
           quoteToken: quote.quoteToken,
-          pin,
+          ...(pin ? { pin } : {}),
         })
       ).unwrap();
       setPinVisible(false);
@@ -225,6 +237,11 @@ export default function CreateRequestScreen() {
       const wrapped = new Error(err?.message || (typeof err === 'string' ? err : t('common.retry')));
       wrapped.status = err?.status ?? null;
       wrapped.data = err?.data ?? null;
+      // Cash submits without the PIN sheet, so surface its failure as a toast.
+      if (isCash) {
+        Toast.show({ type: 'error', text1: t('request.toast.quoteFailed'), text2: wrapped.message });
+        return;
+      }
       throw wrapped;
     } finally {
       setSubmitting(false);
@@ -304,6 +321,32 @@ export default function CreateRequestScreen() {
             <Input value={instructions} onChangeText={setInstructions} placeholder={t('request.specialInstructions')} multiline />
           </Section>
 
+          <Section title={t('request.payment.title')}>
+            <PaymentOption
+              active={!isCash}
+              icon="wallet-outline"
+              label={t('request.payment.wallet')}
+              hint={t('request.payment.walletHint')}
+              onPress={() => setPaymentMethod('WALLET')}
+            />
+            <View style={{ height: 8 }} />
+            <PaymentOption
+              active={isCash}
+              icon="cash-outline"
+              label={t('request.payment.cash')}
+              hint={t('request.payment.cashHint')}
+              onPress={() => setPaymentMethod('CASH')}
+            />
+            {isCash && quote ? (
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginTop: 10, padding: 12, borderRadius: 10, backgroundColor: tokens.status.warningSoft }}>
+                <Ionicons name="information-circle-outline" size={18} color={tokens.status.warningStrong} style={{ marginTop: 1 }} />
+                <Text style={{ flex: 1, marginLeft: 8, fontSize: 12, color: tokens.status.warningStrong, lineHeight: 17 }}>
+                  {t('request.payment.cashBanner', { amount: money(quote.total) })}
+                </Text>
+              </View>
+            ) : null}
+          </Section>
+
           {/* Quote */}
           <View style={{ marginTop: 12, padding: 14, backgroundColor: tokens.bg.surface, borderRadius: 12 }}>
             {(!pickup || !dropoff) ? (
@@ -353,7 +396,7 @@ export default function CreateRequestScreen() {
 
         <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: tokens.bg.surface, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
           <TouchableOpacity
-            onPress={openPin}
+            onPress={onPlace}
             disabled={!quote || submitting || quoteExpired}
             accessibilityRole="button"
             accessibilityState={{ disabled: !quote || submitting || quoteExpired, busy: submitting }}
@@ -366,7 +409,9 @@ export default function CreateRequestScreen() {
                 : quoteExpired
                   ? t('request.cta.quoteExpired')
                   : quote
-                    ? t('request.cta.placeRequestWith', { amount: money(quote.total) })
+                    ? (isCash
+                        ? t('request.cta.placeRequestCash', { amount: money(quote.total) })
+                        : t('request.cta.placeRequestWith', { amount: money(quote.total) }))
                     : t('request.cta.placeRequest')}
             </Text>
           </TouchableOpacity>
@@ -376,7 +421,7 @@ export default function CreateRequestScreen() {
       <PinBottomSheet
         isVisible={pinVisible}
         onClose={() => setPinVisible(false)}
-        onConfirm={submitWithPin}
+        onConfirm={doSubmit}
         onSetupPin={() => navigation.navigate('SetPin')}
         title={t('request.pin.confirmTitle')}
         subtitle={quote ? t('request.pin.confirmSub', { amount: money(quote.total) }) : t('request.pin.confirmFallback')}
@@ -423,6 +468,35 @@ const Section = ({ title, children }) => {
       <Text accessibilityRole="header" style={{ fontSize: 14, fontWeight: '600', color: tokens.text.primary, marginBottom: 6 }}>{title}</Text>
       {children}
     </View>
+  );
+};
+
+const PaymentOption = ({ active, icon, label, hint, onPress }) => {
+  const { tokens } = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      style={{
+        flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 12, borderWidth: 1,
+        borderColor: active ? tokens.brand.default : tokens.border.default,
+        backgroundColor: active ? `${tokens.brand.default}15` : tokens.bg.surface,
+      }}
+    >
+      <Ionicons name={icon} size={22} color={active ? tokens.brand.default : tokens.text.muted} />
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={{ fontWeight: '700', color: active ? tokens.brand.default : tokens.text.primary }}>{label}</Text>
+        <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 1 }}>{hint}</Text>
+      </View>
+      <Ionicons
+        name={active ? 'radio-button-on' : 'radio-button-off'}
+        size={20}
+        color={active ? tokens.brand.default : tokens.text.muted}
+      />
+    </TouchableOpacity>
   );
 };
 

@@ -137,7 +137,18 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
       searchAttempts: { increment: 1 },
       lastBroadcastAt: new Date(),
     },
-    select: { customerId: true, searchAttempts: true },
+    select: {
+      customerId: true,
+      searchAttempts: true,
+      // Enrich the offer so the rider sees the addresses, type, and - critically
+      // for cash - the payment method and the cash amount to collect, before
+      // they accept.
+      type: true,
+      paymentMethod: true,
+      total: true,
+      pickupAddress: true,
+      dropoffAddress: true,
+    },
   });
 
   io.to(getUserRoom(updated.customerId)).emit(REQUEST.MATCHING_STATUS, {
@@ -158,6 +169,13 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
       riderDistanceKm: Math.round(c.distanceKm * 10) / 10,
       ringRadiusKm: radiusKm,
       expiresInSeconds: ringTimeoutSec,
+      // Offer enrichment (see select above). For CASH the rider must collect
+      // `collectAmount` in cash from the customer on handover.
+      type: updated.type,
+      paymentMethod: updated.paymentMethod,
+      collectAmount: updated.paymentMethod === 'CASH' ? Number(updated.total) : 0,
+      pickupAddress: updated.pickupAddress,
+      dropoffAddress: updated.dropoffAddress,
     });
   }
 
