@@ -264,10 +264,20 @@ const onRequestStatusChanged = async (request, prevStatus) => {
   const tpl = resolveTemplate(request.status, categorySlug);
   if (!tpl) return; // REQUESTED, etc. - no notification
 
+  // Cash-on-delivery reminder. Once a rider is on the way, nudge the customer
+  // to have the exact cash ready so the handover isn't held up. Only the
+  // courier (CASH) flow needs this; wallet orders are already paid.
+  let body = tpl.body;
+  const CASH_REMINDER_STATUSES = new Set(['RIDER_ASSIGNED', 'RIDER_EN_ROUTE']);
+  if (request.paymentMethod === 'CASH' && request.total != null && CASH_REMINDER_STATUSES.has(request.status)) {
+    const amount = `₦${Number(request.total).toLocaleString('en-NG')}`;
+    body = `${tpl.body} Have ${amount} cash ready for your rider.`;
+  }
+
   await pushAndSocket(request.customerId, {
     type: 'REQUEST_STATUS',
     title: tpl.title,
-    body: tpl.body,
+    body,
     data: { route: `/request/${request.id}`, status: request.status },
     requestId: request.id,
   });
@@ -295,6 +305,8 @@ const onWalletEvent = async (userId, { kind, amount, transactionId, route, sende
         return { title: 'Refund credited', body: description || `${naira} refunded to your wallet.` };
       case 'RIDER_EARNING':
         return { title: 'Earning received', body: description || `You earned ${naira} on this delivery.` };
+      case 'CASH_COMMISSION':
+        return { title: 'Platform fee charged', body: description || `${naira} platform commission was deducted for a cash delivery.` };
       default:
         return { title: 'Wallet update', body: description || `${naira} update on your wallet.` };
     }

@@ -28,6 +28,7 @@ const {
   emitCancelled,
 } = require('../../sockets/handlers/request.handler');
 const notifyService = require('../../services/notify.service');
+const emailService = require('../../services/email.service');
 const { verifyTransactionPin } = require('../auth/auth.service');
 const {
   verifyQuoteToken,
@@ -487,7 +488,35 @@ const createRequest = async (customerId, requestData) => {
   });
   
   logger.info('Request created', { requestId: request.id, type, customerId });
-  
+
+  // Cash-on-delivery feedback. The customer paid nothing now and owes the rider
+  // cash on handover, so confirm the order AND the exact amount due - in-app
+  // (push + Notification Center) and as an email receipt. Best-effort: a
+  // notification/email failure must not fail the order.
+  if (isCash) {
+    const amountText = `₦${Number(pricing.total).toLocaleString('en-NG')}`;
+    notifyService.pushAndSocket(customerId, {
+      type: 'REQUEST_STATUS',
+      title: 'Order placed - pay cash on delivery',
+      body: `Finding you a rider. Have ${amountText} cash ready to pay on handover. Nothing was charged to your wallet.`,
+      data: { route: `/request/${request.id}`, status: 'REQUESTED', kind: 'CASH_ORDER_PLACED' },
+      requestId: request.id,
+    }).catch((err) => logger.warn('Cash order-placed notification failed', { error: err.message }));
+
+    prisma.user
+      .findUnique({ where: { id: customerId }, select: { email: true, firstName: true } })
+      .then((u) => {
+        if (!u?.email) return null;
+        return emailService.sendCashOrderConfirmationEmail(u.email, {
+          firstName: u.firstName,
+          requestId: request.id,
+          amount: pricing.total,
+          dropoffAddress: locationData.dropoffAddress,
+        });
+      })
+      .catch((err) => logger.warn('Cash order confirmation email failed', { error: err.message }));
+  }
+
   // Queue rider matching job (if no merchant, go directly to rider matching).
   // The expanding-radius matcher in request.worker enqueues
   // AUTO_CANCEL_UNMATCHED itself once it exhausts all rings - we no longer

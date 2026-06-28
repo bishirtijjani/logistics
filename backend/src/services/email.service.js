@@ -604,11 +604,134 @@ const sendMerchantApplicationAlertEmail = async ({ to, merchantName, contactEmai
   });
 };
 
+// ============================================================
+// Cash-on-delivery emails (customer + rider)
+// ============================================================
+
+/**
+ * Generic branded shell - same look as the merchant emails but with a
+ * caller-supplied subtitle so customer/rider mails aren't labelled
+ * "Merchant Notification".
+ */
+const notifyEmailBase = (subtitle, content) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" style="max-width:520px;background-color:#ffffff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#EA580C,#C2410C);padding:28px 32px;border-radius:16px 16px 0 0;">
+              <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">iPrime</h1>
+              <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">${subtitle}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              ${content}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 28px;text-align:center;border-top:1px solid #f3f4f6;">
+              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} iPrime. All rights reserved.</p>
+              <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@iprime.ng" style="color:#EA580C;text-decoration:none;">support@iprime.ng</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+const naira = (n) => `₦${Number(n || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+
+/**
+ * Customer receipt for a cash-on-delivery package. Confirms the order and,
+ * crucially, the exact amount of cash to hand the rider - so there's a written
+ * record of the obligation and no surprise at the doorstep.
+ */
+const sendCashOrderConfirmationEmail = async (email, { firstName, requestId, amount, dropoffAddress }) => {
+  const amt = naira(amount);
+  const shortId = String(requestId || '').slice(0, 8).toUpperCase();
+  const html = notifyEmailBase('Order Confirmation', `
+    <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">Delivery confirmed</h2>
+    <p style="margin:0 0 16px;font-size:16px;color:#374151;">Hi ${firstName || 'there'},</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#6b7280;line-height:1.6;">
+      Your package delivery has been placed and we're matching you with a rider.
+      You chose to <strong>pay with cash</strong>, so no money has been taken from your wallet.
+    </p>
+    ${infoBox('#EA580C', '#fff7ed', [
+      ['Order', `#${shortId}`],
+      ['Amount to pay in cash', `<strong style="font-size:18px;color:#EA580C;">${amt}</strong>`],
+      ...(dropoffAddress ? [['Drop-off', escapeHtml(dropoffAddress)]] : []),
+    ])}
+    <div style="background:#f0fdf4;border-radius:10px;padding:16px 20px;margin:20px 0;">
+      <p style="margin:0;font-size:14px;color:#166534;line-height:1.6;">
+        Hand <strong>${amt}</strong> in cash to your rider when they collect the package.
+        You'll only ever pay the amount shown above.
+      </p>
+    </div>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">Track your delivery live in the iPrime app.</p>
+  `);
+
+  return sendEmail({
+    to: email,
+    subject: `Cash delivery confirmed - pay ${amt} to your rider`,
+    html,
+    text: `Hi ${firstName || 'there'}, your cash package delivery (#${shortId}) is confirmed. Pay ${amt} in cash to your rider on handover. Nothing was deducted from your wallet.`,
+  });
+};
+
+/**
+ * Rider notice: a cash delivery's commission pushed their wallet negative, so
+ * they now owe the platform and are blocked from claiming new jobs until they
+ * top up. Account-impacting, so it gets an email trail like the merchant
+ * suspension mails.
+ */
+const sendRiderOutstandingFeesEmail = async (email, { firstName, amountOwed }) => {
+  const owed = naira(amountOwed);
+  const html = notifyEmailBase('Rider Account', `
+    <h2 style="margin:0 0 8px;font-size:22px;color:#f59e0b;font-weight:700;">Action needed: outstanding platform fees</h2>
+    <p style="margin:0 0 16px;font-size:16px;color:#374151;">Hi ${firstName || 'there'},</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#6b7280;line-height:1.6;">
+      You collected cash on a recent delivery, so the platform's commission was
+      charged to your wallet. This has left your balance negative.
+    </p>
+    ${infoBox('#f59e0b', '#fffbeb', [
+      ['Amount owed', `<strong style="font-size:18px;color:#f59e0b;">${owed}</strong>`],
+      ['Status', 'New jobs paused until cleared'],
+    ])}
+    <div style="background:#fafafa;border-radius:10px;padding:16px 20px;margin:20px 0;">
+      <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">
+        To start accepting jobs again, fund your wallet so your balance is back to
+        zero or above. Your delivery earnings on wallet-paid jobs continue to settle
+        into the same balance.
+      </p>
+    </div>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">Open the iPrime rider app → Wallet → Top up.</p>
+  `);
+
+  return sendEmail({
+    to: email,
+    subject: `Clear ${owed} in platform fees to keep accepting jobs - iPrime`,
+    html,
+    text: `Hi ${firstName || 'there'}, you owe ${owed} in platform fees from a cash delivery and your wallet balance is negative. Top up to a non-negative balance to resume accepting jobs.`,
+  });
+};
+
 module.exports = {
   sendEmail,
   sendOtpEmail,
   sendWelcomeEmail,
   sendPasswordResetEmail,
+  sendCashOrderConfirmationEmail,
+  sendRiderOutstandingFeesEmail,
   sendMerchantApprovedEmail,
   sendMerchantRejectedEmail,
   sendMerchantSuspendedEmail,

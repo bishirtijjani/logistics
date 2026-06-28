@@ -17,6 +17,7 @@ const { RIDER, REQUEST, getUserRoom, getRequestRoom } = require('../../sockets/e
 const { emitCompleted, emitCancelled } = require('../../sockets/handlers/request.handler');
 const { REQUEST_JOBS } = require('../jobs');
 const notifyService = require('../../services/notify.service');
+const emailService = require('../../services/email.service');
 const { getSetting } = require('../../services/settings.service');
 const { REDIS_KEYS, RIDER_MATCHING } = require('../../utils/constants');
 
@@ -361,8 +362,10 @@ const settleRequest = async (job) => {
     // delivery + earning since they did earn it.
     if (request.paymentMethod === 'CASH') {
       const riderWallet = request.rider?.user?.wallet || null;
+      let riderBalanceAfter = riderWallet ? Number(riderWallet.balance) : null;
 
       if (request.rider && riderWallet && platformEarning > 0) {
+        riderBalanceAfter = Number(riderWallet.balance) - platformEarning;
         await tx.wallet.update({
           where: { id: riderWallet.id },
           data: { balance: { decrement: platformEarning } },
@@ -433,7 +436,17 @@ const settleRequest = async (job) => {
         });
       }
 
-      return { merchantEarning: 0, riderEarning, platformEarning, cash: true, riderUserId: request.rider?.userId || null };
+      return {
+        merchantEarning: 0,
+        riderEarning,
+        platformEarning,
+        cash: true,
+        riderUserId: request.rider?.userId || null,
+        riderBalanceAfter,
+        riderWentNegative: riderBalanceAfter != null && riderBalanceAfter < 0,
+        riderEmail: request.rider?.user?.email || null,
+        riderFirstName: request.rider?.user?.firstName || null,
+      };
     }
 
     // Drain PLATFORM_ESCROW by the amount we are about to disburse.
@@ -600,6 +613,30 @@ const settleRequest = async (job) => {
   });
 
   logger.info('Request settled', { requestId, ...result });
+
+  // Cash settlement that pushed the rider's wallet negative: they now owe the
+  // platform and are blocked from new jobs until they top up. Tell them clearly
+  // (in-app push + Notification Center) and send an email trail, since this
+  // directly affects their ability to earn. Fired post-commit, best-effort.
+  if (result.cash && result.riderWentNegative && result.riderUserId) {
+    const owed = Math.abs(Number(result.riderBalanceAfter));
+    const owedText = `₦${owed.toLocaleString('en-NG')}`;
+    notifyService.pushAndSocket(result.riderUserId, {
+      type: 'WALLET',
+      title: 'Top up to keep accepting jobs',
+      body: `You owe ${owedText} in platform fees from cash deliveries. Fund your wallet to a non-negative balance to accept new jobs.`,
+      data: { route: '/wallet', kind: 'RIDER_OUTSTANDING_FEES' },
+    }).catch((err) => logger.warn('Rider outstanding-fees notification failed', { error: err.message }));
+
+    if (result.riderEmail) {
+      emailService
+        .sendRiderOutstandingFeesEmail(result.riderEmail, {
+          firstName: result.riderFirstName,
+          amountOwed: owed,
+        })
+        .catch((err) => logger.warn('Rider outstanding-fees email failed', { error: err.message }));
+    }
+  }
 
   const io = getIO();
   emitCompleted(io, requestId);

@@ -9,6 +9,7 @@ const { logger } = require('../../utils/logger');
 const { REDIS_KEYS, REDIS_TTL } = require('../../utils/constants');
 const { getIO } = require('../../sockets');
 const { emitRiderAssigned, emitStatusChanged } = require('../../sockets/handlers/request.handler');
+const notifyService = require('../../services/notify.service');
 
 /**
  * Register as a rider - creates Rider profile linked to existing User.
@@ -277,6 +278,20 @@ const acceptJob = async (userId, requestId) => {
   });
 
   logger.info('Rider accepted request', { riderId: rider.id, requestId });
+
+  // Cash-on-delivery: make the collect-cash obligation explicit to the rider the
+  // moment they take the job, including the exact amount and a reminder that the
+  // platform's cut comes out of their wallet at settlement.
+  if (result.paymentMethod === 'CASH') {
+    const amountText = `₦${Number(result.total || 0).toLocaleString('en-NG')}`;
+    notifyService.pushAndSocket(userId, {
+      type: 'REQUEST_STATUS',
+      title: 'Cash job accepted',
+      body: `Collect ${amountText} cash from the customer. The platform fee is deducted from your wallet on completion.`,
+      data: { route: `/request/${requestId}`, status: 'RIDER_ASSIGNED', kind: 'CASH_JOB_ACCEPTED' },
+      requestId,
+    }).catch((err) => logger.warn('Cash job-accepted notification failed', { error: err.message }));
+  }
 
   // Phase 4 - emit status + rider-assigned sockets so the customer's
   // tracking screen flips from "Searching…" to "Rider assigned" immediately.
