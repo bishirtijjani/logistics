@@ -576,7 +576,10 @@ export default function WithdrawScreen() {
         </ScrollView>
 
         {/* Bank picker modal */}
-        <Modal visible={showBankPicker} animationType="slide" onRequestClose={() => setShowBankPicker(false)}>
+        {/* statusBarTranslucent is required on Android: under RN 0.81 edge-to-edge
+            a non-transparent Modal without it mismeasures, so the SafeAreaView
+            below collapses and the user sees only a dim, frozen screen. */}
+        <Modal visible={showBankPicker} animationType="slide" statusBarTranslucent onRequestClose={() => setShowBankPicker(false)}>
           <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
             <View
               style={{

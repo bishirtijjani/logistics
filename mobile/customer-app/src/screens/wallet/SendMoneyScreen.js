@@ -316,7 +316,10 @@ export default function SendMoneyScreen({ navigation, route }) {
         </ScrollView>
 
         {/* Bank Picker Modal */}
-        <Modal visible={showBankPicker} animationType="slide" presentationStyle="pageSheet">
+        {/* statusBarTranslucent is required on Android: under RN 0.81 edge-to-edge
+            a non-transparent Modal without it mismeasures, so the SafeAreaView
+            below collapses and the user sees only a dim, frozen screen. */}
+        <Modal visible={showBankPicker} animationType="slide" presentationStyle="pageSheet" statusBarTranslucent>
           <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16 }}>
               <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary }}>
