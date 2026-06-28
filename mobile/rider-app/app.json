@@ -78,14 +78,6 @@
         }
       ],
       [
-        "expo-media-library",
-        {
-          "photosPermission": "Optionally save proof-of-delivery photos to your gallery.",
-          "savePhotosPermission": "Optionally save proof-of-delivery photos to your gallery.",
-          "isAccessMediaLocationEnabled": false
-        }
-      ],
-      [
         "expo-notifications",
         {
           "color": "#EA580C"
