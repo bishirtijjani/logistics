@@ -52,6 +52,13 @@ enum RequestType {
   PACKAGE // Pure courier - no merchant, customer is the origin
 }
 
+enum PaymentMethod {
+  WALLET // Default. Customer wallet debited into escrow at create; settled to rider on delivery.
+  CASH // PACKAGE only. Customer pays the rider cash on delivery; no escrow hold. The
+  // platform commission is collected by debiting the rider's wallet at settlement
+  // (may go negative), and a negative rider is blocked from claiming new jobs.
+}
+
 enum RequestStatus {
   REQUESTED // Customer placed order
   ACCEPTED // Merchant accepted (if applicable)
@@ -89,6 +96,7 @@ enum TransactionType {
   PLATFORM_EARNING
   RIDER_EARNING
   MERCHANT_EARNING
+  CASH_COMMISSION // Cash-on-delivery: platform commission debited from the rider's wallet
 }
 
 enum TransactionStatus {
@@ -999,6 +1007,11 @@ model Request {
   platformFee Decimal @db.Decimal(15, 2) // Platform commission
   tax         Decimal @default(0) @db.Decimal(15, 2)
   total       Decimal @db.Decimal(15, 2) // What customer pays
+
+  // How the customer pays. WALLET (default) flows through escrow; CASH is
+  // collected by the rider on delivery (PACKAGE only) and the platform's cut is
+  // debited from the rider's wallet at settlement.
+  paymentMethod PaymentMethod @default(WALLET)
 
   // Financial splits (CRITICAL - must exist from day one)
   customerPaid    Decimal @db.Decimal(15, 2)

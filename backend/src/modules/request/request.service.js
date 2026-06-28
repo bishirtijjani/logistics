@@ -268,12 +268,21 @@ const createRequest = async (customerId, requestData) => {
     pin,
     quoteToken,
     prescriptionUrl,
-    paymentMethod, // validated, but not a Request column - wallet is the only flow
+    paymentMethod = 'WALLET',
     ...locationData
   } = requestData;
 
   // Server infers type from payload shape if not explicitly provided.
   const type = providedType || (merchantId ? 'MERCHANT_ORDER' : 'PACKAGE');
+
+  // Cash-on-delivery: customer pays the rider directly on delivery, so no
+  // wallet debit or escrow hold happens here. The validator already restricts
+  // CASH to PACKAGE; re-assert it server-side as a defence-in-depth guard since
+  // this branch decides whether money moves at all.
+  const isCash = paymentMethod === 'CASH';
+  if (isCash && type !== 'PACKAGE') {
+    throw AppError.badRequest('Cash payment is only available for package deliveries.', { code: 'CASH_PACKAGE_ONLY' });
+  }
 
   // Verify signed quote token. Spec: stale quotes must be rejected; the
   // fingerprint (type, merchantId, geo) and locked pricing must match the
@@ -293,9 +302,10 @@ const createRequest = async (customerId, requestData) => {
     await verifyTransactionPin(customerId, pin);
   }
 
-  // Check customer has sufficient balance
+  // Customer wallet - the funding source for WALLET orders. Cash orders never
+  // touch it at create time, so a missing/unfunded wallet must not block them.
   const wallet = await prisma.wallet.findUnique({ where: { userId: customerId } });
-  if (!wallet) throw AppError.notFound('Wallet not found');
+  if (!wallet && !isCash) throw AppError.notFound('Wallet not found');
 
   // Resolve + price items server-side (validates variants + option groups).
   const resolvedItems = await resolveLineItems(merchantId, items);
@@ -365,7 +375,7 @@ const createRequest = async (customerId, requestData) => {
     );
   }
 
-  if (Number(wallet.balance) < pricing.total) {
+  if (!isCash && Number(wallet.balance) < pricing.total) {
     throw AppError.insufficientBalance(
       `Insufficient balance. Request costs ₦${pricing.total}. Balance: ₦${wallet.balance}`
     );
@@ -379,9 +389,13 @@ const createRequest = async (customerId, requestData) => {
         status: 'REQUESTED',
         customerId,
         merchantId: merchantId || null,
+        paymentMethod,
         ...locationData,
         ...persistablePricing,
-        customerPaid: pricing.total,
+        // Cash never enters the platform ledger at create time, so customerPaid
+        // (what the platform received) is 0 - this also makes the cancel/refund
+        // path a natural no-op and keeps escrow conservation intact.
+        customerPaid: isCash ? 0 : pricing.total,
         // Phase 8 - pharmacy prescription URL. Persisted only when supplied;
         // service already rejected above if Rx was required and missing.
         prescriptionUrl: prescriptionUrl || null,
@@ -429,42 +443,46 @@ const createRequest = async (customerId, requestData) => {
       });
     }
     
-    // Debit customer wallet into escrow hold
-    const reference = `REQ-${newRequest.id}-${uuidv4().slice(0, 8)}`;
-    const escrowRef = `${reference}-ESCROW`;
+    // WALLET only: debit the customer wallet into the platform escrow hold.
+    // Cash orders move no money here - the rider collects on delivery and the
+    // platform's cut is taken from the rider at settlement instead.
+    if (!isCash) {
+      const reference = `REQ-${newRequest.id}-${uuidv4().slice(0, 8)}`;
+      const escrowRef = `${reference}-ESCROW`;
 
-    await tx.wallet.update({
-      where: { id: wallet.id },
-      data: { balance: { decrement: pricing.total } },
-    });
+      await tx.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { decrement: pricing.total } },
+      });
 
-    // Credit escrow system wallet
-    await tx.systemWallet.update({
-      where: { id: 'PLATFORM_ESCROW' },
-      data: { balance: { increment: pricing.total } },
-    });
+      // Credit escrow system wallet
+      await tx.systemWallet.update({
+        where: { id: 'PLATFORM_ESCROW' },
+        data: { balance: { increment: pricing.total } },
+      });
 
-    await tx.transaction.create({
-      data: {
-        reference: escrowRef,
-        type: 'ESCROW_HOLD',
-        status: 'COMPLETED',
-        amount: pricing.total,
-        fee: 0,
-        description: `Escrow hold for request ${newRequest.id}`,
-        debitWalletId: wallet.id,
-        balanceBefore: Number(wallet.balance),
-        balanceAfter: Number(wallet.balance) - pricing.total,
-        metadata: { requestId: newRequest.id },
-      },
-    });
+      await tx.transaction.create({
+        data: {
+          reference: escrowRef,
+          type: 'ESCROW_HOLD',
+          status: 'COMPLETED',
+          amount: pricing.total,
+          fee: 0,
+          description: `Escrow hold for request ${newRequest.id}`,
+          debitWalletId: wallet.id,
+          balanceBefore: Number(wallet.balance),
+          balanceAfter: Number(wallet.balance) - pricing.total,
+          metadata: { requestId: newRequest.id },
+        },
+      });
 
-    // Update request with escrow transaction ID
-    await tx.request.update({
-      where: { id: newRequest.id },
-      data: { transactionId: escrowRef, escrowTransactionId: escrowRef },
-    });
-    
+      // Update request with escrow transaction ID
+      await tx.request.update({
+        where: { id: newRequest.id },
+        data: { transactionId: escrowRef, escrowTransactionId: escrowRef },
+      });
+    }
+
     return newRequest;
   });
   

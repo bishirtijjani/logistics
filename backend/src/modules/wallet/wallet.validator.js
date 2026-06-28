@@ -48,6 +48,7 @@ const transactionHistorySchema = z.object({
     'PLATFORM_EARNING',
     'RIDER_EARNING',
     'MERCHANT_EARNING',
+    'CASH_COMMISSION',
   ]).optional(),
   startDate: z.coerce.date().optional(),
   endDate: z.coerce.date().optional(),

@@ -200,6 +200,19 @@ const acceptJob = async (userId, requestId) => {
   if (rider.status !== 'APPROVED') throw AppError.forbidden('Rider not approved');
   if (rider.availability !== 'ONLINE') throw AppError.badRequest('Rider is not online');
 
+  // Cash-on-delivery debt gate. When a rider completes a cash delivery the
+  // platform's commission is debited from their wallet, which can push the
+  // balance negative (they collected the customer's cash and now owe us our
+  // cut). Block new jobs until they clear the debt by topping up - otherwise a
+  // rider could run an unbounded cash tab.
+  const riderWallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (riderWallet && Number(riderWallet.balance) < 0) {
+    throw AppError.forbidden(
+      `You owe ₦${Math.abs(Number(riderWallet.balance)).toLocaleString('en-NG')} in platform fees from cash deliveries. Top up your wallet to a non-negative balance to accept new jobs.`,
+      { code: 'RIDER_OUTSTANDING_FEES' },
+    );
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     const request = await tx.request.findUnique({ where: { id: requestId } });
 

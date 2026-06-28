@@ -81,8 +81,9 @@ const createRequestSchema = z.object({
   // Transaction PIN (required for wallet deduction)
   pin: z.string().length(6).optional(),
 
-  // Payment method
-  paymentMethod: z.enum(['WALLET', 'CASH', 'CARD']).default('WALLET'),
+  // Payment method. WALLET (default) debits the customer wallet into escrow.
+  // CASH is pay-the-rider-on-delivery and is restricted to PACKAGE below.
+  paymentMethod: z.enum(['WALLET', 'CASH']).default('WALLET'),
 
   // Signed quote token from POST /requests/quote.
   // Server re-verifies signature + TTL + locked numbers before persisting.
@@ -105,6 +106,16 @@ const createRequestSchema = z.object({
   return true;
 }, {
   message: 'Invalid request payload: PACKAGE needs package details only; MERCHANT_ORDER needs merchantId and items.',
+}).refine((data) => {
+  // Cash is pay-the-rider-on-delivery and only the courier (PACKAGE) flow
+  // supports it. Merchant orders front item cost the merchant must be paid for,
+  // so they stay wallet-only.
+  if (data.paymentMethod !== 'CASH') return true;
+  const inferredType = data.type || (data.merchantId ? 'MERCHANT_ORDER' : 'PACKAGE');
+  return inferredType === 'PACKAGE';
+}, {
+  message: 'Cash payment is only available for package deliveries.',
+  path: ['paymentMethod'],
 });
 
 // ============================================================

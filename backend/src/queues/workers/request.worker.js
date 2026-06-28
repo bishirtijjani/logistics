@@ -352,6 +352,90 @@ const settleRequest = async (job) => {
     const totalRelease = merchantEarning + riderEarning + platformEarning;
     const reference = `SETTLE-${requestId}-${Date.now()}`;
 
+    // ── Cash-on-delivery settlement ──────────────────────────────────────────
+    // No escrow was ever held. The rider already collected the full fare in
+    // cash and keeps their earning, so the only money to move is the platform's
+    // commission: debit it from the rider's wallet (allowed to go negative -
+    // the rider then owes the platform and is blocked from new jobs until they
+    // top up) and book it as platform earnings. Rider stats still count the
+    // delivery + earning since they did earn it.
+    if (request.paymentMethod === 'CASH') {
+      const riderWallet = request.rider?.user?.wallet || null;
+
+      if (request.rider && riderWallet && platformEarning > 0) {
+        await tx.wallet.update({
+          where: { id: riderWallet.id },
+          data: { balance: { decrement: platformEarning } },
+        });
+        await tx.transaction.create({
+          data: {
+            reference: `${reference}-CASH-COMMISSION`,
+            type: 'CASH_COMMISSION',
+            status: 'COMPLETED',
+            amount: platformEarning,
+            fee: 0,
+            description: `Platform commission on cash delivery ${requestId}`,
+            debitWalletId: riderWallet.id,
+            balanceBefore: Number(riderWallet.balance),
+            balanceAfter: Number(riderWallet.balance) - platformEarning,
+            metadata: { requestId, riderId: request.riderId, kind: 'cash_commission' },
+          },
+        });
+
+        // Land the commission in PLATFORM_EARNINGS, same destination as a
+        // wallet order's platform cut.
+        await tx.systemWallet.update({
+          where: { id: 'PLATFORM_EARNINGS' },
+          data: { balance: { increment: platformEarning } },
+        });
+        await tx.transaction.create({
+          data: {
+            reference: `${reference}-PLATFORM`,
+            type: 'PLATFORM_EARNING',
+            status: 'COMPLETED',
+            amount: platformEarning,
+            fee: 0,
+            description: `Platform earning for cash request ${requestId}`,
+            metadata: { requestId, kind: 'cash_commission' },
+          },
+        });
+
+        notifyService.onWalletEvent(request.rider.user.id, {
+          kind: 'CASH_COMMISSION',
+          amount: platformEarning,
+          transactionId: `${reference}-CASH-COMMISSION`,
+          route: '/wallet',
+          description: `₦${Number(platformEarning).toLocaleString('en-NG')} platform commission was deducted for a cash delivery.`,
+        }).catch((err) => logger.warn('CASH_COMMISSION notification failed', { error: err.message }));
+      }
+
+      // Lifetime stats - the rider earned riderEarning (kept as cash).
+      if (request.rider && riderEarning > 0) {
+        await tx.rider.update({
+          where: { id: request.riderId },
+          data: {
+            totalDeliveries: { increment: 1 },
+            totalEarnings: { increment: riderEarning },
+          },
+        });
+      }
+
+      await tx.request.update({
+        where: { id: requestId },
+        data: { status: 'SETTLED', settledAt: new Date() },
+      });
+
+      // Release the rider back into the pool (mirrors the wallet path below).
+      if (request.rider) {
+        await tx.rider.update({
+          where: { id: request.riderId },
+          data: { availability: 'ONLINE' },
+        });
+      }
+
+      return { merchantEarning: 0, riderEarning, platformEarning, cash: true, riderUserId: request.rider?.userId || null };
+    }
+
     // Drain PLATFORM_ESCROW by the amount we are about to disburse.
     // Ledger invariant: every ESCROW_HOLD has exactly one ESCROW_RELEASE or
     // ESCROW_REFUND of equal amount. Reconciliation worker relies on this.
@@ -570,6 +654,18 @@ const refundRequest = async (job) => {
       });
     }
 
+    // Cash orders never took the customer's money (no escrow hold, no wallet
+    // debit), so a cancellation has nothing to refund. The commission is only
+    // charged on a completed delivery, so a cancelled cash order leaves no debt
+    // either. Just stamp the idempotency marker and release the rider (above).
+    if (request.paymentMethod === 'CASH') {
+      await tx.request.update({
+        where: { id: request.id },
+        data: { refundTransactionId: `CASH-NO-REFUND-${requestId}` },
+      });
+      return { refundAmount: 0, cancellationFee: 0, customerPaid: 0, cash: true };
+    }
+
     const customerPaid = Number(request.customerPaid);
     const cancellationFee = Number(request.cancellationFee || 0);
     // Refund is net of any cancellation fee. Fee can't exceed customerPaid.
@@ -677,8 +773,9 @@ const refundRequest = async (job) => {
   logger.info('Request refunded', { requestId, ...result });
 
   // Skip the notify on a no-op retry - the customer already got their toast
-  // on the first refund.
-  if (result.alreadyRefunded) return result;
+  // on the first refund. Cash cancellations move no money, so there's no refund
+  // toast to send either.
+  if (result.alreadyRefunded || result.cash) return result;
 
   const request = await prisma.request.findUnique({
     where: { id: requestId },
