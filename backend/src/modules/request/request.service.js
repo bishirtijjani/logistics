@@ -216,6 +216,14 @@ const estimateRequest = async ({
     estimatedMinutes = Math.ceil(distanceResult.durationSeconds / 60);
   }
 
+  // Round distance to 1 dp BEFORE pricing. The quote token only carries the
+  // rounded distance, and createRequest re-prices from that locked value - so
+  // the fee must derive from the rounded distance in both places. Computing the
+  // fee from the raw distance here (while signing the rounded one) made the
+  // re-priced fee land on a different ₦10 step for boundary distances, which
+  // tripped a spurious QUOTE_MISMATCH on otherwise-valid orders.
+  distanceKm = Math.round(distanceKm * 10) / 10;
+
   // Fees from platform settings (fall back to config defaults)
   const baseFare = Number(await getSetting('delivery.baseFare', config.DELIVERY_BASE_FARE || 500));
   const perKmRate = Number(await getSetting('delivery.perKmRate', config.DELIVERY_PER_KM_RATE || 100));

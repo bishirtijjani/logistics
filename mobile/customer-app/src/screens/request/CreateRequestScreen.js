@@ -238,8 +238,10 @@ export default function CreateRequestScreen() {
       wrapped.status = err?.status ?? null;
       wrapped.data = err?.data ?? null;
       // Cash submits without the PIN sheet, so surface its failure as a toast.
+      // Lead with the server's own (already-localised) message rather than a
+      // blanket "Quote failed", which mislabels non-quote errors.
       if (isCash) {
-        Toast.show({ type: 'error', text1: t('request.toast.quoteFailed'), text2: wrapped.message });
+        Toast.show({ type: 'error', text1: wrapped.message || t('request.toast.quoteFailed') });
         return;
       }
       throw wrapped;
