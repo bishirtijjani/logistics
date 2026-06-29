@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "expo-file-system/legacy";
 import { Ionicons } from "@expo/vector-icons";
 import SignatureView from "react-native-signature-canvas";
@@ -38,6 +38,7 @@ import { uploadPodAsset } from "../../services/cloudinary";
  */
 export default function SignaturePadSheet({ visible, onClose, onContinue, requestId }) {
   const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useT();
   const dispatch = useDispatch();
   const signatureUrl = useSelector((s) => s.trip.pod?.signatureUrl);
@@ -133,17 +134,17 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
     body, html { background-color: #ffffff; }
   `;
 
-  // statusBarTranslucent is required on Android: under RN 0.81 edge-to-edge a
-  // non-transparent Modal without it mismeasures, so the SafeAreaView below
-  // collapses and the user sees only a dim, frozen screen.
+  // Fullscreen sheet mirrors the app's working SearchModal: a plain View with
+  // useSafeAreaInsets() padding. Under the New Architecture a <SafeAreaView> as
+  // the Modal's flex root collapses on Android, leaving only a dim, frozen screen.
   return (
-    <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
         {/* Header */}
         <View
           style={{
             flexDirection: "row", alignItems: "center",
-            paddingHorizontal: 14, paddingVertical: 10,
+            paddingHorizontal: 14, paddingTop: insets.top + 10, paddingBottom: 10,
             borderBottomWidth: 1, borderBottomColor: tokens.border.default,
             backgroundColor: tokens.bg.surface,
           }}
@@ -195,7 +196,7 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
           </Text>
         ) : null}
 
-        <SafeAreaView edges={["bottom"]} style={{ backgroundColor: tokens.bg.surface, borderTopWidth: 1, borderTopColor: tokens.border.default }}>
+        <View style={{ backgroundColor: tokens.bg.surface, borderTopWidth: 1, borderTopColor: tokens.border.default, paddingBottom: insets.bottom }}>
           <View style={{ flexDirection: "row", padding: 14, gap: 10 }}>
             <TouchableOpacity
               onPress={handleClear}
@@ -235,8 +236,8 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
               )}
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
-      </SafeAreaView>
+        </View>
+      </View>
     </Modal>
   );
 }

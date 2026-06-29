@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -40,6 +40,7 @@ export default function SendMoneyScreen({ navigation, route }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
   const { balance, banks, isSending, beneficiaries } = useSelector((s) => s.wallet);
 
   const minTransfer = Number(usePlatformSetting("wallet.minTransfer", 100));
@@ -316,12 +317,13 @@ export default function SendMoneyScreen({ navigation, route }) {
         </ScrollView>
 
         {/* Bank Picker Modal */}
-        {/* statusBarTranslucent is required on Android: under RN 0.81 edge-to-edge
-            a non-transparent Modal without it mismeasures, so the SafeAreaView
-            below collapses and the user sees only a dim, frozen screen. */}
-        <Modal visible={showBankPicker} animationType="slide" presentationStyle="pageSheet" statusBarTranslucent>
-          <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16 }}>
+        {/* Fullscreen picker mirrors the app's working SearchModal: a plain View
+            with useSafeAreaInsets() padding. Under the New Architecture a
+            <SafeAreaView> as the Modal's flex root collapses on Android, leaving
+            only a dim, frozen screen. */}
+        <Modal visible={showBankPicker} animationType="slide" onRequestClose={() => setShowBankPicker(false)}>
+          <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: insets.top + 16, paddingBottom: 16 }}>
               <Text accessibilityRole="header" style={{ fontSize: 18, fontWeight: "800", color: tokens.text.primary }}>
                 {t("wallet.send_.bankPickerTitle")}
               </Text>
@@ -374,7 +376,7 @@ export default function SendMoneyScreen({ navigation, route }) {
                 keyboardShouldPersistTaps="handled"
               />
             )}
-          </SafeAreaView>
+          </View>
         </Modal>
 
         <PinBottomSheet

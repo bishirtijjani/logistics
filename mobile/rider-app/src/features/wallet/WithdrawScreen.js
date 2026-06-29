@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
@@ -57,6 +57,7 @@ const groupAmount = (raw) => {
 
 export default function WithdrawScreen() {
   const { tokens } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useT();
   const dispatch = useDispatch();
   const navigation = useNavigation();
@@ -576,15 +577,16 @@ export default function WithdrawScreen() {
         </ScrollView>
 
         {/* Bank picker modal */}
-        {/* statusBarTranslucent is required on Android: under RN 0.81 edge-to-edge
-            a non-transparent Modal without it mismeasures, so the SafeAreaView
-            below collapses and the user sees only a dim, frozen screen. */}
-        <Modal visible={showBankPicker} animationType="slide" statusBarTranslucent onRequestClose={() => setShowBankPicker(false)}>
-          <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
+        {/* Fullscreen picker mirrors the app's working SearchModal: a plain View
+            with useSafeAreaInsets() padding. Under the New Architecture a
+            <SafeAreaView> as the Modal's flex root collapses on Android, leaving
+            only a dim, frozen screen. */}
+        <Modal visible={showBankPicker} animationType="slide" onRequestClose={() => setShowBankPicker(false)}>
+          <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
             <View
               style={{
                 flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-                paddingHorizontal: 16, paddingVertical: 14,
+                paddingHorizontal: 16, paddingTop: insets.top + 14, paddingBottom: 14,
                 borderBottomWidth: 1, borderBottomColor: tokens.border.default,
                 backgroundColor: tokens.bg.surface,
               }}
@@ -653,7 +655,7 @@ export default function WithdrawScreen() {
                 }}
               />
             )}
-          </SafeAreaView>
+          </View>
         </Modal>
 
         <PinBottomSheet
