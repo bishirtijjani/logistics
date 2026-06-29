@@ -133,10 +133,10 @@ export default function SignaturePadSheet({ visible, onClose, onContinue, reques
     body, html { background-color: #ffffff; }
   `;
 
+  // statusBarTranslucent is required on Android: under RN 0.81 edge-to-edge a
+  // non-transparent Modal without it mismeasures, so the SafeAreaView below
+  // collapses and the user sees only a dim, frozen screen.
   return (
-    {/* statusBarTranslucent is required on Android: under RN 0.81 edge-to-edge
-        a non-transparent Modal without it mismeasures, so the SafeAreaView
-        below collapses and the user sees only a dim, frozen screen. */}
     <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
         {/* Header */}
