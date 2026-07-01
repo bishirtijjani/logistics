@@ -42,7 +42,8 @@
   "submit": {
     "production": {
       "android": {
-        "track": "internal",
+        "serviceAccountKeyPath": "./iprime-498118-faae7e3aae7d.json",
+        "track": "alpha",
         "releaseStatus": "draft"
       },
       "ios": {
