@@ -109,11 +109,15 @@ const installUtilityStubs = () => {
     BILALSADASUB_TOKEN: 'test',
     OTP_PROVIDER: 'whatsapp',
     TERMII_API_KEY: 'k', TERMII_BASE_URL: 'http://termii', TERMII_SENDER_ID: 'KAT',
+    ALERT_EMAIL: '', SMTP_USER: 'ops@test',
   };
   const logger = { info() {}, warn() {}, error() {}, debug() {} };
 
   // ── Notify + Messaging (record calls) ─────────────────────────────────────
-  const calls = { push: [], sms: [], polls: [], refunds: [] };
+  const calls = { push: [], sms: [], polls: [], refunds: [], emails: [] };
+  const email = {
+    async sendEmail(msg) { calls.emails.push(msg); return { messageId: 't1' }; },
+  };
   const notify = {
     async pushAndSocket(userId, payload) { calls.push.push({ userId, ...payload }); return { id: 'n1' }; },
     async onWalletEvent(userId, payload) { calls.push.push({ userId, kind: 'wallet-event', ...payload }); },
@@ -186,6 +190,16 @@ const installUtilityStubs = () => {
       getAccountBalance: async () => ({ balance: 0 }),
       queryTransaction: async () => _next(providerState.queryResponses, key),
       isSuccess, isPending, isFailure,
+      // AlRahuz can be re-queried; BilalSada cannot. Mirrors the real adapters so
+      // the worker's hold-vs-refund decision is exercised in tests.
+      canRequery: key === 'ALRAHUZ',
+      mayHaveVended: (err) => {
+        const code = err?.code;
+        if (['ECONNABORTED', 'ETIMEDOUT', 'ESOCKETTIMEDOUT', 'ECONNRESET'].includes(code)) return true;
+        if (/timeout|already been taken/i.test(String(err?.message || ''))) return true;
+        const status = err?.response?.status;
+        return Boolean(status && status >= 500);
+      },
     };
   };
   const vtuRouter = {
@@ -205,6 +219,7 @@ const installUtilityStubs = () => {
   stub('src/services/notify.service.js', notify);
   stub('src/services/messaging.service.js', messaging);
   stub('src/services/termii.service.js', termii);
+  stub('src/services/email.service.js', email);
   stub('src/queues/index.js', queuesModule);
   stub('src/services/vtu/router.js', vtuRouter);
 

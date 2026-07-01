@@ -136,6 +136,9 @@ const envSchema = z
     // Inbox that receives marketing-site contact-form submissions. Defaults
     // to the public support address; override to route to a shared inbox.
     CONTACT_INBOX_EMAIL: z.string().email().default("hello@iprime.ng"),
+    // Operational alerts (e.g. a utility payment HELD for manual review because
+    // the provider outcome was indeterminate). Empty → falls back to SMTP_USER.
+    ALERT_EMAIL: z.string().default(""),
 
     // KatPay - required in production, optional in dev
     KATPAY_BASE_URL: z.string().default("https://api.katpay.co"),

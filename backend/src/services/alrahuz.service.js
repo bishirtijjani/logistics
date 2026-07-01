@@ -174,4 +174,8 @@ module.exports = {
   isSuccess,
   isPending,
   isFailure,
+  // AlRahuz is asynchronous but exposes a real transaction-status endpoint
+  // (queryTransaction), so the worker can poll to confirm an uncertain vend and
+  // resolve it definitively — no need to hold for manual review.
+  canRequery: true,
 };

@@ -46,6 +46,13 @@ const client = axios.create({
   timeout: 30000,
 });
 
+// Vends (topup/data/cable/bill/exam) settle synchronously but can take 20s+ on a
+// busy provider. Give them a generous timeout so we capture the real result — and
+// the electricity token — inline, instead of timing out on a sale BilalSada
+// actually completed (the failure mode that caused customers to be wrongly
+// refunded for vends that went through). Validation/balance keep the default 30s.
+const VEND_TIMEOUT_MS = 90_000;
+
 // ── Balance cache ─────────────────────────────────────────────────────────────
 // The provider reports our float balance on the Basic-auth /api/user call AND
 // (when present) inline on each purchase response. We mirror the latest reading
@@ -127,7 +134,7 @@ const _getToken = async () => {
 
 // Token-authenticated request with a one-shot token refresh on 401 (the account
 // token can be rotated server-side; regenerate from basic creds and retry once).
-const _request = async (method, path, { body, params } = {}) => {
+const _request = async (method, path, { body, params, timeout } = {}) => {
   const send = async (token) => {
     const { data } = await client.request({
       method,
@@ -135,6 +142,7 @@ const _request = async (method, path, { body, params } = {}) => {
       headers: { Authorization: `Token ${token}` },
       ...(body !== undefined ? { data: body } : {}),
       ...(params !== undefined ? { params } : {}),
+      ...(timeout ? { timeout } : {}),
     });
     // Purchase responses often carry the post-transaction balance; capture it so
     // the dashboard reflects the float the moment a buy settles. No-op when absent.
@@ -167,6 +175,7 @@ const buyAirtime = async ({ networkId, phone, amount, requestId }) => {
       bypass: false,
       'request-id': requestId,
     },
+    timeout: VEND_TIMEOUT_MS,
   });
   logger.info('BilalSada airtime', { networkId, phone, amount, requestId, data });
   return data;
@@ -181,6 +190,7 @@ const buyData = async ({ networkId, phone, planId, requestId }) => {
       bypass: false,
       'request-id': requestId,
     },
+    timeout: VEND_TIMEOUT_MS,
   });
   logger.info('BilalSada data', { networkId, phone, planId, requestId, data });
   return data;
@@ -199,24 +209,42 @@ const buyCable = async ({ cableNameId, cablePlanId, smartCardNumber, requestId }
       bypass: false,
       'request-id': requestId,
     },
+    timeout: VEND_TIMEOUT_MS,
   });
   logger.info('BilalSada cable', { cableNameId, cablePlanId, smartCardNumber, requestId, data });
   return data;
 };
 
 const payElectricity = async ({ discoId, meterNumber, meterType, amount, requestId }) => {
-  const data = await _request('post', '/api/bill', {
-    body: {
-      disco: discoId,
-      meter_type: _meterType(meterType),
-      meter_number: meterNumber,
-      amount,
-      bypass: false,
-      'request-id': requestId,
-    },
+  // Log the full request/response/error so every vend has a durable audit trail —
+  // this is the record that was missing when successful vends were wrongly refunded.
+  logger.info('BilalSada electricity request', {
+    discoId, meterNumber, meterType: _meterType(meterType), amount, requestId,
   });
-  logger.info('BilalSada electricity', { discoId, meterNumber, amount, requestId, data });
-  return data;
+  try {
+    const data = await _request('post', '/api/bill', {
+      body: {
+        disco: discoId,
+        meter_type: _meterType(meterType),
+        meter_number: meterNumber,
+        amount,
+        bypass: false,
+        'request-id': requestId,
+      },
+      timeout: VEND_TIMEOUT_MS,
+    });
+    logger.info('BilalSada electricity response', { discoId, meterNumber, amount, requestId, data });
+    return data;
+  } catch (err) {
+    logger.error('BilalSada electricity error', {
+      discoId, meterNumber, amount, requestId,
+      message: err.message,
+      code: err.code,
+      httpStatus: err.response?.status,
+      responseData: err.response?.data,
+    });
+    throw err;
+  }
 };
 
 /**
@@ -226,6 +254,7 @@ const payElectricity = async ({ discoId, meterNumber, meterType, amount, request
 const buyEducationPin = async ({ examId, quantity, requestId }) => {
   const data = await _request('post', '/api/exam', {
     body: { exam: examId, quantity, 'request-id': requestId },
+    timeout: VEND_TIMEOUT_MS,
   });
   logger.info('BilalSada exam', { examId, quantity, requestId, data });
   return data;
@@ -272,6 +301,39 @@ const isPending = (responseData) => {
 
 const isFailure = (responseData) =>
   !isSuccess(responseData) && !isPending(responseData);
+
+/**
+ * True when BilalSada rejects a purchase because the `request-id` was already
+ * used (HTTP 403, "The request-id has already been taken."). This is PROOF the
+ * original vend reached BilalSada and was accepted, so the payment must be HELD
+ * for manual review — NEVER auto-refunded (it likely completed). Detected on the
+ * thrown Axios error, not a normal response body.
+ */
+const isAlreadyTaken = (err) => {
+  if (err?.response?.status !== 403) return false;
+  const msg = String(err?.response?.data?.message || '').toLowerCase();
+  return msg.includes('already been taken') || msg.includes('already taken');
+};
+
+/**
+ * True when a thrown error means the vend MIGHT have completed on BilalSada's
+ * side, so the worker must NOT refund or fail over (either would risk double-
+ * paying). Covers "the request went out but we got no clear answer": a timeout,
+ * a connection reset mid-flight, a 5xx, or an "already taken" rejection. A clean
+ * "never reached" error (connection refused / DNS) or a 4xx rejection is NOT
+ * covered — the vend definitively did not happen, so normal failover/refund is
+ * safe. Paired with `canRequery: false`: BilalSada can't be re-queried, so an
+ * indeterminate outcome can only be resolved by a human.
+ */
+const mayHaveVended = (err) => {
+  if (isAlreadyTaken(err)) return true;
+  const code = err?.code;
+  if (['ECONNABORTED', 'ETIMEDOUT', 'ESOCKETTIMEDOUT', 'ECONNRESET'].includes(code)) return true;
+  if (/timeout/i.test(String(err?.message || ''))) return true;
+  const status = err?.response?.status;
+  if (status && status >= 500) return true;
+  return false;
+};
 
 /**
  * No-op: BilalSada has no transaction query-by-id endpoint, so polling can't
@@ -344,4 +406,10 @@ module.exports = {
   isSuccess,
   isPending,
   isFailure,
+  isAlreadyTaken,
+  mayHaveVended,
+  // BilalSada settles synchronously and has NO transaction-status endpoint, so a
+  // vend we didn't confirm inline can never be re-checked programmatically. The
+  // worker uses this to hold (not refund) indeterminate outcomes.
+  canRequery: false,
 };

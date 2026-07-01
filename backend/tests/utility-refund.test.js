@@ -2,11 +2,13 @@
  * Phase 7 - utility-refund money-path test.
  *
  * Verifies:
- *   - When AlRahuz returns a definitive `failed` status, the worker marks the
+ *   - When a provider returns a definitive `failed` status, the worker marks the
  *     UtilityPayment as FAILED, credits the wallet back the EXACT amount, and
  *     creates a REFUND transaction row - all in a single Prisma transaction.
- *   - The polling-window-exhausted path (AlRahuz keeps returning pending past
- *     MAX_ATTEMPTS) also auto-refunds the customer.
+ *   - Polling-window-exhausted path is provider-aware: a re-queryable provider
+ *     (AlRahuz) auto-refunds, but a provider we CANNOT re-query (BilalSada) is
+ *     HELD for manual review — never auto-refunded, since the vend may have
+ *     completed and refunding would double-pay.
  *
  * Run with: node --test tests/utility-refund.test.js
  */
@@ -51,16 +53,34 @@ test('utility-refund: definitive AlRahuz failure refunds wallet to the kobo', as
   assert.ok(stubs.calls.push.some((c) => c.kind === 'REFUND'), 'user must be notified of REFUND');
 });
 
-test('utility-refund: pending past MAX_ATTEMPTS auto-refunds', async () => {
+test('utility-refund: exhausted window on a NON-requeryable provider HOLDS for review (no refund)', async () => {
+  // Default provider is BilalSada (canRequery:false). An exhausted poll window
+  // means we never confirmed the vend — it may have completed — so the payment
+  // must be HELD, not refunded (the bug that lost ₦40k).
   seedPayment({ amount: 1000, pollAttempts: POLL_CONFIG.MAX_ATTEMPTS });
   stubs.calls.push.length = 0;
+  stubs.calls.emails.length = 0;
 
   await _internal.handleResult(
     { Status: 'pending' },
     { paymentId: 'pay1', userId: 'u1', amount: 1000, reference: 'AIR-1', type: 'AIRTIME' },
   );
 
-  assert.equal(stubs.state.payment.status, 'REFUNDED', 'must refund after window');
+  assert.equal(stubs.state.payment.status, 'UNDER_REVIEW', 'must hold, not refund');
+  assert.equal(stubs.state.wallet.balance, 0, 'customer must NOT be refunded for a maybe-completed vend');
+  assert.equal(stubs.calls.emails.length, 1, 'an operator alert email must be sent');
+});
+
+test('utility-refund: exhausted window on a re-queryable provider (AlRahuz) auto-refunds', async () => {
+  seedPayment({ amount: 1000, pollAttempts: POLL_CONFIG.MAX_ATTEMPTS });
+  stubs.calls.push.length = 0;
+
+  await _internal.handleResult(
+    { Status: 'pending' },
+    { paymentId: 'pay1', userId: 'u1', amount: 1000, reference: 'AIR-1', type: 'AIRTIME', provider: 'ALRAHUZ' },
+  );
+
+  assert.equal(stubs.state.payment.status, 'REFUNDED', 'requeryable provider still auto-refunds');
   assert.equal(stubs.state.wallet.balance, 1000);
 });
 

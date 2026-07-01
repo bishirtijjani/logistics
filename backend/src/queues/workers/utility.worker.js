@@ -30,13 +30,18 @@ const { prisma } = require('../../config/database');
 const vtuRouter = require('../../services/vtu/router');
 const messagingService = require('../../services/messaging.service');
 const notifyService = require('../../services/notify.service');
+const { sendEmail } = require('../../services/email.service');
+const { config } = require('../../config');
 // NB: lazy-require `../index` inside the call site below to break the circular
 // import (`queues/index.js` requires this worker to start it; if we required
 // `../index` at the top of this file it would resolve to a half-initialised
 // module and `schedulePollPending` would be `undefined`).
 const _schedulePollPending = (...args) => require('../index').schedulePollPending(...args);
 
-const SETTLED_STATUSES = ['COMPLETED', 'FAILED', 'REFUNDED'];
+// Terminal states that must never be re-processed. UNDER_REVIEW is terminal for
+// the automated pipeline: a human resolves it (complete-with-token or refund),
+// so the worker/poll/sweep must leave it alone.
+const SETTLED_STATUSES = ['COMPLETED', 'FAILED', 'REFUNDED', 'UNDER_REVIEW'];
 
 const startUtilityWorker = () => {
   const worker = new Worker(
@@ -59,7 +64,9 @@ const startUtilityWorker = () => {
         default: throw new Error(`Unknown utility job name: ${job.name}`);
       }
     },
-    { connection: redis, concurrency: 5 }
+    // lockDuration must exceed the provider vend timeout (90s) so a slow-but-
+    // legitimate vend isn't declared "stalled" and re-run mid-flight.
+    { connection: redis, concurrency: 5, lockDuration: 120_000 }
   );
 
   worker.on('failed', (job, error) => {
@@ -76,13 +83,13 @@ const startUtilityWorker = () => {
       attemptsMade: job?.attemptsMade,
     });
 
-    // SAFETY NET: a permanently-failed processing job (e.g. the provider threw a
-    // non-2xx because the reseller wallet was empty) would otherwise leave the
-    // payment stranded in PROCESSING with the customer's wallet already
-    // debited and no refund. Once BullMQ has exhausted its retries, reconcile
-    // the payment immediately: re-query the provider, then complete if it
-    // actually delivered, or refund. Idempotent, so it's safe alongside the
-    // cron sweep. Only the buy/poll jobs carry a paymentId.
+    // SAFETY NET: a permanently-failed processing job would otherwise leave the
+    // payment stranded in PROCESSING with the customer's wallet already debited.
+    // Once BullMQ has exhausted its retries, reconcile: re-query the provider,
+    // then complete if it delivered, refund if it definitively failed, or — for a
+    // provider we CAN'T re-query (BilalSada) — hold for manual review (see the
+    // exhaustion branch in handleResult). Idempotent; safe alongside the cron
+    // sweep. Only the buy/poll jobs carry a paymentId.
     const paymentId = job?.data?.paymentId;
     const maxAttempts = job?.opts?.attempts ?? 1;
     const isFinalAttempt = (job?.attemptsMade ?? 0) >= maxAttempts;
@@ -274,6 +281,16 @@ const attemptPurchase = async (ctx, { isFailover = false } = {}) => {
   try {
     result = await PURCHASE[type](adapter, ids, ctx);
   } catch (err) {
+    // The vend MAY have completed but we can't confirm it inline. For a provider
+    // we cannot re-query afterwards (BilalSada), auto-refunding OR failing over
+    // would risk double-paying a successful-but-slow vend — so hold for manual
+    // review instead. Re-queryable providers (AlRahuz) fall through to the normal
+    // retry → reconcile path, which confirms the true outcome. A clean
+    // "never reached" error (connection refused/DNS) is NOT mayHaveVended, so it
+    // still fails over / refunds normally.
+    if (!adapter.canRequery && adapter.mayHaveVended?.(err)) {
+      return holdForReview(ctx, { reason: `indeterminate ${provider} error, cannot confirm: ${err.message}` });
+    }
     if (!isFailover) throw err; // primary: let BullMQ retry (idempotent request-id)
     logger.warn('Failover provider buy errored, treating as failure', {
       paymentId, provider, error: err.message,
@@ -334,6 +351,65 @@ const escalate = async (ctx, { result }) => {
   await refundPayment({ paymentId, userId, amount, reference });
 };
 
+/**
+ * Email an operator that a payment needs manual reconciliation. Best-effort:
+ * a mail failure must never disturb the worker. Recipient is ALERT_EMAIL, or
+ * SMTP_USER as a fallback.
+ */
+const _alertHeldPayment = async (payment, reason) => {
+  const to = config.ALERT_EMAIL || config.SMTP_USER;
+  if (!to) return;
+  const amount = `₦${Number(payment.amount || 0).toLocaleString('en-NG')}`;
+  const ref = payment.transactionId || payment.providerRequestId || payment.id;
+  await sendEmail({
+    to,
+    subject: `⚠️ Utility payment HELD for review — ${amount} ${payment.type}`,
+    text: [
+      `A ${payment.type} payment could NOT be confirmed and was HELD for manual review.`,
+      `The customer has NOT been refunded, because the sale may have completed on the provider.`,
+      ``,
+      `Payment ID:  ${payment.id}`,
+      `Reference:   ${ref}`,
+      `User ID:     ${payment.userId}`,
+      `Amount:      ${amount}`,
+      `Meter/Phone: ${payment.meterNumber || payment.phoneNumber || '-'}`,
+      `Provider:    ${payment.provider || '-'}`,
+      `Reason:      ${reason}`,
+      ``,
+      `ACTION: open the provider dashboard and look up request-id ${payment.providerRequestId || ref}.`,
+      `• If it SUCCEEDED: copy the token to the customer and mark the payment COMPLETED.`,
+      `• If it did NOT: refund the customer.`,
+    ].join('\n'),
+  });
+};
+
+/**
+ * Hold a payment for manual reconciliation instead of refunding it. Used when
+ * the provider outcome is INDETERMINATE — a vend that timed out, or a re-send
+ * rejected as "request-id already taken". In both cases the sale may have gone
+ * through on the provider's side, so auto-refunding would double-pay (the bug
+ * that lost ₦40k). We keep the customer's wallet debited, park the payment in
+ * UNDER_REVIEW, log loudly, and email an operator to resolve it by hand.
+ * Idempotent: a payment already in a terminal state is left untouched.
+ */
+const holdForReview = async (ctx, { reason, result } = {}) => {
+  const { paymentId } = ctx;
+  const current = await getPayment(paymentId);
+  if (!current || SETTLED_STATUSES.includes(current.status)) return;
+
+  const token = result?.token ? String(result.token) : undefined;
+  await prisma.utilityPayment.update({
+    where: { id: paymentId },
+    data: { status: 'UNDER_REVIEW', ...(token ? { token } : {}) },
+  });
+  logger.error('UTILITY PAYMENT HELD FOR MANUAL REVIEW — NOT refunded (provider outcome indeterminate)', {
+    paymentId, provider: current.provider, amount: Number(current.amount), reason,
+  });
+  const fresh = await getPayment(paymentId);
+  await _alertHeldPayment(fresh, reason).catch((err) =>
+    logger.warn('Held-payment alert email failed', { paymentId, error: err.message }));
+};
+
 const handleResult = async (result, ctx, { isPoll = false } = {}) => {
   // Null provider == the (default) primary, BilalSada - mirrors the schema's
   // nullable `provider` column and keeps direct callers (tests) simple.
@@ -381,8 +457,15 @@ const handleResult = async (result, ctx, { isPoll = false } = {}) => {
     const attempts = (payment?.pollAttempts || 0) + 1;
 
     if (attempts > POLL_CONFIG.MAX_ATTEMPTS) {
-      // Exhausted the window. There's no second async provider to fall over to
-      // (only AlRahuz is pending-capable), so escalate → refund.
+      // Exhausted the polling window. If the provider can be re-queried (AlRahuz),
+      // this is a genuine async timeout → escalate (failover in BOTH mode, else
+      // refund). If it CANNOT (BilalSada, whose queryTransaction is a no-op), we
+      // never actually learned the outcome — the vend may have completed, so we
+      // hold instead of refunding. Auto-refunding here is what lost the ₦40k.
+      if (!adapter.canRequery) {
+        logger.warn('Unconfirmable provider exhausted window — holding for review', { paymentId, attempts, provider });
+        return holdForReview(ctx, { reason: `no confirmation after ${attempts - 1} polls; ${provider} is not re-queryable`, result });
+      }
       logger.warn('Provider pending window exhausted', { paymentId, attempts, provider });
       return escalate(ctx, { result });
     }

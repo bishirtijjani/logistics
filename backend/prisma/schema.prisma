@@ -149,6 +149,7 @@ enum UtilityStatus {
   COMPLETED
   FAILED
   REFUNDED
+  UNDER_REVIEW
 }
 
 enum AirtimeToCashStatus {
