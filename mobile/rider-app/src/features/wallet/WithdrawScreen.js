@@ -628,7 +628,10 @@ export default function WithdrawScreen() {
                 keyExtractor={(item, i) => item.bankCode || item.code || String(i)}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => {
-                  const selected = selectedBank && (selectedBank.bankCode || selectedBank.code) === (item.bankCode || item.code);
+                  // Coerce to a real boolean: when selectedBank is null the &&
+                  // short-circuits to null, and accessibilityState.selected=null
+                  // crashes RCTView on the New Architecture (dim/frozen picker).
+                  const selected = !!(selectedBank && (selectedBank.bankCode || selectedBank.code) === (item.bankCode || item.code));
                   return (
                     <TouchableOpacity
                       onPress={() => {

@@ -356,7 +356,10 @@ export default function WithdrawScreen({ navigation, route }) {
                 data={filteredBanks}
                 keyExtractor={(item, i) => item.bankCode || item.code || String(i)}
                 renderItem={({ item }) => {
-                  const selected = selectedBank && (selectedBank.bankCode || selectedBank.code) === (item.bankCode || item.code);
+                  // Coerce to a real boolean: when selectedBank is null the &&
+                  // short-circuits to null, and accessibilityState.selected=null
+                  // crashes RCTView on the New Architecture (dim/frozen picker).
+                  const selected = !!(selectedBank && (selectedBank.bankCode || selectedBank.code) === (item.bankCode || item.code));
                   return (
                     <TouchableOpacity
                       onPress={() => { setSelectedBank(item); setAccountName(null); setShowBankPicker(false); setBankSearch(""); }}
