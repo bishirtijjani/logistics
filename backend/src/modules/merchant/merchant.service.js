@@ -1475,28 +1475,6 @@ const bulkUpsertOptionGroups = async (merchantId, userId, role, productId, group
   });
 };
 
-module.exports = {
-  createMerchant,
-  getMerchants,
-  getMerchantById,
-  updateMerchant,
-  resubmitMerchant,
-  toggleMerchantStatus,
-  broadcastMerchantStatus,
-  isEffectivelyOpen,
-  getMerchantWallet,
-  getMerchantOrders,
-  updateMerchantCommission,
-  getPendingMerchants,
-  approveMerchant,
-  rejectMerchant,
-  suspendMerchant,
-  unsuspendMerchant,
-  deleteMerchant,
-  // Merchant dashboard functions
-  getMerchantProfile,
-  acceptMerchantOrder,
-  rejectMerchantOrder,
 const getMerchantDiscountCodes = async (merchantId, userId, role) => {
   const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
   if (!merchant) throw AppError.notFound('Merchant not found');
