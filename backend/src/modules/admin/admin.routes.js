@@ -212,6 +212,12 @@ router.get('/marketing/discounts', authorize('ADMIN', PERMISSIONS.MANAGE_SETTING
 router.patch('/marketing/discounts/:discountId/approve', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.approveDiscountCode);
 router.patch('/marketing/discounts/:discountId/reject', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.rejectDiscountCode);
 
+// Banner management
+router.get('/marketing/banners', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.getBanners);
+router.post('/marketing/banners', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.createBanner);
+router.put('/marketing/banners/:bannerId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.updateBanner);
+router.delete('/marketing/banners/:bannerId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.deleteBanner);
+
 // Rider operations
 router.get('/riders/performance', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(paginationDateRangeSchema, 'query'), adminController.getRiderPerformance);
 router.get('/riders/realtime', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderRealtimeLocation);

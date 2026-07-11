@@ -3351,6 +3351,11 @@ module.exports = {
   createStaff,
   updateStaffPermissions,
   updateStaffProfile,
+  // Banner management
+  getBanners,
+  createBanner,
+  updateBanner,
+  deleteBanner,
 };
 
 // ─── VTU Plan Management ──────────────────────────────────────────────────────
@@ -3776,4 +3781,56 @@ async function updateStaffProfile(staffId, data, actor, ipAddress, userAgent) {
   );
 
   return updated;
+}
+
+async function getBanners() {
+  return prisma.banner.findMany({
+    orderBy: { priority: 'desc' },
+  });
+}
+
+async function createBanner(data, adminUserId) {
+  return prisma.banner.create({
+    data: {
+      title: data.title,
+      subtitle: data.subtitle || null,
+      imageUrl: data.imageUrl,
+      deepLink: data.deepLink || null,
+      bgColor: data.bgColor || null,
+      startsAt: data.startsAt ? new Date(data.startsAt) : null,
+      endsAt: data.endsAt ? new Date(data.endsAt) : null,
+      audience: data.audience || null,
+      priority: Number(data.priority || 0),
+      isActive: data.isActive !== false,
+      createdBy: adminUserId,
+    },
+  });
+}
+
+async function updateBanner(id, data, adminUserId) {
+  const existing = await prisma.banner.findUnique({ where: { id } });
+  if (!existing) throw AppError.notFound('Banner not found');
+
+  return prisma.banner.update({
+    where: { id },
+    data: {
+      title: data.title,
+      subtitle: data.subtitle,
+      imageUrl: data.imageUrl,
+      deepLink: data.deepLink,
+      bgColor: data.bgColor,
+      startsAt: data.startsAt ? new Date(data.startsAt) : null,
+      endsAt: data.endsAt ? new Date(data.endsAt) : null,
+      audience: data.audience,
+      priority: data.priority !== undefined ? Number(data.priority) : undefined,
+      isActive: data.isActive,
+    },
+  });
+}
+
+async function deleteBanner(id, adminUserId) {
+  const existing = await prisma.banner.findUnique({ where: { id } });
+  if (!existing) throw AppError.notFound('Banner not found');
+
+  return prisma.banner.delete({ where: { id } });
 }

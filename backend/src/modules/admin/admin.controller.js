@@ -1138,6 +1138,10 @@ module.exports = {
   getRiderRealtimeLocation,
   getSafetyIncidents,
   getComplianceReport,
+  getBanners,
+  createBanner,
+  updateBanner,
+  deleteBanner,
   getVtuPlans,
   createVtuPlan,
   updateVtuPlan,
@@ -1274,4 +1278,32 @@ async function updateStaffProfile(req, res, next) {
   } catch (error) {
     next(error);
   }
+}
+
+async function getBanners(req, res, next) {
+  try {
+    const banners = await adminService.getBanners();
+    res.json(ApiResponse.success('Banners retrieved', banners));
+  } catch (error) { next(error); }
+}
+
+async function createBanner(req, res, next) {
+  try {
+    const banner = await adminService.createBanner(req.body, req.user.id);
+    res.status(201).json(ApiResponse.success('Banner created', banner));
+  } catch (error) { next(error); }
+}
+
+async function updateBanner(req, res, next) {
+  try {
+    const banner = await adminService.updateBanner(req.params.bannerId, req.body, req.user.id);
+    res.json(ApiResponse.success('Banner updated', banner));
+  } catch (error) { next(error); }
+}
+
+async function deleteBanner(req, res, next) {
+  try {
+    await adminService.deleteBanner(req.params.bannerId, req.user.id);
+    res.json(ApiResponse.success('Banner deleted'));
+  } catch (error) { next(error); }
 }

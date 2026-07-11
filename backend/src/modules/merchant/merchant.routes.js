@@ -35,6 +35,11 @@ const {
   optionItemUpdateSchema,
 } = require('./merchant.validator');
 
+const {
+  createMerchantDiscountSchema,
+  createMerchantCampaignSchema,
+} = require('./marketing.validator');
+
 const router = Router();
 
 // All merchant routes require authentication
@@ -153,5 +158,11 @@ router.delete('/merchant/:merchantId/products/:productId/option-groups/:groupId/
 router.get('/merchant/:merchantId/analytics/sales', authorize('MERCHANT'), validate(merchantAnalyticsSchema, 'query'), merchantController.getMerchantSalesSummary);
 router.get('/merchant/:merchantId/analytics/orders', authorize('MERCHANT'), validate(merchantOrderHistorySchema, 'query'), merchantController.getMerchantOrderHistory);
 router.get('/merchant/:merchantId/analytics/earnings', authorize('MERCHANT'), validate(merchantAnalyticsSchema, 'query'), merchantController.getMerchantEarningsBreakdown);
+
+// Merchant Marketing
+router.get('/merchant/:merchantId/marketing/discounts', authorize('MERCHANT'), merchantController.getMerchantDiscountCodes);
+router.post('/merchant/:merchantId/marketing/discounts', authorize('MERCHANT'), validate(createMerchantDiscountSchema), merchantController.createMerchantDiscountCode);
+router.get('/merchant/:merchantId/marketing/campaigns', authorize('MERCHANT'), merchantController.getMerchantCampaigns);
+router.post('/merchant/:merchantId/marketing/campaigns', authorize('MERCHANT'), validate(createMerchantCampaignSchema), merchantController.createMerchantCampaign);
 
 module.exports = router;

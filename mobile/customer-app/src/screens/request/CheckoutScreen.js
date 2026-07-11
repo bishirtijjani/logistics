@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { goBackOr } from "../../lib/goBack";
 import {
-  View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Platform, Alert,
+  View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Platform, Alert, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -66,6 +66,8 @@ export default function CheckoutScreen() {
   const [confirming, setConfirming] = useState(false);
   const [pinVisible, setPinVisible] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState(null);
 
   // Phase 8 - prescription upload state. `rxRequired` is derived from the
   // cart; `rxUrl` is set once the Cloudinary upload succeeds; `rxUploading`
@@ -118,8 +120,9 @@ export default function CheckoutScreen() {
       dropoffLat,
       dropoffLng,
       items: itemsForServer,
+      promoCode: appliedPromoCode || undefined,
     };
-  }, [dropoffLat, dropoffLng, merchantId, pickupLat, pickupLng, itemsForServer]); // eslint-disable-line
+  }, [dropoffLat, dropoffLng, merchantId, pickupLat, pickupLng, itemsForServer, appliedPromoCode]); // eslint-disable-line
 
   // Refetch quote whenever the dropoff changes.
   const fetchQuote = async () => {
@@ -317,6 +320,7 @@ export default function CheckoutScreen() {
           // so a stale upload (Rx item removed mid-checkout) never lands on
           // a non-Rx order. Server enforces presence when required.
           ...(rxRequired && rxUrl ? { prescriptionUrl: rxUrl } : {}),
+          promoCode: appliedPromoCode || undefined,
         })
       ).unwrap();
       setPinVisible(false);
@@ -498,6 +502,56 @@ export default function CheckoutScreen() {
           <Ionicons name="chevron-forward" size={20} color={tokens.text.muted} />
         </TouchableOpacity>
 
+        {/* Promo Code */}
+        <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary, marginBottom: 8 }}>
+          {t('request.checkout.promoCode', 'Promo Code')}
+        </Text>
+        <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="pricetag-outline" size={20} color={tokens.brand.default} style={{ marginRight: 8 }} />
+          <View style={{ flex: 1, height: 40, justifyContent: 'center' }}>
+            {appliedPromoCode ? (
+              <Text style={{ fontWeight: '600', color: tokens.text.primary }}>
+                {appliedPromoCode} (Applied)
+              </Text>
+            ) : (
+              <TextInput
+                placeholder={t('request.checkout.enterPromo', 'Enter promo code')}
+                placeholderTextColor={tokens.text.muted}
+                value={promoCodeInput}
+                onChangeText={setPromoCodeInput}
+                autoCapitalize="characters"
+                style={{ color: tokens.text.primary, fontSize: 14, padding: 0 }}
+              />
+            )}
+          </View>
+          {appliedPromoCode ? (
+            <TouchableOpacity
+              onPress={() => {
+                setAppliedPromoCode(null);
+                setPromoCodeInput('');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Remove promo code"
+            >
+              <Text style={{ color: tokens.status.error || '#EF4444', fontWeight: '700' }}>Remove</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => {
+                if (!promoCodeInput.trim()) return;
+                setAppliedPromoCode(promoCodeInput.trim().toUpperCase());
+              }}
+              disabled={!promoCodeInput.trim() || quoting}
+              accessibilityRole="button"
+              accessibilityLabel="Apply promo code"
+            >
+              <Text style={{ color: !promoCodeInput.trim() || quoting ? tokens.text.muted : tokens.brand.strong, fontWeight: '700' }}>
+                Apply
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Quote breakdown */}
         <Text accessibilityRole="header" style={{ fontSize: 15, fontWeight: '600', color: tokens.text.primary, marginBottom: 8 }}>
           {t('request.checkout.costBreakdown')}
@@ -530,6 +584,12 @@ export default function CheckoutScreen() {
           ) : (
             <>
               <Row label={t('request.checkout.subtotal')} value={money(quote.subtotal)} />
+              {Number(quote.discountAmount) > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
+                  <Text style={{ color: tokens.text.muted }}>{t('request.checkout.discount', 'Discount')}</Text>
+                  <Text style={{ color: '#10B981', fontWeight: '600' }}>-{money(quote.discountAmount)}</Text>
+                </View>
+              )}
               <Row label={t('request.checkout.deliveryFee')} value={money(quote.deliveryFee)} />
               {Number(quote.tax) > 0 && <Row label={t('request.checkout.tax')} value={money(quote.tax)} />}
               <View style={{ borderTopWidth: 1, borderTopColor: tokens.border.default, paddingTop: 10, marginTop: 6, flexDirection: 'row', justifyContent: 'space-between' }}>

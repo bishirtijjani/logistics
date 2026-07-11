@@ -88,6 +88,7 @@ const createRequestSchema = z.object({
   // Signed quote token from POST /requests/quote.
   // Server re-verifies signature + TTL + locked numbers before persisting.
   quoteToken: z.string().min(20),
+  promoCode: z.string().trim().toUpperCase().optional(),
 }).refine((data) => {
   // Server infers type from payload shape when client doesn't send it.
   const inferredType = data.type || (data.merchantId ? 'MERCHANT_ORDER' : 'PACKAGE');
@@ -206,6 +207,7 @@ const quoteRequestSchema = z.object({
     size: z.enum(['SMALL', 'MEDIUM', 'LARGE']).default('SMALL'),
     weight: z.number().optional(),
   }).optional(),
+  promoCode: z.string().trim().toUpperCase().optional(),
 });
 
 // ============================================================

@@ -1497,6 +1497,105 @@ module.exports = {
   getMerchantProfile,
   acceptMerchantOrder,
   rejectMerchantOrder,
+const getMerchantDiscountCodes = async (merchantId, userId, role) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (role === 'MERCHANT' && merchant.userId !== userId) {
+    throw AppError.forbidden('Not your merchant profile');
+  }
+
+  return prisma.discountCode.findMany({
+    where: { merchantId },
+    orderBy: { createdAt: 'desc' },
+  });
+};
+
+const createMerchantDiscountCode = async (merchantId, userId, role, discountData) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (role === 'MERCHANT' && merchant.userId !== userId) {
+    throw AppError.forbidden('Not your merchant profile');
+  }
+
+  const discount = await prisma.discountCode.create({
+    data: {
+      code: discountData.code.trim().toUpperCase(),
+      merchantId,
+      type: discountData.type,
+      discountPercentage: discountData.type === 'percentage' ? parseInt(discountData.value, 10) : null,
+      discountAmount: discountData.type === 'fixed' ? Number(discountData.value) : null,
+      value: Number(discountData.value),
+      minOrder: Number(discountData.minOrder || 0),
+      maxDiscount: discountData.maxDiscount ? Number(discountData.maxDiscount) : null,
+      usageLimit: parseInt(discountData.usageLimit || 100, 10),
+      startDate: discountData.startDate ? new Date(discountData.startDate) : null,
+      endDate: discountData.endDate ? new Date(discountData.endDate) : null,
+      status: 'PENDING',
+    },
+  });
+
+  logger.info('Merchant discount code request created', { merchantId, code: discount.code });
+  return discount;
+};
+
+const getMerchantCampaigns = async (merchantId, userId, role) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (role === 'MERCHANT' && merchant.userId !== userId) {
+    throw AppError.forbidden('Not your merchant profile');
+  }
+
+  return prisma.platformCampaign.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+};
+
+const createMerchantCampaign = async (merchantId, userId, role, campaignData) => {
+  const merchant = await prisma.merchant.findUnique({ where: { id: merchantId } });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (role === 'MERCHANT' && merchant.userId !== userId) {
+    throw AppError.forbidden('Not your merchant profile');
+  }
+
+  const campaign = await prisma.platformCampaign.create({
+    data: {
+      name: campaignData.name,
+      type: campaignData.type || 'promotion',
+      description: campaignData.description || null,
+      startDate: campaignData.startDate ? new Date(campaignData.startDate) : null,
+      endDate: campaignData.endDate ? new Date(campaignData.endDate) : null,
+      budget: Number(campaignData.budget || 0),
+      targetAudience: campaignData.targetAudience || 'all',
+      status: 'draft',
+    },
+  });
+
+  logger.info('Campaign logged', { name: campaign.name });
+  return campaign;
+};
+
+module.exports = {
+  createMerchant,
+  getMerchants,
+  getMerchantById,
+  updateMerchant,
+  resubmitMerchant,
+  toggleMerchantStatus,
+  broadcastMerchantStatus,
+  isEffectivelyOpen,
+  getMerchantWallet,
+  getMerchantOrders,
+  updateMerchantCommission,
+  getPendingMerchants,
+  approveMerchant,
+  rejectMerchant,
+  suspendMerchant,
+  unsuspendMerchant,
+  deleteMerchant,
+  // Merchant dashboard functions
+  getMerchantProfile,
+  acceptMerchantOrder,
+  rejectMerchantOrder,
   updateMerchantOrderStatus,
   requestMerchantWithdrawal,
   getMerchantBankAccount,
@@ -1522,4 +1621,9 @@ module.exports = {
   getMerchantSalesSummary,
   getMerchantOrderHistory,
   getMerchantEarningsBreakdown,
+  // Marketing service exports
+  getMerchantDiscountCodes,
+  createMerchantDiscountCode,
+  getMerchantCampaigns,
+  createMerchantCampaign,
 };

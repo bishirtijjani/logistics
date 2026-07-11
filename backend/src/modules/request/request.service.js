@@ -204,6 +204,7 @@ const estimateRequest = async ({
   // failures even when the caller did nothing wrong.
   lockedDistanceKm,
   lockedEstimatedMinutes,
+  promoCode,
 }) => {
   let distanceKm;
   let estimatedMinutes;
@@ -239,12 +240,59 @@ const estimateRequest = async ({
   const platformItemFeePercent = Number(await getSetting('merchant.platformFeePercent', 15));
   const platformItemFee = subtotal > 0 ? Math.ceil((subtotal * platformItemFeePercent) / 100) : 0;
 
-  const platformFee = platformItemFee + platformDeliveryFee;
-  const total = subtotal + deliveryFee;
+  let discountAmount = 0;
+  let discountCodeId = null;
+  let loadedDiscount = null;
 
-  const merchantEarning = subtotal > 0 ? subtotal - platformItemFee : 0;
+  if (promoCode) {
+    const discount = await prisma.discountCode.findUnique({
+      where: { code: promoCode.trim().toUpperCase() }
+    });
+
+    if (!discount) {
+      throw AppError.badRequest(`Promo code "${promoCode}" is invalid.`, { code: 'PROMO_INVALID' });
+    }
+    if (discount.status !== 'APPROVED') {
+      throw AppError.badRequest(`Promo code "${promoCode}" is not active.`, { code: 'PROMO_NOT_ACTIVE' });
+    }
+    const now = new Date();
+    if (discount.startDate && now < new Date(discount.startDate)) {
+      throw AppError.badRequest(`Promo code "${promoCode}" has not started yet.`, { code: 'PROMO_NOT_STARTED' });
+    }
+    if (discount.endDate && now > new Date(discount.endDate)) {
+      throw AppError.badRequest(`Promo code "${promoCode}" has expired.`, { code: 'PROMO_EXPIRED' });
+    }
+    if (discount.used >= discount.usageLimit) {
+      throw AppError.badRequest(`Promo code "${promoCode}" has reached its usage limit.`, { code: 'PROMO_LIMIT_REACHED' });
+    }
+    if (discount.merchantId && discount.merchantId !== merchantId) {
+      throw AppError.badRequest(`Promo code "${promoCode}" is not valid for this merchant.`, { code: 'PROMO_MERCHANT_MISMATCH' });
+    }
+    if (subtotal < Number(discount.minOrder)) {
+      throw AppError.badRequest(`Promo code "${promoCode}" requires a minimum spend of ₦${discount.minOrder}.`, { code: 'PROMO_MIN_ORDER' });
+    }
+
+    if (discount.type === 'percentage') {
+      discountAmount = Math.ceil((subtotal * Number(discount.value)) / 100);
+      if (discount.maxDiscount) {
+        discountAmount = Math.min(discountAmount, Number(discount.maxDiscount));
+      }
+    } else {
+      discountAmount = Number(discount.value);
+    }
+    discountAmount = Math.min(discountAmount, subtotal);
+    discountCodeId = discount.id;
+    loadedDiscount = discount;
+  }
+
+  const platformFee = platformItemFee + platformDeliveryFee;
+  const total = Math.max(0, subtotal - discountAmount + deliveryFee);
+
+  const merchantEarning = subtotal > 0
+    ? Math.max(0, subtotal - platformItemFee - (loadedDiscount && loadedDiscount.merchantId ? discountAmount : 0))
+    : 0;
   const riderEarning = deliveryFee - platformDeliveryFee;
-  const platformEarning = platformFee;
+  const platformEarning = Math.max(0, platformFee - (loadedDiscount && !loadedDiscount.merchantId ? discountAmount : 0));
 
   return {
     distanceKm: Math.round(distanceKm * 10) / 10,
@@ -258,6 +306,8 @@ const estimateRequest = async ({
     riderEarning,
     platformEarning,
     resolvedItems: resolved,
+    discountAmount,
+    discountCodeId,
   };
 };
 
@@ -278,6 +328,7 @@ const createRequest = async (customerId, requestData) => {
     quoteToken,
     prescriptionUrl,
     paymentMethod = 'WALLET',
+    promoCode,
     ...locationData
   } = requestData;
 
@@ -356,8 +407,9 @@ const createRequest = async (customerId, requestData) => {
     resolvedItems,
     lockedDistanceKm: quotePayload.distanceKm,
     lockedEstimatedMinutes: quotePayload.estimatedMinutes,
+    promoCode,
   });
-  const { resolvedItems: _omit, ...persistablePricing } = pricing;
+  const { resolvedItems: _omit, discountAmount, discountCodeId, ...persistablePricing } = pricing;
 
   // Re-validate that the quote payload still matches what we just recomputed.
   // A mismatch means either pricing settings changed mid-quote OR the client
@@ -375,7 +427,8 @@ const createRequest = async (customerId, requestData) => {
     round2(quotePayload.subtotal) !== round2(pricing.subtotal) ||
     round2(quotePayload.deliveryFee) !== round2(pricing.deliveryFee) ||
     round2(quotePayload.platformFee) !== round2(pricing.platformFee) ||
-    round2(quotePayload.total) !== round2(pricing.total);
+    round2(quotePayload.total) !== round2(pricing.total) ||
+    (quotePayload.promoCode || null) !== (promoCode || null);
 
   if (fingerprintMismatch || priceMismatch) {
     throw AppError.badRequest(
@@ -401,6 +454,8 @@ const createRequest = async (customerId, requestData) => {
         paymentMethod,
         ...locationData,
         ...persistablePricing,
+        discountAmount: discountAmount || 0,
+        discountCodeId: discountCodeId || null,
         // Cash never enters the platform ledger at create time, so customerPaid
         // (what the platform received) is 0 - this also makes the cancel/refund
         // path a natural no-op and keeps escrow conservation intact.
@@ -412,6 +467,13 @@ const createRequest = async (customerId, requestData) => {
     });
 
     if (resolvedItems.length > 0) {
+      if (discountCodeId) {
+        await tx.discountCode.update({
+          where: { id: discountCodeId },
+          data: { used: { increment: 1 } },
+        });
+      }
+
       await tx.requestItem.createMany({
         data: resolvedItems.map(it => ({
           requestId: newRequest.id,

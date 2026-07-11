@@ -692,6 +692,7 @@ model Merchant {
   wallet            MerchantWallet?
   commissionHistory CommissionHistory[]
   tags              MerchantTag[]
+  discountCodes     DiscountCode[]
 
   @@index([categoryId])
   @@index([status])
@@ -1008,6 +1009,10 @@ model Request {
   platformFee Decimal @db.Decimal(15, 2) // Platform commission
   tax         Decimal @default(0) @db.Decimal(15, 2)
   total       Decimal @db.Decimal(15, 2) // What customer pays
+
+  discountCodeId String?
+  discountCode   DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  discountAmount Decimal       @default(0) @db.Decimal(15, 2)
 
   // How the customer pays. WALLET (default) flows through escrow; CASH is
   // collected by the rider on delivery (PACKAGE only) and the platform's cut is
@@ -1329,6 +1334,55 @@ model Banner {
   @@index([isActive, startsAt, endsAt])
   @@index([priority])
   @@map("banners")
+}
+
+/// DiscountCode - merchant/admin managed discount codes
+model DiscountCode {
+  id                 String    @id @default(uuid())
+  code               String    @unique
+  merchantId         String?
+  merchant           Merchant? @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  type               String    /// percentage | fixed
+  discountPercentage Int?      /// Used if type is percentage
+  discountAmount     Decimal?  @db.Decimal(15, 2) /// Used if type is fixed
+  value              Decimal   @db.Decimal(15, 2) /// Denormalized discount value (percent or amount)
+  minOrder           Decimal   @default(0) @db.Decimal(15, 2)
+  maxDiscount        Decimal?  @db.Decimal(15, 2)
+  usageLimit         Int       @default(100)
+  used               Int       @default(0)
+  startDate          DateTime?
+  endDate            DateTime?
+  status             String    @default("PENDING") /// PENDING | APPROVED | REJECTED
+  rejectionReason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requests Request[]
+
+  @@index([merchantId])
+  @@index([code])
+  @@index([status])
+  @@map("discount_codes")
+}
+
+/// PlatformCampaign - marketing campaigns
+model PlatformCampaign {
+  id             String    @id @default(uuid())
+  name           String
+  type           String    /// promotion | announcement | survey
+  description    String?   @db.Text
+  startDate      DateTime?
+  endDate        DateTime?
+  budget         Decimal   @db.Decimal(15, 2)
+  spent          Decimal   @default(0) @db.Decimal(15, 2)
+  targetAudience String    @default("all")
+  status         String    @default("draft") /// draft | active | completed
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_campaigns")
 }
 
 /// External payment-provider webhook event log - for idempotency and audit.

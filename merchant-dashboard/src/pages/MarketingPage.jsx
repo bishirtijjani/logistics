@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
+import api from '../lib/api'
 import {
   Megaphone,
   Tag,
@@ -208,58 +209,85 @@ export default function MarketingPage() {
   ]
 
   useEffect(() => {
-    setCampaigns(mockCampaigns)
-    setDiscountCodes(mockDiscountCodes)
+    if (!merchantId) return
+
+    const loadData = async () => {
+      try {
+        const [campaignsRes, discountsRes] = await Promise.all([
+          api.get(`/merchants/merchant/${merchantId}/marketing/campaigns`),
+          api.get(`/merchants/merchant/${merchantId}/marketing/discounts`),
+        ])
+        setCampaigns(campaignsRes.data.data)
+        setDiscountCodes(discountsRes.data.data)
+      } catch (err) {
+        showErrorToast('Failed to load marketing data')
+      }
+    }
+
+    loadData()
     setLoyaltyProgram(mockLoyaltyProgram)
     setEmailCampaigns(mockEmailCampaigns)
-  }, [])
+  }, [merchantId])
 
-  const createCampaign = () => {
+  const createCampaign = async () => {
     if (newCampaign.name && newCampaign.description) {
-      const campaign = {
-        id: campaigns.length + 1,
-        ...newCampaign,
-        spent: 0,
-        performance: { impressions: 0, clicks: 0, conversions: 0, roi: 0 }
+      try {
+        const payload = {
+          ...newCampaign,
+          budget: parseFloat(newCampaign.budget) || 0,
+          startDate: newCampaign.startDate ? new Date(newCampaign.startDate).toISOString() : null,
+          endDate: newCampaign.endDate ? new Date(newCampaign.endDate).toISOString() : null,
+        }
+        const response = await api.post(`/merchants/merchant/${merchantId}/marketing/campaigns`, payload)
+        setCampaigns([response.data.data, ...campaigns])
+        setShowCampaignModal(false)
+        setNewCampaign({
+          name: '',
+          type: 'promotion',
+          description: '',
+          startDate: '',
+          endDate: '',
+          budget: '',
+          targetAudience: 'all',
+          status: 'draft'
+        })
+        showSuccessToast('Campaign created successfully')
+      } catch (err) {
+        showErrorToast(err.response?.data?.message || 'Failed to create campaign')
       }
-      setCampaigns([campaign, ...campaigns])
-      setShowCampaignModal(false)
-      setNewCampaign({
-        name: '',
-        type: 'promotion',
-        description: '',
-        startDate: '',
-        endDate: '',
-        budget: '',
-        targetAudience: 'all',
-        status: 'draft'
-      })
-      showSuccessToast('Campaign created successfully')
     }
   }
 
-  const createDiscountCode = () => {
+  const createDiscountCode = async () => {
     if (newDiscount.code && newDiscount.value) {
-      const discount = {
-        id: discountCodes.length + 1,
-        ...newDiscount,
-        used: 0,
-        revenue: 0
+      try {
+        const payload = {
+          ...newDiscount,
+          value: parseFloat(newDiscount.value) || 0,
+          minOrder: parseFloat(newDiscount.minOrder) || 0,
+          maxDiscount: newDiscount.maxDiscount ? parseFloat(newDiscount.maxDiscount) : null,
+          usageLimit: parseInt(newDiscount.usageLimit, 10) || 100,
+          startDate: newDiscount.startDate ? new Date(newDiscount.startDate).toISOString() : null,
+          endDate: newDiscount.endDate ? new Date(newDiscount.endDate).toISOString() : null,
+        }
+        const response = await api.post(`/merchants/merchant/${merchantId}/marketing/discounts`, payload)
+        setDiscountCodes([response.data.data, ...discountCodes])
+        setShowDiscountModal(false)
+        setNewDiscount({
+          code: '',
+          type: 'percentage',
+          value: '',
+          minOrder: '',
+          maxDiscount: '',
+          usageLimit: '',
+          startDate: '',
+          endDate: '',
+          status: 'active'
+        })
+        showSuccessToast('Discount code request submitted successfully')
+      } catch (err) {
+        showErrorToast(err.response?.data?.message || 'Failed to submit discount code request')
       }
-      setDiscountCodes([discount, ...discountCodes])
-      setShowDiscountModal(false)
-      setNewDiscount({
-        code: '',
-        type: 'percentage',
-        value: '',
-        minOrder: '',
-        maxDiscount: '',
-        usageLimit: '',
-        startDate: '',
-        endDate: '',
-        status: 'active'
-      })
-      showSuccessToast('Discount code created successfully')
     }
   }
 

@@ -699,6 +699,32 @@ const bulkUpsertOptionGroups = wrap(async (req, res) => {
   res.json(ApiResponse.success('Option groups synced', groups));
 });
 
+const getMerchantDiscountCodes = wrap(async (req, res) => {
+  const { merchantId } = req.params;
+  const result = await merchantService.getMerchantDiscountCodes(merchantId, req.user.id, req.user.role);
+  res.json(ApiResponse.success('Merchant discount codes retrieved', result));
+});
+
+const createMerchantDiscountCode = wrap(async (req, res) => {
+  const { merchantId } = req.params;
+  const discountData = req.body;
+  const result = await merchantService.createMerchantDiscountCode(merchantId, req.user.id, req.user.role, discountData);
+  res.status(201).json(ApiResponse.success('Discount code request submitted', result));
+});
+
+const getMerchantCampaigns = wrap(async (req, res) => {
+  const { merchantId } = req.params;
+  const result = await merchantService.getMerchantCampaigns(merchantId, req.user.id, req.user.role);
+  res.json(ApiResponse.success('Merchant campaigns retrieved', result));
+});
+
+const createMerchantCampaign = wrap(async (req, res) => {
+  const { merchantId } = req.params;
+  const campaignData = req.body;
+  const result = await merchantService.createMerchantCampaign(merchantId, req.user.id, req.user.role, campaignData);
+  res.status(201).json(ApiResponse.success('Campaign created successfully', result));
+});
+
 module.exports = {
   createMerchant,
   getMerchants,
@@ -744,4 +770,9 @@ module.exports = {
   updateOptionItem,
   deleteOptionItem,
   bulkUpsertOptionGroups,
+  // marketing controllers
+  getMerchantDiscountCodes,
+  createMerchantDiscountCode,
+  getMerchantCampaigns,
+  createMerchantCampaign,
 };

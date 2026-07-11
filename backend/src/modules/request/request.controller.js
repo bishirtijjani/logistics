@@ -384,6 +384,7 @@ const getQuote = async (req, res, next) => {
       total: quote.total,
       distanceKm: quote.distanceKm,
       estimatedMinutes: quote.estimatedMinutes,
+      promoCode: req.body.promoCode || null,
     });
 
     res.json(

@@ -51,6 +51,7 @@ const issueQuoteToken = ({
   total,
   distanceKm,
   estimatedMinutes,
+  promoCode,
 }) => {
   const expiresAt = Date.now() + QUOTE_TTL_MS;
   const round2 = (n) => Math.round(Number(n) * 100) / 100;
@@ -71,6 +72,7 @@ const issueQuoteToken = ({
     total: round2(total),
     distanceKm: round2(distanceKm),
     estimatedMinutes: Math.round(estimatedMinutes),
+    promoCode: promoCode || null,
     exp: expiresAt,
   };
 
