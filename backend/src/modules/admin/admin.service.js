@@ -16,6 +16,12 @@ const vtuRouter = require('../../services/vtu/router');
 const emailService = require('../../services/email.service');
 const settingsService = require('../../services/settings.service');
 const { createAuditLog } = require('../../utils/audit');
+const { ACTIVE_STATUSES } = require('../../utils/status');
+const requestService = require('../request/request.service');
+const { requestQueue } = require('../../queues');
+const { REQUEST_JOBS } = require('../../queues/jobs');
+const { getIO } = require('../../sockets');
+const { REQUEST, getRequestRoom } = require('../../sockets/events');
 
 /**
  * List all riders pending approval.
@@ -735,15 +741,85 @@ const getDashboardStats = async () => {
 /**
  * List all requests with advanced filtering.
  */
-const getAllRequests = async ({ page = 1, limit = 20, type, status, categoryId, categorySlug, startDate, endDate }) => {
-  const where = {
+/**
+ * Relations every admin-facing request payload carries. Mutations reuse this
+ * so the row the dashboard swaps into its list keeps its customer/merchant/
+ * rider names instead of degrading to a bare record.
+ */
+const ADMIN_REQUEST_INCLUDE = {
+  customer: { select: { id: true, firstName: true, lastName: true, phone: true, email: true } },
+  merchant: {
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      email: true,
+      category: { select: { id: true, name: true, slug: true, color: true, icon: true } },
+    },
+  },
+  rider: {
+    select: {
+      id: true,
+      vehicleType: true,
+      plateNumber: true,
+      availability: true,
+      user: { select: { id: true, firstName: true, lastName: true, phone: true } },
+    },
+  },
+  items: true,
+  discountCode: { select: { id: true, code: true } },
+};
+
+const buildRequestsWhere = ({ type, status, categoryId, categorySlug, startDate, endDate, search }) => {
+  // Both date bounds must land in the same createdAt object - spreading them
+  // separately would overwrite gte with lte when both are set. A date-only
+  // endDate ("2026-07-14") means "through the end of that day", so it becomes
+  // an exclusive bound on the following midnight.
+  const createdAt = {};
+  if (startDate) createdAt.gte = new Date(startDate);
+  if (endDate) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      const nextDay = new Date(endDate);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      createdAt.lt = nextDay;
+    } else {
+      createdAt.lte = new Date(endDate);
+    }
+  }
+
+  // Every whitespace-separated term must match somewhere on the request (id),
+  // its customer, merchant, or rider - same shape as the merchant search.
+  // IDs get pasted from the dashboard as "#8bb74672" - drop the prefix.
+  const terms = (search || '')
+    .split(/\s+/)
+    .map((t) => t.replace(/^#/, ''))
+    .filter(Boolean);
+
+  return {
     ...(type && { type }),
     ...(status && { status }),
     ...(categoryId && { merchant: { is: { categoryId } } }),
     ...(categorySlug && { merchant: { is: { category: { is: { slug: categorySlug } } } } }),
-    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
-    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+    ...((startDate || endDate) && { createdAt }),
+    ...(terms.length > 0 && {
+      AND: terms.map((t) => ({
+        OR: [
+          { id: { contains: t, mode: 'insensitive' } },
+          { customer: { is: { firstName: { contains: t, mode: 'insensitive' } } } },
+          { customer: { is: { lastName: { contains: t, mode: 'insensitive' } } } },
+          { customer: { is: { phone: { contains: t, mode: 'insensitive' } } } },
+          { customer: { is: { email: { contains: t, mode: 'insensitive' } } } },
+          { merchant: { is: { name: { contains: t, mode: 'insensitive' } } } },
+          { rider: { is: { user: { is: { firstName: { contains: t, mode: 'insensitive' } } } } } },
+          { rider: { is: { user: { is: { lastName: { contains: t, mode: 'insensitive' } } } } } },
+        ],
+      })),
+    }),
   };
+};
+
+const getAllRequests = async ({ page = 1, limit = 20, ...filters }) => {
+  const where = buildRequestsWhere(filters);
 
   const [requests, total] = await Promise.all([
     prisma.request.findMany({
@@ -751,12 +827,7 @@ const getAllRequests = async ({ page = 1, limit = 20, type, status, categoryId, 
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
-      include: {
-        customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        merchant: { select: { id: true, name: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } } },
-        rider: { select: { id: true, user: { select: { firstName: true, lastName: true, phone: true } } } },
-        items: true,
-      },
+      include: ADMIN_REQUEST_INCLUDE,
     }),
     prisma.request.count({ where }),
   ]);
@@ -765,32 +836,120 @@ const getAllRequests = async ({ page = 1, limit = 20, type, status, categoryId, 
 };
 
 /**
+ * Single request with everything the detail modal shows, including package
+ * details and the customer's rating.
+ */
+const getRequestById = async (requestId) => {
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    include: {
+      ...ADMIN_REQUEST_INCLUDE,
+      packageDetails: true,
+      rating: true,
+    },
+  });
+  if (!request) throw AppError.notFound('Request not found');
+  return request;
+};
+
+/**
+ * Headline counts for the requests console: live workload plus today's
+ * outcomes.
+ */
+const getRequestStats = async () => {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
+  const [active, unassigned, deliveredToday, cancelledToday] = await Promise.all([
+    prisma.request.count({ where: { status: { in: ACTIVE_STATUSES } } }),
+    prisma.request.count({ where: { status: { in: ACTIVE_STATUSES }, riderId: null } }),
+    prisma.request.count({ where: { deliveredAt: { gte: startOfToday } } }),
+    prisma.request.count({ where: { cancelledAt: { gte: startOfToday } } }),
+  ]);
+
+  return { active, unassigned, deliveredToday, cancelledToday };
+};
+
+/** Hard cap so an unbounded export can't pull the whole table into memory. */
+const EXPORT_MAX_ROWS = 5000;
+
+/**
+ * Full filtered result set (not just the current page) for CSV export.
+ */
+const exportRequests = async (filters) => {
+  return prisma.request.findMany({
+    where: buildRequestsWhere(filters),
+    orderBy: { createdAt: 'desc' },
+    take: EXPORT_MAX_ROWS,
+    include: {
+      customer: { select: { firstName: true, lastName: true, phone: true, email: true } },
+      merchant: { select: { name: true } },
+      rider: { select: { user: { select: { firstName: true, lastName: true } } } },
+    },
+  });
+};
+
+/**
  * Reassign rider to a request.
  */
-const reassignRider = async (requestId, newRiderId) => {
+const reassignRider = async (requestId, newRiderId, adminUserId, ipAddress, userAgent) => {
   const request = await prisma.request.findUnique({ where: { id: requestId } });
   if (!request) throw AppError.notFound('Request not found');
+  if (['DELIVERED', 'SETTLED', 'CANCELLED'].includes(request.status)) {
+    throw AppError.badRequest('Cannot reassign rider on a completed or cancelled request');
+  }
+  if (request.riderId === newRiderId) {
+    throw AppError.badRequest('Rider is already assigned to this request');
+  }
 
   const rider = await prisma.rider.findUnique({ where: { id: newRiderId } });
   if (!rider) throw AppError.notFound('Rider not found');
   if (rider.status !== 'APPROVED') throw AppError.badRequest('Rider is not approved');
 
+  // Assigning onto a request that was still waiting for a rider is the normal
+  // READY_FOR_PICKUP → RIDER_ASSIGNED transition; mid-flight swaps keep their
+  // current status.
+  const becomesAssigned = request.status === 'READY_FOR_PICKUP';
   const updated = await prisma.request.update({
     where: { id: requestId },
-    data: { riderId: newRiderId },
+    data: {
+      riderId: newRiderId,
+      ...(becomesAssigned && { status: 'RIDER_ASSIGNED', riderAssignedAt: new Date() }),
+    },
+    include: ADMIN_REQUEST_INCLUDE,
   });
 
-  logger.info('Rider reassigned', { requestId, newRiderId });
+  await createAuditLog(
+    adminUserId,
+    'REASSIGN_RIDER',
+    'REQUEST',
+    requestId,
+    { previousRiderId: request.riderId, newRiderId, status: updated.status },
+    ipAddress,
+    userAgent,
+  );
 
-  // TODO: Emit socket event to notify new rider
+  logger.info('Rider reassigned', { requestId, newRiderId, adminUserId });
+
+  try {
+    getIO().to(getRequestRoom(requestId)).emit(REQUEST.RIDER_ASSIGNED, {
+      requestId,
+      rider: updated.rider,
+    });
+  } catch (err) {
+    logger.warn('Socket emit failed for rider reassignment', { requestId, error: err.message });
+  }
 
   return updated;
 };
 
 /**
- * Force cancel a request with reason.
+ * Force cancel a request with reason. Bypasses the normal transition rules
+ * (that is the point - unsticking orders the FSM can no longer move), then
+ * hands refund/escrow release and rider-pool release to the same idempotent
+ * REFUND_REQUEST worker every other cancellation path uses.
  */
-const forceCancelRequest = async (requestId, reason) => {
+const forceCancelRequest = async (requestId, reason, adminUserId, ipAddress, userAgent) => {
   const request = await prisma.request.findUnique({ where: { id: requestId } });
   if (!request) throw AppError.notFound('Request not found');
   if (request.status === 'CANCELLED' || request.status === 'DELIVERED' || request.status === 'SETTLED') {
@@ -799,53 +958,76 @@ const forceCancelRequest = async (requestId, reason) => {
 
   const updated = await prisma.request.update({
     where: { id: requestId },
-    data: { status: 'CANCELLED' },
-  });
-
-  // Create cancellation record
-  await prisma.requestHistory.create({
     data: {
-      requestId,
       status: 'CANCELLED',
-      changedBy: 'ADMIN',
-      reason,
+      cancelledAt: new Date(),
+      cancelledBy: 'admin',
+      cancellationReason: reason,
     },
+    include: ADMIN_REQUEST_INCLUDE,
   });
 
-  logger.info('Request force cancelled by admin', { requestId, reason });
+  await createAuditLog(
+    adminUserId,
+    'FORCE_CANCEL_REQUEST',
+    'REQUEST',
+    requestId,
+    { reason, previousStatus: request.status },
+    ipAddress,
+    userAgent,
+  );
 
-  // TODO: Emit socket event, process refund if applicable
+  logger.info('Request force cancelled by admin', { requestId, reason, adminUserId });
+
+  await requestQueue.add(REQUEST_JOBS.REFUND_REQUEST, { requestId }, { delay: 1000 });
+
+  try {
+    getIO().to(getRequestRoom(requestId)).emit(REQUEST.CANCELLED, {
+      requestId,
+      reason,
+      cancelledBy: 'ADMIN',
+    });
+  } catch (err) {
+    logger.warn('Socket emit failed for force cancel', { requestId, error: err.message });
+  }
 
   return updated;
 };
 
 /**
- * Admin override to update request status.
+ * Admin override to move a request one step along its lifecycle. Delegates to
+ * the canonical request-service updateStatus so transition validation,
+ * lifecycle timestamps, socket events, and the settlement queue all behave
+ * exactly as they do for customer/merchant/rider updates.
  */
-const adminUpdateRequestStatus = async (requestId, status, reason) => {
-  const request = await prisma.request.findUnique({ where: { id: requestId } });
-  if (!request) throw AppError.notFound('Request not found');
+const adminUpdateRequestStatus = async (requestId, status, reason, adminUserId, ipAddress, userAgent) => {
+  if (status === 'CANCELLED') {
+    throw AppError.badRequest('Use the cancel endpoint to cancel a request');
+  }
+  if (status === 'SETTLED') {
+    throw AppError.badRequest('Settlement runs automatically after delivery and cannot be forced');
+  }
 
-  const updated = await prisma.request.update({
-    where: { id: requestId },
-    data: { status },
+  const previous = await prisma.request.findUnique({ where: { id: requestId }, select: { status: true } });
+  if (!previous) throw AppError.notFound('Request not found');
+
+  await requestService.updateStatus(requestId, status, adminUserId, 'ADMIN', {
+    reason: reason || 'Admin override',
   });
 
-  // Create history record
-  await prisma.requestHistory.create({
-    data: {
-      requestId,
-      status,
-      changedBy: 'ADMIN',
-      reason,
-    },
-  });
+  await createAuditLog(
+    adminUserId,
+    'OVERRIDE_REQUEST_STATUS',
+    'REQUEST',
+    requestId,
+    { from: previous.status, to: status, reason },
+    ipAddress,
+    userAgent,
+  );
 
-  logger.info('Request status updated by admin', { requestId, status, reason });
+  logger.info('Request status updated by admin', { requestId, status, reason, adminUserId });
 
-  // TODO: Emit socket event
-
-  return updated;
+  return getRequestById(requestId);
 };
 
 // ============================================================
@@ -3272,6 +3454,9 @@ module.exports = {
   getTransactionOverview,
   getDashboardStats,
   getAllRequests,
+  getRequestById,
+  getRequestStats,
+  exportRequests,
   reassignRider,
   forceCancelRequest,
   adminUpdateRequestStatus,

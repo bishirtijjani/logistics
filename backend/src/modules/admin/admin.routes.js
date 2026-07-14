@@ -28,6 +28,7 @@ const {
   listPendingRidersSchema,
   transactionOverviewSchema,
   listAllRequestsSchema,
+  exportAllRequestsSchema,
   reassignRiderSchema,
   forceCancelRequestSchema,
   adminUpdateRequestStatusSchema,
@@ -81,6 +82,10 @@ router.get('/dashboard', adminController.getDashboard);
 
 // Request management
 router.get('/requests', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_MERCHANTS), validate(listAllRequestsSchema, 'query'), adminController.getAllRequests);
+// Static paths before '/requests/:requestId' so they aren't captured as IDs.
+router.get('/requests/stats', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_MERCHANTS), adminController.getRequestStats);
+router.get('/requests/export', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_MERCHANTS), validate(exportAllRequestsSchema, 'query'), adminController.exportRequests);
+router.get('/requests/:requestId', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_MERCHANTS), adminController.getRequestById);
 router.patch('/requests/:requestId/reassign', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(reassignRiderSchema), adminController.reassignRider);
 router.patch('/requests/:requestId/cancel', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_MERCHANTS), validate(forceCancelRequestSchema), adminController.forceCancelRequest);
 router.patch('/requests/:requestId/status', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_MERCHANTS), validate(adminUpdateRequestStatusSchema), adminController.adminUpdateRequestStatus);

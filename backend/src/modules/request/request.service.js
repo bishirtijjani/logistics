@@ -673,7 +673,9 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
 
   // ── Phase 5: POD validation on DELIVERED ────────────────────────────────
   // Server is authoritative - the client's settings cache may be stale.
-  if (newStatus === 'DELIVERED') {
+  // Admin overrides skip the POD gate: it exists to keep riders honest, and
+  // the override path is for orders the rider flow can no longer complete.
+  if (newStatus === 'DELIVERED' && role !== 'ADMIN') {
     const [requirePhotoSetting, requireSignatureSetting, otpThresholdSetting] = await Promise.all([
       getSetting('delivery.requirePodPhoto', true),
       getSetting('delivery.requireSignature', false),
@@ -1020,7 +1022,8 @@ const forceCancelRequest = async (requestId, reason, adminId) => {
       data: {
         status: 'CANCELLED',
         cancelledAt: new Date(),
-        cancelReason: reason,
+        cancelledBy: 'admin',
+        cancellationReason: reason,
       },
     });
 

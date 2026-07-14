@@ -361,9 +361,61 @@ const getAllRequests = async (req, res, next) => {
   }
 };
 
+const getRequestById = async (req, res, next) => {
+  try {
+    const request = await adminService.getRequestById(req.params.requestId);
+    res.json(ApiResponse.success('Request detail', request));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRequestStats = async (req, res, next) => {
+  try {
+    const stats = await adminService.getRequestStats();
+    res.json(ApiResponse.success('Request stats', stats));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const exportRequests = async (req, res, next) => {
+  try {
+    const requests = await adminService.exportRequests(req.query);
+
+    const headers = [
+      'id', 'type', 'status', 'paymentMethod', 'subtotal', 'deliveryFee', 'platformFee',
+      'discountAmount', 'total', 'customerName', 'customerPhone', 'customerEmail',
+      'merchantName', 'riderName', 'pickupAddress', 'dropoffAddress',
+      'cancelledBy', 'cancellationReason', 'createdAt', 'deliveredAt',
+    ];
+    const escape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const rows = requests.map((r) => [
+      r.id, r.type, r.status, r.paymentMethod, r.subtotal, r.deliveryFee, r.platformFee,
+      r.discountAmount, r.total,
+      `${r.customer?.firstName || ''} ${r.customer?.lastName || ''}`.trim(),
+      r.customer?.phone, r.customer?.email,
+      r.merchant?.name,
+      `${r.rider?.user?.firstName || ''} ${r.rider?.user?.lastName || ''}`.trim(),
+      r.pickupAddress, r.dropoffAddress,
+      r.cancelledBy, r.cancellationReason,
+      r.createdAt?.toISOString(), r.deliveredAt?.toISOString(),
+    ].map(escape).join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="requests-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csv);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const reassignRider = async (req, res, next) => {
   try {
-    const result = await adminService.reassignRider(req.params.requestId, req.body.newRiderId);
+    const result = await adminService.reassignRider(
+      req.params.requestId, req.body.newRiderId, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Rider reassigned', result));
   } catch (error) {
     next(error);
@@ -372,7 +424,9 @@ const reassignRider = async (req, res, next) => {
 
 const forceCancelRequest = async (req, res, next) => {
   try {
-    const result = await adminService.forceCancelRequest(req.params.requestId, req.body.reason);
+    const result = await adminService.forceCancelRequest(
+      req.params.requestId, req.body.reason, req.user.id, req.ip, req.headers['user-agent']
+    );
     res.json(ApiResponse.success('Request cancelled', result));
   } catch (error) {
     next(error);
@@ -384,7 +438,10 @@ const adminUpdateRequestStatus = async (req, res, next) => {
     const result = await adminService.adminUpdateRequestStatus(
       req.params.requestId,
       req.body.status,
-      req.body.reason
+      req.body.reason,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent']
     );
     res.json(ApiResponse.success('Request status updated', result));
   } catch (error) {
@@ -1067,6 +1124,9 @@ module.exports = {
   getTransactions,
   getDashboard,
   getAllRequests,
+  getRequestById,
+  getRequestStats,
+  exportRequests,
   reassignRider,
   forceCancelRequest,
   adminUpdateRequestStatus,

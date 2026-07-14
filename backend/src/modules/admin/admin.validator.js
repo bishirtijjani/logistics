@@ -132,7 +132,12 @@ const listAllRequestsSchema = z.object({
   ]).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  search: z.string().trim().max(200).optional(),
 });
+
+// Same filters as the list, no pagination - export always covers the full
+// filtered set (server-side capped).
+const exportAllRequestsSchema = listAllRequestsSchema.omit({ page: true, limit: true });
 
 const listAllCustomersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -409,6 +414,7 @@ module.exports = {
   customerTransactionsSchema,
   refundTransactionSchema,
   listAllRequestsSchema,
+  exportAllRequestsSchema,
   reassignRiderSchema,
   forceCancelRequestSchema,
   adminUpdateRequestStatusSchema,
