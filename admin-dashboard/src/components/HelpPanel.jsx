@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -22,6 +22,97 @@ const ROUTE_GUIDE = [
 ]
 
 const stripLeadingH1 = (b) => b.replace(/^\s*#\s+.*\r?\n+/, '')
+
+// Floating help button that can be dragged out of the way if it covers
+// content: it follows the pointer freely, snaps to the nearest screen edge on
+// release, and remembers its spot across visits. A plain tap still opens Help.
+const FAB_SIZE = 48
+const FAB_MARGIN = 20
+const FAB_POS_KEY = 'help-fab-pos'
+
+function loadFabPos() {
+  try {
+    const p = JSON.parse(localStorage.getItem(FAB_POS_KEY))
+    if (p && (p.side === 'left' || p.side === 'right') && Number.isFinite(p.yFrac)) return p
+  } catch { /* corrupt value: fall back to default corner */ }
+  return null
+}
+
+function HelpFab({ onOpen }) {
+  const ref = useRef(null)
+  const drag = useRef(null)
+  const pending = useRef(null)
+  const snapTimer = useRef(null)
+  const [pos, setPos] = useState(loadFabPos)
+  const [xy, setXy] = useState(null)
+
+  const finishSnap = () => {
+    clearTimeout(snapTimer.current)
+    if (pending.current) {
+      setPos(pending.current)
+      pending.current = null
+      setXy(null)
+    }
+  }
+
+  useEffect(() => () => clearTimeout(snapTimer.current), [])
+
+  const onPointerDown = (e) => {
+    finishSnap()
+    const r = ref.current.getBoundingClientRect()
+    drag.current = { sx: e.clientX, sy: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, moved: false }
+    ref.current.setPointerCapture(e.pointerId)
+  }
+
+  const onPointerMove = (e) => {
+    const d = drag.current
+    if (!d) return
+    if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 6) return
+    d.moved = true
+    setXy({
+      x: Math.min(Math.max(e.clientX - d.dx, 4), window.innerWidth - FAB_SIZE - 4),
+      y: Math.min(Math.max(e.clientY - d.dy, 4), window.innerHeight - FAB_SIZE - 4),
+      snapping: false,
+    })
+  }
+
+  const onPointerUp = (e) => {
+    const d = drag.current
+    drag.current = null
+    if (!d?.moved) return
+    const side = e.clientX - d.dx + FAB_SIZE / 2 < window.innerWidth / 2 ? 'left' : 'right'
+    const y = Math.min(Math.max(e.clientY - d.dy, FAB_MARGIN), window.innerHeight - FAB_SIZE - FAB_MARGIN)
+    const next = { side, yFrac: y / window.innerHeight }
+    try { localStorage.setItem(FAB_POS_KEY, JSON.stringify(next)) } catch { /* storage unavailable */ }
+    // Glide to the edge, then hand positioning back to the anchored style.
+    pending.current = next
+    setXy({ x: side === 'left' ? FAB_MARGIN : window.innerWidth - FAB_SIZE - FAB_MARGIN, y, snapping: true })
+    snapTimer.current = setTimeout(finishSnap, 200)
+  }
+
+  const style = xy
+    ? { left: xy.x, top: xy.y, transition: xy.snapping ? 'left .2s ease-out, top .2s ease-out' : 'none' }
+    : pos
+      ? { [pos.side]: FAB_MARGIN, top: `clamp(${FAB_MARGIN}px, ${(pos.yFrac * 100).toFixed(2)}vh, calc(100vh - ${FAB_SIZE + FAB_MARGIN}px))` }
+      : { right: FAB_MARGIN, bottom: FAB_MARGIN }
+
+  return (
+    <button
+      ref={ref}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={() => { drag.current = null; setXy(null) }}
+      onClick={() => { if (!xy) onOpen() }}
+      aria-label="Help"
+      title="Help"
+      style={style}
+      className="fixed z-40 w-12 h-12 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary-700 active:scale-95 touch-none select-none cursor-grab active:cursor-grabbing"
+    >
+      <HelpCircle className="w-6 h-6" />
+    </button>
+  )
+}
 
 export default function HelpPanel() {
   const [open, setOpen] = useState(false)
@@ -74,16 +165,7 @@ export default function HelpPanel() {
 
   return (
     <>
-      {!open && (
-        <button
-          onClick={openPanel}
-          aria-label="Help"
-          title="Help"
-          className="fixed bottom-5 right-5 z-40 w-12 h-12 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary-700 active:scale-95 transition-all"
-        >
-          <HelpCircle className="w-6 h-6" />
-        </button>
-      )}
+      {!open && <HelpFab onOpen={openPanel} />}
 
       {open && (
         <div className="fixed inset-0 z-50">
