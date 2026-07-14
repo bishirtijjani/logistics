@@ -394,8 +394,8 @@ export default function MarketingPage() {
 
       {/* Banner Creation/Editing Modal */}
       {showBannerModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-surface dark:bg-dark-surface border border-surface-muted dark:border-dark-surface-muted rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface border border-surface-muted dark:border-dark-surface-muted rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg p-4 sm:p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-surface-muted dark:border-dark-surface-muted pb-2">
               <h3 className="font-bold text-lg text-text dark:text-dark-text">{editingBanner ? 'Edit Banner' : 'Create Home Banner'}</h3>
               <button onClick={() => setShowBannerModal(false)} className="text-muted dark:text-dark-muted hover:text-text"><X className="w-5 h-5" /></button>

@@ -227,15 +227,15 @@ export default function StaffManagementPage() {
 
       {/* Create Staff Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface dark:bg-dark-surface rounded-2xl w-full max-w-2xl shadow-2xl border border-surface-muted dark:border-dark-surface-muted overflow-hidden">
-            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex items-center justify-between">
-              <h3 className="text-xl font-bold text-text dark:text-dark-text">Add New Staff Member</h3>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-surface-muted dark:border-dark-surface-muted overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-surface-muted dark:border-dark-surface-muted flex items-center justify-between shrink-0">
+              <h3 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text">Add New Staff Member</h3>
               <button onClick={() => setShowCreateModal(false)} className="text-muted hover:text-text dark:hover:text-dark-text">
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleCreateStaff} className="p-6 space-y-6 overflow-y-auto max-h-[80vh]">
+            <form onSubmit={handleCreateStaff} className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text dark:text-dark-text">First Name</label>
@@ -328,18 +328,18 @@ export default function StaffManagementPage() {
 
       {/* Edit Permissions Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-surface dark:bg-dark-surface rounded-2xl w-full max-w-2xl shadow-2xl border border-surface-muted dark:border-dark-surface-muted overflow-hidden">
-            <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-surface-muted dark:border-dark-surface-muted overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-surface-muted dark:border-dark-surface-muted flex items-center justify-between shrink-0">
               <div>
-                <h3 className="text-xl font-bold text-text dark:text-dark-text">Edit Staff Permissions</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-text dark:text-dark-text">Edit Staff Permissions</h3>
                 <p className="text-xs text-muted">{selectedStaff?.firstName} {selectedStaff?.lastName} ({selectedStaff?.email})</p>
               </div>
               <button onClick={() => setShowEditModal(false)} className="text-muted hover:text-text dark:hover:text-dark-text">
                 <X size={24} />
               </button>
             </div>
-            <form onSubmit={handleUpdateStaff} className="p-6 space-y-6 overflow-y-auto max-h-[80vh]">
+            <form onSubmit={handleUpdateStaff} className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text dark:text-dark-text">First Name</label>

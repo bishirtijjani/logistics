@@ -1216,9 +1216,9 @@ function Section({ title, children }) {
 function ConfirmDialog({ title, message, tone = 'default', onCancel, onConfirm, confirmLabel }) {
   const accent = tone === 'danger' ? 'bg-error hover:bg-error/90' : tone === 'warn' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-primary hover:bg-primary-700'
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative bg-surface dark:bg-dark-surface rounded-xl shadow-xl border border-surface-muted dark:border-dark-surface-muted w-full max-w-md p-6">
+      <div className="relative bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl border border-surface-muted dark:border-dark-surface-muted w-full sm:max-w-md p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-start gap-3 mb-4">
           {tone !== 'default' && (
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tone === 'danger' ? 'bg-error/10 text-error' : 'bg-amber-500/10 text-amber-600'}`}>
@@ -1259,9 +1259,9 @@ function BulkPriceDialog({ plans, onCancel, onApply }) {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative bg-surface dark:bg-dark-surface rounded-xl shadow-xl border border-surface-muted dark:border-dark-surface-muted w-full max-w-lg p-6">
+      <div className="relative bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl border border-surface-muted dark:border-dark-surface-muted w-full sm:max-w-lg p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-bold text-text dark:text-dark-text mb-1">Adjust price for {plans.length} plan{plans.length > 1 ? 's' : ''}</h3>
         <p className="text-sm text-muted dark:text-dark-muted mb-4">Apply a percentage or flat-naira change to selling price.</p>
 

@@ -206,8 +206,8 @@ export default function LoginPage() {
 
       {/* Forgot Password Modal */}
       {showForgotPassword && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-2xl shadow-xl p-8 max-w-md w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl shadow-xl p-6 sm:p-8 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-full mb-4">
                 <Lock className="w-6 h-6 text-primary" />

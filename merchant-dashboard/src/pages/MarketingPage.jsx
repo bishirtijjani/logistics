@@ -703,8 +703,8 @@ export default function MarketingPage() {
 
       {/* Campaign Modal */}
       {showCampaignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <h2 className="text-xl font-bold text-text dark:text-dark-text">Create Campaign</h2>
             </div>
@@ -801,8 +801,8 @@ export default function MarketingPage() {
 
       {/* Discount Code Modal */}
       {showDiscountModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <h2 className="text-xl font-bold text-text dark:text-dark-text">Create Discount Code</h2>
             </div>
@@ -914,8 +914,8 @@ export default function MarketingPage() {
 
       {/* Loyalty Program Modal */}
       {showLoyaltyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <h2 className="text-xl font-bold text-text dark:text-dark-text">Configure Loyalty Program</h2>
             </div>
@@ -986,8 +986,8 @@ export default function MarketingPage() {
 
       {/* Email Campaign Modal */}
       {showEmailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <h2 className="text-xl font-bold text-text dark:text-dark-text">Create Email Campaign</h2>
             </div>

@@ -2164,8 +2164,8 @@ Thank you for your business!
 
       {/* Enhanced Withdrawal Modal */}
       {showTopUpModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-text dark:text-dark-text">Add Money</h2>
@@ -2223,8 +2223,8 @@ Thank you for your business!
       )}
 
       {showWithdrawModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-xl w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-text dark:text-dark-text">
@@ -2353,8 +2353,8 @@ Thank you for your business!
 
       {/* Transaction Details Modal */}
       {showTransactionDetails && selectedTransaction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-text dark:text-dark-text">
@@ -2565,8 +2565,8 @@ Thank you for your business!
 
       {/* Withdrawal History Modal */}
       {showWithdrawalHistory && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-surface dark:bg-dark-surface rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-xl w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-surface-muted dark:border-dark-surface-muted">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-text dark:text-dark-text">
@@ -2710,8 +2710,8 @@ Thank you for your business!
 
       {/* Refund Modal */}
       {showRefundModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Process Refund
@@ -2835,8 +2835,8 @@ Thank you for your business!
 
       {/* Refund History Modal */}
       {showRefundHistory && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Refund History
@@ -2958,8 +2958,8 @@ Thank you for your business!
 
       {/* Disputes Modal */}
       {showDisputes && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Dispute Management
@@ -3069,8 +3069,8 @@ Thank you for your business!
 
       {/* Dispute Creation Modal */}
       {showDisputeModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Create Dispute
@@ -3214,8 +3214,8 @@ Thank you for your business!
 
       {/* Dispute Details Modal */}
       {showDisputeDetails && selectedDispute && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Dispute Details
@@ -3590,8 +3590,8 @@ Thank you for your business!
 
       {/* Custom Report Generation Modal */}
       {showCustomReportModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-dark-surface rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-xl p-4 sm:p-6 w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-text dark:text-dark-text">
                 Generate Custom Report

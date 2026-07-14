@@ -167,10 +167,10 @@ export default function PinModal({ open, title, subtitle, onConfirm, onClose, in
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget && !submitting) onClose() }}
     >
-      <div className="w-full max-w-sm bg-white dark:bg-dark-surface rounded-2xl shadow-xl p-6">
+      <div className="w-full sm:max-w-sm bg-white dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl shadow-xl p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             {stage !== 'enter' ? (

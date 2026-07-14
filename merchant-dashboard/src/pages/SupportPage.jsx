@@ -93,8 +93,8 @@ function CreateTicketModal({ onClose, onCreated }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-surface dark:bg-dark-surface rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-surface-muted dark:border-dark-surface-muted">
           <h2 className="font-semibold text-text dark:text-dark-text">New support ticket</h2>
           <button onClick={onClose} className="p-1 hover:bg-surface-muted dark:hover:bg-dark-surface-muted rounded">
