@@ -64,14 +64,18 @@ const createRequestSchema = z.object({
   
   // Package details (for PACKAGE type only)
   package: z.object({
+    // Optional "what's inside" hint - the DB column is nullable and the UI
+    // allows a blank value.
     description: z.string().optional(),
     size: z.enum(['SMALL', 'MEDIUM', 'LARGE']).default('SMALL'),
     weight: z.number().optional(),
-    fragile: z.boolean().optional(),
-    senderName: z.string().optional(),
-    senderPhone: z.string().optional(),
-    recipientName: z.string().optional(),
-    recipientPhone: z.string().optional(),
+    // Sender + recipient contact are NOT NULL in the DB and required by the
+    // mobile form; require them here so an incomplete payload gets a clean 400
+    // instead of blowing up packageDetail.create with a 500.
+    senderName: z.string().min(1),
+    senderPhone: z.string().min(1),
+    recipientName: z.string().min(1),
+    recipientPhone: z.string().min(1),
     instructions: z.string().optional(),
   }).optional(),
 

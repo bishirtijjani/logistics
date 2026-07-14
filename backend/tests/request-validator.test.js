@@ -37,6 +37,8 @@ const validItems = [
 const validPackage = {
   description: 'Documents envelope',
   size: 'SMALL',
+  senderName: 'Bilal Sada',
+  senderPhone: '08011112222',
   recipientName: 'Amina Musa',
   recipientPhone: '08023456789',
 };
@@ -122,6 +124,26 @@ test('MERCHANT_ORDER rejected when merchantId is missing', () => {
   const r = createRequestSchema.safeParse({
     type: 'MERCHANT_ORDER',
     items: validItems,
+    quoteToken: QUOTE_TOKEN,
+    ...baseLocations,
+  });
+  assert.equal(r.success, false);
+});
+
+test('PACKAGE: description is optional (blank "what\'s inside")', () => {
+  const { description, ...noDescription } = validPackage; // eslint-disable-line no-unused-vars
+  const r = createRequestSchema.safeParse({
+    package: noDescription,
+    quoteToken: QUOTE_TOKEN,
+    ...baseLocations,
+  });
+  assert.equal(r.success, true);
+});
+
+test('PACKAGE rejected when sender contact is missing', () => {
+  const { senderName, senderPhone, ...noSender } = validPackage; // eslint-disable-line no-unused-vars
+  const r = createRequestSchema.safeParse({
+    package: noSender,
     quoteToken: QUOTE_TOKEN,
     ...baseLocations,
   });

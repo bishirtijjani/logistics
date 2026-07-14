@@ -1173,7 +1173,7 @@ model PackageDetail {
   requestId String  @unique
   request   Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
-  description String
+  description String? // Optional "what's inside" hint - blank allowed in the UI
   size        String // SMALL, MEDIUM, LARGE
   weight      Float?
 

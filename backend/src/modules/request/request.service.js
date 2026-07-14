@@ -504,12 +504,24 @@ const createRequest = async (customerId, requestData) => {
       }
     }
 
-    // Create package details (if applicable)
+    // Create package details (if applicable). Map columns explicitly rather
+    // than spreading `packageDetails`: the validator accepts optional keys that
+    // have no column (e.g. `fragile`) and omits ones the DB used to require, so
+    // a blind spread would throw "Unknown argument" / "Argument is missing" and
+    // 500 the whole request. Explicit mapping writes only real columns and lets
+    // nullable fields fall back to null.
     if (packageDetails) {
       await tx.packageDetail.create({
         data: {
           requestId: newRequest.id,
-          ...packageDetails,
+          description: packageDetails.description ?? null,
+          size: packageDetails.size,
+          weight: packageDetails.weight ?? null,
+          senderName: packageDetails.senderName,
+          senderPhone: packageDetails.senderPhone,
+          recipientName: packageDetails.recipientName,
+          recipientPhone: packageDetails.recipientPhone,
+          instructions: packageDetails.instructions ?? null,
         },
       });
     }
