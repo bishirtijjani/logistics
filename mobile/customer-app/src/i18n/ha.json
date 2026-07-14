@@ -661,7 +661,8 @@
     "pickRange": "Zaɓi {{min}}–{{max}}",
     "optionalUpTo": "Na zaɓi · zaɓi har {{max}}",
     "unavailableToday": "Bai samuwa yau",
-    "unavailable": "Bai samuwa"
+    "unavailable": "Bai samuwa",
+    "outOfStock": "Babu a ajiya"
   },
   "utility": {
     "airtime": "Airtime",

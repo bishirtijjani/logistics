@@ -659,7 +659,8 @@
     "pickRange": "Pick {{min}}–{{max}}",
     "optionalUpTo": "Optional · pick up to {{max}}",
     "unavailableToday": "Unavailable today",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "outOfStock": "Out of stock"
   },
   "utility": {
     "airtime": "Airtime",

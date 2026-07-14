@@ -18,7 +18,7 @@
  * via route params. Server validates and recomputes prices at order time.
  */
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { goBackOr } from "../../lib/goBack";
 import {
   View, Text, ScrollView, Image, TextInput, TouchableOpacity,
@@ -71,7 +71,7 @@ export default function ProductDetailScreen() {
     : null;
 
   const [variantId, setVariantId] = useState(
-    editingLine?.variantId || (variants.length === 1 ? variants[0].id : variants.find((v) => v.isAvailable)?.id) || ''
+    editingLine?.variantId || (variants.length === 1 ? variants[0].id : variants.find((v) => v.isAvailable && v.stock > 0)?.id) || ''
   );
   // Default to MERCHANT_PICK on first-add. Grocery shoppers nearly always want
   // a sensible swap when an item is out - making them tap NONE explicitly
@@ -101,6 +101,16 @@ export default function ProductDetailScreen() {
   const scrollRef = useRef(null);
 
   const variant = variants.find((v) => v.id === variantId);
+  // A variant is orderable only when it's switched on AND has stock. The
+  // backend rejects out-of-stock orders (request.service.js), so we block
+  // selection here rather than let the customer hit that error at checkout.
+  const selectedSellable = variants.length === 0 || (!!variant && variant.isAvailable && variant.stock > 0);
+  const maxQty = variant && variant.stock > 0 ? Math.min(99, variant.stock) : 99;
+
+  // Clamp quantity when the picked variant changes to one with less stock.
+  useEffect(() => {
+    setQuantity((q) => Math.min(q, maxQty));
+  }, [maxQty]);
 
   const optionDelta = useMemo(() => {
     let sum = 0;
@@ -153,6 +163,7 @@ export default function ProductDetailScreen() {
   };
 
   const onAdd = () => {
+    if (!selectedSellable) return;
     const offendingGroupId = validate();
     if (offendingGroupId) {
       setHighlightGroupId(offendingGroupId);
@@ -291,20 +302,23 @@ export default function ProductDetailScreen() {
                 {variants.map((v) => {
                   const label = Object.values(v.attributes || {}).join(' / ') || v.packLabel || v.sku || t('common.search');
                   const selectedThis = v.id === variantId;
+                  const outOfStock = v.isAvailable && v.stock <= 0;
+                  const sellable = v.isAvailable && v.stock > 0;
                   return (
                     <TouchableOpacity
                       key={v.id}
-                      disabled={!v.isAvailable}
+                      disabled={!sellable}
                       onPress={() => setVariantId(v.id)}
                       accessibilityRole="radio"
-                      accessibilityState={{ selected: selectedThis, disabled: !v.isAvailable }}
+                      accessibilityState={{ selected: selectedThis, disabled: !sellable }}
                       accessibilityLabel={`${label} ${money(v.price)}`}
-                      style={[styles.chip, selectedThis && styles.chipActive, !v.isAvailable && styles.chipDisabled]}
+                      style={[styles.chip, selectedThis && styles.chipActive, !sellable && styles.chipDisabled]}
                     >
                       <Text style={[styles.chipText, selectedThis && styles.chipTextActive]}>
                         {label} · {money(v.price)}
                       </Text>
                       {!v.isAvailable && <Text style={styles.unavail}>{t('merchant.unavailable')}</Text>}
+                      {outOfStock && <Text style={styles.unavail}>{t('merchant.outOfStock')}</Text>}
                     </TouchableOpacity>
                   );
                 })}
@@ -427,7 +441,7 @@ export default function ProductDetailScreen() {
               </TouchableOpacity>
               <Text style={styles.qtyValue} accessibilityLiveRegion="polite">{quantity}</Text>
               <TouchableOpacity
-                onPress={() => setQuantity((q) => Math.min(99, q + 1))}
+                onPress={() => setQuantity((q) => Math.min(maxQty, q + 1))}
                 style={styles.qtyBtn}
                 accessibilityRole="button"
                 accessibilityLabel={`${t('merchant.quantity')} +`}
@@ -442,12 +456,16 @@ export default function ProductDetailScreen() {
         <View style={styles.cta}>
           <TouchableOpacity
             onPress={onAdd}
-            style={styles.ctaBtn}
+            disabled={!selectedSellable}
+            style={[styles.ctaBtn, !selectedSellable && styles.ctaBtnDisabled]}
             accessibilityRole="button"
+            accessibilityState={{ disabled: !selectedSellable }}
             accessibilityLabel={editingLineId ? t('merchant.updateItem') : t('merchant.addToCart')}
           >
             <Text style={styles.ctaText}>
-              {editingLineId ? t('merchant.updateItem') : t('merchant.addToCart')} · {money(lineTotal)}
+              {!selectedSellable
+                ? t('merchant.outOfStock')
+                : `${editingLineId ? t('merchant.updateItem') : t('merchant.addToCart')} · ${money(lineTotal)}`}
             </Text>
           </TouchableOpacity>
         </View>
@@ -506,5 +524,6 @@ const makeStyles = (tokens) => StyleSheet.create({
 
   cta: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: tokens.bg.surface, borderTopWidth: 1, borderTopColor: tokens.border.default },
   ctaBtn: { backgroundColor: tokens.brand.default, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  ctaBtnDisabled: { backgroundColor: tokens.text.muted, opacity: 0.6 },
   ctaText: { color: tokens.text.onBrand, fontSize: 16, fontWeight: '700' },
 });
