@@ -2901,23 +2901,66 @@ const getRiderPerformance = async ({ page = 1, limit = 20 }) => {
 };
 
 const getRiderRealtimeLocation = async () => {
-  // Riders currently online/on a delivery with a known last position. The
-  // previous query referenced non-existent columns (isAvailable/currentLat/
-  // currentLng) and threw; the real fields are availability + lastLat/lastLng.
+  // Riders currently online/on a delivery. DB lastLat/lastLng is only written
+  // by the REST fallback (POST /rider/location) - during normal operation the
+  // rider streams over the socket, which writes Redis only. So overlay the
+  // Redis position (30s TTL, refreshed every ~3s) on top of the DB one, and
+  // don't require a DB position to exist at all: a rider who has only ever
+  // streamed via socket would otherwise never appear on the fleet map.
   const riders = await prisma.rider.findMany({
     where: {
       status: 'APPROVED',
       availability: { in: ['ONLINE', 'ON_DELIVERY'] },
-      lastLat: { not: null },
-      lastLng: { not: null },
     },
     include: {
-      user: { select: { firstName: true, lastName: true } },
+      user: { select: { id: true, firstName: true, lastName: true } },
     },
     take: 50,
   });
+  if (riders.length === 0) return riders;
 
-  return riders;
+  // The socket handler keys Redis by user id; the REST endpoint keys by rider
+  // id. Check both per rider and take whichever is fresher.
+  const keys = riders.flatMap((r) => [
+    `${REDIS_KEYS.RIDER_LOCATION}${r.user.id}`,
+    `${REDIS_KEYS.RIDER_LOCATION}${r.id}`,
+  ]);
+  let values = [];
+  try {
+    values = await redis.mget(keys);
+  } catch (err) {
+    logger.warn('Redis rider-location overlay failed, serving DB positions', { error: err.message });
+    values = keys.map(() => null);
+  }
+
+  const parse = (raw) => {
+    if (!raw) return null;
+    try {
+      const pos = JSON.parse(raw);
+      return typeof pos.lat === 'number' && typeof pos.lng === 'number' ? pos : null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  return riders
+    .map((rider, i) => {
+      const byUser = parse(values[i * 2]);
+      const byRider = parse(values[i * 2 + 1]);
+      const live =
+        byUser && byRider
+          ? (byUser.updatedAt || 0) >= (byRider.updatedAt || 0) ? byUser : byRider
+          : byUser || byRider;
+      if (!live) return rider; // fall back to the DB position (may be stale)
+      return {
+        ...rider,
+        lastLat: live.lat,
+        lastLng: live.lng,
+        lastLocationAt: live.updatedAt ? new Date(live.updatedAt) : rider.lastLocationAt,
+        liveLocation: true,
+      };
+    })
+    .filter((r) => typeof r.lastLat === 'number' && typeof r.lastLng === 'number');
 };
 
 // ============================================================

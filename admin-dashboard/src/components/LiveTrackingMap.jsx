@@ -1,0 +1,327 @@
+import { useState, useEffect, useRef } from 'react'
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import {
+  APIProvider,
+  Map as GoogleMap,
+  Marker as GoogleMarker,
+  useMap as useGoogleMap,
+} from '@vis.gl/react-google-maps'
+import { Bike, Clock } from 'lucide-react'
+import api from '../lib/api'
+import adminSocket from '../services/socket'
+import { decodePolyline } from '../lib/polyline'
+import { TRACKABLE_STATUSES } from '../lib/tracking'
+import {
+  MAPS_KEY,
+  ESRI_ATTRIBUTION,
+  BasemapSwitcher,
+  BasemapLayers,
+  useBrandPinIcon,
+  PIN_PATH,
+} from './GoogleBasemap'
+
+const PICKUP_COLOR = '#2563EB'
+const DROPOFF_COLOR = '#16A34A'
+const RIDER_COLOR = '#EA580C'
+const FALLBACK = { lat: 13.0059, lng: 7.6019 } // Katsina city centre
+
+// Brand teardrop as a Leaflet divIcon (same asset-path workaround as
+// RiderOperationsPage / LocationPicker).
+const leafletPin = (color, size = 30) =>
+  L.divIcon({
+    className: '',
+    html: `<div style="transform:translate(-50%,-100%);color:${color};filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">
+      <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+        <path d="${PIN_PATH}"/>
+      </svg>
+    </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size - 2],
+  })
+
+const PINS = {
+  pickup: leafletPin(PICKUP_COLOR),
+  dropoff: leafletPin(DROPOFF_COLOR),
+  rider: leafletPin(RIDER_COLOR, 34),
+}
+
+const isPoint = (p) => p && typeof p.lat === 'number' && typeof p.lng === 'number'
+
+const etaLabel = (eta) => {
+  if (!eta || typeof eta.seconds !== 'number') return null
+  const mins = Math.max(1, Math.round(eta.seconds / 60))
+  return `~${mins} min to ${eta.nextCheckpoint === 'PICKUP' ? 'pickup' : 'dropoff'}`
+}
+
+/* ------------------------------------------------------------------ */
+/* Leaflet engine (fallback when no browser Maps key is configured)    */
+/* ------------------------------------------------------------------ */
+
+// invalidateSize fix so tiles render correctly inside a modal (see
+// LocationPicker for the full story).
+function MapAutoSize() {
+  const map = useMap()
+  useEffect(() => {
+    const fix = () => map.invalidateSize()
+    const raf = requestAnimationFrame(fix)
+    const settle = setTimeout(fix, 300)
+    const ro = new ResizeObserver(fix)
+    ro.observe(map.getContainer())
+    window.addEventListener('resize', fix)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(settle)
+      ro.disconnect()
+      window.removeEventListener('resize', fix)
+    }
+  }, [map])
+  return null
+}
+
+// Fit the viewport to the pins, refitting only when a pin appears/disappears
+// (e.g. the rider's first position arrives) - never on every 3s movement,
+// which would fight the viewer's own panning.
+function FitBounds({ points }) {
+  const map = useMap()
+  const fitted = useRef(0)
+  useEffect(() => {
+    if (points.length === 0 || points.length === fitted.current) return
+    if (points.length === 1) {
+      map.setView([points[0].lat, points[0].lng], 15)
+    } else {
+      map.fitBounds(L.latLngBounds(points.map((p) => [p.lat, p.lng])), { padding: [40, 40], maxZoom: 15 })
+    }
+    fitted.current = points.length
+  }, [points, map])
+  return null
+}
+
+function LeafletTrackingMap({ pickup, dropoff, rider, route, boundsPoints }) {
+  const center = boundsPoints[0] || FALLBACK
+  return (
+    <MapContainer center={[center.lat, center.lng]} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        subdomains="abcd"
+        maxZoom={20}
+        detectRetina
+      />
+      <MapAutoSize />
+      <FitBounds points={boundsPoints} />
+      {route.length > 1 && (
+        <Polyline positions={route.map((p) => [p.lat, p.lng])} pathOptions={{ color: RIDER_COLOR, weight: 4, opacity: 0.75 }} />
+      )}
+      {isPoint(pickup) && (
+        <Marker position={[pickup.lat, pickup.lng]} icon={PINS.pickup}>
+          <Tooltip>{pickup.label || 'Pickup'}</Tooltip>
+        </Marker>
+      )}
+      {isPoint(dropoff) && (
+        <Marker position={[dropoff.lat, dropoff.lng]} icon={PINS.dropoff}>
+          <Tooltip>{dropoff.label || 'Dropoff'}</Tooltip>
+        </Marker>
+      )}
+      {isPoint(rider) && (
+        <Marker position={[rider.lat, rider.lng]} icon={PINS.rider}>
+          <Tooltip>Rider</Tooltip>
+        </Marker>
+      )}
+    </MapContainer>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Google engine (preferred when VITE_GOOGLE_MAPS_API_KEY is set)      */
+/* ------------------------------------------------------------------ */
+
+function FitBoundsGoogle({ points }) {
+  const map = useGoogleMap()
+  const fitted = useRef(0)
+  useEffect(() => {
+    if (!map || !window.google || points.length === 0 || points.length === fitted.current) return
+    if (points.length === 1) {
+      map.setCenter({ lat: points[0].lat, lng: points[0].lng })
+      map.setZoom(15)
+    } else {
+      const bounds = new window.google.maps.LatLngBounds()
+      points.forEach((p) => bounds.extend({ lat: p.lat, lng: p.lng }))
+      map.fitBounds(bounds, 40)
+    }
+    fitted.current = points.length
+  }, [map, points])
+  return null
+}
+
+// @vis.gl has no declarative Polyline - attach a google.maps.Polyline to the
+// map instance imperatively (same trick as LocationPicker's area polygon).
+function GoogleRoutePolyline({ points }) {
+  const map = useGoogleMap()
+  useEffect(() => {
+    if (!map || !window.google || points.length < 2) return
+    const poly = new window.google.maps.Polyline({
+      path: points,
+      strokeColor: RIDER_COLOR,
+      strokeOpacity: 0.75,
+      strokeWeight: 4,
+      clickable: false,
+    })
+    poly.setMap(map)
+    return () => poly.setMap(null)
+  }, [map, points])
+  return null
+}
+
+function GoogleMarkers({ pickup, dropoff, rider }) {
+  const pickupIcon = useBrandPinIcon(PICKUP_COLOR, 30)
+  const dropoffIcon = useBrandPinIcon(DROPOFF_COLOR, 30)
+  const riderIcon = useBrandPinIcon(RIDER_COLOR, 34)
+  return (
+    <>
+      {isPoint(pickup) && <GoogleMarker position={{ lat: pickup.lat, lng: pickup.lng }} icon={pickupIcon} title={pickup.label || 'Pickup'} />}
+      {isPoint(dropoff) && <GoogleMarker position={{ lat: dropoff.lat, lng: dropoff.lng }} icon={dropoffIcon} title={dropoff.label || 'Dropoff'} />}
+      {isPoint(rider) && <GoogleMarker position={{ lat: rider.lat, lng: rider.lng }} icon={riderIcon} title="Rider" />}
+    </>
+  )
+}
+
+function GoogleTrackingMap({ pickup, dropoff, rider, route, boundsPoints }) {
+  const [mapType, setMapType] = useState('roadmap')
+  const center = boundsPoints[0] || FALLBACK
+  return (
+    <div className="relative h-full w-full">
+      <APIProvider apiKey={MAPS_KEY}>
+        <GoogleMap
+          defaultCenter={{ lat: center.lat, lng: center.lng }}
+          defaultZoom={13}
+          gestureHandling="greedy"
+          mapTypeControl={false}
+          streetViewControl={false}
+          fullscreenControl={false}
+          style={{ height: '100%', width: '100%' }}
+        >
+          <BasemapLayers mapType={mapType} />
+          <FitBoundsGoogle points={boundsPoints} />
+          <GoogleRoutePolyline points={route} />
+          <GoogleMarkers pickup={pickup} dropoff={dropoff} rider={rider} />
+        </GoogleMap>
+      </APIProvider>
+      <BasemapSwitcher value={mapType} onChange={setMapType} />
+      {mapType === 'esri' && (
+        <span className="absolute bottom-0 left-0 z-[400] bg-white/80 dark:bg-black/60 px-1 text-[10px] text-text dark:text-dark-text">
+          {ESRI_ATTRIBUTION}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Main component                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Live per-request tracking map - the admin/merchant counterpart of the
+ * customer app's RequestTrackingScreen map.
+ *
+ * Seeds from GET /requests/:id/route (participant-authorised; returns the
+ * rider's last Redis position + route polyline + ETA), then follows the
+ * rider in real time via the request's socket room. The seed is re-polled
+ * every 30s (matching the server-side route cache TTL) so the polyline/ETA
+ * stay fresh and the map still moves if the socket is down.
+ *
+ * Render only while `status` is in TRACKABLE_STATUSES - the component
+ * returns null otherwise.
+ */
+export default function LiveTrackingMap({ requestId, status, pickup, dropoff }) {
+  const [rider, setRider] = useState(null) // { lat, lng, at }
+  const [eta, setEta] = useState(null) // { seconds, nextCheckpoint }
+  const [route, setRoute] = useState([])
+  // Follows request:status:changed from the room so the map retires itself
+  // when the delivery completes while the viewer is watching (the `status`
+  // prop is a snapshot from when the detail view was opened). Adjusted during
+  // render (not in an effect) per react.dev's derived-state guidance.
+  const [liveStatus, setLiveStatus] = useState(status)
+  const [prevStatus, setPrevStatus] = useState(status)
+  if (status !== prevStatus) {
+    setPrevStatus(status)
+    setLiveStatus(status)
+  }
+  const active = TRACKABLE_STATUSES.includes(liveStatus)
+
+  useEffect(() => {
+    if (!requestId || !active) return undefined
+    let cancelled = false
+
+    const seed = async () => {
+      try {
+        const res = await api.get(`/requests/${requestId}/route`)
+        const d = res.data?.data
+        if (cancelled || !d) return
+        if (typeof d.riderLat === 'number' && typeof d.riderLng === 'number') {
+          setRider({ lat: d.riderLat, lng: d.riderLng, at: d.computedAt || Date.now() })
+        }
+        setRoute(d.polyline ? decodePolyline(d.polyline) : [])
+        setEta(typeof d.etaSeconds === 'number' ? { seconds: d.etaSeconds, nextCheckpoint: d.nextCheckpoint } : null)
+      } catch {
+        // Non-fatal: socket events still move the rider pin.
+      }
+    }
+    seed()
+    const interval = setInterval(seed, 30000)
+
+    adminSocket.joinRequestRoom(requestId)
+    const unsubLocation = adminSocket.onRequestRiderLocation((data) => {
+      if (data?.requestId !== requestId) return
+      if (typeof data.lat !== 'number' || typeof data.lng !== 'number') return
+      setRider({ lat: data.lat, lng: data.lng, at: data.timestamp || Date.now() })
+    })
+    const unsubEta = adminSocket.onRequestRiderEta((data) => {
+      if (data?.requestId !== requestId) return
+      if (typeof data.etaSeconds === 'number') setEta({ seconds: data.etaSeconds, nextCheckpoint: data.nextCheckpoint })
+    })
+    const unsubStatus = adminSocket.onRequestStatusChanged((data) => {
+      if (data?.requestId === requestId && data.status) setLiveStatus(data.status)
+    })
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+      unsubLocation()
+      unsubEta()
+      unsubStatus()
+      adminSocket.leaveRequestRoom(requestId)
+    }
+  }, [requestId, active])
+
+  if (!active) return null
+
+  const boundsPoints = [pickup, dropoff, rider].filter(isPoint)
+  const chip = etaLabel(eta)
+
+  return (
+    <div className="space-y-1.5">
+      <div className="relative rounded-lg overflow-hidden border border-surface-muted dark:border-dark-surface-muted" style={{ height: 288 }}>
+        {MAPS_KEY ? (
+          <GoogleTrackingMap pickup={pickup} dropoff={dropoff} rider={rider} route={route} boundsPoints={boundsPoints} />
+        ) : (
+          <LeafletTrackingMap pickup={pickup} dropoff={dropoff} rider={rider} route={route} boundsPoints={boundsPoints} />
+        )}
+        {chip && (
+          <span className="absolute top-2 left-2 z-[500] inline-flex items-center gap-1.5 rounded-full bg-white/95 dark:bg-dark-surface/95 px-2.5 py-1 text-xs font-medium text-text dark:text-dark-text shadow-md border border-surface-muted dark:border-dark-surface-muted">
+            <Clock size={12} className="text-primary" />
+            {chip}
+          </span>
+        )}
+      </div>
+      <p className="flex items-center gap-1.5 text-xs text-muted dark:text-dark-muted">
+        <Bike size={12} />
+        {rider
+          ? `Rider position updated ${new Date(rider.at).toLocaleTimeString()}`
+          : "Waiting for the rider's live position…"}
+      </p>
+    </div>
+  )
+}

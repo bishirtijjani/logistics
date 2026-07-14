@@ -19,6 +19,7 @@ import {
   Download, Copy, Package, TrendingUp, AlertTriangle, XCircle, RefreshCw, ArrowRight, FileText,
 } from 'lucide-react'
 import Pagination from '../components/Pagination'
+import LiveTrackingMap from '../components/LiveTrackingMap'
 
 const STATUS_COLORS = {
   REQUESTED: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
@@ -703,6 +704,17 @@ export default function RequestsPage() {
                       {view.estimatedMinutes ? `~${view.estimatedMinutes} min` : ''}
                     </p>
                   )}
+                  {/* Live tracking - rider pin follows the request's socket
+                      room while a rider is moving the package (same feed the
+                      customer app's tracking screen uses). Keyed by request so
+                      switching rows resets the map state. */}
+                  <LiveTrackingMap
+                    key={view.id}
+                    requestId={view.id}
+                    status={view.status}
+                    pickup={{ lat: view.pickupLat, lng: view.pickupLng, label: view.pickupName || view.pickupAddress }}
+                    dropoff={{ lat: view.dropoffLat, lng: view.dropoffLng, label: view.dropoffName || view.dropoffAddress }}
+                  />
                 </div>
               </div>
 

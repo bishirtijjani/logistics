@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
+import LiveTrackingMap from './LiveTrackingMap.jsx'
+import { TRACKABLE_STATUSES } from '../lib/tracking'
 
 export default function OrderDetailsModal({ order, onClose }) {
   const [orderNotes, setOrderNotes] = useState(order?.notes || '')
@@ -393,7 +395,7 @@ export default function OrderDetailsModal({ order, onClose }) {
                 Pickup Location
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {order.pickupLocation?.address || 'Your business location'}
+                {order.pickupAddress || order.pickupLocation?.address || 'Your business location'}
               </p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
@@ -402,10 +404,30 @@ export default function OrderDetailsModal({ order, onClose }) {
                 Delivery Location
               </h4>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {order.deliveryLocation?.address || 'Customer address'}
+                {order.dropoffAddress || order.deliveryLocation?.address || 'Customer address'}
               </p>
             </div>
           </div>
+
+          {/* Live tracking - rider pin follows the request's socket room while
+              a rider is moving the order (same feed the customer app's
+              tracking screen uses). Renders nothing outside the
+              rider-assigned → in-transit window. */}
+          {TRACKABLE_STATUSES.includes(order.status) && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <Truck className="w-5 h-5" />
+                Live Tracking
+              </h3>
+              <LiveTrackingMap
+                key={order.id}
+                requestId={order.id}
+                status={order.status}
+                pickup={{ lat: order.pickupLat, lng: order.pickupLng, label: order.pickupName || order.pickupAddress || 'Pickup' }}
+                dropoff={{ lat: order.dropoffLat, lng: order.dropoffLng, label: order.dropoffName || order.dropoffAddress || 'Dropoff' }}
+              />
+            </div>
+          )}
 
           {/* Phase 5 - Proof of Delivery card. Renders after the rider hits
               DELIVERED. Shows the doorstep photo + optional signature so the
