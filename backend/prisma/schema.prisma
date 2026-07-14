@@ -531,6 +531,13 @@ model VtuPlan {
   // when AlRahuz isn't mapped for this plan; such a plan simply can't fail over.
   altProviderNetworkId Int?
   altProviderPlanId    Int?
+  // Per-plan provider toggles. The global providerMode says which providers are
+  // in play; these let admin additionally switch a single item off on one
+  // provider (e.g. AlRahuz's MTN 2GB is misbehaving) without touching the rest
+  // of the catalogue. A disabled provider is treated exactly like an unmapped
+  // one: it's skipped for both the initial vend and failover.
+  providerEnabled      Boolean     @default(true) /// Sell this plan via BilalSada
+  altProviderEnabled   Boolean     @default(true) /// Sell this plan via AlRahuz
   name                 String /// Display name e.g. "1GB - 30 Days"
   dataSize             String? /// "1GB" for data plans
   validity             String? /// "30 Days"

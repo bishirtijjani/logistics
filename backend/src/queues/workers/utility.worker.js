@@ -504,8 +504,14 @@ const handleResult = async (result, ctx, { isPoll = false } = {}) => {
 const _startPurchase = async (type, { paymentId, userId, reference, providers, ...rest }) => {
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
-  const { primary } = await vtuRouter.resolveProviders();
-  await attemptPurchase({ paymentId, userId, reference, providers, provider: primary, type, ...rest });
+  const { primary, secondary } = await vtuRouter.resolveProviders();
+  // Start on the mode's primary unless it can't vend this item (unmapped or
+  // switched off per-plan by admin) - then the secondary IS the live attempt,
+  // so it gets the primary's semantics (infra errors → BullMQ retry) rather
+  // than a failover's (infra errors → refund).
+  const provider =
+    !providers?.[primary] && secondary && providers?.[secondary] ? secondary : primary;
+  await attemptPurchase({ paymentId, userId, reference, providers, provider, type, ...rest });
 };
 
 const processAirtime = (data) => _startPurchase('AIRTIME', data);

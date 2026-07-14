@@ -184,6 +184,23 @@ export default function VtuPlansPage() {
     }
   }
 
+  // Per-provider toggle: switch a single plan on/off for one provider without
+  // touching its overall Active state. `field` is providerEnabled (BilalSada)
+  // or altProviderEnabled (AlRahuz); missing/undefined counts as enabled.
+  const toggleProvider = async (plan, field, label) => {
+    const next = plan[field] === false
+    const prev = plans.find((p) => p.id === plan.id)
+    applyPatch(plan.id, { [field]: next })
+    try {
+      const res = await api.put(`/admin/vtu-plans/${plan.id}`, { [field]: next })
+      applyPatch(plan.id, res.data.data || { [field]: next })
+      toast.success(`${plan.name}: ${label} ${next ? 'enabled' : 'disabled'}`)
+    } catch (e) {
+      if (prev) applyPatch(plan.id, prev)
+      toast.error(e.response?.data?.message || 'Save failed')
+    }
+  }
+
   const inlineSetPrice = async (plan, newPrice) => {
     const value = Number(newPrice)
     if (!Number.isFinite(value) || value < 0) return toast.error('Invalid price')
@@ -440,6 +457,7 @@ export default function VtuPlansPage() {
             onConfirm: () => deletePlan(p),
           })}
           onToggleActive={toggleActive}
+          onToggleProvider={toggleProvider}
           onInlinePrice={inlineSetPrice}
         />
       )}
@@ -612,7 +630,7 @@ function BulkBar({ count, onClear, onActivate, onDeactivate, onAdjustPrice, onDe
 // List view (table) - used for AIRTIME/CABLE/ELECTRICITY and Data list mode
 // ────────────────────────────────────────────────────────────────────────────
 
-function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggleActive, onInlinePrice }) {
+function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggleActive, onToggleProvider, onInlinePrice }) {
   // group by network for visual scanability
   const groups = useMemo(() => {
     const g = new Map()
@@ -655,6 +673,7 @@ function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggl
             <th className="px-3 py-3 text-right">Cost · AlRahuz</th>
             <th className="px-3 py-3 text-right">Selling</th>
             <th className="px-3 py-3 text-right">Margin</th>
+            <th className="px-3 py-3 text-center">Providers</th>
             <th className="px-3 py-3 text-center">Active</th>
             <th className="px-3 py-3 w-20" />
           </tr>
@@ -671,6 +690,7 @@ function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggl
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleActive={onToggleActive}
+              onToggleProvider={onToggleProvider}
               onInlinePrice={onInlinePrice}
             />
           ))}
@@ -680,9 +700,9 @@ function ListView({ plans, tab, selected, setSelected, onEdit, onDelete, onToggl
   )
 }
 
-function NetworkGroup({ network, items, tab, selected, toggleOne, onEdit, onDelete, onToggleActive, onInlinePrice }) {
+function NetworkGroup({ network, items, tab, selected, toggleOne, onEdit, onDelete, onToggleActive, onToggleProvider, onInlinePrice }) {
   const [open, setOpen] = useState(true)
-  const colSpan = tab === 'DATA' ? 8 : 7
+  const colSpan = tab === 'DATA' ? 9 : 8
   return (
     <>
       <tr className="bg-surface dark:bg-dark-surface border-t border-surface-muted dark:border-dark-surface-muted">
@@ -704,6 +724,7 @@ function NetworkGroup({ network, items, tab, selected, toggleOne, onEdit, onDele
           onEdit={() => onEdit(p)}
           onDelete={() => onDelete(p)}
           onToggleActive={() => onToggleActive(p)}
+          onToggleProvider={(field, label) => onToggleProvider(p, field, label)}
           onInlinePrice={(v) => onInlinePrice(p, v)}
         />
       ))}
@@ -711,7 +732,11 @@ function NetworkGroup({ network, items, tab, selected, toggleOne, onEdit, onDele
   )
 }
 
-function PlanRow({ plan, tab, checked, onCheck, onEdit, onDelete, onToggleActive, onInlinePrice }) {
+function PlanRow({ plan, tab, checked, onCheck, onEdit, onDelete, onToggleActive, onToggleProvider, onInlinePrice }) {
+  // AlRahuz can only vend this plan when its IDs are mapped - without them the
+  // toggle would be meaningless, so show an unmapped placeholder instead.
+  const needsPlanId = tab === 'DATA' || tab === 'CABLE'
+  const altMapped = plan.altProviderNetworkId != null && (!needsPlanId || plan.altProviderPlanId != null)
   return (
     <tr className="border-t border-surface-muted dark:border-dark-surface-muted hover:bg-surface-muted/40 dark:hover:bg-dark-surface-muted/40">
       <td className="px-3 py-2.5">
@@ -737,6 +762,31 @@ function PlanRow({ plan, tab, checked, onCheck, onEdit, onDelete, onToggleActive
       </td>
       <td className="px-3 py-2.5 text-right">
         <MarginBadge cost={plan.costPrice} sell={plan.sellingPrice} />
+      </td>
+      <td className="px-3 py-2.5 text-center">
+        <div className="inline-flex items-center gap-1">
+          <ProviderChip
+            label="BS"
+            title="BilalSada"
+            on={plan.providerEnabled !== false}
+            onClick={() => onToggleProvider('providerEnabled', 'BilalSada')}
+          />
+          {altMapped ? (
+            <ProviderChip
+              label="AR"
+              title="AlRahuz"
+              on={plan.altProviderEnabled !== false}
+              onClick={() => onToggleProvider('altProviderEnabled', 'AlRahuz')}
+            />
+          ) : (
+            <span
+              className="px-1.5 py-0.5 rounded text-[10px] font-bold text-muted dark:text-dark-muted"
+              title="AlRahuz IDs not mapped for this plan"
+            >
+              AR —
+            </span>
+          )}
+        </div>
       </td>
       <td className="px-3 py-2.5 text-center">
         <Toggle on={plan.isActive} onClick={onToggleActive} />
@@ -819,6 +869,26 @@ function MarginBadge({ cost, sell }) {
 // ────────────────────────────────────────────────────────────────────────────
 // Active toggle
 // ────────────────────────────────────────────────────────────────────────────
+
+// Small per-provider on/off chip (BS = BilalSada, AR = AlRahuz).
+function ProviderChip({ label, title, on, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`${title}: ${on ? 'on' : 'off'} for this plan — click to ${on ? 'disable' : 'enable'}`}
+      className={`px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+        on
+          ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
+          : 'bg-surface-muted text-muted line-through border-surface-muted dark:bg-dark-surface-muted dark:text-dark-muted dark:border-dark-surface-muted'
+      }`}
+      role="switch"
+      aria-checked={on}
+    >
+      {label}
+    </button>
+  )
+}
 
 function Toggle({ on, onClick }) {
   return (
@@ -930,6 +1000,16 @@ function DataMatrix({ plans, networks, onEditCell, onAddEmpty, onInlinePrice }) 
                         <div className="mt-1">
                           <MarginBadge cost={plan.costPrice} sell={plan.sellingPrice} />
                         </div>
+                        {(plan.providerEnabled === false || plan.altProviderEnabled === false) && (
+                          <div className="flex gap-1 mt-1">
+                            {plan.providerEnabled === false && (
+                              <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" title="BilalSada disabled for this plan">BS off</span>
+                            )}
+                            {plan.altProviderEnabled === false && (
+                              <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" title="AlRahuz disabled for this plan">AR off</span>
+                            )}
+                          </div>
+                        )}
                         {plan.planType && (
                           <div className="text-[10px] text-muted dark:text-dark-muted mt-1">{plan.planType}</div>
                         )}
@@ -969,6 +1049,8 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
     altCostPrice: initial?.altCostPrice ?? '',
     sellingPrice: initial?.sellingPrice ?? '',
     isActive: initial?.isActive ?? true,
+    providerEnabled: initial?.providerEnabled ?? true,
+    altProviderEnabled: initial?.altProviderEnabled ?? true,
     sortOrder: initial?.sortOrder ?? 0,
   })
   const [saving, setSaving] = useState(false)
@@ -1005,6 +1087,8 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
       altCostPrice: form.altCostPrice !== '' && form.altCostPrice != null ? Number(form.altCostPrice) : null,
       sellingPrice: Number(form.sellingPrice || 0),
       isActive: !!form.isActive,
+      providerEnabled: !!form.providerEnabled,
+      altProviderEnabled: !!form.altProviderEnabled,
       sortOrder: Number(form.sortOrder || 0),
     }
     try {
@@ -1183,6 +1267,24 @@ function PlanSheet({ mode, tab, initial, networksByType, onClose, onSaved }) {
                   <span className="text-sm font-medium text-text dark:text-dark-text">Active</span>
                 </label>
               </div>
+            </div>
+            <div>
+              <label className={cls.label}>Sell via</label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.providerEnabled} onChange={(e) => setField('providerEnabled', e.target.checked)} className="w-4 h-4" />
+                  <span className="text-sm font-medium text-text dark:text-dark-text">BilalSada</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.altProviderEnabled} onChange={(e) => setField('altProviderEnabled', e.target.checked)} className="w-4 h-4" />
+                  <span className="text-sm font-medium text-text dark:text-dark-text">AlRahuz</span>
+                </label>
+              </div>
+              <p className="text-xs text-muted dark:text-dark-muted mt-2">
+                Turn a provider off to stop vending this specific item through it — the other provider (if
+                enabled, mapped, and allowed by the global provider mode) keeps serving it. With both off
+                the item can't be purchased at all.
+              </p>
             </div>
           </Section>
         </form>

@@ -30,16 +30,22 @@ const { UTILITY_JOBS } = require('../../queues/jobs');
  * Build the per-provider numeric-ID map attached to every utility job. The
  * catalogue's primary columns hold the BilalSada IDs and the `alt*` columns
  * hold the AlRahuz IDs, so the mapping is provider-identity fixed regardless of
- * which one is currently primary. AlRahuz is null when its IDs aren't mapped for
- * this plan, which simply means that purchase can't fail over to it.
+ * which one is currently primary. A provider's entry is null when its IDs
+ * aren't mapped for this plan OR admin switched the plan off for it
+ * (providerEnabled / altProviderEnabled) - either way that provider can't vend
+ * this item, so it's skipped for both the initial vend and failover.
  */
 const _buildProviderIds = (type, plan) => {
   const needsPlanId = type === 'DATA' || type === 'CABLE';
-  const bilal = {
-    networkId: plan.providerNetworkId,
-    ...(needsPlanId ? { planId: plan.providerPlanId } : {}),
-  };
+  // `!== false` keeps rows created before the toggle columns existed enabled.
+  const bilal = plan.providerEnabled !== false
+    ? {
+        networkId: plan.providerNetworkId,
+        ...(needsPlanId ? { planId: plan.providerPlanId } : {}),
+      }
+    : null;
   const hasAlt =
+    plan.altProviderEnabled !== false &&
     plan.altProviderNetworkId != null && (!needsPlanId || plan.altProviderPlanId != null);
   const alrahuz = hasAlt
     ? {
@@ -48,6 +54,21 @@ const _buildProviderIds = (type, plan) => {
       }
     : null;
   return { BILALSADASUB: bilal, ALRAHUZ: alrahuz };
+};
+
+/**
+ * Resolve the active providers and assert at least one of them can vend this
+ * plan, BEFORE the wallet is debited. Without this, an item admin switched off
+ * on the only active provider would debit → enqueue → immediately fail →
+ * refund; rejecting upfront gives the customer a clean error instead.
+ * Returns the provider the vend should start on (the mode's primary, or the
+ * secondary when the primary can't serve this specific item).
+ */
+const _resolveVendableProvider = async (providers) => {
+  const { primary, secondary } = await vtuRouter.resolveProviders();
+  if (providers[primary]) return { primary, secondary, provider: primary };
+  if (secondary && providers[secondary]) return { primary, secondary, provider: secondary };
+  throw AppError.badRequest('This item is temporarily unavailable. Please try again later.');
 };
 
 /**
@@ -202,8 +223,8 @@ const buyAirtime = async (userId, { phone, networkId, amount }) => {
   });
   if (!plan) throw AppError.notFound('Network not available');
 
-  const { primary } = await vtuRouter.resolveProviders();
   const providers = _buildProviderIds('AIRTIME', plan);
+  const { provider } = await _resolveVendableProvider(providers);
 
   const { payment } = await deductAndCreate(userId, {
     type: 'AIRTIME',
@@ -211,7 +232,7 @@ const buyAirtime = async (userId, { phone, networkId, amount }) => {
     amount,
     phoneNumber: phone,
     reference,
-    provider: primary,
+    provider,
     providers,
   });
 
@@ -235,8 +256,8 @@ const buyData = async (userId, { phone, planId }) => {
   });
   if (!plan) throw AppError.notFound('Data plan not found or unavailable');
 
-  const { primary } = await vtuRouter.resolveProviders();
   const providers = _buildProviderIds('DATA', plan);
+  const { provider } = await _resolveVendableProvider(providers);
 
   const { payment } = await deductAndCreate(userId, {
     type: 'DATA',
@@ -245,7 +266,7 @@ const buyData = async (userId, { phone, planId }) => {
     phoneNumber: phone,
     plan: plan.name,
     reference,
-    provider: primary,
+    provider,
     providers,
   });
 
@@ -269,8 +290,8 @@ const buyCable = async (userId, { smartCardNumber, planId }) => {
   });
   if (!plan) throw AppError.notFound('Cable plan not found or unavailable');
 
-  const { primary } = await vtuRouter.resolveProviders();
   const providers = _buildProviderIds('CABLE', plan);
+  const { provider } = await _resolveVendableProvider(providers);
 
   const { payment } = await deductAndCreate(userId, {
     type: 'CABLE',
@@ -279,7 +300,7 @@ const buyCable = async (userId, { smartCardNumber, planId }) => {
     meterNumber: smartCardNumber,  // reuse meterNumber field to store smart card
     plan: plan.name,
     reference,
-    provider: primary,
+    provider,
     providers,
   });
 
@@ -311,18 +332,20 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
   });
   if (!disco) throw AppError.notFound('Electricity provider not available');
 
-  const { primary } = await vtuRouter.resolveProviders();
   const providers = _buildProviderIds('ELECTRICITY', disco);
-  const primaryAdapter = vtuRouter.getAdapter(primary);
-  const primaryDiscoId = providers[primary]?.networkId ?? Number(discoId);
+  // Validate with the provider that will actually vend (the mode's primary, or
+  // the secondary when the primary is disabled/unmapped for this disco).
+  const { provider } = await _resolveVendableProvider(providers);
+  const vendAdapter = vtuRouter.getAdapter(provider);
+  const vendDiscoId = providers[provider]?.networkId ?? Number(discoId);
 
   // Best-effort: try to capture meter holder name pre-flight so the post-success
   // payload always carries beneficiaryName (Phase 7 AC: must be returned to client).
   let beneficiaryName = null;
   try {
-    const meta = await primaryAdapter.validateMeter({
+    const meta = await vendAdapter.validateMeter({
       meterNumber,
-      discoId: primaryDiscoId,
+      discoId: vendDiscoId,
       meterType,
     });
     beneficiaryName = meta?.Customer_Name || meta?.name || null;
@@ -340,7 +363,7 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     phoneNumber: phone,
     plan: meterType,
     reference,
-    provider: primary,
+    provider,
     providers,
   });
 
@@ -477,4 +500,9 @@ module.exports = {
   getBillHistory,
   getRecentRecipients,
   getPayment,
+  // Exported for tests
+  _internal: {
+    _buildProviderIds,
+    _resolveVendableProvider,
+  },
 };
