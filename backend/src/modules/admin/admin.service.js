@@ -21,7 +21,7 @@ const requestService = require('../request/request.service');
 const { requestQueue } = require('../../queues');
 const { REQUEST_JOBS } = require('../../queues/jobs');
 const { getIO } = require('../../sockets');
-const { REQUEST, RIDER, getRequestRoom, getUserRoom } = require('../../sockets/events');
+const { REQUEST, getRequestRoom, getUserRoom } = require('../../sockets/events');
 const notifyService = require('../../services/notify.service');
 
 /**
@@ -938,39 +938,30 @@ const reassignRider = async (requestId, newRiderId, adminUserId, ipAddress, user
 
   logger.info('Rider reassigned', { requestId, newRiderId, adminUserId });
 
-  // The just-assigned rider is NOT in the request room (riders only join that
-  // room for an already-active trip they're driving), so the room emit alone
-  // never reaches them. Notify the rider directly on their personal user room
-  // AND via push so the assignment surfaces live instead of only on the next
-  // cold app boot.
   const riderUserId = updated.rider?.user?.id;
   try {
     const io = getIO();
-    // Existing behaviour: customer/merchant watching the request room learn a
-    // (new) rider was assigned.
+    // Customer/merchant watching the request room learn a (new) rider was
+    // assigned.
     io.to(getRequestRoom(requestId)).emit(REQUEST.RIDER_ASSIGNED, {
       requestId,
       rider: updated.rider,
     });
+    // The just-assigned rider is NOT in the request room (riders only join a
+    // request room for a trip they're already driving), so the room emit above
+    // never reaches them. Emit RIDER_ASSIGNED to their personal user room too -
+    // this is the semantically-correct signal for a firm assignment.
+    //
+    // NOTE: we deliberately do NOT emit RIDER.NEW_JOB here. In the rider app
+    // rider:job:new drives the accept/reject offer overlay, and acceptJob only
+    // claims a request while `!riderId` - once we've firm-assigned, tapping
+    // Accept would 409. The live signal the rider actually gets is the push
+    // below; the cockpit hydrates from GET /rider/profile.activeRequest, which
+    // now returns this job because the status was moved into the active set.
     if (riderUserId) {
-      // Rider's personal room - drives the trip cockpit / list to refresh.
       io.to(getUserRoom(riderUserId)).emit(REQUEST.RIDER_ASSIGNED, {
         requestId,
         rider: updated.rider,
-      });
-      // A firm assignment isn't an accept/reject offer, but the rider app also
-      // listens for job:new to pull a job into view; emit it so the assignment
-      // shows up immediately alongside the push.
-      io.to(getUserRoom(riderUserId)).emit(RIDER.NEW_JOB, {
-        requestId,
-        assigned: true,
-        pickupLat: updated.pickupLat,
-        pickupLng: updated.pickupLng,
-        pickupAddress: updated.pickupAddress,
-        dropoffAddress: updated.dropoffAddress,
-        type: updated.type,
-        paymentMethod: updated.paymentMethod,
-        collectAmount: updated.paymentMethod === 'CASH' ? Number(updated.total || 0) : 0,
       });
     }
   } catch (err) {
@@ -978,6 +969,8 @@ const reassignRider = async (requestId, newRiderId, adminUserId, ipAddress, user
   }
 
   // Push + Notification Center row for the rider (best-effort, post-commit).
+  // This is what reaches the rider in real time: a tray/push alert + an
+  // in-app toast + a Notification Center entry that deep-links to the job.
   if (riderUserId) {
     notifyService
       .pushAndSocket(riderUserId, {
