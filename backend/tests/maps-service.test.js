@@ -154,6 +154,45 @@ test('reverseGeocode: flags a point outside the operating polygon', async () => 
   assert.equal(out.outOfArea, true, 'Lagos must be flagged out of area');
 });
 
+test('reverseGeocode: skips a bare plus-code result for a real address', async () => {
+  resetState();
+  // Google returns the plus-code grid ref first when there is no street
+  // address, then progressively broader real results.
+  queueResp({
+    results: [
+      { formatted_address: '2H6X+JF Katsina, Nigeria', place_id: 'plus', types: ['plus_code'] },
+      { formatted_address: 'Tudun Yan Lihidda, Katsina', place_id: 'hood', types: ['neighborhood'] },
+      { formatted_address: 'Katsina, Nigeria', place_id: 'city', types: ['locality'] },
+    ],
+  });
+  const out = await mapsService.reverseGeocode(12.99, 7.6);
+  assert.equal(out.formattedAddress, 'Tudun Yan Lihidda, Katsina', 'uses the neighbourhood, not the plus code');
+  assert.equal(out.placeId, 'hood');
+});
+
+test('reverseGeocode: strips a plus-code prefix left on an otherwise-real address', async () => {
+  resetState();
+  queueResp({
+    results: [
+      { formatted_address: '2H6X+JF Tudun Yan Lihidda, Katsina', place_id: 'p', types: ['neighborhood'] },
+    ],
+  });
+  const out = await mapsService.reverseGeocode(12.99, 7.6);
+  assert.equal(out.formattedAddress, 'Tudun Yan Lihidda, Katsina', 'leading plus code removed');
+});
+
+test('reverseGeocode: falls back to a plus code only when it is all Google returns', async () => {
+  resetState();
+  queueResp({
+    results: [
+      { formatted_address: '2H6X+JF Katsina, Nigeria', place_id: 'plus', types: ['plus_code'] },
+    ],
+  });
+  const out = await mapsService.reverseGeocode(12.99, 7.6);
+  assert.equal(out.formattedAddress, 'Katsina, Nigeria', 'plus code stripped, remainder kept');
+  assert.equal(out.placeId, 'plus');
+});
+
 test('reverseGeocode: AppError.badRequest when no results', async () => {
   resetState();
   queueResp({ results: [] });
@@ -276,6 +315,44 @@ test('autocomplete: local index returns instant Katsina matches, ranked first', 
   assert.ok(out.length > 0, 'local index yields suggestions for a short prefix');
   assert.ok(out[0].placeId.startsWith('local:'), 'local results rank first');
   assert.ok(/tudun/i.test(out[0].mainText), 'matches the typed prefix');
+});
+
+test('autocomplete: local index matches a name buried under descriptor words', async () => {
+  resetState();
+  // The dataset ships "Kofar Kaura"; the user types it with "roundabout" tacked
+  // on, so the query is longer than the name. Without descriptor-aware matching
+  // this returned nothing local.
+  const { places } = require('../src/data/katsina-places.json');
+  assert.ok(places.some((p) => p.name === 'Kofar Kaura'), 'fixture assumes Kofar Kaura exists');
+  queueResp({ status: 'ZERO_RESULTS', predictions: [] });
+  queueResp({ status: 'OK', results: [] });
+  const out = await mapsService.autocomplete('kofar kaura roundabout', 'tok');
+  assert.ok(
+    out.some((o) => o.placeId.startsWith('local:') && /kofar kaura/i.test(o.mainText)),
+    'Kofar Kaura still surfaces with "roundabout" appended',
+  );
+});
+
+test('autocomplete: local index matches reordered / filler-padded queries', async () => {
+  resetState();
+  queueResp({ status: 'ZERO_RESULTS', predictions: [] });
+  queueResp({ status: 'OK', results: [] });
+  const out = await mapsService.autocomplete('kaura kofar junction', 'tok');
+  assert.ok(
+    out.some((o) => o.placeId.startsWith('local:') && /kofar kaura/i.test(o.mainText)),
+    'word order and a junction suffix still match Kofar Kaura',
+  );
+});
+
+test('autocomplete: a bare descriptor word does not match every place', async () => {
+  resetState();
+  queueResp({ status: 'ZERO_RESULTS', predictions: [] });
+  queueResp({ status: 'OK', results: [] });
+  const out = await mapsService.autocomplete('roundabout', 'tok');
+  assert.ok(
+    !out.some((o) => o.placeId.startsWith('local:')),
+    'a generic descriptor alone yields no local matches',
+  );
 });
 
 test('autocomplete: de-dupes geocoding rows that restate a local result', async () => {

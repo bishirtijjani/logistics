@@ -39,6 +39,19 @@ const normalizePlace = (s) =>
     .replace(/\s+/g, " ")
     .trim();
 
+// Descriptor words people tack onto a landmark that aren't part of its name in
+// our index - so "kofar kaura roundabout" or "sabon gari junction" still match
+// "Kofar Kaura" / "Sabon Gari". Stripped only for matching, never from what we
+// display. Kept deliberately narrow: words like "market"/"gate" are often part
+// of the real name, so they're not treated as generic.
+const GENERIC_TOKENS = new Set([
+  "roundabout", "round", "about", "junction", "junc", "jn", "road", "rd",
+  "street", "st", "close", "avenue", "ave", "way", "lane", "crescent",
+  "area", "by", "near", "beside", "opposite", "behind",
+]);
+
+const tokenize = (s) => normalizePlace(s).split(" ").filter(Boolean);
+
 const placeById = new Map();
 const placeIndex = KATSINA_PLACES.map((p) => {
   placeById.set(p.id, p);
@@ -53,19 +66,43 @@ const toLocalSuggestion = (p) => ({
 });
 
 /**
- * Prefix/substring search over the local Katsina index. Ranks exact > whole-name
- * prefix > any-word prefix > substring, then by name length.
+ * Prefix/substring search over the local Katsina index. Ranks, best first:
+ *   0 exact
+ *   1 whole-name prefix ("kofar ka" -> "Kofar Kaura")
+ *   2 any-word prefix ("kaura" -> "Kofar Kaura")
+ *   3 substring
+ *   4 every meaningful word of the name appears among the meaningful words of
+ *     the query, order-independent, once descriptor words are dropped from both
+ *     ("kofar kaura roundabout" / "kaura kofar junction" -> "Kofar Kaura").
+ *     Without this a query longer than the name matched nothing, so adding
+ *     "roundabout"/"junction"/etc. silently dropped the local result. Matching
+ *     on whole tokens (not raw substrings) keeps "Kofa" from matching inside
+ *     "kofar".
+ * then by name length and alphabetically.
  */
 const localSearch = (query, limit = 6) => {
   const q = normalizePlace(query);
   if (!q) return [];
+  // Drop descriptor words ("roundabout", "junction", ...) for the token match,
+  // but never let the query collapse to nothing (a search for just "junction"
+  // must not match every multi-word place).
+  const qCore = tokenize(q).filter((w) => !GENERIC_TOKENS.has(w));
   const scored = [];
   for (const { p, norm } of placeIndex) {
+    const nameTokens = norm.split(" ");
+    const nameCore = nameTokens.filter((w) => !GENERIC_TOKENS.has(w));
     let score = -1;
     if (norm === q) score = 0;
     else if (norm.startsWith(q)) score = 1;
-    else if (norm.split(" ").some((w) => w.startsWith(q))) score = 2;
+    else if (nameTokens.some((w) => w.startsWith(q))) score = 2;
     else if (norm.includes(q)) score = 3;
+    else if (
+      qCore.length > 0 &&
+      nameCore.length > 0 &&
+      nameCore.every((w) => qCore.includes(w))
+    ) {
+      score = 4;
+    }
     if (score >= 0) scored.push({ p, score });
   }
   scored.sort(
@@ -153,6 +190,20 @@ const geocodeAddress = async (address) => {
   }
 };
 
+// A Google "plus code" (e.g. "2H6X+JF") - the open-location grid reference
+// Google falls back to when a point has no street address. Meaningless to a
+// rider, so we never surface it as the address (see reverseGeocode). The token
+// is a base-20 alphabet + "+", optionally trailed by "City, Country".
+const PLUS_CODE_RE = /^[23456789CFGHJMPQRVWX]{4,8}\+[23456789CFGHJMPQRVWX]{2,3}\b[\s,]*/i;
+
+const isPlusCodeResult = (r) =>
+  (r.types || []).includes("plus_code") ||
+  PLUS_CODE_RE.test((r.formatted_address || "").trim());
+
+// Drop a leading plus-code token if one slipped into an otherwise-real address
+// ("2H6X+JF Tudun Yan Lihidda, Katsina" -> "Tudun Yan Lihidda, Katsina").
+const stripPlusCode = (addr) => (addr || "").replace(PLUS_CODE_RE, "").trim();
+
 /**
  * Reverse geocode lat/lng to an address.
  */
@@ -165,11 +216,18 @@ const reverseGeocode = async (lat, lng) => {
       },
     });
 
-    const result = response.data.results?.[0];
-    if (!result) throw new Error("Location not found");
+    const results = response.data.results || [];
+    if (results.length === 0) throw new Error("Location not found");
+
+    // Google puts a bare plus-code result first when the point has no street
+    // address ("2H6X+JF Katsina, Nigeria"). Skip those and use the most
+    // specific real address (results are ordered specific -> general); only
+    // fall back to a plus code if it's genuinely all Google returned.
+    const result = results.find((r) => !isPlusCodeResult(r)) || results[0];
+    const formattedAddress = stripPlusCode(result.formatted_address) || result.formatted_address;
 
     return {
-      formattedAddress: result.formatted_address,
+      formattedAddress,
       placeId: result.place_id,
       // True when the queried point sits outside the operating area. Lets the
       // clients warn instead of accepting an out-of-state pin. Always false
