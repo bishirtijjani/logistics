@@ -900,14 +900,24 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
 
 const getRequests = async (userId, role, { page, limit, type, status, categoryId, categorySlug }) => {
   const statuses = status ? status.split(',').map((s) => s.trim()).filter(Boolean) : null;
+  // Ownership scope. customerId genuinely IS a User.id, so it filters on the
+  // JWT id directly. riderId/merchantId are Rider.id/Merchant.id - different
+  // UUIDs from the caller's User.id - so those roles MUST filter through the
+  // relation on userId, otherwise the list is silently always empty (a rider
+  // never sees their deliveries). The merchant ownership + the category
+  // filters below both live on the `merchant` relation, so they go in an AND
+  // array rather than a single object literal where the later `merchant` key
+  // would clobber the ownership filter and leak other merchants' requests.
   const where = {
-    ...(role === 'CUSTOMER' ? { customerId: userId } : {}),
-    ...(role === 'RIDER' ? { riderId: userId } : {}),
-    ...(role === 'MERCHANT' ? { merchantId: userId } : {}),
     ...(type && { type }),
-    ...(categoryId && { merchant: { is: { categoryId } } }),
-    ...(categorySlug && { merchant: { is: { category: { is: { slug: categorySlug } } } } }),
     ...(statuses && statuses.length > 0 && { status: { in: statuses } }),
+    AND: [
+      ...(role === 'CUSTOMER' ? [{ customerId: userId }] : []),
+      ...(role === 'RIDER' ? [{ rider: { is: { userId } } }] : []),
+      ...(role === 'MERCHANT' ? [{ merchant: { is: { userId } } }] : []),
+      ...(categoryId ? [{ merchant: { is: { categoryId } } }] : []),
+      ...(categorySlug ? [{ merchant: { is: { category: { is: { slug: categorySlug } } } } }] : []),
+    ],
   };
   
   const [requests, total] = await Promise.all([
@@ -1150,18 +1160,28 @@ const getRequestById = async (requestId, userId, role) => {
   });
   
   if (!request) throw AppError.notFound('Request not found');
-  
-  // Authorization
+
+  // Authorization. customerId is a User.id so it compares to the JWT id
+  // directly. riderId/merchantId are Rider.id/Merchant.id, so we must resolve
+  // the caller's own profile id from their userId before comparing - comparing
+  // request.riderId (a Rider.id) to a User.id never matches and 403s the rider
+  // on their own job.
   if (role === 'CUSTOMER' && request.customerId !== userId) {
     throw AppError.forbidden('Not your request');
   }
-  if (role === 'RIDER' && request.riderId !== userId) {
-    throw AppError.forbidden('Not your assigned request');
+  if (role === 'RIDER') {
+    const rider = await prisma.rider.findUnique({ where: { userId }, select: { id: true } });
+    if (!rider || request.riderId !== rider.id) {
+      throw AppError.forbidden('Not your assigned request');
+    }
   }
-  if (role === 'MERCHANT' && request.merchantId !== userId) {
-    throw AppError.forbidden('Not your request');
+  if (role === 'MERCHANT') {
+    const merchant = await prisma.merchant.findUnique({ where: { userId }, select: { id: true } });
+    if (!merchant || request.merchantId !== merchant.id) {
+      throw AppError.forbidden('Not your request');
+    }
   }
-  
+
   return request;
 };
 

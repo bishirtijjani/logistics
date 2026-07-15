@@ -21,7 +21,8 @@ const requestService = require('../request/request.service');
 const { requestQueue } = require('../../queues');
 const { REQUEST_JOBS } = require('../../queues/jobs');
 const { getIO } = require('../../sockets');
-const { REQUEST, getRequestRoom } = require('../../sockets/events');
+const { REQUEST, RIDER, getRequestRoom, getUserRoom } = require('../../sockets/events');
+const notifyService = require('../../services/notify.service');
 
 /**
  * List all riders pending approval.
@@ -906,10 +907,16 @@ const reassignRider = async (requestId, newRiderId, adminUserId, ipAddress, user
   if (!rider) throw AppError.notFound('Rider not found');
   if (rider.status !== 'APPROVED') throw AppError.badRequest('Rider is not approved');
 
-  // Assigning onto a request that was still waiting for a rider is the normal
-  // READY_FOR_PICKUP → RIDER_ASSIGNED transition; mid-flight swaps keep their
+  // Assigning onto a request that is still waiting for a rider (any pre-pickup
+  // status) is the normal "…→ RIDER_ASSIGNED" transition - not just from
+  // READY_FOR_PICKUP. A package/courier request sits at REQUESTED with no
+  // merchant leg, and admin-assigning onto REQUESTED/ACCEPTED/PROCESSING must
+  // also flip it into the active set, otherwise the status stays below the
+  // rider app's active-trip filter and the job never hydrates in their
+  // cockpit. Mid-flight swaps (already RIDER_ASSIGNED or later) keep their
   // current status.
-  const becomesAssigned = request.status === 'READY_FOR_PICKUP';
+  const PRE_ASSIGNMENT_STATUSES = ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP'];
+  const becomesAssigned = PRE_ASSIGNMENT_STATUSES.includes(request.status);
   const updated = await prisma.request.update({
     where: { id: requestId },
     data: {
@@ -931,13 +938,56 @@ const reassignRider = async (requestId, newRiderId, adminUserId, ipAddress, user
 
   logger.info('Rider reassigned', { requestId, newRiderId, adminUserId });
 
+  // The just-assigned rider is NOT in the request room (riders only join that
+  // room for an already-active trip they're driving), so the room emit alone
+  // never reaches them. Notify the rider directly on their personal user room
+  // AND via push so the assignment surfaces live instead of only on the next
+  // cold app boot.
+  const riderUserId = updated.rider?.user?.id;
   try {
-    getIO().to(getRequestRoom(requestId)).emit(REQUEST.RIDER_ASSIGNED, {
+    const io = getIO();
+    // Existing behaviour: customer/merchant watching the request room learn a
+    // (new) rider was assigned.
+    io.to(getRequestRoom(requestId)).emit(REQUEST.RIDER_ASSIGNED, {
       requestId,
       rider: updated.rider,
     });
+    if (riderUserId) {
+      // Rider's personal room - drives the trip cockpit / list to refresh.
+      io.to(getUserRoom(riderUserId)).emit(REQUEST.RIDER_ASSIGNED, {
+        requestId,
+        rider: updated.rider,
+      });
+      // A firm assignment isn't an accept/reject offer, but the rider app also
+      // listens for job:new to pull a job into view; emit it so the assignment
+      // shows up immediately alongside the push.
+      io.to(getUserRoom(riderUserId)).emit(RIDER.NEW_JOB, {
+        requestId,
+        assigned: true,
+        pickupLat: updated.pickupLat,
+        pickupLng: updated.pickupLng,
+        pickupAddress: updated.pickupAddress,
+        dropoffAddress: updated.dropoffAddress,
+        type: updated.type,
+        paymentMethod: updated.paymentMethod,
+        collectAmount: updated.paymentMethod === 'CASH' ? Number(updated.total || 0) : 0,
+      });
+    }
   } catch (err) {
     logger.warn('Socket emit failed for rider reassignment', { requestId, error: err.message });
+  }
+
+  // Push + Notification Center row for the rider (best-effort, post-commit).
+  if (riderUserId) {
+    notifyService
+      .pushAndSocket(riderUserId, {
+        type: 'REQUEST_STATUS',
+        title: 'New delivery assigned',
+        body: 'You have been assigned a delivery. Tap to view the details.',
+        data: { route: `/request/${requestId}`, kind: 'RIDER_JOB_ASSIGNED', status: updated.status },
+        requestId,
+      })
+      .catch((err) => logger.warn('Rider assignment notification failed', { requestId, error: err.message }));
   }
 
   return updated;
