@@ -7,6 +7,7 @@ import {
   fetchRiderEarnings, fetchRiderDeliveryHistory,
   fetchRiderTransactions, fetchRiderTransactionReceipt, clearRiderTransactionReceipt,
   reviewRider, suspendRider, unsuspendRider, forceOfflineRider, resetRiderPin,
+  updateRiderAccount,
   setSelectedRider, clearSelectedRider,
 } from '../store/slices/ridersSlice'
 import { TransactionReceiptModal } from './CustomerDetailPage'
@@ -16,7 +17,7 @@ import ActionMenu from '../components/ActionMenu'
 import {
   Bike, Search, Eye, Check, X, Clock, Phone, Mail, Star, Package, MapPin,
   Power, ShieldCheck, Ban, FileText, ExternalLink, AlertTriangle, User,
-  Calendar, DollarSign, CheckCircle, Hash, Truck, Download, Users, Wifi, KeyRound,
+  Calendar, DollarSign, CheckCircle, Hash, Truck, Download, Users, Wifi, KeyRound, Pencil,
 } from 'lucide-react'
 
 // ── Design tokens (mirrors MerchantsPage kit so the two pages match) ──────────
@@ -326,6 +327,7 @@ export default function RidersPage() {
   const [offlineReason, setOfflineReason] = useState('')
   const [resetPinTarget, setResetPinTarget] = useState(null)
   const [resetPinReason, setResetPinReason] = useState('')
+  const [editAccountTarget, setEditAccountTarget] = useState(null)
 
   // Stats once on mount.
   useEffect(() => { dispatch(fetchRiderStats()) }, [dispatch])
@@ -404,6 +406,16 @@ export default function RidersPage() {
       toast.success("Rider's PIN reset - they'll set a new one on their next transaction")
       setResetPinTarget(null); setResetPinReason('')
     } else toast.error(r.error?.message || 'Failed to reset PIN')
+  }
+
+  const confirmEditAccount = async (changes) => {
+    setActionLoading('editAccount')
+    const r = await dispatch(updateRiderAccount({ riderId: editAccountTarget.id, changes }))
+    setActionLoading(null)
+    if (r.meta.requestStatus === 'fulfilled') {
+      toast.success('Rider account updated')
+      setEditAccountTarget(null)
+    } else toast.error(r.payload || r.error?.message || 'Failed to update account')
   }
 
   const handleExportCSV = () => {
@@ -655,6 +667,7 @@ export default function RidersPage() {
         onUnsuspend={handleUnsuspend}
         onForceOffline={(r) => setOfflineTarget(r)}
         onResetPin={(r) => setResetPinTarget(r)}
+        onEditAccount={(r) => setEditAccountTarget(r)}
       />
 
       {/* Transaction receipt - mirrors the in-app receipt the rider sees */}
@@ -733,7 +746,99 @@ export default function RidersPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Edit rider account identity (login email / name / phone) */}
+      <EditRiderAccountModal
+        rider={editAccountTarget}
+        saving={actionLoading === 'editAccount'}
+        onClose={() => setEditAccountTarget(null)}
+        onSave={confirmEditAccount}
+      />
     </div>
+  )
+}
+
+// ── Edit rider account (login email / name / phone) ──────────────────────────
+// Riders can't change their own email/phone in-app (login credentials), so this
+// is the admin-side correction path. A reason is required when email or phone
+// changes, mirroring the customer edit flow, and the change is audit-logged
+// server-side. Only changed fields are sent.
+
+const ACCOUNT_INPUT_CLS =
+  'w-full px-3.5 py-2.5 border border-surface-muted dark:border-dark-surface-muted rounded-xl text-sm bg-surface dark:bg-dark-surface text-text dark:text-dark-text focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-muted dark:placeholder:text-dark-muted'
+
+function EditRiderAccountModal({ rider, saving, onClose, onSave }) {
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' })
+  const [error, setError] = useState('')
+  const [reason, setReason] = useState('')
+
+  useEffect(() => {
+    if (rider) {
+      setForm({
+        firstName: rider.user?.firstName || '',
+        lastName: rider.user?.lastName || '',
+        email: rider.user?.email || '',
+        phone: rider.user?.phone || '',
+      })
+      setReason('')
+      setError('')
+    }
+  }, [rider])
+
+  if (!rider) return null
+  const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+
+  const submit = () => {
+    const changes = {}
+    for (const k of ['firstName', 'lastName', 'email', 'phone']) {
+      const next = form[k].trim()
+      const prev = rider.user?.[k] || ''
+      if (next !== prev) changes[k] = next
+    }
+    if (Object.keys(changes).length === 0) { setError('No changes to save.'); return }
+    const sensitiveChanged = 'email' in changes || 'phone' in changes
+    if (sensitiveChanged && !reason.trim()) {
+      setError('A reason is required when changing the email or phone.')
+      return
+    }
+    if (reason.trim()) changes.reason = reason.trim()
+    onSave(changes)
+  }
+
+  return (
+    <Modal open={!!rider} onClose={onClose} title={`Edit account - ${fullName(rider)}`}>
+      <div className="space-y-4">
+        <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-xl p-4 flex gap-3">
+          <Mail size={18} className="text-primary shrink-0 mt-0.5" />
+          <p className="text-sm text-muted dark:text-dark-muted">
+            Riders can't change their own email or phone in the app - update it here on their behalf.
+            Changing the email or phone signs the rider out of their current sessions and is audit-logged.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FormField label="First name">
+            <input className={ACCOUNT_INPUT_CLS} value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} />
+          </FormField>
+          <FormField label="Last name">
+            <input className={ACCOUNT_INPUT_CLS} value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} />
+          </FormField>
+        </div>
+        <FormField label="Email">
+          <input type="email" className={ACCOUNT_INPUT_CLS} value={form.email} onChange={(e) => setField('email', e.target.value)} />
+        </FormField>
+        <FormField label="Phone">
+          <input className={ACCOUNT_INPUT_CLS} value={form.phone} onChange={(e) => setField('phone', e.target.value)} />
+        </FormField>
+        <FormField label="Reason (required for email/phone changes)">
+          <Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. rider mistyped their email at signup and can't receive OTPs" />
+        </FormField>
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end">
+          <Btn variant="outline" onClick={onClose}>Cancel</Btn>
+          <Btn variant="primary" loading={saving} onClick={submit}><Pencil size={15} /> Save Changes</Btn>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -747,7 +852,7 @@ const DRAWER_TABS = [
   { id: 'transactions', label: 'Transactions' },
 ]
 
-function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab, setTab, actionLoading, onClose, onReview, onSuspend, onUnsuspend, onForceOffline, onResetPin }) {
+function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab, setTab, actionLoading, onClose, onReview, onSuspend, onUnsuspend, onForceOffline, onResetPin, onEditAccount }) {
   if (!rider) return null
   const busy = actionLoading === rider.id
 
@@ -923,6 +1028,7 @@ function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab
       {/* Contextual footer actions */}
       <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 sm:justify-end border-t border-surface-muted dark:border-dark-surface-muted pt-4">
         <Btn variant="outline" onClick={onClose}>Close</Btn>
+        <Btn variant="ghost" onClick={() => onEditAccount(rider)}><Pencil size={15} /> Edit Account</Btn>
         <Btn variant="ghost" onClick={() => onResetPin(rider)}><KeyRound size={15} /> Reset PIN</Btn>
         {rider.status === 'PENDING_APPROVAL' && (
           <>

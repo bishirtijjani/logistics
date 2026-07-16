@@ -157,6 +157,17 @@ export const resetRiderPin = createAsyncThunk(
   }
 )
 
+// Admin edit of a rider's own account identity (login email, name, phone).
+// The rider app locks these fields, so this is the support-side fix. Returns
+// the updated User row, which we merge into rider.user in state.
+export const updateRiderAccount = createAsyncThunk(
+  'riders/updateAccount',
+  async ({ riderId, changes }) => {
+    const response = await api.patch(`/admin/riders/${riderId}/account`, changes)
+    return { riderId, user: response.data.data }
+  }
+)
+
 // Patch a rider in-place across the all-riders list + the open drawer, so a
 // mutation reflects immediately without a refetch.
 const patchRiderInState = (state, updated) => {
@@ -350,6 +361,15 @@ const ridersSlice = createSlice({
         // payload = { riderId, availability: 'OFFLINE' }
         patchRiderInState(state, action.payload)
         if (state.stats && state.stats.online > 0) state.stats.online -= 1
+      })
+      .addCase(updateRiderAccount.fulfilled, (state, action) => {
+        // payload = { riderId, user } - identity fields live under rider.user
+        const { riderId, user } = action.payload
+        const idx = state.riders.findIndex((r) => r.id === riderId)
+        if (idx !== -1) state.riders[idx].user = { ...state.riders[idx].user, ...user }
+        if (state.selectedRider?.id === riderId) {
+          state.selectedRider.user = { ...state.selectedRider.user, ...user }
+        }
       })
   },
 })

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   fetchAllMerchants, fetchMerchantById, approveMerchant, rejectMerchant,
-  suspendMerchant, unsuspendMerchant, updateMerchantCommission, updateMerchantProfile, toggleMerchantOpen,
+  suspendMerchant, unsuspendMerchant, updateMerchantCommission, updateMerchantProfile, updateMerchantAccount, toggleMerchantOpen,
   createMerchant, deleteMerchant, fetchCommissionHistory,
   setWithdrawalHold, fetchPendingWithdrawals, fetchWithdrawalHistory,
   approveWithdrawal, rejectWithdrawal, bulkApproveWithdrawals,
@@ -163,6 +163,7 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
   const [resolvedBank, setResolvedBank] = useState(null)
   const [showResetPin, setShowResetPin] = useState(false)
   const [resetPinReason, setResetPinReason] = useState('')
+  const [showEditAccount, setShowEditAccount] = useState(false)
   const [openState, setOpenState] = useState(true)
 
   useEffect(() => {
@@ -327,6 +328,18 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
       }
     })
 
+  const handleSaveAccount = (changes) =>
+    act('editAccount', async () => {
+      const r = await dispatch(updateMerchantAccount({ merchantId: merchant.id, changes }))
+      if (updateMerchantAccount.fulfilled.match(r)) {
+        toast.success('Owner account updated')
+        setShowEditAccount(false)
+        onAction?.()
+      } else {
+        toast.error(r.error?.message || 'Failed to update account')
+      }
+    })
+
   return (
     <>
     <div className="fixed inset-0 z-40 flex justify-end" onClick={onClose}>
@@ -425,6 +438,11 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
               onClick={() => navigate(`/merchants/${merchant.id}/analytics`)}>
               <BarChart2 size={14} /> Analytics
             </Btn>
+            {merchant.user && (
+              <Btn size="sm" variant="ghost" onClick={() => setShowEditAccount(true)}>
+                <Mail size={14} /> Edit Login Email
+              </Btn>
+            )}
             <Btn size="sm" variant="ghost" onClick={() => setShowResetPin(true)}>
               <KeyRound size={14} /> Reset PIN
             </Btn>
@@ -838,7 +856,95 @@ function MerchantDrawer({ merchant, onClose, onAction }) {
         </div>
       </div>
     </Modal>
+
+    {/* Edit owner account (login email / name / phone) */}
+    <EditMerchantAccountModal
+      open={showEditAccount}
+      merchant={merchant}
+      saving={loading === 'editAccount'}
+      onClose={() => setShowEditAccount(false)}
+      onSave={handleSaveAccount}
+    />
     </>
+  )
+}
+
+// ── Edit merchant owner account (login email / name / phone) ─────────────────
+// Edits the linked User (the owner's sign-in email) - distinct from the public
+// business email on the Profile tab. Merchants can't change their own login
+// email in the dashboard, so this is the admin-side correction path. A reason
+// is required when email or phone changes; audit-logged server-side.
+function EditMerchantAccountModal({ open, merchant, saving, onClose, onSave }) {
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' })
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (open && merchant?.user) {
+      setForm({
+        firstName: merchant.user.firstName || '',
+        lastName: merchant.user.lastName || '',
+        email: merchant.user.email || '',
+        phone: merchant.user.phone || '',
+      })
+      setReason('')
+      setError('')
+    }
+  }, [open, merchant])
+
+  const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }))
+
+  const submit = () => {
+    const changes = {}
+    for (const k of ['firstName', 'lastName', 'email', 'phone']) {
+      const next = form[k].trim()
+      const prev = merchant.user?.[k] || ''
+      if (next !== prev) changes[k] = next
+    }
+    if (Object.keys(changes).length === 0) { setError('No changes to save.'); return }
+    const sensitiveChanged = 'email' in changes || 'phone' in changes
+    if (sensitiveChanged && !reason.trim()) {
+      setError('A reason is required when changing the email or phone.')
+      return
+    }
+    if (reason.trim()) changes.reason = reason.trim()
+    onSave(changes)
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Edit owner login account">
+      <div className="space-y-4">
+        <div className="bg-surface-muted dark:bg-dark-surface-muted rounded-xl p-4 flex gap-3">
+          <Mail size={18} className="text-primary shrink-0 mt-0.5" />
+          <p className="text-sm text-muted dark:text-dark-muted">
+            This is the owner's <span className="font-medium text-text dark:text-dark-text">sign-in email</span>, not the shop's public
+            business email (edit that on the Profile tab). Changing the email or phone signs the merchant out of their current sessions and is audit-logged.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <FormField label="First name">
+            <Input value={form.firstName} onChange={(e) => setField('firstName', e.target.value)} />
+          </FormField>
+          <FormField label="Last name">
+            <Input value={form.lastName} onChange={(e) => setField('lastName', e.target.value)} />
+          </FormField>
+        </div>
+        <FormField label="Login email">
+          <Input type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} />
+        </FormField>
+        <FormField label="Phone">
+          <Input value={form.phone} onChange={(e) => setField('phone', e.target.value)} />
+        </FormField>
+        <FormField label="Reason (required for email/phone changes)">
+          <Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. owner lost access to their old inbox and can't receive resets" />
+        </FormField>
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <Btn variant="outline" onClick={onClose}>Cancel</Btn>
+          <Btn variant="primary" loading={saving} onClick={submit}><Mail size={15} /> Save Changes</Btn>
+        </div>
+      </div>
+    </Modal>
   )
 }
 

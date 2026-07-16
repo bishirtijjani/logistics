@@ -77,6 +77,17 @@ export const updateMerchantProfile = createAsyncThunk(
   }
 )
 
+// Admin edit of the merchant *owner's* account identity (login email, name,
+// phone) on the linked User - distinct from the public business email edited by
+// updateMerchantProfile. Returns the updated User row, merged into merchant.user.
+export const updateMerchantAccount = createAsyncThunk(
+  'merchants/updateAccount',
+  async ({ merchantId, changes }) => {
+    const response = await api.patch(`/admin/merchants/${merchantId}/account`, changes)
+    return { merchantId, user: response.data.data }
+  }
+)
+
 export const toggleMerchantOpen = createAsyncThunk(
   'merchants/toggleOpen',
   async ({ merchantId, isOpen }) => {
@@ -496,6 +507,15 @@ const merchantsSlice = createSlice({
       .addCase(updateMerchantCommission.fulfilled, patchMerchant)
       .addCase(updateMerchantProfile.fulfilled, patchMerchant)
       .addCase(toggleMerchantOpen.fulfilled, patchMerchant)
+      .addCase(updateMerchantAccount.fulfilled, (state, action) => {
+        // payload = { merchantId, user } - identity lives under merchant.user
+        const { merchantId, user } = action.payload
+        const idx = state.merchants.findIndex((m) => m.id === merchantId)
+        if (idx !== -1) state.merchants[idx].user = { ...state.merchants[idx].user, ...user }
+        if (state.selectedMerchant?.id === merchantId) {
+          state.selectedMerchant.user = { ...state.selectedMerchant.user, ...user }
+        }
+      })
 
     builder
       .addCase(createMerchant.fulfilled, (state, action) => {

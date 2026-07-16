@@ -340,6 +340,147 @@ const updateCustomer = async (customerId, data, adminUserId, ipAddress, userAgen
 };
 
 /**
+ * Shared identity-field editor for a role's *linked user account* (rider,
+ * merchant owner). End users can't change their own email/phone in-app - those
+ * are login credentials, so the apps tell them to contact support - this is the
+ * admin-side correction path. Updates firstName/lastName/email/phone on the
+ * User row, records a field-level audit diff, and revokes the user's live
+ * sessions when an access-relevant field (email/phone) changes so the next
+ * request re-runs auth. Mirrors updateCustomer without the customer-only
+ * KYC/wallet/status side-effects.
+ */
+const updateLinkedUserAccount = async ({
+  userId,
+  entityId,
+  entityType,
+  auditAction,
+  data,
+  adminUserId,
+  ipAddress,
+  userAgent,
+}) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, firstName: true, lastName: true, email: true, phone: true },
+  });
+  if (!user) throw AppError.notFound('User account not found');
+
+  const { reason, ...rest } = data;
+  const fields = ['firstName', 'lastName', 'email', 'phone'];
+  const updateData = {};
+  const changes = {};
+  for (const key of fields) {
+    if (rest[key] === undefined) continue;
+    if (user[key] !== rest[key]) {
+      updateData[key] = rest[key];
+      changes[key] = { from: user[key] ?? null, to: rest[key] ?? null };
+    }
+  }
+
+  if (Object.keys(changes).length === 0) {
+    throw AppError.badRequest('No changes detected');
+  }
+
+  let updated;
+  try {
+    updated = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        status: true,
+      },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      const target = Array.isArray(err.meta?.target) ? err.meta.target.join(', ') : err.meta?.target;
+      throw AppError.conflict(`Field already in use: ${target || 'unique constraint'}`);
+    }
+    throw err;
+  }
+
+  await createAuditLog(
+    adminUserId,
+    auditAction,
+    entityType,
+    entityId,
+    { changes, reason: reason || null },
+    ipAddress,
+    userAgent,
+  );
+
+  logger.info('User account updated by admin', {
+    entityType,
+    entityId,
+    userId,
+    fields: Object.keys(changes),
+    reason,
+  });
+
+  // Email/phone are access-relevant (login identifiers) - drop live sessions so
+  // the user re-authenticates with the new credentials.
+  if ('email' in changes || 'phone' in changes) {
+    invalidateCustomerSockets(userId, { forceDisconnect: false });
+  }
+
+  return updated;
+};
+
+/**
+ * Admin edit of a rider's own account identity (name/email/phone). The rider
+ * app locks these fields ("contact support to change your email"), so this is
+ * the only path to correct a rider's login email.
+ */
+const updateRiderAccount = async (riderId, data, adminUserId, ipAddress, userAgent) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    select: { id: true, userId: true },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  return updateLinkedUserAccount({
+    userId: rider.userId,
+    entityId: riderId,
+    entityType: 'RIDER',
+    auditAction: 'UPDATE_RIDER_ACCOUNT',
+    data,
+    adminUserId,
+    ipAddress,
+    userAgent,
+  });
+};
+
+/**
+ * Admin edit of a merchant *owner's* account identity (name/email/phone). This
+ * is the login email on the linked User - distinct from the merchant's public
+ * business email edited via updateMerchantProfile. Standalone merchants with no
+ * linked user account can't be edited here.
+ */
+const updateMerchantAccount = async (merchantId, data, adminUserId, ipAddress, userAgent) => {
+  const merchant = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    select: { id: true, userId: true },
+  });
+  if (!merchant) throw AppError.notFound('Merchant not found');
+  if (!merchant.userId) throw AppError.badRequest('This merchant has no linked user account to edit');
+
+  return updateLinkedUserAccount({
+    userId: merchant.userId,
+    entityId: merchantId,
+    entityType: 'MERCHANT',
+    auditAction: 'UPDATE_MERCHANT_ACCOUNT',
+    data,
+    adminUserId,
+    ipAddress,
+    userAgent,
+  });
+};
+
+/**
  * Get a single customer with profile, wallet, and lightweight activity counts.
  * Rejects non-CUSTOMER roles so admins can't accidentally use customer-only
  * endpoints to peek at merchant/rider records.
@@ -3525,6 +3666,8 @@ module.exports = {
   getAllCustomers,
   updateCustomerStatus,
   updateCustomer,
+  updateRiderAccount,
+  updateMerchantAccount,
   wipeCustomerKyc,
   getCustomerById,
   getCustomerStats,

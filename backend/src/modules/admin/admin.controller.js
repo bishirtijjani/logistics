@@ -66,6 +66,36 @@ const updateCustomer = async (req, res, next) => {
   }
 };
 
+const updateRiderAccount = async (req, res, next) => {
+  try {
+    const result = await adminService.updateRiderAccount(
+      req.params.riderId,
+      req.body,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Rider account updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateMerchantAccount = async (req, res, next) => {
+  try {
+    const result = await adminService.updateMerchantAccount(
+      req.params.merchantId,
+      req.body,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Merchant account updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const wipeCustomerKyc = async (req, res, next) => {
   try {
     const result = await adminService.wipeCustomerKyc(
@@ -1108,6 +1138,8 @@ module.exports = {
   getAllCustomers,
   updateCustomerStatus,
   updateCustomer,
+  updateRiderAccount,
+  updateMerchantAccount,
   wipeCustomerKyc,
   getCustomerById,
   getCustomerStats,

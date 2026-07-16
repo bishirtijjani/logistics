@@ -23,6 +23,8 @@ const {
   reviewRiderSchema,
   updateCustomerStatusSchema,
   updateCustomerSchema,
+  updateRiderAccountSchema,
+  updateMerchantAccountSchema,
   wipeCustomerKycSchema,
   resetCustomerPinSchema,
   listPendingRidersSchema,
@@ -94,6 +96,7 @@ router.patch('/requests/:requestId/status', authorize('ADMIN', PERMISSIONS.MANAG
 router.get('/merchants', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(listAllMerchantsSchema, 'query'), adminController.getAllMerchants);
 router.get('/merchants/:merchantId', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), adminController.getMerchantById);
 router.put('/merchants/:merchantId', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(updateMerchantProfileSchema), adminController.updateMerchantProfile);
+router.patch('/merchants/:merchantId/account', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(updateMerchantAccountSchema), adminController.updateMerchantAccount);
 router.patch('/merchants/:merchantId/approve', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(approveMerchantSchema), adminController.approveMerchant);
 router.patch('/merchants/:merchantId/reject', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(rejectMerchantSchema), adminController.rejectMerchant);
 router.patch('/merchants/:merchantId/suspend', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(suspendMerchantSchema), adminController.suspendMerchant);
@@ -143,6 +146,7 @@ router.get('/riders/:riderId/transactions/:transactionId', authorize('ADMIN', PE
 router.get('/riders/:riderId/utility-payments', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_FINANCE), validate(utilityPaymentsQuerySchema, 'query'), adminController.getRiderUtilityPayments);
 router.get('/riders/:riderId/utility-payments/:paymentId', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_FINANCE), adminController.getRiderUtilityPaymentById);
 router.post('/riders/:riderId/pin/reset', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(resetCustomerPinSchema), adminController.resetRiderPin);
+router.patch('/riders/:riderId/account', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(updateRiderAccountSchema), adminController.updateRiderAccount);
 
 // Customer management
 router.get('/customers', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(listAllCustomersSchema, 'query'), adminController.getAllCustomers);

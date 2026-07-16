@@ -85,6 +85,24 @@ const updateCustomerSchema = z
     message: 'At least one field must be provided',
   });
 
+// Admin edits a rider's / merchant owner's own account identity (login email,
+// name, phone). Email/phone are locked in the apps, so this is the support-side
+// correction path. At least one editable field must be present.
+const updateLinkedAccountSchema = z
+  .object({
+    firstName: z.string().min(1).max(50).optional(),
+    lastName: z.string().min(1).max(50).optional(),
+    email: z.string().email().max(120).optional(),
+    phone: z.string().min(7).max(20).optional(),
+    reason: z.string().min(1).max(500).optional(),
+  })
+  .refine((data) => Object.keys(data).some((k) => k !== 'reason' && data[k] !== undefined), {
+    message: 'At least one field must be provided',
+  });
+
+const updateRiderAccountSchema = updateLinkedAccountSchema;
+const updateMerchantAccountSchema = updateLinkedAccountSchema;
+
 const listPendingRidersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
@@ -399,6 +417,8 @@ module.exports = {
   reviewRiderSchema,
   updateCustomerStatusSchema,
   updateCustomerSchema,
+  updateRiderAccountSchema,
+  updateMerchantAccountSchema,
   wipeCustomerKycSchema,
   resetCustomerPinSchema,
   listPendingRidersSchema,
