@@ -17,6 +17,10 @@ const { REDIS_KEYS, REDIS_TTL } = require('../../utils/constants');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const mapsService = require('../../services/maps.service');
+const {
+  markRiderAvailable,
+  removeRiderFromPool,
+} = require('../../services/rider-pool.service');
 
 // Phase 4 - push ETA at most every 30s and only when the rider has moved
 // >100m since the last push. Cheap on Maps quota, accurate enough for UI.
@@ -98,6 +102,31 @@ const registerTrackingHandlers = (io, socket) => {
   // matcher would offer them jobs (pickup address + fare) they can't accept.
   if (socket.user.role !== 'RIDER' || !socket.user.isApprovedRider) return;
 
+  const riderUserId = socket.user.id;
+
+  // Seed the dispatch pool on connect. A rider whose DB availability is ONLINE
+  // but who just (re)connected is not yet in the geo index - the first GPS ping
+  // is still seconds away, and if their app is only reporting intermittently
+  // they might not be indexed at all. If we already hold a fresh last-known
+  // position we add them immediately so the matcher can reach them right away;
+  // otherwise the next ping (or the reconcile sweep) settles it. We deliberately
+  // only seed from a RECENT fix so we never offer jobs at a stale location.
+  (async () => {
+    try {
+      const rider = await prisma.rider.findUnique({
+        where: { userId: riderUserId },
+        select: { availability: true, lastLat: true, lastLng: true, lastLocationAt: true },
+      });
+      if (!rider || rider.availability !== 'ONLINE') return;
+      if (typeof rider.lastLat !== 'number' || typeof rider.lastLng !== 'number') return;
+      const fixAgeMs = rider.lastLocationAt ? Date.now() - new Date(rider.lastLocationAt).getTime() : Infinity;
+      if (fixAgeMs > REDIS_TTL.RIDER_HEARTBEAT * 1000) return;
+      await markRiderAvailable(riderUserId, { lat: rider.lastLat, lng: rider.lastLng });
+    } catch (err) {
+      logger.warn('Dispatch-pool seed on connect failed', { riderUserId, error: err.message });
+    }
+  })();
+
   /**
    * Handle rider:location:update
    * Payload: { lat: number, lng: number, requestId?: string }
@@ -126,12 +155,25 @@ const registerTrackingHandlers = (io, socket) => {
         REDIS_TTL.RIDER_LOCATION
       );
 
-      // Also write to the rider GEO index used by the expanding-radius
-      // matcher. ioredis GEOADD signature: GEOADD key longitude latitude member.
+      // Add/refresh the rider in the dispatch geo index AND stamp a heartbeat.
+      // The heartbeat is what keeps them dispatchable and what the reconcile
+      // sweep checks to decide whether a sticky DB ONLINE flag is still real.
+      await markRiderAvailable(riderId, { lat, lng });
+
+      // Persist the last-known position to the DB too, but throttled - the
+      // socket path fires ~every 3s and we don't want a write storm. A recent
+      // DB fix lets us seed the pool immediately on the next reconnect.
       try {
-        await redis.geoadd(REDIS_KEYS.RIDER_GEO_INDEX, lng, lat, riderId);
+        const throttleKey = `${REDIS_KEYS.RIDER_LOC_DB_THROTTLE}${riderId}`;
+        const fresh = await redis.set(throttleKey, '1', 'EX', REDIS_TTL.RIDER_LOC_DB_THROTTLE, 'NX');
+        if (fresh === 'OK') {
+          await prisma.rider.update({
+            where: { userId: riderId },
+            data: { lastLat: lat, lastLng: lng, lastLocationAt: new Date() },
+          });
+        }
       } catch (err) {
-        logger.warn('GEOADD failed', { riderId, error: err.message });
+        logger.warn('Rider location DB persist failed', { riderId, error: err.message });
       }
 
       // If rider is on an active request, broadcast to that request's room
@@ -158,28 +200,21 @@ const registerTrackingHandlers = (io, socket) => {
     }
   });
 
-  // On disconnect, remove the rider from the GEO index so they don't get
-  // offered jobs while offline. The JSON RIDER_LOCATION key is allowed to
-  // expire on its own TTL.
+  // On disconnect, remove the rider from the GEO index (and clear their
+  // heartbeat) so they don't get offered jobs while offline. The JSON
+  // RIDER_LOCATION key is allowed to expire on its own TTL. The sticky DB
+  // availability flag is intentionally left for the reconcile sweep to correct
+  // after the heartbeat lapses, so a brief reconnect doesn't knock a rider
+  // offline in the DB.
   socket.on('disconnect', async () => {
-    try {
-      await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, socket.user.id);
-    } catch (err) {
-      logger.warn('Failed to remove rider from GEO index on disconnect', {
-        riderId: socket.user.id, error: err.message,
-      });
-    }
+    await removeRiderFromPool(riderUserId);
   });
 
   // Explicit availability:changed channel - riders going offline should
   // disappear from the index immediately.
   socket.on(RIDER.AVAILABILITY_CHANGED, async (data) => {
-    try {
-      if (data?.available === false) {
-        await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, socket.user.id);
-      }
-    } catch (err) {
-      logger.warn('AVAILABILITY_CHANGED handling failed', { error: err.message });
+    if (data?.available === false) {
+      await removeRiderFromPool(riderUserId);
     }
   });
 };

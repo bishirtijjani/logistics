@@ -92,6 +92,20 @@ const scheduleRecurringJobs = async () => {
         removeOnFail: { count: 30 },
       },
     );
+    // Keep the DB rider-availability flag honest against the live dispatch geo
+    // index: prune riders whose heartbeat lapsed and flip stale ONLINE flags to
+    // OFFLINE. Every 2 minutes so "riders online" reflects who can actually be
+    // offered a job, and the matcher isn't broadcasting into an empty pool.
+    await riderQueue.add(
+      RIDER_JOBS.RECONCILE_AVAILABILITY,
+      {},
+      {
+        jobId: 'cron:reconcile-rider-availability',
+        repeat: { pattern: '*/2 * * * *' }, // every 2 minutes
+        removeOnComplete: { count: 30 },
+        removeOnFail: { count: 30 },
+      },
+    );
     logger.info('Recurring jobs scheduled');
   } catch (err) {
     logger.error('Failed to schedule recurring jobs', { error: err.message });

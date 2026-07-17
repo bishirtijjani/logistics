@@ -10,6 +10,11 @@ const { REDIS_KEYS, REDIS_TTL } = require('../../utils/constants');
 const { getIO } = require('../../sockets');
 const { emitRiderAssigned, emitStatusChanged } = require('../../sockets/handlers/request.handler');
 const notifyService = require('../../services/notify.service');
+const {
+  markRiderAvailable,
+  touchRiderHeartbeat,
+  removeRiderFromPool,
+} = require('../../services/rider-pool.service');
 
 /**
  * Register as a rider - creates Rider profile linked to existing User.
@@ -157,8 +162,26 @@ const updateAvailability = async (userId, availability) => {
   const redisKey = `${REDIS_KEYS.RIDER_AVAILABILITY}${rider.id}`;
   if (availability === 'ONLINE') {
     await redis.set(redisKey, 'ONLINE', 'EX', REDIS_TTL.RIDER_AVAILABILITY);
+
+    // Reconcile the dispatch pool with the flag. If we hold a fresh fix, add
+    // the rider to the geo index immediately so they're dispatchable without
+    // waiting for the first GPS ping. Either way stamp a heartbeat so the
+    // reconcile sweep grants a grace window and doesn't instantly flip this
+    // brand-new ONLINE back to OFFLINE before the app starts streaming.
+    const fixAgeMs = rider.lastLocationAt ? Date.now() - new Date(rider.lastLocationAt).getTime() : Infinity;
+    if (
+      typeof rider.lastLat === 'number' &&
+      typeof rider.lastLng === 'number' &&
+      fixAgeMs <= REDIS_TTL.RIDER_HEARTBEAT * 1000
+    ) {
+      await markRiderAvailable(userId, { lat: rider.lastLat, lng: rider.lastLng });
+    } else {
+      await touchRiderHeartbeat(userId);
+    }
   } else {
     await redis.del(redisKey);
+    // Going offline: drop out of the dispatch pool right away.
+    await removeRiderFromPool(userId);
   }
 
   logger.info('Rider availability updated', { riderId: rider.id, availability });

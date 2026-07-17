@@ -82,6 +82,10 @@ const POLL_CONFIG = {
 const RIDER_JOBS = {
   /** Nightly: scan rider docs and push DOC_EXPIRING_SOON if within 14 days. */
   CHECK_DOC_EXPIRY: 'check-doc-expiry',
+  /** Every few minutes: reconcile DB rider availability with the live dispatch
+   *  geo index - prune geo members whose heartbeat lapsed and flip sticky
+   *  ONLINE riders who are no longer reachable back to OFFLINE. */
+  RECONCILE_AVAILABILITY: 'reconcile-availability',
 };
 
 const REQUEST_JOBS = {

@@ -257,13 +257,31 @@ test('getRequestById lets the assigned rider read their own job (no false 403)',
   assert.equal(job.id, 'job');
 });
 
+test('getRequestById lets a RIDER-role account read a package order they placed as the customer', async () => {
+  // The reported production bug: a RIDER-role account (every account is also a
+  // customer) placed a PACKAGE order and then 403'd on every tracking-screen
+  // poll because getRequestById gated on the scalar RIDER role and compared the
+  // order's riderId to their profile. Authorising by identity, the customer who
+  // placed it must be allowed even though their role is RIDER and the order is
+  // assigned to a *different* rider.
+  seedBase();
+  seedRequest({ id: 'own-package', customerId: RIDER_USER_ID, riderId: OTHER_RIDER_ID, status: 'RIDER_ASSIGNED' });
+
+  const job = await requestService.getRequestById('own-package', RIDER_USER_ID, 'RIDER');
+  assert.equal(job.id, 'own-package');
+});
+
 test('getRequestById forbids a rider from reading a job assigned to a different rider', async () => {
   seedBase();
   seedRequest({ id: 'job', riderId: OTHER_RIDER_ID, status: 'RIDER_ASSIGNED' });
 
   await assert.rejects(
     () => requestService.getRequestById('job', RIDER_USER_ID, 'RIDER'),
-    /Not your assigned request/,
+    // getRequestById now authorises by identity via isParticipant() rather than
+    // by scalar role, so an unrelated rider is rejected with the unified
+    // "Not authorized to view this request" message (a RIDER who is the
+    // customer on the order is correctly allowed - see test above).
+    /Not authorized to view this request/,
   );
 });
 

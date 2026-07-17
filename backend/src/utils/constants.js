@@ -16,6 +16,8 @@ const REDIS_KEYS = {
   RATE_LIMIT: "ratelimit:", // ratelimit:{ip}:{endpoint}
   // Phase 4 - logistics
   RIDER_GEO_INDEX: "riders:geo", // GEOADD/GEOSEARCH key for available riders
+  RIDER_HEARTBEAT: "rider:heartbeat:", // rider:heartbeat:{userId} - liveness of a rider in the dispatch pool
+  RIDER_LOC_DB_THROTTLE: "rider:locdbwrite:", // rider:locdbwrite:{userId} - throttles DB persistence of GPS pings
   REQUEST_ROUTE: "request:route:", // request:route:{requestId} - 30s cache for /route
   REQUEST_ETA_LAST: "request:eta:last:", // last pushed ETA + position {requestId}
   RIDER_OFFER_LOCK: "rider:offer:", // rider:offer:{requestId} - set during a ring round
@@ -29,6 +31,12 @@ const REDIS_KEYS = {
 const REDIS_TTL = {
   RIDER_LOCATION: 30, // Stale after 30s (updates every ~3s)
   RIDER_AVAILABILITY: 3600, // 1 hour
+  // A rider streaming GPS refreshes this every ~3s. If it lapses the rider is
+  // no longer reachable and the reconcile sweep prunes them from the geo index
+  // and flips their sticky DB availability=ONLINE back to OFFLINE. Generous
+  // enough to survive a few dropped pings / a brief reconnect.
+  RIDER_HEARTBEAT: 90, // 90s
+  RIDER_LOC_DB_THROTTLE: 20, // persist a GPS ping to the DB at most every 20s per rider
   ACTIVE_REQUEST: 86400, // 24 hours
   OTP: 600, // 10 minutes
   PENDING_REG: 600, // 10 minutes (same as OTP)

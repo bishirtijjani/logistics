@@ -857,17 +857,25 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
     emitCancelled(io, requestId, request.customerId, reason || 'Request cancelled');
   }
 
-  // If delivered, trigger settlement
+  // If delivered, trigger settlement. Settlement moves money (escrow release,
+  // rider/merchant credit, cash commission), so a transient failure must NOT
+  // strand the order in DELIVERED forever - retry with backoff. The job is
+  // idempotent via the DELIVERED → SETTLED status guard, so retries are safe.
   if (newStatus === 'DELIVERED') {
     await requestQueue.add(REQUEST_JOBS.SETTLE_REQUEST, { requestId }, {
       delay: 5000,
+      attempts: 5,
+      backoff: { type: 'exponential', delay: 5000 }, // 5s, 10s, 20s, 40s
     });
   }
-  
-  // If cancelled, trigger refund
+
+  // If cancelled, trigger refund. Also money-movement; guarded by
+  // refundTransactionId so retries can't double-credit.
   if (newStatus === 'CANCELLED') {
     await requestQueue.add(REQUEST_JOBS.REFUND_REQUEST, { requestId }, {
       delay: 1000,
+      attempts: 5,
+      backoff: { type: 'exponential', delay: 5000 },
     });
   }
 
@@ -1142,7 +1150,7 @@ const getRequestById = async (requestId, userId, role) => {
     where: { id: requestId },
     include: {
       customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-      merchant: { select: { id: true, name: true, phone: true, address: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } } },
+      merchant: { select: { id: true, userId: true, name: true, phone: true, address: true, category: { select: { id: true, name: true, slug: true, color: true, icon: true } } } },
       rider: {
         select: {
           id: true,
@@ -1150,7 +1158,7 @@ const getRequestById = async (requestId, userId, role) => {
           plateNumber: true,
           vehicleColor: true,
           averageRating: true,
-          user: { select: { phone: true, firstName: true, lastName: true } },
+          user: { select: { id: true, phone: true, firstName: true, lastName: true } },
         },
       },
       items: true,
@@ -1158,28 +1166,18 @@ const getRequestById = async (requestId, userId, role) => {
       rating: true,
     },
   });
-  
+
   if (!request) throw AppError.notFound('Request not found');
 
-  // Authorization. customerId is a User.id so it compares to the JWT id
-  // directly. riderId/merchantId are Rider.id/Merchant.id, so we must resolve
-  // the caller's own profile id from their userId before comparing - comparing
-  // request.riderId (a Rider.id) to a User.id never matches and 403s the rider
-  // on their own job.
-  if (role === 'CUSTOMER' && request.customerId !== userId) {
-    throw AppError.forbidden('Not your request');
-  }
-  if (role === 'RIDER') {
-    const rider = await prisma.rider.findUnique({ where: { userId }, select: { id: true } });
-    if (!rider || request.riderId !== rider.id) {
-      throw AppError.forbidden('Not your assigned request');
-    }
-  }
-  if (role === 'MERCHANT') {
-    const merchant = await prisma.merchant.findUnique({ where: { userId }, select: { id: true } });
-    if (!merchant || request.merchantId !== merchant.id) {
-      throw AppError.forbidden('Not your request');
-    }
+  // Authorization by IDENTITY, not scalar role. One account can hold several
+  // roles at once (a RIDER account still places customer orders - every
+  // authenticated account is a customer), so we must not gate on req.user.role:
+  // a RIDER-role customer viewing their own package order would 403 on the RIDER
+  // branch ("Not your assigned request"), stranding the tracking screen. The
+  // shared isParticipant() helper allows the customer OR the assigned rider OR
+  // the merchant owner OR an admin, matching whoever the caller actually is.
+  if (!isParticipant(request, userId, role)) {
+    throw AppError.forbidden('Not authorized to view this request');
   }
 
   return request;

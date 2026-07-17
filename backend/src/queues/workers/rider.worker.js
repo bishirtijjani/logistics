@@ -14,6 +14,7 @@ const { redis } = require('../../config/redis');
 const { prisma } = require('../../config/database');
 const { logger } = require('../../utils/logger');
 const { QUEUES, RIDER_JOBS, DEFAULT_JOB_OPTIONS } = require('../jobs');
+const { REDIS_KEYS } = require('../../utils/constants');
 const notifyService = require('../../services/notify.service');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -135,6 +136,75 @@ const checkDocExpiry = async () => {
   return { scanned: candidates.length, warned, expired };
 };
 
+/**
+ * Reconcile DB rider availability with the live dispatch geo index.
+ *
+ * The matcher only offers jobs to riders present in `riders:geo`, whose
+ * membership is paired with a short-lived heartbeat (refreshed on every GPS
+ * ping / on going ONLINE). The DB `Rider.availability` flag, by contrast, is
+ * sticky: closing the app never clears it, so it drifts to "7 riders ONLINE"
+ * while the geo index holds nobody.
+ *
+ * This sweep uses the heartbeat as the source of truth for reachability and
+ * repairs both sides:
+ *   1. Prune geo members whose heartbeat has lapsed (covers ungraceful
+ *      disconnects where the socket 'disconnect' cleanup never ran).
+ *   2. Flip ONLINE riders with no live heartbeat back to OFFLINE so the DB
+ *      count reflects who can actually receive a job. ON_DELIVERY riders are
+ *      left untouched - they're mid-trip and not in the offer pool anyway.
+ */
+const reconcileAvailability = async () => {
+  let prunedGeo = 0;
+  let flippedOffline = 0;
+
+  // 1. Prune stale geo members.
+  let members = [];
+  try {
+    members = await redis.zrange(REDIS_KEYS.RIDER_GEO_INDEX, 0, -1);
+  } catch (err) {
+    logger.warn('reconcileAvailability: geo read failed', { error: err.message });
+  }
+  for (const userId of members) {
+    try {
+      const live = await redis.exists(`${REDIS_KEYS.RIDER_HEARTBEAT}${userId}`);
+      if (!live) {
+        await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, userId);
+        prunedGeo += 1;
+      }
+    } catch (err) {
+      logger.warn('reconcileAvailability: geo prune failed', { userId, error: err.message });
+    }
+  }
+
+  // 2. Correct sticky DB ONLINE flags.
+  const online = await prisma.rider.findMany({
+    where: { availability: 'ONLINE' },
+    select: { id: true, userId: true },
+  });
+  for (const r of online) {
+    try {
+      const live = await redis.exists(`${REDIS_KEYS.RIDER_HEARTBEAT}${r.userId}`);
+      if (!live) {
+        await prisma.rider.update({ where: { id: r.id }, data: { availability: 'OFFLINE' } });
+        await redis.del(`${REDIS_KEYS.RIDER_AVAILABILITY}${r.id}`);
+        await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, r.userId);
+        flippedOffline += 1;
+      }
+    } catch (err) {
+      logger.warn('reconcileAvailability: flip failed', { riderId: r.id, error: err.message });
+    }
+  }
+
+  logger.info('rider.availability.reconciled', {
+    geoMembers: members.length,
+    prunedGeo,
+    onlineChecked: online.length,
+    flippedOffline,
+  });
+
+  return { prunedGeo, flippedOffline };
+};
+
 const startRiderWorker = () => {
   const worker = new Worker(
     QUEUES.RIDER,
@@ -142,6 +212,8 @@ const startRiderWorker = () => {
       switch (job.name) {
         case RIDER_JOBS.CHECK_DOC_EXPIRY:
           return checkDocExpiry();
+        case RIDER_JOBS.RECONCILE_AVAILABILITY:
+          return reconcileAvailability();
         default:
           throw new Error(`Unknown rider job: ${job.name}`);
       }
@@ -166,5 +238,5 @@ const startRiderWorker = () => {
 module.exports = {
   startRiderWorker,
   // Exported for unit tests.
-  __test: { checkDocExpiry, classifyRiderDocs },
+  __test: { checkDocExpiry, classifyRiderDocs, reconcileAvailability },
 };

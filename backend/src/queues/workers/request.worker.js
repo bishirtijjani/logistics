@@ -191,27 +191,52 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
     // performance screen can compute acceptance rate. Skip riders that
     // already have a row for this request (re-ring with overlap) to avoid
     // resetting an EXPIRED/DECLINED outcome.
+    //
+    // IMPORTANT id mapping: the geo index members (c.riderId) are User.ids -
+    // that is the dispatch identity used for socket rooms and accept(). But
+    // RiderOfferLog.riderId is a foreign key to Rider.id, so we must translate
+    // User.id → Rider.id before writing, exactly as acceptJob does. Writing the
+    // User.id straight in violates the FK and the whole insert is rejected -
+    // which is why offer logs were silently never persisting.
     try {
-      const candidateIds = candidates.map((c) => c.riderId);
-      const existing = await prisma.riderOfferLog.findMany({
-        where: { requestId, riderId: { in: candidateIds } },
-        select: { riderId: true },
+      const candidateUserIds = candidates.map((c) => c.riderId);
+      const riders = await prisma.rider.findMany({
+        where: { userId: { in: candidateUserIds } },
+        select: { id: true, userId: true },
       });
-      const existingSet = new Set(existing.map((e) => e.riderId));
-      const newRows = candidates
-        .filter((c) => !existingSet.has(c.riderId))
-        .map((c) => ({
-          riderId: c.riderId,
-          requestId,
-          outcome: 'OFFERED',
-          ringAttempt: attempt,
-          distanceKm: Math.round(c.distanceKm * 10) / 10,
-        }));
-      if (newRows.length > 0) {
-        await prisma.riderOfferLog.createMany({ data: newRows, skipDuplicates: true });
+      const riderIdByUserId = new Map(riders.map((r) => [r.userId, r.id]));
+
+      // Distance is keyed on the geo member (User.id); re-key it onto Rider.id.
+      const distanceByRiderId = new Map();
+      for (const c of candidates) {
+        const riderId = riderIdByUserId.get(c.riderId);
+        if (riderId) distanceByRiderId.set(riderId, c.distanceKm);
+      }
+      const riderIds = [...distanceByRiderId.keys()];
+
+      if (riderIds.length > 0) {
+        const existing = await prisma.riderOfferLog.findMany({
+          where: { requestId, riderId: { in: riderIds } },
+          select: { riderId: true },
+        });
+        const existingSet = new Set(existing.map((e) => e.riderId));
+        const newRows = riderIds
+          .filter((riderId) => !existingSet.has(riderId))
+          .map((riderId) => ({
+            riderId,
+            requestId,
+            outcome: 'OFFERED',
+            ringAttempt: attempt,
+            distanceKm: Math.round(distanceByRiderId.get(riderId) * 10) / 10,
+          }));
+        if (newRows.length > 0) {
+          await prisma.riderOfferLog.createMany({ data: newRows, skipDuplicates: true });
+        }
       }
     } catch (err) {
-      logger.warn('Failed to persist rider offer logs', { requestId, error: err.message });
+      // Not fatal to the broadcast, but no longer swallowed at warn: a failure
+      // here means acceptance-rate stats are silently wrong, so surface it.
+      logger.error('Failed to persist rider offer logs', { requestId, error: err.message });
     }
   }
 
@@ -356,7 +381,7 @@ const settleRequest = async (job) => {
       where: { id: requestId },
       include: {
         customer: { include: { wallet: true } },
-        merchant: { include: { user: { include: { wallet: true } }, merchantWallet: true } },
+        merchant: { include: { user: { include: { wallet: true } }, wallet: true } },
         rider: { include: { user: { include: { wallet: true } } } },
       },
     });
@@ -520,7 +545,7 @@ const settleRequest = async (job) => {
         },
       });
       // Lifetime-earnings stat only (not spendable balance).
-      if (request.merchant.merchantWallet) {
+      if (request.merchant.wallet) {
         await tx.merchantWallet.update({
           where: { merchantId: request.merchantId },
           data: { totalEarnings: { increment: merchantEarning } },
