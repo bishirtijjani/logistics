@@ -190,12 +190,31 @@ const updateAvailability = async (userId, availability) => {
 };
 
 /**
- * Update rider GPS location - called frequently (~every 3s during delivery).
- * Writes to Redis for real-time access, DB for persistence.
+ * Update rider GPS location.
+ *
+ * Accepts either a single live fix `{ lat, lng }` or a batch
+ * `{ updates: [{ lat, lng, capturedAt? }, ...] }`. The rider app streams live
+ * fixes over the socket, but when the socket drops it buffers fixes locally and
+ * drains them here on reconnect (see mobile locationStream.js). Only the most
+ * recent fix is the rider's current position, so we apply that one - the older
+ * buffered fixes are historical and don't need replaying into live state.
  */
-const updateLocation = async (userId, { lat, lng }) => {
+const updateLocation = async (userId, body) => {
   const rider = await prisma.rider.findUnique({ where: { userId } });
   if (!rider) throw AppError.notFound('Rider not found');
+
+  // Normalise single-fix and batch payloads into one chronologically-ordered
+  // list, then take the latest fix as the current position. Fixes without a
+  // capturedAt sort as oldest (0), so a live single fix (no capturedAt) is
+  // trivially "latest".
+  const fixes = Array.isArray(body?.updates) ? body.updates : [body];
+  const ordered = [...fixes].sort((a, b) => {
+    const ta = a.capturedAt ? new Date(a.capturedAt).getTime() : 0;
+    const tb = b.capturedAt ? new Date(b.capturedAt).getTime() : 0;
+    return ta - tb;
+  });
+  const latest = ordered[ordered.length - 1];
+  const { lat, lng } = latest;
 
   // Write to Redis (fast, for real-time tracking)
   const redisKey = `${REDIS_KEYS.RIDER_LOCATION}${rider.id}`;
@@ -212,7 +231,13 @@ const updateLocation = async (userId, { lat, lng }) => {
     data: { lastLat: lat, lastLng: lng, lastLocationAt: new Date() },
   });
 
-  return { lat, lng };
+  // Keep the rider dispatchable across the socket blip that triggered this
+  // drain: mirror the socket path by re-adding them to the geo pool and
+  // refreshing their heartbeat from the latest fix. Without this a rider whose
+  // socket dropped would be invisible to the matcher until their next live ping.
+  await markRiderAvailable(userId, { lat, lng });
+
+  return { lat, lng, applied: ordered.length };
 };
 
 /**

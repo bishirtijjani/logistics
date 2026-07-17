@@ -40,10 +40,23 @@ const updateAvailabilitySchema = z.object({
   availability: z.enum(['ONLINE', 'OFFLINE']),
 });
 
-const updateLocationSchema = z.object({
+// A single GPS fix. `capturedAt`/`requestId` are optional metadata the rider
+// client attaches to buffered fixes (see locationStream.js) - accepted and
+// used to order a batch, but not required for a live single fix.
+const locationFixSchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
+  requestId: z.string().uuid().optional(),
+  capturedAt: z.string().optional(),
 });
+
+// The endpoint accepts either a single fix (live) or a batch under `updates`
+// (the rider app drains its offline ring buffer this way on socket reconnect -
+// cap 50, matching RING_BUFFER_CAP). Both shapes are handled by the service.
+const updateLocationSchema = z.union([
+  locationFixSchema,
+  z.object({ updates: z.array(locationFixSchema).min(1).max(50) }),
+]);
 
 const acceptJobSchema = z.object({
   orderId: z.string().uuid(),
