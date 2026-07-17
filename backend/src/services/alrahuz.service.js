@@ -48,7 +48,10 @@ const _get = async (path, params) => {
   return data;
 };
 
-const _meterType = (meterType) => (String(meterType).toUpperCase() === 'POSTPAID' ? 2 : 1);
+// AlRahuz's billpayment MeterType is a title-case string choice ("Prepaid" /
+// "Postpaid"), NOT the numeric id its docs claim ("PREPAID:1, POSTAID:2"). Sending
+// 1/2 — or "PREPAID"/"prepaid" — is rejected with 400 `"x" is not a valid choice`.
+const _billMeterType = (meterType) => (String(meterType).toUpperCase() === 'POSTPAID' ? 'Postpaid' : 'Prepaid');
 
 // AlRahuz's meter-validation disco identifiers, keyed by the AlRahuz numeric disco
 // id (the value we store as altProviderNetworkId). Their /ajax/validate_meter_number/
@@ -105,7 +108,7 @@ const payElectricity = async ({ discoId, meterNumber, meterType, amount }) => {
     disco_name: discoId,
     amount,
     meter_number: meterNumber,
-    MeterType: _meterType(meterType),
+    MeterType: _billMeterType(meterType),
   });
   logger.info('AlRahuz electricity', { discoId, meterNumber, amount, data });
   return data;
