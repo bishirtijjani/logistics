@@ -50,6 +50,23 @@ const _get = async (path, params) => {
 
 const _meterType = (meterType) => (String(meterType).toUpperCase() === 'POSTPAID' ? 2 : 1);
 
+// AlRahuz's meter-validation disco identifiers, keyed by the AlRahuz numeric disco
+// id (the value we store as altProviderNetworkId). Their /ajax/validate_meter_number/
+// endpoint matches on the disco *display name*, NOT the numeric id — see validateMeter.
+const ALRAHUZ_DISCO_NAMES = {
+  1: 'Ikeja Electric',
+  2: 'Eko Electric',
+  3: 'Abuja Electric',
+  4: 'Kano Electric',
+  5: 'Enugu Electric',
+  6: 'Port Harcourt Electric',
+  7: 'Ibadan Electric',
+  8: 'Kaduna Electric',
+  9: 'Jos Electric',
+  10: 'Benin Electric',
+  11: 'Yola Electric',
+};
+
 const buyAirtime = async ({ networkId, phone, amount }) => {
   const data = await _post('/api/topup/', {
     network: networkId,
@@ -103,11 +120,18 @@ const buyEducationPin = async ({ examName, quantity }) => {
 const validateIuc = async ({ smartCardNumber, cableNameId }) =>
   _get('/api/validateiuc', { smart_card_number: smartCardNumber, cablename: cableNameId });
 
+// AlRahuz's *documented* GET /api/validatemeter endpoint is a broken stub — it
+// returns {"invalid":true,"name":"INVALID METER NUMBER"} for every meter, disco
+// and param combination. Their own dashboard validates via this undocumented
+// AJAX endpoint instead, which (unlike billpayment, which takes the numeric id)
+// matches the disco by *name* and expects an uppercase PREPAID/POSTPAID string.
+// The API token authenticates it fine — no session cookie needed. Response shape
+// is identical: { invalid, name, address }.
 const validateMeter = async ({ meterNumber, discoId, meterType }) =>
-  _get('/api/validatemeter', {
+  _get('/ajax/validate_meter_number/', {
     meternumber: meterNumber,
-    disconame: discoId,
-    mtype: _meterType(meterType),
+    disconame: ALRAHUZ_DISCO_NAMES[discoId] || discoId,
+    mtype: String(meterType).toUpperCase() === 'POSTPAID' ? 'POSTPAID' : 'PREPAID',
   });
 
 const getAccountBalance = async () => _get('/api/user/');
