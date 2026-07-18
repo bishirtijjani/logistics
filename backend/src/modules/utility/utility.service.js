@@ -85,9 +85,15 @@ const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, mete
     if (wallet.isLocked) throw AppError.forbidden('Wallet is frozen');
 
     const balance = Number(wallet.balance);
-    if (balance < amount) throw AppError.insufficientBalance();
-
-    await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { decrement: amount } } });
+    // Conditional debit so concurrent purchases can't overdraw: the WHERE runs
+    // under the UPDATE's row lock, so a read-then-decrement can't slip a second
+    // debit past a stale balance check under READ COMMITTED (which is how this
+    // wallet reached a negative balance). Mirrors the withdrawal path.
+    const debit = await tx.wallet.updateMany({
+      where: { id: wallet.id, isLocked: false, balance: { gte: amount } },
+      data: { balance: { decrement: amount } },
+    });
+    if (debit.count !== 1) throw AppError.insufficientBalance();
 
     await tx.transaction.create({
       data: {
