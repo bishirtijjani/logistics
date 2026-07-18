@@ -387,7 +387,19 @@ const settleRequest = async (job) => {
     });
 
     if (!request) throw new Error('Request not found');
-    if (request.status !== 'DELIVERED') throw new Error('Request not in DELIVERED state');
+
+    // Atomic claim: flip DELIVERED→SETTLED up front so only ONE of two concurrent
+    // settle jobs disburses. The request worker runs at concurrency 5 and settle
+    // jobs carry no dedup jobId, so a read-then-check on status would let both
+    // pass and double-pay the merchant + rider (the SETTLE reference is timestamped,
+    // so the unique-reference backstop doesn't catch it). Mirrors the payout
+    // worker's PROCESSING→SENT claim. Trailing SETTLED updates below are now
+    // redundant but harmless.
+    const settleClaim = await tx.request.updateMany({
+      where: { id: requestId, status: 'DELIVERED' },
+      data: { status: 'SETTLED', settledAt: new Date() },
+    });
+    if (settleClaim.count !== 1) throw new Error('Request not in DELIVERED state (already settled?)');
 
     const merchantEarning = Number(request.merchantEarning);
     const riderEarning = Number(request.riderEarning);
@@ -709,16 +721,21 @@ const refundRequest = async (job) => {
     if (!request) throw new Error('Request not found');
     if (request.status !== 'CANCELLED') throw new Error('Request not in CANCELLED state');
 
-    // Idempotency guard. settleRequest is protected by the status transition
-    // (DELIVERED → SETTLED) - once SETTLED, the status check rejects the retry.
-    // Refund leaves the request in CANCELLED forever, so retries would re-enter
-    // the body and double-credit. refundTransactionId is the contract: set
-    // exactly once, on the first successful refund.
-    if (request.refundTransactionId) {
-      logger.info('Refund already processed, skipping', {
-        requestId,
-        existingRefund: request.refundTransactionId,
-      });
+    // Atomic idempotency claim. The request worker runs at concurrency 5 and
+    // REFUND_REQUEST is enqueued from several places (customer cancel, admin
+    // force-cancel, retries) with no dedup jobId, so two refund jobs can run at
+    // once. A plain `if (refundTransactionId)` read-check would let both pass and
+    // double-credit the customer (the refund reference is timestamped, so the
+    // unique-reference backstop doesn't catch it). Flip refundTransactionId
+    // NULL→reference atomically; only the winner (count 1) proceeds. `reference`
+    // is deterministic so the ledger rows also collide on their unique reference.
+    const reference = `REFUND-${requestId}`;
+    const refundClaim = await tx.request.updateMany({
+      where: { id: requestId, status: 'CANCELLED', refundTransactionId: null },
+      data: { refundTransactionId: reference },
+    });
+    if (refundClaim.count !== 1) {
+      logger.info('Refund already processed or not claimable, skipping', { requestId });
       return { refundAmount: 0, alreadyRefunded: true };
     }
 
@@ -751,7 +768,6 @@ const refundRequest = async (job) => {
     // Refund is net of any cancellation fee. Fee can't exceed customerPaid.
     const feeApplied = Math.min(Math.max(0, cancellationFee), customerPaid);
     const refundAmount = Math.max(0, customerPaid - feeApplied);
-    const reference = `REFUND-${requestId}-${Date.now()}`;
 
     // Drain PLATFORM_ESCROW by the full original customerPaid - closes the
     // escrow loop. The fee is then re-credited to PLATFORM_EARNINGS below so
