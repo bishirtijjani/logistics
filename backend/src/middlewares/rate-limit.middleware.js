@@ -122,6 +122,36 @@ const quoteLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id || req.ip,
 });
 
+/**
+ * VTU purchases (airtime / data / cable / electricity) - 15 per 10 minutes per
+ * user. Real money leaves the wallet on every call. The DB race fix already
+ * stops concurrent overdraw; this caps burst-abuse and a runaway/hijacked client
+ * from draining a single account, and slows an attacker probing the vend path.
+ * Per-user keyed (a hijacked session is one userId; mobile IPs are shared).
+ */
+const utilityPurchaseLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: ApiResponse.error('Too many purchases in a short time. Please wait a few minutes and try again.'),
+  keyGenerator: (req) => req.user?.id || req.ip,
+});
+
+/**
+ * VTU lookups that hit the provider API (meter / IUC validation, network
+ * detect) - 40 per 5 minutes per user. Cheap for us but each call costs a
+ * provider request; caps enumeration / hammering of the verify endpoints.
+ */
+const utilityLookupLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: ApiResponse.error('Too many lookups. Please slow down.'),
+  keyGenerator: (req) => req.user?.id || req.ip,
+});
+
 module.exports = {
   authLimiter,
   otpLimiter,
@@ -131,4 +161,6 @@ module.exports = {
   mapsLimiter,
   requestCreationLimiter,
   quoteLimiter,
+  utilityPurchaseLimiter,
+  utilityLookupLimiter,
 };

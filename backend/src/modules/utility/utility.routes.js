@@ -4,6 +4,7 @@ const { validate } = require('../../middlewares/validate.middleware');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorize } = require('../../middlewares/role.middleware');
 const { idempotency } = require('../../middlewares/idempotency.middleware');
+const { utilityPurchaseLimiter, utilityLookupLimiter } = require('../../middlewares/rate-limit.middleware');
 const {
   getPlansSchema,
   buyAirtimeSchema,
@@ -30,18 +31,18 @@ router.get('/plans', validate(getPlansSchema, 'query'), utilityController.getPla
 router.get('/data-plans', validate(getPlansSchema, 'query'), utilityController.getDataPlans);
 router.get('/networks', utilityController.getNetworks);
 router.get('/discos', utilityController.getDiscos);
-router.post('/detect-network', validate(detectNetworkSchema), utilityController.detectNetwork);
+router.post('/detect-network', utilityLookupLimiter, validate(detectNetworkSchema), utilityController.detectNetwork);
 
 // Verification (per Phase 7 spec: POST /verify-meter - legacy GET /validate-* kept for back-compat)
-router.post('/verify-meter', validate(validateMeterSchema), utilityController.validateMeter);
-router.get('/validate-meter', validate(validateMeterSchema, 'query'), utilityController.validateMeter);
-router.get('/validate-iuc', validate(validateIucSchema, 'query'), utilityController.validateIuc);
+router.post('/verify-meter', utilityLookupLimiter, validate(validateMeterSchema), utilityController.validateMeter);
+router.get('/validate-meter', utilityLookupLimiter, validate(validateMeterSchema, 'query'), utilityController.validateMeter);
+router.get('/validate-iuc', utilityLookupLimiter, validate(validateIucSchema, 'query'), utilityController.validateIuc);
 
-// Purchases
-router.post('/airtime', idempotency, validate(buyAirtimeSchema), utilityController.buyAirtime);
-router.post('/data', idempotency, validate(buyDataSchema), utilityController.buyData);
-router.post('/cable', idempotency, validate(buyCableSchema), utilityController.buyCable);
-router.post('/electricity', idempotency, validate(payElectricitySchema), utilityController.payElectricity);
+// Purchases - rate-limited per user (money leaves the wallet on each call)
+router.post('/airtime', utilityPurchaseLimiter, idempotency, validate(buyAirtimeSchema), utilityController.buyAirtime);
+router.post('/data', utilityPurchaseLimiter, idempotency, validate(buyDataSchema), utilityController.buyData);
+router.post('/cable', utilityPurchaseLimiter, idempotency, validate(buyCableSchema), utilityController.buyCable);
+router.post('/electricity', utilityPurchaseLimiter, idempotency, validate(payElectricitySchema), utilityController.payElectricity);
 
 // History
 router.get('/history', validate(billHistorySchema, 'query'), utilityController.getBillHistory);
