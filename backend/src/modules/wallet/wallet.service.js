@@ -232,7 +232,54 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
     }).catch((err) => logger.warn('FUNDING notification failed', { error: err.message }));
   }
 
+  // Best-effort multi-account (funding-ring) flag - never affects the funding result.
+  await flagFundingRing(metadata?.data?.payer?.account_number);
+
   return result.transaction;
+};
+
+// Funding-ring detection (FLAG, never block): when ONE real bank account funds
+// many distinct app wallets, that's the strongest multi-account signal we have -
+// an email is disguisable in seconds (gmail dots/+tags, or just a different
+// mailbox), a funding NUBAN is not. Best-effort: must never break funding.
+const FUNDING_RING_THRESHOLD = 3;
+const flagFundingRing = async (payerAccount) => {
+  if (!payerAccount) return;
+  try {
+    const rows = await prisma.$queryRaw`
+      SELECT DISTINCT w."userId" AS "userId"
+      FROM transactions t
+      JOIN wallets w ON w.id = t."creditWalletId"
+      WHERE t.type = 'WALLET_FUNDING'
+        AND t.metadata -> 'data' -> 'payer' ->> 'account_number' = ${payerAccount}
+        AND w."userId" IS NOT NULL`;
+    const userIds = rows.map((r) => r.userId);
+    if (userIds.length < FUNDING_RING_THRESHOLD) return;
+
+    const reason = `Funding account ${payerAccount} bankrolled ${userIds.length} distinct app accounts`;
+    // Only flag not-yet-flagged users so we never clobber an existing reason.
+    await prisma.user.updateMany({
+      where: { id: { in: userIds }, reviewFlag: false },
+      data: { reviewFlag: true, reviewReason: reason, reviewFlaggedAt: new Date() },
+    });
+
+    // Throttle the admin alert to once/day per payer account so a busy ring
+    // doesn't spam the log channel.
+    let firstAlert = true;
+    try {
+      firstAlert = (await redis.set(`fraud:fundingring:${payerAccount}`, '1', 'EX', 86400, 'NX')) !== null;
+    } catch (_) {}
+    if (firstAlert) {
+      logger.warn('FRAUD_REVIEW_FLAG funding ring', {
+        signal: 'FUNDING_ACCOUNT_REUSE',
+        payerAccount,
+        accountCount: userIds.length,
+        userIds,
+      });
+    }
+  } catch (err) {
+    logger.warn('Funding-ring flag check failed (non-fatal)', { payerAccount, error: err.message });
+  }
 };
 
 /**

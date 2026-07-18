@@ -220,6 +220,10 @@ enum SubstitutionPreference {
 model User {
   id                      String     @id @default(uuid())
   email                   String     @unique
+  emailCanonical          String? /// Normalized email (gmail dots/+tags/googlemail collapsed) for multi-account detection. Non-unique on purpose: we FLAG duplicates for review, never block. See utils/email-canonical.js.
+  reviewFlag              Boolean    @default(false) /// Flagged for manual fraud review (multi-account / funding-ring). Advisory only - does NOT restrict the account.
+  reviewReason            String? /// Human-readable why-flagged note (appended).
+  reviewFlaggedAt         DateTime?
   phone                   String?    @unique
   firstName               String
   lastName                String
@@ -262,6 +266,8 @@ model User {
 
   @@index([phone])
   @@index([email])
+  @@index([emailCanonical])
+  @@index([reviewFlag])
   @@index([role, status])
   @@map("users")
 }

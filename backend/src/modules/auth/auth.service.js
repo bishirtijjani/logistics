@@ -17,6 +17,7 @@ const { config } = require("../../config");
 const { AppError } = require("../../utils/api-error");
 const { logger } = require("../../utils/logger");
 const { REDIS_KEYS, REDIS_TTL, OTP } = require("../../utils/constants");
+const { canonicalizeEmail } = require("../../utils/email-canonical");
 const { Queue } = require('bullmq');
 const { QUEUES, PAYMENT_JOBS, DEFAULT_JOB_OPTIONS } = require('../../queues/jobs');
 
@@ -339,12 +340,28 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
       if (phoneTaken) throw AppError.conflict('Phone number already registered', { code: 'PHONE_TAKEN' });
     }
 
+    // Multi-account detection (FLAG, never block): the raw email is unique, but
+    // gmail dot/+tag/googlemail variants map many signups to one real mailbox.
+    // If the canonical form already exists, create this account pre-flagged for
+    // review. Does not restrict the account - just surfaces it to admins.
+    const emailCanonical = canonicalizeEmail(pending.email);
+    const canonicalDupes = await tx.user.count({ where: { emailCanonical, deletedAt: null } });
+    const reviewFields = canonicalDupes > 0
+      ? {
+          emailCanonical,
+          reviewFlag: true,
+          reviewReason: `Email canonical "${emailCanonical}" shared with ${canonicalDupes} existing account(s)`,
+          reviewFlaggedAt: new Date(),
+        }
+      : { emailCanonical };
+
     if (isMerchant) {
       const m = pending.merchant;
 
       const created = await tx.user.create({
         data: {
           email: pending.email,
+          ...reviewFields,
           phone: pending.phone,
           firstName: pending.firstName,
           lastName: pending.lastName,
@@ -393,6 +410,7 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
     const newUser = await tx.user.create({
       data: {
         email: pending.email,
+        ...reviewFields,
         firstName: pending.firstName,
         lastName: pending.lastName,
         phone: pending.phone,
@@ -435,6 +453,19 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
     email,
     role: user.role,
   });
+
+  // Admin alert (best-effort): a new signup collided with an existing canonical
+  // email → possible multi-accounting. Distinctive marker for log-based alerting;
+  // the reviewFlag column is the durable, queryable signal for the admin panel.
+  if (user.reviewFlag) {
+    logger.warn("FRAUD_REVIEW_FLAG multi-account signup", {
+      signal: "EMAIL_CANONICAL_DUPLICATE",
+      userId: user.id,
+      email: user.email,
+      emailCanonical: user.emailCanonical,
+      reason: user.reviewReason,
+    });
+  }
 
   // Provision the wallet's KatPay NUBAN now that we have the user's phone.
   // A Tier-1 wallet needs only name + phone (no BVN/NIN), so we mint it right
