@@ -1,7 +1,9 @@
 /**
- * Email service - sends transactional emails via Gmail SMTP.
+ * Email service - sends transactional emails via Brevo's SMTP relay.
  *
- * Uses Nodemailer with Gmail App Password.
+ * Uses Nodemailer with a Brevo SMTP key. SMTP_USER is the Brevo SMTP login,
+ * which is not itself a deliverable mailbox - the visible "From" address
+ * comes from SMTP_FROM_EMAIL (a domain/sender verified in Brevo).
  * Templates are defined here for consistency across the platform.
  */
 
@@ -18,7 +20,9 @@ const getTransporter = () => {
   if (transporter) return transporter;
 
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false,
     auth: {
       user: config.SMTP_USER,
       pass: config.SMTP_PASS,
@@ -34,7 +38,7 @@ const getTransporter = () => {
 const sendEmail = async ({ to, subject, html, text }) => {
   try {
     const info = await getTransporter().sendMail({
-      from: `"${config.SMTP_FROM_NAME}" <${config.SMTP_USER}>`,
+      from: `"${config.SMTP_FROM_NAME}" <${config.SMTP_FROM_EMAIL}>`,
       to,
       subject,
       html,
@@ -531,7 +535,7 @@ const sendContactInquiryEmail = async ({ to, name, email, message, source }) => 
   `);
 
   return getTransporter().sendMail({
-    from: `"iPrime Website" <${config.SMTP_USER}>`,
+    from: `"iPrime Website" <${config.SMTP_FROM_EMAIL}>`,
     to,
     replyTo: email,
     subject: `Website contact - ${name}`,

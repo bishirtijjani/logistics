@@ -127,17 +127,22 @@ const envSchema = z
       .transform((v) => v === "true")
       .default("false"),
 
-    // Email (SMTP) - required in production, optional in dev so a fresh clone
-    // boots even before transactional mail is wired up. Outbound mail attempts
-    // fail at request time with a clear error rather than blocking startup.
-    SMTP_USER: isDev ? z.string().optional().default("") : z.string().email(),
+    // Email (Brevo SMTP relay) - required in production, optional in dev so a
+    // fresh clone boots even before transactional mail is wired up. Outbound
+    // mail attempts fail at request time with a clear error rather than
+    // blocking startup. SMTP_USER is the Brevo SMTP login (not a mailbox), so
+    // the visible "From" address is tracked separately via SMTP_FROM_EMAIL.
+    SMTP_USER: isDev ? z.string().optional().default("") : z.string().min(1),
     SMTP_PASS: isDev ? z.string().optional().default("") : z.string().min(1),
     SMTP_FROM_NAME: z.string().default("iPrime"),
+    SMTP_FROM_EMAIL: isDev
+      ? z.string().optional().default("")
+      : z.string().email(),
     // Inbox that receives marketing-site contact-form submissions. Defaults
     // to the public support address; override to route to a shared inbox.
     CONTACT_INBOX_EMAIL: z.string().email().default("hello@iprime.ng"),
     // Operational alerts (e.g. a utility payment HELD for manual review because
-    // the provider outcome was indeterminate). Empty → falls back to SMTP_USER.
+    // the provider outcome was indeterminate). Empty → falls back to SMTP_FROM_EMAIL.
     ALERT_EMAIL: z.string().default(""),
 
     // KatPay - required in production, optional in dev

@@ -354,10 +354,11 @@ const escalate = async (ctx, { result }) => {
 /**
  * Email an operator that a payment needs manual reconciliation. Best-effort:
  * a mail failure must never disturb the worker. Recipient is ALERT_EMAIL, or
- * SMTP_USER as a fallback.
+ * SMTP_FROM_EMAIL as a fallback (SMTP_USER is just the Brevo SMTP login, not
+ * a readable mailbox).
  */
 const _alertHeldPayment = async (payment, reason) => {
-  const to = config.ALERT_EMAIL || config.SMTP_USER;
+  const to = config.ALERT_EMAIL || config.SMTP_FROM_EMAIL;
   if (!to) return;
   const amount = `₦${Number(payment.amount || 0).toLocaleString('en-NG')}`;
   const ref = payment.transactionId || payment.providerRequestId || payment.id;
