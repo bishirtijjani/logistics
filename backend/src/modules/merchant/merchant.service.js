@@ -719,14 +719,22 @@ const requestMerchantWithdrawal = async (merchantId, userId, role, { amount }) =
     // actual payout (approveWithdrawal). On rejection the funds are credited back
     // (rejectWithdrawal). This mirrors the standard withdraw debit, but starts
     // PENDING instead of PROCESSING because it awaits an admin decision.
-    // Re-read + re-check inside the tx so concurrent withdrawals can't overdraw.
     const w = await tx.wallet.findUnique({ where: { id: userWallet.id } });
     if (!w) throw AppError.notFound('Wallet not found');
-    if (w.isLocked) throw AppError.badRequest('Your wallet is currently locked');
     const balance = Number(w.balance);
-    if (balance < totalDebit) throw AppError.badRequest('Insufficient balance');
-
-    await tx.wallet.update({ where: { id: w.id }, data: { balance: { decrement: totalDebit } } });
+    // Conditional debit: the balance check runs INSIDE the UPDATE's row lock, so
+    // two concurrent withdrawals can't both pass a stale balance read and overdraw
+    // (a plain findUnique + JS check does NOT lock the row under READ COMMITTED —
+    // that TOCTOU is how a wallet reached a negative balance). Mirrors the
+    // withdrawToBank / utility deductAndCreate guards.
+    const debit = await tx.wallet.updateMany({
+      where: { id: w.id, isLocked: false, balance: { gte: totalDebit } },
+      data: { balance: { decrement: totalDebit } },
+    });
+    if (debit.count !== 1) {
+      if (w.isLocked) throw AppError.badRequest('Your wallet is currently locked');
+      throw AppError.badRequest('Insufficient balance');
+    }
 
     // Ledger entry on the merchant's wallet (shows in their transactions list).
     await tx.transaction.create({

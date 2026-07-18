@@ -533,10 +533,15 @@ const createRequest = async (customerId, requestData) => {
       const reference = `REQ-${newRequest.id}-${uuidv4().slice(0, 8)}`;
       const escrowRef = `${reference}-ESCROW`;
 
-      await tx.wallet.update({
-        where: { id: wallet.id },
+      // Conditional debit under the row lock so two concurrent wallet-paid orders
+      // can't both pass the (pre-transaction) balance read above and overdraw the
+      // customer wallet into escrow. The gte check is the authoritative one; the
+      // earlier check is only a fast-fail. Mirrors the withdraw/utility guards.
+      const debit = await tx.wallet.updateMany({
+        where: { id: wallet.id, isLocked: false, balance: { gte: pricing.total } },
         data: { balance: { decrement: pricing.total } },
       });
+      if (debit.count !== 1) throw AppError.badRequest('Insufficient balance');
 
       // Credit escrow system wallet
       await tx.systemWallet.update({
