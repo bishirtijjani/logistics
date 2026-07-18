@@ -255,7 +255,7 @@ const PURCHASE = {
   CABLE: (adapter, ids, ctx) =>
     adapter.buyCable({ cableNameId: ids.networkId, cablePlanId: ids.planId, smartCardNumber: ctx.smartCardNumber, requestId: ctx.reference }),
   ELECTRICITY: (adapter, ids, ctx) =>
-    adapter.payElectricity({ discoId: ids.networkId, meterNumber: ctx.meterNumber, meterType: ctx.meterType, amount: ctx.amount, requestId: ctx.reference }),
+    adapter.payElectricity({ discoId: ids.networkId, meterNumber: ctx.meterNumber, meterType: ctx.meterType, amount: ctx.amount, phone: ctx.phone, requestId: ctx.reference }),
 };
 
 /**

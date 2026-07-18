@@ -103,12 +103,20 @@ const buyCable = async ({ cableNameId, cablePlanId, smartCardNumber }) => {
   return data;
 };
 
-const payElectricity = async ({ discoId, meterNumber, meterType, amount }) => {
+const payElectricity = async ({ discoId, meterNumber, meterType, amount, phone }) => {
+  // AlRahuz's /api/billpayment/ requires the meter holder's name + address (the
+  // values their own dashboard captures from the verify step). Omitting them makes
+  // the endpoint fail with a 500 rather than a clean error — so re-validate here to
+  // fetch them and send a complete payload.
+  const meta = await validateMeter({ meterNumber, discoId, meterType });
   const data = await _post('/api/billpayment/', {
     disco_name: discoId,
     amount,
     meter_number: meterNumber,
     MeterType: _billMeterType(meterType),
+    Customer_Phone: phone || '',
+    customer_name: meta?.name,
+    customer_address: meta?.address,
   });
   logger.info('AlRahuz electricity', { discoId, meterNumber, amount, data });
   return data;
