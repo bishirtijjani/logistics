@@ -409,7 +409,13 @@ const updateStaffPermissionsSchema = z.object({
 const updateStaffProfileSchema = z.object({
   firstName: z.string().min(1).max(50).optional(),
   lastName: z.string().min(1).max(50).optional(),
-  phone: z.string().min(7).max(20).optional(),
+  // Staff created via createStaffSchema have no phone (NULL). The edit modal
+  // preloads and re-sends that null, so coerce null/'' -> undefined (service
+  // already skips empty phone) instead of rejecting the whole request.
+  phone: z.preprocess(
+    (v) => (v === '' || v === null ? undefined : v),
+    z.string().min(7).max(20).optional()
+  ),
   status: z.enum(['ACTIVE', 'SUSPENDED', 'DEACTIVATED']).optional(),
 });
 
