@@ -59,7 +59,7 @@ const updateLocationSchema = z.union([
 ]);
 
 const acceptJobSchema = z.object({
-  orderId: z.string().uuid(),
+  requestId: z.string().uuid(),
 });
 
 // Phase 7 - document re-upload + offer decline.

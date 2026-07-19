@@ -43,7 +43,7 @@ const updateLocation = async (req, res, next) => {
 
 const acceptJob = async (req, res, next) => {
   try {
-    const order = await riderService.acceptJob(req.user.id, req.body.orderId);
+    const order = await riderService.acceptJob(req.user.id, req.body.requestId);
     res.json(ApiResponse.success('Job accepted', order));
   } catch (error) {
     next(error);
