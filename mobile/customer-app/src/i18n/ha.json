@@ -842,9 +842,7 @@
       "help": "Taimako & Tallafi",
       "helpSub": "FAQ, tuntuɓe mu",
       "legal": "Doka",
-      "legalSub": "Sharuɗɗa, manufar sirri",
-      "about": "Game da",
-      "aboutSub": "Sigar {{version}}"
+      "legalSub": "Sharuɗɗa, manufar sirri"
     },
     "kycBanner": {
       "title": "Kammala tabbatarwa",
@@ -1047,17 +1045,6 @@
     "verifySub": "Mun aika lamba mai lambobi shida zuwa {{phone}}",
     "verifyCta": "Tabbatar a canza",
     "success": "An sabunta lambar waya"
-  },
-  "about": {
-    "title": "Game da",
-    "appName": "iPrime",
-    "tagline": "Sabis na hanya don Katsina da bayanta.",
-    "version": "Sigar {{version}}",
-    "build": "Build {{build}}",
-    "policySection": "Manufofi",
-    "openTerms": "Sharuɗɗan Sabis",
-    "openPrivacy": "Manufar Sirri",
-    "rateAppCta": "Ƙimanta manhajar"
   },
   "legal": {
     "title": "Doka",

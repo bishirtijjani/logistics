@@ -105,12 +105,6 @@ export default function ProfileScreen({ navigation }) {
       sub: t("settings.rows.legalSub"),
       screen: "Legal",
     },
-    {
-      icon: "information-circle-outline",
-      label: t("settings.rows.about"),
-      sub: t("settings.rows.aboutSub", { version: "1.0.0" }),
-      screen: "About",
-    },
   ];
 
   const renderSection = (title, items) => (

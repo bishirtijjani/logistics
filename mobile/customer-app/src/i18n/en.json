@@ -840,9 +840,7 @@
       "help": "Help & Support",
       "helpSub": "FAQ, contact us",
       "legal": "Legal",
-      "legalSub": "Terms, privacy policy",
-      "about": "About",
-      "aboutSub": "Version {{version}}"
+      "legalSub": "Terms, privacy policy"
     },
     "kycBanner": {
       "title": "Complete your verification",
@@ -1046,17 +1044,6 @@
     "verifySub": "We sent a 6-digit code to {{phone}}",
     "verifyCta": "Verify and change",
     "success": "Phone number updated"
-  },
-  "about": {
-    "title": "About",
-    "appName": "iPrime",
-    "tagline": "Bold logistics for Katsina and beyond.",
-    "version": "Version {{version}}",
-    "build": "Build {{build}}",
-    "policySection": "Policies",
-    "openTerms": "Terms of Service",
-    "openPrivacy": "Privacy Policy",
-    "rateAppCta": "Rate the App"
   },
   "legal": {
     "title": "Legal",

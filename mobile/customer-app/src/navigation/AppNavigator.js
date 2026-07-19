@@ -55,7 +55,6 @@ import NotificationSettingsScreen from "../screens/profile/NotificationSettingsS
 import SavedAddressesScreen from "../screens/profile/SavedAddressesScreen";
 import HelpSupportScreen from "../screens/profile/HelpSupportScreen";
 import LegalScreen from "../screens/profile/LegalScreen";
-import AboutScreen from "../screens/profile/AboutScreen";
 
 // Location
 import LocationPickerScreen from "../screens/location/LocationPickerScreen";
@@ -512,7 +511,6 @@ export default function AppNavigator() {
             />
             <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
             <Stack.Screen name="Legal" component={LegalScreen} />
-            <Stack.Screen name="About" component={AboutScreen} />
             <Stack.Screen
               name="LocationPicker"
               component={LocationPickerScreen}
