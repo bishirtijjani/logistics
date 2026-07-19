@@ -3,6 +3,7 @@ import { io } from 'socket.io-client'
 import { useDispatch } from 'react-redux'
 import { API_URL } from '../lib/api'
 import { fetchOrders } from '../store/slices/ordersSlice.js'
+import { notificationReceived } from '../store/slices/notificationsSlice.js'
 import { showSuccessToast } from '../utils/toast.js'
 
 // The backend speaks Socket.io (backend/src/sockets/index.js), NOT raw
@@ -42,13 +43,21 @@ export function useWebSocket(merchantId) {
     }
   }, [])
 
-  const showBrowserNotification = useCallback((title, body) => {
+  // NB: this is the raw browser Notification API firing from an open tab -
+  // not a real push notification (merchant-dashboard has no service worker /
+  // push subscription, unlike the customer/rider PWAs' webPush.js). It only
+  // works while this tab is open and connected. A unique `tag` per call is
+  // required: a fixed tag makes every notification replace the last one
+  // in-place, which combined with `requireInteraction` (each staying on
+  // screen until dismissed) is what was tripping Chrome's "these
+  // notifications look spammy" abuse warning once a few piled up.
+  const showBrowserNotification = useCallback((title, body, tag) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, {
         body,
         icon: '/favicon.ico',
         badge: '/favicon.ico',
-        tag: 'new-order',
+        tag: tag || `notification-${Date.now()}`,
         requireInteraction: true,
       })
     }
@@ -102,7 +111,7 @@ export function useWebSocket(merchantId) {
       playNotificationSound()
       const amount =
         typeof order?.total === 'number' ? ` - ₦${order.total.toLocaleString()}` : ''
-      showBrowserNotification('New Order', `New order received${amount}`)
+      showBrowserNotification('New Order', `New order received${amount}`, `order-${order?.requestId || Date.now()}`)
       showSuccessToast('New order received!')
 
       dispatch(fetchOrders({ merchantId }))
@@ -116,10 +125,15 @@ export function useWebSocket(merchantId) {
       dispatch(fetchOrders({ merchantId }))
     })
 
-    // Generic in-app notification routed to this user's personal room.
+    // Generic in-app notification routed to this user's personal room - feeds
+    // the Notification Center list + bell badge (see NotificationBell.jsx /
+    // NotificationsPage.jsx). New-order events already get the full sound +
+    // browser-notification + toast treatment above via REQUEST_CREATED on
+    // the merchant room, so skip the redundant second toast for those.
     socket.on(EVENTS.NOTIFICATION_NEW, (data) => {
       setLastMessage({ type: EVENTS.NOTIFICATION_NEW, data })
-      if (data?.title) showSuccessToast(data.title)
+      dispatch(notificationReceived(data))
+      if (data?.title && data?.type !== 'ORDER') showSuccessToast(data.title)
     })
 
     return () => {

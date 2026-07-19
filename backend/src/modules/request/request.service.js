@@ -623,6 +623,26 @@ const createRequest = async (customerId, requestData) => {
     // Notify merchant of new order via socket
     const io = getIO();
     emitRequestCreated(io, request);
+
+    // emitRequestCreated above is a live-only nudge to the merchant room (for
+    // the Orders page's sound/toast/refetch) - it has no fallback if the
+    // dashboard tab isn't open, and persists nothing. Route the same event
+    // through pushAndSocket too so it lands in the merchant's Notification
+    // Center and fires a push, same as every other merchant-facing event.
+    const merchant = await prisma.merchant.findUnique({
+      where: { id: merchantId },
+      select: { userId: true },
+    });
+    if (merchant?.userId) {
+      const amountText = `₦${Number(pricing.total).toLocaleString('en-NG')}`;
+      notifyService.pushAndSocket(merchant.userId, {
+        type: 'ORDER',
+        title: 'New order received',
+        body: `New order for ${amountText} - tap to view and accept.`,
+        data: { route: '/dashboard/orders' },
+        requestId: request.id,
+      }).catch((err) => logger.warn('New-order merchant notification failed', { requestId: request.id, error: err.message }));
+    }
   }
 
   return request;

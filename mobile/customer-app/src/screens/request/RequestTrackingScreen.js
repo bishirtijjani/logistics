@@ -77,7 +77,15 @@ const formatEta = (seconds) => {
   return m === 0 ? `~${h}h` : `~${h}h ${m}m`;
 };
 
-const SEARCHING_STATUSES = new Set([STATUS.REQUESTED, STATUS.READY_FOR_PICKUP]);
+// REQUESTED means different things by type: PACKAGE deliveries start rider
+// matching immediately at creation, so REQUESTED there really is "searching
+// for a rider". MERCHANT_ORDER matching is deferred until the merchant marks
+// the order ready (READY_FOR_PICKUP) - REQUESTED there just means "waiting
+// for the merchant to accept", which used to render the identical "searching
+// for a rider" banner. That was misleading (nobody is searching for a rider
+// yet) and implied an auto-cancel timer that doesn't actually run at this
+// stage for merchant orders - see the separate "awaiting merchant" banner below.
+const RIDER_SEARCH_STATUSES = new Set([STATUS.READY_FOR_PICKUP]);
 const ACTIVE_TRACK_STATUSES = new Set([
   STATUS.RIDER_ASSIGNED,
   STATUS.RIDER_EN_ROUTE,
@@ -315,7 +323,19 @@ const RequestTrackingScreen = () => {
   const items = currentRequest.items || [];
   const pkg = currentRequest.packageDetails;
 
-  const showSearching = SEARCHING_STATUSES.has(currentRequest.status) && !currentRequest.riderId;
+  const isPackage = currentRequest.type === 'PACKAGE';
+  const showSearching = (
+    (isPackage && currentRequest.status === STATUS.REQUESTED) ||
+    RIDER_SEARCH_STATUSES.has(currentRequest.status)
+  ) && !currentRequest.riderId;
+  const showAwaitingMerchant = !isPackage && currentRequest.status === STATUS.REQUESTED && !currentRequest.riderId;
+  const isPharmacy = categorySlug === 'pharmacy';
+  const isGrocery = typeof categorySlug === 'string' && categorySlug.startsWith('grocery');
+  const awaitingMerchantTitleKey = isPharmacy
+    ? 'request.tracking.awaitingPharmacyTitle'
+    : isGrocery
+      ? 'request.tracking.awaitingStoreTitle'
+      : 'request.tracking.awaitingMerchantTitle';
   const showChatButton = isActive(currentRequest.status) && (currentRequest.riderId || currentRequest.merchantId);
   const etaSeconds = riderEta?.etaSeconds ?? activeRoute?.etaSeconds ?? null;
   const showEtaChip = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && etaSeconds != null;
@@ -365,6 +385,24 @@ const RequestTrackingScreen = () => {
       )}
 
       <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
+        {/* Awaiting-merchant banner - REQUESTED on a merchant order, before
+            rider search has even begun. Distinct from the searching banner
+            below so we don't claim a rider is being searched for, or promise
+            an auto-cancel timer that isn't running yet at this stage. */}
+        {showAwaitingMerchant && (
+          <View style={{ marginBottom: 16, backgroundColor: tokens.status.infoSoft, borderColor: tokens.status.info, borderWidth: 1, borderRadius: 12, padding: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ActivityIndicator color={tokens.status.info} />
+              <Text style={{ marginLeft: 10, fontWeight: '700', color: tokens.status.info, fontSize: 14 }}>
+                {t(awaitingMerchantTitleKey)}
+              </Text>
+            </View>
+            <Text style={{ marginTop: 4, fontSize: 12, color: tokens.text.muted }}>
+              {t('request.tracking.awaitingMerchantHint')}
+            </Text>
+          </View>
+        )}
+
         {/* Searching banner */}
         {showSearching && (
           <View style={{ marginBottom: 16, backgroundColor: tokens.brand.soft, borderColor: tokens.brand.softBorder, borderWidth: 1, borderRadius: 12, padding: 14 }}>

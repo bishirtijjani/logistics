@@ -3,10 +3,13 @@ import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../store/slices/authSlice.js'
 import { fetchSettings, resubmitApplication } from '../store/slices/settingsSlice.js'
 import { fetchProducts } from '../store/slices/productsSlice.js'
+import { fetchUnreadCount } from '../store/slices/notificationsSlice.js'
 import { useTheme } from '../contexts/ThemeContext.jsx'
 import { useAuthSession } from '../lib/useAuthSession.js'
 import OnboardingWizard from './OnboardingWizard.jsx'
 import HelpPanel from './HelpPanel.jsx'
+import NotificationBell from './NotificationBell.jsx'
+import { SocketProvider } from '../contexts/SocketContext.jsx'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
 import {
   ShoppingBag,
@@ -45,6 +48,12 @@ export default function Layout() {
   // Mounted purely for its side effect: silently refreshes the access token
   // before it expires so the merchant is never interrupted by a modal.
   useAuthSession()
+
+  // Seed the bell's badge on load/login; live updates after this come from
+  // the `notification:new` socket event (see useWebSocket.js), not polling.
+  useEffect(() => {
+    dispatch(fetchUnreadCount())
+  }, [dispatch])
 
   // Pull the merchant profile so we can detect missing location server-side
   // (instead of a per-device localStorage flag that strands merchants who
@@ -143,6 +152,7 @@ export default function Layout() {
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/')
 
   return (
+    <SocketProvider>
     <div className="min-h-screen bg-background dark:bg-dark-background flex">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
@@ -240,6 +250,7 @@ export default function Layout() {
             </button>
             <div className="flex-1" />
             <div className="flex items-center gap-4">
+              <NotificationBell />
               <button
                 onClick={toggleTheme}
                 aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -334,5 +345,6 @@ export default function Layout() {
       {/* In-app help */}
       <HelpPanel />
     </div>
+    </SocketProvider>
   )
 }

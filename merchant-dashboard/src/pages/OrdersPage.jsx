@@ -23,7 +23,7 @@ import { format } from 'date-fns'
 import { TableSkeleton } from '../components/LoadingSkeleton.jsx'
 import NumberInput from '../components/NumberInput.jsx'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
-import { useWebSocket } from '../hooks/useWebSocket.js'
+import { useSocketContext } from '../contexts/SocketContext.jsx'
 import ConnectionStatus from '../components/ConnectionStatus.jsx'
 import OrderDetailsModal from '../components/OrderDetailsModal.jsx'
 
@@ -63,8 +63,9 @@ export default function OrdersPage() {
     specialInstructions: false
   })
   
-  // WebSocket for real-time updates
-  const { isConnected, connectionStatus, reconnect } = useWebSocket(merchantId)
+  // Shared socket connection - lives at Layout level (see SocketContext.jsx)
+  // so it survives navigation away from this page instead of tearing down.
+  const { isConnected, connectionStatus, reconnect } = useSocketContext()
 
   useEffect(() => {
     const params = {

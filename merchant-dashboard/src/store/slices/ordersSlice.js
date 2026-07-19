@@ -15,7 +15,10 @@ export const fetchOrders = createAsyncThunk(
       ...(maxPrice && { maxPrice }),
     })
     const response = await api.get(`/merchants/merchant/${merchantId}/orders?${params}`)
-    return response.data.data
+    // Backend wraps list responses as { data: [...orders], meta: { page, limit, total } }.
+    // The reducer below expects requests/total/page/limit on the payload, so
+    // reassemble that shape here instead of returning the bare array.
+    return { requests: response.data.data, ...response.data.meta }
   }
 )
 

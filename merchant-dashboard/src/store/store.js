@@ -10,6 +10,7 @@ import disputesReducer from './slices/disputesSlice.js'
 import utilityReducer from './slices/utilitySlice.js'
 import walletReducer from './slices/walletSlice.js'
 import platformSettingsReducer from './slices/platformSettingsSlice.js'
+import notificationsReducer from './slices/notificationsSlice.js'
 
 export const store = configureStore({
   reducer: {
@@ -24,5 +25,6 @@ export const store = configureStore({
     utility: utilityReducer,
     wallet: walletReducer,
     platformSettings: platformSettingsReducer,
+    notifications: notificationsReducer,
   },
 })

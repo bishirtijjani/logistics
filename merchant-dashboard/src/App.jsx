@@ -14,6 +14,7 @@ import DisputeDetailPage from './pages/DisputeDetailPage.jsx'
 import MarketingPage from './pages/MarketingPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import BillsPage from './pages/BillsPage.jsx'
+import NotificationsPage from './pages/NotificationsPage.jsx'
 
 // Decode a JWT's exp claim without verifying the signature - the server is
 // still the authority, this is just to keep stale tokens from flashing the
@@ -80,6 +81,7 @@ function AppContent() {
             }
           >
             <Route path="orders" element={<OrdersPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="menu" element={<MenuPage />} />
             <Route path="earnings" element={<EarningsPage />} />
             <Route path="vtu" element={<BillsPage />} />
