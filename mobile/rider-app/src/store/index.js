@@ -1,5 +1,5 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
-import authReducer, { forceLogout as forceLogoutAction } from "./slices/authSlice";
+import authReducer, { forceLogout as forceLogoutAction, logout } from "./slices/authSlice";
 import profileReducer from "./slices/profileSlice";
 import riderReducer from "./slices/riderSlice";
 import offersReducer from "./slices/offersSlice";
@@ -32,12 +32,17 @@ const combined = combineReducers({
 });
 
 /**
- * Forced-logout passthrough: when silent-refresh fallback flips
- * `authSlice.forceLogout`, wipe ALL user-scoped state. Settings and
- * location are global/anonymous and preserved across logout.
+ * Logout passthrough: wipe ALL user-scoped state (wallet, earnings, trip,
+ * offers, notifications...) on EITHER logout path - `forceLogout` (silent
+ * token-refresh failure) and normal `auth/logout` (the rider's own "Log Out"
+ * button). Rider devices are frequently shared/company-issued, so only
+ * wiring the forced path left every voluntary logout leaking the outgoing
+ * rider's earnings/wallet/trip history into whoever logged in next on that
+ * handset. Settings and location are global/anonymous and preserved across
+ * logout.
  */
 const rootReducer = (state, action) => {
-  if (forceLogoutAction.match(action)) {
+  if (forceLogoutAction.match(action) || logout.fulfilled.match(action)) {
     state = {
       settings: state?.settings,
       location: state?.location,
