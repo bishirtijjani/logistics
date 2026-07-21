@@ -470,11 +470,13 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
   // Provision the wallet's KatPay NUBAN now that we have the user's phone.
   // A Tier-1 wallet needs only name + phone (no BVN/NIN), so we mint it right
   // here. Queue-backed and best-effort, so signup never blocks on or fails
-  // because of KatPay. Merchants fund via the ad-hoc transfer rail and use no
-  // NUBAN, so they're skipped.
-  if (user.role !== 'MERCHANT') {
-    await provisionWalletNuban(user);
-  }
+  // because of KatPay. Every self-registered role gets one (merchants used to
+  // be skipped here on the assumption they'd only use the ad-hoc transfer
+  // rail, but the self-heal retry-provisioning path never enforced that
+  // exclusion, so merchants ended up with one anyway the first time they
+  // opened the customer app's Fund Wallet screen - this just makes signup
+  // consistent with that).
+  await provisionWalletNuban(user);
 
   // Auto-login customers right after verification - the user just proved
   // email ownership and we hold their password hash, so a second login step

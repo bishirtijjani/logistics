@@ -1,15 +1,16 @@
 /**
  * backfill-missing-nubans.js
  *
- * One-off cleanup after the Paystack rollback. While Paystack was briefly live,
- * its Dedicated Virtual Account endpoint was gated, so any user who verified in
- * that window came out VERIFIED but with no NUBAN at all. This gives them a
- * KatPay NUBAN without making them re-verify.
- *
- * Finds every VERIFIED user whose wallet has no virtualAccountNumber and
+ * Finds every non-admin user whose wallet has no virtualAccountNumber and
  * provisions a KatPay NUBAN, then stores it on the wallet. Idempotent: a user
  * who already has a NUBAN is skipped, so re-running only handles what's left.
  * Each user is independent - one failure is logged and the run continues.
+ *
+ * Users with no phone on file are reported separately and never sent to
+ * KatPay - createVirtualAccount does not validate phoneNumber itself, and an
+ * empty one would either be rejected by KatPay or create an account not
+ * properly tied to the user's identity. They need a phone added first (the
+ * app's phone-capture screen triggers provisioning on its own once they do).
  *
  * Usage (from backend/, with KatPay keys set):
  *   node scripts/backfill-missing-nubans.js              # live run
@@ -31,38 +32,52 @@ const DELAY_MS = process.env.DELAY_MS ? Number(process.env.DELAY_MS) : 300;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
-  // Verified users whose wallet has no NUBAN yet.
+  // Every non-admin user's wallet with no NUBAN yet. Admins/staff never get a
+  // wallet at all (see modules/admin/admin.service.js:createStaff), so the
+  // role filter here is a defensive belt-and-braces, not the real gate.
   const wallets = await prisma.wallet.findMany({
     where: {
       virtualAccountNumber: null,
-      user: { kycStatus: 'VERIFIED' },
+      user: { role: { not: 'ADMIN' } },
     },
     select: {
       id: true,
-      user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true } },
+      user: { select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true } },
     },
   });
 
-  console.log(`Found ${wallets.length} verified user(s) with no NUBAN${DRY_RUN ? ' (DRY RUN)' : ''}.`);
+  const withPhone = wallets.filter((w) => w.user?.email && w.user?.phone);
+  const noPhone = wallets.filter((w) => w.user?.email && !w.user?.phone);
+  const noEmail = wallets.filter((w) => !w.user?.email);
+
+  console.log(
+    `Found ${wallets.length} user(s) with no NUBAN: ${withPhone.length} provisionable, ` +
+      `${noPhone.length} missing a phone number, ${noEmail.length} missing an email.` +
+      `${DRY_RUN ? ' (DRY RUN)' : ''}`,
+  );
+
+  if (noPhone.length) {
+    console.log('\nSKIPPED - needs phone number before provisioning:');
+    for (const w of noPhone) console.log(`  ${w.user.email} (${w.user.role})`);
+  }
+  if (noEmail.length) {
+    console.log('\nSKIPPED - wallet has no user email on file (data issue):');
+    for (const w of noEmail) console.log(`  wallet ${w.id}`);
+  }
 
   let done = 0;
-  let skipped = 0;
   let failed = 0;
 
-  for (const w of wallets) {
+  console.log('\nProvisioning:');
+  for (const w of withPhone) {
     if (done >= LIMIT) {
       console.log(`Reached LIMIT=${LIMIT}; stopping.`);
       break;
     }
     const u = w.user;
-    if (!u?.email || !u?.phone) {
-      console.warn(`SKIP wallet ${w.id}: user missing email or phone`);
-      skipped += 1;
-      continue;
-    }
 
     if (DRY_RUN) {
-      console.log(`DRY: would provision KatPay NUBAN for ${u.email}`);
+      console.log(`DRY: would provision KatPay NUBAN for ${u.email} (${u.role})`);
       done += 1;
       continue;
     }
@@ -85,16 +100,18 @@ async function main() {
       });
 
       done += 1;
-      console.log(`OK ${u.email}: NUBAN ${va.accountNumber} (${va.bankName})`);
+      console.log(`OK ${u.email} (${u.role}): NUBAN ${va.accountNumber} (${va.bankName})`);
     } catch (err) {
       failed += 1;
-      console.error(`FAIL ${u.email}: ${err.message}`);
+      console.error(`FAIL ${u.email} (${u.role}): ${err.message}`);
     }
 
     await sleep(DELAY_MS);
   }
 
-  console.log(`\nDone. provisioned=${done} skipped=${skipped} failed=${failed}`);
+  console.log(
+    `\nDone. provisioned=${done} failed=${failed} needsPhone=${noPhone.length} needsEmail=${noEmail.length}`,
+  );
 }
 
 main()
