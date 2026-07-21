@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import { useDispatch } from 'react-redux'
 import { API_URL } from '../lib/api'
-import { fetchOrders } from '../store/slices/ordersSlice.js'
+import { fetchOrders, orderStatusPatched } from '../store/slices/ordersSlice.js'
 import { notificationReceived } from '../store/slices/notificationsSlice.js'
 import { showSuccessToast } from '../utils/toast.js'
 
@@ -117,12 +117,16 @@ export function useWebSocket(merchantId) {
       dispatch(fetchOrders({ merchantId }))
     })
 
-    // Status changes are emitted to the per-request room, which this list page
-    // does not join - so this rarely fires here today. Kept so the list stays
-    // fresh if/when the page starts joining request rooms.
+    // Status changes are now fanned out to the merchant room too (see
+    // backend emitStatusChanged), so this fires for every rider-driven step
+    // (PICKED_UP → IN_TRANSIT → DELIVERED). Patch the single order in place
+    // instead of refetching the whole list - keeps the merchant's current
+    // filter/page and instantly updates both the row pill and an open order
+    // modal (which reveals the live map once the status enters the trackable
+    // window).
     socket.on(EVENTS.REQUEST_STATUS_CHANGED, (data) => {
       setLastMessage({ type: EVENTS.REQUEST_STATUS_CHANGED, data })
-      dispatch(fetchOrders({ merchantId }))
+      dispatch(orderStatusPatched(data))
     })
 
     // Generic in-app notification routed to this user's personal room - feeds

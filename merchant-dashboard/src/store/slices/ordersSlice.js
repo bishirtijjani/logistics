@@ -56,7 +56,24 @@ const ordersSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    // Patch a single order in place from a socket event (request:status:changed
+    // fanned out to the merchant room). Preferred over a full refetch: it keeps
+    // the current filter/search/page intact and updates instantly, and an open
+    // OrderDetailsModal reading the live order flips its status + reveals the
+    // tracking map as the rider progresses. On DELIVERED the payload also carries
+    // the POD urls, so merge those too.
+    orderStatusPatched: (state, action) => {
+      const { requestId, status, podPhotoUrl, podSignatureUrl, podCapturedAt } = action.payload || {}
+      if (!requestId) return
+      const order = state.orders.find((o) => o.id === requestId)
+      if (!order) return
+      if (status) order.status = status
+      if (podPhotoUrl !== undefined) order.podPhotoUrl = podPhotoUrl
+      if (podSignatureUrl !== undefined) order.podSignatureUrl = podSignatureUrl
+      if (podCapturedAt !== undefined) order.podCapturedAt = podCapturedAt
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchOrders.pending, (state) => {
@@ -94,5 +111,7 @@ const ordersSlice = createSlice({
       })
   },
 })
+
+export const { orderStatusPatched } = ordersSlice.actions
 
 export default ordersSlice.reducer

@@ -271,6 +271,22 @@ export default function TripCockpitScreen({ route }) {
     }
   }, [status, pickup?.lat, pickup?.lng, dropoff?.lat, dropoff?.lng, arrivedAt.pickup, arrivedAt.dropoff, dispatch, t]);
 
+  // Tell the server the moment arrival is registered - by the geofence above or
+  // by the manual "I've arrived" button, both of which set trip.arrivedAt. The
+  // server relays it to the customer as a transient "Rider has arrived" banner.
+  // Emit once per phase so a re-render doesn't spam the socket.
+  const arrivedEmittedRef = useRef({ pickup: false, dropoff: false });
+  useEffect(() => {
+    if (arrivedAt.pickup && !arrivedEmittedRef.current.pickup) {
+      arrivedEmittedRef.current.pickup = true;
+      socketService.emitRiderArrived(requestId, "pickup");
+    }
+    if (arrivedAt.dropoff && !arrivedEmittedRef.current.dropoff) {
+      arrivedEmittedRef.current.dropoff = true;
+      socketService.emitRiderArrived(requestId, "dropoff");
+    }
+  }, [arrivedAt.pickup, arrivedAt.dropoff, requestId]);
+
   // Cancel any in-flight geofence + its fallback timer on unmount, otherwise
   // the timer fires after the cockpit is gone and `dispatch(tripArrived)` lands
   // into a stale trip slice (or stays alive until app exit).

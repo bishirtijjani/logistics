@@ -863,7 +863,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
         podCapturedAt: updated.podCapturedAt || null,
       }
     : undefined;
-  emitStatusChanged(io, requestId, newStatus, statusMeta);
+  emitStatusChanged(io, requestId, newStatus, statusMeta, updated.merchantId);
 
   // Emit specific events based on status. `updated.rider` is null when the
   // request has no rider yet - guard before touching nested user fields.

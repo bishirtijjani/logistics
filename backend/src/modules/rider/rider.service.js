@@ -347,7 +347,7 @@ const acceptJob = async (userId, requestId) => {
   // missing, leaving the searching banner stuck until a manual refetch.
   try {
     const io = getIO();
-    emitStatusChanged(io, requestId, 'RIDER_ASSIGNED');
+    emitStatusChanged(io, requestId, 'RIDER_ASSIGNED', {}, result.merchantId);
     emitRiderAssigned(io, requestId, result.customerId, {
       id: result.rider?.id,
       user: {

@@ -430,6 +430,14 @@ export default function OrdersPage() {
     return colors[status] || 'bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text'
   }
 
+  // Open the detail modal for a row. Wired to the whole row/card (below) so the
+  // merchant doesn't have to hunt for the eye icon - the interactive controls
+  // (checkbox, action buttons) stopPropagation so they still work independently.
+  const openDetails = (order) => {
+    setSelectedOrder(order)
+    setShowOrderDetails(true)
+  }
+
   // Shared row actions - rendered both in the desktop table and the mobile
   // card list so the two layouts never drift apart.
   const renderOrderActions = (order) => (
@@ -752,8 +760,8 @@ export default function OrdersPage() {
               </thead>
               <tbody className="divide-y divide-surface-muted dark:divide-dark-surface-muted">
                 {orders.map((order) => (
-                  <tr key={order.id} className={`hover:bg-surface-muted dark:hover:bg-dark-surface-muted ${selectedOrders.has(order.id) ? 'bg-primary/10 dark:bg-primary/10' : ''}`}>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <tr key={order.id} onClick={() => openDetails(order)} className={`cursor-pointer hover:bg-surface-muted dark:hover:bg-dark-surface-muted ${selectedOrders.has(order.id) ? 'bg-primary/10 dark:bg-primary/10' : ''}`}>
+                    <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedOrders.has(order.id)}
@@ -778,7 +786,7 @@ export default function OrdersPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                       {format(new Date(order.createdAt), 'MMM dd, yyyy')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         {renderOrderActions(order)}
                       </div>
@@ -794,10 +802,11 @@ export default function OrdersPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className={`p-4 space-y-3 ${selectedOrders.has(order.id) ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
+                onClick={() => openDetails(order)}
+                className={`p-4 space-y-3 cursor-pointer ${selectedOrders.has(order.id) ? 'bg-primary/5 dark:bg-primary/10' : ''}`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <label className="flex items-center gap-2 min-w-0">
+                  <label className="flex items-center gap-2 min-w-0" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedOrders.has(order.id)}
@@ -823,7 +832,7 @@ export default function OrdersPage() {
                 <div className="text-xs text-muted dark:text-dark-muted">
                   {format(new Date(order.createdAt), 'MMM dd, yyyy • h:mm a')}
                 </div>
-                <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-surface-muted dark:border-dark-surface-muted">
+                <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-surface-muted dark:border-dark-surface-muted" onClick={(e) => e.stopPropagation()}>
                   {renderOrderActions(order)}
                 </div>
               </div>

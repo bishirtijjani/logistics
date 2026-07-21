@@ -129,6 +129,9 @@ class SocketService {
     this.socket.on("request:rider:location", (data) => this.emit("requestRiderLocation", data));
     this.socket.on("rider:location:broadcast", (data) => this.emit("requestRiderLocation", data));
 
+    // Rider physically reached pickup/dropoff (transient - no status change).
+    this.socket.on("request:rider:arrived", (data) => this.emit("requestRiderArrived", data));
+
     this.socket.on("request:completed", (data) => {
       Toast.show({ type: "success", text1: "Order complete", text2: "Tap to rate" });
       this.emit("requestCompleted", data);
@@ -205,6 +208,7 @@ class SocketService {
   onRequestStatusChanged(cb)      { return this.on("requestStatusChanged", cb); }
   onRequestRiderAssigned(cb)      { return this.on("requestRiderAssigned", cb); }
   onRequestRiderLocation(cb)      { return this.on("requestRiderLocation", cb); }
+  onRequestRiderArrived(cb)       { return this.on("requestRiderArrived", cb); }
   onRequestMerchantAccepted(cb)   { return this.on("requestMerchantAccepted", cb); }
   onRequestMerchantReady(cb)      { return this.on("requestMerchantReady", cb); }
   onRequestCompleted(cb)          { return this.on("requestCompleted", cb); }

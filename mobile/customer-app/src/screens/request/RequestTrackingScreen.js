@@ -132,6 +132,11 @@ const RequestTrackingScreen = () => {
   const [chatSending, setChatSending] = useState(false);
   const chatListRef = useRef(null);
 
+  // Transient "Rider has arrived" flag from the request:rider:arrived socket
+  // event (there's no ARRIVED status, so this is the only arrival signal the
+  // customer gets between IN_TRANSIT and DELIVERED). 'pickup' | 'dropoff' | null.
+  const [riderArrived, setRiderArrived] = useState(null);
+
   // Phase 5 - connection quality. We render the "Reconnecting…" banner only
   // after the socket has been down for >= 3s, to avoid flickering on transient
   // dis-reconnect cycles that happen on app foreground.
@@ -172,6 +177,14 @@ const RequestTrackingScreen = () => {
       }),
       socketService.onRequestRiderLocation((data) => {
         if (data?.requestId === requestId) dispatch(updateRiderLocationFromSocket(data));
+      }),
+      socketService.onRequestRiderArrived((data) => {
+        if (data?.requestId !== requestId) return;
+        const phase = data.phase === 'pickup' ? 'pickup' : 'dropoff';
+        setRiderArrived(phase);
+        if (phase === 'dropoff') {
+          Toast.show({ type: 'success', text1: t('request.tracking.riderArrivedTitle', 'Your rider has arrived') });
+        }
       }),
       socketService.onRequestCompleted((data) => {
         if (data?.requestId === requestId) dispatch(updateRequestFromSocket(data));
@@ -343,6 +356,86 @@ const RequestTrackingScreen = () => {
   const riderLocation = currentRequest.riderLocation
     || (activeRoute?.riderLat != null ? { lat: activeRoute.riderLat, lng: activeRoute.riderLng } : null);
 
+  // Split-view: once a rider is actively moving the order and we have a live
+  // position, pin the map to the top half of the screen and drop the rest of
+  // the tracking content into a scrollable bottom sheet - so the customer
+  // watches the rider move without scrolling down to find the map.
+  const splitView = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && !!riderLocation;
+  const showArrivedBanner = riderArrived === 'dropoff'
+    && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status);
+
+  // Shared map element, rendered either pinned to the top half (split view) or
+  // inline in its 240px card (non-split). Null until we have a rider position.
+  const mapView = riderLocation ? (
+    <MapView
+      style={{ flex: 1 }}
+      initialRegion={{
+        latitude: riderLocation.lat,
+        longitude: riderLocation.lng,
+        latitudeDelta: 0.025,
+        longitudeDelta: 0.025,
+      }}
+    >
+      {polylinePoints.length > 1 && (
+        <Polyline
+          coordinates={polylinePoints}
+          strokeColor={tokens.brand.default}
+          strokeWidth={4}
+        />
+      )}
+      <Marker
+        coordinate={{ latitude: riderLocation.lat, longitude: riderLocation.lng }}
+        title={t('request.tracking.markerRider')}
+        description={currentRequest.rider?.user
+          ? `${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`
+          : undefined}
+      >
+        <View style={{ borderRadius: 12, padding: 8, backgroundColor: tokens.bg.surface, elevation: 4 }}>
+          <Ionicons name="bicycle" size={22} color={tokens.brand.default} />
+        </View>
+      </Marker>
+      {currentRequest.pickupLat && currentRequest.pickupLng && (
+        <Marker
+          coordinate={{ latitude: currentRequest.pickupLat, longitude: currentRequest.pickupLng }}
+          title={t('request.tracking.markerPickup')}
+          description={currentRequest.pickupAddress}
+        >
+          <View style={{ borderRadius: 12, padding: 6, backgroundColor: tokens.bg.surface, elevation: 4 }}>
+            <Ionicons name="storefront" size={18} color={tokens.status.successStrong} />
+          </View>
+        </Marker>
+      )}
+      {currentRequest.dropoffLat && currentRequest.dropoffLng && (
+        <Marker
+          coordinate={{ latitude: currentRequest.dropoffLat, longitude: currentRequest.dropoffLng }}
+          title={t('request.tracking.markerDropoff')}
+          description={currentRequest.dropoffAddress}
+        >
+          <View style={{ borderRadius: 12, padding: 6, backgroundColor: tokens.bg.surface, elevation: 4 }}>
+            <Ionicons name="home" size={18} color={tokens.status.error} />
+          </View>
+        </Marker>
+      )}
+    </MapView>
+  ) : null;
+
+  const arrivedBannerEl = showArrivedBanner ? (
+    <View
+      style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: tokens.status.successSoft, borderColor: tokens.status.successStrong, borderWidth: 1, borderRadius: 12, padding: 14 }}
+      accessibilityLiveRegion="polite"
+    >
+      <Ionicons name="location" size={20} color={tokens.status.successStrong} />
+      <View style={{ flex: 1, marginLeft: 10 }}>
+        <Text style={{ fontWeight: '800', color: tokens.status.successStrong, fontSize: 14 }}>
+          {t('request.tracking.riderArrivedTitle', 'Your rider has arrived')}
+        </Text>
+        <Text style={{ fontSize: 12, color: tokens.text.muted, marginTop: 2 }}>
+          {t('request.tracking.riderArrivedSub', 'Please head out to meet your rider.')}
+        </Text>
+      </View>
+    </View>
+  ) : null;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={['top']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16, backgroundColor: tokens.bg.surface, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
@@ -384,7 +477,40 @@ const RequestTrackingScreen = () => {
         </View>
       )}
 
-      <ScrollView style={{ flex: 1, padding: 16 }} showsVerticalScrollIndicator={false}>
+      {/* Split view - live map pinned to the top half of the screen. */}
+      {splitView && (
+        <View style={{ flex: 1 }}>
+          {mapView}
+        </View>
+      )}
+
+      <ScrollView
+        style={splitView
+          ? {
+              flex: 1,
+              backgroundColor: tokens.bg.surface,
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              marginTop: -20,
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOpacity: 0.12,
+              shadowOffset: { width: 0, height: -3 },
+              shadowRadius: 8,
+            }
+          : { flex: 1, padding: 16 }}
+        contentContainerStyle={splitView ? { padding: 16, paddingBottom: 32 } : undefined}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Bottom-sheet grab handle (split view only). */}
+        {splitView && (
+          <View style={{ alignItems: 'center', marginBottom: 10 }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: tokens.border.default }} />
+          </View>
+        )}
+
+        {arrivedBannerEl}
+
         {/* Awaiting-merchant banner - REQUESTED on a merchant order, before
             rider search has even begun. Distinct from the searching banner
             below so we don't claim a rider is being searched for, or promise
@@ -749,61 +875,15 @@ const RequestTrackingScreen = () => {
           </View>
         )}
 
-        {/* Live map with polyline */}
-        {currentRequest.rider?.user && riderLocation && (
+        {/* Live map - inline only when NOT in split view (in split view the
+            same map is pinned to the top half above this sheet). */}
+        {!splitView && currentRequest.rider?.user && riderLocation && (
           <View style={{ marginBottom: 24 }}>
             <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.liveTracking')}
             </Text>
             <View style={{ height: 240, borderRadius: 12, overflow: 'hidden', backgroundColor: tokens.bg.canvas }}>
-              <MapView
-                style={{ width: '100%', height: '100%' }}
-                initialRegion={{
-                  latitude: riderLocation.lat,
-                  longitude: riderLocation.lng,
-                  latitudeDelta: 0.025,
-                  longitudeDelta: 0.025,
-                }}
-              >
-                {polylinePoints.length > 1 && (
-                  <Polyline
-                    coordinates={polylinePoints}
-                    strokeColor={tokens.brand.default}
-                    strokeWidth={4}
-                  />
-                )}
-                <Marker
-                  coordinate={{ latitude: riderLocation.lat, longitude: riderLocation.lng }}
-                  title={t('request.tracking.markerRider')}
-                  description={`${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`}
-                >
-                  <View style={{ borderRadius: 12, padding: 8, backgroundColor: tokens.bg.surface, elevation: 4 }}>
-                    <Ionicons name="bicycle" size={22} color={tokens.brand.default} />
-                  </View>
-                </Marker>
-                {currentRequest.pickupLat && currentRequest.pickupLng && (
-                  <Marker
-                    coordinate={{ latitude: currentRequest.pickupLat, longitude: currentRequest.pickupLng }}
-                    title={t('request.tracking.markerPickup')}
-                    description={currentRequest.pickupAddress}
-                  >
-                    <View style={{ borderRadius: 12, padding: 6, backgroundColor: tokens.bg.surface, elevation: 4 }}>
-                      <Ionicons name="storefront" size={18} color={tokens.status.successStrong} />
-                    </View>
-                  </Marker>
-                )}
-                {currentRequest.dropoffLat && currentRequest.dropoffLng && (
-                  <Marker
-                    coordinate={{ latitude: currentRequest.dropoffLat, longitude: currentRequest.dropoffLng }}
-                    title={t('request.tracking.markerDropoff')}
-                    description={currentRequest.dropoffAddress}
-                  >
-                    <View style={{ borderRadius: 12, padding: 6, backgroundColor: tokens.bg.surface, elevation: 4 }}>
-                      <Ionicons name="home" size={18} color={tokens.status.error} />
-                    </View>
-                  </Marker>
-                )}
-              </MapView>
+              {mapView}
             </View>
           </View>
         )}

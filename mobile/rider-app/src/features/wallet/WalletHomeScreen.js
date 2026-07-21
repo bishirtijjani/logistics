@@ -203,20 +203,25 @@ export default function WalletHomeScreen() {
                 {t("wallet.fundByTransfer", "FUND BY BANK TRANSFER")}
               </Text>
             </View>
-            <Text style={{ fontSize: 22, fontWeight: "800", color: tokens.text.primary, letterSpacing: 2 }}>
-              {accountNumber}
-            </Text>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 6 }}>
-              <Text style={{ fontSize: 13, color: tokens.text.muted }}>
-                {bankName || "-"}{accountName ? ` · ${accountName}` : ""}
+            {/* Account number + inline copy affordance kept tight together, so
+                the "Tap to copy" chip sits right beside the number instead of
+                being shoved to the card edge by the long bank · account-name
+                line (which now gets its own row below). The whole card is still
+                the copy button. */}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={{ flexShrink: 1, fontSize: 22, fontWeight: "800", color: tokens.text.primary, letterSpacing: 2 }}>
+                {accountNumber}
               </Text>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Ionicons name="copy-outline" size={14} color={tokens.brand.default} />
+              <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 10 }}>
+                <Ionicons name="copy-outline" size={15} color={tokens.brand.default} />
                 <Text style={{ marginLeft: 4, fontSize: 12, color: tokens.brand.default, fontWeight: "700" }}>
                   {t("wallet.tapToCopy", "Tap to copy")}
                 </Text>
               </View>
             </View>
+            <Text style={{ fontSize: 13, color: tokens.text.muted, marginTop: 6 }}>
+              {bankName || "-"}{accountName ? ` · ${accountName}` : ""}
+            </Text>
           </TouchableOpacity>
         ) : needsPhone ? (
           <TouchableOpacity

@@ -175,6 +175,14 @@ class SocketService {
     this.socket.emit("rider:job:reject", { requestId });
   }
 
+  // Report physical arrival at pickup/dropoff. Relayed by the server to the
+  // customer's tracking screen as a transient "Rider has arrived" banner -
+  // there's no persisted ARRIVED status, so this is fire-and-forget.
+  emitRiderArrived(requestId, phase) {
+    if (!this.socket?.connected || !requestId) return;
+    this.socket.emit("request:rider:arrived", { requestId, phase });
+  }
+
   // --- Room management ---
 
   joinRequestRoom(requestId) {

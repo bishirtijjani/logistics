@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
 import { API_URL } from '../lib/api'
 import { 
   X, 
@@ -23,7 +24,16 @@ import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 import LiveTrackingMap from './LiveTrackingMap.jsx'
 import { TRACKABLE_STATUSES } from '../lib/tracking'
 
-export default function OrderDetailsModal({ order, onClose }) {
+export default function OrderDetailsModal({ order: orderProp, onClose }) {
+  // The parent passes a point-in-time snapshot of the order. Subscribe to the
+  // live copy in the store so socket-driven status changes (request:status:changed
+  // fanned out to the merchant room) flip the status timeline AND satisfy the
+  // TRACKABLE_STATUSES gate below - revealing the live map as the rider moves,
+  // without the merchant having to close and reopen the order. Falls back to the
+  // prop until the list is populated.
+  const liveOrder = useSelector((s) => s.orders.orders.find((o) => o.id === orderProp?.id))
+  const order = liveOrder || orderProp
+
   const [orderNotes, setOrderNotes] = useState(order?.notes || '')
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const [specialInstructions, setSpecialInstructions] = useState(order?.specialInstructions || '')

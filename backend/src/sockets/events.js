@@ -63,6 +63,12 @@ const REQUEST = {
   // Server → Customer/Merchant/Rider: rider location update
   RIDER_LOCATION: 'request:rider:location',
 
+  // Rider → Server → Customer/Merchant: rider physically arrived at
+  // pickup/dropoff. Transient (not a persisted lifecycle status) - the
+  // customer surfaces a "Rider has arrived" banner between IN_TRANSIT and
+  // DELIVERED, which the status enum has no dedicated state for.
+  RIDER_ARRIVED: 'request:rider:arrived',
+
   // Server → Customer/Merchant/Rider: request completed
   COMPLETED: 'request:completed',
 

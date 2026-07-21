@@ -106,6 +106,26 @@ const registerRequestHandlers = (io, socket) => {
       riderId: socket.user.id,
     });
   });
+
+  /**
+   * Rider reports physical arrival at pickup/dropoff. Relayed to the request
+   * room so the customer can show a transient "Rider has arrived" banner -
+   * there is no persisted ARRIVED status, so this never touches the DB.
+   * Payload: { requestId: string, phase: 'pickup' | 'dropoff' }
+   */
+  socket.on(REQUEST.RIDER_ARRIVED, (data) => {
+    const { requestId, phase } = data || {};
+    if (!requestId) return;
+
+    const room = getRequestRoom(requestId);
+    socket.to(room).emit(REQUEST.RIDER_ARRIVED, {
+      requestId,
+      phase: phase === 'pickup' ? 'pickup' : 'dropoff',
+      timestamp: Date.now(),
+    });
+
+    logger.debug('Rider arrival broadcasted', { requestId, phase, riderId: socket.user.id });
+  });
 };
 
 // --- Server-side emit helpers (used by services/workers) ---
@@ -140,15 +160,22 @@ const emitRequestCreated = (io, request) => {
  * Emit REQUEST.STATUS_CHANGED on status updates.
  * Sends to request room (customer, merchant, rider).
  */
-const emitStatusChanged = (io, requestId, status, metadata = {}) => {
-  const room = getRequestRoom(requestId);
-  io.to(room).emit(REQUEST.STATUS_CHANGED, {
+const emitStatusChanged = (io, requestId, status, metadata = {}, merchantId = null) => {
+  const payload = {
     requestId,
     status,
     timestamp: Date.now(),
     ...metadata,
-  });
-  logger.info('REQUEST.STATUS_CHANGED emitted', { requestId, status });
+  };
+  io.to(getRequestRoom(requestId)).emit(REQUEST.STATUS_CHANGED, payload);
+  // Also fan out to the merchant's room. The merchant dashboard's socket only
+  // joins the merchant room (never per-request rooms), so without this its
+  // order list/detail never sees rider-driven progress (PICKED_UP → IN_TRANSIT
+  // → DELIVERED) and stays frozen at whatever status the merchant last set.
+  if (merchantId) {
+    io.to(getMerchantRoom(merchantId)).emit(REQUEST.STATUS_CHANGED, payload);
+  }
+  logger.info('REQUEST.STATUS_CHANGED emitted', { requestId, status, merchantId: merchantId || undefined });
 };
 
 /**
