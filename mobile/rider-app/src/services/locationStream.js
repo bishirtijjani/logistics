@@ -169,6 +169,35 @@ class LocationStream {
     this._lastEmittedAt = 0;
   }
 
+  /**
+   * One-shot current position, used by `goOnline` to hand the server a real
+   * fix up-front so the rider is dispatchable the instant they go online -
+   * instead of waiting for the first watch callback (which on web can be slow
+   * or, for a stationary rider, the only one that ever fires).
+   *
+   * Deliberately does NOT prompt for permission - it only uses an existing
+   * grant so the permission UX stays owned by `start()`. Returns
+   * `{ lat, lng, accuracy, capturedAt }` or `null`. Never throws.
+   */
+  async getCurrentFix() {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== "granted") return null;
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) return null;
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      if (!pos?.coords) return null;
+      const { latitude, longitude, accuracy } = pos.coords;
+      const now = Date.now();
+      this._lastFix = { lat: latitude, lng: longitude, capturedAt: now };
+      return { lat: latitude, lng: longitude, accuracy: accuracy ?? null, capturedAt: now };
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Internal ────────────────────────────────────────────────────────────
 
   _isBatteryThrottled() {
@@ -194,7 +223,11 @@ class LocationStream {
   }
 
   _distanceInterval() {
-    return this._mode === "on_delivery" ? 10 : 30;
+    // Idle: 0 so the watch fires on the time interval even when the rider is
+    // stationary (waiting for jobs) - a 30 m gate meant a parked rider could
+    // stop emitting entirely and drop out of the dispatch pool. On-delivery
+    // keeps a small distance gate to avoid over-firing while moving.
+    return this._mode === "on_delivery" ? 10 : 0;
   }
 
   _suspendWatch() {

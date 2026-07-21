@@ -19,6 +19,7 @@ const { prisma } = require('../../config/database');
 const mapsService = require('../../services/maps.service');
 const {
   markRiderAvailable,
+  touchRiderHeartbeat,
   removeRiderFromPool,
 } = require('../../services/rider-pool.service');
 
@@ -26,6 +27,16 @@ const {
 // >100m since the last push. Cheap on Maps quota, accurate enough for UI.
 const ETA_MIN_INTERVAL_MS = 30 * 1000;
 const ETA_MIN_DISTANCE_M = 100;
+
+// How often, while a rider's socket is connected AND they intend to be online,
+// the server re-stamps their dispatch heartbeat (and re-asserts their geo
+// position). This is the load-bearing fix for "went online but got no jobs":
+// dispatch presence is driven by the LIVE SOCKET CONNECTION, not by a stream of
+// GPS pings. A stationary idle rider - very common on the web build, where the
+// browser Geolocation API often fires once and then goes quiet - therefore
+// stays in the dispatch pool for as long as their app is open. 30s is well
+// under the 90s heartbeat TTL, so a single missed tick can never evict them.
+const PRESENCE_REFRESH_MS = 30 * 1000;
 
 const haversineMeters = (lat1, lng1, lat2, lng2) => {
   const toRad = (d) => (d * Math.PI) / 180;
@@ -104,24 +115,62 @@ const registerTrackingHandlers = (io, socket) => {
 
   const riderUserId = socket.user.id;
 
-  // Seed the dispatch pool on connect. A rider whose DB availability is ONLINE
-  // but who just (re)connected is not yet in the geo index - the first GPS ping
-  // is still seconds away, and if their app is only reporting intermittently
-  // they might not be indexed at all. If we already hold a fresh last-known
-  // position we add them immediately so the matcher can reach them right away;
-  // otherwise the next ping (or the reconcile sweep) settles it. We deliberately
-  // only seed from a RECENT fix so we never offer jobs at a stale location.
+  // Per-connection presence state.
+  //   _online  - the rider's intent to receive jobs. Seeded from the DB at
+  //              connect, then kept honest by the availability:changed events
+  //              and by any incoming location fix. ON_DELIVERY counts as online
+  //              intent so presence survives a whole trip (the server flips a
+  //              rider ON_DELIVERY -> ONLINE at settle without a client emit).
+  //   _lastPos - the freshest position we hold, so the keep-alive can re-assert
+  //              their geo location without waiting for a new GPS ping.
+  socket._online = false;
+  socket._lastPos = null;
+
+  // Presence keep-alive. While the socket is connected and the rider intends to
+  // be online, re-stamp the heartbeat (and re-assert the geo position if we
+  // have one) on a fixed cadence, independent of GPS pings. This is what keeps
+  // a stationary/idle rider dispatchable. Cleared on disconnect. It is strictly
+  // less frequent than the per-ping GEOADD, so it adds no new exposure for a
+  // busy rider that pings are already re-adding.
+  const presenceTimer = setInterval(() => {
+    if (!socket._online) return;
+    if (socket._lastPos) {
+      markRiderAvailable(riderUserId, socket._lastPos).catch((err) =>
+        logger.warn('presence refresh (geo) failed', { riderUserId, error: err.message }),
+      );
+    } else {
+      touchRiderHeartbeat(riderUserId).catch((err) =>
+        logger.warn('presence refresh (heartbeat) failed', { riderUserId, error: err.message }),
+      );
+    }
+  }, PRESENCE_REFRESH_MS);
+
+  // Seed the dispatch pool on connect. If the rider's DB availability is ONLINE
+  // (or ON_DELIVERY) we make them reachable immediately: mark _online so the
+  // keep-alive runs, and GEOADD their last-known position right away if we have
+  // one - so the matcher can reach them BEFORE their first live ping (critical
+  // on web, where that first ping can be slow or, for a stationary rider, the
+  // only one). We deliberately DROP the old "recent fix only" gate: being
+  // absent from the pool is far worse than a slightly stale position, and the
+  // first ping (or the client's one-shot fix on go-online) corrects it within
+  // seconds.
   (async () => {
     try {
       const rider = await prisma.rider.findUnique({
         where: { userId: riderUserId },
-        select: { availability: true, lastLat: true, lastLng: true, lastLocationAt: true },
+        select: { availability: true, lastLat: true, lastLng: true },
       });
-      if (!rider || rider.availability !== 'ONLINE') return;
-      if (typeof rider.lastLat !== 'number' || typeof rider.lastLng !== 'number') return;
-      const fixAgeMs = rider.lastLocationAt ? Date.now() - new Date(rider.lastLocationAt).getTime() : Infinity;
-      if (fixAgeMs > REDIS_TTL.RIDER_HEARTBEAT * 1000) return;
-      await markRiderAvailable(riderUserId, { lat: rider.lastLat, lng: rider.lastLng });
+      if (!rider || (rider.availability !== 'ONLINE' && rider.availability !== 'ON_DELIVERY')) return;
+      socket._online = true;
+      if (typeof rider.lastLat === 'number' && typeof rider.lastLng === 'number') {
+        socket._lastPos = { lat: rider.lastLat, lng: rider.lastLng };
+        await markRiderAvailable(riderUserId, socket._lastPos);
+      } else {
+        // Online but we have never held a fix for them: keep them alive so the
+        // reconcile sweep doesn't flip them OFFLINE before the app streams its
+        // first position.
+        await touchRiderHeartbeat(riderUserId);
+      }
     } catch (err) {
       logger.warn('Dispatch-pool seed on connect failed', { riderUserId, error: err.message });
     }
@@ -159,6 +208,14 @@ const registerTrackingHandlers = (io, socket) => {
       // The heartbeat is what keeps them dispatchable and what the reconcile
       // sweep checks to decide whether a sticky DB ONLINE flag is still real.
       await markRiderAvailable(riderId, { lat, lng });
+
+      // Feed the presence keep-alive: cache the freshest position, and treat a
+      // live fix as proof of online intent (the app only streams while online /
+      // on-delivery - go-offline stops the stream). This also re-arms the
+      // keep-alive after a trip, when the server flips ON_DELIVERY -> ONLINE
+      // without any client availability emit.
+      socket._lastPos = { lat, lng };
+      socket._online = true;
 
       // Persist the last-known position to the DB too, but throttled - the
       // socket path fires ~every 3s and we don't want a write storm. A recent
@@ -207,14 +264,40 @@ const registerTrackingHandlers = (io, socket) => {
   // after the heartbeat lapses, so a brief reconnect doesn't knock a rider
   // offline in the DB.
   socket.on('disconnect', async () => {
+    clearInterval(presenceTimer);
+    socket._online = false;
     await removeRiderFromPool(riderUserId);
   });
 
-  // Explicit availability:changed channel - riders going offline should
-  // disappear from the index immediately.
+  // Explicit availability:changed channel (client -> server). The rider app
+  // emits `{ availability: 'ONLINE' | 'OFFLINE' }` (see rider-app socket.js).
+  //   OFFLINE -> leave the dispatch pool immediately and stop the keep-alive.
+  //   ONLINE  -> seed the pool right away (coords in the payload if the client
+  //              sent a one-shot fix, otherwise the last position we hold) so
+  //              the rider is dispatchable the instant they toggle on, without
+  //              waiting for the first watch ping.
+  // (`available: false` is also accepted for backwards-compatibility with any
+  // client still on the old boolean contract.)
   socket.on(RIDER.AVAILABILITY_CHANGED, async (data) => {
-    if (data?.available === false) {
+    const goingOffline = data?.availability === 'OFFLINE' || data?.available === false;
+    const goingOnline = data?.availability === 'ONLINE' || data?.available === true;
+
+    if (goingOffline) {
+      socket._online = false;
       await removeRiderFromPool(riderUserId);
+      return;
+    }
+
+    if (goingOnline) {
+      socket._online = true;
+      if (typeof data?.lat === 'number' && typeof data?.lng === 'number') {
+        socket._lastPos = { lat: data.lat, lng: data.lng };
+      }
+      if (socket._lastPos) {
+        await markRiderAvailable(riderUserId, socket._lastPos);
+      } else {
+        await touchRiderHeartbeat(riderUserId);
+      }
     }
   });
 };

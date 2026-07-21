@@ -25,7 +25,12 @@ const getProfile = async (req, res, next) => {
 
 const updateAvailability = async (req, res, next) => {
   try {
-    const result = await riderService.updateAvailability(req.user.id, req.body.availability);
+    const { availability, lat, lng } = req.body;
+    // The client may attach a one-shot GPS fix when going online so the server
+    // can put the rider in the dispatch pool immediately (see rider.service).
+    const coords =
+      typeof lat === 'number' && typeof lng === 'number' ? { lat, lng } : undefined;
+    const result = await riderService.updateAvailability(req.user.id, availability, coords);
     res.json(ApiResponse.success('Availability updated', result));
   } catch (error) {
     next(error);

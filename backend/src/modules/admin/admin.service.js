@@ -3222,10 +3222,15 @@ const forceOfflineRider = async (riderId, reason, adminUserId, ipAddress, userAg
   });
 
   // Clear presence cache + geo index so the next ring won't include them.
+  // NB: the geo index, heartbeat, and the socket-written location mirror are all
+  // keyed by USER id (the dispatch identity) - the previous zrem used riderId
+  // and so never actually removed the rider from the pool.
   try {
     await redis.del(`${REDIS_KEYS.RIDER_AVAILABILITY}${riderId}`);
     await redis.del(`${REDIS_KEYS.RIDER_LOCATION}${riderId}`);
-    await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, riderId);
+    await redis.del(`${REDIS_KEYS.RIDER_LOCATION}${rider.userId}`);
+    await redis.del(`${REDIS_KEYS.RIDER_HEARTBEAT}${rider.userId}`);
+    await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, rider.userId);
   } catch (err) {
     logger.warn('force-offline cache clear failed (non-fatal)', { riderId, error: err.message });
   }

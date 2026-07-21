@@ -155,9 +155,14 @@ class SocketService {
 
   // --- Emit helpers (client → server) ---
 
-  emitAvailabilityChanged(availability) {
+  emitAvailabilityChanged(availability, coords) {
     if (!this.socket?.connected) return;
-    this.socket.emit("rider:availability:changed", { availability });
+    const payload = { availability };
+    if (coords && typeof coords.lat === "number" && typeof coords.lng === "number") {
+      payload.lat = coords.lat;
+      payload.lng = coords.lng;
+    }
+    this.socket.emit("rider:availability:changed", payload);
   }
 
   emitLocationUpdate({ lat, lng, requestId }) {

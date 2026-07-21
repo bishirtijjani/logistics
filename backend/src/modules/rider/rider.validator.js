@@ -38,6 +38,10 @@ const riderRegistrationSchema = z.object({
 
 const updateAvailabilitySchema = z.object({
   availability: z.enum(['ONLINE', 'OFFLINE']),
+  // Optional one-shot GPS fix sent with go-online so the server can seed the
+  // dispatch pool immediately (see rider.controller / rider.service).
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
 });
 
 // A single GPS fix. `capturedAt`/`requestId` are optional metadata the rider

@@ -31,8 +31,13 @@ export const fetchRiderProfile = createAsyncThunk(
  * Internal raw API call. The user-facing `goOnline`/`goOffline` thunks below
  * wrap this with permission requests + location stream lifecycle.
  */
-const patchAvailability = async (availability) => {
-  const envelope = await api.patch('/rider/availability', { availability });
+const patchAvailability = async (availability, coords) => {
+  const body = { availability };
+  if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
+    body.lat = coords.lat;
+    body.lng = coords.lng;
+  }
+  const envelope = await api.patch('/rider/availability', body);
   return envelope?.data || { availability };
 };
 
@@ -41,24 +46,37 @@ const patchAvailability = async (availability) => {
  * right recovery flow.
  *
  * Steps:
- *   1. Request foreground location permission.
- *   2. Verify device location services are enabled.
- *   3. PATCH /rider/availability ONLINE.
- *   4. Start the foreground location stream (idle cadence).
- *   5. Emit `rider:availability:changed` so the server can reconcile.
+ *   1. Grab a one-shot GPS fix (uses an existing permission grant only).
+ *   2. PATCH /rider/availability ONLINE *with that fix* so the server can put
+ *      the rider in the dispatch pool immediately - not at the first watch ping.
+ *   3. Start the foreground location stream (idle cadence). This owns the
+ *      permission/services prompt; a denial here rolls the server back to OFFLINE.
+ *   4. Emit `rider:availability:changed` (with coords) so the server also seeds
+ *      the pool over the socket, covering a socket that connected after the PATCH.
  */
 export const goOnline = createAsyncThunk(
   'rider/goOnline',
   async (_, { dispatch, getState, rejectWithValue }) => {
-    // Step 3: tell the server first. If this fails, we never start the
-    // stream - the rider stays cleanly OFFLINE with an actionable error.
+    // Step 1: best-effort one-shot fix. Never blocks go-online; if we have no
+    // grant yet it returns null and step 3's stream will prompt + stream.
+    let coords;
     try {
-      await patchAvailability(AVAILABILITY.ONLINE);
+      const fix = await locationStream.getCurrentFix();
+      if (fix && typeof fix.lat === 'number' && typeof fix.lng === 'number') {
+        coords = { lat: fix.lat, lng: fix.lng };
+        dispatch(setLastFix(fix));
+      }
+    } catch (_) {}
+
+    // Step 2: tell the server (with the fresh fix if we got one). If this
+    // fails, we never start the stream - the rider stays cleanly OFFLINE.
+    try {
+      await patchAvailability(AVAILABILITY.ONLINE, coords);
     } catch (err) {
       return rejectWithValue({ reason: 'patch_failed', message: err?.message });
     }
 
-    // Steps 1+2+4: start the stream. The stream handles permission asks.
+    // Step 3: start the stream. The stream handles permission asks.
     const streamRes = await locationStream.start({
       mode: 'idle',
       onFix: (fix) => dispatch(setLastFix(fix)),
@@ -71,8 +89,9 @@ export const goOnline = createAsyncThunk(
       return rejectWithValue({ reason: streamRes.reason });
     }
 
-    // Step 5: socket reconcile.
-    socketService.emitAvailabilityChanged(AVAILABILITY.ONLINE);
+    // Step 4: socket reconcile (with coords) - redundant with the PATCH seed
+    // but covers a socket that connected after the PATCH landed.
+    socketService.emitAvailabilityChanged(AVAILABILITY.ONLINE, coords);
 
     return { availability: AVAILABILITY.ONLINE };
   },

@@ -144,7 +144,7 @@ const getProfile = async (userId) => {
  * Toggle rider availability (ONLINE / OFFLINE).
  * Updates both database and Redis cache.
  */
-const updateAvailability = async (userId, availability) => {
+const updateAvailability = async (userId, availability, coords) => {
   const rider = await prisma.rider.findUnique({ where: { userId } });
   if (!rider) throw AppError.notFound('Rider not found');
   if (rider.status !== 'APPROVED') throw AppError.forbidden('Rider not approved');
@@ -153,9 +153,19 @@ const updateAvailability = async (userId, availability) => {
     throw AppError.badRequest('Cannot change availability during active delivery');
   }
 
+  const freshFix =
+    coords && typeof coords.lat === 'number' && typeof coords.lng === 'number'
+      ? { lat: coords.lat, lng: coords.lng }
+      : null;
+
   await prisma.rider.update({
     where: { id: rider.id },
-    data: { availability },
+    // Persist the one-shot fix the client sent with go-online, so a later
+    // reconnect can re-seed the dispatch pool from it too.
+    data: {
+      availability,
+      ...(freshFix ? { lastLat: freshFix.lat, lastLng: freshFix.lng, lastLocationAt: new Date() } : {}),
+    },
   });
 
   // Update Redis cache
@@ -163,18 +173,21 @@ const updateAvailability = async (userId, availability) => {
   if (availability === 'ONLINE') {
     await redis.set(redisKey, 'ONLINE', 'EX', REDIS_TTL.RIDER_AVAILABILITY);
 
-    // Reconcile the dispatch pool with the flag. If we hold a fresh fix, add
-    // the rider to the geo index immediately so they're dispatchable without
-    // waiting for the first GPS ping. Either way stamp a heartbeat so the
-    // reconcile sweep grants a grace window and doesn't instantly flip this
-    // brand-new ONLINE back to OFFLINE before the app starts streaming.
-    const fixAgeMs = rider.lastLocationAt ? Date.now() - new Date(rider.lastLocationAt).getTime() : Infinity;
-    if (
-      typeof rider.lastLat === 'number' &&
-      typeof rider.lastLng === 'number' &&
-      fixAgeMs <= REDIS_TTL.RIDER_HEARTBEAT * 1000
-    ) {
-      await markRiderAvailable(userId, { lat: rider.lastLat, lng: rider.lastLng });
+    // Make the rider dispatchable immediately, without waiting for the first
+    // GPS ping. Prefer the fresh one-shot fix the client sent with go-online;
+    // otherwise fall back to the last-known position we hold. Only if we have
+    // no position at all do we settle for a bare heartbeat - which still buys a
+    // grace window so the reconcile sweep won't flip this brand-new ONLINE back
+    // to OFFLINE before the app streams its first fix. NB: we intentionally no
+    // longer gate the last-known fallback on freshness - being absent from the
+    // pool is worse than a slightly stale seed, which the first ping corrects.
+    const seed =
+      freshFix ||
+      (typeof rider.lastLat === 'number' && typeof rider.lastLng === 'number'
+        ? { lat: rider.lastLat, lng: rider.lastLng }
+        : null);
+    if (seed) {
+      await markRiderAvailable(userId, seed);
     } else {
       await touchRiderHeartbeat(userId);
     }
