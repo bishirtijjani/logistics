@@ -350,9 +350,12 @@ const acceptJob = async (userId, requestId) => {
     emitStatusChanged(io, requestId, 'RIDER_ASSIGNED');
     emitRiderAssigned(io, requestId, result.customerId, {
       id: result.rider?.id,
-      name: `${result.rider?.user?.firstName || ''} ${result.rider?.user?.lastName || ''}`.trim(),
-      phone: result.rider?.user?.phone,
-      vehicle: result.rider?.vehicleType,
+      user: {
+        firstName: result.rider?.user?.firstName,
+        lastName: result.rider?.user?.lastName,
+        phone: result.rider?.user?.phone,
+      },
+      vehicleType: result.rider?.vehicleType,
       plateNumber: result.rider?.plateNumber,
     });
   } catch (err) {

@@ -871,9 +871,8 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
     const r = updated.rider;
     emitRiderAssigned(io, requestId, request.customerId, {
       id: r.id,
-      name: `${r.user.firstName || ''} ${r.user.lastName || ''}`.trim(),
-      phone: r.user.phone,
-      vehicle: r.vehicleType,
+      user: { firstName: r.user.firstName, lastName: r.user.lastName, phone: r.user.phone },
+      vehicleType: r.vehicleType,
       plateNumber: r.plateNumber,
     });
   }

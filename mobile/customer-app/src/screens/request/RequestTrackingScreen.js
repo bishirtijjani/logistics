@@ -719,7 +719,7 @@ const RequestTrackingScreen = () => {
         )}
 
         {/* Rider */}
-        {currentRequest.rider && (
+        {currentRequest.rider?.user && (
           <View style={{ marginBottom: 24 }}>
             <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.rider')}
@@ -750,7 +750,7 @@ const RequestTrackingScreen = () => {
         )}
 
         {/* Live map with polyline */}
-        {currentRequest.rider && riderLocation && (
+        {currentRequest.rider?.user && riderLocation && (
           <View style={{ marginBottom: 24 }}>
             <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.liveTracking')}
