@@ -317,6 +317,7 @@
       "couldntShare": "Couldn't share receipt",
       "refCopied": "Reference copied",
       "repeat": "Repeat this transaction",
+      "orderPaymentDescription": "Payment for your order",
       "labels": {
         "WALLET_FUNDING": "Wallet Funding",
         "P2P_TRANSFER_SENT": "Transfer Sent",
@@ -325,7 +326,7 @@
         "DELIVERY_PAYMENT": "Delivery Payment",
         "UTILITY_PAYMENT": "Utility Payment",
         "REFUND": "Refund",
-        "ESCROW_HOLD": "Payment (Hold)",
+        "ESCROW_HOLD": "Order Payment",
         "ESCROW_RELEASE": "Order Settled",
         "ESCROW_REFUND": "Refund (Released)",
         "PLATFORM_EARNING": "Platform Earning",
@@ -414,7 +415,7 @@
       "DELIVERY_PAYMENT": "Delivery payment",
       "UTILITY_PAYMENT": "Utility payment",
       "REFUND": "Refund",
-      "ESCROW_HOLD": "Escrow hold",
+      "ESCROW_HOLD": "Order Payment",
       "ESCROW_REFUND": "Escrow refund",
       "DELIVERY_EARNING": "Delivery earning",
       "RIDER_EARNING": "Rider earning"

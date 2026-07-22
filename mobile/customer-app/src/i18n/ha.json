@@ -321,6 +321,7 @@
       "couldntShare": "Ba a iya raba rasit ba",
       "refCopied": "An kwafa lamba",
       "repeat": "Maimaita wannan mu'amalla",
+      "orderPaymentDescription": "Biya don odar ku",
       "labels": {
         "WALLET_FUNDING": "Ƙarin walat",
         "P2P_TRANSFER_SENT": "An aika canja wuri",
@@ -329,7 +330,7 @@
         "DELIVERY_PAYMENT": "Biyan isar",
         "UTILITY_PAYMENT": "Biyan sabis",
         "REFUND": "Mayar da kuɗi",
-        "ESCROW_HOLD": "Biya (Riƙe)",
+        "ESCROW_HOLD": "Biyan Oda",
         "ESCROW_RELEASE": "An gama oda",
         "ESCROW_REFUND": "Mayar da kuɗi (Sallama)",
         "PLATFORM_EARNING": "Ribar dandali",
@@ -417,7 +418,7 @@
       "DELIVERY_PAYMENT": "Biyan isar",
       "UTILITY_PAYMENT": "Biyan sabis",
       "REFUND": "Mayar da kuɗi",
-      "ESCROW_HOLD": "Riƙe Escrow",
+      "ESCROW_HOLD": "Biyan Oda",
       "ESCROW_REFUND": "Mayar da Escrow",
       "DELIVERY_EARNING": "Riba ta isar",
       "RIDER_EARNING": "Ribar rider"

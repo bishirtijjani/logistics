@@ -118,6 +118,14 @@ export default function ReceiptScreen({ navigation, route }) {
   const statusColor = STATUS_COLOR[transaction.status] || tokens.text.muted;
   const repeatTarget = getRepeatTarget(transaction);
 
+  // An order payment is stored as an ESCROW_HOLD whose raw description
+  // ("Escrow hold for request <id>") is internal plumbing. Customers should see
+  // a plain payment line, not the escrow mechanics. Other tx types keep their
+  // own (already customer-friendly) description.
+  const displayDescription = transaction.type === "ESCROW_HOLD"
+    ? t("wallet.receipt.orderPaymentDescription")
+    : transaction.description;
+
   const formatDateTime = (d) => {
     const tag = i18n.language === "ha" ? "ha-NG" : "en-NG";
     return new Date(d).toLocaleString(tag, {
@@ -238,7 +246,7 @@ export default function ReceiptScreen({ navigation, route }) {
 
           <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 4, marginBottom: 20 }}>
             <Row label={t("wallet.receipt.reference")} value={transaction.reference} mono />
-            {transaction.description ? <Row label={t("wallet.receipt.description")} value={transaction.description} /> : null}
+            {displayDescription ? <Row label={t("wallet.receipt.description")} value={displayDescription} /> : null}
             {transaction.balanceBefore !== undefined && transaction.balanceBefore !== null ? (
               <Row label={t("wallet.receipt.balanceBefore")} value={formatNaira(transaction.balanceBefore)} />
             ) : null}
