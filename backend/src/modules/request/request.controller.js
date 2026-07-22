@@ -32,13 +32,14 @@ const getRequests = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const role = req.user.role;
-    const { type, status, categoryId, categorySlug, page, limit } = req.query;
+    const { type, status, categoryId, categorySlug, scope, page, limit } = req.query;
 
     const result = await requestService.getRequests(userId, role, {
       type,
       status,
       categoryId,
       categorySlug,
+      scope,
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
     });

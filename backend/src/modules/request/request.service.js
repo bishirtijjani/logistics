@@ -930,7 +930,7 @@ const updateStatus = async (requestId, newStatus, userId, role, payload = {}) =>
 // Get Requests
 // ============================================================
 
-const getRequests = async (userId, role, { page, limit, type, status, categoryId, categorySlug }) => {
+const getRequests = async (userId, role, { page, limit, type, status, categoryId, categorySlug, scope }) => {
   const statuses = status ? status.split(',').map((s) => s.trim()).filter(Boolean) : null;
   // Ownership scope. customerId genuinely IS a User.id, so it filters on the
   // JWT id directly. riderId/merchantId are Rider.id/Merchant.id - different
@@ -940,13 +940,19 @@ const getRequests = async (userId, role, { page, limit, type, status, categoryId
   // filters below both live on the `merchant` relation, so they go in an AND
   // array rather than a single object literal where the later `merchant` key
   // would clobber the ownership filter and leak other merchants' requests.
+  //
+  // `scope` (customer|rider|merchant) lets one account act under a specific
+  // lens regardless of its primary JWT role: the customer app always requests
+  // `customer`, so a RIDER/MERCHANT account browsing the customer app sees the
+  // orders it BOUGHT, not the jobs it delivered/fulfilled. Defaults to `role`.
+  const ownership = (scope ? scope.toUpperCase() : role);
   const where = {
     ...(type && { type }),
     ...(statuses && statuses.length > 0 && { status: { in: statuses } }),
     AND: [
-      ...(role === 'CUSTOMER' ? [{ customerId: userId }] : []),
-      ...(role === 'RIDER' ? [{ rider: { is: { userId } } }] : []),
-      ...(role === 'MERCHANT' ? [{ merchant: { is: { userId } } }] : []),
+      ...(ownership === 'CUSTOMER' ? [{ customerId: userId }] : []),
+      ...(ownership === 'RIDER' ? [{ rider: { is: { userId } } }] : []),
+      ...(ownership === 'MERCHANT' ? [{ merchant: { is: { userId } } }] : []),
       ...(categoryId ? [{ merchant: { is: { categoryId } } }] : []),
       ...(categorySlug ? [{ merchant: { is: { category: { is: { slug: categorySlug } } } } }] : []),
     ],

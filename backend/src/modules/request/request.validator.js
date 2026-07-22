@@ -152,6 +152,10 @@ const podOtpGenerateSchema = z.object({}).passthrough();
 const listRequestsSchema = z.object({
   type: z.enum(REQUEST_TYPES).optional(),
   status: z.string().optional(), // comma-separated statuses allowed
+  // Which ownership lens to list under. Defaults to the caller's JWT role.
+  // The customer app always passes `customer` so a rider/merchant account
+  // sees the orders it *bought*, never the jobs it delivered/fulfilled.
+  scope: z.enum(['customer', 'rider', 'merchant']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

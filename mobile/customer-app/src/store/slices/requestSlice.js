@@ -39,6 +39,10 @@ export const fetchRequests = createAsyncThunk(
       const params = new URLSearchParams();
       if (type) params.append('type', type);
       if (status) params.append('status', status);
+      // Always list as a customer: this app shows orders the user BOUGHT. Without
+      // this, a rider/merchant account (same login) would get its deliveries /
+      // fulfilments back and see a customer-only "Rate" action it can't use.
+      params.append('scope', 'customer');
       params.append('page', page);
       params.append('limit', limit);
 

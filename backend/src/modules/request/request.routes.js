@@ -61,17 +61,22 @@ router.post('/:requestId/messages', idempotency, validate(postMessageSchema), re
 // Customer endpoints
 // ============================================================
 
-// Create a new request (any type) - 30/hour per user cap (Phase 10 abuse mitigation)
-router.post('/', authorize('CUSTOMER'), requestCreationLimiter, idempotency, validate(createRequestSchema), requestController.createRequest);
+// Create a new request (any type) - 30/hour per user cap (Phase 10 abuse mitigation).
+// CUSTOMER or RIDER: one account can both deliver and shop; the buyer becomes
+// req.user.id, so a rider placing an order owns it as its customer.
+router.post('/', authorize('CUSTOMER', 'RIDER'), requestCreationLimiter, idempotency, validate(createRequestSchema), requestController.createRequest);
 
-// Cancellation quote - preview the fee/refund before the customer confirms.
-router.get('/:requestId/cancel-quote', authorize('CUSTOMER'), requestController.getCancellationQuote);
+// Cancellation quote - preview the fee/refund before the buyer confirms.
+router.get('/:requestId/cancel-quote', authorize('CUSTOMER', 'RIDER'), requestController.getCancellationQuote);
 
-// Cancel request (customer only, before pickup) - fee policy applied server-side.
-router.delete('/:requestId', authorize('CUSTOMER'), validate(cancelRequestSchema), requestController.cancelRequest);
+// Cancel request (buyer only, before pickup) - fee policy applied server-side.
+// Service enforces request.customerId === userId, so a rider can only cancel
+// orders it placed, never a job it is delivering.
+router.delete('/:requestId', authorize('CUSTOMER', 'RIDER'), validate(cancelRequestSchema), requestController.cancelRequest);
 
-// Rate completed request (customer only)
-router.post('/:requestId/rate', authorize('CUSTOMER'), validate(rateRequestSchema), requestController.rateRequest);
+// Rate completed request (buyer only) - service enforces request.customerId ===
+// userId, so a rider can rate orders it bought but never a job it delivered.
+router.post('/:requestId/rate', authorize('CUSTOMER', 'RIDER'), validate(rateRequestSchema), requestController.rateRequest);
 
 // ============================================================
 // Merchant endpoints
