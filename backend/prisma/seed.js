@@ -89,7 +89,10 @@ async function main() {
       status: 'ACTIVE',
       wallet: {
         create: {
-          balance: 15000,
+          // Start at 0: seeded balances never pass through the wallet ledger, so
+          // any non-zero value here is un-ledgered "phantom money" in the live DB.
+          // Fund test accounts through the real funding flow when a balance is needed.
+          balance: 0,
           virtualAccountNumber: '8098765432',
           virtualAccountBank: 'Wema Bank',
           virtualAccountName: 'VTU-Test Rider',
@@ -110,7 +113,7 @@ async function main() {
     },
   });
 
-  console.log(`✅ Test rider created: ${riderUser.email} (approved, balance: ₦15,000)`);
+  console.log(`✅ Test rider created: ${riderUser.email} (approved, balance: ₦0)`);
 
   // Seed default merchant categories (idempotent - admin can add more from the dashboard).
   // Each category carries an attributeSchema - a UX hint that tells the merchant
@@ -187,7 +190,7 @@ async function main() {
       status: 'ACTIVE',
       wallet: {
         create: {
-          balance: 25000,
+          balance: 0, // seed no phantom money; fund via the real flow if needed
           virtualAccountNumber: '8055556666',
           virtualAccountBank: 'Wema Bank',
           virtualAccountName: 'VTU-Test Merchant',
@@ -214,7 +217,7 @@ async function main() {
     },
   });
 
-  console.log(`✅ Test merchant created: ${merchantUser.email} (approved, balance: ₦25,000)`);
+  console.log(`✅ Test merchant created: ${merchantUser.email} (approved, balance: ₦0)`);
 
   // ─── Sample products on the test merchant ───────────────────────────────────
   // Demonstrates the three patterns the customer + merchant apps must handle:
@@ -363,7 +366,7 @@ async function main() {
       status: 'ACTIVE',
       wallet: {
         create: {
-          balance: 10000,
+          balance: 0, // seed no phantom money; fund via the real flow if needed
           virtualAccountNumber: '8077778888',
           virtualAccountBank: 'Wema Bank',
           virtualAccountName: 'VTU-Sahel Pharmacy',
@@ -454,7 +457,7 @@ async function main() {
       status: 'ACTIVE',
       wallet: {
         create: {
-          balance: 10000,
+          balance: 0, // seed no phantom money; fund via the real flow if needed
           virtualAccountNumber: '8099990000',
           virtualAccountBank: 'Wema Bank',
           virtualAccountName: 'VTU-Katsina Mart',

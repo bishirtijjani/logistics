@@ -825,6 +825,19 @@ const resolveBilalsadaBalance = async () => {
 /**
  * Get platform dashboard stats.
  */
+// Test/demo/review accounts (see prisma/seed.js) are created with seeded,
+// un-ledgered wallet balances. Excluding them keeps every money figure a
+// reflection of real user float, not phantom seed money. Matches `*@test.com`
+// and any `*.review@...` login (e.g. the Play-Store review rider).
+const NOT_TEST_USER = {
+  NOT: [{ email: { endsWith: '@test.com' } }, { email: { contains: '.review@' } }],
+};
+const walletFloatFor = (role) =>
+  prisma.wallet.aggregate({
+    where: { user: { role, deletedAt: null, ...NOT_TEST_USER } },
+    _sum: { balance: true },
+  });
+
 const getDashboardStats = async () => {
   const [
     totalUsers,
@@ -833,7 +846,9 @@ const getDashboardStats = async () => {
     totalRequests,
     activeRequests,
     platformRevenue,
-    customerWalletBalance,
+    customerWalletAgg,
+    merchantWalletAgg,
+    riderWalletAgg,
     bilalsadaWalletBalance,
   ] = await Promise.all([
     prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
@@ -851,18 +866,23 @@ const getDashboardStats = async () => {
       where: { status: 'COMPLETED', type: 'PLATFORM_EARNING' },
       _sum: { amount: true },
     }),
-    // Money customers are holding. Scoped to CUSTOMER wallets: riders and
-    // merchants share the same unified wallet table but carry their accumulated
-    // earnings, which would dwarf the customer float. System/escrow balances live
-    // in a separate `systemWallet` table and are correctly excluded here.
-    prisma.wallet.aggregate({
-      where: { user: { role: 'CUSTOMER', deletedAt: null } },
-      _sum: { balance: true },
-    }),
+    // Real user float held in the unified wallet table, broken out per role.
+    // Customers, riders and merchants are reported separately (rider/merchant
+    // earnings would otherwise dwarf the customer float) then combined for a
+    // headline total. System/escrow balances live in the separate `systemWallet`
+    // table and are correctly excluded here.
+    walletFloatFor('CUSTOMER'),
+    walletFloatFor('MERCHANT'),
+    walletFloatFor('RIDER'),
     // Our BilalSada VTU float - cached from live transactions, with a stale
     // fallback to a direct provider read (see resolveBilalsadaBalance).
     resolveBilalsadaBalance(),
   ]);
+
+  const customerWallet = Number(customerWalletAgg._sum.balance || 0);
+  const merchantWallet = Number(merchantWalletAgg._sum.balance || 0);
+  const riderWallet = Number(riderWalletAgg._sum.balance || 0);
+  const totalUserWalletBalance = customerWallet + merchantWallet + riderWallet;
 
   return {
     totalUsers,
@@ -871,7 +891,15 @@ const getDashboardStats = async () => {
     totalRequests,
     activeRequests,
     totalRevenue: Number(platformRevenue._sum.amount || 0),
-    totalUserWalletBalance: Number(customerWalletBalance._sum.balance || 0),
+    walletBalances: {
+      customer: customerWallet,
+      merchant: merchantWallet,
+      rider: riderWallet,
+      total: totalUserWalletBalance,
+    },
+    // Combined real float. Kept as a flat field for backward compatibility;
+    // the per-role split lives in `walletBalances`.
+    totalUserWalletBalance,
     bilalsadaWalletBalance,
   };
 };

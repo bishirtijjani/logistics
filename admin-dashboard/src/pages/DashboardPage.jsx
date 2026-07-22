@@ -33,15 +33,38 @@ export default function DashboardPage() {
     color: isDark ? '#F9FAFB' : '#09090b',
   }
 
+  // Keep the wallet totals (and every other stat) current without a manual
+  // reload: poll every 15s, and refetch the moment the tab regains focus so an
+  // admin coming back to the window sees live figures immediately.
   useEffect(() => {
     dispatch(fetchDashboardStats())
+    const interval = setInterval(() => dispatch(fetchDashboardStats()), 15000)
+    const refetchIfVisible = () => {
+      if (!document.hidden) dispatch(fetchDashboardStats())
+    }
+    window.addEventListener('focus', refetchIfVisible)
+    document.addEventListener('visibilitychange', refetchIfVisible)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', refetchIfVisible)
+      document.removeEventListener('visibilitychange', refetchIfVisible)
+    }
   }, [dispatch])
 
   const statCards = [
     { title: 'Total Requests', value: stats?.totalRequests || 0, icon: Package },
     { title: 'Active Requests', value: stats?.activeRequests || 0, icon: TrendingUp },
     { title: 'Total Revenue', value: `₦${(stats?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign },
-    { title: 'Total Users Wallet', value: `₦${(stats?.totalUserWalletBalance || 0).toLocaleString()}`, icon: Wallet },
+    {
+      title: 'Total User Float',
+      value: `₦${(stats?.walletBalances?.total ?? stats?.totalUserWalletBalance ?? 0).toLocaleString()}`,
+      icon: Wallet,
+      breakdown: [
+        { label: 'Customers', amount: stats?.walletBalances?.customer || 0 },
+        { label: 'Merchants', amount: stats?.walletBalances?.merchant || 0 },
+        { label: 'Riders', amount: stats?.walletBalances?.rider || 0 },
+      ],
+    },
     {
       title: 'BilalSada Wallet',
       value: stats?.bilalsadaWalletBalance != null
@@ -76,7 +99,7 @@ export default function DashboardPage() {
     <div>
       <h1 className="text-xl sm:text-2xl font-bold text-text dark:text-dark-text mb-6">Dashboard</h1>
 
-      {loading ? (
+      {loading && !stats ? (
         <div className="text-center py-12 text-muted dark:text-dark-muted">Loading dashboard...</div>
       ) : (
         <>
@@ -94,6 +117,16 @@ export default function DashboardPage() {
                       <Icon size={24} className="text-primary" />
                     </div>
                   </div>
+                  {card.breakdown && (
+                    <div className="mt-4 pt-3 border-t border-surface-muted dark:border-dark-surface-muted grid grid-cols-3 gap-2">
+                      {card.breakdown.map((b) => (
+                        <div key={b.label}>
+                          <p className="text-xs text-muted dark:text-dark-muted">{b.label}</p>
+                          <p className="text-sm font-semibold text-text dark:text-dark-text">₦{Number(b.amount).toLocaleString()}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}
