@@ -18,7 +18,7 @@
  */
 
 import socketService from "./socket";
-import { goOffline, fetchRiderProfile } from "../store/slices/riderSlice";
+import { goOffline, fetchRiderProfile, reconcileFromServer } from "../store/slices/riderSlice";
 import { offerEnqueued, offerTaken } from "../store/slices/offersSlice";
 import {
   tripStatusReceivedFromSocket,
@@ -49,6 +49,30 @@ export const subscribeSocketToStore = (dispatch, { notificationReceived }) => {
     try { u(); } catch (_) {}
   }
   lastUnsubscribers = [];
+
+  // Re-assert rider presence on socket RECONNECT. The app already reconciles on
+  // AppState foreground (AppNavigator), but a socket that drops and auto-
+  // reconnects while the app stays foregrounded - a network blip, or a ping
+  // timeout when the web PWA tab backgrounds - never re-asserted "online". The
+  // server, having cleared the rider's heartbeat on that disconnect, then left
+  // them OFFLINE until they manually re-tapped Go Online (the recurring rider
+  // complaint). Firing reconcileFromServer on reconnect closes that gap. It is
+  // intent-gated: reconcileFromServer only re-emits ONLINE when local
+  // availability is ONLINE, so a rider who deliberately went offline stays
+  // offline. The very first connect is skipped - cold start is handled by the
+  // normal bootstrap - so this only reacts to genuine reconnects.
+  let socketHasConnected = false;
+  lastUnsubscribers.push(
+    socketService.onConnectionStateChange((state) => {
+      const connected = state === true || state === "connected";
+      if (!connected) return;
+      if (!socketHasConnected) {
+        socketHasConnected = true;
+        return;
+      }
+      dispatch(reconcileFromServer()).catch?.(() => {});
+    }),
+  );
 
   // notification:new - generic notifications + the force-offline kill switch
   // + Phase 7 rider lifecycle events that need to refresh the profile gate.

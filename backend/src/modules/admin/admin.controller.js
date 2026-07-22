@@ -267,6 +267,15 @@ const getRiderById = async (req, res, next) => {
   }
 };
 
+const getRiderLiveLocation = async (req, res, next) => {
+  try {
+    const location = await adminService.getRiderLiveLocation(req.params.riderId);
+    res.json(ApiResponse.success('Rider location', location));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getRiderTransactions = async (req, res, next) => {
   try {
     const { transactions, total, page, limit } = await adminService.getRiderTransactions(
@@ -1191,6 +1200,7 @@ module.exports = {
   setMerchantTags,
   getAllRiders,
   getRiderById,
+  getRiderLiveLocation,
   getRiderStats,
   suspendRider,
   unsuspendRider,

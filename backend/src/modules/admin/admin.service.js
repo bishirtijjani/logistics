@@ -23,6 +23,7 @@ const { REQUEST_JOBS } = require('../../queues/jobs');
 const { getIO } = require('../../sockets');
 const { REQUEST, getRequestRoom, getUserRoom } = require('../../sockets/events');
 const notifyService = require('../../services/notify.service');
+const mapsService = require('../../services/maps.service');
 
 /**
  * List all riders pending approval.
@@ -2093,9 +2094,51 @@ const deleteCategory = async (categoryId, adminUserId, ipAddress, userAgent) => 
 /**
  * List all riders with filtering.
  */
+// Parse a JSON rider-location payload from Redis; null when absent/malformed.
+const parseRiderPos = (raw) => {
+  if (!raw) return null;
+  try {
+    const pos = JSON.parse(raw);
+    return typeof pos.lat === 'number' && typeof pos.lng === 'number' ? pos : null;
+  } catch (_) {
+    return null;
+  }
+};
+
+// The socket handler keys the live position by USER id; the REST fallback keys
+// by RIDER id. Take whichever is fresher.
+const pickFreshestPos = (rawA, rawB) => {
+  const a = parseRiderPos(rawA);
+  const b = parseRiderPos(rawB);
+  if (a && b) return (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b;
+  return a || b;
+};
+
+/**
+ * Overlay live dispatch presence onto rider rows. "Live online" = the rider's
+ * heartbeat key (userId-keyed, 90s TTL, refreshed by the socket keep-alive)
+ * still exists - the same signal the reconcile sweep trusts. The DB
+ * `availability` flag is sticky and can lag the reconcile sweep by up to a
+ * couple of minutes, so the admin console must not read online/offline from it
+ * alone. Adds a boolean `liveOnline` to each row; leaves everything else intact.
+ */
+const withLiveOnline = async (riders) => {
+  if (!riders || riders.length === 0) return riders || [];
+  const keys = riders.map((r) => `${REDIS_KEYS.RIDER_HEARTBEAT}${r.userId}`);
+  let values;
+  try {
+    values = await redis.mget(keys);
+  } catch (err) {
+    logger.warn('rider live-presence overlay failed', { error: err.message });
+    values = keys.map(() => null);
+  }
+  return riders.map((r, i) => ({ ...r, liveOnline: values[i] != null }));
+};
+
 const getAllRiders = async ({ page = 1, limit = 20, status, availability, search }) => {
-  // Each search term must match somewhere on the rider's user (name or phone),
-  // so multi-word queries like "john doe" match across firstName + lastName.
+  // Each search term must match somewhere on the rider's user (name, phone or
+  // email), so multi-word queries like "john doe" match across firstName +
+  // lastName, and an email query resolves a rider by their login address.
   const terms = (search || '').split(/\s+/).filter(Boolean);
   const where = {
     ...(status && { status }),
@@ -2107,6 +2150,7 @@ const getAllRiders = async ({ page = 1, limit = 20, status, availability, search
             { firstName: { contains: t, mode: 'insensitive' } },
             { lastName: { contains: t, mode: 'insensitive' } },
             { phone: { contains: t, mode: 'insensitive' } },
+            { email: { contains: t, mode: 'insensitive' } },
           ],
         })),
       },
@@ -2133,7 +2177,7 @@ const getAllRiders = async ({ page = 1, limit = 20, status, availability, search
     prisma.rider.count({ where }),
   ]);
 
-  return { riders, total, page, limit };
+  return { riders: await withLiveOnline(riders), total, page, limit };
 };
 
 /**
@@ -2182,13 +2226,28 @@ const getRiderStats = async () => {
   ]);
   const statusCount = (s) => byStatus.find((r) => r.status === s)?._count._all || 0;
   const availCount = (a) => byAvailability.find((r) => r.availability === a)?._count._all || 0;
+
+  // "Online now" must reflect live heartbeats, not the sticky DB flag (which
+  // lags the reconcile sweep). Count approved riders that still hold a
+  // heartbeat - consistent with the per-row `liveOnline` badges in the list.
+  const approved = await prisma.rider.findMany({ where: { status: 'APPROVED' }, select: { userId: true } });
+  let onlineNow = availCount('ONLINE'); // DB fallback if Redis is unreachable
+  if (approved.length > 0) {
+    try {
+      const hb = await redis.mget(approved.map((r) => `${REDIS_KEYS.RIDER_HEARTBEAT}${r.userId}`));
+      onlineNow = hb.filter((v) => v != null).length;
+    } catch (err) {
+      logger.warn('rider stats heartbeat count failed', { error: err.message });
+    }
+  }
+
   return {
     total,
     pending: statusCount('PENDING_APPROVAL'),
     approved: statusCount('APPROVED'),
     suspended: statusCount('SUSPENDED'),
     rejected: statusCount('REJECTED'),
-    online: availCount('ONLINE'),
+    online: onlineNow,
     offline: availCount('OFFLINE'),
     onDelivery: availCount('ON_DELIVERY'),
   };
@@ -3504,7 +3563,100 @@ const getRiderById = async (riderId) => {
       : Promise.resolve(0),
   ]);
 
-  return { ...rider, counts: { deliveries: deliveryCount, transactions: transactionCount } };
+  // Live presence + position overlay so the detail view reflects the rider's
+  // real online state and freshest position, not the sticky DB flag / last DB
+  // write (which is null for a rider who only ever streamed over the socket).
+  let hbRaw = null;
+  let locByUser = null;
+  let locByRider = null;
+  try {
+    [hbRaw, locByUser, locByRider] = await redis.mget(
+      `${REDIS_KEYS.RIDER_HEARTBEAT}${rider.userId}`,
+      `${REDIS_KEYS.RIDER_LOCATION}${rider.userId}`,
+      `${REDIS_KEYS.RIDER_LOCATION}${rider.id}`,
+    );
+  } catch (err) {
+    logger.warn('rider detail presence overlay failed', { riderId, error: err.message });
+  }
+  const livePos = pickFreshestPos(locByUser, locByRider);
+
+  return {
+    ...rider,
+    liveOnline: hbRaw != null,
+    lastLat: livePos ? livePos.lat : rider.lastLat,
+    lastLng: livePos ? livePos.lng : rider.lastLng,
+    lastLocationAt: livePos && livePos.updatedAt ? new Date(livePos.updatedAt) : rider.lastLocationAt,
+    counts: { deliveries: deliveryCount, transactions: transactionCount },
+  };
+};
+
+/**
+ * Reverse-geocode with a short Redis cache keyed by ~100m-rounded coordinates,
+ * so a drawer polling every few seconds doesn't hammer the Maps API. Returns
+ * null (never throws) when geocoding is unavailable - the map still renders.
+ */
+const reverseGeocodeCached = async (lat, lng) => {
+  const key = `geocode:rev:${lat.toFixed(3)}:${lng.toFixed(3)}`;
+  try {
+    const cached = await redis.get(key);
+    if (cached) return cached;
+  } catch (_) { /* cache miss path below */ }
+  try {
+    const { formattedAddress } = await mapsService.reverseGeocode(lat, lng);
+    if (formattedAddress) redis.set(key, formattedAddress, 'EX', 300).catch(() => {});
+    return formattedAddress || null;
+  } catch (err) {
+    logger.warn('admin reverse geocode failed', { lat, lng, error: err.message });
+    return null;
+  }
+};
+
+/**
+ * Live location for a single rider, for the admin rider-detail map (polled).
+ * Overlays the Redis socket position on the DB fallback, reports heartbeat-based
+ * online state, and attaches a reverse-geocoded address. Coordinates are null
+ * when we have never held a fix for the rider.
+ */
+const getRiderLiveLocation = async (riderId) => {
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    select: { id: true, userId: true, availability: true, lastLat: true, lastLng: true, lastLocationAt: true },
+  });
+  if (!rider) throw AppError.notFound('Rider not found');
+
+  let hbRaw = null;
+  let locByUser = null;
+  let locByRider = null;
+  try {
+    [hbRaw, locByUser, locByRider] = await redis.mget(
+      `${REDIS_KEYS.RIDER_HEARTBEAT}${rider.userId}`,
+      `${REDIS_KEYS.RIDER_LOCATION}${rider.userId}`,
+      `${REDIS_KEYS.RIDER_LOCATION}${rider.id}`,
+    );
+  } catch (err) {
+    logger.warn('rider live-location redis read failed', { riderId, error: err.message });
+  }
+
+  const livePos = pickFreshestPos(locByUser, locByRider);
+  const lat = livePos ? livePos.lat : (typeof rider.lastLat === 'number' ? rider.lastLat : null);
+  const lng = livePos ? livePos.lng : (typeof rider.lastLng === 'number' ? rider.lastLng : null);
+  const lastLocationAt = livePos && livePos.updatedAt ? new Date(livePos.updatedAt) : rider.lastLocationAt;
+
+  let address = null;
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    address = await reverseGeocodeCached(lat, lng);
+  }
+
+  return {
+    riderId: rider.id,
+    availability: rider.availability,
+    online: hbRaw != null,
+    live: Boolean(livePos),
+    lat,
+    lng,
+    address,
+    lastLocationAt,
+  };
 };
 
 const getRiderTransactions = async (riderId, options) => {
@@ -3751,6 +3903,7 @@ module.exports = {
   deleteCategory,
   getAllRiders,
   getRiderById,
+  getRiderLiveLocation,
   getRiderStats,
   suspendRider,
   unsuspendRider,

@@ -67,6 +67,18 @@ export const fetchRiderDetail = createAsyncThunk(
   }
 )
 
+// Live location for the rider-detail map. Polled every few seconds while the
+// drawer's Location tab is open; the payload is transient (kept in component
+// state, not the slice). Returns { lat, lng, address, online, live,
+// lastLocationAt } - lat/lng are null when we've never held a fix.
+export const fetchRiderLocation = createAsyncThunk(
+  'riders/fetchLocation',
+  async (riderId) => {
+    const response = await api.get(`/admin/riders/${riderId}/location`)
+    return response.data.data
+  }
+)
+
 export const fetchRiderTransactions = createAsyncThunk(
   'riders/fetchTransactions',
   async ({ riderId, page, limit, type, status }) => {

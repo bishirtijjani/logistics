@@ -21,6 +21,7 @@ const {
   markRiderAvailable,
   touchRiderHeartbeat,
   removeRiderFromPool,
+  removeRiderFromGeo,
 } = require('../../services/rider-pool.service');
 
 // Phase 4 - push ETA at most every 30s and only when the rider has moved
@@ -257,16 +258,20 @@ const registerTrackingHandlers = (io, socket) => {
     }
   });
 
-  // On disconnect, remove the rider from the GEO index (and clear their
-  // heartbeat) so they don't get offered jobs while offline. The JSON
-  // RIDER_LOCATION key is allowed to expire on its own TTL. The sticky DB
-  // availability flag is intentionally left for the reconcile sweep to correct
-  // after the heartbeat lapses, so a brief reconnect doesn't knock a rider
-  // offline in the DB.
+  // On an *involuntary* disconnect, drop the rider from the GEO index right
+  // away (an unreachable socket must not be offered jobs) but LEAVE the
+  // heartbeat to lapse on its own TTL. That heartbeat is the grace window: a
+  // transient blip + auto-reconnect (routine on the web PWA when the tab
+  // backgrounds) then re-seeds the pool from the still-ONLINE DB flag without
+  // the reconcile sweep ever flipping the rider OFFLINE. A rider who is truly
+  // gone lets the heartbeat expire (<=90s) and the sweep settles them. An
+  // explicit go-offline is a different path (AVAILABILITY_CHANGED below) and
+  // still clears everything via removeRiderFromPool. The JSON RIDER_LOCATION
+  // key expires on its own TTL.
   socket.on('disconnect', async () => {
     clearInterval(presenceTimer);
     socket._online = false;
-    await removeRiderFromPool(riderUserId);
+    await removeRiderFromGeo(riderUserId);
   });
 
   // Explicit availability:changed channel (client -> server). The rider app

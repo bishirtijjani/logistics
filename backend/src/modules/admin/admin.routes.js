@@ -136,6 +136,7 @@ router.get('/riders/pending', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), vali
 router.get('/riders/stats', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderStats);
 router.get('/riders', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(listAllRidersSchema, 'query'), adminController.getAllRiders);
 router.get('/riders/:riderId', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderById);
+router.get('/riders/:riderId/location', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderLiveLocation);
 router.patch('/riders/:riderId/review', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(reviewRiderSchema), adminController.reviewRider);
 router.patch('/riders/:riderId/suspend', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(suspendRiderSchema), adminController.suspendRider);
 router.patch('/riders/:riderId/unsuspend', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(unsuspendRiderSchema), adminController.unsuspendRider);

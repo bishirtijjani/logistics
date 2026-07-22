@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import {
   fetchAllRiders, fetchPendingRiders, fetchRiderStats,
   fetchRiderEarnings, fetchRiderDeliveryHistory,
   fetchRiderTransactions, fetchRiderTransactionReceipt, clearRiderTransactionReceipt,
   reviewRider, suspendRider, unsuspendRider, forceOfflineRider, resetRiderPin,
-  updateRiderAccount,
+  updateRiderAccount, fetchRiderLocation,
   setSelectedRider, clearSelectedRider,
 } from '../store/slices/ridersSlice'
 import { TransactionReceiptModal } from './CustomerDetailPage'
@@ -45,6 +48,18 @@ const TABS = [
 const naira = (v) => `₦${Number(v || 0).toLocaleString('en-NG', { maximumFractionDigits: 2 })}`
 const fullName = (r) => `${r?.user?.firstName || ''} ${r?.user?.lastName || ''}`.trim() || 'Unnamed rider'
 const maskNin = (nin) => (nin ? `••• ••• ${String(nin).slice(-4)}` : null)
+
+// The live truth for a rider's presence is the heartbeat (`liveOnline` from the
+// API), NOT the sticky DB `availability` flag, which lags the reconcile sweep by
+// up to a couple of minutes and is what made an online rider read "Offline"
+// here. Show ON_DELIVERY only when the rider is both live and on a delivery;
+// otherwise ONLINE when live, OFFLINE when not. Fall back to the DB flag only
+// when `liveOnline` isn't present (e.g. the pending list, which never enriches).
+const effectiveAvailability = (r) => {
+  if (r?.liveOnline === true) return r.availability === 'ON_DELIVERY' ? 'ON_DELIVERY' : 'ONLINE'
+  if (r?.liveOnline === false) return 'OFFLINE'
+  return r?.availability || 'OFFLINE'
+}
 
 const Spinner = ({ size = 16, cls = 'border-white' }) => (
   <span className={`inline-block border-2 ${cls} border-t-transparent rounded-full animate-spin`} style={{ width: size, height: size }} />
@@ -552,7 +567,7 @@ export default function RidersPage() {
                             <p className="text-xs text-muted dark:text-dark-muted">{r.plateNumber || '-'}</p>
                           </td>
                           <td className="px-5 py-4"><StatusBadge status={r.status} /></td>
-                          <td className="px-5 py-4"><AvailabilityBadge availability={r.availability} /></td>
+                          <td className="px-5 py-4"><AvailabilityBadge availability={effectiveAvailability(r)} /></td>
                           <td className="px-5 py-4 text-sm text-text dark:text-dark-text">
                             <span className="flex items-center gap-1">
                               <Star size={13} className="text-amber-400 fill-amber-400" />
@@ -580,7 +595,7 @@ export default function RidersPage() {
                         </div>
                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                           <StatusBadge status={r.status} />
-                          <AvailabilityBadge availability={r.availability} />
+                          <AvailabilityBadge availability={effectiveAvailability(r)} />
                         </div>
                       </div>
                       <div className="flex items-center gap-4 mt-3 text-xs text-muted dark:text-dark-muted">
@@ -842,10 +857,111 @@ function EditRiderAccountModal({ rider, saving, onClose, onSave }) {
   )
 }
 
+// ── Live location map ────────────────────────────────────────────────────────
+
+// A divIcon (pure CSS dot) sidesteps Leaflet's default-marker asset paths, which
+// break under Vite's bundling. Green matches the "online" badge.
+const RIDER_PIN = L.divIcon({
+  className: 'rider-live-pin',
+  html: '<div style="width:18px;height:18px;border-radius:50%;background:#10b981;border:3px solid #fff;box-shadow:0 0 0 2px rgba(16,185,129,.45)"></div>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+})
+
+// Follow the rider without yanking zoom, and fix the blank-tiles issue when the
+// map mounts inside a tab/flex container (needs an invalidateSize after layout).
+function MapRecenter({ lat, lng }) {
+  const map = useMap()
+  useEffect(() => {
+    if (typeof lat === 'number' && typeof lng === 'number') map.setView([lat, lng], map.getZoom() || 15)
+  }, [lat, lng, map])
+  return null
+}
+function MapResizeFix() {
+  const map = useMap()
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 120)
+    return () => clearTimeout(t)
+  }, [map])
+  return null
+}
+
+// Polls the rider's live location every 4s while mounted (i.e. while the
+// Location tab is open). Kept in local state - transient, not in the slice.
+function RiderLocationTab({ riderId }) {
+  const dispatch = useDispatch()
+  const [loc, setLoc] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    const tick = async () => {
+      try {
+        const data = await dispatch(fetchRiderLocation(riderId)).unwrap()
+        if (!alive) return
+        setLoc(data)
+        setError(null)
+      } catch (_) {
+        if (alive) setError('Could not load location')
+      } finally {
+        if (alive) setLoading(false)
+      }
+    }
+    tick()
+    const timer = setInterval(tick, 4000)
+    return () => { alive = false; clearInterval(timer) }
+  }, [dispatch, riderId])
+
+  const hasPos = loc && typeof loc.lat === 'number' && typeof loc.lng === 'number'
+  const badge = loc?.online ? (loc.availability === 'ON_DELIVERY' ? 'ON_DELIVERY' : 'ONLINE') : 'OFFLINE'
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <AvailabilityBadge availability={badge} />
+        <span className="text-xs text-muted dark:text-dark-muted">
+          {loc?.online ? 'Live · updates every 4s' : 'Rider is offline'}
+        </span>
+      </div>
+
+      {loading && !loc ? (
+        <div className="h-72 rounded-xl bg-surface-muted dark:bg-dark-surface-muted animate-pulse" />
+      ) : hasPos ? (
+        <>
+          <div className="h-72 rounded-xl overflow-hidden border border-surface-muted dark:border-dark-surface-muted">
+            <MapContainer center={[loc.lat, loc.lng]} zoom={15} scrollWheelZoom style={{ height: '100%', width: '100%' }}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
+              <Marker position={[loc.lat, loc.lng]} icon={RIDER_PIN} />
+              <MapRecenter lat={loc.lat} lng={loc.lng} />
+              <MapResizeFix />
+            </MapContainer>
+          </div>
+          <InfoRow icon={<MapPin size={16} />} label="Address" value={loc.address || `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`} />
+          <InfoRow icon={<Clock size={16} />} label="Last update" value={loc.lastLocationAt ? new Date(loc.lastLocationAt).toLocaleString() : '—'} />
+          {!loc.online && (
+            <p className="text-xs text-muted dark:text-dark-muted">
+              Showing the last known position — the rider isn't streaming right now, so it won't move until they're back online.
+            </p>
+          )}
+        </>
+      ) : (
+        <div className="h-72 rounded-xl border border-dashed border-surface-muted dark:border-dark-surface-muted flex flex-col items-center justify-center text-center px-6">
+          <MapPin size={28} className="text-muted dark:text-dark-muted mb-2" />
+          <p className="text-sm font-medium text-text dark:text-dark-text">No location yet</p>
+          <p className="text-xs text-muted dark:text-dark-muted mt-1">No GPS fix has ever been received for this rider. It appears here once they go online and start streaming.</p>
+          {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Detail drawer ────────────────────────────────────────────────────────────
 
 const DRAWER_TABS = [
   { id: 'profile', label: 'Profile' },
+  { id: 'location', label: 'Location' },
   { id: 'documents', label: 'Documents' },
   { id: 'earnings', label: 'Earnings' },
   { id: 'deliveries', label: 'Deliveries' },
@@ -865,7 +981,7 @@ function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-lg font-bold text-text dark:text-dark-text truncate">{fullName(rider)}</h3>
             <StatusBadge status={rider.status} />
-            <AvailabilityBadge availability={rider.availability} />
+            <AvailabilityBadge availability={effectiveAvailability(rider)} />
           </div>
           <p className="text-xs text-muted dark:text-dark-muted mt-1">Rider ID #{rider.id.slice(-8)} · Joined {new Date(rider.createdAt).toLocaleDateString()}</p>
         </div>
@@ -911,6 +1027,8 @@ function RiderDrawer({ rider, earnings, deliveries, transactions, onTxClick, tab
             </div>
           </div>
         )}
+
+        {tab === 'location' && <RiderLocationTab riderId={rider.id} />}
 
         {tab === 'documents' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
