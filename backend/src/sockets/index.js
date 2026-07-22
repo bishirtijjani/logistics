@@ -71,8 +71,15 @@ const initializeSocket = (httpServer) => {
       origin: '*', // Restrict in production
       methods: ['GET', 'POST'],
     },
-    pingInterval: 10000,
-    pingTimeout: 5000,
+    // Keepalive tuned for mobile web-PWA clients (the rider/customer apps run
+    // as browser PWAs). The old 10s/5s was brutally tight: any >5s hiccup - a
+    // brief tab throttle when backgrounded, or jittery mobile data - missed the
+    // pong deadline and the server killed the socket ("ping timeout"). That
+    // churn is what silently dropped riders offline and made them re-tap "Go
+    // online". 25s ping + 60s timeout lets a socket survive ~60s of silence
+    // before being culled, matching the 90s heartbeat TTL grace.
+    pingInterval: 25000,
+    pingTimeout: 60000,
   });
 
   // --- Authentication middleware ---

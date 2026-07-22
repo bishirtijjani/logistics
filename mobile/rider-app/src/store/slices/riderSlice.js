@@ -141,7 +141,27 @@ export const reconcileFromServer = createAsyncThunk(
   async (_, { dispatch, getState }) => {
     const current = getState().rider?.availability;
     if (current === AVAILABILITY.ONLINE) {
-      socketService.emitAvailabilityChanged(AVAILABILITY.ONLINE);
+      // Re-assert online over the RELIABLE HTTP path, not just the socket. A
+      // flaky / briefly-frozen web-PWA socket may be dead or mid-reconnect, so
+      // a socket-only re-assert never lands - the server then culls the rider's
+      // heartbeat and they silently drop offline (and have to re-tap "Go
+      // online"). The PATCH is idempotent and re-stamps heartbeat + geo
+      // immediately. Best-effort fresh GPS fix so the rider is re-placed in the
+      // dispatch pool, not just marked "online but not dispatchable".
+      let coords;
+      try {
+        const fix = await locationStream.getCurrentFix();
+        if (fix && typeof fix.lat === 'number' && typeof fix.lng === 'number') {
+          coords = { lat: fix.lat, lng: fix.lng };
+          dispatch(setLastFix(fix));
+        }
+      } catch (_) {}
+      try {
+        await patchAvailability(AVAILABILITY.ONLINE, coords);
+      } catch (_) {}
+      // Also emit over the socket - re-arms the server's per-connection
+      // keep-alive when the socket happens to be healthy.
+      socketService.emitAvailabilityChanged(AVAILABILITY.ONLINE, coords);
     }
     await dispatch(fetchRiderProfile());
   },

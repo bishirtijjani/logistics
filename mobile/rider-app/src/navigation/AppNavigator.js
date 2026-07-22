@@ -323,6 +323,24 @@ export default function AppNavigator() {
     };
   }, [isAuthenticated, bioGate, dispatch]);
 
+  // Presence keep-alive floor. The server re-stamps the 90s heartbeat every
+  // 30s ONLY while the socket is healthy; a flaky or briefly-frozen web-PWA
+  // socket can miss that and get the rider culled, silently dropping them
+  // offline (the recurring "system took me offline, had to re-tap Go online"
+  // complaint). While foregrounded, re-assert to the server over HTTP every
+  // 60s: reconcileFromServer PATCHes ONLINE (idempotent, re-stamps heartbeat +
+  // geo) and pulls the server snapshot so the UI self-corrects. It internally
+  // no-ops the re-assert when the rider's intent isn't ONLINE, so a rider who
+  // is offline (or deliberately went offline) only incurs a light profile
+  // refresh and is never forced back online.
+  useEffect(() => {
+    if (!isAuthenticated || bioGate !== "passed") return undefined;
+    const id = setInterval(() => {
+      dispatch(reconcileFromServer()).catch?.(() => {});
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, bioGate, dispatch]);
+
   // Phase 2: stop the foreground GPS stream the instant auth ends or biometric
   // gate drops, so a sign-out (or session-expired forceLogout) doesn't leak
   // a running subscription into the next user's session.
