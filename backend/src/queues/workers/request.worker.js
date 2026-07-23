@@ -421,6 +421,12 @@ const settleRequest = async (job) => {
 
       if (request.rider && riderWallet && platformEarning > 0) {
         riderBalanceAfter = Number(riderWallet.balance) - platformEarning;
+        // Opt this transaction into wallet_balance_nonneg's negative-balance
+        // exception (see migration 20260723080000) - this debit is meant to
+        // go negative when the rider's cash float can't cover the commission.
+        // SET LOCAL is transaction-scoped, so it can't leak onto other
+        // queries sharing this pooled connection.
+        await tx.$executeRaw`SET LOCAL app.allow_negative_wallet = 'on'`;
         await tx.wallet.update({
           where: { id: riderWallet.id },
           data: { balance: { decrement: platformEarning } },
