@@ -210,9 +210,8 @@
     },
     "walletSheet": {
       "title": "Walat ɗinku",
-      "subtitle": "Sarrafa ma'auni, ƙara ko aika kuɗi",
-      "fund": "Ƙara Walat",
-      "send": "Aika Kuɗi"
+      "subtitle": "Sarrafa ma'auni, ƙara ko cire kuɗi",
+      "fund": "Ƙara Walat"
     },
     "package": "Fakiti",
     "packageDescription": "Aika ko karɓi fakiti",

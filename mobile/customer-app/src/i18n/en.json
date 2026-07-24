@@ -206,9 +206,8 @@
     },
     "walletSheet": {
       "title": "Your Wallet",
-      "subtitle": "Manage balance, fund or send money",
-      "fund": "Fund Wallet",
-      "send": "Send Money"
+      "subtitle": "Manage balance, fund or withdraw",
+      "fund": "Fund Wallet"
     },
     "package": "Delivery",
     "packageDescription": "Send or receive deliveries",
