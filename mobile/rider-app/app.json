@@ -24,7 +24,8 @@
         "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
         "NSPhotoLibraryUsageDescription": "iPrime Rider needs photo access so you can attach KYC documents and proof-of-delivery images.",
         "NSPhotoLibraryAddUsageDescription": "Optionally save proof-of-delivery photos to your gallery.",
-        "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions."
+        "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
         "googleMapsApiKey": "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI"
