@@ -35,7 +35,8 @@ export default function LoginScreen({ navigation }) {
   const loginSchema = useMemo(
     () =>
       z.object({
-        email: z.string().email(t("auth.form.emailInvalid")),
+        email: z.string().trim().toLowerCase().email(t("auth.form.emailInvalid")),
+        // Not trimmed - see RegisterScreen for why password stays untouched.
         password: z.string().min(1, t("auth.form.passwordRequired")),
       }),
     [t],
