@@ -1062,8 +1062,12 @@ export default function HomeScreen({ navigation }) {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                  navigation.navigate("Withdraw");
+                }}
                 accessibilityRole="button"
-                accessibilityLabel={t("home.walletSheet.send")}
+                accessibilityLabel={t("wallet.withdraw")}
                 style={{
                   flex: 1,
                   backgroundColor: tokens.bg.surfaceMuted,
@@ -1075,7 +1079,7 @@ export default function HomeScreen({ navigation }) {
                 <Text
                   style={{ color: tokens.text.primary, fontWeight: "800", fontSize: 15 }}
                 >
-                  {t("home.walletSheet.send")}
+                  {t("wallet.withdraw")}
                 </Text>
               </TouchableOpacity>
             </View>

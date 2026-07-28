@@ -30,6 +30,19 @@ const getPaymentQueue = () => {
 const SALT_ROUNDS = 12;
 
 /**
+ * Case-insensitive email lookup. New registrations are stored lowercase
+ * (validator normalizes on the way in), but historical rows may be
+ * mixed-case, so any auth lookup must not rely on exact `@unique` match or
+ * it silently locks those accounts out. Pass `client: tx` to use inside a
+ * transaction.
+ */
+const findUserByEmail = (email, { client = prisma, ...rest } = {}) =>
+  client.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+    ...rest,
+  });
+
+/**
  * Register a new user.
  * Stores registration data in Redis only - no DB write until OTP verified.
  */
@@ -42,7 +55,7 @@ const register = async ({
   role = 'CUSTOMER',
 }) => {
   // Only block if an ACTIVE (verified) user already has this email
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await findUserByEmail(email);
   if (existing) {
     throw AppError.conflict("Email already registered", { code: "EMAIL_TAKEN" });
   }
@@ -77,9 +90,8 @@ const register = async ({
  * Login - verify credentials, return tokens.
  */
 const login = async ({ email, password }, sessionMeta = {}) => {
-  const user = await prisma.user.findUnique({
-    where: { email },
-    include: { merchant: true, rider: true }
+  const user = await findUserByEmail(email, {
+    include: { merchant: true, rider: true },
   });
 
   if (!user) {
@@ -308,11 +320,11 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
   if (!pendingRaw) {
     // Could be a non-registration OTP (e.g. password reset or merchant verification)
     // Check if this is a merchant with PENDING status
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await findUserByEmail(email);
     if (user && user.role === 'MERCHANT' && user.status === 'PENDING') {
       // Update merchant status to ACTIVE after email verification
       await prisma.user.update({
-        where: { email },
+        where: { id: user.id },
         data: { status: 'ACTIVE' }
       });
       logger.info("Merchant email verified and activated", { email, userId: user.id });
@@ -333,7 +345,7 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
   const user = await prisma.$transaction(async (tx) => {
     // Re-check uniqueness inside the tx in case another caller raced us
     // between merchantRegister/register and this verification.
-    const emailTaken = await tx.user.findUnique({ where: { email: pending.email } });
+    const emailTaken = await findUserByEmail(pending.email, { client: tx });
     if (emailTaken) throw AppError.conflict('Email already registered', { code: 'EMAIL_TAKEN' });
     if (pending.phone) {
       const phoneTaken = await tx.user.findUnique({ where: { phone: pending.phone } });
@@ -661,7 +673,7 @@ const verifyTransactionPin = async (userId, pin) => {
  * Silently succeeds for unknown/inactive emails (don't leak existence).
  */
 const requestPasswordReset = async (email) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await findUserByEmail(email);
 
   if (!user || user.status !== "ACTIVE") {
     logger.info("Password reset requested for unknown/inactive email", {
@@ -691,7 +703,7 @@ const resetPassword = async (email, code, newPassword) => {
 
   await redis.del(otpKey);
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await findUserByEmail(email);
   if (!user || user.status !== "ACTIVE") {
     throw AppError.badRequest("No active account found for this email.", { code: "ACCOUNT_NOT_FOUND" });
   }
@@ -700,7 +712,7 @@ const resetPassword = async (email, code, newPassword) => {
 
   await prisma.$transaction([
     prisma.user.update({
-      where: { email },
+      where: { id: user.id },
       data: { passwordHash },
     }),
     // Revoke all existing sessions - force re-login on all devices
@@ -1463,7 +1475,7 @@ const merchantRegister = async ({
   // Only block if a verified user already owns this email/phone. Users who
   // abandon a previous attempt can retry - the pending Redis entry is keyed
   // by email and gets overwritten.
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const existingUser = await findUserByEmail(email);
   if (existingUser) {
     throw AppError.conflict("Email already registered", { code: "EMAIL_TAKEN" });
   }

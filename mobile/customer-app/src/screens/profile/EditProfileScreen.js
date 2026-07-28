@@ -22,14 +22,15 @@ import { updateProfile, fetchProfile } from "../../store/slices/profileSlice";
 import { useTheme } from "../../theme";
 
 const schema = z.object({
-  firstName: z.string().min(2, "At least 2 characters").max(50),
-  lastName: z.string().min(2, "At least 2 characters").max(50),
+  firstName: z.string().trim().min(2, "At least 2 characters").max(50),
+  lastName: z.string().trim().min(2, "At least 2 characters").max(50),
   phone: z
     .string()
+    .trim()
     .regex(/^0[789][01]\d{8}$/, "Invalid Nigerian phone number")
     .or(z.literal(""))
     .optional(),
-  address: z.string().max(255).optional(),
+  address: z.string().trim().max(255).optional(),
   dateOfBirth: z
     .string()
     .refine((val) => !val || !isNaN(Date.parse(val)), "Use format YYYY-MM-DD")

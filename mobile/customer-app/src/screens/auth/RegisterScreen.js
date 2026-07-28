@@ -39,12 +39,15 @@ export default function RegisterScreen({ navigation }) {
     () =>
       z
         .object({
-          firstName: z.string().min(2, t("auth.form.firstNameRequired")),
-          lastName: z.string().min(2, t("auth.form.lastNameRequired")),
-          email: z.string().email(t("auth.form.emailInvalid")),
+          firstName: z.string().trim().min(2, t("auth.form.firstNameRequired")),
+          lastName: z.string().trim().min(2, t("auth.form.lastNameRequired")),
+          email: z.string().trim().toLowerCase().email(t("auth.form.emailInvalid")),
           phone: z
             .string()
+            .trim()
             .regex(/^0[789][01]\d{8}$/, t("auth.form.phoneInvalid")),
+          // Not trimmed - a password's leading/trailing characters are part of
+          // the secret; stripping them would silently change what gets hashed.
           password: z.string().min(8, t("auth.form.passwordTooShort")),
           confirmPassword: z.string(),
         })

@@ -39,6 +39,7 @@ export default function PhoneCaptureScreen() {
   const schema = z.object({
     phone: z
       .string()
+      .trim()
       .regex(/^0[789][01]\d{8}$/, t("auth.form.phoneInvalid")),
   });
 

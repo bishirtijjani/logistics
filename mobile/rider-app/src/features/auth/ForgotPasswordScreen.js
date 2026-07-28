@@ -29,7 +29,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   const { isLoading } = useSelector((state) => state.auth);
 
   const schema = useMemo(
-    () => z.object({ email: z.string().email(t("auth.form.emailInvalid")) }),
+    () => z.object({ email: z.string().trim().toLowerCase().email(t("auth.form.emailInvalid")) }),
     [t],
   );
 
