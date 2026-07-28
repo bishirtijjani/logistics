@@ -23,7 +23,8 @@
         "NSCameraUsageDescription": "iPrime needs the camera to capture your profile photo and prescription images.",
         "NSPhotoLibraryUsageDescription": "iPrime needs photo access so you can attach prescriptions, support tickets, and your profile photo.",
         "NSPhotoLibraryAddUsageDescription": "iPrime saves receipts and order images to your gallery when you tap save.",
-        "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions like withdrawals."
+        "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions like withdrawals.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
         "googleMapsApiKey": "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI"
@@ -49,7 +50,8 @@
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
       ],
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
