@@ -188,15 +188,17 @@ export default function JobOfferScreen() {
   const eta = p.eta || p.estimatedMinutes;
   const isCash = p.paymentMethod === "CASH";
   const collectAmount = Number(p.collectAmount || 0);
-  // A rider blocked for unpaid cash-delivery fees (HTTP 403). "Try again" won't
-  // help - they must top up - so we show a wallet CTA instead.
-  const isOwed = isError && (error?.code === "RIDER_OUTSTANDING_FEES" || error?.status === 403);
 
   const isAccepting = status === "accepting";
   const isTaken = status === "taken";
   const isExpired = status === "expired";
   const isError = status === "error";
   const isShowing = status === "showing";
+  // A rider blocked for unpaid cash-delivery fees (HTTP 403). "Try again" won't
+  // help - they must top up - so we show a wallet CTA instead. Must come after
+  // isError is declared above - referencing it earlier is a TDZ crash on every
+  // offer render (minified "Cannot access 'te' before initialization").
+  const isOwed = isError && (error?.code === "RIDER_OUTSTANDING_FEES" || error?.status === 403);
 
   return (
     <SafeAreaView
