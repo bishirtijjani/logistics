@@ -119,6 +119,14 @@ const RIDER_MATCHING = {
   RING_TIMEOUT_SECONDS: 60,
   MAX_RIDERS_PER_RING: 10,
   AUTO_CANCEL_BUFFER_MS: 2000, // small grace after final ring expires
+  // Once every ring is exhausted the order is NOT cancelled straight away. It is
+  // held OPEN for this long so an admin (who gets an email) can hand-assign a
+  // rider and a rider who just came online can still claim it; only then does it
+  // auto-cancel + refund. Overridable via PlatformSetting `delivery.autoCancelUnmatchedMs`.
+  UNMATCHED_GRACE_MS: 60 * 60 * 1000, // 1 hour
+  // How often the widest ring is re-offered to riders during that grace window.
+  // Overridable via PlatformSetting `delivery.unmatchedReRingSec`.
+  UNMATCHED_RERING_SECONDS: 120,
 };
 
 module.exports = {

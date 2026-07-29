@@ -20,6 +20,7 @@ const notifyService = require('../../services/notify.service');
 const emailService = require('../../services/email.service');
 const { getSetting } = require('../../services/settings.service');
 const { REDIS_KEYS, RIDER_MATCHING } = require('../../utils/constants');
+const { config } = require('../../config');
 
 // ============================================================
 // Expanding-radius rider matching
@@ -97,12 +98,84 @@ const loadMatchingConfig = async () => {
   );
   const enabled = await getSetting('delivery.matchingEnabled', true);
   const ringList = Array.isArray(rings) && rings.length > 0 ? rings : RIDER_MATCHING.RADIUS_RINGS_KM;
+  const graceRaw = Number(
+    await getSetting('delivery.autoCancelUnmatchedMs', RIDER_MATCHING.UNMATCHED_GRACE_MS),
+  );
+  const reRingRaw = Number(
+    await getSetting('delivery.unmatchedReRingSec', RIDER_MATCHING.UNMATCHED_RERING_SECONDS),
+  );
   return {
     enabled: enabled === true || enabled === 'true', // settings can JSON-serialize either way
     ringList,
     ringTimeoutSec,
     maxPerRing: RIDER_MATCHING.MAX_RIDERS_PER_RING,
+    // How long an order with no matched rider stays OPEN (admin can hand-assign)
+    // before auto-cancel, and how often we re-offer to riders during that window.
+    unmatchedGraceMs:
+      Number.isFinite(graceRaw) && graceRaw > 0 ? graceRaw : RIDER_MATCHING.UNMATCHED_GRACE_MS,
+    reRingSec:
+      Number.isFinite(reRingRaw) && reRingRaw > 0 ? reRingRaw : RIDER_MATCHING.UNMATCHED_RERING_SECONDS,
   };
+};
+
+/**
+ * Email an admin that an order exhausted every search ring without matching a
+ * rider, so they can hand-assign one (Admin → Requests → Reassign rider) before
+ * it auto-cancels at the end of the grace window. Mirrors the utility-worker
+ * "held payment" alert: best-effort (a mail failure must never disturb the
+ * worker) and de-duped via a Redis NX marker so a request only ever triggers a
+ * single email even if the grace loop or a BullMQ retry re-enters this path.
+ * Recipient is ALERT_EMAIL, or SMTP_FROM_EMAIL as a fallback.
+ */
+const alertAdminUnmatched = async (requestId, graceMs) => {
+  const to = config.ALERT_EMAIL || config.SMTP_FROM_EMAIL;
+  if (!to) return;
+
+  const marker = `request:unmatched-alerted:${requestId}`;
+  const first = await redis.set(marker, '1', 'EX', 24 * 60 * 60, 'NX');
+  if (first === null) return; // already alerted for this request
+
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    include: {
+      customer: { select: { firstName: true, lastName: true, phone: true, email: true } },
+      merchant: { select: { businessName: true } },
+    },
+  });
+  if (!request) return;
+
+  const naira = (v) => `₦${Number(v || 0).toLocaleString('en-NG')}`;
+  const customerName = request.customer
+    ? `${request.customer.firstName || ''} ${request.customer.lastName || ''}`.trim() || '-'
+    : '-';
+  const graceMin = Math.round((Number(graceMs) || RIDER_MATCHING.UNMATCHED_GRACE_MS) / 60000);
+
+  await emailService.sendEmail({
+    to,
+    subject: `🛵 Order needs a rider — ${naira(request.total)} ${request.type}`,
+    text: [
+      `An order could NOT be matched to any rider after searching every radius ring.`,
+      `It has NOT been cancelled: it stays open for about ${graceMin} minutes so you can`,
+      `assign a rider by hand. If no one is assigned by then it auto-cancels and the`,
+      `customer is refunded automatically. Riders are still being re-offered the job in`,
+      `the meantime.`,
+      ``,
+      `Order ID:   ${request.id}`,
+      `Type:       ${request.type}`,
+      `Customer:   ${customerName} (${request.customer?.phone || request.customer?.email || '-'})`,
+      request.merchant ? `Merchant:   ${request.merchant.businessName}` : null,
+      `Pickup:     ${`${request.pickupName || ''} ${request.pickupAddress || ''}`.trim()}`,
+      `Dropoff:    ${`${request.dropoffName || ''} ${request.dropoffAddress || ''}`.trim()}`,
+      `Total:      ${naira(request.total)}`,
+      `Delivery:   ${naira(request.deliveryFee)}`,
+      ``,
+      `ACTION: open the admin panel → Requests → this order → "Reassign rider" to assign a`,
+      `rider by hand.  (API: PATCH /admin/requests/${request.id}/reassign)`,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  });
+  logger.info('Admin alerted: order unmatched, awaiting manual assignment', { requestId, to });
 };
 
 /**
@@ -340,14 +413,60 @@ const checkRingProgress = async (job) => {
   }
 
   if (nextAttempt >= cfg.ringList.length) {
-    // All rings exhausted - auto-cancel + refund.
+    // Rings exhausted. Instead of cancelling straight away, hold the order OPEN
+    // for a grace window: email an admin once so they can hand-assign a rider,
+    // and keep re-offering the widest ring so a rider who just came online can
+    // still claim it. Only once the window elapses do we auto-cancel + refund.
+    // `graceDeadline` is carried in job data so the window survives across the
+    // re-ring checks and the admin email fires exactly once.
+    const now = Date.now();
+    let deadline = job.data.graceDeadline;
+    if (!deadline) {
+      // First time this request has run out of rings → open the grace window.
+      deadline = now + cfg.unmatchedGraceMs;
+      await alertAdminUnmatched(requestId, cfg.unmatchedGraceMs).catch((err) =>
+        logger.warn('Admin unmatched-order alert failed (non-fatal)', {
+          requestId, error: err.message,
+        }),
+      );
+      logger.info('Rings exhausted - holding order open for manual assignment', {
+        requestId, graceMs: cfg.unmatchedGraceMs, deadline,
+      });
+    }
+
     const { requestQueue } = require('../index');
+    if (now >= deadline) {
+      // Grace window elapsed with no rider assigned → auto-cancel + refund.
+      await requestQueue.add(
+        REQUEST_JOBS.AUTO_CANCEL_UNMATCHED,
+        { requestId, reason: 'No rider available after extended search window' },
+        { delay: RIDER_MATCHING.AUTO_CANCEL_BUFFER_MS },
+      );
+      logger.info('Grace window elapsed - auto-cancel queued', { requestId });
+      return;
+    }
+
+    // Still within the window → re-offer the widest ring and re-check later.
+    await emitRing(io, {
+      request: { id: requestId, pickupLat, pickupLng, fare, distanceKm },
+      attempt: cfg.ringList.length - 1,
+      ringList: cfg.ringList,
+      ringTimeoutSec: cfg.ringTimeoutSec,
+      maxPerRing: cfg.maxPerRing,
+    });
+    const nextDelayMs = Math.min(cfg.reRingSec * 1000, Math.max(1000, deadline - now));
     await requestQueue.add(
-      REQUEST_JOBS.AUTO_CANCEL_UNMATCHED,
-      { requestId, reason: 'No rider available within search radius' },
-      { delay: RIDER_MATCHING.AUTO_CANCEL_BUFFER_MS },
+      REQUEST_JOBS.CHECK_RING_PROGRESS,
+      {
+        requestId, pickupLat, pickupLng, fare, distanceKm,
+        nextAttempt: cfg.ringList.length,
+        graceDeadline: deadline,
+      },
+      { delay: nextDelayMs },
     );
-    logger.info('All rings exhausted - auto-cancel queued', { requestId });
+    logger.info('Re-offered widest ring during grace window', {
+      requestId, msLeft: deadline - now,
+    });
     return;
   }
 
