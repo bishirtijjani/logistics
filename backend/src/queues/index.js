@@ -67,6 +67,19 @@ const scheduleRecurringJobs = async () => {
         removeOnFail: { count: 90 },
       },
     );
+    // Wallet-funding safety net: sweep KatPay webhook_events stuck unprocessed
+    // past the grace window (see reconcileStuckWebhooks in payment.worker.js
+    // for why a funding webhook can otherwise silently never credit).
+    await paymentQueue.add(
+      PAYMENT_JOBS.RECONCILE_STUCK_WEBHOOKS,
+      {},
+      {
+        jobId: 'cron:reconcile-stuck-webhooks',
+        repeat: { pattern: '*/5 * * * *' }, // every 5 minutes
+        removeOnComplete: { count: 50 },
+        removeOnFail: { count: 50 },
+      },
+    );
     // VTU safety net: sweep payments stuck in PROCESSING/PENDING past the poll
     // window and resolve them (re-query provider → complete or refund). Every
     // 5 minutes so a stranded customer is made whole quickly, not hours later.

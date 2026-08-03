@@ -1,6 +1,6 @@
 const { Worker } = require('bullmq');
 const { redis } = require('../../config/redis');
-const { QUEUES, PAYMENT_JOBS } = require('../jobs');
+const { QUEUES, PAYMENT_JOBS, STUCK_WEBHOOK_GRACE_MS } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const walletService = require('../../modules/wallet/wallet.service');
@@ -36,6 +36,9 @@ const startPaymentWorker = () => {
         case PAYMENT_JOBS.RUN_RECONCILIATION:
           return handleRunReconciliation();
 
+        case PAYMENT_JOBS.RECONCILE_STUCK_WEBHOOKS:
+          return reconcileStuckWebhooks();
+
         default:
           logger.warn(`Unknown payment job type: ${job.name}`);
       }
@@ -43,6 +46,10 @@ const startPaymentWorker = () => {
     {
       connection: redis,
       concurrency: 5,
+      // Must exceed normal DB/notification latency so a legitimate-but-slow job
+      // is never declared stalled and reprocessed - see handleKatpayVirtualAccountPayment's
+      // claim comment for why a stalled double-dispatch used to silently drop funding.
+      lockDuration: 120_000,
       limiter: {
         max: 10,
         duration: 1000,
@@ -103,8 +110,25 @@ const handleRunReconciliation = async () => {
  * Credit wallet from a KatPay virtual account payment.
  */
 const handleKatpayVirtualAccountPayment = async ({ transactionRef, accountNumber, amount, ref, eventData }) => {
-  const webhookEvent = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
-  if (!webhookEvent || webhookEvent.processed) {
+  // Atomic claim: flip unprocessed→processed up front so only ONE of two
+  // concurrent runs of this job (a BullMQ stalled-job reclaim, or any other
+  // duplicate dispatch) actually credits the wallet. The previous read-then-
+  // write-later version had the exact same TOCTOU gap already found and fixed
+  // in the settle/refund/payout workers (see commit deb450c) - the loser of the
+  // race saw `processed: false`, called fundWallet fine, but its own trailing
+  // `processed: true` write was harmless... UNLESS the two runs interleaved so
+  // that a claim/read read stale unprocessed state after a stall+reclaim, in
+  // which case the reclaimed run's `webhookEvent.findUnique` could return the
+  // row before the original run's update landed, and BOTH proceed - one wins
+  // fundWallet's own reference-uniqueness check and throws inside the *other*
+  // run trying to report back to a job/lock BullMQ had already reassigned,
+  // silently dropping that run's result. Claiming atomically here closes that
+  // gap the same way PROCESSING→SENT and DELIVERED→SETTLED do.
+  const claim = await prisma.webhookEvent.updateMany({
+    where: { transactionRef, processed: false },
+    data: { processed: true, processedAt: new Date() },
+  });
+  if (claim.count !== 1) {
     logger.info('KatPay virtual account webhook already processed or missing', { transactionRef });
     return;
   }
@@ -116,15 +140,13 @@ const handleKatpayVirtualAccountPayment = async ({ transactionRef, accountNumber
       reference: ref || transactionRef,
       metadata: eventData,
     });
-
-    await prisma.webhookEvent.update({
-      where: { transactionRef },
-      data: { processed: true, processedAt: new Date() },
-    });
   } catch (error) {
+    // Funding failed after we'd already claimed the event - release the claim
+    // so the reconciliation sweep (or a manual retry) can pick it back up
+    // instead of it being permanently marked processed with no credit.
     await prisma.webhookEvent.update({
       where: { transactionRef },
-      data: { error: error.message },
+      data: { processed: false, error: error.message },
     });
     throw error;
   }
@@ -135,8 +157,13 @@ const handleKatpayVirtualAccountPayment = async ({ transactionRef, accountNumber
  * Uses metauserId to find the right wallet.
  */
 const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metadata, eventData }) => {
-  const webhookEvent = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
-  if (!webhookEvent || webhookEvent.processed) {
+  // Atomic claim - see handleKatpayVirtualAccountPayment for why a plain
+  // read-then-check let a stalled-job reclaim silently swallow the credit.
+  const claim = await prisma.webhookEvent.updateMany({
+    where: { transactionRef, processed: false },
+    data: { processed: true, processedAt: new Date() },
+  });
+  if (claim.count !== 1) {
     logger.info('Transfer payment webhook already processed or missing', { transactionRef });
     return;
   }
@@ -146,12 +173,20 @@ const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metada
     const userId = metadata?.userId;
     if (!userId) {
       logger.warn('Transfer payment webhook missing userId in metadata', { transactionRef });
+      await prisma.webhookEvent.update({
+        where: { transactionRef },
+        data: { processed: false, error: 'missing userId in metadata' },
+      });
       return;
     }
 
     const wallet = await prisma.wallet.findUnique({ where: { userId } });
     if (!wallet) {
       logger.warn('Wallet not found for transfer payment', { userId, transactionRef });
+      await prisma.webhookEvent.update({
+        where: { transactionRef },
+        data: { processed: false, error: 'wallet not found for userId' },
+      });
       return;
     }
 
@@ -161,18 +196,88 @@ const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metada
       reference: ref || transactionRef,
       metadata: { ...eventData, source: 'TRANSFER_PAYMENT' },
     });
-
-    await prisma.webhookEvent.update({
-      where: { transactionRef },
-      data: { processed: true, processedAt: new Date() },
-    });
   } catch (error) {
     await prisma.webhookEvent.update({
       where: { transactionRef },
-      data: { error: error.message },
+      data: { processed: false, error: error.message },
     });
     throw error;
   }
+};
+
+// Event types this sweep knows how to replay (wallet-funding only - payout.*
+// events touch merchant withdrawals and are left for manual review since a
+// blind replay there is a higher-stakes guess than re-crediting a customer).
+const REPLAYABLE_EVENT_TYPES = new Set([
+  'virtual_account.payment_received',
+  'transaction.completed',
+  'transfer_payment.completed',
+]);
+
+/**
+ * Safety-net sweep: replay KatPay webhook_events that never got marked
+ * processed after sitting past the grace window. Exists because the atomic
+ * claim in handleKatpayVirtualAccountPayment/handleKatpayTransferPayment only
+ * protects against double-crediting - it doesn't guarantee a job runs at all
+ * (a job lost to a Redis restart, a worker crash mid-flight, or any other gap
+ * we haven't found yet). Runs every 5 minutes (see queues/index.js); replay is
+ * idempotent via the same atomic claim + fundWallet's reference uniqueness, so
+ * running this on a row that's mid-flight elsewhere is safe - the claim will
+ * just find `processed` already flipped and no-op.
+ */
+const reconcileStuckWebhooks = async () => {
+  const cutoff = new Date(Date.now() - STUCK_WEBHOOK_GRACE_MS);
+  const stuck = await prisma.webhookEvent.findMany({
+    where: { provider: 'katpay', processed: false, createdAt: { lt: cutoff } },
+    orderBy: { createdAt: 'asc' },
+    take: 200,
+  });
+
+  if (stuck.length === 0) {
+    logger.info('Reconcile sweep: no stuck KatPay webhook events');
+    return { scanned: 0, replayed: 0 };
+  }
+
+  logger.warn('Reconcile sweep: replaying stuck KatPay webhook events', { count: stuck.length });
+  let replayed = 0;
+  for (const event of stuck) {
+    if (!REPLAYABLE_EVENT_TYPES.has(event.eventType)) {
+      logger.warn('Reconcile sweep: stuck webhook event needs manual review (not auto-replayable)', {
+        transactionRef: event.transactionRef,
+        eventType: event.eventType,
+        ageMs: Date.now() - new Date(event.createdAt).getTime(),
+      });
+      continue;
+    }
+
+    try {
+      const payload = event.payload;
+      const data = payload.data || payload;
+
+      if (event.eventType === 'transfer_payment.completed') {
+        const amount = Number(data.amount_received ?? data.amount ?? 0);
+        const metadata = data.metadata || {};
+        const ref = data.merchant_reference || event.transactionRef;
+        await handleKatpayTransferPayment({
+          transactionRef: event.transactionRef, amount, ref, metadata, eventData: payload,
+        });
+      } else {
+        const accountNumber = data.virtual_account?.account_number;
+        const amount = Number(data.transaction?.order_amount ?? 0);
+        const ref = data.transaction?.order_no || event.transactionRef;
+        await handleKatpayVirtualAccountPayment({
+          transactionRef: event.transactionRef, accountNumber, amount, ref, eventData: payload,
+        });
+      }
+      replayed += 1;
+    } catch (err) {
+      logger.error('Reconcile sweep: stuck webhook replay errored', {
+        transactionRef: event.transactionRef, error: err.message,
+      });
+    }
+  }
+  logger.info('Reconcile sweep complete', { scanned: stuck.length, replayed });
+  return { scanned: stuck.length, replayed };
 };
 
 /**

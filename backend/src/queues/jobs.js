@@ -33,7 +33,17 @@ const PAYMENT_JOBS = {
   CLEANUP_EXPIRED_IDEMPOTENCY: 'cleanup-expired-idempotency',
   /** Nightly: ledger reconciliation across user/merchant/system wallets */
   RUN_RECONCILIATION: 'run-reconciliation',
+  /** Safety-net sweep: find KatPay webhook_events stuck unprocessed past the
+   *  grace window (lost/duplicate job dispatch, worker downtime) and replay
+   *  them. Runs every 5 minutes; replay is idempotent (atomic claim + fundWallet's
+   *  own reference uniqueness). */
+  RECONCILE_STUCK_WEBHOOKS: 'reconcile-stuck-webhooks',
 };
+
+// A webhook event is "stuck" once it's sat unprocessed longer than any normal
+// processing should take. The sweep only touches rows older than this so it
+// never races the live job it's shadowing.
+const STUCK_WEBHOOK_GRACE_MS = 3 * 60 * 1000; // 3 minutes
 
 const NOTIFICATION_JOBS = {
   /** Send push notification via FCM */
@@ -130,4 +140,5 @@ module.exports = {
   DEFAULT_JOB_OPTIONS,
   POLL_CONFIG,
   STUCK_PAYMENT_GRACE_MS,
+  STUCK_WEBHOOK_GRACE_MS,
 };
