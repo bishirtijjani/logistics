@@ -9,6 +9,31 @@
 
 const authService = require("./auth.service");
 const { ApiResponse } = require("../../utils/api-response");
+const { AppError } = require("../../utils/api-error");
+
+/**
+ * Deliver the signup OTP over BOTH channels — email and WhatsApp — and require
+ * both to succeed. The user may verify using whichever code reaches them first,
+ * but signup only proceeds if both dispatches went out, so no one is left
+ * without a way to receive the code. A phone number is therefore mandatory.
+ */
+const sendSignupOtp = async (email, phone, code) => {
+  if (!phone) {
+    throw AppError.badRequest("A phone number is required to sign up", {
+      code: "PHONE_REQUIRED",
+    });
+  }
+
+  const emailService = require("../../services/email.service");
+  const messagingService = require("../../services/messaging.service");
+
+  // Both channels are necessary — dispatch in parallel and fail if either
+  // rejects. Promise.all surfaces the first rejection to the catch/next chain.
+  await Promise.all([
+    emailService.sendOtpEmail(email, code),
+    messagingService.sendOtp(phone, code),
+  ]);
+};
 
 const register = async (req, res, next) => {
   try {
@@ -16,22 +41,11 @@ const register = async (req, res, next) => {
 
     const code = await authService.generateOtp(req.body.email);
 
-    const emailService = require("../../services/email.service");
-    const messagingService = require("../../services/messaging.service");
-
-    // Send via email always
-    await emailService.sendOtpEmail(req.body.email, code);
-
-    // Also push to phone via the active OTP provider (WhatsApp by default).
-    if (req.body.phone) {
-      messagingService.sendOtp(req.body.phone, code).catch((err) => {
-        require("../../utils/logger").logger.warn("Phone OTP failed (non-fatal)", { error: err.message });
-      });
-    }
+    await sendSignupOtp(req.body.email, req.body.phone, code);
 
     res.status(200).json(
       ApiResponse.success(
-        "Registration successful. Check your email for the verification code.",
+        "Registration successful. Check your email or WhatsApp for the verification code.",
         result,
       ),
     );
@@ -46,20 +60,11 @@ const riderRegister = async (req, res, next) => {
 
     const code = await authService.generateOtp(req.body.email);
 
-    const emailService = require("../../services/email.service");
-    const messagingService = require("../../services/messaging.service");
-
-    await emailService.sendOtpEmail(req.body.email, code);
-
-    if (req.body.phone) {
-      messagingService.sendOtp(req.body.phone, code).catch((err) => {
-        require("../../utils/logger").logger.warn("Phone OTP failed (non-fatal)", { error: err.message });
-      });
-    }
+    await sendSignupOtp(req.body.email, req.body.phone, code);
 
     res.status(200).json(
       ApiResponse.success(
-        "Registration successful. Check your email for the verification code.",
+        "Registration successful. Check your email or WhatsApp for the verification code.",
         result,
       ),
     );
