@@ -353,25 +353,31 @@ const RequestTrackingScreen = () => {
   const etaSeconds = riderEta?.etaSeconds ?? activeRoute?.etaSeconds ?? null;
   const showEtaChip = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && etaSeconds != null;
 
-  const riderLocation = currentRequest.riderLocation
-    || (activeRoute?.riderLat != null ? { lat: activeRoute.riderLat, lng: activeRoute.riderLng } : null);
+  const mapCenter = riderLocation || (
+    currentRequest.pickupLat && currentRequest.pickupLng
+      ? { lat: currentRequest.pickupLat, lng: currentRequest.pickupLng }
+      : currentRequest.dropoffLat && currentRequest.dropoffLng
+        ? { lat: currentRequest.dropoffLat, lng: currentRequest.dropoffLng }
+        : null
+  );
 
-  // Split-view: once a rider is actively moving the order and we have a live
-  // position, pin the map to the top half of the screen and drop the rest of
-  // the tracking content into a scrollable bottom sheet - so the customer
-  // watches the rider move without scrolling down to find the map.
-  const splitView = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && !!riderLocation;
+  const hasMapCoords = !!mapCenter;
+
+  // Split-view: once a rider is actively moving the order, pin the map to the top
+  // half of the screen and drop the rest of the tracking content into a scrollable
+  // bottom sheet - so the customer watches the rider move without scrolling down.
+  const splitView = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && hasMapCoords;
   const showArrivedBanner = riderArrived === 'dropoff'
     && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status);
 
   // Shared map element, rendered either pinned to the top half (split view) or
-  // inline in its 240px card (non-split). Null until we have a rider position.
-  const mapView = riderLocation ? (
+  // inline in its 240px card (non-split).
+  const mapView = hasMapCoords ? (
     <MapView
       style={{ flex: 1 }}
       initialRegion={{
-        latitude: riderLocation.lat,
-        longitude: riderLocation.lng,
+        latitude: mapCenter.lat,
+        longitude: mapCenter.lng,
         latitudeDelta: 0.025,
         longitudeDelta: 0.025,
       }}
@@ -383,17 +389,19 @@ const RequestTrackingScreen = () => {
           strokeWidth={4}
         />
       )}
-      <Marker
-        coordinate={{ latitude: riderLocation.lat, longitude: riderLocation.lng }}
-        title={t('request.tracking.markerRider')}
-        description={currentRequest.rider?.user
-          ? `${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`
-          : undefined}
-      >
-        <View style={{ borderRadius: 12, padding: 8, backgroundColor: tokens.bg.surface, elevation: 4 }}>
-          <Ionicons name="bicycle" size={22} color={tokens.brand.default} />
-        </View>
-      </Marker>
+      {riderLocation && (
+        <Marker
+          coordinate={{ latitude: riderLocation.lat, longitude: riderLocation.lng }}
+          title={t('request.tracking.markerRider')}
+          description={currentRequest.rider?.user
+            ? `${currentRequest.rider.user.firstName} ${currentRequest.rider.user.lastName}`
+            : undefined}
+        >
+          <View style={{ borderRadius: 12, padding: 8, backgroundColor: tokens.bg.surface, elevation: 4 }}>
+            <Ionicons name="bicycle" size={22} color={tokens.brand.default} />
+          </View>
+        </Marker>
+      )}
       {currentRequest.pickupLat && currentRequest.pickupLng && (
         <Marker
           coordinate={{ latitude: currentRequest.pickupLat, longitude: currentRequest.pickupLng }}
@@ -877,7 +885,7 @@ const RequestTrackingScreen = () => {
 
         {/* Live map - inline only when NOT in split view (in split view the
             same map is pinned to the top half above this sheet). */}
-        {!splitView && currentRequest.rider?.user && riderLocation && (
+        {!splitView && hasMapCoords && (
           <View style={{ marginBottom: 24 }}>
             <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', marginBottom: 12, color: tokens.text.primary }}>
               {t('request.tracking.liveTracking')}
