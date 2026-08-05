@@ -57,8 +57,18 @@ const patchAvailability = async (availability, coords) => {
 export const goOnline = createAsyncThunk(
   'rider/goOnline',
   async (_, { dispatch, getState, rejectWithValue }) => {
-    // Step 1: best-effort one-shot fix. Never blocks go-online; if we have no
-    // grant yet it returns null and step 3's stream will prompt + stream.
+    // Step 1: start the location stream first so permission is requested & stream ready.
+    const streamRes = await locationStream.start({
+      mode: 'idle',
+      onFix: (fix) => dispatch(setLastFix(fix)),
+      requestIdGetter: () => getState().trip?.activeRequestId || null,
+    });
+
+    if (!streamRes.ok) {
+      return rejectWithValue({ reason: streamRes.reason });
+    }
+
+    // Step 2: Grab a fresh fix (permission is guaranteed granted now).
     let coords;
     try {
       const fix = await locationStream.getCurrentFix();
@@ -68,29 +78,16 @@ export const goOnline = createAsyncThunk(
       }
     } catch (_) {}
 
-    // Step 2: tell the server (with the fresh fix if we got one). If this
-    // fails, we never start the stream - the rider stays cleanly OFFLINE.
+    // Step 3: Tell the server (with the guaranteed fresh fix). If this fails,
+    // stop the stream so the rider stays cleanly OFFLINE.
     try {
       await patchAvailability(AVAILABILITY.ONLINE, coords);
     } catch (err) {
+      await locationStream.stop();
       return rejectWithValue({ reason: 'patch_failed', message: err?.message });
     }
 
-    // Step 3: start the stream. The stream handles permission asks.
-    const streamRes = await locationStream.start({
-      mode: 'idle',
-      onFix: (fix) => dispatch(setLastFix(fix)),
-      requestIdGetter: () => getState().trip?.activeRequestId || null,
-    });
-
-    if (!streamRes.ok) {
-      // Roll back server availability so we don't leave it ONLINE without a stream.
-      try { await patchAvailability(AVAILABILITY.OFFLINE); } catch (_) {}
-      return rejectWithValue({ reason: streamRes.reason });
-    }
-
-    // Step 4: socket reconcile (with coords) - redundant with the PATCH seed
-    // but covers a socket that connected after the PATCH landed.
+    // Step 4: Socket reconcile with coords.
     socketService.emitAvailabilityChanged(AVAILABILITY.ONLINE, coords);
 
     return { availability: AVAILABILITY.ONLINE };

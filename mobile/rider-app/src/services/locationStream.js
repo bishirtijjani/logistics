@@ -133,6 +133,14 @@ class LocationStream {
     });
 
     await this._restartWatch();
+
+    // Fire an immediate initial location fix so stationary riders emit their position right away.
+    this.getCurrentFix().then((fix) => {
+      if (fix && typeof fix.lat === 'number' && typeof fix.lng === 'number') {
+        this._handleFix({ coords: { latitude: fix.lat, longitude: fix.lng, accuracy: fix.accuracy } });
+      }
+    }).catch(() => {});
+
     return { ok: true };
   }
 
