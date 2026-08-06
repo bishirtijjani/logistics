@@ -581,6 +581,9 @@
       "noMessagesYet": "No messages yet. Send one to start.",
       "messagePlaceholder": "Type a message…",
       "chatTitle": "Chat",
+      "roleRider": "Rider",
+      "roleMerchant": "Merchant",
+      "roleSupport": "Support",
       "rateOrder": "Rate order"
     },
     "checkout": {

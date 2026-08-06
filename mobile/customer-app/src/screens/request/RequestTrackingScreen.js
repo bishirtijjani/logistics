@@ -1101,7 +1101,22 @@ const RequestTrackingScreen = () => {
 };
 
 const ChatBubble = ({ message, currentUserId, tokens }) => {
+  const { t } = useTranslation();
   const isMine = message.fromUserId === currentUserId;
+  // The thread is shared by all three stakeholders (customer, rider,
+  // merchant) plus support, so without a role tag a customer can't tell a
+  // message from their rider apart from one sent by the merchant - both
+  // just show as a first name. Mirrors the role labelling in
+  // mobile/rider-app's ChatThread and merchant-dashboard's OrderChatPanel.
+  const roleLabel = (() => {
+    const r = message?.fromUser?.role;
+    if (!r || r === 'CUSTOMER') return null;
+    if (r === 'RIDER') return t('request.tracking.roleRider', 'Rider');
+    if (r === 'MERCHANT') return t('request.tracking.roleMerchant', 'Merchant');
+    if (r === 'ADMIN') return t('request.tracking.roleSupport', 'Support');
+    return r;
+  })();
+
   return (
     <View style={{ flexDirection: 'row', justifyContent: isMine ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
       <View
@@ -1117,6 +1132,7 @@ const ChatBubble = ({ message, currentUserId, tokens }) => {
       >
         {!isMine && message.fromUser && (
           <Text style={{ fontSize: 11, fontWeight: '700', color: tokens.text.muted, marginBottom: 2 }}>
+            {roleLabel ? `${roleLabel} · ` : ''}
             {message.fromUser.firstName} {message.fromUser.lastName?.[0] || ''}
           </Text>
         )}

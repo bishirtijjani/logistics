@@ -583,6 +583,9 @@
       "noMessagesYet": "Babu saƙo har yanzu. Aiko ɗaya don farawa.",
       "messagePlaceholder": "Rubuta saƙo…",
       "chatTitle": "Taɗi",
+      "roleRider": "Direba",
+      "roleMerchant": "Mai siyarwa",
+      "roleSupport": "Tallafi",
       "rateOrder": "Ƙimanta oda"
     },
     "checkout": {
