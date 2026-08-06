@@ -11,6 +11,7 @@ import utilityReducer from './slices/utilitySlice.js'
 import walletReducer from './slices/walletSlice.js'
 import platformSettingsReducer from './slices/platformSettingsSlice.js'
 import notificationsReducer from './slices/notificationsSlice.js'
+import chatReducer from './slices/chatSlice.js'
 
 const combined = combineReducers({
   auth: authReducer,
@@ -25,6 +26,7 @@ const combined = combineReducers({
   wallet: walletReducer,
   platformSettings: platformSettingsReducer,
   notifications: notificationsReducer,
+  chat: chatReducer,
 })
 
 // Wipe ALL merchant-scoped state (orders, earnings, wallet, notifications...)

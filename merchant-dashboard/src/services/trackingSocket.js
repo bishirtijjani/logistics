@@ -2,11 +2,11 @@ import { io } from 'socket.io-client'
 import { API_URL } from '../lib/api'
 
 // Dedicated Socket.io connection for per-request live tracking (the order
-// details map). Kept separate from useWebSocket's page-scoped socket so the
-// modal can join/leave request rooms without touching the merchant-room
-// notification plumbing. Connects lazily when the first room is joined and
-// tears down once the last room is left, so it costs nothing while no
-// tracking map is open.
+// details map) and the order chat panel. Kept separate from useWebSocket's
+// page-scoped socket so the modal can join/leave request rooms without
+// touching the merchant-room notification plumbing. Connects lazily when the
+// first room is joined and tears down once the last room is left, so it
+// costs nothing while no tracking map / chat panel is open.
 //
 // Event names mirror backend/src/sockets/events.js; rider positions arrive on
 // rider:location:broadcast every ~3s (request:rider:location is the alias
@@ -16,9 +16,12 @@ class TrackingSocketService {
   constructor() {
     this.socket = null
     this.eventHandlers = new Map()
-    // Rooms we should be in - re-joined after every (re)connect, since
-    // Socket.io drops room membership when the connection drops.
-    this.requestRooms = new Set()
+    // Ref-counted rooms we should be in - re-joined after every (re)connect,
+    // since Socket.io drops room membership when the connection drops. A
+    // plain Set isn't enough here: the tracking map and the chat panel can
+    // both have the same request room open at once, and if one unmounts
+    // first a Set-based leave would evict the room out from under the other.
+    this.requestRoomRefCounts = new Map()
   }
 
   connect() {
@@ -35,7 +38,7 @@ class TrackingSocketService {
     })
 
     this.socket.on('connect', () => {
-      this.requestRooms.forEach((requestId) => {
+      this.requestRoomRefCounts.forEach((_count, requestId) => {
         this.socket.emit('request:room:join', { requestId })
       })
     })
@@ -44,6 +47,7 @@ class TrackingSocketService {
     this.socket.on('rider:location:broadcast', (data) => this.emit('requestRiderLocation', data))
     this.socket.on('request:rider:eta', (data) => this.emit('requestRiderEta', data))
     this.socket.on('request:status:changed', (data) => this.emit('requestStatusChanged', data))
+    this.socket.on('request:message:new', (data) => this.emit('requestMessageNew', data))
   }
 
   disconnect() {
@@ -55,16 +59,23 @@ class TrackingSocketService {
 
   joinRequestRoom(requestId) {
     if (!requestId) return
-    this.requestRooms.add(requestId)
+    const count = this.requestRoomRefCounts.get(requestId) || 0
+    this.requestRoomRefCounts.set(requestId, count + 1)
     this.connect()
-    if (this.socket?.connected) this.socket.emit('request:room:join', { requestId })
+    if (count === 0 && this.socket?.connected) this.socket.emit('request:room:join', { requestId })
   }
 
   leaveRequestRoom(requestId) {
     if (!requestId) return
-    this.requestRooms.delete(requestId)
-    if (this.socket?.connected) this.socket.emit('request:room:leave', { requestId })
-    if (this.requestRooms.size === 0) this.disconnect()
+    const count = this.requestRoomRefCounts.get(requestId)
+    if (!count) return
+    if (count <= 1) {
+      this.requestRoomRefCounts.delete(requestId)
+      if (this.socket?.connected) this.socket.emit('request:room:leave', { requestId })
+    } else {
+      this.requestRoomRefCounts.set(requestId, count - 1)
+    }
+    if (this.requestRoomRefCounts.size === 0) this.disconnect()
   }
 
   onRequestRiderLocation(cb) {
@@ -77,6 +88,10 @@ class TrackingSocketService {
 
   onRequestStatusChanged(cb) {
     return this.on('requestStatusChanged', cb)
+  }
+
+  onRequestMessageNew(cb) {
+    return this.on('requestMessageNew', cb)
   }
 
   on(event, callback) {

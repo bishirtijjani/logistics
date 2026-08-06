@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { API_URL } from '../lib/api'
 import { useSelector, useDispatch } from 'react-redux'
 import { fetchOrders, acceptOrder, rejectOrder, updateOrderStatus } from '../store/slices/ordersSlice.js'
@@ -31,9 +32,16 @@ export default function OrdersPage() {
   const { user } = useSelector((state) => state.auth)
   const merchantId = user?.merchantId
   const dispatch = useDispatch()
+  const location = useLocation()
   const { orders, loading, total, page, limit } = useSelector((state) => state.orders)
   const [filter, setFilter] = useState('')
   const [selectedOrder, setSelectedOrder] = useState(null)
+  // Set when NotificationsPage sends us here after a REQUEST_MESSAGE click -
+  // consumed once the matching order shows up in the loaded list, below.
+  const [pendingChatRequestId, setPendingChatRequestId] = useState(
+    location.state?.openChatForRequestId || null
+  )
+  const [autoOpenChat, setAutoOpenChat] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })
@@ -83,6 +91,20 @@ export default function OrdersPage() {
     
     dispatch(fetchOrders(params))
   }, [dispatch, merchantId, filter, searchTerm, dateRange, priceRange])
+
+  // Once the order a REQUEST_MESSAGE notification pointed at shows up in the
+  // loaded page, jump straight to its chat instead of leaving the merchant to
+  // find it themselves. Best-effort - if it's on a different page/filter
+  // than the default view loads, this quietly does nothing further.
+  useEffect(() => {
+    if (!pendingChatRequestId) return
+    const match = orders.find((o) => o.id === pendingChatRequestId)
+    if (!match) return
+    setSelectedOrder(match)
+    setShowOrderDetails(true)
+    setAutoOpenChat(true)
+    setPendingChatRequestId(null)
+  }, [orders, pendingChatRequestId])
 
   const handleAccept = async (orderId) => {
     try {
@@ -1042,7 +1064,8 @@ export default function OrdersPage() {
       {showOrderDetails && selectedOrder && (
         <OrderDetailsModal
           order={selectedOrder}
-          onClose={() => { setShowOrderDetails(false); setSelectedOrder(null) }}
+          autoOpenChat={autoOpenChat}
+          onClose={() => { setShowOrderDetails(false); setSelectedOrder(null); setAutoOpenChat(false) }}
         />
       )}
 

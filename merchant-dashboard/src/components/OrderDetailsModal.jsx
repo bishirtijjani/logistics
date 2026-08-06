@@ -22,9 +22,10 @@ import {
 import { format } from 'date-fns'
 import { showErrorToast, showSuccessToast } from '../utils/toast.js'
 import LiveTrackingMap from './LiveTrackingMap.jsx'
+import OrderChatPanel from './OrderChatPanel.jsx'
 import { TRACKABLE_STATUSES } from '../lib/tracking'
 
-export default function OrderDetailsModal({ order: orderProp, onClose }) {
+export default function OrderDetailsModal({ order: orderProp, onClose, autoOpenChat = false }) {
   // The parent passes a point-in-time snapshot of the order. Subscribe to the
   // live copy in the store so socket-driven status changes (request:status:changed
   // fanned out to the merchant room) flip the status timeline AND satisfy the
@@ -43,6 +44,7 @@ export default function OrderDetailsModal({ order: orderProp, onClose }) {
   const [comments, setComments] = useState(order?.comments || [])
   const [newComment, setNewComment] = useState('')
   const [showAddComment, setShowAddComment] = useState(false)
+  const [chatOpen, setChatOpen] = useState(autoOpenChat)
 
   if (!order) return null
 
@@ -181,8 +183,7 @@ export default function OrderDetailsModal({ order: orderProp, onClose }) {
   }
 
   const handleMessageCustomer = () => {
-    // Open messaging app or in-app messaging
-    window.open(`sms:${order.customer?.phone}`)
+    setChatOpen(true)
   }
 
   const getStatusTimeline = () => {
@@ -283,7 +284,7 @@ export default function OrderDetailsModal({ order: orderProp, onClose }) {
                   <button
                     onClick={handleMessageCustomer}
                     className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                    title="Message Customer"
+                    title="Order chat"
                   >
                     <MessageSquare className="w-4 h-4" />
                   </button>
@@ -804,6 +805,8 @@ export default function OrderDetailsModal({ order: orderProp, onClose }) {
           </div>
         </div>
       </div>
+
+      {chatOpen && <OrderChatPanel requestId={order.id} onClose={() => setChatOpen(false)} />}
     </div>
   )
 }

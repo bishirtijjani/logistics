@@ -82,7 +82,16 @@ export default function NotificationsPage() {
   const handleRowClick = (n) => {
     if (!n.readAt) dispatch(markNotificationRead(n.id))
     const route = routeForNotification(n)
-    if (route) navigate(route)
+    if (!route) return
+    // REQUEST_MESSAGE carries the requestId the message belongs to - hand it
+    // to OrdersPage via navigation state so it can open that order's details
+    // modal straight into the chat panel instead of dropping the merchant on
+    // the bare order list to go hunting for it.
+    if (n.type === 'REQUEST_MESSAGE' && n.data?.requestId) {
+      navigate(route, { state: { openChatForRequestId: n.data.requestId } })
+      return
+    }
+    navigate(route)
   }
 
   return (
