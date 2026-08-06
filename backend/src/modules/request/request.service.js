@@ -631,7 +631,7 @@ const createRequest = async (customerId, requestData) => {
     // Center and fires a push, same as every other merchant-facing event.
     const merchant = await prisma.merchant.findUnique({
       where: { id: merchantId },
-      select: { userId: true },
+      select: { userId: true, name: true, email: true, user: { select: { email: true } } },
     });
     if (merchant?.userId) {
       const amountText = `₦${Number(pricing.total).toLocaleString('en-NG')}`;
@@ -642,6 +642,21 @@ const createRequest = async (customerId, requestData) => {
         data: { route: '/dashboard/orders' },
         requestId: request.id,
       }).catch((err) => logger.warn('New-order merchant notification failed', { requestId: request.id, error: err.message }));
+    }
+
+    // Email backstop for the same event. Push/socket only reach a merchant who
+    // has the app open or notifications enabled - email catches orders placed
+    // while they're away from the dashboard entirely.
+    const merchantEmail = merchant?.email || merchant?.user?.email;
+    if (merchantEmail) {
+      emailService.sendNewOrderEmail(merchantEmail, {
+        merchantName: merchant.name,
+        requestId: request.id,
+        items: resolvedItems.map((it) => ({ name: it.name, quantity: it.quantity })),
+        subtotal: pricing.subtotal,
+        merchantEarning: pricing.merchantEarning,
+        dropoffAddress: locationData.dropoffAddress,
+      }).catch((err) => logger.warn('New-order merchant email failed', { requestId: request.id, error: err.message }));
     }
   }
 

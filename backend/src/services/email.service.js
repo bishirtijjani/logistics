@@ -608,6 +608,44 @@ const sendMerchantApplicationAlertEmail = async ({ to, merchantName, contactEmai
   });
 };
 
+/**
+ * New order placed at a merchant's store. Fires alongside the existing
+ * push/socket notification so an order isn't missed just because the
+ * merchant's dashboard tab isn't open in a browser.
+ */
+const sendNewOrderEmail = async (email, { merchantName, requestId, items = [], subtotal, merchantEarning, dropoffAddress }) => {
+  const shortId = String(requestId || '').slice(0, 8).toUpperCase();
+  const itemsList = items.length
+    ? `<ul style="margin:0;padding-left:20px;font-size:14px;color:#374151;line-height:1.8;">
+        ${items.map((it) => `<li>${it.quantity} &times; ${escapeHtml(it.name)}</li>`).join('')}
+      </ul>`
+    : '-';
+
+  const html = emailBase(`
+    <h2 style="margin:0 0 8px;font-size:22px;color:#EA580C;font-weight:700;">New order received</h2>
+    <p style="margin:0 0 16px;font-size:16px;color:#374151;">Dear <strong>${escapeHtml(merchantName || '')}</strong>,</p>
+    <p style="margin:0 0 20px;font-size:15px;color:#6b7280;line-height:1.6;">
+      A customer just placed an order at your store. Log in to your merchant dashboard to accept it and start preparing.
+    </p>
+    ${infoBox('#EA580C', '#fff7ed', [
+      ['Order', `#${shortId}`],
+      ['Items', itemsList],
+      ['Order value', `<strong style="font-size:16px;">${naira(subtotal)}</strong>`],
+      ...(merchantEarning != null ? [['You earn', naira(merchantEarning)]] : []),
+      ...(dropoffAddress ? [['Deliver to', escapeHtml(dropoffAddress)]] : []),
+    ])}
+    ${btnPrimary('View Order')}
+    <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;">Accept promptly so the customer isn't left waiting.</p>
+  `);
+
+  return sendEmail({
+    to: email,
+    subject: `New order #${shortId} - ${naira(subtotal)}`,
+    html,
+    text: `Dear ${merchantName || ''}, you have a new order (#${shortId}) worth ${naira(subtotal)}. Log in to your merchant dashboard to accept it.`,
+  });
+};
+
 // ============================================================
 // Cash-on-delivery emails (customer + rider)
 // ============================================================
@@ -741,6 +779,7 @@ module.exports = {
   sendMerchantSuspendedEmail,
   sendMerchantUnsuspendedEmail,
   sendMerchantApplicationAlertEmail,
+  sendNewOrderEmail,
   sendWithdrawalApprovedEmail,
   sendWithdrawalRejectedEmail,
   sendCommissionChangedEmail,
