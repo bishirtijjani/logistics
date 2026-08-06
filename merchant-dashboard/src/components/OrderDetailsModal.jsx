@@ -25,7 +25,7 @@ import LiveTrackingMap from './LiveTrackingMap.jsx'
 import OrderChatPanel from './OrderChatPanel.jsx'
 import { TRACKABLE_STATUSES } from '../lib/tracking'
 
-export default function OrderDetailsModal({ order: orderProp, onClose, autoOpenChat = false }) {
+export default function OrderDetailsModal({ order: orderProp, onClose, autoOpenChatChannel = null }) {
   // The parent passes a point-in-time snapshot of the order. Subscribe to the
   // live copy in the store so socket-driven status changes (request:status:changed
   // fanned out to the merchant room) flip the status timeline AND satisfy the
@@ -44,7 +44,9 @@ export default function OrderDetailsModal({ order: orderProp, onClose, autoOpenC
   const [comments, setComments] = useState(order?.comments || [])
   const [newComment, setNewComment] = useState('')
   const [showAddComment, setShowAddComment] = useState(false)
-  const [chatOpen, setChatOpen] = useState(autoOpenChat)
+  // Which private thread's panel is open - null, 'CUSTOMER_MERCHANT', or
+  // 'RIDER_MERCHANT'. The merchant is never part of CUSTOMER_RIDER.
+  const [openChatChannel, setOpenChatChannel] = useState(autoOpenChatChannel)
 
   if (!order) return null
 
@@ -182,9 +184,6 @@ export default function OrderDetailsModal({ order: orderProp, onClose, autoOpenC
     window.open(`tel:${order.customer?.phone}`)
   }
 
-  const handleMessageCustomer = () => {
-    setChatOpen(true)
-  }
 
   const getStatusTimeline = () => {
     const timeline = [
@@ -282,12 +281,21 @@ export default function OrderDetailsModal({ order: orderProp, onClose, autoOpenC
                     <Phone className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={handleMessageCustomer}
+                    onClick={() => setOpenChatChannel('CUSTOMER_MERCHANT')}
                     className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                    title="Order chat"
+                    title="Chat with customer"
                   >
                     <MessageSquare className="w-4 h-4" />
                   </button>
+                  {order.rider ? (
+                    <button
+                      onClick={() => setOpenChatChannel('RIDER_MERCHANT')}
+                      className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                      title="Chat with rider"
+                    >
+                      <Truck className="w-4 h-4" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -806,7 +814,14 @@ export default function OrderDetailsModal({ order: orderProp, onClose, autoOpenC
         </div>
       </div>
 
-      {chatOpen && <OrderChatPanel requestId={order.id} onClose={() => setChatOpen(false)} />}
+      {openChatChannel ? (
+        <OrderChatPanel
+          requestId={order.id}
+          channel={openChatChannel}
+          counterpartLabel={openChatChannel === 'RIDER_MERCHANT' ? 'rider' : 'customer'}
+          onClose={() => setOpenChatChannel(null)}
+        />
+      ) : null}
     </div>
   )
 }

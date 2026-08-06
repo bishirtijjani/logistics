@@ -1,27 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { X, Send, MessageSquare } from 'lucide-react'
-import trackingSocket from '../services/trackingSocket'
-import { fetchMessages, sendMessage, messageReceived } from '../store/slices/chatSlice.js'
+import { fetchMessages, sendMessage } from '../store/slices/chatSlice.js'
 import { showErrorToast } from '../utils/toast.js'
 
-// In-app chat for a single request, shared with the rider and customer
-// apps via backend/src/modules/request/request.service.js (listMessages /
-// postMessage) - a message sent here shows up on their side too and vice
-// versa. Rendered as a modal layered on top of OrderDetailsModal, mirroring
-// the chat sheet pattern in mobile/rider-app/src/features/trip/ChatThread.js
-// and mobile/customer-app's RequestTrackingScreen.
-const ROLE_LABEL = {
-  CUSTOMER: 'Customer',
-  RIDER: 'Rider',
-  MERCHANT: 'You',
-  ADMIN: 'Support',
-}
-
-export default function OrderChatPanel({ requestId, onClose }) {
+// In-app chat for one private 1:1 thread on an order, sharing the
+// request_messages backend (backend/src/modules/request/request.service.js)
+// with the rider and customer apps. A merchant only ever opens this for
+// CUSTOMER_MERCHANT or RIDER_MERCHANT - the customer<->rider thread is
+// private between those two and never reaches here. Live updates arrive via
+// useWebSocket.js's request:message:new listener (delivered to this
+// merchant's personal socket room, not a per-request room), which dispatches
+// messageReceived into chatSlice - this panel doesn't subscribe to the
+// socket itself. Rendered as a modal layered on top of OrderDetailsModal,
+// mirroring the chat sheet pattern in
+// mobile/rider-app/src/features/trip/ChatThread.js and
+// mobile/customer-app's RequestTrackingScreen.
+export default function OrderChatPanel({ requestId, channel, counterpartLabel, onClose }) {
   const dispatch = useDispatch()
   const myUserId = useSelector((s) => s.auth.user?.id)
-  const thread = useSelector((s) => s.chat.byRequestId[requestId])
+  const thread = useSelector((s) => s.chat.byRequestId[requestId]?.[channel])
   const messages = thread?.messages || []
   const loading = thread?.loading || false
   const sending = thread?.sending || false
@@ -29,16 +27,8 @@ export default function OrderChatPanel({ requestId, onClose }) {
   const listRef = useRef(null)
 
   useEffect(() => {
-    dispatch(fetchMessages({ requestId }))
-    trackingSocket.joinRequestRoom(requestId)
-    const unsubscribe = trackingSocket.onRequestMessageNew((data) => {
-      if (data?.requestId === requestId) dispatch(messageReceived(data))
-    })
-    return () => {
-      unsubscribe()
-      trackingSocket.leaveRequestRoom(requestId)
-    }
-  }, [requestId, dispatch])
+    dispatch(fetchMessages({ requestId, channel }))
+  }, [requestId, channel, dispatch])
 
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight
@@ -48,7 +38,7 @@ export default function OrderChatPanel({ requestId, onClose }) {
     const body = draft.trim()
     if (!body || sending) return
     setDraft('')
-    const action = await dispatch(sendMessage({ requestId, body }))
+    const action = await dispatch(sendMessage({ requestId, channel, body }))
     if (sendMessage.rejected.match(action)) {
       showErrorToast('Failed to send message')
       setDraft(body)
@@ -61,7 +51,9 @@ export default function OrderChatPanel({ requestId, onClose }) {
         <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <MessageSquare className="w-5 h-5 text-primary shrink-0" />
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">Order chat</h3>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
+              Chat with {counterpartLabel}
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -115,10 +107,10 @@ export default function OrderChatPanel({ requestId, onClose }) {
   )
 }
 
+// A channel only ever has two participants, so "not mine" is unambiguous -
+// no role-guessing needed here (unlike the old shared-thread version).
 function Bubble({ message, myUserId }) {
   const isMine = message.fromUserId === myUserId
-  const role = message.fromUser?.role
-  const label = isMine ? null : ROLE_LABEL[role] || role
 
   return (
     <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
@@ -129,12 +121,6 @@ function Bubble({ message, myUserId }) {
             : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-md'
         }`}
       >
-        {!isMine && label ? (
-          <p className="text-[11px] font-semibold opacity-70 mb-0.5">
-            {label}
-            {message.fromUser?.firstName ? ` · ${message.fromUser.firstName}` : ''}
-          </p>
-        ) : null}
         <p className="text-sm whitespace-pre-wrap break-words">{message.body}</p>
       </div>
     </div>

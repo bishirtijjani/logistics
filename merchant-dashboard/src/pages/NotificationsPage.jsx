@@ -83,12 +83,13 @@ export default function NotificationsPage() {
     if (!n.readAt) dispatch(markNotificationRead(n.id))
     const route = routeForNotification(n)
     if (!route) return
-    // REQUEST_MESSAGE carries the requestId the message belongs to - hand it
-    // to OrdersPage via navigation state so it can open that order's details
-    // modal straight into the chat panel instead of dropping the merchant on
-    // the bare order list to go hunting for it.
-    if (n.type === 'REQUEST_MESSAGE' && n.data?.requestId) {
-      navigate(route, { state: { openChatForRequestId: n.data.requestId } })
+    // REQUEST_MESSAGE carries the requestId + channel the message belongs to
+    // (CUSTOMER_MERCHANT or RIDER_MERCHANT - a merchant is never on the
+    // CUSTOMER_RIDER thread) - hand both to OrdersPage via navigation state
+    // so it can open that order's details modal straight into the right
+    // chat panel instead of dropping the merchant on the bare order list.
+    if (n.type === 'REQUEST_MESSAGE' && n.data?.requestId && n.data?.channel) {
+      navigate(route, { state: { openChatForRequestId: n.data.requestId, openChatChannel: n.data.channel } })
       return
     }
     navigate(route)

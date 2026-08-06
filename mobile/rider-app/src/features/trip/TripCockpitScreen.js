@@ -38,6 +38,7 @@ import StatusActionButton from "./StatusActionButton";
 import PickupCard from "./PickupCard";
 import DropoffCard from "./DropoffCard";
 import ContactPartiesSheet from "./ContactPartiesSheet";
+import ChatChannelPicker from "./ChatChannelPicker";
 import ChatThread from "./ChatThread";
 import CancelTripSheet from "./CancelTripSheet";
 import WrongAddressSheet from "./WrongAddressSheet";
@@ -87,6 +88,10 @@ export default function TripCockpitScreen({ route }) {
   const store = useStore();
 
   const paramRequestId = route?.params?.requestId || null;
+  // Set when a REQUEST_MESSAGE notification deep-links here (see
+  // notificationRoute.js's routeToScreen) - opens straight into that
+  // channel's thread instead of leaving the rider to find it themselves.
+  const paramChatChannel = route?.params?.chatChannel || null;
   const activeRequestId = useSelector((s) => s.trip.activeRequestId);
   const status = useSelector((s) => s.trip.status);
   const type = useSelector((s) => s.trip.type);
@@ -115,8 +120,17 @@ export default function TripCockpitScreen({ route }) {
 
   // Sheet state.
   const [contactVisible, setContactVisible] = useState(false);
-  const [chatVisible, setChatVisible] = useState(false);
+  const [chatPickerVisible, setChatPickerVisible] = useState(false);
+  const [chatChannel, setChatChannel] = useState(null); // null | 'CUSTOMER_RIDER' | 'RIDER_MERCHANT'
   const [cancelVisible, setCancelVisible] = useState(false);
+
+  // Only consume once on arrival - not on every activeRequestId change, so
+  // deliberately depends on paramChatChannel alone.
+  useEffect(() => {
+    if (paramChatChannel && activeRequestId === paramRequestId) {
+      setChatChannel(paramChatChannel);
+    }
+  }, [paramChatChannel]);
   const [wrongAddressStage, setWrongAddressStage] = useState(null);
 
   // ── Phase 5: POD sheet machine ─────────────────────────────────────────
@@ -602,7 +616,7 @@ export default function TripCockpitScreen({ route }) {
           #{requestId.slice(0, 8)}
         </Text>
         <TouchableOpacity
-          onPress={() => setChatVisible(true)}
+          onPress={() => setChatPickerVisible(true)}
           accessibilityRole="button"
           accessibilityLabel={t("trip.openChat", "Open chat")}
           hitSlop={8}
@@ -856,11 +870,27 @@ export default function TripCockpitScreen({ route }) {
         counterpartPhone={counterpart?.contactPhone}
         callAttempts={counterpartUserId ? (callAttempts[counterpartUserId] || 0) : 0}
         onCall={callCounterpart}
-        onChat={() => { setContactVisible(false); setChatVisible(true); }}
+        onChat={() => {
+          setContactVisible(false);
+          setChatChannel(isPickupStage ? "RIDER_MERCHANT" : "CUSTOMER_RIDER");
+        }}
         onReportUnreachable={reportUnreachable}
       />
 
-      <ChatThread visible={chatVisible} onClose={() => setChatVisible(false)} />
+      <ChatChannelPicker
+        visible={chatPickerVisible}
+        hasMerchant={!!merchantUserId}
+        onClose={() => setChatPickerVisible(false)}
+        onPickCustomer={() => { setChatPickerVisible(false); setChatChannel("CUSTOMER_RIDER"); }}
+        onPickMerchant={() => { setChatPickerVisible(false); setChatChannel("RIDER_MERCHANT"); }}
+      />
+
+      <ChatThread
+        visible={!!chatChannel}
+        channel={chatChannel}
+        counterpartLabel={chatChannel === "RIDER_MERCHANT" ? (pickup?.contactName || t("trip.chatPicker.merchant", "Message merchant")) : (dropoff?.contactName || t("trip.chatPicker.customer", "Message customer"))}
+        onClose={() => setChatChannel(null)}
+      />
 
       <CancelTripSheet
         visible={cancelVisible}

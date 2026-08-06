@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux'
 import { API_URL } from '../lib/api'
 import { fetchOrders, orderStatusPatched } from '../store/slices/ordersSlice.js'
 import { notificationReceived } from '../store/slices/notificationsSlice.js'
+import { messageReceived } from '../store/slices/chatSlice.js'
 import { showSuccessToast } from '../utils/toast.js'
 
 // The backend speaks Socket.io (backend/src/sockets/index.js), NOT raw
@@ -17,6 +18,7 @@ const EVENTS = {
   REQUEST_CREATED: 'request:created',
   REQUEST_STATUS_CHANGED: 'request:status:changed',
   NOTIFICATION_NEW: 'notification:new',
+  REQUEST_MESSAGE_NEW: 'request:message:new',
 }
 
 export function useWebSocket(merchantId) {
@@ -138,6 +140,15 @@ export function useWebSocket(merchantId) {
       setLastMessage({ type: EVENTS.NOTIFICATION_NEW, data })
       dispatch(notificationReceived(data))
       if (data?.title && data?.type !== 'ORDER') showSuccessToast(data.title)
+    })
+
+    // Order chat - delivered straight to this merchant's personal socket
+    // room (see backend postMessage), so this only ever fires for the two
+    // channels the merchant is actually part of (CUSTOMER_MERCHANT,
+    // RIDER_MERCHANT) - never the customer<->rider thread.
+    socket.on(EVENTS.REQUEST_MESSAGE_NEW, (data) => {
+      setLastMessage({ type: EVENTS.REQUEST_MESSAGE_NEW, data })
+      dispatch(messageReceived(data))
     })
 
     return () => {

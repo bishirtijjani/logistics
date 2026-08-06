@@ -17,7 +17,7 @@ const mapsService = require('../../services/maps.service');
 const { requestQueue } = require('../../queues');
 const { REQUEST_JOBS } = require('../../queues/jobs');
 const { getIO } = require('../../sockets');
-const { REQUEST, getRequestRoom, getRiderPoolRoom } = require('../../sockets/events');
+const { REQUEST, getRequestRoom, getRiderPoolRoom, getUserRoom } = require('../../sockets/events');
 const {
   emitRequestCreated,
   emitStatusChanged,
@@ -1569,30 +1569,58 @@ const getActiveRoute = async (requestId, userId, role) => {
 };
 
 // ============================================================
-// In-app messaging
+// In-app messaging - one private thread per pair of stakeholders. A
+// message on one channel never reaches the third party: delivery goes
+// straight to each participant's personal socket room, not the shared
+// per-request room (that one's still used for tracking/status, see
+// sockets/handlers/request.handler.js).
 // ============================================================
 
-const assertMessageParticipant = async (requestId, userId, role) => {
-  const request = await prisma.request.findUnique({
-    where: { id: requestId },
-    select: { id: true, customerId: true, riderId: true, merchantId: true, rider: { select: { user: { select: { id: true } } } }, merchant: { select: { userId: true } } },
-  });
-  if (!request) throw AppError.notFound('Request not found');
-  if (role === 'ADMIN') return request;
-  const allowedUserIds = new Set();
-  if (request.customerId) allowedUserIds.add(request.customerId);
-  if (request.rider?.user?.id) allowedUserIds.add(request.rider.user.id);
-  if (request.merchant?.userId) allowedUserIds.add(request.merchant.userId);
-  if (!allowedUserIds.has(userId)) {
-    throw AppError.forbidden('Not authorized to message on this request');
+const REQUEST_MESSAGE_CHANNELS = ['CUSTOMER_RIDER', 'CUSTOMER_MERCHANT', 'RIDER_MERCHANT'];
+
+// Backward-compat default for rider/customer app installs that predate the
+// channel split and don't send one yet - treated as the customer<->rider
+// thread, the dominant case under the old shared-thread behavior. Remove
+// once a minimum-app-version gate makes this unreachable.
+const DEFAULT_MESSAGE_CHANNEL = 'CUSTOMER_RIDER';
+
+const channelParticipants = (request, channel) => {
+  switch (channel) {
+    case 'CUSTOMER_RIDER':
+      return [request.customerId, request.rider?.user?.id].filter(Boolean);
+    case 'CUSTOMER_MERCHANT':
+      return [request.customerId, request.merchant?.userId].filter(Boolean);
+    case 'RIDER_MERCHANT':
+      return [request.rider?.user?.id, request.merchant?.userId].filter(Boolean);
+    default:
+      return [];
   }
-  return request;
 };
 
-const listMessages = async (requestId, userId, role, { before, limit }) => {
-  await assertMessageParticipant(requestId, userId, role);
+const assertChannelParticipant = async (requestId, userId, channel) => {
+  if (!REQUEST_MESSAGE_CHANNELS.includes(channel)) {
+    throw AppError.badRequest('Unknown chat channel');
+  }
+  const request = await prisma.request.findUnique({
+    where: { id: requestId },
+    select: { id: true, customerId: true, rider: { select: { user: { select: { id: true } } } }, merchant: { select: { userId: true } } },
+  });
+  if (!request) throw AppError.notFound('Request not found');
 
-  const where = { requestId };
+  const participants = channelParticipants(request, channel);
+  if (participants.length < 2) {
+    throw AppError.badRequest('This chat is not available yet for this order');
+  }
+  if (!participants.includes(userId)) {
+    throw AppError.forbidden('Not authorized to message on this channel');
+  }
+  return { request, participants };
+};
+
+const listMessages = async (requestId, userId, { channel = DEFAULT_MESSAGE_CHANNEL, before, limit }) => {
+  await assertChannelParticipant(requestId, userId, channel);
+
+  const where = { requestId, channel };
   if (before) where.createdAt = { lt: new Date(before) };
 
   const messages = await prisma.requestMessage.findMany({
@@ -1606,55 +1634,38 @@ const listMessages = async (requestId, userId, role, { before, limit }) => {
   return messages.reverse(); // chronological ASC for client rendering
 };
 
-const postMessage = async (requestId, userId, role, body) => {
-  const request = await assertMessageParticipant(requestId, userId, role);
+const postMessage = async (requestId, userId, { channel = DEFAULT_MESSAGE_CHANNEL, body }) => {
+  const { participants } = await assertChannelParticipant(requestId, userId, channel);
 
   const message = await prisma.requestMessage.create({
-    data: { requestId, fromUserId: userId, body: body.trim() },
+    data: { requestId, fromUserId: userId, channel, body: body.trim() },
     include: {
       fromUser: { select: { id: true, firstName: true, lastName: true, role: true } },
     },
   });
 
   const io = getIO();
-  io.to(getRequestRoom(requestId)).emit(REQUEST.MESSAGE_NEW, {
-    requestId,
-    message,
-  });
+  // Both participants' personal rooms, not the shared request room - every
+  // authenticated socket already sits in `user:{id}` from connect (see
+  // sockets/index.js), so this reaches only the two people on this channel,
+  // including the sender's other open devices, with no room join needed.
+  participants.forEach((pid) => io.to(getUserRoom(pid)).emit(REQUEST.MESSAGE_NEW, { requestId, channel, message }));
 
-  // BLK-ChatNotifRouting - push the other parties so a backgrounded app
-  // wakes. We route per-recipient role:
-  //   - CUSTOMER → /request/:id (customer-app's tracking screen)
-  //   - RIDER    → /trip/:id    (rider-app's TripCockpit)
-  //   - MERCHANT → /orders/:id  (merchant dashboard's order detail)
-  // Recipients with unknown / missing roles still receive the notification
-  // (route fallback in each client's notificationRoute lib picks a sensible
-  // landing screen from `requestId`), so a stale role lookup never silently
-  // drops a message.
-  const sender = message.fromUser;
-  const senderName = `${sender?.firstName || ''} ${sender?.lastName || ''}`.trim() || 'New message';
-  const recipients = [];
-  if (request.customerId && request.customerId !== userId) {
-    recipients.push({ userId: request.customerId, route: `/request/${requestId}` });
+  const otherPartyId = participants.find((pid) => pid !== userId);
+  if (otherPartyId) {
+    const sender = message.fromUser;
+    const senderName = `${sender?.firstName || ''} ${sender?.lastName || ''}`.trim() || 'New message';
+    const preview = message.body.length > 80 ? `${message.body.slice(0, 80)}…` : message.body;
+    await notifyService.pushAndSocket(otherPartyId, {
+      type: 'REQUEST_MESSAGE',
+      title: senderName,
+      body: preview,
+      // No server-baked per-role route anymore - each client resolves its
+      // own screen/thread from requestId + channel.
+      data: { requestId, channel, kind: 'message' },
+      requestId,
+    }).catch((err) => logger.warn('postMessage notify failed', { otherPartyId, error: err.message }));
   }
-  if (request.rider?.user?.id && request.rider.user.id !== userId) {
-    recipients.push({ userId: request.rider.user.id, route: `/trip/${requestId}` });
-  }
-  if (request.merchant?.userId && request.merchant.userId !== userId) {
-    recipients.push({ userId: request.merchant.userId, route: `/orders/${requestId}` });
-  }
-  const preview = message.body.length > 80 ? `${message.body.slice(0, 80)}…` : message.body;
-  await Promise.all(
-    recipients.map(({ userId: rid, route }) =>
-      notifyService.pushAndSocket(rid, {
-        type: 'REQUEST_MESSAGE',
-        title: senderName,
-        body: preview,
-        data: { route, requestId, kind: 'message' },
-        requestId,
-      }).catch((err) => logger.warn('postMessage notify failed', { rid, error: err.message })),
-    ),
-  );
 
   return message;
 };

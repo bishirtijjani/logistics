@@ -2,11 +2,16 @@ import { io } from 'socket.io-client'
 import { API_URL } from '../lib/api'
 
 // Dedicated Socket.io connection for per-request live tracking (the order
-// details map) and the order chat panel. Kept separate from useWebSocket's
-// page-scoped socket so the modal can join/leave request rooms without
-// touching the merchant-room notification plumbing. Connects lazily when the
-// first room is joined and tears down once the last room is left, so it
-// costs nothing while no tracking map / chat panel is open.
+// details map). Kept separate from useWebSocket's page-scoped socket so the
+// modal can join/leave request rooms without touching the merchant-room
+// notification plumbing. Connects lazily when the first room is joined and
+// tears down once the last room is left, so it costs nothing while no
+// tracking map is open.
+//
+// NOT used for chat: order chat is delivered straight to each participant's
+// personal socket room (see useWebSocket.js's request:message:new listener),
+// not this shared per-request room, so a merchant can't receive the
+// customer<->rider thread just by having this map open.
 //
 // Event names mirror backend/src/sockets/events.js; rider positions arrive on
 // rider:location:broadcast every ~3s (request:rider:location is the alias
@@ -17,10 +22,7 @@ class TrackingSocketService {
     this.socket = null
     this.eventHandlers = new Map()
     // Ref-counted rooms we should be in - re-joined after every (re)connect,
-    // since Socket.io drops room membership when the connection drops. A
-    // plain Set isn't enough here: the tracking map and the chat panel can
-    // both have the same request room open at once, and if one unmounts
-    // first a Set-based leave would evict the room out from under the other.
+    // since Socket.io drops room membership when the connection drops.
     this.requestRoomRefCounts = new Map()
   }
 
@@ -47,7 +49,6 @@ class TrackingSocketService {
     this.socket.on('rider:location:broadcast', (data) => this.emit('requestRiderLocation', data))
     this.socket.on('request:rider:eta', (data) => this.emit('requestRiderEta', data))
     this.socket.on('request:status:changed', (data) => this.emit('requestStatusChanged', data))
-    this.socket.on('request:message:new', (data) => this.emit('requestMessageNew', data))
   }
 
   disconnect() {
@@ -88,10 +89,6 @@ class TrackingSocketService {
 
   onRequestStatusChanged(cb) {
     return this.on('requestStatusChanged', cb)
-  }
-
-  onRequestMessageNew(cb) {
-    return this.on('requestMessageNew', cb)
   }
 
   on(event, callback) {

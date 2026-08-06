@@ -159,16 +159,19 @@ export const fetchActiveRoute = createAsyncThunk(
   }
 );
 
-// Phase 4 - in-app messaging
+// Phase 4 - in-app messaging. A customer only ever has two private threads
+// per request - CUSTOMER_RIDER and CUSTOMER_MERCHANT - never the
+// rider<->merchant thread between the other two parties.
 export const fetchMessages = createAsyncThunk(
   'request/fetchMessages',
-  async ({ requestId, before, limit = 30 }, { rejectWithValue }) => {
+  async ({ requestId, channel, before, limit = 30 }, { rejectWithValue }) => {
     try {
       const params = new URLSearchParams();
+      params.append('channel', channel);
       if (before) params.append('before', before);
       params.append('limit', String(limit));
       const envelope = await api.get(`/requests/${requestId}/messages?${params.toString()}`);
-      return envelope?.data || [];
+      return { channel, messages: envelope?.data || [] };
     } catch (error) {
       return rejectWithValue(error?.message || 'Failed to load messages');
     }
@@ -177,10 +180,10 @@ export const fetchMessages = createAsyncThunk(
 
 export const postMessage = createAsyncThunk(
   'request/postMessage',
-  async ({ requestId, body }, { rejectWithValue }) => {
+  async ({ requestId, channel, body }, { rejectWithValue }) => {
     try {
-      const envelope = await api.post(`/requests/${requestId}/messages`, { body });
-      return envelope?.data;
+      const envelope = await api.post(`/requests/${requestId}/messages`, { channel, body });
+      return { channel, message: envelope?.data };
     } catch (error) {
       return rejectWithValue(error?.message || 'Failed to send message');
     }
@@ -210,7 +213,9 @@ const initialState = {
   route: null, // { polyline, etaSeconds, distanceMeters, riderLat, ... }
   matchingStatus: null, // { attempt, totalAttempts, radiusKm, candidates }
   riderEta: null, // { etaSeconds, nextCheckpoint, timestamp }
-  messages: [], // chronological ASC, current request only
+  // Private per-channel threads for the current request, chronological ASC.
+  // A customer only ever has these two - never the rider<->merchant thread.
+  messagesByChannel: { CUSTOMER_RIDER: [], CUSTOMER_MERCHANT: [] },
 };
 
 const requestSlice = createSlice({
@@ -266,10 +271,11 @@ const requestSlice = createSlice({
     },
     // Phase 4 - chat append (socket-driven; de-duped against optimistic id)
     appendMessageFromSocket: (state, action) => {
-      const { requestId, message } = action.payload || {};
-      if (state.currentRequest?.id !== requestId || !message) return;
-      const exists = state.messages.find((m) => m.id === message.id);
-      if (!exists) state.messages.push(message);
+      const { requestId, channel, message } = action.payload || {};
+      if (state.currentRequest?.id !== requestId || !channel || !message) return;
+      const thread = state.messagesByChannel[channel] || (state.messagesByChannel[channel] = []);
+      const exists = thread.find((m) => m.id === message.id);
+      if (!exists) thread.push(message);
     },
     setRoute: (state, action) => {
       state.route = action.payload;
@@ -278,7 +284,7 @@ const requestSlice = createSlice({
       state.route = null;
       state.matchingStatus = null;
       state.riderEta = null;
-      state.messages = [];
+      state.messagesByChannel = { CUSTOMER_RIDER: [], CUSTOMER_MERCHANT: [] };
     },
     // Clear error
     clearError: (state) => {
@@ -322,7 +328,7 @@ const requestSlice = createSlice({
           state.route = null;
           state.matchingStatus = null;
           state.riderEta = null;
-          state.messages = [];
+          state.messagesByChannel = { CUSTOMER_RIDER: [], CUSTOMER_MERCHANT: [] };
         }
       })
       .addCase(fetchRequestById.rejected, (state, action) => {
@@ -432,12 +438,14 @@ const requestSlice = createSlice({
     // Phase 4 - messages
     builder
       .addCase(fetchMessages.fulfilled, (state, action) => {
-        state.messages = action.payload || [];
+        const { channel, messages } = action.payload;
+        state.messagesByChannel[channel] = messages || [];
       })
       .addCase(postMessage.fulfilled, (state, action) => {
-        const msg = action.payload;
-        if (msg && !state.messages.find((m) => m.id === msg.id)) {
-          state.messages.push(msg);
+        const { channel, message: msg } = action.payload;
+        const thread = state.messagesByChannel[channel] || (state.messagesByChannel[channel] = []);
+        if (msg && !thread.find((m) => m.id === msg.id)) {
+          thread.push(msg);
         }
       });
   },

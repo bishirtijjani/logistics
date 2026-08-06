@@ -41,7 +41,8 @@ export default function OrdersPage() {
   const [pendingChatRequestId, setPendingChatRequestId] = useState(
     location.state?.openChatForRequestId || null
   )
-  const [autoOpenChat, setAutoOpenChat] = useState(false)
+  const [pendingChatChannel, setPendingChatChannel] = useState(location.state?.openChatChannel || null)
+  const [autoOpenChatChannel, setAutoOpenChatChannel] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const [priceRange, setPriceRange] = useState({ min: '', max: '' })
@@ -97,14 +98,15 @@ export default function OrdersPage() {
   // find it themselves. Best-effort - if it's on a different page/filter
   // than the default view loads, this quietly does nothing further.
   useEffect(() => {
-    if (!pendingChatRequestId) return
+    if (!pendingChatRequestId || !pendingChatChannel) return
     const match = orders.find((o) => o.id === pendingChatRequestId)
     if (!match) return
     setSelectedOrder(match)
     setShowOrderDetails(true)
-    setAutoOpenChat(true)
+    setAutoOpenChatChannel(pendingChatChannel)
     setPendingChatRequestId(null)
-  }, [orders, pendingChatRequestId])
+    setPendingChatChannel(null)
+  }, [orders, pendingChatRequestId, pendingChatChannel])
 
   const handleAccept = async (orderId) => {
     try {
@@ -1064,8 +1066,8 @@ export default function OrdersPage() {
       {showOrderDetails && selectedOrder && (
         <OrderDetailsModal
           order={selectedOrder}
-          autoOpenChat={autoOpenChat}
-          onClose={() => { setShowOrderDetails(false); setSelectedOrder(null); setAutoOpenChat(false) }}
+          autoOpenChatChannel={autoOpenChatChannel}
+          onClose={() => { setShowOrderDetails(false); setSelectedOrder(null); setAutoOpenChatChannel(null) }}
         />
       )}
 

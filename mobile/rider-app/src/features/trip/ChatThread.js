@@ -18,35 +18,37 @@ import { useT } from "../../i18n/useT";
 import { fetchMessages, sendMessage } from "../../store/slices/tripSlice";
 
 /**
- * ChatThread - modal sheet hosting the in-app chat for the active trip.
- * The notifications bus pipes incoming `request:message:new` events into
+ * ChatThread - modal sheet hosting one private 1:1 chat channel for the
+ * active trip (CUSTOMER_RIDER or RIDER_MERCHANT - never both at once, and
+ * never the customer<->merchant thread between the other two parties). The
+ * notifications bus pipes incoming `request:message:new` events into
  * `tripMessageReceived` so the thread updates in real time. We still
  * dispatch `fetchMessages` on open to make sure historic context is loaded.
  */
-export default function ChatThread({ visible, onClose }) {
+export default function ChatThread({ visible, onClose, channel, counterpartLabel }) {
   const { tokens } = useTheme();
   const { t } = useT();
   const dispatch = useDispatch();
   const myUserId = useSelector((s) => s.auth?.user?.id);
   const activeRequestId = useSelector((s) => s.trip.activeRequestId);
-  const messages = useSelector((s) => s.trip.messages);
+  const messages = useSelector((s) => s.trip.messagesByChannel?.[channel] || []);
   const messagesLoading = useSelector((s) => s.trip.messagesLoading);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const listRef = useRef(null);
 
   useEffect(() => {
-    if (visible && activeRequestId) {
-      dispatch(fetchMessages({ requestId: activeRequestId }));
+    if (visible && activeRequestId && channel) {
+      dispatch(fetchMessages({ requestId: activeRequestId, channel }));
     }
-  }, [visible, activeRequestId, dispatch]);
+  }, [visible, activeRequestId, channel, dispatch]);
 
   const send = async () => {
     const body = draft.trim();
-    if (!body || !activeRequestId || sending) return;
+    if (!body || !activeRequestId || !channel || sending) return;
     setSending(true);
     try {
-      const action = await dispatch(sendMessage({ requestId: activeRequestId, body }));
+      const action = await dispatch(sendMessage({ requestId: activeRequestId, channel, body }));
       if (action.meta.requestStatus === "fulfilled") {
         setDraft("");
         setTimeout(() => listRef.current?.scrollToEnd?.({ animated: true }), 50);
@@ -83,7 +85,9 @@ export default function ChatThread({ visible, onClose }) {
               accessibilityRole="header"
               style={{ marginLeft: 10, fontWeight: "800", color: tokens.text.primary, flex: 1, fontSize: 16 }}
             >
-              {t("trip.chatTitle", "Trip chat")}
+              {counterpartLabel
+                ? t("trip.chatTitleWith", "Chat with {{name}}", { name: counterpartLabel })
+                : t("trip.chatTitle", "Trip chat")}
             </Text>
             <TouchableOpacity
               onPress={onClose}
@@ -171,18 +175,11 @@ export default function ChatThread({ visible, onClose }) {
   );
 }
 
+// A channel only ever has two participants, so "not mine" is unambiguous -
+// no role-guessing needed here (unlike the old shared-thread version).
 function Bubble({ message, myUserId }) {
   const { tokens } = useTheme();
   const isMine = message?.fromUserId === myUserId;
-  const roleLabel = (() => {
-    const r = message?.fromUser?.role;
-    if (!r) return null;
-    if (r === "CUSTOMER") return "Customer";
-    if (r === "MERCHANT") return "Merchant";
-    if (r === "RIDER") return "You";
-    if (r === "ADMIN") return "Support";
-    return r;
-  })();
 
   return (
     <View
@@ -203,12 +200,6 @@ function Bubble({ message, myUserId }) {
           borderBottomLeftRadius: isMine ? 14 : 4,
         }}
       >
-        {!isMine && roleLabel ? (
-          <Text style={{ fontSize: 11, fontWeight: "700", color: tokens.text.muted, marginBottom: 2 }}>
-            {roleLabel}
-            {message?.fromUser?.firstName ? ` · ${message.fromUser.firstName}` : ""}
-          </Text>
-        ) : null}
         <Text style={{ color: isMine ? tokens.text.onBrand : tokens.text.primary, fontSize: 14 }}>
           {message?.body}
         </Text>

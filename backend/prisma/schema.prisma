@@ -1110,7 +1110,18 @@ model Request {
   @@map("requests")
 }
 
-/// RequestMessage - in-app chat between customer/merchant/rider scoped to a request.
+/// A private 1:1 thread within a request - each pair of stakeholders (not
+/// the third party) shares one of these.
+enum RequestMessageChannel {
+  CUSTOMER_RIDER
+  CUSTOMER_MERCHANT
+  RIDER_MERCHANT
+}
+
+/// RequestMessage - private in-app chat between one pair of stakeholders
+/// (customer<->rider, customer<->merchant, or rider<->merchant) scoped to a
+/// request. Each `channel` is its own thread - a message never reaches the
+/// third stakeholder.
 model RequestMessage {
   id        String  @id @default(uuid())
   requestId String
@@ -1119,11 +1130,13 @@ model RequestMessage {
   fromUserId String
   fromUser   User   @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
 
+  channel RequestMessageChannel
+
   body String @db.VarChar(1000)
 
   createdAt DateTime @default(now())
 
-  @@index([requestId, createdAt])
+  @@index([requestId, channel, createdAt])
   @@index([fromUserId])
   @@map("request_messages")
 }

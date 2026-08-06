@@ -583,9 +583,11 @@
       "noMessagesYet": "Babu saƙo har yanzu. Aiko ɗaya don farawa.",
       "messagePlaceholder": "Rubuta saƙo…",
       "chatTitle": "Taɗi",
-      "roleRider": "Direba",
-      "roleMerchant": "Mai siyarwa",
-      "roleSupport": "Tallafi",
+      "chatPickerTitle": "Wanene kake son aika saƙo?",
+      "chatPickerRider": "Aika saƙo ga direba",
+      "chatPickerMerchant": "Aika saƙo ga mai siyarwa",
+      "chatTitleRider": "Taɗi da direban ka",
+      "chatTitleMerchant": "Taɗi da mai siyarwa",
       "rateOrder": "Ƙimanta oda"
     },
     "checkout": {

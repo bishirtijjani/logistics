@@ -110,7 +110,11 @@ export const routeToScreen = (n) => {
   if (matched) return matched;
 
   if (n.requestId) {
-    return { name: 'RequestTracking', params: { requestId: n.requestId } };
+    // REQUEST_MESSAGE notifications carry `data.channel` (CUSTOMER_RIDER or
+    // CUSTOMER_MERCHANT - a customer is never on the rider<->merchant
+    // thread) so RequestTrackingScreen can open straight into that thread.
+    const chatChannel = n.data?.channel;
+    return { name: 'RequestTracking', params: { requestId: n.requestId, ...(chatChannel ? { chatChannel } : {}) } };
   }
   if (n.transactionId) {
     return { name: 'TransactionHistory', params: { highlightRef: n.transactionId } };

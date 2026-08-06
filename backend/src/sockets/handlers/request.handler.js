@@ -5,6 +5,12 @@
  * - request:{requestId} - customer, merchant, and rider join this room
  * - merchant:{merchantId} - merchant-specific room for new orders
  * - Events in request room: status changes, rider location, completion
+ *
+ * Chat (request_messages) does NOT use the request room - each message is a
+ * private 1:1 thread between one pair of stakeholders, delivered straight to
+ * each participant's personal user:{userId} room instead (see postMessage in
+ * request.service.js), so the third stakeholder never receives it even at
+ * the transport layer.
  */
 
 const { REQUEST, getRequestRoom, getMerchantRoom, getUserRoom } = require('../events');

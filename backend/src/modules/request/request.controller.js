@@ -171,8 +171,9 @@ const getRoute = async (req, res, next) => {
 const listMessages = async (req, res, next) => {
   try {
     const { requestId } = req.params;
-    const { before, limit } = req.query;
-    const messages = await requestService.listMessages(requestId, req.user.id, req.user.role, {
+    const { channel, before, limit } = req.query;
+    const messages = await requestService.listMessages(requestId, req.user.id, {
+      channel,
       before,
       limit: limit ? parseInt(limit, 10) : 30,
     });
@@ -185,8 +186,8 @@ const listMessages = async (req, res, next) => {
 const postMessage = async (req, res, next) => {
   try {
     const { requestId } = req.params;
-    const { body } = req.body;
-    const message = await requestService.postMessage(requestId, req.user.id, req.user.role, body);
+    const { channel, body } = req.body;
+    const message = await requestService.postMessage(requestId, req.user.id, { channel, body });
     res.status(201).json(ApiResponse.success('Message posted', message));
   } catch (error) {
     next(error);

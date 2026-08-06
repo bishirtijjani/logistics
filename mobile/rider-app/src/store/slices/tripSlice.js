@@ -43,7 +43,7 @@ const POD_DRAFT_KEY = (requestId) => `pod:draft:${requestId}`;
  *   - `callAttempts: { [userId]: count }` - tracked locally for the
  *     "Customer not reachable" 3-strikes auto-ticket flow.
  *   - `statusQueue` - pending PATCH retries waiting for connectivity.
- *   - `messages` - chat thread for the active trip.
+ *   - `messagesByChannel` - private CUSTOMER_RIDER / RIDER_MERCHANT threads for the active trip.
  *   - `cancelled` - banner state when an external cancel arrives.
  *   - `error` - last operation error (cleared on success).
  */
@@ -282,16 +282,18 @@ export const reportAddressCorrection = createAsyncThunk(
 );
 
 /**
- * Fetch + replace the chat thread for the active trip.
+ * Fetch + replace one channel's chat thread for the active trip. A rider
+ * only ever has two channels on a request - CUSTOMER_RIDER and
+ * RIDER_MERCHANT - each a private thread, never a shared one.
  */
 export const fetchMessages = createAsyncThunk(
   "trip/fetchMessages",
-  async ({ requestId }, { rejectWithValue }) => {
-    if (!requestId) return rejectWithValue({ code: "MISSING_REQUEST_ID" });
+  async ({ requestId, channel }, { rejectWithValue }) => {
+    if (!requestId || !channel) return rejectWithValue({ code: "MISSING_REQUEST_ID" });
     try {
-      const envelope = await api.get(`/requests/${requestId}/messages?limit=50`);
+      const envelope = await api.get(`/requests/${requestId}/messages?channel=${channel}&limit=50`);
       const payload = envelope?.data || envelope || [];
-      return { requestId, messages: Array.isArray(payload) ? payload : [] };
+      return { requestId, channel, messages: Array.isArray(payload) ? payload : [] };
     } catch (err) {
       return rejectWithValue({
         code: err?.code || "MESSAGES_FETCH_FAILED",
@@ -302,29 +304,32 @@ export const fetchMessages = createAsyncThunk(
 );
 
 /**
- * Send a chat message. Idempotent. The server emits `request:message:new` to
- * the room - our notifications bus dispatches `tripMessageReceived` to keep
- * the thread in sync without us appending here. We still append optimistically
- * so the user sees their message instantly; if the socket later reports the
- * same message we de-dupe by id in the reducer.
+ * Send a chat message on one channel. Idempotent. The server delivers
+ * `request:message:new` straight to this rider's personal socket room (not
+ * a shared per-request room) - our notifications bus dispatches
+ * `tripMessageReceived` to keep the thread in sync without us appending
+ * here. We still append optimistically so the user sees their message
+ * instantly; if the socket later reports the same message we de-dupe by id
+ * in the reducer.
  */
 export const sendMessage = createAsyncThunk(
   "trip/sendMessage",
-  async ({ requestId, body, idempotencyKey: existingKey }, { rejectWithValue }) => {
-    if (!requestId || !body?.trim()) return rejectWithValue({ code: "BAD_INPUT" });
+  async ({ requestId, channel, body, idempotencyKey: existingKey }, { rejectWithValue }) => {
+    if (!requestId || !channel || !body?.trim()) return rejectWithValue({ code: "BAD_INPUT" });
     const idempotencyKey = existingKey || newIdempotencyKey();
     try {
       const envelope = await api.post(
         `/requests/${requestId}/messages`,
-        { body: body.trim() },
+        { channel, body: body.trim() },
         { headers: { "Idempotency-Key": idempotencyKey } },
       );
-      return { requestId, message: envelope?.data || envelope || null, idempotencyKey };
+      return { requestId, channel, message: envelope?.data || envelope || null, idempotencyKey };
     } catch (err) {
       return rejectWithValue({
         code: err?.code || "MESSAGE_SEND_FAILED",
         message: err?.message || "Couldn't send message",
         requestId,
+        channel,
         idempotencyKey,
       });
     }
@@ -482,7 +487,9 @@ const initialState = {
   arrivedAt: { pickup: null, dropoff: null },
   callAttempts: {},
   statusQueue: [],
-  messages: [],
+  // Private per-channel threads - a rider only ever has CUSTOMER_RIDER and
+  // RIDER_MERCHANT, never the customer<->merchant thread between the other two.
+  messagesByChannel: { CUSTOMER_RIDER: [], RIDER_MERCHANT: [] },
   messagesLoading: false,
   // Phase 5 - POD draft, persisted to SecureStore on every mutation.
   // Shape: {
@@ -577,19 +584,20 @@ const slice = createSlice({
     /** Server emitted `request:message:new` for our active trip. */
     tripMessageReceived: (state, action) => {
       const payload = action.payload || {};
-      const { requestId } = payload;
+      const { requestId, channel } = payload;
       const message = payload.message || payload;
       if (!state.activeRequestId || state.activeRequestId !== requestId) return;
-      if (!message?.id) return;
+      if (!channel || !message?.id) return;
+      const thread = state.messagesByChannel[channel] || (state.messagesByChannel[channel] = []);
       // De-dupe by id (we may have optimistically appended already).
-      const existingIdx = state.messages.findIndex((m) => m.id === message.id);
-      if (existingIdx === -1) state.messages.push(message);
-      else state.messages[existingIdx] = message;
+      const existingIdx = thread.findIndex((m) => m.id === message.id);
+      if (existingIdx === -1) thread.push(message);
+      else thread[existingIdx] = message;
     },
     /** Convenience: clear the last error (e.g. on retry tap). */
     clearTripError: (state) => { state.error = null; },
     /** Clear chat after closing the sheet. */
-    clearTripMessages: (state) => { state.messages = []; },
+    clearTripMessages: (state) => { state.messagesByChannel = { CUSTOMER_RIDER: [], RIDER_MERCHANT: [] }; },
     /** Wipe the trip - used after DELIVERED → cockpit hands off to POD/Earnings. */
     tripCleared: (state) => {
       if (state.activeRequestId) {
@@ -683,7 +691,7 @@ const slice = createSlice({
           arrivedAt: { pickup: null, dropoff: null },
           callAttempts: {},
           statusQueue: [],
-          messages: [],
+          messagesByChannel: { CUSTOMER_RIDER: [], RIDER_MERCHANT: [] },
           messagesLoading: false,
           pod: null,
           cancelled: null,
@@ -808,19 +816,20 @@ const slice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.messagesLoading = false;
-        const { requestId, messages } = action.payload;
+        const { requestId, channel, messages } = action.payload;
         if (state.activeRequestId !== requestId) return;
-        state.messages = messages;
+        state.messagesByChannel[channel] = messages;
       })
       .addCase(fetchMessages.rejected, (state) => {
         state.messagesLoading = false;
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
-        const { requestId, message } = action.payload;
+        const { requestId, channel, message } = action.payload;
         if (state.activeRequestId !== requestId || !message?.id) return;
-        const existingIdx = state.messages.findIndex((m) => m.id === message.id);
-        if (existingIdx === -1) state.messages.push(message);
-        else state.messages[existingIdx] = message;
+        const thread = state.messagesByChannel[channel] || (state.messagesByChannel[channel] = []);
+        const existingIdx = thread.findIndex((m) => m.id === message.id);
+        if (existingIdx === -1) thread.push(message);
+        else thread[existingIdx] = message;
       })
       .addCase(sendMessage.rejected, (state, action) => {
         state.error = { phase: "sendMessage", ...(action.payload || {}) };

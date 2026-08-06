@@ -222,11 +222,19 @@ const quoteRequestSchema = z.object({
 // Messaging Schemas
 // ============================================================
 
+// `channel` is optional (not required) on purpose - old rider/customer app
+// installs that predate the private-thread split don't send one yet, and
+// the service layer defaults it to CUSTOMER_RIDER. See DEFAULT_MESSAGE_CHANNEL
+// in request.service.js.
+const MESSAGE_CHANNELS = ['CUSTOMER_RIDER', 'CUSTOMER_MERCHANT', 'RIDER_MERCHANT'];
+
 const postMessageSchema = z.object({
+  channel: z.enum(MESSAGE_CHANNELS).optional(),
   body: z.string().trim().min(1, 'Message cannot be empty').max(1000),
 });
 
 const listMessagesSchema = z.object({
+  channel: z.enum(MESSAGE_CHANNELS).optional(),
   before: z.string().datetime().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });

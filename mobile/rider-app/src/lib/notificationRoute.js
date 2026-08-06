@@ -120,7 +120,11 @@ export const routeToScreen = (n) => {
   if (matched) return matched;
 
   if (n.requestId) {
-    return { name: 'TripCockpit', params: { requestId: n.requestId } };
+    // REQUEST_MESSAGE notifications carry `data.channel` (CUSTOMER_RIDER or
+    // RIDER_MERCHANT - a rider is never on the customer<->merchant thread)
+    // so TripCockpitScreen can open straight into that thread on arrival.
+    const chatChannel = n.data?.channel;
+    return { name: 'TripCockpit', params: { requestId: n.requestId, ...(chatChannel ? { chatChannel } : {}) } };
   }
   if (n.transactionId) {
     return { name: 'Transactions', params: { highlightRef: n.transactionId } };

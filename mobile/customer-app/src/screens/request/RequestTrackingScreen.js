@@ -102,7 +102,7 @@ const RequestTrackingScreen = () => {
   const { requestId } = route.params;
   const {
     currentRequest, isLoading,
-    route: activeRoute, matchingStatus, riderEta, messages,
+    route: activeRoute, matchingStatus, riderEta, messagesByChannel,
   } = useSelector((state) => state.request);
 
   // Phase 5 - POD OTP banner. The rider taps "Send code" → the customer
@@ -127,10 +127,14 @@ const RequestTrackingScreen = () => {
   const [cancelQuoteLoading, setCancelQuoteLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  const [chatVisible, setChatVisible] = useState(false);
+  // Which private thread is open - null, 'CUSTOMER_RIDER', or
+  // 'CUSTOMER_MERCHANT'. The customer is never on the rider<->merchant thread.
+  const [chatPickerVisible, setChatPickerVisible] = useState(false);
+  const [chatChannel, setChatChannel] = useState(null);
   const [chatDraft, setChatDraft] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatListRef = useRef(null);
+  const messages = chatChannel ? (messagesByChannel?.[chatChannel] || []) : [];
 
   // Transient "Rider has arrived" flag from the request:rider:arrived socket
   // event (there's no ARRIVED status, so this is the only arrival signal the
@@ -256,19 +260,32 @@ const RequestTrackingScreen = () => {
     }
   };
 
-  const openChat = async () => {
-    setChatVisible(true);
+  const openChatChannel = async (channel) => {
+    setChatPickerVisible(false);
+    setChatChannel(channel);
     try {
-      await dispatch(fetchMessages({ requestId })).unwrap();
+      await dispatch(fetchMessages({ requestId, channel })).unwrap();
     } catch (_) {}
+  };
+
+  // Skip the picker when only one counterpart exists on this order (e.g. a
+  // package delivery with no merchant) - go straight to that thread.
+  const handleChatPress = () => {
+    if (currentRequest.riderId && currentRequest.merchantId) {
+      setChatPickerVisible(true);
+    } else if (currentRequest.riderId) {
+      openChatChannel('CUSTOMER_RIDER');
+    } else if (currentRequest.merchantId) {
+      openChatChannel('CUSTOMER_MERCHANT');
+    }
   };
 
   const sendChat = async () => {
     const body = chatDraft.trim();
-    if (!body) return;
+    if (!body || !chatChannel) return;
     setChatSending(true);
     try {
-      await dispatch(postMessage({ requestId, body })).unwrap();
+      await dispatch(postMessage({ requestId, channel: chatChannel, body })).unwrap();
       setChatDraft('');
       setTimeout(() => chatListRef.current?.scrollToEnd?.({ animated: true }), 50);
     } catch (err) {
@@ -277,6 +294,16 @@ const RequestTrackingScreen = () => {
       setChatSending(false);
     }
   };
+
+  // A REQUEST_MESSAGE notification deep-links here with a `chatChannel`
+  // param (see notificationRoute.js's routeToScreen) - open straight into
+  // that thread instead of leaving the customer to find it themselves.
+  // Consumed once on arrival, not on every param change.
+  useEffect(() => {
+    const paramChatChannel = route.params?.chatChannel;
+    if (paramChatChannel) openChatChannel(paramChatChannel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params?.chatChannel]);
 
   const handleCall = (phoneNumber) => {
     if (!phoneNumber) return;
@@ -461,7 +488,7 @@ const RequestTrackingScreen = () => {
         {showChatButton ? (
           <TouchableOpacity
             style={{ padding: 8 }}
-            onPress={openChat}
+            onPress={handleChatPress}
             accessibilityRole="button"
             accessibilityLabel={t('a11y.openChat')}
           >
@@ -1039,8 +1066,43 @@ const RequestTrackingScreen = () => {
         </View>
       </Modal>
 
-      {/* In-app chat sheet */}
-      <Modal visible={chatVisible} transparent animationType="slide" onRequestClose={() => setChatVisible(false)}>
+      {/* Who to chat with - only shown when both a rider and a merchant are
+          on this order; otherwise handleChatPress skips straight to the one
+          available thread. */}
+      <Modal visible={chatPickerVisible} transparent animationType="slide" onRequestClose={() => setChatPickerVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: tokens.overlay.scrim, justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: tokens.bg.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 18, paddingBottom: 28 }}>
+            <Text accessibilityRole="header" style={{ fontWeight: '800', fontSize: 16, color: tokens.text.primary, marginBottom: 16 }}>
+              {t('request.tracking.chatPickerTitle', 'Who do you want to message?')}
+            </Text>
+            <TouchableOpacity
+              onPress={() => openChatChannel('CUSTOMER_RIDER')}
+              accessibilityRole="button"
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 14, borderRadius: 12, backgroundColor: tokens.bg.surfaceMuted, borderWidth: 1, borderColor: tokens.border.default, marginBottom: 10 }}
+            >
+              <Ionicons name="bicycle-outline" size={22} color={tokens.text.primary} />
+              <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, fontWeight: '700', color: tokens.text.primary }}>
+                {t('request.tracking.chatPickerRider', 'Message rider')}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => openChatChannel('CUSTOMER_MERCHANT')}
+              accessibilityRole="button"
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 14, borderRadius: 12, backgroundColor: tokens.bg.surfaceMuted, borderWidth: 1, borderColor: tokens.border.default }}
+            >
+              <Ionicons name="storefront-outline" size={22} color={tokens.text.primary} />
+              <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, fontWeight: '700', color: tokens.text.primary }}>
+                {t('request.tracking.chatPickerMerchant', 'Message merchant')}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* In-app chat sheet - one private thread at a time */}
+      <Modal visible={!!chatChannel} transparent animationType="slide" onRequestClose={() => setChatChannel(null)}>
         <View style={{ flex: 1, backgroundColor: tokens.overlay.scrim, justifyContent: 'flex-end' }}>
           <KeyboardAvoidingView
             behavior="padding"
@@ -1049,10 +1111,12 @@ const RequestTrackingScreen = () => {
             <View style={{ flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: tokens.border.default }}>
               <Ionicons name="chatbubble-ellipses" size={20} color={tokens.brand.default} />
               <Text accessibilityRole="header" style={{ marginLeft: 8, fontWeight: '800', color: tokens.text.primary, flex: 1 }}>
-                {t('request.tracking.chatTitle')}
+                {chatChannel === 'CUSTOMER_MERCHANT'
+                  ? t('request.tracking.chatTitleMerchant', 'Chat with the merchant')
+                  : t('request.tracking.chatTitleRider', 'Chat with your rider')}
               </Text>
               <TouchableOpacity
-                onPress={() => setChatVisible(false)}
+                onPress={() => setChatChannel(null)}
                 accessibilityRole="button"
                 accessibilityLabel={t('common.close')}
               >
@@ -1100,22 +1164,10 @@ const RequestTrackingScreen = () => {
   );
 };
 
+// A channel only ever has two participants, so "not mine" is unambiguous -
+// no role-guessing needed here (unlike the old shared-thread version).
 const ChatBubble = ({ message, currentUserId, tokens }) => {
-  const { t } = useTranslation();
   const isMine = message.fromUserId === currentUserId;
-  // The thread is shared by all three stakeholders (customer, rider,
-  // merchant) plus support, so without a role tag a customer can't tell a
-  // message from their rider apart from one sent by the merchant - both
-  // just show as a first name. Mirrors the role labelling in
-  // mobile/rider-app's ChatThread and merchant-dashboard's OrderChatPanel.
-  const roleLabel = (() => {
-    const r = message?.fromUser?.role;
-    if (!r || r === 'CUSTOMER') return null;
-    if (r === 'RIDER') return t('request.tracking.roleRider', 'Rider');
-    if (r === 'MERCHANT') return t('request.tracking.roleMerchant', 'Merchant');
-    if (r === 'ADMIN') return t('request.tracking.roleSupport', 'Support');
-    return r;
-  })();
 
   return (
     <View style={{ flexDirection: 'row', justifyContent: isMine ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
@@ -1130,12 +1182,6 @@ const ChatBubble = ({ message, currentUserId, tokens }) => {
           borderBottomLeftRadius: isMine ? 14 : 4,
         }}
       >
-        {!isMine && message.fromUser && (
-          <Text style={{ fontSize: 11, fontWeight: '700', color: tokens.text.muted, marginBottom: 2 }}>
-            {roleLabel ? `${roleLabel} · ` : ''}
-            {message.fromUser.firstName} {message.fromUser.lastName?.[0] || ''}
-          </Text>
-        )}
         <Text style={{ color: isMine ? tokens.text.onBrand : tokens.text.primary, fontSize: 14 }}>{message.body}</Text>
       </View>
     </View>
