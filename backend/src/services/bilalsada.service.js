@@ -63,8 +63,13 @@ const VEND_TIMEOUT_MS = 90_000;
 const BALANCE_CACHE_KEY = 'vtu:bilalsada:balance';
 
 // Pull a balance figure out of whatever response shape the provider returns.
-const _readBalanceField = (data) =>
-  data?.balance ?? data?.new_balance ?? data?.Balance ?? data?.wallet_balance;
+// BilalSada formats this as a comma-thousands string once the float crosses
+// 1,000 (e.g. "10,117.10"), which Number() would otherwise choke on - strip
+// commas here so every caller (cache write, dashboard read) gets a clean number.
+const _readBalanceField = (data) => {
+  const raw = data?.balance ?? data?.new_balance ?? data?.Balance ?? data?.wallet_balance;
+  return typeof raw === 'string' ? raw.replace(/,/g, '') : raw;
+};
 
 // Remember the latest provider-reported balance. Fire-and-forget and fully
 // guarded: a non-numeric value or a Redis hiccup must never disturb a purchase.

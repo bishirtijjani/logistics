@@ -816,7 +816,9 @@ const resolveBilalsadaBalance = async () => {
   }
   try {
     const account = await vtuProvider.getAccountBalance();
-    if (account?.balance != null) return Number(account.balance);
+    // BilalSada formats this as a comma-thousands string once the float crosses
+    // 1,000 (e.g. "10,117.10"), which Number() would otherwise turn into NaN.
+    if (account?.balance != null) return Number(String(account.balance).replace(/,/g, ''));
   } catch (err) {
     logger.warn('Dashboard: BilalSada live balance fetch failed', { error: err.message });
   }
