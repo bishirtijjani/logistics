@@ -383,16 +383,54 @@ const getRiderEarningsSchema = z.object({
 
 // Platform settings schemas
 const updatePlatformSettingsSchema = z.object({
+  // Delivery pricing (delivery.* settings)
   deliveryBaseFare: z.number().min(0).optional(),
   deliveryPerKmRate: z.number().min(0).optional(),
   deliveryPlatformFeePercent: z.number().min(0).max(100).optional(),
+  deliveryCancellationFee: z.number().min(0).optional(),
   itemPlatformFeePercent: z.number().min(0).max(100).optional(),
+
   // Wallet fee controls (flat keys -> wallet.* settings; persisted by the service).
   withdrawalFee: z.number().min(0).optional(),
   withdrawalFeePayer: z.enum(['USER', 'PLATFORM']).optional(),
   fundingFeePercent: z.number().min(0).max(100).optional(),
   fundingFeePayer: z.enum(['USER', 'PLATFORM']).optional(),
-}).passthrough();
+
+  // Support contact shown in the mobile apps (platform.* settings)
+  supportEmail: z.string().email().optional(),
+  supportPhone: z.string().min(7).max(20).optional(),
+
+  // Rider matching / dispatch (delivery.* settings)
+  deliveryMatchingEnabled: z.boolean().optional(),
+  deliveryBroadcastRadiusRings: z.array(z.number().min(0.1).max(200)).min(1).max(10).optional(),
+  deliveryBroadcastRingTimeoutSec: z.number().int().min(5).max(600).optional(),
+  deliveryUnmatchedReRingSec: z.number().int().min(5).max(3600).optional(),
+  // Exposed to the admin in minutes; converted to delivery.autoCancelUnmatchedMs by the service.
+  deliveryAutoCancelUnmatchedMinutes: z.number().min(1).max(1440).optional(),
+
+  // Proof of delivery (delivery.* settings)
+  deliveryRequirePodPhoto: z.boolean().optional(),
+  deliveryRequireSignature: z.boolean().optional(),
+  deliveryPodOtpThresholdNgn: z.number().min(0).optional(),
+
+  // Wallet limits (wallet.* settings)
+  walletMinTopup: z.number().min(0).optional(),
+  walletMinWithdraw: z.number().min(0).optional(),
+  walletMaxWithdraw: z.number().min(0).optional(),
+  walletMinTransfer: z.number().min(0).optional(),
+
+  // Utility payment minimums (utility.* settings)
+  utilityMinAirtimeAmount: z.number().min(0).optional(),
+  utilityMinElectricityAmount: z.number().min(0).optional(),
+}).passthrough().refine(
+  (data) => {
+    if (data.walletMinWithdraw !== undefined && data.walletMaxWithdraw !== undefined) {
+      return data.walletMaxWithdraw >= data.walletMinWithdraw;
+    }
+    return true;
+  },
+  { message: 'Maximum withdrawal must be greater than or equal to minimum withdrawal', path: ['walletMaxWithdraw'] },
+);
 
 const createStaffSchema = z.object({
   email: z.string().email(),

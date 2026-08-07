@@ -7,7 +7,7 @@ const { Prisma } = require('@prisma/client');
 const { redis } = require('../../config/redis');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
-const { REDIS_KEYS } = require('../../utils/constants');
+const { REDIS_KEYS, RIDER_MATCHING } = require('../../utils/constants');
 const { config } = require('../../config');
 const katpayService = require('../../services/katpay.service');
 const vtuProvider = require('../../services/bilalsada.service');
@@ -2358,17 +2358,49 @@ const getRiderDeliveryHistory = async (riderId, { page = 1, limit = 20 }) => {
  * Get platform settings.
  */
 const getPlatformSettings = async () => {
-  // Wallet fee settings are persisted in the platformSetting table (the same
-  // wallet.* keys the wallet/merchant services read at debit time and the apps
-  // read via /settings/public). The rest are static defaults for now. Flatten
-  // the namespaced keys so the admin form can bind to them directly.
-  const [withdrawalFee, withdrawalFeePayer, fundingFeePercent, fundingFeePayer, vtuProviderMode] = await Promise.all([
+  // All of these are persisted in the platformSetting table under their
+  // namespaced key (delivery.*, wallet.*, utility.*, platform.*) - the same
+  // keys the request/wallet/utility services read at order/transaction time.
+  // Flatten them here so the admin form can bind to plain, form-friendly keys.
+  const [
+    withdrawalFee, withdrawalFeePayer, fundingFeePercent, fundingFeePayer, vtuProviderMode,
+    supportEmail, supportPhone,
+    deliveryBaseFare, deliveryPerKmRate, deliveryPlatformFeePercent, deliveryCancellationFee, itemPlatformFeePercent,
+    deliveryMatchingEnabled, deliveryBroadcastRadiusRings, deliveryBroadcastRingTimeoutSec,
+    deliveryUnmatchedReRingSec, deliveryAutoCancelUnmatchedMs,
+    deliveryRequirePodPhoto, deliveryRequireSignature, deliveryPodOtpThresholdNgn,
+    walletMinTopup, walletMinWithdraw, walletMaxWithdraw, walletMinTransfer,
+    utilityMinAirtimeAmount, utilityMinElectricityAmount,
+  ] = await Promise.all([
     settingsService.getSetting('wallet.withdrawalFee', 20),
     settingsService.getSetting('wallet.withdrawalFeePayer', 'PLATFORM'),
     settingsService.getSetting('wallet.fundingFeePercent', 1),
     settingsService.getSetting('wallet.fundingFeePayer', 'PLATFORM'),
     settingsService.getSetting(vtuRouter.SETTING_KEY, vtuRouter.DEFAULT_MODE),
+    settingsService.getSetting('platform.supportEmail', 'support@iprime.ng'),
+    settingsService.getSetting('platform.supportPhone', '+2348000000000'),
+    settingsService.getSetting('delivery.baseFare', config.DELIVERY_BASE_FARE || 200),
+    settingsService.getSetting('delivery.perKmRate', config.DELIVERY_PER_KM_RATE || 100),
+    settingsService.getSetting('delivery.platformFeePercent', config.DELIVERY_PLATFORM_FEE_PERCENT || 10),
+    settingsService.getSetting('delivery.cancellationFee', 0),
+    settingsService.getSetting('merchant.platformFeePercent', 15),
+    settingsService.getSetting('delivery.matchingEnabled', true),
+    settingsService.getSetting('delivery.broadcastRadiusRings', RIDER_MATCHING.RADIUS_RINGS_KM),
+    settingsService.getSetting('delivery.broadcastRingTimeoutSec', RIDER_MATCHING.RING_TIMEOUT_SECONDS),
+    settingsService.getSetting('delivery.unmatchedReRingSec', RIDER_MATCHING.UNMATCHED_RERING_SECONDS),
+    settingsService.getSetting('delivery.autoCancelUnmatchedMs', RIDER_MATCHING.UNMATCHED_GRACE_MS),
+    settingsService.getSetting('delivery.requirePodPhoto', true),
+    settingsService.getSetting('delivery.requireSignature', false),
+    settingsService.getSetting('delivery.podOtpThresholdNgn', 50000),
+    settingsService.getSetting('wallet.minTopup', 100),
+    settingsService.getSetting('wallet.minWithdraw', 500),
+    settingsService.getSetting('wallet.maxWithdraw', 500000),
+    settingsService.getSetting('wallet.minTransfer', 50),
+    settingsService.getSetting('utility.minAirtimeAmount', 50),
+    settingsService.getSetting('utility.minElectricityAmount', 500),
   ]);
+
+  const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1';
 
   return {
     platformName: 'iPrime',
@@ -2377,16 +2409,40 @@ const getPlatformSettings = async () => {
     vtuProviderMode,
     defaultCurrency: 'NGN',
     timezone: 'Africa/Lagos',
-    defaultMerchantCommission: 15,
-    defaultRiderCommission: 10,
-    minDeliveryFee: 500,
-    maxDeliveryFee: 5000,
-    supportEmail: 'support@iprime.ng',
-    supportPhone: '+2348000000000',
+    supportEmail,
+    supportPhone,
     withdrawalFee: Number(withdrawalFee),
     withdrawalFeePayer,
     fundingFeePercent: Number(fundingFeePercent),
     fundingFeePayer,
+
+    deliveryBaseFare: Number(deliveryBaseFare),
+    deliveryPerKmRate: Number(deliveryPerKmRate),
+    deliveryPlatformFeePercent: Number(deliveryPlatformFeePercent),
+    deliveryCancellationFee: Number(deliveryCancellationFee),
+    itemPlatformFeePercent: Number(itemPlatformFeePercent),
+
+    deliveryMatchingEnabled: truthy(deliveryMatchingEnabled),
+    deliveryBroadcastRadiusRings: Array.isArray(deliveryBroadcastRadiusRings) && deliveryBroadcastRadiusRings.length > 0
+      ? deliveryBroadcastRadiusRings
+      : RIDER_MATCHING.RADIUS_RINGS_KM,
+    deliveryBroadcastRingTimeoutSec: Number(deliveryBroadcastRingTimeoutSec),
+    deliveryUnmatchedReRingSec: Number(deliveryUnmatchedReRingSec),
+    // Stored in the DB as milliseconds; the admin form works in minutes.
+    deliveryAutoCancelUnmatchedMinutes: Math.round(Number(deliveryAutoCancelUnmatchedMs) / 60000),
+
+    deliveryRequirePodPhoto: truthy(deliveryRequirePodPhoto),
+    deliveryRequireSignature: truthy(deliveryRequireSignature),
+    deliveryPodOtpThresholdNgn: Number(deliveryPodOtpThresholdNgn),
+
+    walletMinTopup: Number(walletMinTopup),
+    walletMinWithdraw: Number(walletMinWithdraw),
+    walletMaxWithdraw: Number(walletMaxWithdraw),
+    walletMinTransfer: Number(walletMinTransfer),
+
+    utilityMinAirtimeAmount: Number(utilityMinAirtimeAmount),
+    utilityMinElectricityAmount: Number(utilityMinElectricityAmount),
+
     emailNotifications: true,
     pushNotifications: true,
     smsNotifications: false,
@@ -2397,23 +2453,59 @@ const getPlatformSettings = async () => {
 };
 
 /**
- * Update platform settings. The wallet fee fields are persisted to the
- * platformSetting table (mapping the flat admin-form keys to their namespaced
- * wallet.* keys); everything else is currently log-only.
+ * Update platform settings. Each flat admin-form key maps to a namespaced
+ * platformSetting row (delivery.*, wallet.*, utility.*, platform.*) that the
+ * request/wallet/utility services and rider-matching worker read live -
+ * changes here take effect on the next request without a redeploy.
  */
 const updatePlatformSettings = async (settings, adminUserId = 'ADMIN') => {
-  const feeKeyMap = {
+  const keyMap = {
     withdrawalFee: 'wallet.withdrawalFee',
     withdrawalFeePayer: 'wallet.withdrawalFeePayer',
     fundingFeePercent: 'wallet.fundingFeePercent',
     fundingFeePayer: 'wallet.fundingFeePayer',
+
+    supportEmail: 'platform.supportEmail',
+    supportPhone: 'platform.supportPhone',
+
+    deliveryBaseFare: 'delivery.baseFare',
+    deliveryPerKmRate: 'delivery.perKmRate',
+    deliveryPlatformFeePercent: 'delivery.platformFeePercent',
+    deliveryCancellationFee: 'delivery.cancellationFee',
+    itemPlatformFeePercent: 'merchant.platformFeePercent',
+
+    deliveryMatchingEnabled: 'delivery.matchingEnabled',
+    deliveryBroadcastRadiusRings: 'delivery.broadcastRadiusRings',
+    deliveryBroadcastRingTimeoutSec: 'delivery.broadcastRingTimeoutSec',
+    deliveryUnmatchedReRingSec: 'delivery.unmatchedReRingSec',
+
+    deliveryRequirePodPhoto: 'delivery.requirePodPhoto',
+    deliveryRequireSignature: 'delivery.requireSignature',
+    deliveryPodOtpThresholdNgn: 'delivery.podOtpThresholdNgn',
+
+    walletMinTopup: 'wallet.minTopup',
+    walletMinWithdraw: 'wallet.minWithdraw',
+    walletMaxWithdraw: 'wallet.maxWithdraw',
+    walletMinTransfer: 'wallet.minTransfer',
+
+    utilityMinAirtimeAmount: 'utility.minAirtimeAmount',
+    utilityMinElectricityAmount: 'utility.minElectricityAmount',
   };
 
   await Promise.all(
-    Object.entries(feeKeyMap)
+    Object.entries(keyMap)
       .filter(([formKey]) => settings[formKey] !== undefined)
       .map(([formKey, settingKey]) => settingsService.setSetting(settingKey, settings[formKey], adminUserId))
   );
+
+  // Admin form works in minutes; the worker reads milliseconds.
+  if (settings.deliveryAutoCancelUnmatchedMinutes !== undefined) {
+    await settingsService.setSetting(
+      'delivery.autoCancelUnmatchedMs',
+      settings.deliveryAutoCancelUnmatchedMinutes * 60000,
+      adminUserId,
+    );
+  }
 
   // VTU provider routing mode - validate against the known modes before persist.
   if (settings.vtuProviderMode !== undefined) {
@@ -2425,7 +2517,7 @@ const updatePlatformSettings = async (settings, adminUserId = 'ADMIN') => {
     await settingsService.setSetting(vtuRouter.SETTING_KEY, settings.vtuProviderMode, adminUserId);
   }
 
-  logger.info('Platform settings updated', { settings });
+  logger.info('Platform settings updated', { settings, adminUserId });
 
   // Return the full refreshed settings object so the frontend state remains
   // consistent and doesn't revert to defaults due to missing fields.
