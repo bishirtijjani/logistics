@@ -14,6 +14,12 @@ import { useTranslation } from 'react-i18next';
 import Toast from 'react-native-toast-message';
 import { useTheme } from '../../theme';
 import { rateRequest } from '../../store/slices/requestSlice';
+import { markOrderPromptResolved } from '../../lib/ratingPrompt';
+import { maybeRequestStoreReview } from '../../lib/storeReview';
+
+// Only nudge for a store review after a clearly happy rating - never on a
+// mixed or low score.
+const STORE_REVIEW_THRESHOLD = 4;
 
 export default function RateRequestScreen() {
   const navigation = useNavigation();
@@ -47,6 +53,15 @@ export default function RateRequestScreen() {
     try {
       await dispatch(rateRequest({ requestId: request.id, ratingData: payload })).unwrap();
       Toast.show({ type: 'success', text1: t('rate.thanks') });
+      if (request.id) markOrderPromptResolved(request.id);
+
+      const scores = [merchantScore, riderScore].filter((s) => s > 0);
+      const avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      if (avgScore >= STORE_REVIEW_THRESHOLD) {
+        // Fire-and-forget: never block navigation on the store-review prompt.
+        maybeRequestStoreReview();
+      }
+
       navigation.popToTop();
     } catch (err) {
       Toast.show({ type: 'error', text1: t('rate.failed'), text2: err?.message || t('common.retry') });

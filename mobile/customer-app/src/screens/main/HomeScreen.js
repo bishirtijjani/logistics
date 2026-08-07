@@ -28,7 +28,10 @@ import {
 import SearchModal from "../../components/SearchModal";
 import EmptyState from "../../components/EmptyState";
 import SkeletonLoader from "../../components/SkeletonLoader";
+import RateOrderBanner from "../../components/RateOrderBanner";
 import socketService from "../../services/socket";
+import api from "../../services/api";
+import { pickOrderToPrompt, markOrderPromptResolved } from "../../lib/ratingPrompt";
 import { statusDisplay, statusToneColors } from "../../lib/requestStatus";
 import { resolveCategoryIcon } from "../../lib/categoryIcons";
 import {
@@ -184,6 +187,7 @@ export default function HomeScreen({ navigation }) {
 
   const [searchVisible, setSearchVisible] = useState(false);
   const { activeRequest, banners, recentActivity } = useSelector((s) => s.home);
+  const [rateOrderCandidate, setRateOrderCandidate] = useState(null);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -221,6 +225,43 @@ export default function HomeScreen({ navigation }) {
       dispatch(fetchRecentActivity());
     }, [dispatch]),
   );
+
+  // Nudge to rate a recently-delivered, still-unrated order. Uses its own
+  // request (not the shared `requests` list in requestSlice) so it can't
+  // clobber OrdersScreen's paginated state. Gated by lib/ratingPrompt -
+  // opted-out users and orders already dismissed/rated never surface here.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          const envelope = await api.get(
+            "/requests?status=DELIVERED,SETTLED&scope=customer&page=1&limit=5",
+          );
+          if (cancelled) return;
+          const candidate = await pickOrderToPrompt(envelope?.data || []);
+          if (!cancelled) setRateOrderCandidate(candidate);
+        } catch {
+          // Best-effort nudge - a failed lookup just means no banner this visit.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
+
+  const dismissRateOrderBanner = useCallback(() => {
+    if (rateOrderCandidate?.id) markOrderPromptResolved(rateOrderCandidate.id);
+    setRateOrderCandidate(null);
+  }, [rateOrderCandidate]);
+
+  const openRateOrderBanner = useCallback(() => {
+    if (!rateOrderCandidate) return;
+    if (rateOrderCandidate.id) markOrderPromptResolved(rateOrderCandidate.id);
+    navigation.navigate("RateRequest", { request: rateOrderCandidate });
+    setRateOrderCandidate(null);
+  }, [rateOrderCandidate, navigation]);
 
   // Live-update the active-request banner from socket status changes - keeps
   // the home banner in sync without a refetch on every status hop. Each
@@ -385,6 +426,15 @@ export default function HomeScreen({ navigation }) {
         {/* Active Request Banner - appears when the customer has an in-flight order. */}
         {activeRequest && (
           <ActiveRequestBanner request={activeRequest} navigation={navigation} />
+        )}
+
+        {/* Post-delivery rating nudge - dismissible, at most one per visit. */}
+        {!activeRequest && rateOrderCandidate && (
+          <RateOrderBanner
+            request={rateOrderCandidate}
+            onRate={openRateOrderBanner}
+            onDismiss={dismissRateOrderBanner}
+          />
         )}
 
         {/* Wallet Pill */}

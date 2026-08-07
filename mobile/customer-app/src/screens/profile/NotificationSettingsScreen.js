@@ -20,6 +20,10 @@ import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
 } from "../../store/slices/profileSlice";
+import {
+  isRatingPromptOptedOut,
+  setRatingPromptOptedOut,
+} from "../../lib/ratingPrompt";
 
 const INITIAL_SETTINGS = {
   pushEnabled: true,
@@ -40,11 +44,23 @@ export default function NotificationSettingsScreen({ navigation }) {
   );
   const [settings, setSettings] = useState(INITIAL_SETTINGS);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  // Local-only, saves instantly (no Save button) - it's just a nag switch,
+  // not worth the unsaved-changes ceremony of the server-backed settings.
+  const [ratingPromptsEnabled, setRatingPromptsEnabled] = useState(true);
 
   // Load preferences on mount
   useEffect(() => {
     dispatch(fetchNotificationPreferences());
+    isRatingPromptOptedOut().then((optedOut) => setRatingPromptsEnabled(!optedOut));
   }, [dispatch]);
+
+  const toggleRatingPrompts = useCallback(() => {
+    setRatingPromptsEnabled((prev) => {
+      const next = !prev;
+      setRatingPromptOptedOut(!next);
+      return next;
+    });
+  }, []);
 
   // Update local state when preferences load from backend
   useEffect(() => {
@@ -366,6 +382,46 @@ export default function NotificationSettingsScreen({ navigation }) {
             "emailPromotions",
             "emailEnabled",
           ),
+        ])}
+
+        {renderSection("Order Ratings", [
+          <View
+            key="rating-prompt"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 16,
+              paddingVertical: 14,
+            }}
+          >
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                backgroundColor: tokens.bg.surfaceMuted,
+                borderRadius: 11,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: 14,
+              }}
+            >
+              <Ionicons name="star-outline" size={19} color={tokens.text.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: "600", color: tokens.text.primary, marginBottom: 1 }}>
+                Ask Me To Rate Orders
+              </Text>
+              <Text style={{ fontSize: 12, color: tokens.text.muted }}>
+                Occasional nudge to rate a delivered order
+              </Text>
+            </View>
+            <Switch
+              value={ratingPromptsEnabled}
+              onValueChange={toggleRatingPrompts}
+              trackColor={{ false: tokens.border.default, true: tokens.brand.strong }}
+              thumbColor={ratingPromptsEnabled ? tokens.brand.default : tokens.bg.surface}
+            />
+          </View>,
         ])}
 
         {renderSection("SMS", [

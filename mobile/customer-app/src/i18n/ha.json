@@ -1101,7 +1101,12 @@
     "pickAtLeastOne": "Zaɓi aƙalla ƙima ɗaya",
     "failed": "An kasa",
     "starLabel": "Tauraro {{count}}",
-    "starLabel_plural": "Taurari {{count}}"
+    "starLabel_plural": "Taurari {{count}}",
+    "bannerTitle": "Yaya odar ku ta baya-bayan nan?",
+    "bannerSubtitle": "Ƙimanta {{name}} - ɗan daƙiƙa kaɗan",
+    "bannerCta": "Ƙimanta oda daga {{name}}",
+    "bannerRate": "Ƙimanta",
+    "bannerDismiss": "Watsar"
   },
   "errors": {
     "title": "An samu matsala",

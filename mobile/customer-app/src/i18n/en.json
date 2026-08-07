@@ -1100,7 +1100,12 @@
     "pickAtLeastOne": "Pick at least one rating",
     "failed": "Failed",
     "starLabel": "{{count}} star",
-    "starLabel_plural": "{{count}} stars"
+    "starLabel_plural": "{{count}} stars",
+    "bannerTitle": "How was your last order?",
+    "bannerSubtitle": "Rate {{name}} - takes a few seconds",
+    "bannerCta": "Rate order from {{name}}",
+    "bannerRate": "Rate",
+    "bannerDismiss": "Dismiss"
   },
   "errors": {
     "title": "Something went wrong",
