@@ -54,13 +54,20 @@ export default function TransactionsPage() {
       id: t.id,
       type: t.type,
       amount: t.amount,
+      fee: t.fee,
       status: t.status,
-      userEmail: t.user?.email,
-      userName: `${t.user?.firstName} ${t.user?.lastName}`,
+      debitUserEmail: t.debitUser?.email,
+      debitUserName: t.debitUser ? `${t.debitUser.firstName} ${t.debitUser.lastName}` : '',
+      creditUserEmail: t.creditUser?.email,
+      creditUserName: t.creditUser ? `${t.creditUser.firstName} ${t.creditUser.lastName}` : '',
+      provider: t.provider,
+      providerRef: t.providerRef,
+      balanceBefore: t.balanceBefore,
+      balanceAfter: t.balanceAfter,
       createdAt: t.createdAt,
       reference: t.reference,
     }))
-    exportToCSV(csvData, 'transactions', ['id', 'type', 'amount', 'status', 'userEmail', 'userName', 'createdAt', 'reference'])
+    exportToCSV(csvData, 'transactions', ['id', 'type', 'amount', 'fee', 'status', 'debitUserEmail', 'debitUserName', 'creditUserEmail', 'creditUserName', 'provider', 'providerRef', 'balanceBefore', 'balanceAfter', 'createdAt', 'reference'])
   }
 
   return (
@@ -169,7 +176,11 @@ export default function TransactionsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
-                    {transaction.user?.firstName} {transaction.user?.lastName}
+                    {transaction.debitUser
+                      ? `${transaction.debitUser.firstName} ${transaction.debitUser.lastName}`
+                      : transaction.creditUser
+                      ? `${transaction.creditUser.firstName} ${transaction.creditUser.lastName}`
+                      : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted dark:text-dark-muted">
                     <div className="flex items-center gap-2">
@@ -265,18 +276,70 @@ export default function TransactionsPage() {
                 </div>
               </div>
 
-              {selectedTransaction.user && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
-                  <p className="text-sm text-muted dark:text-dark-muted mb-1">User</p>
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Reference</p>
+                  <p className="font-medium text-text dark:text-dark-text break-all">{selectedTransaction.reference || '-'}</p>
+                </div>
+                <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Fee</p>
+                  <p className="font-medium text-text dark:text-dark-text">₦{Number(selectedTransaction.fee || 0).toLocaleString()}</p>
+                </div>
+                {selectedTransaction.provider && (
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                    <p className="text-sm text-muted dark:text-dark-muted mb-1">Provider</p>
+                    <p className="font-medium text-text dark:text-dark-text">{selectedTransaction.provider}</p>
+                  </div>
+                )}
+                {selectedTransaction.providerRef && (
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                    <p className="text-sm text-muted dark:text-dark-muted mb-1">Provider Ref</p>
+                    <p className="font-medium text-text dark:text-dark-text break-all">{selectedTransaction.providerRef}</p>
+                  </div>
+                )}
+                {selectedTransaction.balanceBefore != null && (
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                    <p className="text-sm text-muted dark:text-dark-muted mb-1">Balance Before</p>
+                    <p className="font-medium text-text dark:text-dark-text">₦{Number(selectedTransaction.balanceBefore).toLocaleString()}</p>
+                  </div>
+                )}
+                {selectedTransaction.balanceAfter != null && (
+                  <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                    <p className="text-sm text-muted dark:text-dark-muted mb-1">Balance After</p>
+                    <p className="font-medium text-text dark:text-dark-text">₦{Number(selectedTransaction.balanceAfter).toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedTransaction.debitUser && (
+                <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Debited User</p>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                       <UserIcon size={20} className="text-primary" />
                     </div>
                     <div>
                       <p className="font-medium text-text dark:text-dark-text">
-                        {selectedTransaction.user.firstName} {selectedTransaction.user.lastName}
+                        {selectedTransaction.debitUser.firstName} {selectedTransaction.debitUser.lastName}
                       </p>
-                      <p className="text-sm text-muted dark:text-dark-muted">{selectedTransaction.user.email}</p>
+                      <p className="text-sm text-muted dark:text-dark-muted">{selectedTransaction.debitUser.email}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedTransaction.creditUser && (
+                <div className="bg-surface-muted dark:bg-dark-surface-muted p-4 rounded-lg">
+                  <p className="text-sm text-muted dark:text-dark-muted mb-1">Credited User</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <UserIcon size={20} className="text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-text dark:text-dark-text">
+                        {selectedTransaction.creditUser.firstName} {selectedTransaction.creditUser.lastName}
+                      </p>
+                      <p className="text-sm text-muted dark:text-dark-muted">{selectedTransaction.creditUser.email}</p>
                     </div>
                   </div>
                 </div>

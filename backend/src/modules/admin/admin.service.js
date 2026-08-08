@@ -781,6 +781,10 @@ const getCustomerAddresses = async (customerId) => {
 /**
  * Get platform-wide transaction overview.
  */
+const TRANSACTION_WALLET_USER_SELECT = {
+  select: { id: true, firstName: true, lastName: true, email: true },
+};
+
 const getTransactionOverview = async ({ page = 1, limit = 50, type, status }) => {
   const where = {
     ...(type && { type }),
@@ -793,11 +797,25 @@ const getTransactionOverview = async ({ page = 1, limit = 50, type, status }) =>
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
+      include: {
+        debitWallet: { select: { id: true, user: TRANSACTION_WALLET_USER_SELECT } },
+        creditWallet: { select: { id: true, user: TRANSACTION_WALLET_USER_SELECT } },
+      },
     }),
     prisma.transaction.count({ where }),
   ]);
 
-  return { transactions, total, page, limit };
+  // The list spans every wallet on the platform (not one customer's), so a
+  // transaction can have a debit user, a credit user, or both (P2P transfer).
+  // Expose both explicitly instead of the single ambiguous `user` the
+  // frontend previously expected but the query never actually populated.
+  const withUsers = transactions.map((t) => ({
+    ...t,
+    debitUser: t.debitWallet?.user ?? null,
+    creditUser: t.creditWallet?.user ?? null,
+  }));
+
+  return { transactions: withUsers, total, page, limit };
 };
 
 /**
