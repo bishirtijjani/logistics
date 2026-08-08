@@ -94,7 +94,7 @@ const startUtilityWorker = () => {
     const maxAttempts = job?.opts?.attempts ?? 1;
     const isFinalAttempt = (job?.attemptsMade ?? 0) >= maxAttempts;
     if (paymentId && isFinalAttempt) {
-      reconcileOnePayment(paymentId).catch((err) => {
+      _resolveExhaustedJob(paymentId, error, job.name).catch((err) => {
         logger.error('Post-failure reconcile errored', { paymentId, error: err.message });
       });
     }
@@ -610,6 +610,67 @@ const processWebhookResult = async ({ paymentId, result }) => {
  * to a 404 (null) → definitive failure → refund. Idempotent and safe to call
  * from both the failure handler and the cron sweep.
  */
+// Only the initial-vend jobs go through attemptPurchase's mayHaveVended
+// classification; POLL_PENDING/other job failures carry an unrelated error
+// (e.g. a DB blip) that says nothing about the provider outcome, so they must
+// keep going through the normal reconcile/poll path untouched.
+const _PURCHASE_JOB_NAMES = [
+  UTILITY_JOBS.PROCESS_AIRTIME,
+  UTILITY_JOBS.PROCESS_DATA,
+  UTILITY_JOBS.PROCESS_CABLE,
+  UTILITY_JOBS.PROCESS_ELECTRICITY,
+];
+
+/**
+ * Decide how to resolve a permanently-failed BullMQ job. attemptPurchase
+ * already classified the error via adapter.mayHaveVended() before re-throwing
+ * it for BullMQ to retry (see its catch block) - by the time retries are
+ * exhausted here, that classification still applies to the SAME error, but
+ * the old code discarded it and fell through to reconcileOnePayment, whose
+ * poll loop calls queryTransaction() - a no-op for a non-re-queryable provider
+ * like BilalSada - and so always burns the full poll window before holding
+ * for review, even for a clean, definitive rejection we'd already identified.
+ *
+ * So: for a purchase job's final failure on a provider that can't be
+ * re-queried, re-check that same classification. If the error was NOT
+ * mayHaveVended (a plain rejection - wrong plan, bad input, "not available" -
+ * as opposed to a timeout/5xx/"already taken"), we already know the sale
+ * didn't happen; skip the poll loop and go straight to escalate() (failover
+ * to a secondary provider, or FAILED + immediate refund). Anything that IS
+ * mayHaveVended, or is on a re-queryable provider (AlRahuz), or comes from a
+ * non-purchase job, falls through to the unchanged reconcile/poll/hold path -
+ * that's the safeguard from the ₦40k incident and it stays exactly as strict.
+ */
+const _resolveExhaustedJob = async (paymentId, lastError, jobName) => {
+  const payment = await getPayment(paymentId);
+  if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
+
+  const provider = payment.provider || 'BILALSADASUB';
+  const adapter = vtuRouter.getAdapter(provider);
+  const isDefinitiveRejection =
+    _PURCHASE_JOB_NAMES.includes(jobName) &&
+    !adapter.canRequery &&
+    adapter.mayHaveVended &&
+    !adapter.mayHaveVended(lastError);
+
+  if (isDefinitiveRejection) {
+    logger.warn('Retries exhausted on a definitive provider rejection, escalating immediately', {
+      paymentId, provider, error: lastError?.message,
+    });
+    const ctx = {
+      paymentId,
+      userId: payment.userId,
+      amount: Number(payment.amount),
+      reference: payment.transactionId || payment.providerRequestId,
+      provider,
+      providers: payment.providerIds || undefined,
+    };
+    return escalate(ctx, { result: null });
+  }
+
+  return reconcileOnePayment(paymentId);
+};
+
 const reconcileOnePayment = async (paymentId) => {
   const payment = await getPayment(paymentId);
   if (!payment || SETTLED_STATUSES.includes(payment.status)) return;
