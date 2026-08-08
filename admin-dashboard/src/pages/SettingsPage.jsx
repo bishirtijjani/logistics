@@ -51,6 +51,7 @@ const DEFAULT_FORM = {
 
   utilityMinAirtimeAmount: 50,
   utilityMinElectricityAmount: 500,
+  utilityElectricityServiceFee: 10,
 }
 
 // Field className helpers, kept short since almost every input on this page shares them.
@@ -168,6 +169,7 @@ export default function SettingsPage() {
 
       utilityMinAirtimeAmount: platformSettings.utilityMinAirtimeAmount ?? DEFAULT_FORM.utilityMinAirtimeAmount,
       utilityMinElectricityAmount: platformSettings.utilityMinElectricityAmount ?? DEFAULT_FORM.utilityMinElectricityAmount,
+      utilityElectricityServiceFee: platformSettings.utilityElectricityServiceFee ?? DEFAULT_FORM.utilityElectricityServiceFee,
     })
     setNotificationSettings({
       emailNotifications: platformSettings.emailNotifications ?? true,
@@ -224,6 +226,7 @@ export default function SettingsPage() {
 
       utilityMinAirtimeAmount: Number(form.utilityMinAirtimeAmount) || 0,
       utilityMinElectricityAmount: Number(form.utilityMinElectricityAmount) || 0,
+      utilityElectricityServiceFee: Number(form.utilityElectricityServiceFee) || 0,
     }
   }
 
@@ -540,6 +543,16 @@ export default function SettingsPage() {
                       value={form.utilityMinElectricityAmount}
                       onChange={set('utilityMinElectricityAmount')}
                     />
+                    <div>
+                      <MoneyField
+                        label="Electricity Service Charge"
+                        value={form.utilityElectricityServiceFee}
+                        onChange={set('utilityElectricityServiceFee')}
+                      />
+                      <p className="text-xs text-muted dark:text-dark-muted mt-1">
+                        Flat platform fee added on top of the face value for every electricity purchase (data/cable/airtime already carry their own margin; electricity has none built in, since the amount vended IS the token value).
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>

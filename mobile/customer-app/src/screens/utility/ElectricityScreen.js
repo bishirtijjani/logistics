@@ -25,6 +25,7 @@ export default function ElectricityScreen({ navigation }) {
   const requirePin = usePinGuard();
 
   const minAmount = Number(usePlatformSetting("utility.minElectricityAmount", 500));
+  const serviceFee = Number(usePlatformSetting("utility.electricityServiceFee", 10));
   const quickAmountsSetting = usePlatformSetting("utility.electricityQuickAmounts", null);
   const QUICK_AMOUNTS = Array.isArray(quickAmountsSetting) && quickAmountsSetting.length > 0
     ? quickAmountsSetting.map(Number)
@@ -79,7 +80,7 @@ export default function ElectricityScreen({ navigation }) {
     if (!meterValidated) { showErr("meter", t("utility.electricityScreen.errVerifyFirst")); return; }
     if (!phone.trim() || phone.length < 10) { showErr("phone", t("utility.airtimeScreen.errInvalidPhone")); return; }
     if (!amount || Number(amount) < minAmount) { showErr("amount", t("utility.electricityScreen.errMinAmount", { amount: naira(minAmount) })); return; }
-    if (Number(amount) > Number(balance)) { showErr("amount", t("utility.electricityScreen.errInsufficientBalance")); return; }
+    if (Number(amount) + serviceFee > Number(balance)) { showErr("amount", t("utility.electricityScreen.errInsufficientBalance")); return; }
     setFieldErrors({});
     if (!requirePin()) return;
     setShowPinSheet(true);
@@ -98,6 +99,7 @@ export default function ElectricityScreen({ navigation }) {
     navigation.replace("ElectricityResult", {
       paymentId: payment?.id,
       amount: Number(amount),
+      fee: serviceFee,
       meterNumber: meterNumber.trim(),
       biller: selectedDisco?.networkName,
       beneficiaryName: payment?.beneficiaryName || null,
@@ -260,6 +262,11 @@ export default function ElectricityScreen({ navigation }) {
         <Text style={{ fontSize: 11, color: tokens.text.muted, marginBottom: 8, paddingLeft: 4 }}>
           {t("utility.electricityScreen.minHint", { amount: naira(minAmount) })}
         </Text>
+        {amount ? (
+          <Text style={{ fontSize: 12, color: tokens.text.muted, marginBottom: 12, paddingLeft: 4 }}>
+            {t("utility.electricityScreen.feeHint", { fee: naira(serviceFee), total: naira(Number(amount) + serviceFee) })}
+          </Text>
+        ) : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 24 }}>
           {QUICK_AMOUNTS.map((value) => {
             const selected = Number(amount) === value;
@@ -284,7 +291,7 @@ export default function ElectricityScreen({ navigation }) {
           onPress={handlePurchase}
           disabled={isLoading}
           accessibilityRole="button"
-          accessibilityLabel={amount ? t("utility.electricityScreen.payCta", { amount: naira(amount) }) : t("utility.electricityScreen.enterAmountCta")}
+          accessibilityLabel={amount ? t("utility.electricityScreen.payCta", { amount: naira(Number(amount) + serviceFee) }) : t("utility.electricityScreen.enterAmountCta")}
           accessibilityState={{ disabled: isLoading, busy: isLoading }}
           style={{ backgroundColor: amount ? tokens.brand.default : tokens.text.placeholder, borderRadius: 16, paddingVertical: 16, alignItems: "center" }}
         >
@@ -292,7 +299,7 @@ export default function ElectricityScreen({ navigation }) {
             <ActivityIndicator size="small" color={tokens.text.onBrand} accessibilityLabel={t("common.loading")} />
           ) : (
             <Text style={{ color: tokens.text.onBrand, fontSize: 16, fontWeight: "800" }}>
-              {amount ? t("utility.electricityScreen.payCta", { amount: naira(amount) }) : t("utility.electricityScreen.enterAmountCta")}
+              {amount ? t("utility.electricityScreen.payCta", { amount: naira(Number(amount) + serviceFee) }) : t("utility.electricityScreen.enterAmountCta")}
             </Text>
           )}
         </TouchableOpacity>
@@ -305,7 +312,7 @@ export default function ElectricityScreen({ navigation }) {
         onForgotPin={() => { setShowPinSheet(false); navigation.navigate("ChangePin"); }}
         onSetupPin={() => navigation.navigate("SetPin")}
         title={t("utility.electricityScreen.pinTitle")}
-        subtitle={t("utility.electricityScreen.pinSubtitle", { amount: naira(amount), disco: selectedDisco?.networkName || "" })}
+        subtitle={t("utility.electricityScreen.pinSubtitle", { amount: naira(Number(amount) + serviceFee), disco: selectedDisco?.networkName || "" })}
       />
     </SafeAreaView>
   );

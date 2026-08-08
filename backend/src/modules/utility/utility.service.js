@@ -78,20 +78,26 @@ const _resolveVendableProvider = async (providers) => {
  * (order earnings + top-ups both land in this wallet). The worker later flips
  * the paired Transaction to COMPLETED/FAILED and refunds this wallet on failure.
  */
-const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, meterNumber, plan, reference, provider, providers }) => {
+const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, meterNumber, plan, reference, provider, providers, fee = 0 }) => {
   return prisma.$transaction(async (tx) => {
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw AppError.notFound('Wallet not found');
     if (wallet.isLocked) throw AppError.forbidden('Wallet is frozen');
 
     const balance = Number(wallet.balance);
+    // Total actually leaving the wallet: the vend amount plus any platform
+    // service fee (e.g. the flat electricity charge). `amount` on the
+    // Transaction/UtilityPayment rows stays the face/vend value - it's what's
+    // sent to the provider and shown as "what you bought" - the fee rides
+    // alongside it in its own column so refunds and receipts can tell them apart.
+    const total = Number(amount) + Number(fee);
     // Conditional debit so concurrent purchases can't overdraw: the WHERE runs
     // under the UPDATE's row lock, so a read-then-decrement can't slip a second
     // debit past a stale balance check under READ COMMITTED (which is how this
     // wallet reached a negative balance). Mirrors the withdrawal path.
     const debit = await tx.wallet.updateMany({
-      where: { id: wallet.id, isLocked: false, balance: { gte: amount } },
-      data: { balance: { decrement: amount } },
+      where: { id: wallet.id, isLocked: false, balance: { gte: total } },
+      data: { balance: { decrement: total } },
     });
     if (debit.count !== 1) throw AppError.insufficientBalance();
 
@@ -101,11 +107,12 @@ const deductAndCreate = async (userId, { type, biller, amount, phoneNumber, mete
         type: 'UTILITY_PAYMENT',
         status: 'PROCESSING',
         amount,
+        fee,
         description: `${biller} ${type.toLowerCase()} ${phoneNumber || meterNumber || ''}`.trim(),
         debitWalletId: wallet.id,
         provider: provider || 'BILALSADASUB',
         balanceBefore: balance,
-        balanceAfter: balance - amount,
+        balanceAfter: balance - total,
       },
     });
 
@@ -332,6 +339,12 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     throw AppError.badRequest(`Minimum electricity payment is ₦${minAmount.toLocaleString()}`);
   }
 
+  // Flat platform service charge, on top of the face value vended - electricity
+  // has no per-unit markup like data/cable (the amount IS the token value AEDC
+  // etc. generate, so we can't mark that up invisibly), so margin here is this
+  // explicit, customer-visible fee instead. Admin-adjustable, defaults to ₦10.
+  const fee = Number(await settingsService.getSetting('utility.electricityServiceFee', 10));
+
   const reference = `ELEC-${uuidv4()}`;
   const disco = await prisma.vtuPlan.findFirst({
     where: { type: 'ELECTRICITY', providerNetworkId: Number(discoId), isActive: true },
@@ -365,6 +378,7 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     type: 'ELECTRICITY',
     biller: disco.networkName,
     amount,
+    fee,
     meterNumber,
     phoneNumber: phone,
     plan: meterType,
@@ -380,6 +394,11 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     });
     payment.beneficiaryName = beneficiaryName;
   }
+
+  // Surface the fee breakdown so the client can show it (receipt/history), even
+  // though UtilityPayment itself only stores the face `amount` (what was vended).
+  payment.fee = fee;
+  payment.totalCharged = Number(amount) + fee;
 
   await addUtilityJob(UTILITY_JOBS.PROCESS_ELECTRICITY, {
     paymentId: payment.id,

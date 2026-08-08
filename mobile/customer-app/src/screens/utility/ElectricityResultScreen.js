@@ -22,7 +22,7 @@ export default function ElectricityResultScreen({ route, navigation }) {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const { tokens } = useTheme();
-  const { paymentId, amount, meterNumber, biller, beneficiaryName: initialName } = route.params || {};
+  const { paymentId, amount, fee = 0, meterNumber, biller, beneficiaryName: initialName } = route.params || {};
 
   const [status, setStatus] = useState("PROCESSING");
   const [token, setToken] = useState(null);
@@ -127,6 +127,8 @@ export default function ElectricityResultScreen({ route, navigation }) {
         {/* Payment summary */}
         <View style={{ backgroundColor: tokens.bg.surface, borderRadius: 16, padding: 16, marginBottom: 20 }}>
           <Row tokens={tokens} label={t("utility.result.amountLabel")} value={naira(amount)} />
+          {fee > 0 ? <Row tokens={tokens} label={t("utility.result.serviceFeeLabel")} value={naira(fee)} /> : null}
+          {fee > 0 ? <Row tokens={tokens} label={t("utility.result.totalChargedLabel")} value={naira(Number(amount) + fee)} /> : null}
           <Row tokens={tokens} label={t("utility.result.discoLabel")} value={biller || "-"} />
           <Row tokens={tokens} label={t("utility.result.meterLabel")} value={meterNumber || "-"} />
           {beneficiaryName ? <Row tokens={tokens} label={t("utility.result.accountLabel")} value={beneficiaryName} /> : null}

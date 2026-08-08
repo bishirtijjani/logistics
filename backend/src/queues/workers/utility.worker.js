@@ -134,43 +134,55 @@ const _txStatus = (paymentStatus) => {
 
 const refundPayment = async ({ paymentId, userId, amount, reference }) => {
   try {
-    await prisma.$transaction(async (tx) => {
+    const refundAmount = await prisma.$transaction(async (tx) => {
       const existing = await tx.utilityPayment.findUnique({ where: { id: paymentId } });
       // Idempotency: if already refunded (e.g. concurrent poll + initial call),
       // don't credit twice.
-      if (!existing || existing.status === 'REFUNDED') return;
+      if (!existing || existing.status === 'REFUNDED') return null;
+
+      // Refund the FULL amount actually debited - face value plus any platform
+      // service fee (e.g. the flat electricity charge) - not just the
+      // caller-supplied face-value `amount`. Read it off the original wallet
+      // Transaction (source of truth for what left the wallet) rather than
+      // trusting the param, so a fee-bearing purchase is never short-refunded.
+      const originalTxn = await tx.transaction.findFirst({ where: { reference } });
+      const total = originalTxn ? Number(originalTxn.amount) + Number(originalTxn.fee || 0) : Number(amount);
 
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       if (!wallet) throw new Error('Wallet not found for refund');
       const balance = Number(wallet.balance);
 
-      await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: amount } } });
+      await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: total } } });
 
       await tx.transaction.create({
         data: {
           reference: `REFUND-${reference}`,
           type: 'REFUND',
           status: 'COMPLETED',
-          amount,
+          amount: total,
           description: `Refund for failed utility payment`,
           creditWalletId: wallet.id,
           balanceBefore: balance,
-          balanceAfter: balance + amount,
+          balanceAfter: balance + total,
         },
       });
 
       await tx.utilityPayment.update({ where: { id: paymentId }, data: { status: 'REFUNDED' } });
+      return total;
     });
-    logger.info('Utility refund processed', { paymentId, userId, amount });
+
+    if (refundAmount == null) return; // already refunded - idempotent no-op
+
+    logger.info('Utility refund processed', { paymentId, userId, amount: refundAmount });
 
     // Notify the user the refund landed.
     try {
       await notifyService.onWalletEvent(userId, {
         kind: 'REFUND',
-        amount,
+        amount: refundAmount,
         transactionId: reference,
         route: '/wallet',
-        description: `₦${Number(amount).toLocaleString('en-NG')} refunded for failed utility payment.`,
+        description: `₦${Number(refundAmount).toLocaleString('en-NG')} refunded for failed utility payment.`,
       });
     } catch (err) {
       logger.warn('Refund notify failed (non-fatal)', { paymentId, error: err.message });
