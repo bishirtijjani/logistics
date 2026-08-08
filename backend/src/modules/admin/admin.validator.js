@@ -422,7 +422,7 @@ const updatePlatformSettingsSchema = z.object({
   // Utility payment minimums (utility.* settings)
   utilityMinAirtimeAmount: z.number().min(0).optional(),
   utilityMinElectricityAmount: z.number().min(0).optional(),
-  utilityElectricityServiceFee: z.number().min(0).optional(),
+  utilityElectricityServiceFeePercent: z.number().min(0).max(100).optional(),
 }).passthrough().refine(
   (data) => {
     if (data.walletMinWithdraw !== undefined && data.walletMaxWithdraw !== undefined) {

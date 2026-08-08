@@ -108,7 +108,7 @@ const PUBLIC_KEYS = [
   'wallet.withdrawQuickAmounts',
   'utility.minElectricityAmount',
   'utility.electricityQuickAmounts',
-  'utility.electricityServiceFee',
+  'utility.electricityServiceFeePercent',
   'utility.minAirtimeAmount',
   'utility.airtimeQuickAmounts',
   // Airtime-to-cash - what % of airtime value the customer receives in wallet.

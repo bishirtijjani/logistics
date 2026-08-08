@@ -339,11 +339,13 @@ const payElectricity = async (userId, { meterNumber, discoId, meterType, amount,
     throw AppError.badRequest(`Minimum electricity payment is ₦${minAmount.toLocaleString()}`);
   }
 
-  // Flat platform service charge, on top of the face value vended - electricity
-  // has no per-unit markup like data/cable (the amount IS the token value AEDC
-  // etc. generate, so we can't mark that up invisibly), so margin here is this
-  // explicit, customer-visible fee instead. Admin-adjustable, defaults to ₦10.
-  const fee = Number(await settingsService.getSetting('utility.electricityServiceFee', 10));
+  // Percentage platform service charge, on top of the face value vended -
+  // electricity has no per-unit markup like data/cable (the amount IS the token
+  // value AEDC etc. generate, so we can't mark that up invisibly), so margin
+  // here is this explicit, customer-visible fee instead. Admin-adjustable,
+  // defaults to 1% (e.g. ₦10 on a ₦1,000 purchase).
+  const feePercent = Number(await settingsService.getSetting('utility.electricityServiceFeePercent', 1));
+  const fee = Math.round((amount * feePercent) / 100);
 
   const reference = `ELEC-${uuidv4()}`;
   const disco = await prisma.vtuPlan.findFirst({

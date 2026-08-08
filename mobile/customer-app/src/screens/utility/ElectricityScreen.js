@@ -25,7 +25,7 @@ export default function ElectricityScreen({ navigation }) {
   const requirePin = usePinGuard();
 
   const minAmount = Number(usePlatformSetting("utility.minElectricityAmount", 500));
-  const serviceFee = Number(usePlatformSetting("utility.electricityServiceFee", 10));
+  const serviceFeePercent = Number(usePlatformSetting("utility.electricityServiceFeePercent", 1));
   const quickAmountsSetting = usePlatformSetting("utility.electricityQuickAmounts", null);
   const QUICK_AMOUNTS = Array.isArray(quickAmountsSetting) && quickAmountsSetting.length > 0
     ? quickAmountsSetting.map(Number)
@@ -41,6 +41,8 @@ export default function ElectricityScreen({ navigation }) {
   const [amount, setAmount] = useState("");
   const [showPinSheet, setShowPinSheet] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+
+  const serviceFee = amount ? Math.round((Number(amount) * serviceFeePercent) / 100) : 0;
 
   const showErr = (field, msg) => {
     setFieldErrors({ [field]: msg });

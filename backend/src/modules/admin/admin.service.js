@@ -2390,7 +2390,7 @@ const getPlatformSettings = async () => {
     deliveryUnmatchedReRingSec, deliveryAutoCancelUnmatchedMs,
     deliveryRequirePodPhoto, deliveryRequireSignature, deliveryPodOtpThresholdNgn,
     walletMinTopup, walletMinWithdraw, walletMaxWithdraw, walletMinTransfer,
-    utilityMinAirtimeAmount, utilityMinElectricityAmount, utilityElectricityServiceFee,
+    utilityMinAirtimeAmount, utilityMinElectricityAmount, utilityElectricityServiceFeePercent,
   ] = await Promise.all([
     settingsService.getSetting('wallet.withdrawalFee', 20),
     settingsService.getSetting('wallet.withdrawalFeePayer', 'PLATFORM'),
@@ -2418,7 +2418,7 @@ const getPlatformSettings = async () => {
     settingsService.getSetting('wallet.minTransfer', 50),
     settingsService.getSetting('utility.minAirtimeAmount', 50),
     settingsService.getSetting('utility.minElectricityAmount', 500),
-    settingsService.getSetting('utility.electricityServiceFee', 10),
+    settingsService.getSetting('utility.electricityServiceFeePercent', 1),
   ]);
 
   const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1';
@@ -2463,7 +2463,7 @@ const getPlatformSettings = async () => {
 
     utilityMinAirtimeAmount: Number(utilityMinAirtimeAmount),
     utilityMinElectricityAmount: Number(utilityMinElectricityAmount),
-    utilityElectricityServiceFee: Number(utilityElectricityServiceFee),
+    utilityElectricityServiceFeePercent: Number(utilityElectricityServiceFeePercent),
 
     emailNotifications: true,
     pushNotifications: true,
@@ -2512,7 +2512,7 @@ const updatePlatformSettings = async (settings, adminUserId = 'ADMIN') => {
 
     utilityMinAirtimeAmount: 'utility.minAirtimeAmount',
     utilityMinElectricityAmount: 'utility.minElectricityAmount',
-    utilityElectricityServiceFee: 'utility.electricityServiceFee',
+    utilityElectricityServiceFeePercent: 'utility.electricityServiceFeePercent',
   };
 
   await Promise.all(
