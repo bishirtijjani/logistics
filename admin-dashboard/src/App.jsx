@@ -26,7 +26,6 @@ import DisputeDetailPage from './pages/DisputeDetailPage'
 import SupportPage from './pages/SupportPage'
 import SupportTicketDetailPage from './pages/SupportTicketDetailPage'
 import MarketingPage from './pages/MarketingPage'
-import RiderOperationsPage from './pages/RiderOperationsPage'
 import SafetyPage from './pages/SafetyPage'
 import MerchantAnalyticsPage from './pages/MerchantAnalyticsPage'
 import MerchantProductsPage from './pages/MerchantProductsPage'
@@ -109,7 +108,8 @@ function App() {
           <Route path="support" element={<SupportPage />} />
           <Route path="support/:ticketId" element={<SupportTicketDetailPage />} />
           <Route path="marketing" element={<MarketingPage />} />
-          <Route path="rider-operations" element={<RiderOperationsPage />} />
+          {/* Merged into Dispatch's "Live Map" view; keep old links working. */}
+          <Route path="rider-operations" element={<Navigate to="/requests" replace />} />
           <Route path="safety" element={<SafetyPage />} />
           <Route path="vtu-plans" element={<VtuPlansPage />} />
           <Route path="vtu-networks" element={<VtuNetworksPage />} />

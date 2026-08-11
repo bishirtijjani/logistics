@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard,
   ShieldCheck,
-  Package,
   Store,
   Bike,
   Map,
@@ -47,19 +46,23 @@ const navSections = [
     ],
   },
   {
-    label: 'Operations',
+    label: 'Live Ops',
     items: [
-      { path: '/requests', icon: Package, label: 'Requests', permissions: ['MANAGE_USERS', 'MANAGE_MERCHANTS'] },
+      { path: '/requests', icon: Map, label: 'Dispatch', permissions: ['MANAGE_USERS', 'MANAGE_MERCHANTS'] },
+    ],
+  },
+  {
+    label: 'Accounts',
+    items: [
+      { path: '/customers', icon: Users, label: 'Customers', permissions: ['MANAGE_USERS'] },
+      { path: '/riders', icon: Bike, label: 'Riders', permissions: ['MANAGE_USERS'] },
       { path: '/merchants', icon: Store, label: 'Merchants', permissions: ['MANAGE_MERCHANTS'] },
       { path: '/categories', icon: Tags, label: 'Categories', permissions: ['MANAGE_MERCHANTS'] },
-      { path: '/riders', icon: Bike, label: 'Riders', permissions: ['MANAGE_USERS'] },
-      { path: '/rider-operations', icon: Map, label: 'Rider Ops', permissions: ['MANAGE_USERS'] },
     ],
   },
   {
     label: 'Growth',
     items: [
-      { path: '/customers', icon: Users, label: 'Customers', permissions: ['MANAGE_USERS'] },
       { path: '/waitlist', icon: ListChecks, label: 'Waitlist', permissions: ['MANAGE_USERS'] },
       { path: '/marketing', icon: Megaphone, label: 'Marketing', permissions: ['MANAGE_SETTINGS'] },
     ],

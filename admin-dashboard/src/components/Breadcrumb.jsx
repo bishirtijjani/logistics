@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react'
 
 const breadcrumbMap = {
   '/dashboard': { label: 'Dashboard', parent: null },
-  '/requests': { label: 'Requests', parent: '/dashboard' },
+  '/requests': { label: 'Dispatch', parent: '/dashboard' },
   '/merchants': { label: 'Merchants', parent: '/dashboard' },
   '/categories': { label: 'Categories', parent: '/dashboard' },
   '/riders': { label: 'Riders', parent: '/dashboard' },
@@ -13,7 +13,6 @@ const breadcrumbMap = {
   '/support': { label: 'Support', parent: '/dashboard' },
   '/marketing': { label: 'Marketing', parent: '/dashboard' },
   '/waitlist': { label: 'Waitlist', parent: '/dashboard' },
-  '/rider-operations': { label: 'Rider Ops', parent: '/dashboard' },
   '/safety': { label: 'Safety', parent: '/dashboard' },
   '/vtu-plans': { label: 'VTU Plans', parent: '/dashboard' },
   '/vtu-networks': { label: 'VTU Networks', parent: '/dashboard' },

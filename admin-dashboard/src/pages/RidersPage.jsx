@@ -17,10 +17,11 @@ import { TransactionReceiptModal } from './CustomerDetailPage'
 import { exportToCSV } from '../lib/exportToCSV'
 import Pagination from '../components/Pagination'
 import ActionMenu from '../components/ActionMenu'
+import api from '../lib/api'
 import {
   Bike, Search, Eye, Check, X, Clock, Phone, Mail, Star, Package, MapPin,
   Power, ShieldCheck, Ban, FileText, ExternalLink, AlertTriangle, User,
-  Calendar, DollarSign, CheckCircle, Hash, Truck, Download, Users, Wifi, KeyRound, Pencil,
+  Calendar, DollarSign, CheckCircle, Hash, Truck, Download, Users, Wifi, KeyRound, Pencil, TrendingUp,
 } from 'lucide-react'
 
 // ── Design tokens (mirrors MerchantsPage kit so the two pages match) ──────────
@@ -43,6 +44,7 @@ const AVAIL_META = {
 const TABS = [
   { id: 'all', label: 'All Riders', icon: Bike },
   { id: 'pending', label: 'Pending Approvals', icon: Clock },
+  { id: 'performance', label: 'Performance', icon: TrendingUp },
 ]
 
 const naira = (v) => `₦${Number(v || 0).toLocaleString('en-NG', { maximumFractionDigits: 2 })}`
@@ -343,6 +345,8 @@ export default function RidersPage() {
   const [resetPinTarget, setResetPinTarget] = useState(null)
   const [resetPinReason, setResetPinReason] = useState('')
   const [editAccountTarget, setEditAccountTarget] = useState(null)
+  const [performance, setPerformance] = useState([])
+  const [performanceLoading, setPerformanceLoading] = useState(false)
 
   // Stats once on mount.
   useEffect(() => { dispatch(fetchRiderStats()) }, [dispatch])
@@ -359,6 +363,16 @@ export default function RidersPage() {
   useEffect(() => {
     if (activeTab === 'pending') dispatch(fetchPendingRiders({ page: 1, limit: 50 }))
   }, [dispatch, activeTab])
+
+  // Performance leaderboard - fetched on first open of the tab, not polled.
+  useEffect(() => {
+    if (activeTab !== 'performance') return
+    setPerformanceLoading(true)
+    api.get('/admin/riders/performance')
+      .then((res) => setPerformance(res.data?.data || []))
+      .catch((err) => console.error('Failed to fetch rider performance:', err))
+      .finally(() => setPerformanceLoading(false))
+  }, [activeTab])
 
   const openDrawer = (rider) => {
     dispatch(setSelectedRider(rider))
@@ -661,6 +675,56 @@ export default function RidersPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'performance' && (
+          <div className="overflow-x-auto">
+            {performanceLoading ? (
+              <div className="flex justify-center items-center py-16"><Spinner size={32} cls="border-primary" /></div>
+            ) : (
+              <table className="w-full min-w-[720px]">
+                <thead className="bg-surface-muted dark:bg-dark-surface-muted text-left">
+                  <tr>
+                    {['Rider', 'Email', 'Deliveries', 'Rating', 'Earnings', 'Availability'].map((h) => (
+                      <th key={h} className="px-4 py-3 text-xs font-semibold text-muted dark:text-dark-muted uppercase tracking-wide">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {performance.map((rider, i) => (
+                    <tr key={rider.id} className="border-t border-surface-muted dark:border-dark-surface-muted">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 text-xs font-bold text-muted dark:text-dark-muted">#{i + 1}</span>
+                          <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><Bike size={15} className="text-primary" /></span>
+                          <span className="text-sm font-medium text-text dark:text-dark-text">{rider.user?.firstName} {rider.user?.lastName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted dark:text-dark-muted">{rider.user?.email}</td>
+                      <td className="px-4 py-3 text-sm text-text dark:text-dark-text">
+                        <span className="flex items-center gap-1"><Package size={13} className="text-muted dark:text-dark-muted" /> {rider.totalDeliveries || 0}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text dark:text-dark-text">
+                        <span className="flex items-center gap-1"><Star size={13} className="text-amber-400 fill-amber-400" /> {rider.averageRating?.toFixed(1) || '-'}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-text dark:text-dark-text">{naira(rider.totalEarnings)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${(AVAIL_META[rider.availability] || AVAIL_META.OFFLINE).cls}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${(AVAIL_META[rider.availability] || AVAIL_META.OFFLINE).dot}`} />
+                          {(AVAIL_META[rider.availability] || AVAIL_META.OFFLINE).label}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {performance.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center text-muted dark:text-dark-muted">No approved riders found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             )}
           </div>
         )}

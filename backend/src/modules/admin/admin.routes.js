@@ -130,10 +130,14 @@ router.patch('/categories/:categoryId/attribute-schema', authorize('ADMIN', PERM
 router.delete('/categories/:categoryId', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), adminController.deleteCategory);
 
 // Rider management
-// NOTE: literal sub-paths (/pending, /stats) are declared before the
-// parameterized /riders/:riderId/* routes so they are not shadowed.
+// NOTE: literal sub-paths (/pending, /stats, /performance, /realtime) are
+// declared before the parameterized /riders/:riderId/* routes so they are not
+// shadowed (Express matches top-down; /riders/realtime would otherwise be
+// read as /riders/:riderId with riderId="realtime").
 router.get('/riders/pending', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(listPendingRidersSchema, 'query'), adminController.getPendingRiders);
 router.get('/riders/stats', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderStats);
+router.get('/riders/performance', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(paginationDateRangeSchema, 'query'), adminController.getRiderPerformance);
+router.get('/riders/realtime', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderRealtimeLocation);
 router.get('/riders', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(listAllRidersSchema, 'query'), adminController.getAllRiders);
 router.get('/riders/:riderId', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderById);
 router.get('/riders/:riderId/location', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderLiveLocation);
@@ -227,10 +231,6 @@ router.get('/marketing/banners', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS)
 router.post('/marketing/banners', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.createBanner);
 router.put('/marketing/banners/:bannerId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.updateBanner);
 router.delete('/marketing/banners/:bannerId', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), adminController.deleteBanner);
-
-// Rider operations
-router.get('/riders/performance', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), validate(paginationDateRangeSchema, 'query'), adminController.getRiderPerformance);
-router.get('/riders/realtime', authorize('ADMIN', PERMISSIONS.MANAGE_USERS), adminController.getRiderRealtimeLocation);
 
 // Safety & compliance
 router.get('/safety/incidents', authorize('ADMIN', PERMISSIONS.MANAGE_SUPPORT), validate(paginationStatusSchema, 'query'), adminController.getSafetyIncidents);

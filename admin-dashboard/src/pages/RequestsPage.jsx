@@ -16,10 +16,11 @@ import { showSuccessToast, showErrorToast } from '../utils/toast'
 import api from '../lib/api'
 import {
   Search, Filter, User, Store, Bike, Clock, CheckCircle, X, MapPin, Phone, Mail,
-  Download, Copy, Package, TrendingUp, AlertTriangle, XCircle, RefreshCw, ArrowRight, FileText,
+  Download, Copy, Package, TrendingUp, AlertTriangle, XCircle, RefreshCw, ArrowRight, FileText, Map,
 } from 'lucide-react'
 import Pagination from '../components/Pagination'
 import LiveTrackingMap from '../components/LiveTrackingMap'
+import FleetLiveMap from '../components/FleetLiveMap'
 
 const STATUS_COLORS = {
   REQUESTED: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
@@ -93,6 +94,7 @@ export default function RequestsPage() {
   const [pageSize, setPageSize] = useState(20)
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [mainView, setMainView] = useState('orders') // 'orders' | 'map'
 
   const [selectedRequest, setSelectedRequest] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
@@ -299,20 +301,46 @@ export default function RequestsPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Requests</h1>
-        <label className="flex items-center gap-2 text-sm text-muted dark:text-dark-muted cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={autoRefresh}
-            onChange={(e) => setAutoRefresh(e.target.checked)}
-            className="rounded border-surface-muted text-primary focus:ring-primary"
-          />
-          <RefreshCw size={14} className={autoRefresh ? 'animate-spin text-primary' : ''} style={autoRefresh ? { animationDuration: '3s' } : undefined} />
-          Auto-refresh (30s)
-        </label>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h1 className="text-2xl font-bold text-text dark:text-dark-text">Dispatch</h1>
+        {mainView === 'orders' && (
+          <label className="flex items-center gap-2 text-sm text-muted dark:text-dark-muted cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={(e) => setAutoRefresh(e.target.checked)}
+              className="rounded border-surface-muted text-primary focus:ring-primary"
+            />
+            <RefreshCw size={14} className={autoRefresh ? 'animate-spin text-primary' : ''} style={autoRefresh ? { animationDuration: '3s' } : undefined} />
+            Auto-refresh (30s)
+          </label>
+        )}
       </div>
 
+      {/* Orders / fleet-map switcher - one console for "what needs dispatching"
+          and "who's actually online to dispatch to", since assigning a rider
+          from the Orders view depends on exactly that live-presence data. */}
+      <div className="flex gap-2 sm:gap-4 border-b border-surface-muted dark:border-dark-surface-muted overflow-x-auto mb-6">
+        <button
+          onClick={() => setMainView('orders')}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm font-medium whitespace-nowrap transition-colors ${mainView === 'orders' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'}`}
+        >
+          <Package className="w-4 h-4 inline mr-2" />
+          Orders
+        </button>
+        <button
+          onClick={() => setMainView('map')}
+          className={`px-3 sm:px-4 py-3 border-b-2 text-sm font-medium whitespace-nowrap transition-colors ${mainView === 'map' ? 'border-primary text-primary' : 'border-transparent text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text'}`}
+        >
+          <Map className="w-4 h-4 inline mr-2" />
+          Live Map
+        </button>
+      </div>
+
+      {mainView === 'map' ? (
+        <FleetLiveMap active={mainView === 'map'} />
+      ) : (
+      <>
       {/* Live workload + today's outcomes */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         {statCards.map((card) => {
@@ -1066,6 +1094,8 @@ export default function RequestsPage() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   )
