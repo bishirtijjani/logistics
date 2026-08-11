@@ -2136,7 +2136,7 @@ const pickFreshestPos = (rawA, rawB) => {
 
 /**
  * Overlay live dispatch presence onto rider rows. "Live online" = the rider's
- * heartbeat key (userId-keyed, 90s TTL, refreshed by the socket keep-alive)
+ * heartbeat key (userId-keyed, 180s TTL, refreshed by the socket keep-alive)
  * still exists - the same signal the reconcile sweep trusts. The DB
  * `availability` flag is sticky and can lag the reconcile sweep by up to a
  * couple of minutes, so the admin console must not read online/offline from it

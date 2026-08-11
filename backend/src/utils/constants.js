@@ -33,9 +33,12 @@ const REDIS_TTL = {
   RIDER_AVAILABILITY: 3600, // 1 hour
   // A rider streaming GPS refreshes this every ~3s. If it lapses the rider is
   // no longer reachable and the reconcile sweep prunes them from the geo index
-  // and flips their sticky DB availability=ONLINE back to OFFLINE. Generous
-  // enough to survive a few dropped pings / a brief reconnect.
-  RIDER_HEARTBEAT: 90, // 90s
+  // and flips their sticky DB availability=ONLINE back to OFFLINE. Widened
+  // from 90s to survive the common case on mobile: the OS suspends the app's
+  // socket the instant it's backgrounded/minimized (no in-app grace period
+  // ever gets to run), so a rider glancing at another app for a minute must
+  // not be evicted from the dispatch pool over it.
+  RIDER_HEARTBEAT: 180, // 3 minutes
   RIDER_LOC_DB_THROTTLE: 20, // persist a GPS ping to the DB at most every 20s per rider
   ACTIVE_REQUEST: 86400, // 24 hours
   OTP: 600, // 10 minutes

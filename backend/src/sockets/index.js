@@ -77,7 +77,7 @@ const initializeSocket = (httpServer) => {
     // pong deadline and the server killed the socket ("ping timeout"). That
     // churn is what silently dropped riders offline and made them re-tap "Go
     // online". 25s ping + 60s timeout lets a socket survive ~60s of silence
-    // before being culled, matching the 90s heartbeat TTL grace.
+    // before being culled, well under the 180s heartbeat TTL grace.
     pingInterval: 25000,
     pingTimeout: 60000,
   });

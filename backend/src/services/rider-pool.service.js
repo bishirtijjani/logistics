@@ -67,23 +67,6 @@ const removeRiderFromPool = async (userId) => {
 };
 
 /**
- * Remove a rider from the dispatch geo index only, LEAVING the heartbeat to
- * lapse on its own TTL. Used on an *involuntary* socket disconnect: we must
- * stop offering jobs to an unreachable socket right away (geo), but the
- * heartbeat is kept as a grace window so a transient blip + reconnect (common
- * on the web PWA when the tab backgrounds) doesn't instantly evict the rider
- * and trip the reconcile sweep into flipping their DB flag OFFLINE. A truly
- * gone rider's heartbeat simply expires (<=90s) and the sweep settles them.
- */
-const removeRiderFromGeo = async (userId) => {
-  try {
-    await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, userId);
-  } catch (err) {
-    logger.warn('removeRiderFromGeo failed', { userId, error: err.message });
-  }
-};
-
-/**
  * True when the rider still has a live heartbeat (i.e. is genuinely reachable).
  */
 const isRiderHeartbeatLive = async (userId) => {
@@ -99,6 +82,5 @@ module.exports = {
   markRiderAvailable,
   touchRiderHeartbeat,
   removeRiderFromPool,
-  removeRiderFromGeo,
   isRiderHeartbeatLive,
 };

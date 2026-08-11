@@ -21,7 +21,6 @@ const {
   markRiderAvailable,
   touchRiderHeartbeat,
   removeRiderFromPool,
-  removeRiderFromGeo,
 } = require('../../services/rider-pool.service');
 
 // Phase 4 - push ETA at most every 30s and only when the rider has moved
@@ -36,7 +35,7 @@ const ETA_MIN_DISTANCE_M = 100;
 // GPS pings. A stationary idle rider - very common on the web build, where the
 // browser Geolocation API often fires once and then goes quiet - therefore
 // stays in the dispatch pool for as long as their app is open. 30s is well
-// under the 90s heartbeat TTL, so a single missed tick can never evict them.
+// under the 180s heartbeat TTL, so a single missed tick can never evict them.
 const PRESENCE_REFRESH_MS = 30 * 1000;
 
 const haversineMeters = (lat1, lng1, lat2, lng2) => {
@@ -258,20 +257,23 @@ const registerTrackingHandlers = (io, socket) => {
     }
   });
 
-  // On an *involuntary* disconnect, drop the rider from the GEO index right
-  // away (an unreachable socket must not be offered jobs) but LEAVE the
-  // heartbeat to lapse on its own TTL. That heartbeat is the grace window: a
-  // transient blip + auto-reconnect (routine on the web PWA when the tab
-  // backgrounds) then re-seeds the pool from the still-ONLINE DB flag without
-  // the reconcile sweep ever flipping the rider OFFLINE. A rider who is truly
-  // gone lets the heartbeat expire (<=90s) and the sweep settles them. An
-  // explicit go-offline is a different path (AVAILABILITY_CHANGED below) and
-  // still clears everything via removeRiderFromPool. The JSON RIDER_LOCATION
-  // key expires on its own TTL.
+  // On an *involuntary* disconnect, LEAVE the rider in the GEO index and let
+  // the heartbeat lapse on its own TTL. Mobile OSes suspend a backgrounded
+  // app's socket immediately - there is no graceful window to react in - so
+  // the heartbeat TTL is the only real grace period a minimized app gets. A
+  // transient blip / brief minimize + reconnect then re-seeds live presence
+  // from the still-ONLINE DB flag without ever being evicted; a rider offered
+  // a job while genuinely unreachable simply won't respond within that ring's
+  // timeout and the matcher moves on to the next candidate (existing
+  // expanding-ring reassign flow), same as any offer race. A rider who is
+  // truly gone lets the heartbeat expire and the reconcile sweep (which also
+  // prunes stale geo members) settles them. An explicit go-offline is a
+  // different path (AVAILABILITY_CHANGED below) and still clears everything
+  // immediately via removeRiderFromPool. The JSON RIDER_LOCATION key expires
+  // on its own TTL.
   socket.on('disconnect', async () => {
     clearInterval(presenceTimer);
     socket._online = false;
-    await removeRiderFromGeo(riderUserId);
   });
 
   // Explicit availability:changed channel (client -> server). The rider app
