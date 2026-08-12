@@ -67,7 +67,7 @@ const initFirebase = () => {
  * shape to classify the result. Expo also supports batches; we keep this
  * single-send path because callers are per-user anyway.
  */
-const sendViaExpo = async (token, { title, body, data }) => {
+const sendViaExpo = async (token, { title, body, data, channelId = 'default' }) => {
   try {
     const res = await axios.post(
       'https://exp.host/--/api/v2/push/send',
@@ -78,7 +78,7 @@ const sendViaExpo = async (token, { title, body, data }) => {
         data,
         sound: 'default',
         priority: 'high',
-        channelId: 'default',
+        channelId,
       }],
       {
         timeout: 10_000,
@@ -118,7 +118,7 @@ const sendViaExpo = async (token, { title, body, data }) => {
  * token invalidation (registration-token-not-registered, invalid-argument
  * on token, etc.).
  */
-const sendViaFcm = async (token, { title, body, data }) => {
+const sendViaFcm = async (token, { title, body, data, channelId = 'default' }) => {
   if (!initFirebase()) {
     logger.info('[DEV] FCM push not sent', { title });
     return { success: false, code: 'RETRYABLE', detail: 'FCM not configured' };
@@ -133,7 +133,7 @@ const sendViaFcm = async (token, { title, body, data }) => {
       ),
       android: {
         priority: 'high',
-        notification: { channelId: 'default', sound: 'default' },
+        notification: { channelId, sound: 'default' },
       },
       apns: {
         payload: { aps: { sound: 'default', badge: 1 } },

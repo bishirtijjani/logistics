@@ -14,10 +14,11 @@ const jwt = require('jsonwebtoken');
 const { config } = require('../config');
 const { logger } = require('../utils/logger');
 const { prisma } = require('../config/database');
-const { CONNECTION, getUserRoom, getRiderPoolRoom, getMerchantsBroadcastRoom, getAdminRoom } = require('./events');
+const { CONNECTION, RIDER, getUserRoom, getRiderPoolRoom, getMerchantsBroadcastRoom, getAdminRoom } = require('./events');
 const { registerTrackingHandlers } = require('./handlers/tracking.handler');
 const { registerRequestHandlers } = require('./handlers/request.handler');
 const notifyService = require('../services/notify.service');
+const offerCacheService = require('../services/offerCache.service');
 
 // ============================================================
 // Socket-auth user-status cache
@@ -173,6 +174,19 @@ const initializeSocket = (httpServer) => {
     // signup must not enter the job-broadcast pool.
     if (role === 'RIDER' && socket.user.isApprovedRider) {
       socket.join(getRiderPoolRoom());
+
+      // Resync: replay any offer(s) broadcast while this rider wasn't
+      // connected (backgrounded, phone locked, socket mid-reconnect) so
+      // opening/foregrounding the app shows the real countdown - not a
+      // fresh 60s, and not nothing. See offerCache.service.js.
+      offerCacheService
+        .getLivePendingOffers(id)
+        .then((offers) => {
+          for (const offer of offers) {
+            socket.emit(RIDER.NEW_JOB, offer.payload);
+          }
+        })
+        .catch((err) => logger.warn('Offer resync failed', { userId: id, error: err.message }));
     }
 
     // Register event handlers

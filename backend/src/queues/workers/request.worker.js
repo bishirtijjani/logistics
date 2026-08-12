@@ -17,6 +17,7 @@ const { RIDER, REQUEST, getUserRoom, getRequestRoom } = require('../../sockets/e
 const { emitCompleted, emitCancelled } = require('../../sockets/handlers/request.handler');
 const { REQUEST_JOBS } = require('../jobs');
 const notifyService = require('../../services/notify.service');
+const offerCacheService = require('../../services/offerCache.service');
 const emailService = require('../../services/email.service');
 const { getSetting } = require('../../services/settings.service');
 const { REDIS_KEYS, RIDER_MATCHING } = require('../../utils/constants');
@@ -50,6 +51,12 @@ const notifyJobTaken = async (io, requestId, takenByRiderId = null) => {
   try {
     const ids = await redis.smembers(offeredKey(requestId));
     for (const riderId of ids) {
+      // Terminal for this pairing either way (claimed by someone else, or
+      // nobody claimed it) - stop resyncing this offer on the rider's next
+      // (re)connect regardless of who, if anyone, won it.
+      offerCacheService
+        .clearPendingOffer(riderId, requestId)
+        .catch((err) => logger.warn('clearPendingOffer failed', { requestId, riderId, error: err.message }));
       if (riderId === takenByRiderId) continue;
       io.to(getUserRoom(riderId)).emit(RIDER.JOB_TAKEN, { requestId });
     }
@@ -232,8 +239,10 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
     candidates: candidates.length,
   });
 
+  const offeredAt = Date.now();
+
   for (const c of candidates) {
-    io.to(getUserRoom(c.riderId)).emit(RIDER.NEW_JOB, {
+    const offerPayload = {
       requestId,
       pickupLat,
       pickupLng,
@@ -242,6 +251,11 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
       riderDistanceKm: Math.round(c.distanceKm * 10) / 10,
       ringRadiusKm: radiusKm,
       expiresInSeconds: ringTimeoutSec,
+      // Client (offersSlice.offerEnqueued) uses these two to compute the
+      // *real* remaining time - critical for the resync-on-reconnect path
+      // below, where this exact payload gets replayed later than `offeredAt`.
+      offeredAt,
+      timeout: ringTimeoutSec,
       // Offer enrichment (see select above). For CASH the rider must collect
       // `collectAmount` in cash from the customer on handover.
       type: updated.type,
@@ -249,7 +263,33 @@ const emitRing = async (io, { request, attempt, ringList, ringTimeoutSec, maxPer
       collectAmount: updated.paymentMethod === 'CASH' ? Number(updated.total) : 0,
       pickupAddress: updated.pickupAddress,
       dropoffAddress: updated.dropoffAddress,
-    });
+    };
+
+    io.to(getUserRoom(c.riderId)).emit(RIDER.NEW_JOB, offerPayload);
+
+    // Mirror the offer so a rider who wasn't connected at this instant (app
+    // backgrounded/killed, socket mid-reconnect) still sees it - and the
+    // correct remaining time, not a fresh 60s - the moment they reconnect.
+    // See offerCache.service.js.
+    offerCacheService
+      .savePendingOffer(c.riderId, { requestId, offeredAt, timeout: ringTimeoutSec, payload: offerPayload })
+      .catch((err) => logger.warn('savePendingOffer failed', { requestId, riderId: c.riderId, error: err.message }));
+
+    // Wake the rider even if the app isn't foregrounded/connected right now.
+    // Routes through the existing 'rider-offer' Android channel (max
+    // importance, bypasses DND) that already ships in the rider app but was
+    // never actually targeted by the backend.
+    notifyService
+      .pushAndSocket(c.riderId, {
+        type: 'RIDER_OFFER',
+        title: 'New delivery job nearby',
+        body: `₦${Number(request.fare || 0).toLocaleString('en-NG')} · ${Math.round(c.distanceKm * 10) / 10}km away`,
+        data: { route: `/offer/${requestId}`, kind: 'RIDER_OFFER' },
+        requestId,
+        channelId: 'rider-offer',
+        silent: false,
+      })
+      .catch((err) => logger.warn('Rider offer push failed', { requestId, riderId: c.riderId, error: err.message }));
   }
 
   if (candidates.length > 0) {

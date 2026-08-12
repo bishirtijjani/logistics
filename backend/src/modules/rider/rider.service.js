@@ -10,6 +10,7 @@ const { REDIS_KEYS, REDIS_TTL } = require('../../utils/constants');
 const { getIO } = require('../../sockets');
 const { emitRiderAssigned, emitStatusChanged } = require('../../sockets/handlers/request.handler');
 const notifyService = require('../../services/notify.service');
+const offerCacheService = require('../../services/offerCache.service');
 const {
   markRiderAvailable,
   touchRiderHeartbeat,
@@ -339,6 +340,13 @@ const acceptJob = async (userId, requestId) => {
   });
 
   logger.info('Rider accepted request', { riderId: rider.id, requestId });
+
+  // Stop resyncing this offer to the accepting rider on their next
+  // (re)connect - they've already got the job, replaying `rider:job:new`
+  // would just show them a stale offer for a request they now own.
+  offerCacheService
+    .clearPendingOffer(userId, requestId)
+    .catch((err) => logger.warn('clearPendingOffer (accept) failed', { requestId, userId, error: err.message }));
 
   // Cash-on-delivery: make the collect-cash obligation explicit to the rider the
   // moment they take the job, including the exact amount and a reminder that the

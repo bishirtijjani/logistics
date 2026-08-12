@@ -21,6 +21,7 @@ const REDIS_KEYS = {
   REQUEST_ROUTE: "request:route:", // request:route:{requestId} - 30s cache for /route
   REQUEST_ETA_LAST: "request:eta:last:", // last pushed ETA + position {requestId}
   RIDER_OFFER_LOCK: "rider:offer:", // rider:offer:{requestId} - set during a ring round
+  RIDER_OFFER_PENDING: "offer:pending:", // offer:pending:{riderUserId} - live offers to resync on (re)connect
   // Phase 7 - utility/VTU
   VTU_DATA_PLANS: "vtu:data-plans:", // vtu:data-plans:{networkId|all} - 1h cache
   VTU_DISCOS: "vtu:discos", // 1h cache of DISCO list

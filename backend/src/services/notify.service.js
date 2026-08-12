@@ -45,11 +45,14 @@ const getIO = () => _io;
  * @param {string} [payload.transactionId]
  * @param {boolean} [payload.silent=false] If true, skips push but still persists
  *                                         + emits socket (for low-priority updates).
+ * @param {string} [payload.channelId='default'] Android notification channel
+ *                                         to target (e.g. 'rider-offer' for
+ *                                         max-priority, DND-bypassing alerts).
  */
 const PUSH_ELIGIBLE_STATUSES = new Set(['ACTIVE', 'PENDING']);
 
 const pushAndSocket = async (userId, payload) => {
-  const { type, title, body, data = {}, requestId, transactionId, silent = false } = payload;
+  const { type, title, body, data = {}, requestId, transactionId, silent = false, channelId = 'default' } = payload;
 
   if (!userId || !type || !title || !body) {
     logger.warn('pushAndSocket: missing required field', { userId, type, hasTitle: !!title, hasBody: !!body });
@@ -167,6 +170,7 @@ const pushAndSocket = async (userId, payload) => {
         .sendToDevice(fcmToken, {
           title,
           body,
+          channelId,
           data: {
             type,
             route: data.route || '',
