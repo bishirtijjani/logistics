@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { API_URL } from '../lib/api'
+import api from '../lib/api'
 import { DollarSign, ShoppingCart, Users, MapPin, TrendingUp, Clock, Activity, RefreshCw, Store } from 'lucide-react'
 
 export default function AnalyticsPage() {
@@ -17,30 +17,19 @@ export default function AnalyticsPage() {
   const fetchAnalytics = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const [revenue, orders, customers, geographic, realtime] = await Promise.all([
-        fetch(`${API_URL}/admin/analytics/revenue?range=${dateRange}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json()),
-        fetch(`${API_URL}/admin/analytics/orders?range=${dateRange}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json()),
-        fetch(`${API_URL}/admin/analytics/customers?range=${dateRange}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json()),
-        fetch(`${API_URL}/admin/analytics/geographic?range=${dateRange}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json()),
-        fetch(`${API_URL}/admin/analytics/realtime`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json())
+      const [revenueRes, ordersRes, customersRes, geographicRes, realtimeRes] = await Promise.all([
+        api.get(`/admin/analytics/revenue?range=${dateRange}`),
+        api.get(`/admin/analytics/orders?range=${dateRange}`),
+        api.get(`/admin/analytics/customers?range=${dateRange}`),
+        api.get(`/admin/analytics/geographic?range=${dateRange}`),
+        api.get(`/admin/analytics/realtime`)
       ])
 
-      if (revenue.success) setRevenueData(revenue.data)
-      if (orders.success) setOrderData(orders.data)
-      if (customers.success) setCustomerData(customers.data)
-      if (geographic.success) setGeographicData(geographic.data)
-      if (realtime.success) setRealtimeData(realtime.data)
+      if (revenueRes.data?.data) setRevenueData(revenueRes.data.data)
+      if (ordersRes.data?.data) setOrderData(ordersRes.data.data)
+      if (customersRes.data?.data) setCustomerData(customersRes.data.data)
+      if (geographicRes.data?.data) setGeographicData(geographicRes.data.data)
+      if (realtimeRes.data?.data) setRealtimeData(realtimeRes.data.data)
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
     } finally {
