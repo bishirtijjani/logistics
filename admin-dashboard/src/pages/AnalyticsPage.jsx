@@ -122,7 +122,7 @@ export default function AnalyticsPage() {
 
   const fetchAnalytics = async () => {
     try {
-      const [revenueRes, ordersRes, customersRes, geographicRes, realtimeRes] = await Promise.all([
+      const results = await Promise.allSettled([
         api.get(`/admin/analytics/revenue${queryParams}`),
         api.get(`/admin/analytics/orders${queryParams}`),
         api.get(`/admin/analytics/customers${queryParams}`),
@@ -130,11 +130,23 @@ export default function AnalyticsPage() {
         api.get(`/admin/analytics/realtime`)
       ])
 
-      if (revenueRes.data?.data) setRevenueData(revenueRes.data.data)
-      if (ordersRes.data?.data) setOrderData(ordersRes.data.data)
-      if (customersRes.data?.data) setCustomerData(customersRes.data.data)
-      if (geographicRes.data?.data) setGeographicData(geographicRes.data.data)
-      if (realtimeRes.data?.data) setRealtimeData(realtimeRes.data.data)
+      const [revenueRes, ordersRes, customersRes, geographicRes, realtimeRes] = results
+
+      if (revenueRes.status === 'fulfilled' && revenueRes.value.data?.data) {
+        setRevenueData(revenueRes.value.data.data)
+      }
+      if (ordersRes.status === 'fulfilled' && ordersRes.value.data?.data) {
+        setOrderData(ordersRes.value.data.data)
+      }
+      if (customersRes.status === 'fulfilled' && customersRes.value.data?.data) {
+        setCustomerData(customersRes.value.data.data)
+      }
+      if (geographicRes.status === 'fulfilled' && geographicRes.value.data?.data) {
+        setGeographicData(geographicRes.value.data.data)
+      }
+      if (realtimeRes.status === 'fulfilled' && realtimeRes.value.data?.data) {
+        setRealtimeData(realtimeRes.value.data.data)
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
     } finally {

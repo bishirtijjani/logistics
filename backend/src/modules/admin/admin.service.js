@@ -2917,8 +2917,8 @@ const getGeographicAnalytics = async ({ range, startDate, endDate }) => {
         m.name,
         COALESCE(c.name, 'Store') as "type",
         m.address,
-        m.latitude::float as lat,
-        m.longitude::float as lng,
+        m.lat::float as lat,
+        m.lng::float as lng,
         COUNT(r.id)::int as "orderCount",
         COALESCE(SUM(r.subtotal), 0)::float as "totalRevenue"
       FROM "merchants" m
@@ -2927,7 +2927,7 @@ const getGeographicAnalytics = async ({ range, startDate, endDate }) => {
       WHERE m.status = 'APPROVED'
         ${mrFilter}
         ${meFilter}
-      GROUP BY m.id, c.name, m.name, m.address, m.latitude, m.longitude
+      GROUP BY m.id, c.name, m.name, m.address, m.lat, m.lng
       ORDER BY "totalRevenue" DESC
       LIMIT 20
     `,
