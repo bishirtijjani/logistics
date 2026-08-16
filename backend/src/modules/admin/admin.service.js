@@ -893,7 +893,12 @@ const getDashboardStats = async () => {
     resolveBilalsadaBalance(),
     prisma.merchant.findMany({
       where: { status: 'PENDING_APPROVAL' },
-      select: { id: true, name: true, type: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        category: { select: { name: true } },
+        createdAt: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
@@ -926,7 +931,12 @@ const getDashboardStats = async () => {
     },
     totalUserWalletBalance,
     bilalsadaWalletBalance,
-    pendingMerchants,
+    pendingMerchants: pendingMerchants.map(m => ({
+      id: m.id,
+      name: m.name,
+      type: m.category?.name || 'Store',
+      createdAt: m.createdAt,
+    })),
     pendingRiders,
     failedTransactions: failedTransactions.map(t => ({ ...t, amount: Number(t.amount) })),
   };
@@ -2784,16 +2794,17 @@ const getGeographicAnalytics = async ({ startDate, endDate }) => {
     `,
     prisma.$queryRaw`
       SELECT
-        m.type,
+        COALESCE(c.name, 'Store') as "type",
         m.name,
         COUNT(r.id)::int as "orderCount",
         COALESCE(SUM(r.subtotal), 0)::float as "totalRevenue"
       FROM "merchants" m
+      LEFT JOIN "merchant_categories" c ON m."categoryId" = c.id
       LEFT JOIN "requests" r ON m.id = r."merchantId"
       WHERE m.status = 'APPROVED'
         ${mrFilter}
         ${meFilter}
-      GROUP BY m.id, m.type, m.name
+      GROUP BY m.id, c.name, m.name
       ORDER BY "totalRevenue" DESC
       LIMIT 20
     `,
@@ -2820,7 +2831,7 @@ const getRealtimeMetrics = async () => {
       include: { customer: true, merchant: true },
     }),
     {
-      activeRiders: await prisma.rider.count({ where: { status: 'APPROVED', isAvailable: true } }),
+      activeRiders: await prisma.rider.count({ where: { status: 'APPROVED', availability: 'ONLINE' } }),
       activeMerchants: await prisma.merchant.count({ where: { status: 'APPROVED', isOpen: true } }),
     },
   ]);
