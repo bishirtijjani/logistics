@@ -2615,21 +2615,88 @@ const getAuditLogs = async ({ page = 1, limit = 20, action, entityType, startDat
 // ============================================================
 
 /**
- * Get platform revenue analytics
+ * Normalizes time filters into start and end Date objects.
+ * Supports preset range identifiers ('24h', '7d', '30d', '90d', '1y', 'all')
+ * as well as custom startDate and endDate parameters.
  */
-const getRevenueAnalytics = async ({ startDate, endDate, groupBy = 'day' }) => {
-  const where = {
-    status: 'COMPLETED',
-    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
-    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+const resolveDateRange = ({ range, startDate, endDate } = {}) => {
+  let start = startDate ? new Date(startDate) : null;
+  let end = endDate ? new Date(endDate) : null;
+
+  if (range && !startDate && !endDate) {
+    const now = new Date();
+    end = new Date(now);
+    if (range === '24h' || range === 'today' || range === '1d') {
+      start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    } else if (range === '7d') {
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (range === '30d') {
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (range === '90d') {
+      start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    } else if (range === '1y' || range === '365d') {
+      start = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    } else if (range === 'all') {
+      start = null;
+      end = null;
+    }
+  }
+
+  if (start && isNaN(start.getTime())) start = null;
+  if (end && isNaN(end.getTime())) end = null;
+
+  if (endDate && typeof endDate === 'string' && endDate.length === 10 && end) {
+    end.setHours(23, 59, 59, 999);
+  }
+
+  return { startDate: start, endDate: end };
+};
+
+/**
+ * Get platform revenue analytics.
+ * Accurately aggregates platform commissions, Gross Merchandise Value (GMV),
+ * delivery fees, merchant earnings, top merchants, and day-by-day trends.
+ */
+const getRevenueAnalytics = async ({ range, startDate, endDate, groupBy = 'day' }) => {
+  const { startDate: start, endDate: end } = resolveDateRange({ range, startDate, endDate });
+
+  const rWhere = {
+    status: { in: ['DELIVERED', 'SETTLED'] },
+    ...(start && { createdAt: { gte: start } }),
+    ...(end && { createdAt: { lte: end } }),
   };
 
-  const sFilter = startDate ? Prisma.sql`AND "createdAt" >= ${new Date(startDate)}` : Prisma.empty;
-  const eFilter = endDate ? Prisma.sql`AND "createdAt" <= ${new Date(endDate)}` : Prisma.empty;
+  const tWhere = {
+    status: 'COMPLETED',
+    type: { in: ['PLATFORM_EARNING', 'CASH_COMMISSION'] },
+    ...(start && { createdAt: { gte: start } }),
+    ...(end && { createdAt: { lte: end } }),
+  };
 
-  const [totalRevenue, topMerchants, revenueTrend] = await Promise.all([
+  const sFilter = start ? Prisma.sql`AND r."createdAt" >= ${start}` : Prisma.empty;
+  const eFilter = end ? Prisma.sql`AND r."createdAt" <= ${end}` : Prisma.empty;
+
+  const [
+    orderAggregates,
+    platformTransactionsAgg,
+    topMerchants,
+    revenueTrend,
+  ] = await Promise.all([
+    prisma.request.aggregate({
+      where: rWhere,
+      _sum: {
+        total: true,
+        subtotal: true,
+        deliveryFee: true,
+        platformFee: true,
+        platformEarning: true,
+        merchantEarning: true,
+        riderEarning: true,
+      },
+      _count: true,
+    }),
     prisma.transaction.aggregate({
-      where,
+      where: tWhere,
       _sum: { amount: true },
       _count: true,
     }),
@@ -2637,56 +2704,89 @@ const getRevenueAnalytics = async ({ startDate, endDate, groupBy = 'day' }) => {
       SELECT
         m.id as "merchantId",
         m.name,
+        COALESCE(c.name, 'Store') as "category",
         COUNT(r.id)::int as "orderCount",
-        COALESCE(SUM(r.subtotal), 0)::float as "totalRevenue"
+        COALESCE(SUM(r.subtotal), 0)::float as "totalRevenue",
+        COALESCE(SUM(r."platformEarning"), 0)::float as "commissionEarned"
       FROM "merchants" m
+      LEFT JOIN "merchant_categories" c ON m."categoryId" = c.id
       JOIN "requests" r ON m.id = r."merchantId"
       WHERE r.status IN ('DELIVERED', 'SETTLED')
         ${sFilter}
         ${eFilter}
-      GROUP BY m.id, m.name
+      GROUP BY m.id, m.name, c.name
       ORDER BY "totalRevenue" DESC
       LIMIT 10
     `,
     prisma.$queryRaw`
       SELECT
-        DATE("createdAt") as date,
-        COALESCE(SUM(amount), 0)::float as revenue,
-        COUNT(*)::int as transactions
-      FROM "transactions"
-      WHERE status = 'COMPLETED'
+        TO_CHAR(r."createdAt", 'YYYY-MM-DD') as date,
+        COALESCE(SUM(r.total), 0)::float as "grossVolume",
+        COALESCE(SUM(r."platformEarning"), 0)::float as "platformRevenue",
+        COALESCE(SUM(r."deliveryFee"), 0)::float as "deliveryFees",
+        COUNT(r.id)::int as orders
+      FROM "requests" r
+      WHERE r.status IN ('DELIVERED', 'SETTLED')
         ${sFilter}
         ${eFilter}
-      GROUP BY DATE("createdAt")
-      ORDER BY date DESC
-      LIMIT 30
+      GROUP BY TO_CHAR(r."createdAt", 'YYYY-MM-DD')
+      ORDER BY date ASC
+      LIMIT 90
     `,
   ]);
 
+  const platformEarningFromOrders = Number(orderAggregates._sum.platformEarning || orderAggregates._sum.platformFee || 0);
+  const platformEarningFromTx = Number(platformTransactionsAgg._sum.amount || 0);
+  const totalRevenue = platformEarningFromTx > 0 ? platformEarningFromTx : platformEarningFromOrders;
+  const grossVolume = Number(orderAggregates._sum.total || 0);
+  const deliveryFees = Number(orderAggregates._sum.deliveryFee || 0);
+  const merchantEarnings = Number(orderAggregates._sum.merchantEarning || 0);
+  const riderEarnings = Number(orderAggregates._sum.riderEarning || 0);
+  const completedOrders = orderAggregates._count || 0;
+
   return {
-    totalRevenue: Number(totalRevenue._sum.amount || 0),
-    totalTransactions: totalRevenue._count || 0,
+    totalRevenue,
+    grossVolume,
+    grossMerchandiseValue: grossVolume,
+    deliveryFees,
+    merchantEarnings,
+    riderEarnings,
+    completedOrders,
+    totalTransactions: completedOrders,
     topMerchants: topMerchants.map(m => ({
       merchantId: m.merchantId,
       name: m.name,
+      category: m.category,
       _sum: { amount: m.totalRevenue },
       _count: m.orderCount,
+      commissionEarned: m.commissionEarned,
     })),
-    revenueTrend,
+    revenueTrend: revenueTrend.map(row => ({
+      date: row.date,
+      revenue: row.platformRevenue,
+      grossVolume: row.grossVolume,
+      deliveryFees: row.deliveryFees,
+      orders: row.orders,
+    })),
   };
 };
 
 /**
  * Get platform order analytics
  */
-const getOrderAnalytics = async ({ startDate, endDate }) => {
+const getOrderAnalytics = async ({ range, startDate, endDate }) => {
+  const { startDate: start, endDate: end } = resolveDateRange({ range, startDate, endDate });
   const where = {
-    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
-    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+    ...(start && { createdAt: { gte: start } }),
+    ...(end && { createdAt: { lte: end } }),
   };
 
-  const [totalOrders, ordersByStatus, ordersByType, cancellationRate] = await Promise.all([
+  const sFilter = start ? Prisma.sql`AND r."createdAt" >= ${start}` : Prisma.empty;
+  const eFilter = end ? Prisma.sql`AND r."createdAt" <= ${end}` : Prisma.empty;
+
+  const [totalOrders, completedCount, ordersByStatus, ordersByType, cancellationRate, turnaroundRaw] = await Promise.all([
     prisma.request.count({ where }),
+    prisma.request.count({ where: { ...where, status: { in: ['DELIVERED', 'SETTLED'] } } }),
     prisma.request.groupBy({
       by: ['status'],
       where,
@@ -2701,40 +2801,55 @@ const getOrderAnalytics = async ({ startDate, endDate }) => {
       where: { ...where, status: 'CANCELLED' },
       _count: true,
     }),
+    prisma.$queryRaw`
+      SELECT
+        AVG(EXTRACT(EPOCH FROM (r."deliveredAt" - r."createdAt")) / 60)::float as "avgMinutes"
+      FROM "requests" r
+      WHERE r.status IN ('DELIVERED', 'SETTLED')
+        AND r."deliveredAt" IS NOT NULL
+        ${sFilter}
+        ${eFilter}
+    `,
   ]);
+
+  const avgMinutes = turnaroundRaw[0]?.avgMinutes ? Math.round(turnaroundRaw[0].avgMinutes) : 25;
 
   return {
     totalOrders,
+    completedOrders: completedCount,
     ordersByStatus,
     ordersByType,
-    avgDeliveryTime: 25, // Average turnaround in minutes
-    cancellationRate: totalOrders > 0 ? (cancellationRate._count / totalOrders) * 100 : 0,
+    avgDeliveryTime: avgMinutes,
+    cancellationRate: totalOrders > 0 ? Number(((cancellationRate._count / totalOrders) * 100).toFixed(1)) : 0,
+    completionRate: totalOrders > 0 ? Number(((completedCount / totalOrders) * 100).toFixed(1)) : 0,
   };
 };
 
 /**
  * Get platform customer analytics
  */
-const getCustomerAnalytics = async ({ startDate, endDate }) => {
-  const where = {
+const getCustomerAnalytics = async ({ range, startDate, endDate }) => {
+  const { startDate: start, endDate: end } = resolveDateRange({ range, startDate, endDate });
+
+  const sFilter = start ? Prisma.sql`AND r."createdAt" >= ${start}` : Prisma.empty;
+  const eFilter = end ? Prisma.sql`AND r."createdAt" <= ${end}` : Prisma.empty;
+  const uWhere = {
     role: 'CUSTOMER',
     deletedAt: null,
-    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
-    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+    ...(start && { createdAt: { gte: start } }),
+    ...(end && { createdAt: { lte: end } }),
   };
-
-  const sFilter = startDate ? Prisma.sql`AND r."createdAt" >= ${new Date(startDate)}` : Prisma.empty;
-  const eFilter = endDate ? Prisma.sql`AND r."createdAt" <= ${new Date(endDate)}` : Prisma.empty;
 
   const [totalCustomers, newCustomers, topCustomersByOrders, customerRetention] = await Promise.all([
     prisma.user.count({ where: { role: 'CUSTOMER', deletedAt: null } }),
-    prisma.user.count({ where }),
+    prisma.user.count({ where: uWhere }),
     prisma.$queryRaw`
       SELECT 
         u.id,
         u."firstName",
         u."lastName",
         u.email,
+        u.phone,
         COUNT(r.id)::int as "orderCount",
         COALESCE(SUM(r.subtotal + r."deliveryFee"), 0)::float as "totalSpent"
       FROM "users" u
@@ -2742,7 +2857,7 @@ const getCustomerAnalytics = async ({ startDate, endDate }) => {
       WHERE u.role = 'CUSTOMER' AND u."deletedAt" IS NULL
         ${sFilter}
         ${eFilter}
-      GROUP BY u.id, u."firstName", u."lastName", u.email
+      GROUP BY u.id, u."firstName", u."lastName", u.email, u.phone
       ORDER BY "orderCount" DESC
       LIMIT 10
     `,
@@ -2762,6 +2877,7 @@ const getCustomerAnalytics = async ({ startDate, endDate }) => {
       firstName: c.firstName || '',
       lastName: c.lastName || '',
       email: c.email,
+      phone: c.phone,
       orderCount: c.orderCount,
       totalSpent: c.totalSpent,
     })),
@@ -2772,30 +2888,37 @@ const getCustomerAnalytics = async ({ startDate, endDate }) => {
 /**
  * Get geographic analytics
  */
-const getGeographicAnalytics = async ({ startDate, endDate }) => {
-  const sFilter = startDate ? Prisma.sql`AND "createdAt" >= ${new Date(startDate)}` : Prisma.empty;
-  const eFilter = endDate ? Prisma.sql`AND "createdAt" <= ${new Date(endDate)}` : Prisma.empty;
-  const mrFilter = startDate ? Prisma.sql`AND r."createdAt" >= ${new Date(startDate)}` : Prisma.empty;
-  const meFilter = endDate ? Prisma.sql`AND r."createdAt" <= ${new Date(endDate)}` : Prisma.empty;
+const getGeographicAnalytics = async ({ range, startDate, endDate }) => {
+  const { startDate: start, endDate: end } = resolveDateRange({ range, startDate, endDate });
+  const sFilter = start ? Prisma.sql`AND r."createdAt" >= ${start}` : Prisma.empty;
+  const eFilter = end ? Prisma.sql`AND r."createdAt" <= ${end}` : Prisma.empty;
+  const mrFilter = start ? Prisma.sql`AND r."createdAt" >= ${start}` : Prisma.empty;
+  const meFilter = end ? Prisma.sql`AND r."createdAt" <= ${end}` : Prisma.empty;
 
   const [ordersByLocation, merchantDistribution] = await Promise.all([
     prisma.$queryRaw`
       SELECT
-        ROUND("dropoffLat"::numeric, 2) as lat,
-        ROUND("dropoffLng"::numeric, 2) as lng,
-        COUNT(*)::int as "orderCount"
-      FROM "requests"
+        ROUND("dropoffLat"::numeric, 4)::float as lat,
+        ROUND("dropoffLng"::numeric, 4)::float as lng,
+        "dropoffAddress" as address,
+        COUNT(*)::int as "orderCount",
+        COALESCE(SUM(total), 0)::float as "totalAmount"
+      FROM "requests" r
       WHERE "dropoffLat" IS NOT NULL AND "dropoffLng" IS NOT NULL
         ${sFilter}
         ${eFilter}
-      GROUP BY ROUND("dropoffLat"::numeric, 2), ROUND("dropoffLng"::numeric, 2)
+      GROUP BY ROUND("dropoffLat"::numeric, 4), ROUND("dropoffLng"::numeric, 4), "dropoffAddress"
       ORDER BY "orderCount" DESC
-      LIMIT 20
+      LIMIT 30
     `,
     prisma.$queryRaw`
       SELECT
-        COALESCE(c.name, 'Store') as "type",
+        m.id,
         m.name,
+        COALESCE(c.name, 'Store') as "type",
+        m.address,
+        m.latitude::float as lat,
+        m.longitude::float as lng,
         COUNT(r.id)::int as "orderCount",
         COALESCE(SUM(r.subtotal), 0)::float as "totalRevenue"
       FROM "merchants" m
@@ -2804,7 +2927,7 @@ const getGeographicAnalytics = async ({ startDate, endDate }) => {
       WHERE m.status = 'APPROVED'
         ${mrFilter}
         ${meFilter}
-      GROUP BY m.id, c.name, m.name
+      GROUP BY m.id, c.name, m.name, m.address, m.latitude, m.longitude
       ORDER BY "totalRevenue" DESC
       LIMIT 20
     `,
@@ -2822,7 +2945,7 @@ const getGeographicAnalytics = async ({ startDate, endDate }) => {
 const getRealtimeMetrics = async () => {
   const [activeRequests, recentOrders, systemHealth] = await Promise.all([
     prisma.request.count({
-      where: { status: { in: ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'RIDER_EN_ROUTE', 'IN_TRANSIT'] } },
+      where: { status: { in: ['REQUESTED', 'ACCEPTED', 'PROCESSING', 'READY_FOR_PICKUP', 'RIDER_ASSIGNED', 'RIDER_EN_ROUTE', 'PICKED_UP', 'IN_TRANSIT'] } },
     }),
     prisma.request.findMany({
       where: { createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) } },
