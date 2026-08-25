@@ -95,9 +95,13 @@ jobs:
         working-directory: mobile/${{ matrix.app }}-app
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
-      - name: Generate native android project (expo prebuild)
+      # Persist the debug keystore across runs so each new build installs as an
+      # update over the previous one. Restore BEFORE prebuild: expo prebuild
+      # auto-generates android/app/debug.keystore only when it's missing, so a
+      # cached one is kept and reused (and no keytool step to conflict with).
+      - name: Prepare android dir for keystore cache
         working-directory: mobile/${{ matrix.app }}-app
-        run: npx expo prebuild --platform android --no-install
+        run: mkdir -p android/app
 
       - name: Restore cached signing keystore
         id: keystore-cache
@@ -106,15 +110,9 @@ jobs:
           path: mobile/${{ matrix.app }}-app/android/app/debug.keystore
           key: ${{ matrix.app }}-android-debug-keystore
 
-      - name: Generate signing keystore (first run only)
+      - name: Generate native android project (expo prebuild)
         working-directory: mobile/${{ matrix.app }}-app
-        if: steps.keystore-cache.outputs.cache-hit != 'true'
-        run: |
-          keytool -genkeypair -v \
-            -keystore android/app/debug.keystore \
-            -alias androiddebugkey -storepass android -keypass android \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Android Debug,O=Android,C=US"
+        run: npx expo prebuild --platform android --no-install
 
       - name: Build release APK
         working-directory: mobile/${{ matrix.app }}-app/android
