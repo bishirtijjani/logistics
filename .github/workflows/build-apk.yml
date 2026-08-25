@@ -1,4 +1,4 @@
-name: Build Android APKs (EAS)
+name: Build Android APKs (GitHub runners)
 
 on:
   workflow_dispatch:
@@ -17,10 +17,15 @@ on:
       - "mobile/rider-app/**"
       - "mobile/customer-app/**"
 
-# Avoid stacking EAS builds when pushes land back-to-back.
+# Avoid stacking builds when pushes land back-to-back.
 concurrency:
   group: apk-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.workers.max=4"
+  CI: "1"
+  EXPO_NO_TELEMETRY: "1"
 
 jobs:
   changes:
@@ -67,43 +72,57 @@ jobs:
     needs: changes
     name: "APK ${{ matrix.app }}"
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         app: ${{ fromJSON(needs.changes.outputs.list) }}
-    env:
-      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
-      # EAS builds install dependencies on EAS's own servers; the runner only
-      # needs the CLI to trigger + download. Each app has its own EAS project.
-      - name: Build preview APK (rider)
-        if: matrix.app == 'rider'
-        working-directory: mobile/rider-app
-        run: eas build --platform android --profile preview --non-interactive --wait
-      - name: Build preview APK (customer)
-        if: matrix.app == 'customer'
-        working-directory: mobile/customer-app
-        run: eas build --platform android --profile preview --non-interactive --wait
-      - name: Download APK
-        working-directory: ${{ matrix.app == 'rider' && 'mobile/rider-app' || 'mobile/customer-app' }}
+          cache: npm
+          cache-dependency-path: mobile/${{ matrix.app }}-app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install app dependencies
+        working-directory: mobile/${{ matrix.app }}-app
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Generate native android project (expo prebuild)
+        working-directory: mobile/${{ matrix.app }}-app
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Restore cached signing keystore
+        id: keystore-cache
+        uses: actions/cache@v4
+        with:
+          path: mobile/${{ matrix.app }}-app/android/app/debug.keystore
+          key: ${{ matrix.app }}-android-debug-keystore
+
+      - name: Generate signing keystore (first run only)
+        working-directory: mobile/${{ matrix.app }}-app
+        if: steps.keystore-cache.outputs.cache-hit != 'true'
         run: |
-          mkdir -p artifacts
-          BUILD_ID=$(eas build:list --platform android --limit 1 --json \
-            | python3 -c "import sys,json;d=json.load(sys.stdin);print(d[0]['id'] if d else '')")
-          if [ -z "$BUILD_ID" ]; then
-            echo "No build found to download" >&2
-            exit 1
-          fi
-          eas build:download "$BUILD_ID" --platform android --output-dir artifacts
+          keytool -genkeypair -v \
+            -keystore android/app/debug.keystore \
+            -alias androiddebugkey -storepass android -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Build release APK
+        working-directory: mobile/${{ matrix.app }}-app/android
+        run: ./gradlew assembleRelease --no-daemon
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: iprime-${{ matrix.app }}-preview
-          path: ${{ matrix.app == 'rider' && 'mobile/rider-app/artifacts' || 'mobile/customer-app/artifacts' }}
+          path: mobile/${{ matrix.app }}-app/android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
