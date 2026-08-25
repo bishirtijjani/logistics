@@ -175,6 +175,7 @@ export default function AppNavigator() {
   const { isAuthenticated, isHydrating, user } = useSelector((state) => state.auth);
   const riderStatus = useSelector((s) => s.rider?.rider?.status);
   const riderResolved = useSelector((s) => s.rider?.hasLoadedOnce);
+  const riderAvailability = useSelector((s) => s.rider?.availability);
   const { tokens, isDark } = useTheme();
   const navigationTheme = useMemo(
     () => buildNavigationTheme(tokens, isDark),
@@ -292,13 +293,18 @@ export default function AppNavigator() {
   }, [isAuthenticated, bioGate, dispatch]);
 
   // Socket lifecycle on AppState background/foreground.
-  // Phase 2: also reconcile rider availability with the server on foreground
-  // so the presence cache (which TTLs out after 30 s of no location fix)
-  // doesn't drift if the rider was away briefly.
+  // Phase 2: reconcile rider availability with the server on foreground so the
+  // presence cache doesn't drift if the rider was away briefly.
+  // Phase 9: while the rider is ONLINE/ON_DELIVERY we KEEP the socket alive in
+  // the background - the background location task + foreground service keep the
+  // process alive (Android) so job offers keep arriving. Only an OFFLINE rider
+  // (or unauthenticated) gets the battery-saving 60s socket disconnect.
   useEffect(() => {
+    const riderIsOnline = riderAvailability === "ONLINE" || riderAvailability === "ON_DELIVERY";
     let backgroundTimer = null;
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "background") {
+        if (riderIsOnline) return;
         backgroundTimer = setTimeout(() => {
           socketService.disconnect();
         }, 60_000);
@@ -321,7 +327,7 @@ export default function AppNavigator() {
       if (backgroundTimer) clearTimeout(backgroundTimer);
       sub.remove();
     };
-  }, [isAuthenticated, bioGate, dispatch]);
+  }, [isAuthenticated, bioGate, riderAvailability, dispatch]);
 
   // Presence keep-alive floor. The server re-stamps the 90s heartbeat every
   // 30s ONLY while the socket is healthy; a flaky or briefly-frozen web-PWA

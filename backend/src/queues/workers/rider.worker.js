@@ -137,27 +137,30 @@ const checkDocExpiry = async () => {
 };
 
 /**
- * Reconcile DB rider availability with the live dispatch geo index.
+ * Reconcile the dispatch geo index with rider heartbeats.
  *
- * The matcher only offers jobs to riders present in `riders:geo`, whose
- * membership is paired with a short-lived heartbeat (refreshed on every GPS
- * ping / on going ONLINE). The DB `Rider.availability` flag, by contrast, is
- * sticky: closing the app never clears it, so it drifts to "7 riders ONLINE"
- * while the geo index holds nobody.
+ * Rider INTENT (`Rider.availability`) is authoritative and is NEVER modified
+ * here. A rider is only ever taken offline by their own explicit go-offline,
+ * or by an admin kill-switch. Backgrounding the app, losing the network, or
+ * the OS suspending the process must never flip the rider offline - otherwise
+ * they silently drop out and have to re-tap "Go online" (the recurring rider
+ * complaint this worker used to cause).
  *
- * This sweep uses the heartbeat as the source of truth for reachability and
- * repairs both sides:
- *   1. Prune geo members whose heartbeat has lapsed (covers ungraceful
- *      disconnects where the socket 'disconnect' cleanup never ran).
- *   2. Flip ONLINE riders with no live heartbeat back to OFFLINE so the DB
- *      count reflects who can actually receive a job. ON_DELIVERY riders are
- *      left untouched - they're mid-trip and not in the offer pool anyway.
+ * The heartbeat remains the source of truth for REACHABILITY - "can we offer
+ * this rider a job RIGHT NOW?". The matcher only offers jobs to riders present
+ * in `riders:geo`, whose membership is paired with a short-lived heartbeat
+ * (refreshed on every GPS ping / on going ONLINE). This sweep's only job is to
+ * prune geo members whose heartbeat has lapsed (backgrounded / killed /
+ * offline device), so a dead phone is never offered a job that then times out.
+ *
+ * Because the DB flag is left intact, the rider is re-seeded into the pool
+ * automatically the moment their app reconnects (the tracking handler seeds
+ * the geo index straight from `Rider.availability` on socket connect) - no
+ * re-tapping "Go online", ever.
  */
 const reconcileAvailability = async () => {
   let prunedGeo = 0;
-  let flippedOffline = 0;
 
-  // 1. Prune stale geo members.
   let members = [];
   try {
     members = await redis.zrange(REDIS_KEYS.RIDER_GEO_INDEX, 0, -1);
@@ -176,33 +179,13 @@ const reconcileAvailability = async () => {
     }
   }
 
-  // 2. Correct sticky DB ONLINE flags.
-  const online = await prisma.rider.findMany({
-    where: { availability: 'ONLINE' },
-    select: { id: true, userId: true },
-  });
-  for (const r of online) {
-    try {
-      const live = await redis.exists(`${REDIS_KEYS.RIDER_HEARTBEAT}${r.userId}`);
-      if (!live) {
-        await prisma.rider.update({ where: { id: r.id }, data: { availability: 'OFFLINE' } });
-        await redis.del(`${REDIS_KEYS.RIDER_AVAILABILITY}${r.id}`);
-        await redis.zrem(REDIS_KEYS.RIDER_GEO_INDEX, r.userId);
-        flippedOffline += 1;
-      }
-    } catch (err) {
-      logger.warn('reconcileAvailability: flip failed', { riderId: r.id, error: err.message });
-    }
-  }
-
   logger.info('rider.availability.reconciled', {
     geoMembers: members.length,
     prunedGeo,
-    onlineChecked: online.length,
-    flippedOffline,
+    intentUntouched: true,
   });
 
-  return { prunedGeo, flippedOffline };
+  return { prunedGeo, flippedOffline: 0 };
 };
 
 const startRiderWorker = () => {

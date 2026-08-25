@@ -1,0 +1,109 @@
+name: Build Android APKs (EAS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Which app(s) to build"
+        type: choice
+        options:
+          - both
+          - rider
+          - customer
+        default: both
+  push:
+    branches: [main]
+    paths:
+      - "mobile/rider-app/**"
+      - "mobile/customer-app/**"
+
+# Avoid stacking EAS builds when pushes land back-to-back.
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.apps.outputs.list }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rider: 'mobile/rider-app/**'
+            customer: 'mobile/customer-app/**'
+      - name: Compute apps to build
+        id: apps
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            case "${{ inputs.app }}" in
+              rider)    echo 'list=["rider"]' >> "$GITHUB_OUTPUT" ;;
+              customer) echo 'list=["customer"]' >> "$GITHUB_OUTPUT" ;;
+              *)        echo 'list=["rider","customer"]' >> "$GITHUB_OUTPUT" ;;
+            esac
+          else
+            # Push-triggered builds only when the commit message carries "[apk]"
+            # (mirrors the "[full]" convention the deploy webhook already uses).
+            if [ "${{ contains(github.event.head_commit.message, '[apk]') }}" != "true" ]; then
+              echo 'list=[]' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            apps=()
+            [ "${{ steps.filter.outputs.rider }}" = "true" ] && apps+=("rider")
+            [ "${{ steps.filter.outputs.customer }}" = "true" ] && apps+=("customer")
+            if [ ${#apps[@]} -eq 0 ]; then
+              echo 'list=[]' >> "$GITHUB_OUTPUT"
+            else
+              printf 'list=["%s"]\n' "$(IFS=,; echo "${apps[*]}" | sed 's/,/","/g')" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+  build:
+    needs: changes
+    name: "APK ${{ matrix.app }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.changes.outputs.list) }}
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+      # EAS builds install dependencies on EAS's own servers; the runner only
+      # needs the CLI to trigger + download. Each app has its own EAS project.
+      - name: Build preview APK (rider)
+        if: matrix.app == 'rider'
+        working-directory: mobile/rider-app
+        run: eas build --platform android --profile preview --non-interactive --wait
+      - name: Build preview APK (customer)
+        if: matrix.app == 'customer'
+        working-directory: mobile/customer-app
+        run: eas build --platform android --profile preview --non-interactive --wait
+      - name: Download APK
+        working-directory: ${{ matrix.app == 'rider' && 'mobile/rider-app' || 'mobile/customer-app' }}
+        run: |
+          mkdir -p artifacts
+          BUILD_ID=$(eas build:list --platform android --limit 1 --json \
+            | python3 -c "import sys,json;d=json.load(sys.stdin);print(d[0]['id'] if d else '')")
+          if [ -z "$BUILD_ID" ]; then
+            echo "No build found to download" >&2
+            exit 1
+          fi
+          eas build:download "$BUILD_ID" --platform android --output-dir artifacts
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iprime-${{ matrix.app }}-preview
+          path: ${{ matrix.app == 'rider' && 'mobile/rider-app/artifacts' || 'mobile/customer-app/artifacts' }}
+          if-no-files-found: error

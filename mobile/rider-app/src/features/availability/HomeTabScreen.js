@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   RefreshControl,
-  AppState,
   Alert,
   TouchableOpacity,
 } from "react-native";
@@ -32,7 +31,6 @@ import { fetchRiderEarnings } from "../../store/slices/earningsSlice";
 import { AVAILABILITY } from "../../lib/constants";
 
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
-const ONLINE_NUDGE_BACKGROUND_MS = 90_000; // 90 s
 
 /**
  * Phase 2 Home tab.
@@ -46,10 +44,10 @@ const ONLINE_NUDGE_BACKGROUND_MS = 90_000; // 90 s
  *     flowing. Removed when OFFLINE so the device behaves normally.
  *   - 4-hour ONLINE cap - after 4 hours, prompts the rider to confirm or
  *     go offline. Mitigates riders who forget they're online.
- *   - 90s background auto-offline - if the rider backgrounds the app for
- *     more than 90 s while ONLINE-idle, the server presence cache will TTL
- *     out anyway; we PATCH OFFLINE proactively so the UI stays truthful.
- *     Active trips don't get cancelled - only the availability flips.
+ *   - Phase 9: no background auto-offline. Rider INTENT is authoritative - the
+ *     system never takes an ONLINE rider offline; only the rider's own toggle
+ *     (or an admin kill-switch) does. A background location task keeps the
+ *     rider in the dispatch loop while the app is minimised.
  */
 export default function HomeTabScreen() {
   const dispatch = useDispatch();
@@ -114,7 +112,6 @@ function HomeBody({
 }) {
   const [refreshing, setRefreshing] = useState(false);
   const onlineSinceRef = useRef(null);
-  const backgroundedAtRef = useRef(null);
   const fourHourTimerRef = useRef(null);
   const lastForceOfflineHandledRef = useRef(null);
 
@@ -187,29 +184,6 @@ function HomeBody({
       }
     };
   }, [isOnline, t, dispatch]);
-
-  // ── 90-s background auto-offline (only while ONLINE-idle, NOT on-delivery) ──
-  useEffect(() => {
-    const sub = AppState.addEventListener("change", (next) => {
-      if (next !== "active") {
-        backgroundedAtRef.current = Date.now();
-        return;
-      }
-      // Foreground: refresh earnings + check 90s window
-      const wasBg = backgroundedAtRef.current;
-      backgroundedAtRef.current = null;
-      dispatch(fetchRiderEarnings());
-      if (
-        wasBg &&
-        availability === AVAILABILITY.ONLINE &&
-        !activeTripId &&
-        Date.now() - wasBg > ONLINE_NUDGE_BACKGROUND_MS
-      ) {
-        dispatch(goOffline({ reason: "background_timeout" }));
-      }
-    });
-    return () => sub.remove();
-  }, [availability, activeTripId, dispatch]);
 
   const onToggle = useCallback(async () => {
     if (isOnDelivery) return; // toggle disabled mid-trip
@@ -348,7 +322,7 @@ function HomeBody({
               <Text style={{ marginLeft: 10, flex: 1, fontSize: 12, color: tokens.text.primary, lineHeight: 17 }}>
                 {t(
                   "home.onlineBanner",
-                  "Keep this screen visible to receive jobs. The screen will stay on while you're online.",
+                  "You'll keep receiving jobs even when the app is minimised. Keep the screen on for the fastest responses.",
                 )}
               </Text>
             </View>

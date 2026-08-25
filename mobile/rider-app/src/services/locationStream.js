@@ -1,11 +1,13 @@
 /**
- * Foreground GPS stream for the rider - Phase 2.
+ * Foreground GPS stream for the rider.
  *
- * Design choices (set in roadmap §2.7):
- *   - Foreground only. No `expo-task-manager`, no background service. When the
- *     app backgrounds, the subscription pauses. When it foregrounds, it
- *     resumes. The rider keeps the app foregrounded with the screen on
- *     (enforced by `expo-keep-awake` in HomeTabScreen) during shifts.
+ * Design choices (see roadmap §2.7 / Phase 9 for the background story):
+ *   - The foreground watcher runs while the app is open; when the app
+ *     backgrounds, the subscription pauses and resumes on foreground.
+ *   - Phase 9: while ONLINE we ALSO run a background location task
+ *     (`backgroundLocation.js`) so the rider keeps emitting (via
+ *     `POST /rider/location`) and receiving offers when the app is minimised
+ *     or the screen is off - the rider can pocket the phone.
  *   - Cadence:
  *       - 15 000 ms while ONLINE-idle
  *       - 3 000 ms while ON_DELIVERY
@@ -26,6 +28,10 @@ import socketService from "./socket";
 import api from "./api";
 import { newIdempotencyKey } from "./idempotency";
 import { LOCATION_CADENCE } from "../lib/constants";
+import {
+  startBackgroundLocation,
+  stopBackgroundLocation,
+} from "./backgroundLocation";
 
 const RING_BUFFER_CAP = 50;
 const MIN_DISTANCE_M = 8;       // dedupe - drop fixes < 8 m from previous
@@ -141,6 +147,14 @@ class LocationStream {
       }
     }).catch(() => {});
 
+    // Phase 9 - keep the rider in the loop while backgrounded. Best-effort and
+    // non-blocking: if background permission is denied (or not available on
+    // this platform) the stream stays foreground-only and the server-side
+    // intent guarantee still means the rider is never taken offline.
+    startBackgroundLocation().then((started) => {
+      if (started) console.log("[locationStream] background task started");
+    }).catch(() => {});
+
     return { ok: true };
   }
 
@@ -170,6 +184,11 @@ class LocationStream {
     // Try one final drain in case the socket is still connected.
     await this._drainRingBuffer().catch(() => {});
     this._ringBuffer = [];
+
+    // Stop the background task + foreground service so an OFFLINE rider isn't
+    // burning battery or showing the persistent notification.
+    await stopBackgroundLocation().catch(() => {});
+
     this._mode = null;
     this._onFix = null;
     this._requestIdGetter = null;

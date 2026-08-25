@@ -21,6 +21,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "iPrime Rider needs your location to deliver jobs near you.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "iPrime Rider keeps your location active in the background so you keep receiving jobs when the app is minimised or the screen is off.",
+        "UIBackgroundModes": ["location", "fetch"],
         "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
         "NSPhotoLibraryUsageDescription": "iPrime Rider needs photo access so you can attach KYC documents and proof-of-delivery images.",
         "NSPhotoLibraryAddUsageDescription": "Optionally save proof-of-delivery photos to your gallery.",
@@ -47,6 +49,9 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
         "android.permission.POST_NOTIFICATIONS",
@@ -69,7 +74,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "iPrime Rider needs your location to deliver jobs near you."
+          "locationWhenInUsePermission": "iPrime Rider needs your location to deliver jobs near you.",
+          "locationAlwaysAndWhenInUsePermission": "iPrime Rider keeps your location active in the background so you keep receiving jobs when the app is minimised or the screen is off.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true,
+          "androidForegroundServiceNotificationTitle": "iPrime Rider is online",
+          "androidForegroundServiceNotificationBody": "Receiving jobs near you - keep this running while you work.",
+          "androidForegroundServiceNotificationColor": "#EA580C"
         }
       ],
       "expo-localization",
