@@ -26,6 +26,11 @@ env:
   GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.workers.max=4"
   CI: "1"
   EXPO_NO_TELEMETRY: "1"
+  # @sentry/react-native's gradle hook runs sentry-cli to upload source maps
+  # on release builds, which needs a SENTRY_AUTH_TOKEN (present in EAS env, not
+  # on GitHub runners). Disable that upload for these test APKs - crash reports
+  # still work, only source-map upload is skipped.
+  SENTRY_DISABLE_AUTO_UPLOAD: "true"
 
 jobs:
   changes:
