@@ -118,6 +118,45 @@ export default function TripCockpitScreen({ route }) {
   const [refreshing, setRefreshing] = useState(false);
   const mapRef = useRef(null);
 
+  // Admin-curated places (custom_places) shown as labelled markers on the map
+  // so the rider can visually find the dropoff building by name.
+  const [customPlaces, setCustomPlaces] = useState([]);
+  const placesTimeout = useRef(null);
+  const placesSeq = useRef(0);
+
+  const fetchCustomPlaces = useCallback((reg) => {
+    const latSpan = reg?.latitudeDelta ?? 0.03;
+    const lngSpan = reg?.longitudeDelta ?? 0.03;
+    if (Math.max(latSpan, lngSpan) > 0.08) {
+      setCustomPlaces([]);
+      return;
+    }
+    if (placesTimeout.current) clearTimeout(placesTimeout.current);
+    placesTimeout.current = setTimeout(async () => {
+      const seq = ++placesSeq.current;
+      const half = Math.max(latSpan, lngSpan) / 2;
+      try {
+        const { data } = await api.get("/maps/custom-places", {
+          params: {
+            north: reg.latitude + half,
+            south: reg.latitude - half,
+            east: reg.longitude + half,
+            west: reg.longitude - half,
+          },
+        });
+        if (seq === placesSeq.current) setCustomPlaces(data || []);
+      } catch {
+        // Ignore - labels are a nicety, not a blocker.
+      }
+    }, 450);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (placesTimeout.current) clearTimeout(placesTimeout.current);
+    };
+  }, []);
+
   // Sheet state.
   const [contactVisible, setContactVisible] = useState(false);
   const [chatPickerVisible, setChatPickerVisible] = useState(false);
@@ -648,6 +687,11 @@ export default function TripCockpitScreen({ route }) {
               provider={PROVIDER_GOOGLE}
               style={{ flex: 1 }}
               initialRegion={initialRegion}
+              onRegionChangeComplete={(reg) => {
+                if (!reg) return;
+                // A user pan/tilt ends auto-following; label fetch is harmless.
+                fetchCustomPlaces(reg);
+              }}
               onPanDrag={() => setAutoCenter(false)}
               showsCompass={false}
               showsUserLocation={false}
@@ -721,6 +765,11 @@ export default function TripCockpitScreen({ route }) {
                   lineDashPattern={[6, 4]}
                 />
               ) : null}
+
+              {/* Admin-curated places as subtle labelled markers. */}
+              {customPlaces.map((p) => (
+                <TripPlaceMarker key={p.id} place={p} />
+              ))}
             </MapView>
           ) : (
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: tokens.bg.surfaceMuted }}>
@@ -1005,5 +1054,60 @@ function Timeline({ status, type, t }) {
         );
       })}
     </View>
+  );
+}
+
+// Admin-curated place label - a small neutral pill under a dot, styled to read
+// like a native map POI label. Renders on native via react-native-maps Marker
+// children and on web via the react-native-maps.web shim (OverlayView).
+function TripPlaceMarker({ place }) {
+  return (
+    <Marker
+      coordinate={{ latitude: place.lat, longitude: place.lng }}
+      title={place.name}
+      zIndex={1}
+    >
+      <View
+        style={{
+          alignItems: "center",
+          transform: [{ translateY: -24 }],
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(255,255,255,0.94)",
+            borderRadius: 6,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.15,
+            shadowRadius: 2,
+            elevation: 2,
+            maxWidth: 150,
+          }}
+        >
+          <Text
+            style={{ fontSize: 11, fontWeight: "600", color: "#52525B" }}
+            numberOfLines={1}
+          >
+            {place.name}
+          </Text>
+        </View>
+        <View
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            marginTop: 2,
+            backgroundColor: "#A1A1AA",
+            borderWidth: 1,
+            borderColor: "#FFFFFF",
+          }}
+        />
+      </View>
+    </Marker>
   );
 }

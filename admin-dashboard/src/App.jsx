@@ -31,6 +31,7 @@ import MerchantAnalyticsPage from './pages/MerchantAnalyticsPage'
 import MerchantProductsPage from './pages/MerchantProductsPage'
 import VtuPlansPage from './pages/VtuPlansPage'
 import VtuNetworksPage from './pages/VtuNetworksPage'
+import PlacesPage from './pages/PlacesPage'
 import CategoriesPage from './pages/CategoriesPage'
 import WaitlistPage from './pages/WaitlistPage'
 import StaffManagementPage from './pages/StaffManagementPage'
@@ -113,6 +114,7 @@ function App() {
           <Route path="safety" element={<SafetyPage />} />
           <Route path="vtu-plans" element={<VtuPlansPage />} />
           <Route path="vtu-networks" element={<VtuNetworksPage />} />
+          <Route path="places" element={<PlacesPage />} />
           <Route path="waitlist" element={<WaitlistPage />} />
           <Route path="staff" element={<StaffManagementPage />} />
         </Route>

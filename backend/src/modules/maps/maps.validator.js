@@ -19,8 +19,16 @@ const reverseGeocodeSchema = z.object({
   lng: z.coerce.number().min(-180).max(180),
 });
 
+const customPlacesSchema = z.object({
+  north: z.coerce.number().min(-90).max(90),
+  south: z.coerce.number().min(-90).max(90),
+  east: z.coerce.number().min(-180).max(180),
+  west: z.coerce.number().min(-180).max(180),
+});
+
 module.exports = {
   autocompleteSchema,
   placeDetailsSchema,
   reverseGeocodeSchema,
+  customPlacesSchema,
 };

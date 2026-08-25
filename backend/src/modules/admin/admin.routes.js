@@ -73,6 +73,7 @@ const {
   updateStaffProfileSchema,
 } = require('./admin.validator');
 const { PERMISSIONS } = require('../../config/permissions');
+const customPlacesRoutes = require('../custom-places/custom-places.routes');
 
 const router = Router();
 
@@ -251,6 +252,11 @@ router.get('/vtu-networks', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminCon
 router.post('/vtu-networks', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.createVtuNetwork);
 router.put('/vtu-networks/:networkId', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.updateVtuNetwork);
 router.delete('/vtu-networks/:networkId', authorize('ADMIN', PERMISSIONS.MANAGE_VTU), adminController.deleteVtuNetwork);
+
+// Custom map places - admin-curated locations Google doesn't know about
+// (campus buildings, estates, villages). Mounted before the parameterized
+// admin routes so nothing shadows them.
+router.use('/places', authorize('ADMIN', PERMISSIONS.MANAGE_SETTINGS), customPlacesRoutes);
 
 // Phase 8 - Rider force-offline (real admin use + Maestro 05-force-offline).
 router.post('/riders/:riderId/force-offline', authorize('ADMIN', PERMISSIONS.MANAGE_USERS, PERMISSIONS.MANAGE_SUPPORT), validate(forceOfflineRiderSchema), adminController.forceOfflineRider);

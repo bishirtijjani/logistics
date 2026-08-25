@@ -26,7 +26,8 @@ import {
   Network,
   Tags,
   ListChecks,
-  UserPlus
+  UserPlus,
+  MapPin
 } from 'lucide-react'
 import { logout } from '../store/slices/authSlice'
 import Breadcrumb from './Breadcrumb'
@@ -87,6 +88,12 @@ const navSections = [
     items: [
       { path: '/vtu-plans', icon: Wifi, label: 'VTU Plans', permissions: ['MANAGE_VTU'] },
       { path: '/vtu-networks', icon: Network, label: 'VTU Networks', permissions: ['MANAGE_VTU'] },
+    ],
+  },
+  {
+    label: 'Geography',
+    items: [
+      { path: '/places', icon: MapPin, label: 'Places', permissions: ['MANAGE_SETTINGS'] },
     ],
   },
   {

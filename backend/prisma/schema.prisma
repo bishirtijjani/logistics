@@ -1333,6 +1333,32 @@ model SavedAddress {
   @@map("saved_addresses")
 }
 
+/// Admin-curated places that appear seamlessly alongside Google's own places
+/// in maps autocomplete and as labelled markers on the customer/rider maps.
+/// Built for the spots Google doesn't know about (campus buildings, estates,
+/// market stalls, villages). Admins create them visually via a pin-drop + name
+/// form; they rank with the local Katsina index (above Google) in search and
+/// resolve to coordinates instantly, so they read exactly like native results.
+model CustomPlace {
+  id          String   @id @default(uuid())
+  name        String /// Primary name shown in search + on the map
+  aliases     String[] @default([]) /// Extra search terms (faculty codes, Hausa names)
+  type        String? /// "faculty" | "hostel" | "gate" | "office" | "market" | "village" | ...
+  lga         String?
+  lat         Float
+  lng         Float
+  address     String? /// Reverse-geocoded / admin-authored human address
+  description String? /// Rider-facing note ("main gate side, behind the library")
+  isActive    Boolean  @default(true)
+  createdBy   String? /// Admin user id (audited via AuditLog too)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([lat, lng])
+  @@map("custom_places")
+}
+
 /// Banner - admin-managed promotional banner for the home screen (Phase 6).
 /// `audience` is a free-form JSON predicate evaluated server-side
 /// (e.g. `{ "kyc": "VERIFIED" }` or `{ "categorySlug": "food" }`); empty

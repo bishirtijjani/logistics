@@ -13,7 +13,7 @@ import {
   Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MapView, { PROVIDER_GOOGLE, Polygon } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE, Marker, Polygon } from "react-native-maps";
 import { Ionicons } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,9 @@ import { GEO_RESTRICTION, clampToBounds, isOutOfBounds } from "../../config/geoR
 
 const KATSINA = GEO_RESTRICTION.center;
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
+// Above this map span we stop fetching/rendering admin custom-place labels -
+// at town/state scale they'd just be clutter.
+const PLACE_LABEL_MAX_SPAN = 0.08;
 
 export default function LocationPickerScreen({ navigation, route }) {
   const dispatch = useDispatch();
@@ -58,6 +61,10 @@ export default function LocationPickerScreen({ navigation, route }) {
   const [predictions, setPredictions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  // Admin-curated places (custom_places) shown as labelled markers on the map.
+  const [customPlaces, setCustomPlaces] = useState([]);
+  const placesTimeout = useRef(null);
+  const placesSeq = useRef(0);
   // Show the out-of-area notice at most once per few seconds so panning around
   // the border doesn't spam toasts.
   const lastAreaToast = useRef(0);
@@ -70,6 +77,35 @@ export default function LocationPickerScreen({ navigation, route }) {
       text1: t("locationPicker.outOfArea", `We only operate in ${GEO_RESTRICTION.label} for now`),
     });
   }, [t]);
+
+  // Fetch admin-curated places inside the current viewport (debounced) and
+  // render them as labelled markers. Skipped at wide zoom to avoid clutter.
+  const fetchCustomPlaces = useCallback((reg) => {
+    const latSpan = reg.latitudeDelta ?? DELTA.latitudeDelta;
+    const lngSpan = reg.longitudeDelta ?? DELTA.longitudeDelta;
+    if (Math.max(latSpan, lngSpan) > PLACE_LABEL_MAX_SPAN) {
+      setCustomPlaces([]);
+      return;
+    }
+    if (placesTimeout.current) clearTimeout(placesTimeout.current);
+    placesTimeout.current = setTimeout(async () => {
+      const seq = ++placesSeq.current;
+      const half = Math.max(latSpan, lngSpan) / 2;
+      try {
+        const { data } = await api.get("/maps/custom-places", {
+          params: {
+            north: reg.latitude + half,
+            south: reg.latitude - half,
+            east: reg.longitude + half,
+            west: reg.longitude - half,
+          },
+        });
+        if (seq === placesSeq.current) setCustomPlaces(data || []);
+      } catch {
+        // Ignore - labels are a nicety, not a blocker.
+      }
+    }, 450);
+  }, []);
 
   // Reverse geocode the map center when user stops dragging (debounced)
   const handleRegionChangeComplete = useCallback(
@@ -87,6 +123,7 @@ export default function LocationPickerScreen({ navigation, route }) {
         mapRef.current?.animateToRegion(newRegion, 300);
         notifyOutOfArea();
       }
+      fetchCustomPlaces(newRegion);
       if (showSearch) return; // Don't geocode while searching
 
       // Clear any pending geocode
@@ -123,7 +160,7 @@ export default function LocationPickerScreen({ navigation, route }) {
         }
       }, 600);
     },
-    [showSearch, notifyOutOfArea],
+    [showSearch, notifyOutOfArea, fetchCustomPlaces],
   );
 
   // Autocomplete search
@@ -196,10 +233,14 @@ export default function LocationPickerScreen({ navigation, route }) {
 
   // Cleanup pending timeouts on unmount so they don't fire on a stale component
   useEffect(() => {
+    // Initial label fetch for the starting region.
+    fetchCustomPlaces(region);
     return () => {
       if (geocodeTimeout.current) clearTimeout(geocodeTimeout.current);
       if (searchTimeout.current) clearTimeout(searchTimeout.current);
+      if (placesTimeout.current) clearTimeout(placesTimeout.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Re-center on GPS
@@ -257,6 +298,10 @@ export default function LocationPickerScreen({ navigation, route }) {
             fillColor="rgba(234,88,12,0.06)"
           />
         )}
+        {/* Admin-curated places as subtle labelled markers (native place-like). */}
+        {customPlaces.map((p) => (
+          <CustomPlaceMarker key={p.id} place={p} />
+        ))}
       </MapView>
 
       {/* Animated tooltip above pin */}
@@ -412,5 +457,60 @@ export default function LocationPickerScreen({ navigation, route }) {
         </TouchableOpacity>
       </SafeAreaView>
     </View>
+  );
+}
+
+// Admin-curated place label - a small neutral pill under a dot, styled to read
+// like a native map POI label. Renders on native via react-native-maps Marker
+// children and on web via the react-native-maps.web shim (OverlayView).
+function CustomPlaceMarker({ place }) {
+  return (
+    <Marker
+      coordinate={{ latitude: place.lat, longitude: place.lng }}
+      title={place.name}
+      zIndex={1}
+    >
+      <View
+        style={{
+          alignItems: 'center',
+          transform: [{ translateY: -24 }],
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,255,255,0.94)',
+            borderRadius: 6,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.15,
+            shadowRadius: 2,
+            elevation: 2,
+            maxWidth: 150,
+          }}
+        >
+          <Text
+            style={{ fontSize: 11, fontWeight: '600', color: '#52525B' }}
+            numberOfLines={1}
+          >
+            {place.name}
+          </Text>
+        </View>
+        <View
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            marginTop: 2,
+            backgroundColor: '#A1A1AA',
+            borderWidth: 1,
+            borderColor: '#FFFFFF',
+          }}
+        />
+      </View>
+    </Marker>
   );
 }

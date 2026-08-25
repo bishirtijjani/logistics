@@ -4,6 +4,7 @@
 
 const axios = require("axios");
 const { config } = require("../config");
+const { prisma } = require("../config/database");
 const { logger } = require("../utils/logger");
 const { AppError } = require("../utils/api-error");
 const { GEO_RESTRICTION, isInArea } = require("../config/geo-restriction");
@@ -65,6 +66,15 @@ const toLocalSuggestion = (p) => ({
   secondaryText: p.lga ? `${p.lga}, Katsina` : "Katsina",
 });
 
+// Admin-curated places (custom_places) are resolved the same way as the local
+// index but DB-backed, so the admin can add any location without a developer.
+const toCustomSuggestion = (p) => ({
+  placeId: `local:custom:${p.id}`,
+  description: p.lga ? `${p.name}, ${p.lga}, Katsina` : `${p.name}, Katsina`,
+  mainText: p.name,
+  secondaryText: p.lga ? `${p.lga}, Katsina` : "Katsina",
+});
+
 /**
  * Prefix/substring search over the local Katsina index. Ranks, best first:
  *   0 exact
@@ -112,6 +122,88 @@ const localSearch = (query, limit = 6) => {
       a.p.name.localeCompare(b.p.name),
   );
   return scored.slice(0, limit).map(({ p }) => toLocalSuggestion(p));
+};
+
+/**
+ * Search admin-curated places (custom_places). Same scoring as localSearch
+ * (exact > name-prefix > word-prefix > substring > whole-word set match), but
+ * matches across BOTH the display name and the aliases the admin recorded, so
+ * a spot is findable by its Hausa name, faculty code, or common shorthand.
+ * Ranks ahead of Google - these are the places we explicitly curated, so a
+ * local hit should never be buried under a Kano namesake.
+ */
+const searchCustomPlaces = async (query, limit = 6) => {
+  const q = normalizePlace(query);
+  if (!q) return [];
+  const qCore = tokenize(q).filter((w) => !GENERIC_TOKENS.has(w));
+  let active;
+  try {
+    active = await prisma.customPlace.findMany({ where: { isActive: true } });
+  } catch (error) {
+    // No custom_places table yet (pre-migration) or a DB blip must NEVER break
+    // autocomplete - fall back to the static index + Google exactly as before.
+    logger.warn("Custom place search unavailable", { error: error.message });
+    return [];
+  }
+  if (active.length === 0) return [];
+
+  const scoreName = (n) => {
+    const norm = normalizePlace(n);
+    if (!norm) return -1;
+    if (norm === q) return 0;
+    if (norm.startsWith(q)) return 1;
+    const tokens = norm.split(" ");
+    if (tokens.some((w) => w.startsWith(q))) return 2;
+    if (norm.includes(q)) return 3;
+    const core = tokens.filter((w) => !GENERIC_TOKENS.has(w));
+    if (qCore.length > 0 && core.length > 0 && core.every((w) => qCore.includes(w))) return 4;
+    return -1;
+  };
+
+  const scored = [];
+  for (const p of active) {
+    let score = scoreName(p.name);
+    if (score < 0 && Array.isArray(p.aliases)) {
+      for (const a of p.aliases) {
+        const s = scoreName(a);
+        if (s >= 0 && (score < 0 || s < score)) score = s;
+      }
+    }
+    if (score >= 0) scored.push({ p, score });
+  }
+
+  scored.sort(
+    (a, b) =>
+      a.score - b.score ||
+      a.p.name.length - b.p.name.length ||
+      a.p.name.localeCompare(b.p.name),
+  );
+  return scored.slice(0, limit).map(({ p }) => toCustomSuggestion(p));
+};
+
+/**
+ * Active custom places inside a bounding box - for rendering labelled markers
+ * on the customer/rider maps without loading the whole catalogue.
+ */
+const getCustomPlacesInBounds = async (raw) => {
+  let { north, south, east, west } = raw;
+  if (south > north) [south, north] = [north, south];
+  if (west > east) [west, east] = [east, west];
+  try {
+    return await prisma.customPlace.findMany({
+      where: {
+        isActive: true,
+        lat: { gte: south, lte: north },
+        lng: { gte: west, lte: east },
+      },
+      orderBy: { name: "asc" },
+      take: 200,
+      select: { id: true, name: true, type: true, lat: true, lng: true, address: true },
+    });
+  } catch (error) {
+    logger.warn("Custom places bounds query unavailable", { error: error.message });
+    return [];
+  }
 };
 
 /**
@@ -322,20 +414,31 @@ const autocomplete = async (query, sessionToken) => {
     }
     const acReq = axios.get(`${MAPS_BASE}/place/autocomplete/json`, { params: acParams });
 
+    // Admin-curated places always rank first - they are the exact, curated
+    // points (campus buildings, estates) that search must never bury.
+    const customReq = searchCustomPlaces(query);
+
     // Restriction off: plain autocomplete, all of the country.
     if (!GEO_RESTRICTION.enabled) {
-      const response = await acReq;
+      const [customRes, response] = await Promise.all([customReq, acReq]);
       if (response.data.status !== "OK" && response.data.status !== "ZERO_RESULTS") {
         throw new Error(response.data.error_message || "Autocomplete failed");
       }
-      return (response.data.predictions || []).map(fromPrediction);
+      const out = [...customRes];
+      const seen = new Set(out.map((r) => r.placeId));
+      for (const p of response.data.predictions || []) {
+        if (seen.has(p.place_id)) continue;
+        seen.add(p.place_id);
+        out.push(fromPrediction(p));
+      }
+      return out.slice(0, 8);
     }
 
     // Restriction on: run autocomplete + state-scoped geocoding in parallel.
     const gcReq = axios.get(`${MAPS_BASE}/geocode/json`, {
       params: { address: query, key: config.GOOGLE_MAPS_API_KEY, components: geocodeComponents() },
     });
-    const [acRes, gcRes] = await Promise.all([acReq, gcReq]);
+    const [customRes, acRes, gcRes] = await Promise.all([customReq, acReq, gcReq]);
 
     if (acRes.data.status !== "OK" && acRes.data.status !== "ZERO_RESULTS") {
       throw new Error(acRes.data.error_message || "Autocomplete failed");
@@ -345,10 +448,17 @@ const autocomplete = async (query, sessionToken) => {
     const out = [];
     const seen = new Set();
 
-    // 0) Local Katsina index first - instant, natural prefix matches for known
+    // 0) Admin-curated custom places first - exact, curated, DB-backed.
+    const localNames = [];
+    for (const r of customRes) {
+      out.push(r);
+      seen.add(r.placeId);
+      localNames.push(normalizePlace(r.mainText));
+    }
+
+    // 1) Local Katsina index - instant, natural prefix matches for known
     //    districts/areas/neighbourhoods.
     const localResults = localSearch(query);
-    const localNames = [];
     for (const r of localResults) {
       out.push(r);
       seen.add(r.placeId);
@@ -429,6 +539,21 @@ const localPlaceDetails = async (id) => {
 const placeDetails = async (placeId, sessionToken) => {
   // Local-index pick: resolve from our dataset (and live geocode if needed).
   if (typeof placeId === "string" && placeId.startsWith("local:")) {
+    // Admin-curated, DB-backed place (custom_places).
+    if (placeId.startsWith("local:custom:")) {
+      const id = placeId.slice("local:custom:".length);
+      const place = await prisma.customPlace.findUnique({ where: { id } });
+      if (!place || !place.isActive) throw AppError.badRequest("Unknown place");
+      return {
+        lat: place.lat,
+        lng: place.lng,
+        formattedAddress:
+          place.address ||
+          (place.lga ? `${place.name}, ${place.lga}, Katsina, Nigeria` : `${place.name}, Katsina, Nigeria`),
+        placeId: `local:custom:${place.id}`,
+        outOfArea: !isInArea(place.lat, place.lng),
+      };
+    }
     return localPlaceDetails(placeId.slice("local:".length));
   }
   try {
@@ -470,4 +595,5 @@ module.exports = {
   getDirections,
   autocomplete,
   placeDetails,
+  getCustomPlacesInBounds,
 };

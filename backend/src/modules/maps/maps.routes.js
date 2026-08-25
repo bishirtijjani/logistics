@@ -11,14 +11,25 @@ const {
   autocompleteSchema,
   placeDetailsSchema,
   reverseGeocodeSchema,
+  customPlacesSchema,
 } = require("./maps.validator");
 
 const router = Router();
 
-// All maps routes require an authenticated user AND share a per-user
-// rate-limit budget (60 req/min). The Google Maps Places API costs real
-// money, so anonymous open access was a quota-bleed risk.
-router.use(authenticate, mapsLimiter);
+// All maps routes require an authenticated user. The Google-backed routes
+// additionally share a per-user rate-limit budget (60 req/min) - the Places
+// API costs real money, so anonymous open access was a quota-bleed risk.
+// /custom-places is a pure DB read (no Google cost) and is fetched on every
+// map pan, so it is deliberately exempt from mapsLimiter.
+router.use(authenticate);
+
+router.get(
+  "/custom-places",
+  validate(customPlacesSchema, "query"),
+  mapsController.customPlaces,
+);
+
+router.use(mapsLimiter);
 
 router.get(
   "/autocomplete",

@@ -35,8 +35,18 @@ const reverseGeocode = async (req, res, next) => {
   }
 };
 
+const customPlaces = async (req, res, next) => {
+  try {
+    const places = await mapsService.getCustomPlacesInBounds(req.query);
+    res.json(ApiResponse.success("Custom places retrieved", places));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   autocomplete,
   placeDetails,
   reverseGeocode,
+  customPlaces,
 };
