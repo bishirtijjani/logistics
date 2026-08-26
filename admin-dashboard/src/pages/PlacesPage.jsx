@@ -146,65 +146,57 @@ export default function PlacesPage() {
         </div>
       ) : (
         <>
-          <div className="bg-surface dark:bg-dark-surface rounded-xl border border-surface-muted dark:border-dark-surface-muted overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-surface-muted dark:bg-dark-surface-muted">
-                <tr className="text-left text-xs uppercase tracking-wide text-muted dark:text-dark-muted">
-                  <th className="px-3 py-3">Name</th>
-                  <th className="px-3 py-3">Type</th>
-                  <th className="px-3 py-3">Coordinates</th>
-                  <th className="px-3 py-3 text-center">Active</th>
-                  <th className="px-3 py-3 w-20" />
-                </tr>
-              </thead>
-              <tbody>
-                {places.map((p) => (
-                  <tr key={p.id} className="border-t border-surface-muted dark:border-dark-surface-muted hover:bg-surface-muted/40 dark:hover:bg-dark-surface-muted/40">
-                    <td className="px-3 py-2.5">
-                      <div className="font-medium text-text dark:text-dark-text">{p.name}</div>
-                      {p.aliases?.length > 0 && (
-                        <div className="text-xs text-muted dark:text-dark-muted mt-0.5">
-                          {p.aliases.join(' · ')}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      {p.type ? (
-                        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text">
-                          {p.type}
-                        </span>
-                      ) : (
-                        <span className="text-muted dark:text-dark-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 font-mono text-xs text-muted dark:text-dark-muted">
-                      {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
-                    </td>
-                    <td className="px-3 py-2.5 text-center">
-                      <button
-                        onClick={() => toggleActive(p)}
-                        className={`w-10 h-5 rounded-full transition-colors ${p.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-dark-surface-muted'}`}
-                        role="switch"
-                        aria-checked={p.isActive}
-                        title={p.isActive ? 'Deactivate' : 'Activate'}
-                      >
-                        <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform ${p.isActive ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                      </button>
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex justify-end gap-1">
-                        <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text" title="Edit">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={() => requestDelete(p)} className="p-1.5 rounded hover:bg-error/10 text-muted dark:text-dark-muted hover:text-error" title="Delete">
-                          <Trash2 size={14} />
-                        </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {places.map((p) => (
+              <div
+                key={p.id}
+                className="bg-surface dark:bg-dark-surface rounded-xl border border-surface-muted dark:border-dark-surface-muted p-4 flex flex-col gap-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-text dark:text-dark-text truncate">{p.name}</div>
+                    {p.aliases?.length > 0 && (
+                      <div className="text-xs text-muted dark:text-dark-muted mt-0.5 truncate">
+                        {p.aliases.join(' · ')}
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    )}
+                  </div>
+                  {p.type ? (
+                    <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-surface-muted dark:bg-dark-surface-muted text-text dark:text-dark-text">
+                      {p.type}
+                    </span>
+                  ) : null}
+                </div>
+
+                {p.address ? (
+                  <div className="text-xs text-muted dark:text-dark-muted line-clamp-2">{p.address}</div>
+                ) : null}
+
+                <div className="font-mono text-xs text-muted dark:text-dark-muted">
+                  {p.lat.toFixed(5)}, {p.lng.toFixed(5)}
+                </div>
+
+                <div className="mt-auto flex items-center justify-between pt-2 border-t border-surface-muted dark:border-dark-surface-muted">
+                  <button
+                    onClick={() => toggleActive(p)}
+                    className={`w-10 h-5 rounded-full transition-colors ${p.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-dark-surface-muted'}`}
+                    role="switch"
+                    aria-checked={p.isActive}
+                    title={p.isActive ? 'Deactivate' : 'Activate'}
+                  >
+                    <span className={`block w-4 h-4 bg-white rounded-full shadow transition-transform ${p.isActive ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                  <div className="flex justify-end gap-1">
+                    <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-surface-muted dark:hover:bg-dark-surface-muted text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text" title="Edit">
+                      <Pencil size={14} />
+                    </button>
+                    <button onClick={() => requestDelete(p)} className="p-1.5 rounded hover:bg-error/10 text-muted dark:text-dark-muted hover:text-error" title="Delete">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
           {total > pageSize && (
             <div className="flex items-center justify-between mt-4 text-sm text-muted dark:text-dark-muted">
