@@ -367,7 +367,8 @@ export default function LocationPicker({ value, onChange }) {
         const { data } = await api.get('/maps/reverse-geocode', {
           params: { lat: newLat, lng: newLng },
         })
-        onChange({ lat: newLat, lng: newLng, address: data?.formattedAddress || address || coordFallback })
+        const payload = data?.data
+        onChange({ lat: newLat, lng: newLng, address: payload?.formattedAddress || address || coordFallback })
       } catch {
         onChange({ lat: newLat, lng: newLng, address: address || coordFallback })
       } finally {
@@ -390,7 +391,8 @@ export default function LocationPicker({ value, onChange }) {
         const { data } = await api.get('/maps/autocomplete', {
           params: { query: text, sessionToken: sessionRef.current },
         })
-        setPredictions(Array.isArray(data) ? data : [])
+        const payload = data?.data
+        setPredictions(Array.isArray(payload) ? payload : [])
       } catch {
         setPredictions([])
       } finally {
@@ -408,15 +410,16 @@ export default function LocationPicker({ value, onChange }) {
         params: { placeId: prediction.placeId, sessionToken: sessionRef.current },
       })
       sessionRef.current = `${Date.now()}-${Math.random()}`
+      const payload = data?.data
       // Search is biased, not strictly bounded - refuse a result outside the area.
-      if (data?.outOfArea) {
+      if (payload?.outOfArea) {
         setAreaError(`That place is outside our service area (${GEO_RESTRICTION.label}).`)
         return
       }
       onChange({
-        lat: data.lat,
-        lng: data.lng,
-        address: data.formattedAddress,
+        lat: payload.lat,
+        lng: payload.lng,
+        address: payload.formattedAddress,
       })
       // Slide the map so the result lands under the fixed centre pin.
       setRecenterKey((k) => k + 1)
