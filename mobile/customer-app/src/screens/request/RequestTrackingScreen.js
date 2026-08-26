@@ -371,6 +371,22 @@ const RequestTrackingScreen = () => {
     label: statusDisplay(s, currentRequest.type, categorySlug).label,
   }));
   const currentStepIndex = timeline.findIndex((step) => step.key === currentRequest.status);
+
+  // The rider "arrived at pickup/dropoff" tap emits a transient
+  // `request:rider:arrived` signal (NOT a status change), so the status-driven
+  // timeline above wouldn't otherwise reflect it. Surface it live by marking
+  // the upcoming milestone as "arrived" until the real status (PICKED_UP /
+  // DELIVERED) lands and the timeline advances on its own.
+  let arrivedStepKey = null;
+  let arrivedLabel = null;
+  if (riderArrived === 'pickup' && currentRequest.status === STATUS.RIDER_EN_ROUTE) {
+    arrivedStepKey = STATUS.PICKED_UP;
+    arrivedLabel = t('request.tracking.arrivedPickupStep', 'Arrived at pickup');
+  } else if (riderArrived === 'dropoff' && currentRequest.status === STATUS.IN_TRANSIT) {
+    arrivedStepKey = STATUS.DELIVERED;
+    arrivedLabel = t('request.tracking.arrivedDropoffStep', 'Arrived at dropoff');
+  }
+
   const pill = statusDisplay(currentRequest.status, currentRequest.type, categorySlug);
   const pillColors = statusToneColors(pill.tone, tokens);
 
@@ -731,8 +747,10 @@ const RequestTrackingScreen = () => {
             ) : (
               <View style={{ paddingLeft: 8 }}>
                 {timeline.map((step, index) => {
-                  const isCompleted = index <= currentStepIndex;
-                  const isCurrent = index === currentStepIndex;
+                  const isArrived = step.key === arrivedStepKey;
+                  const isCompleted = index <= currentStepIndex || isArrived;
+                  const isCurrent = index === currentStepIndex || isArrived;
+                  const connectorFilled = index < currentStepIndex || (arrivedStepKey && index === currentStepIndex);
                   return (
                     <View key={step.key} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                       <View style={{ alignItems: 'center', marginRight: 12 }}>
@@ -745,14 +763,14 @@ const RequestTrackingScreen = () => {
                             borderColor: isCurrent ? tokens.brand.default + '40' : undefined,
                           }}
                         >
-                          <Ionicons name={step.icon} size={16} color={isCompleted ? tokens.text.onBrand : tokens.text.muted} />
+                          <Ionicons name={isArrived ? 'location' : step.icon} size={16} color={isCompleted ? tokens.text.onBrand : tokens.text.muted} />
                         </View>
                         {index < timeline.length - 1 && (
-                          <View style={{ width: 2, height: 24, marginTop: 4, backgroundColor: index < currentStepIndex ? tokens.brand.default : tokens.border.default }} />
+                          <View style={{ width: 2, height: 24, marginTop: 4, backgroundColor: connectorFilled ? tokens.brand.default : tokens.border.default }} />
                         )}
                       </View>
                       <Text style={{ fontSize: 14, color: isCompleted ? tokens.text.primary : tokens.text.muted, fontWeight: isCompleted ? '500' : 'normal' }}>
-                        {step.label}
+                        {isArrived ? arrivedLabel : step.label}
                       </Text>
                     </View>
                   );
