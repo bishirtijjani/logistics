@@ -1225,7 +1225,11 @@ const getRequestById = async (requestId, userId, role) => {
     throw AppError.forbidden('Not authorized to view this request');
   }
 
-  return request;
+  // Unread-chat counts for this caller (per private thread). The apps use
+  // this to badge the chat entry points; reads happen via listMessages.
+  const unreadCounts = await computeUnreadCounts(requestId, userId);
+
+  return { ...request, unreadCounts };
 };
 
 // ============================================================
@@ -1463,7 +1467,13 @@ const getActiveRequest = async (customerId) => {
       },
     },
   });
-  return active || null;
+  if (!active) return null;
+
+  // Unread-chat count for the home active-order banner badge. Same read
+  // semantics as getRequestById's unreadCounts; summed here for convenience.
+  const unreadCounts = await computeUnreadCounts(active.id, customerId);
+  const unreadChatCount = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+  return { ...active, unreadCounts, unreadChatCount };
 };
 
 // ============================================================
@@ -1632,6 +1642,29 @@ const assertChannelParticipant = async (requestId, userId, channel) => {
   return { request, participants };
 };
 
+// Unread = messages on this request from someone OTHER than the caller that
+// haven't been read (readAt null). Per-channel map so each app's badge can
+// show either the total or per-thread counts; channels the caller can't
+// participate in always come back 0 because only the two participants ever
+// post to a channel.
+const computeUnreadCounts = async (requestId, userId) => {
+  const counts = { CUSTOMER_RIDER: 0, CUSTOMER_MERCHANT: 0, RIDER_MERCHANT: 0 };
+  const groups = await prisma.requestMessage.groupBy({
+    by: ['channel'],
+    where: {
+      requestId,
+      channel: { in: REQUEST_MESSAGE_CHANNELS },
+      fromUserId: { not: userId },
+      readAt: null,
+    },
+    _count: { _all: true },
+  });
+  for (const g of groups) {
+    if (counts[g.channel] !== undefined) counts[g.channel] = g._count._all;
+  }
+  return counts;
+};
+
 const listMessages = async (requestId, userId, { channel = DEFAULT_MESSAGE_CHANNEL, before, limit }) => {
   await assertChannelParticipant(requestId, userId, channel);
 
@@ -1646,6 +1679,23 @@ const listMessages = async (requestId, userId, { channel = DEFAULT_MESSAGE_CHANN
       fromUser: { select: { id: true, firstName: true, lastName: true, role: true } },
     },
   });
+
+  // Opening a thread marks every unread message in it read (standard chat
+  // read-receipt semantics). Done after fetch so the returned messages still
+  // carry their original state if any client wants it, and never marks the
+  // caller's own messages.
+  if (messages.length > 0) {
+    await prisma.requestMessage.updateMany({
+      where: {
+        requestId,
+        channel,
+        fromUserId: { not: userId },
+        readAt: null,
+      },
+      data: { readAt: new Date() },
+    });
+  }
+
   return messages.reverse(); // chronological ASC for client rendering
 };
 

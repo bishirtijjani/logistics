@@ -130,6 +130,12 @@ const prismaStub = {
       return hydrate(row);
     },
   },
+  requestMessage: {
+    // getRequestById / getActiveRequest compute unread-chat counts via
+    // groupBy; no messages exist in these fixtures so it always returns [].
+    async groupBy() { return []; },
+    async updateMany() { return { count: 0 }; },
+  },
   rider: {
     async findUnique({ where, select }) {
       let row = null;

@@ -24,6 +24,8 @@ import {
   fetchBanners,
   fetchRecentActivity,
   activeRequestFromSocket,
+  activeRequestMessageFromSocket,
+  clearActiveRequestChatUnread,
 } from "../../store/slices/homeSlice";
 import SearchModal from "../../components/SearchModal";
 import EmptyState from "../../components/EmptyState";
@@ -273,10 +275,17 @@ export default function HomeScreen({ navigation }) {
     const unsubRider = socketService.onRequestRiderAssigned(handle);
     const unsubCancelled = socketService.onRequestCancelled(handle);
     const unsubCompleted = socketService.onRequestCompleted(handle);
+    // New order-thread message → bump the banner's chat badge (only for
+    // messages from the other party; the screen that owns reading is the
+    // tracking screen, which clears via clearActiveRequestChatUnread).
+    const unsubMessage = socketService.onRequestMessageNew((data) => {
+      if (!data?.requestId || !data?.message) return;
+      dispatch(activeRequestMessageFromSocket({ ...data, viewerUserId: user?.id }));
+    });
     return () => {
-      unsubStatus(); unsubRider(); unsubCancelled(); unsubCompleted();
+      unsubStatus(); unsubRider(); unsubCancelled(); unsubCompleted(); unsubMessage();
     };
-  }, [dispatch]);
+  }, [dispatch, user?.id]);
 
   // Home shows a curated set of categories (Food / Grocery / Pharmacy), plus
   // Shops (aggregator for the long tail) and Package (static courier flow).
@@ -1201,6 +1210,8 @@ function NotificationBell({ navigation }) {
 function ActiveRequestBanner({ request, navigation }) {
   const { t } = useTranslation();
   const { tokens } = useTheme();
+  const dispatch = useDispatch();
+  const unreadChatCount = Number(request.unreadChatCount) || 0;
   // Phase 8 - pass the merchant's category slug so the banner reads
   // "Pharmacist preparing…" / "Picking your groceries" instead of the
   // generic "Preparing your order" for pharmacy/grocery orders.
@@ -1212,7 +1223,12 @@ function ActiveRequestBanner({ request, navigation }) {
     (isPackage ? t("home.active.packageFallback") : t("home.active.orderFallback"));
   return (
     <TouchableOpacity
-      onPress={() => navigation.navigate("RequestTracking", { requestId: request.id })}
+      onPress={() => {
+        navigation.navigate("RequestTracking", { requestId: request.id });
+        // The tracking screen re-fetches the request and marks any open
+        // threads read; clear the banner badge so it doesn't linger.
+        dispatch(clearActiveRequestChatUnread());
+      }}
       accessibilityRole="button"
       accessibilityLabel={`${pill.label}. ${merchantName}`}
       accessibilityHint={t("home.active.trackCta")}
@@ -1254,6 +1270,23 @@ function ActiveRequestBanner({ request, navigation }) {
           {request.dropoffAddress || t("home.active.trackingFallback")}
         </Text>
       </View>
+      {unreadChatCount > 0 && (
+        <View
+          style={{
+            marginRight: 8,
+            minWidth: 18, height: 18, paddingHorizontal: 5,
+            borderRadius: 9, backgroundColor: tokens.status.error,
+            alignItems: "center", justifyContent: "center",
+            borderWidth: 2, borderColor: tokens.bg.surface,
+          }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Text style={{ color: tokens.text.onBrand, fontSize: 10, fontWeight: "800" }}>
+            {unreadChatCount > 99 ? "99+" : unreadChatCount}
+          </Text>
+        </View>
+      )}
       <View style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: tokens.brand.default }}>
         <Text style={{ color: tokens.text.onBrand, fontWeight: "800", fontSize: 12 }}>{t("home.active.trackCta")}</Text>
       </View>

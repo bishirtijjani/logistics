@@ -100,9 +100,11 @@ const RequestTrackingScreen = () => {
   const { t } = useTranslation();
   const { tokens, isDark } = useTheme();
   const { requestId } = route.params;
+  const myUserId = useSelector((state) => state.auth?.user?.id);
   const {
     currentRequest, isLoading,
     route: activeRoute, matchingStatus, riderEta, messagesByChannel,
+    unreadCounts,
   } = useSelector((state) => state.request);
 
   // Phase 5 - POD OTP banner. The rider taps "Send code" → the customer
@@ -134,12 +136,21 @@ const RequestTrackingScreen = () => {
   const [chatDraft, setChatDraft] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatListRef = useRef(null);
+  // Mirror the open channel into a ref so the socket-message handler (bound
+  // once on mount) never counts a message in the open thread as unread.
+  const chatChannelRef = useRef(null);
+  useEffect(() => { chatChannelRef.current = chatChannel; }, [chatChannel]);
   const messages = chatChannel ? (messagesByChannel?.[chatChannel] || []) : [];
 
   // Transient "Rider has arrived" flag from the request:rider:arrived socket
   // event (there's no ARRIVED status, so this is the only arrival signal the
   // customer gets between IN_TRANSIT and DELIVERED). 'pickup' | 'dropoff' | null.
   const [riderArrived, setRiderArrived] = useState(null);
+
+  // Live-map behaviour: while watching the order move, the map auto-follows
+  // the rider. A manual pan pauses following and reveals a recenter FAB.
+  const mapRef = useRef(null);
+  const [autoCenter, setAutoCenter] = useState(true);
 
   // Phase 5 - connection quality. We render the "Reconnecting…" banner only
   // after the socket has been down for >= 3s, to avoid flickering on transient
@@ -203,7 +214,13 @@ const RequestTrackingScreen = () => {
         if (data?.requestId === requestId) dispatch(setRiderEta(data));
       }),
       socketService.onRequestMessageNew((data) => {
-        if (data?.requestId === requestId) dispatch(appendMessageFromSocket(data));
+        if (data?.requestId === requestId) {
+          dispatch(appendMessageFromSocket({
+            ...data,
+            viewerUserId: myUserId,
+            chatChannel: chatChannelRef.current,
+          }));
+        }
       }),
     ];
 
@@ -379,6 +396,8 @@ const RequestTrackingScreen = () => {
   const showChatButton = isActive(currentRequest.status) && (currentRequest.riderId || currentRequest.merchantId);
   const etaSeconds = riderEta?.etaSeconds ?? activeRoute?.etaSeconds ?? null;
   const showEtaChip = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && etaSeconds != null;
+  // Total unread chat messages across the customer's private threads.
+  const unreadTotal = (unreadCounts?.CUSTOMER_RIDER || 0) + (unreadCounts?.CUSTOMER_MERCHANT || 0);
 
   const mapCenter = riderLocation || (
     currentRequest.pickupLat && currentRequest.pickupLng
@@ -397,10 +416,43 @@ const RequestTrackingScreen = () => {
   const showArrivedBanner = riderArrived === 'dropoff'
     && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status);
 
+  // The rider's live position, best-source-first:
+  //   1. currentRequest.riderLocation  - pushed by `rider:location:broadcast`
+  //      (the rider streams a fix ~every 3s while on a trip)
+  //   2. activeRoute.riderLat/Lng      - the 30s route poll, backfills gaps
+  //   3. riderEta.riderLat/Lng         - the ETA pushes carry a position too
+  // The previous code read a bare `riderLocation` variable that never existed
+  // in this component, so the marker never rendered and the map never moved.
+  const riderLocation = useMemo(() => {
+    if (currentRequest?.riderLocation) return currentRequest.riderLocation;
+    if (activeRoute?.riderLat != null && activeRoute?.riderLng != null) {
+      return { lat: activeRoute.riderLat, lng: activeRoute.riderLng };
+    }
+    if (riderEta?.riderLat != null && riderEta?.riderLng != null) {
+      return { lat: riderEta.riderLat, lng: riderEta.riderLng };
+    }
+    return null;
+  }, [currentRequest?.riderLocation, activeRoute?.riderLat, activeRoute?.riderLng, riderEta?.riderLat, riderEta?.riderLng]);
+
+  // Auto-follow the rider while in split-view watch mode: whenever their
+  // position updates, glide the camera to them so the customer sees the map
+  // move with the order. Panning the map pauses the follow (recenter FAB).
+  useEffect(() => {
+    if (!autoCenter || !mapRef.current || !riderLocation) return;
+    if (!splitView) return;
+    try {
+      mapRef.current.animateCamera({
+        center: { latitude: riderLocation.lat, longitude: riderLocation.lng },
+        zoom: 15,
+      }, { duration: 400 });
+    } catch (_) {}
+  }, [autoCenter, riderLocation?.lat, riderLocation?.lng, splitView]);
+
   // Shared map element, rendered either pinned to the top half (split view) or
   // inline in its 240px card (non-split).
   const mapView = hasMapCoords ? (
     <MapView
+      ref={mapRef}
       style={{ flex: 1 }}
       initialRegion={{
         latitude: mapCenter.lat,
@@ -408,6 +460,7 @@ const RequestTrackingScreen = () => {
         latitudeDelta: 0.025,
         longitudeDelta: 0.025,
       }}
+      onPanDrag={() => setAutoCenter(false)}
     >
       {polylinePoints.length > 1 && (
         <Polyline
@@ -487,12 +540,31 @@ const RequestTrackingScreen = () => {
         </Text>
         {showChatButton ? (
           <TouchableOpacity
-            style={{ padding: 8 }}
+            style={{ padding: 8, position: 'relative' }}
             onPress={handleChatPress}
             accessibilityRole="button"
-            accessibilityLabel={t('a11y.openChat')}
+            accessibilityLabel={unreadTotal > 0
+              ? `${t('a11y.openChat')}, ${t('a11y.unreadCount', { count: unreadTotal })}`
+              : t('a11y.openChat')}
           >
             <Ionicons name="chatbubble-ellipses-outline" size={24} color={tokens.brand.default} />
+            {unreadTotal > 0 && (
+              <View
+                style={{
+                  position: 'absolute', top: 0, right: 0,
+                  minWidth: 16, height: 16, paddingHorizontal: 4,
+                  borderRadius: 9, backgroundColor: tokens.status.error,
+                  alignItems: 'center', justifyContent: 'center',
+                  borderWidth: 2, borderColor: tokens.bg.surface,
+                }}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <Text style={{ color: tokens.text.onBrand, fontSize: 9, fontWeight: '800' }}>
+                  {unreadTotal > 99 ? '99+' : unreadTotal}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         ) : (
           <View style={{ width: 40 }} />
@@ -516,6 +588,24 @@ const RequestTrackingScreen = () => {
       {splitView && (
         <View style={{ flex: 1 }}>
           {mapView}
+          {/* Recenter FAB - only once a manual pan paused auto-follow. */}
+          {!autoCenter && riderLocation ? (
+            <TouchableOpacity
+              onPress={() => setAutoCenter(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('request.tracking.recenter', 'Recenter on rider')}
+              style={{
+                position: 'absolute', right: 14, bottom: 14,
+                width: 40, height: 40, borderRadius: 20,
+                backgroundColor: tokens.bg.surface,
+                alignItems: 'center', justifyContent: 'center',
+                borderWidth: 1, borderColor: tokens.border.default,
+                elevation: 4,
+              }}
+            >
+              <Ionicons name="locate" size={18} color={tokens.brand.default} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
 
@@ -1084,6 +1174,13 @@ const RequestTrackingScreen = () => {
               <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, fontWeight: '700', color: tokens.text.primary }}>
                 {t('request.tracking.chatPickerRider', 'Message rider')}
               </Text>
+              {(unreadCounts?.CUSTOMER_RIDER || 0) > 0 && (
+                <View style={{ minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: tokens.status.error, alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+                  <Text style={{ color: tokens.text.onBrand, fontSize: 10, fontWeight: '800' }}>
+                    {unreadCounts.CUSTOMER_RIDER > 99 ? '99+' : unreadCounts.CUSTOMER_RIDER}
+                  </Text>
+                </View>
+              )}
               <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
             </TouchableOpacity>
             <TouchableOpacity
@@ -1095,6 +1192,13 @@ const RequestTrackingScreen = () => {
               <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, fontWeight: '700', color: tokens.text.primary }}>
                 {t('request.tracking.chatPickerMerchant', 'Message merchant')}
               </Text>
+              {(unreadCounts?.CUSTOMER_MERCHANT || 0) > 0 && (
+                <View style={{ minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, backgroundColor: tokens.status.error, alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+                  <Text style={{ color: tokens.text.onBrand, fontSize: 10, fontWeight: '800' }}>
+                    {unreadCounts.CUSTOMER_MERCHANT > 99 ? '99+' : unreadCounts.CUSTOMER_MERCHANT}
+                  </Text>
+                </View>
+              )}
               <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
             </TouchableOpacity>
           </View>

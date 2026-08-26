@@ -80,6 +80,36 @@ const prismaStub = {
       if (where.createdAt?.lt) rows = rows.filter((m) => m.createdAt < where.createdAt.lt);
       return rows.slice().sort((a, b) => b.createdAt - a.createdAt);
     },
+    async updateMany({ where }) {
+      // listMessages marks every unread message in the thread read (opening
+      // a thread = reading it). Never touches the caller's own messages.
+      let n = 0;
+      for (const m of db.messages) {
+        if (m.requestId === where.requestId
+          && m.channel === where.channel
+          && m.fromUserId !== where.fromUserId?.not
+          && m.readAt == null) {
+          m.readAt = new Date();
+          n += 1;
+        }
+      }
+      return { count: n };
+    },
+    async groupBy({ where, by }) {
+      // computeUnreadCounts: per-channel count of unread messages not from
+      // the caller, mirroring the shape prisma returns.
+      const counts = {};
+      for (const m of db.messages) {
+        if (m.requestId !== where.requestId) continue;
+        if (m.fromUserId === where.fromUserId?.not) continue;
+        if (m.readAt != null) continue;
+        if (where.channel?.in && !where.channel.in.includes(m.channel)) continue;
+        counts[m.channel] = (counts[m.channel] || 0) + 1;
+      }
+      return Object.entries(counts)
+        .map(([channel, n]) => ({ channel, _count: { _all: n } }))
+        .filter((g) => g._count._all > 0);
+    },
   },
 };
 

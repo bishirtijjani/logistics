@@ -216,6 +216,11 @@ const initialState = {
   // Private per-channel threads for the current request, chronological ASC.
   // A customer only ever has these two - never the rider<->merchant thread.
   messagesByChannel: { CUSTOMER_RIDER: [], CUSTOMER_MERCHANT: [] },
+  // Unread-chat badges: seeded from the request payload's `unreadCounts`,
+  // bumped when a message from the other party arrives while its thread is
+  // NOT the one open on screen, and zeroed when that thread is opened (the
+  // fetchMessages call marks everything read server-side).
+  unreadCounts: { CUSTOMER_RIDER: 0, CUSTOMER_MERCHANT: 0 },
 };
 
 const requestSlice = createSlice({
@@ -269,13 +274,22 @@ const requestSlice = createSlice({
         state.riderEta = action.payload;
       }
     },
-    // Phase 4 - chat append (socket-driven; de-duped against optimistic id)
+    // Phase 4 - chat append (socket-driven; de-duped against optimistic id).
+    // Unread bookkeeping: the screen passes `viewerUserId` (the customer's id
+    // for this request) and `chatChannel` (the thread currently open, or
+    // null). A message from the other party on a closed thread bumps that
+    // channel's badge; messages in the open thread (or from us) never do.
     appendMessageFromSocket: (state, action) => {
-      const { requestId, channel, message } = action.payload || {};
+      const { requestId, channel, message, viewerUserId, chatChannel } = action.payload || {};
       if (state.currentRequest?.id !== requestId || !channel || !message) return;
       const thread = state.messagesByChannel[channel] || (state.messagesByChannel[channel] = []);
       const exists = thread.find((m) => m.id === message.id);
       if (!exists) thread.push(message);
+      if (message.fromUserId === viewerUserId) return;
+      if (channel === chatChannel) return;
+      if (state.unreadCounts[channel] !== undefined) {
+        state.unreadCounts[channel] += 1;
+      }
     },
     setRoute: (state, action) => {
       state.route = action.payload;
@@ -323,6 +337,9 @@ const requestSlice = createSlice({
         state.isLoading = false;
         const sameRequest = state.currentRequest?.id === action.payload?.id;
         state.currentRequest = action.payload;
+        state.unreadCounts = action.payload?.unreadCounts
+          ? { ...state.unreadCounts, ...action.payload.unreadCounts }
+          : { CUSTOMER_RIDER: 0, CUSTOMER_MERCHANT: 0 };
         if (!sameRequest) {
           // New request opened - wipe per-request tracking caches.
           state.route = null;
@@ -440,6 +457,11 @@ const requestSlice = createSlice({
       .addCase(fetchMessages.fulfilled, (state, action) => {
         const { channel, messages } = action.payload;
         state.messagesByChannel[channel] = messages || [];
+        // Fetching a thread opens it server-side (listMessages marks all
+        // unread messages read), so the badge for that thread is cleared.
+        if (state.unreadCounts[channel] !== undefined) {
+          state.unreadCounts[channel] = 0;
+        }
       })
       .addCase(postMessage.fulfilled, (state, action) => {
         const { channel, message: msg } = action.payload;

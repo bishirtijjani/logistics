@@ -109,6 +109,29 @@ const slice = createSlice({
         state.activeRequest = { ...state.activeRequest, status };
       }
     },
+    // A new order-thread message arrived for the active request. Payload:
+    // { requestId, channel, message, viewerUserId } - we only bump the badge
+    // for messages from the other party, and only while the customer isn't
+    // already reading that thread (tracked on the request slice, which owns
+    // the per-channel counts; this keeps the home card's total in sync).
+    activeRequestMessageFromSocket: (state, action) => {
+      const { requestId, message, viewerUserId } = action.payload || {};
+      if (!requestId || !state.activeRequest) return;
+      if (state.activeRequest.id !== requestId) return;
+      if (!message) return;
+      if (message.fromUserId === viewerUserId) return;
+      state.activeRequest = {
+        ...state.activeRequest,
+        unreadChatCount: (Number(state.activeRequest.unreadChatCount) || 0) + 1,
+      };
+    },
+    // The customer opened a chat thread for the active request (or the
+    // tracking screen fetched messages, marking them read server-side).
+    clearActiveRequestChatUnread: (state) => {
+      if (state.activeRequest) {
+        state.activeRequest = { ...state.activeRequest, unreadChatCount: 0 };
+      }
+    },
     setActiveRequest: (state, action) => {
       state.activeRequest = action.payload || null;
     },
@@ -142,5 +165,5 @@ const slice = createSlice({
   },
 });
 
-export const { activeRequestFromSocket, setActiveRequest, clearHome } = slice.actions;
+export const { activeRequestFromSocket, activeRequestMessageFromSocket, clearActiveRequestChatUnread, setActiveRequest, clearHome } = slice.actions;
 export default slice.reducer;

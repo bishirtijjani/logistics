@@ -31,6 +31,7 @@ import {
   tripCleared,
   hydratePodDraft,
   completeDelivery,
+  setTripChatOpen,
 } from "../../store/slices/tripSlice";
 import { setOnDelivery } from "../../store/slices/riderSlice";
 import { createTicketFromTrip } from "../../store/slices/supportSlice";
@@ -108,6 +109,8 @@ export default function TripCockpitScreen({ route }) {
   const cancelling = useSelector((s) => s.trip.cancelling);
   const errorState = useSelector((s) => s.trip.error);
   const lastFix = useSelector((s) => s.rider.lastFix);
+  const unreadCounts = useSelector((s) => s.trip.unreadCounts);
+  const unreadTotal = (unreadCounts?.CUSTOMER_RIDER || 0) + (unreadCounts?.RIDER_MERCHANT || 0);
 
   const requestId = activeRequestId || paramRequestId;
 
@@ -170,6 +173,12 @@ export default function TripCockpitScreen({ route }) {
       setChatChannel(paramChatChannel);
     }
   }, [paramChatChannel]);
+
+  // Keep the trip slice in sync with the open chat thread so incoming
+  // messages on that thread render live without being counted as unread.
+  useEffect(() => {
+    dispatch(setTripChatOpen(chatChannel));
+  }, [chatChannel, dispatch]);
   const [wrongAddressStage, setWrongAddressStage] = useState(null);
 
   // ── Phase 5: POD sheet machine ─────────────────────────────────────────
@@ -657,11 +666,30 @@ export default function TripCockpitScreen({ route }) {
         <TouchableOpacity
           onPress={() => setChatPickerVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel={t("trip.openChat", "Open chat")}
+          accessibilityLabel={unreadTotal > 0
+            ? t("trip.openChat", "Open chat") + ` · ${unreadTotal} ${t("trip.unread", "unread")}`
+            : t("trip.openChat", "Open chat")}
           hitSlop={8}
-          style={{ paddingHorizontal: 6, paddingVertical: 6 }}
+          style={{ paddingHorizontal: 6, paddingVertical: 6, position: "relative" }}
         >
           <Ionicons name="chatbubbles-outline" size={22} color={tokens.brand.default} />
+          {unreadTotal > 0 && (
+            <View
+              style={{
+                position: "absolute", top: 0, right: 0,
+                minWidth: 16, height: 16, paddingHorizontal: 4,
+                borderRadius: 9, backgroundColor: tokens.status.error,
+                alignItems: "center", justifyContent: "center",
+                borderWidth: 2, borderColor: tokens.bg.surface,
+              }}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
+              <Text style={{ color: tokens.text.onBrand, fontSize: 9, fontWeight: "800" }}>
+                {unreadTotal > 99 ? "99+" : unreadTotal}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -929,6 +957,8 @@ export default function TripCockpitScreen({ route }) {
       <ChatChannelPicker
         visible={chatPickerVisible}
         hasMerchant={!!merchantUserId}
+        unreadCustomer={unreadCounts?.CUSTOMER_RIDER || 0}
+        unreadMerchant={unreadCounts?.RIDER_MERCHANT || 0}
         onClose={() => setChatPickerVisible(false)}
         onPickCustomer={() => { setChatPickerVisible(false); setChatChannel("CUSTOMER_RIDER"); }}
         onPickMerchant={() => { setChatPickerVisible(false); setChatChannel("RIDER_MERCHANT"); }}

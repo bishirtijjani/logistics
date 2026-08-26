@@ -1134,9 +1134,15 @@ model RequestMessage {
 
   body String @db.VarChar(1000)
 
+  // Read receipt: null until the recipient opens the thread (listMessages
+  // stamps it on fetch). Drives the unread-chat badges in the customer and
+  // rider apps - "unread" = a message from the other party with readAt null.
+  readAt DateTime?
+
   createdAt DateTime @default(now())
 
   @@index([requestId, channel, createdAt])
+  @@index([requestId, channel, fromUserId, readAt])
   @@index([fromUserId])
   @@map("request_messages")
 }

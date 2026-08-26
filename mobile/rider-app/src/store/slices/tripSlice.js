@@ -491,6 +491,17 @@ const initialState = {
   // RIDER_MERCHANT, never the customer<->merchant thread between the other two.
   messagesByChannel: { CUSTOMER_RIDER: [], RIDER_MERCHANT: [] },
   messagesLoading: false,
+  // Unread-chat badges: seeded from the request payload's `unreadCounts`,
+  // bumped when a message from the other party arrives while its thread is
+  // NOT the one open on screen, and zeroed when that thread is opened (the
+  // fetchMessages call marks everything read server-side).
+  unreadCounts: { CUSTOMER_RIDER: 0, RIDER_MERCHANT: 0 },
+  // The channel currently open in the chat sheet (null when closed). Messages
+  // on the open channel append live without counting as unread.
+  openChatChannel: null,
+  // The rider's own user id, for "is this message from me?" checks in
+  // tripMessageReceived (seeded on hydrate from the request payload).
+  riderUserId: null,
   // Phase 5 - POD draft, persisted to SecureStore on every mutation.
   // Shape: {
   //   photoLocalUri: string | null,   - local file:// while pre-upload
@@ -593,11 +604,30 @@ const slice = createSlice({
       const existingIdx = thread.findIndex((m) => m.id === message.id);
       if (existingIdx === -1) thread.push(message);
       else thread[existingIdx] = message;
+      // Unread bookkeeping: only messages from the other party on a thread
+      // that isn't currently open on screen bump the badge.
+      if (message.fromUserId === state.riderUserId) return;
+      if (state.openChatChannel === channel) return;
+      if (state.unreadCounts[channel] !== undefined) {
+        state.unreadCounts[channel] += 1;
+      }
+    },
+    /** Record which chat thread is open (or null when closed). */
+    setTripChatOpen: (state, action) => {
+      const channel = action.payload || null;
+      state.openChatChannel = channel;
+      if (channel && state.unreadCounts[channel] !== undefined) {
+        state.unreadCounts[channel] = 0;
+      }
     },
     /** Convenience: clear the last error (e.g. on retry tap). */
     clearTripError: (state) => { state.error = null; },
     /** Clear chat after closing the sheet. */
-    clearTripMessages: (state) => { state.messagesByChannel = { CUSTOMER_RIDER: [], RIDER_MERCHANT: [] }; },
+    clearTripMessages: (state) => {
+      state.messagesByChannel = { CUSTOMER_RIDER: [], RIDER_MERCHANT: [] };
+      state.unreadCounts = { CUSTOMER_RIDER: 0, RIDER_MERCHANT: 0 };
+      state.openChatChannel = null;
+    },
     /** Wipe the trip - used after DELIVERED → cockpit hands off to POD/Earnings. */
     tripCleared: (state) => {
       if (state.activeRequestId) {
@@ -693,6 +723,8 @@ const slice = createSlice({
           statusQueue: [],
           messagesByChannel: { CUSTOMER_RIDER: [], RIDER_MERCHANT: [] },
           messagesLoading: false,
+          unreadCounts: { CUSTOMER_RIDER: 0, RIDER_MERCHANT: 0 },
+          openChatChannel: null,
           pod: null,
           cancelled: null,
           error: null,
@@ -751,6 +783,12 @@ const slice = createSlice({
           collectAmount: r.collectAmount,
           customerId: r.customerId,
           merchantUserId: r.merchantUserId,
+          riderUserId: r.rider?.user?.id || r.riderId || null,
+          // Authoritative unread counts from the server (persisted readAt).
+          unreadCounts: {
+            CUSTOMER_RIDER: Number(r.unreadCounts?.CUSTOMER_RIDER) || 0,
+            RIDER_MERCHANT: Number(r.unreadCounts?.RIDER_MERCHANT) || 0,
+          },
           error: null,
         });
       })
@@ -819,6 +857,11 @@ const slice = createSlice({
         const { requestId, channel, messages } = action.payload;
         if (state.activeRequestId !== requestId) return;
         state.messagesByChannel[channel] = messages;
+        // Fetching a thread opens it server-side (listMessages marks all
+        // unread messages read), so the badge for that thread is cleared.
+        if (state.unreadCounts[channel] !== undefined) {
+          state.unreadCounts[channel] = 0;
+        }
       })
       .addCase(fetchMessages.rejected, (state) => {
         state.messagesLoading = false;
@@ -882,6 +925,7 @@ export const {
   tripCancelledFromSocket,
   acknowledgeCancellation,
   tripMessageReceived,
+  setTripChatOpen,
   clearTripError,
   clearTripMessages,
   tripCleared,

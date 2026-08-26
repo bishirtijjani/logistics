@@ -13,9 +13,27 @@ import { useT } from "../../i18n/useT";
  * is for reaching the other one too (e.g. messaging the merchant about a
  * substitution while already en route to the customer).
  */
-export default function ChatChannelPicker({ visible, onClose, hasMerchant, onPickCustomer, onPickMerchant }) {
+export default function ChatChannelPicker({ visible, onClose, hasMerchant, unreadCustomer = 0, unreadMerchant = 0, onPickCustomer, onPickMerchant }) {
   const { tokens } = useTheme();
   const { t } = useT();
+
+  const UnreadBadge = ({ count }) => (
+    count > 0 ? (
+      <View
+        style={{
+          minWidth: 18, height: 18, paddingHorizontal: 5, marginRight: 6,
+          borderRadius: 9, backgroundColor: tokens.status.error,
+          alignItems: "center", justifyContent: "center",
+        }}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Text style={{ color: tokens.text.onBrand, fontSize: 10, fontWeight: "800" }}>
+          {count > 99 ? "99+" : count}
+        </Text>
+      </View>
+    ) : null
+  );
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -52,6 +70,7 @@ export default function ChatChannelPicker({ visible, onClose, hasMerchant, onPic
             <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>
               {t("trip.chatPicker.customer", "Message customer")}
             </Text>
+            <UnreadBadge count={unreadCustomer} />
             <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
           </TouchableOpacity>
 
@@ -70,6 +89,7 @@ export default function ChatChannelPicker({ visible, onClose, hasMerchant, onPic
               <Text style={{ marginLeft: 12, flex: 1, fontSize: 15, fontWeight: "700", color: tokens.text.primary }}>
                 {t("trip.chatPicker.merchant", "Message merchant")}
               </Text>
+              <UnreadBadge count={unreadMerchant} />
               <Ionicons name="chevron-forward" size={18} color={tokens.text.muted} />
             </TouchableOpacity>
           ) : null}
