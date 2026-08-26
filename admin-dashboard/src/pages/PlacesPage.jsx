@@ -37,8 +37,11 @@ export default function PlacesPage() {
       if (search.trim()) params.set('search', search.trim())
       if (activeFilter !== 'all') params.set('isActive', activeFilter)
       const res = await api.get(`/admin/places?${params}`)
-      setPlaces(res.data.data?.items || [])
-      setTotal(res.data.data?.total || 0)
+      // The list endpoint uses ApiResponse.paginated: the array lives in
+      // `data` directly and the count in `meta.total` (not `data.items`).
+      const payload = res.data?.data
+      setPlaces(Array.isArray(payload) ? payload : [])
+      setTotal(res.data?.meta?.total || 0)
     } catch {
       toast.error('Failed to load places')
     } finally {
