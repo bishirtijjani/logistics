@@ -38,7 +38,7 @@ const POLYGON = [
 const CENTROID = { lng: 7.7484, lat: 12.1779 }
 
 export const GEO_RESTRICTION = {
-  enabled: false, // TEMP: disabled for Abuja dev-team E2E testing — re-enable before iprime handoff
+  enabled: true,
   label: 'Katsina',
   // Default map centre (Katsina city).
   center: { lat: 13.0059, lng: 7.6019 },
