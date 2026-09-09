@@ -331,6 +331,55 @@ const RequestTrackingScreen = () => {
 
   const openRate = () => navigation.navigate('RateRequest', { request: currentRequest });
 
+  // The rider's live position, best-source-first:
+  //   1. currentRequest.riderLocation  - pushed by `rider:location:broadcast`
+  //      (the rider streams a fix ~every 3s while on a trip)
+  //   2. activeRoute.riderLat/Lng      - the 30s route poll, backfills gaps
+  //   3. riderEta.riderLat/Lng         - the ETA pushes carry a position too
+  // The previous code read a bare `riderLocation` variable that never existed
+  // in this component, so the marker never rendered and the map never moved.
+  const riderLocation = useMemo(() => {
+    if (currentRequest?.riderLocation) return currentRequest.riderLocation;
+    if (activeRoute?.riderLat != null && activeRoute?.riderLng != null) {
+      return { lat: activeRoute.riderLat, lng: activeRoute.riderLng };
+    }
+    if (riderEta?.riderLat != null && riderEta?.riderLng != null) {
+      return { lat: riderEta.riderLat, lng: riderEta.riderLng };
+    }
+    return null;
+  }, [currentRequest?.riderLocation, activeRoute?.riderLat, activeRoute?.riderLng, riderEta?.riderLat, riderEta?.riderLng]);
+
+  const mapCenter = riderLocation || (
+    currentRequest.pickupLat && currentRequest.pickupLng
+      ? { lat: currentRequest.pickupLat, lng: currentRequest.pickupLng }
+      : currentRequest.dropoffLat && currentRequest.dropoffLng
+        ? { lat: currentRequest.dropoffLat, lng: currentRequest.dropoffLng }
+        : null
+  );
+
+  const hasMapCoords = !!mapCenter;
+
+  // Split-view: once a rider is actively moving the order, pin the map to the top
+  // half of the screen and drop the rest of the tracking content into a scrollable
+  // bottom sheet - so the customer watches the rider move without scrolling down.
+  const splitView = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && hasMapCoords;
+  const showArrivedBanner = riderArrived === 'dropoff'
+    && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status);
+
+  // Auto-follow the rider while in split-view watch mode: whenever their
+  // position updates, glide the camera to them so the customer sees the map
+  // move with the order. Panning the map pauses the follow (recenter FAB).
+  useEffect(() => {
+    if (!autoCenter || !mapRef.current || !riderLocation) return;
+    if (!splitView) return;
+    try {
+      mapRef.current.animateCamera({
+        center: { latitude: riderLocation.lat, longitude: riderLocation.lng },
+        zoom: 15,
+      }, { duration: 400 });
+    } catch (_) {}
+  }, [autoCenter, riderLocation?.lat, riderLocation?.lng, splitView]);
+
   if (isLoading && !currentRequest) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: tokens.bg.canvas }}>
@@ -414,55 +463,6 @@ const RequestTrackingScreen = () => {
   const showEtaChip = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && etaSeconds != null;
   // Total unread chat messages across the customer's private threads.
   const unreadTotal = (unreadCounts?.CUSTOMER_RIDER || 0) + (unreadCounts?.CUSTOMER_MERCHANT || 0);
-
-  // The rider's live position, best-source-first:
-  //   1. currentRequest.riderLocation  - pushed by `rider:location:broadcast`
-  //      (the rider streams a fix ~every 3s while on a trip)
-  //   2. activeRoute.riderLat/Lng      - the 30s route poll, backfills gaps
-  //   3. riderEta.riderLat/Lng         - the ETA pushes carry a position too
-  // The previous code read a bare `riderLocation` variable that never existed
-  // in this component, so the marker never rendered and the map never moved.
-  const riderLocation = useMemo(() => {
-    if (currentRequest?.riderLocation) return currentRequest.riderLocation;
-    if (activeRoute?.riderLat != null && activeRoute?.riderLng != null) {
-      return { lat: activeRoute.riderLat, lng: activeRoute.riderLng };
-    }
-    if (riderEta?.riderLat != null && riderEta?.riderLng != null) {
-      return { lat: riderEta.riderLat, lng: riderEta.riderLng };
-    }
-    return null;
-  }, [currentRequest?.riderLocation, activeRoute?.riderLat, activeRoute?.riderLng, riderEta?.riderLat, riderEta?.riderLng]);
-
-  const mapCenter = riderLocation || (
-    currentRequest.pickupLat && currentRequest.pickupLng
-      ? { lat: currentRequest.pickupLat, lng: currentRequest.pickupLng }
-      : currentRequest.dropoffLat && currentRequest.dropoffLng
-        ? { lat: currentRequest.dropoffLat, lng: currentRequest.dropoffLng }
-        : null
-  );
-
-  const hasMapCoords = !!mapCenter;
-
-  // Split-view: once a rider is actively moving the order, pin the map to the top
-  // half of the screen and drop the rest of the tracking content into a scrollable
-  // bottom sheet - so the customer watches the rider move without scrolling down.
-  const splitView = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && hasMapCoords;
-  const showArrivedBanner = riderArrived === 'dropoff'
-    && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status);
-
-  // Auto-follow the rider while in split-view watch mode: whenever their
-  // position updates, glide the camera to them so the customer sees the map
-  // move with the order. Panning the map pauses the follow (recenter FAB).
-  useEffect(() => {
-    if (!autoCenter || !mapRef.current || !riderLocation) return;
-    if (!splitView) return;
-    try {
-      mapRef.current.animateCamera({
-        center: { latitude: riderLocation.lat, longitude: riderLocation.lng },
-        zoom: 15,
-      }, { duration: 400 });
-    } catch (_) {}
-  }, [autoCenter, riderLocation?.lat, riderLocation?.lng, splitView]);
 
   // Shared map element, rendered either pinned to the top half (split view) or
   // inline in its 240px card (non-split).
