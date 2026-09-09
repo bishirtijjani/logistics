@@ -508,9 +508,25 @@ const getRecentRecipients = async (userId, { type, limit }) => {
   return out;
 };
 
+/**
+ * Get one of the caller's utility payments.
+ *
+ * `paymentId` may be the utilityPayment's own id (used by the post-purchase
+ * result/poll flow) OR the linked wallet transaction reference (used by the
+ * customer activity/receipt screens, which only see the reference on the
+ * UTILITY_PAYMENT transaction). Ownership is still enforced via `userId`, so
+ * a caller can never resolve a payment they don't own.
+ */
 const getPayment = (userId, paymentId) =>
   prisma.utilityPayment.findFirst({
-    where: { id: paymentId, userId },
+    where: {
+      userId,
+      OR: [
+        { id: paymentId },
+        { providerRequestId: paymentId },
+        { transactionId: paymentId },
+      ],
+    },
   });
 
 module.exports = {

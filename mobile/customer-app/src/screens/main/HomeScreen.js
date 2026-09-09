@@ -1419,7 +1419,7 @@ function RecentActivity({ items, navigation }) {
         </Text>
         {items.length > 0 && (
           <TouchableOpacity
-            onPress={() => navigation.navigate("MainTabs", { screen: "OrdersTab" })}
+            onPress={() => navigation.navigate("AllActivity")}
             accessibilityRole="link"
             accessibilityLabel={t("home.seeAll")}
           >

@@ -69,6 +69,10 @@ import CheckoutScreen from "../screens/request/CheckoutScreen";
 import RequestTrackingScreen from "../screens/request/RequestTrackingScreen";
 import CreateRequestScreen from "../screens/request/CreateRequestScreen";
 import RateRequestScreen from "../screens/request/RateRequestScreen";
+import RequestReceiptScreen from "../screens/request/RequestReceiptScreen";
+
+// All Activity
+import AllActivityScreen from "../screens/main/AllActivityScreen";
 
 // Wallet Screens
 import FundWalletScreen from "../screens/wallet/FundWalletScreen";
@@ -88,6 +92,7 @@ import CableScreen from "../screens/utility/CableScreen";
 import ElectricityScreen from "../screens/utility/ElectricityScreen";
 import ElectricityResultScreen from "../screens/utility/ElectricityResultScreen";
 import UtilityHistoryScreen from "../screens/utility/UtilityHistoryScreen";
+import UtilityReceiptScreen from "../screens/utility/UtilityReceiptScreen";
 
 // Notification Center
 import NotificationCenterScreen from "../screens/main/NotificationCenterScreen";
@@ -532,7 +537,11 @@ export default function AppNavigator() {
             <Stack.Screen name="CreateRequest" component={CreateRequestScreen} />
             <Stack.Screen name="Checkout" component={CheckoutScreen} />
             <Stack.Screen name="RequestTracking" component={RequestTrackingScreen} />
+            <Stack.Screen name="RequestReceipt" component={RequestReceiptScreen} />
             <Stack.Screen name="RateRequest" component={RateRequestScreen} />
+
+            {/* All Activity - full merged history */}
+            <Stack.Screen name="AllActivity" component={AllActivityScreen} />
 
             {/* Wallet Screens */}
             <Stack.Screen name="FundWallet" component={FundWalletScreen} />
@@ -552,6 +561,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Electricity" component={ElectricityScreen} />
             <Stack.Screen name="ElectricityResult" component={ElectricityResultScreen} />
             <Stack.Screen name="UtilityHistory" component={UtilityHistoryScreen} />
+            <Stack.Screen name="UtilityReceipt" component={UtilityReceiptScreen} />
 
             {/* Notifications */}
             <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} />
