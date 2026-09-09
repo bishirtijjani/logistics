@@ -350,9 +350,9 @@ const RequestTrackingScreen = () => {
   }, [currentRequest?.riderLocation, activeRoute?.riderLat, activeRoute?.riderLng, riderEta?.riderLat, riderEta?.riderLng]);
 
   const mapCenter = riderLocation || (
-    currentRequest.pickupLat && currentRequest.pickupLng
+    currentRequest?.pickupLat && currentRequest?.pickupLng
       ? { lat: currentRequest.pickupLat, lng: currentRequest.pickupLng }
-      : currentRequest.dropoffLat && currentRequest.dropoffLng
+      : currentRequest?.dropoffLat && currentRequest?.dropoffLng
         ? { lat: currentRequest.dropoffLat, lng: currentRequest.dropoffLng }
         : null
   );
@@ -362,9 +362,9 @@ const RequestTrackingScreen = () => {
   // Split-view: once a rider is actively moving the order, pin the map to the top
   // half of the screen and drop the rest of the tracking content into a scrollable
   // bottom sheet - so the customer watches the rider move without scrolling down.
-  const splitView = ACTIVE_TRACK_STATUSES.has(currentRequest.status) && hasMapCoords;
+  const splitView = ACTIVE_TRACK_STATUSES.has(currentRequest?.status) && hasMapCoords;
   const showArrivedBanner = riderArrived === 'dropoff'
-    && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest.status);
+    && !['DELIVERED', 'SETTLED', 'CANCELLED'].includes(currentRequest?.status);
 
   // Auto-follow the rider while in split-view watch mode: whenever their
   // position updates, glide the camera to them so the customer sees the map
