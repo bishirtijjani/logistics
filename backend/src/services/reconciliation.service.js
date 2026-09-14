@@ -22,6 +22,7 @@
 const { prisma } = require('../config/database');
 const { logger } = require('../utils/logger');
 const { getSetting } = require('./settings.service');
+const { refundFailedWithdrawal } = require('./withdrawal-refund.service');
 
 /**
  * Money-comparison helper. Decimals come back from Prisma as Decimal.js
@@ -115,12 +116,17 @@ const runReconciliation = async ({ threshold } = {}) => {
     }),
   ]);
 
-  // 4. Stuck withdrawals - payouts left on PROCESSING that KatPay never
-  // confirmed. We can't auto-resolve (KatPay exposes no payout-status endpoint
-  // and only documents payout.processed), and auto-refunding could double-pay a
-  // payout that actually succeeded - so we surface them loudly for an admin to
-  // fail+refund or chase with the provider.
+  // 4. Stuck withdrawals - payouts left on PROCESSING/SENT that KatPay never
+  // confirmed. We can't query a payout-status endpoint, and auto-refunding could
+  // double-pay a payout that actually succeeded - so rows WITH a providerRef
+  // stay for manual resolution. But a row with NO providerRef was never handed
+  // back a reference by the provider (the worker claims PROCESSING→SENT BEFORE
+  // paying; a SENT row with no providerRef = rejected/refused or an ambiguous
+  // dispatch error). Those are safe to auto-refund: the refund is race-safe and
+  // idempotent (REF-<id> + CAS), and a late KatPay webhook can only settle
+  // merchant payouts, never a customer row already marked FAILED.
   const stuckAfterHours = Number(await getSetting('withdrawal.stuckAfterHours', 24));
+  const autoRefundStuck = await getSetting('withdrawal.autoRefundStuck', true);
   const stuckCutoff = new Date(startedAt.getTime() - stuckAfterHours * 60 * 60 * 1000);
   const stuckRows = await prisma.merchantWalletTransaction.findMany({
     where: { type: 'WITHDRAWAL', status: 'PROCESSING', processedAt: { lt: stuckCutoff } },
@@ -138,20 +144,42 @@ const runReconciliation = async ({ threshold } = {}) => {
   // Same hazard on the user/rider side: a Transaction(type=WITHDRAWAL) left on
   // PROCESSING means the payout job never reached a terminal state (its funds are
   // already debited). Parity also flags these as drift, but label them so ops can
-  // act directly rather than chasing a generic mismatch.
+  // act directly rather than chasing a generic mismatch. Auto-refund the ones with
+  // no provider confirmation; keep the confirmed-but-unsettled ones for a human.
   const stuckUserRows = await prisma.transaction.findMany({
     where: { type: 'WITHDRAWAL', status: { in: ['PROCESSING', 'SENT'] }, createdAt: { lt: stuckCutoff } },
     select: { id: true, reference: true, amount: true, status: true, providerRef: true, createdAt: true },
     take: 100,
   });
-  const stuckUserWithdrawals = stuckUserRows.map((r) => ({
-    id: r.id,
-    reference: r.reference,
-    amount: round2(r.amount),
-    status: r.status,
-    providerRef: r.providerRef,
-    processingSince: r.createdAt,
-  }));
+
+  const autoRefundedUser = [];
+  const stuckUserWithdrawals = [];
+  for (const r of stuckUserRows) {
+    if (autoRefundStuck && !r.providerRef) {
+      const result = await refundFailedWithdrawal({
+        transactionId: r.reference,
+        reason: `Stuck ${stuckAfterHours}h+ with no payout confirmation`,
+      });
+      if (result.refunded) {
+        autoRefundedUser.push({
+          reference: r.reference,
+          status: r.status,
+          amount: round2(r.amount),
+          refunded: round2(result.total),
+        });
+        continue;
+      }
+      logger.warn('Stuck withdrawal auto-refund did not complete', { reference: r.reference, reason: result.reason });
+    }
+    stuckUserWithdrawals.push({
+      id: r.id,
+      reference: r.reference,
+      amount: round2(r.amount),
+      status: r.status,
+      providerRef: r.providerRef,
+      processingSince: r.createdAt,
+    });
+  }
 
   const report = {
     startedAt,
@@ -186,6 +214,9 @@ const runReconciliation = async ({ threshold } = {}) => {
     },
     userWithdrawals: {
       stuckAfterHours,
+      autoRefundEnabled: autoRefundStuck,
+      autoRefundedCount: autoRefundedUser.length,
+      autoRefunded: autoRefundedUser,
       stuckCount: stuckUserWithdrawals.length,
       stuck: stuckUserWithdrawals,
       ok: stuckUserWithdrawals.length === 0,

@@ -93,16 +93,24 @@ const initiatePayout = async ({ amount, bank_code, account_number, account_name,
     return data;
   } catch (error) {
     const status = error.response?.status;
-    // "definitive" = the provider actively rejected the request (a 4xx other than
-    // 408/429), so the money definitely did NOT leave and a refund is safe.
-    // Everything else (timeout, network drop, 5xx, 408/429) is AMBIGUOUS - the
-    // payout MAY have settled, so callers must retry, never refund.
-    const definitive = Boolean(status && status >= 400 && status < 500 && status !== 408 && status !== 429);
+    const providerMessage = error.response?.data?.message || error.message;
+    // "definitive" = the provider actively rejected the request, so the money
+    // definitely did NOT leave and a refund is safe. That covers:
+    //   - any 4xx other than 408/429, AND
+    //   - a 503/5xx whose body explicitly says payouts are paused / not being
+    //     sent (e.g. KatPay's "Payouts are temporarily paused... not able to
+    //     send payouts... nothing is lost"). An explicit refusal IS a definite
+    //     "no" - without this, a paused provider strands every debited payout
+    //     in SENT waiting for a human.
+    // Everything else (timeout, network drop, bare 5xx, 408/429) is AMBIGUOUS -
+    // the payout MAY have settled, so callers must retry, never refund.
+    const pausedRefusal = /not able to send payouts|unable to (send|process) payouts?|payouts? (are )?(temporarily )?paused|payouts? cannot be sent/i.test(providerMessage);
+    const definitive = Boolean(pausedRefusal || (status && status >= 400 && status < 500 && status !== 408 && status !== 429));
     logger.error('KatPay initiatePayout failed', { error: error.response?.data || error.message, reference, status, definitive });
     const err = AppError.internal('Payout failed');
     err.definitive = definitive;
     err.providerStatus = status || null;
-    err.providerMessage = error.response?.data?.message || error.message;
+    err.providerMessage = providerMessage;
     throw err;
   }
 };
