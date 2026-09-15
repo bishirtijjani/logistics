@@ -429,53 +429,91 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
     };
   }
 
+  // All period bounds are UTC so they align with the date keys the client
+  // charts and with DATE_TRUNC('day', ...) semantics. The market is UTC+1
+  // (Nigeria); a delivery settled in the first local hour after midnight
+  // buckets to the previous UTC day, which is what the chart shows - a
+  // device-local lookup would otherwise read that bar as zero.
   const now = new Date();
-  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-  const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const weekStart = new Date(todayStart);
+  weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const thirtyDaysAgo = new Date(todayStart);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); // inclusive 30-day window
+  thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 29); // inclusive 30-day window
 
-  const baseWhere = {
+  // Two DISJOINT earning sources, unioned so CASH deliveries (rider keeps the
+  // money, no wallet tx is ever written) still surface in the analytics:
+  //   wallet earnings - RIDER_EARNING transactions credited to the rider's wallet
+  //   cash earnings   - settled CASH requests with riderEarning > 0
+  // A wallet delivery never produces a CASH request row and a cash delivery
+  // never produces a RIDER_EARNING tx, so the union never double-counts.
+  const walletWhere = {
     creditWalletId: walletId,
     type: 'RIDER_EARNING',
     status: 'COMPLETED',
   };
+  const cashWhere = {
+    riderId: rider.id,
+    paymentMethod: 'CASH',
+    status: 'SETTLED',
+    riderEarning: { gt: 0 },
+  };
 
-  const [today, week, month, dailyRows, recent, total] = await Promise.all([
-    prisma.transaction.aggregate({
-      where: { ...baseWhere, createdAt: { gte: todayStart } },
-      _sum: { amount: true },
-      _count: true,
-    }),
-    prisma.transaction.aggregate({
-      where: { ...baseWhere, createdAt: { gte: weekStart } },
-      _sum: { amount: true },
-      _count: true,
-    }),
-    prisma.transaction.aggregate({
-      where: { ...baseWhere, createdAt: { gte: monthStart } },
-      _sum: { amount: true },
-      _count: true,
-    }),
-    // Per-day series for the chart. Prisma doesn't have a native bucket-by-day
-    // operator on Postgres without raw SQL, so we use $queryRaw. DATE_TRUNC
-    // floors each row to its day; results are sparse - the client fills in
-    // missing days with zeros.
+  // Period totals over BOTH sources. COUNT(*) must stay an int - a BigInt
+  // would blow up JSON.stringify in the response layer.
+  const periodTotals = (sinceIso) => prisma.$queryRaw`
+    SELECT COALESCE(SUM(amount), 0)::float AS amount,
+           COUNT(*)::int AS count
+    FROM (
+      SELECT t."amount" AS amount
+      FROM transactions t
+      WHERE t."creditWalletId" = ${walletId}
+        AND t."type" = 'RIDER_EARNING'
+        AND t."status" = 'COMPLETED'
+        AND t."createdAt" >= ${sinceIso}::timestamptz
+      UNION ALL
+      SELECT r."riderEarning" AS amount
+      FROM requests r
+      WHERE r."riderId" = ${rider.id}
+        AND r."paymentMethod" = 'CASH'
+        AND r."status" = 'SETTLED'
+        AND r."riderEarning" > 0
+        AND r."settledAt" >= ${sinceIso}::timestamptz
+    ) e
+  `;
+
+  const [today, week, month, dailyRows, walletRecent, cashRecent, walletTotal, cashTotal] = await Promise.all([
+    periodTotals(todayStart.toISOString()),
+    periodTotals(weekStart.toISOString()),
+    periodTotals(monthStart.toISOString()),
+    // Per-day series for the chart over both sources. Prisma has no native
+    // bucket-by-day operator on Postgres, so we use $queryRaw. DATE_TRUNC
+    // floors each row to its UTC day; results are sparse - the client fills
+    // in missing days with zeros.
     prisma.$queryRaw`
-      SELECT DATE_TRUNC('day', "createdAt")::date AS day,
-             SUM("amount")::float AS amount,
-             COUNT(*)::int AS count
-      FROM "transactions"
-      WHERE "creditWalletId" = ${walletId}
-        AND "type" = 'RIDER_EARNING'
-        AND "status" = 'COMPLETED'
-        AND "createdAt" >= ${thirtyDaysAgo}
-      GROUP BY 1
-      ORDER BY 1 ASC
+      SELECT day, SUM(amount)::float AS amount, COUNT(*)::int AS count
+      FROM (
+        SELECT DATE_TRUNC('day', t."createdAt")::date AS day, t."amount" AS amount
+        FROM transactions t
+        WHERE t."creditWalletId" = ${walletId}
+          AND t."type" = 'RIDER_EARNING'
+          AND t."status" = 'COMPLETED'
+          AND t."createdAt" >= ${thirtyDaysAgo}
+        UNION ALL
+        SELECT DATE_TRUNC('day', r."settledAt")::date AS day, r."riderEarning" AS amount
+        FROM requests r
+        WHERE r."riderId" = ${rider.id}
+          AND r."paymentMethod" = 'CASH'
+          AND r."status" = 'SETTLED'
+          AND r."riderEarning" > 0
+          AND r."settledAt" >= ${thirtyDaysAgo}
+      ) e
+      GROUP BY day
+      ORDER BY day ASC
     `,
     prisma.transaction.findMany({
-      where: baseWhere,
+      where: walletWhere,
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -484,13 +522,25 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
         description: true, metadata: true, balanceAfter: true,
       },
     }),
-    prisma.transaction.count({ where: baseWhere }),
+    prisma.request.findMany({
+      where: cashWhere,
+      orderBy: { settledAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: {
+        id: true, deliveredAt: true, settledAt: true, distanceKm: true,
+        estimatedMinutes: true, dropoffAddress: true, riderEarning: true,
+        customer: { select: { firstName: true, lastName: true } },
+      },
+    }),
+    prisma.transaction.count({ where: walletWhere }),
+    prisma.request.count({ where: cashWhere }),
   ]);
 
   // Hydrate recent rows with the originating Request's display fields.
   // Settlement worker stores `metadata.requestId` on every RIDER_EARNING tx,
   // so we pluck those, batch-load requests, then merge.
-  const requestIds = recent
+  const requestIds = walletRecent
     .map((tx) => (tx.metadata && typeof tx.metadata === 'object' && tx.metadata.requestId) || null)
     .filter(Boolean);
   let requestMap = new Map();
@@ -506,7 +556,7 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
     requestMap = new Map(requests.map((r) => [r.id, r]));
   }
 
-  const recentHydrated = recent.map((tx) => {
+  const walletHydrated = walletRecent.map((tx) => {
     const reqId = tx.metadata?.requestId || null;
     const req = reqId ? requestMap.get(reqId) : null;
     return {
@@ -528,11 +578,40 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
     };
   });
 
+  // Cash rows ARE the requests (no transaction exists), so they carry their
+  // display fields natively. Keyed `cash-${requestId}` so the client's
+  // dedupe (by id / reference) never collides with a wallet row.
+  const cashHydrated = cashRecent.map((r) => ({
+    id: `cash-${r.id}`,
+    reference: `CASH-${r.id}`,
+    requestId: r.id,
+    amount: Number(r.riderEarning),
+    balanceAfter: null,
+    settledAt: r.settledAt,
+    deliveredAt: r.deliveredAt || null,
+    requestSettledAt: r.settledAt || null,
+    distanceKm: r.distanceKm || null,
+    durationMin: r.estimatedMinutes || null,
+    dropoffAddress: r.dropoffAddress || null,
+    customerName: r.customer
+      ? `${r.customer.firstName || ''} ${r.customer.lastName || ''}`.trim()
+      : null,
+    description: null,
+    _cash: true,
+  }));
+
+  // Both source lists are newest-first and disjoint, so a stable timestamp
+  // merge keeps the paginated window aligned: each page offsets both sources
+  // evenly, then takes the global top `limit` of the merged best-of-both.
+  const recent = [...walletHydrated, ...cashHydrated]
+    .sort((a, b) => new Date(b.settledAt) - new Date(a.settledAt))
+    .slice(0, limit);
+
   return {
     summary: {
-      today:   { amount: Number(today._sum.amount  || 0), count: today._count   || 0 },
-      week:    { amount: Number(week._sum.amount   || 0), count: week._count    || 0 },
-      month:   { amount: Number(month._sum.amount  || 0), count: month._count   || 0 },
+      today:   { amount: Number(today[0]?.amount  || 0), count: today[0]?.count    || 0 },
+      week:    { amount: Number(week[0]?.amount   || 0), count: week[0]?.count     || 0 },
+      month:   { amount: Number(month[0]?.amount  || 0), count: month[0]?.count    || 0 },
       allTime: {
         amount: Number(rider.totalEarnings) || 0,
         count: rider.totalDeliveries || 0,
@@ -546,10 +625,11 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
       amount: Number(r.amount || 0),
       count: Number(r.count || 0),
     })),
-    recent: recentHydrated,
+    recent,
     pagination: {
-      page, limit, total,
-      hasMore: page * limit < total,
+      page, limit,
+      total: walletTotal + cashTotal,
+      hasMore: page * limit < walletTotal + cashTotal,
     },
     averageRating: rider.averageRating || 0,
   };
@@ -972,7 +1052,10 @@ const updateRiderStatus = async (riderId, status, adminId) => {
 const getRiderEarningsAdmin = async (riderId) => {
   const rider = await prisma.rider.findUnique({
     where: { id: riderId },
-    include: { wallet: true },
+    include: {
+      wallet: true,
+      user: { select: { firstName: true, lastName: true } },
+    },
   });
 
   if (!rider) throw AppError.notFound('Rider not found');

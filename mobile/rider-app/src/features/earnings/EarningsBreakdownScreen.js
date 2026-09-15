@@ -25,12 +25,16 @@ import { fetchRiderEarnings, fetchMoreEarnings } from "../../store/slices/earnin
  * Infinite-scrolls via `fetchMoreEarnings`. Pull-to-refresh resets.
  */
 
-function ymdLocal(dateLike) {
+// Group keys must match the dashboard chart's date keys, which are UTC
+// (the server's DATE_TRUNC('day', ...) and the socket bump both use UTC).
+// A device-local lookup here would misgroup a UTC+1 midnight settlement and
+// break the chart→breakdown drill-in emphasis on `focusDate`.
+function ymdUtc(dateLike) {
   const d = new Date(dateLike);
   if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
@@ -77,7 +81,7 @@ export default function EarningsBreakdownScreen() {
     for (const id of allIds) {
       const row = byId[id];
       if (!row) continue;
-      const key = ymdLocal(row.settledAt || row.deliveredAt || row.createdAt);
+      const key = ymdUtc(row.settledAt || row.deliveredAt || row.createdAt);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(row);
     }
@@ -105,12 +109,15 @@ export default function EarningsBreakdownScreen() {
   }, [hasMore, isLoadingMore, page, dispatch]);
 
   const renderItem = ({ item }) => {
-    const isFocusDay = focusDate && ymdLocal(item.settledAt) === focusDate;
+    const isFocusDay = focusDate && ymdUtc(item.settledAt) === focusDate;
     // Tapping a row opens the underlying RIDER_EARNING transaction receipt
     // (rather than the live cockpit, which is for active trips only). The
     // transaction id IS the synthetic earning row's id from the server.
+    // Cash rows have no wallet transaction (the rider was paid in hand), so
+    // there is nothing to drill into - keep them non-navigating.
+    const isCash = Boolean(item._cash);
     const onPress = () => {
-      if (item.id) {
+      if (item.id && !isCash) {
         navigation.navigate("TransactionDetail", {
           transactionId: item.id,
           fallback: {
@@ -129,7 +136,7 @@ export default function EarningsBreakdownScreen() {
     return (
       <TouchableOpacity
         onPress={onPress}
-        disabled={!item.id}
+        disabled={!item.id || Boolean(item._cash)}
         accessibilityRole="button"
         accessibilityLabel={t("earnings.rowAria", "{{amount}} earned, {{customer}}", {
           amount: formatNaira(item.amount),
@@ -162,7 +169,7 @@ export default function EarningsBreakdownScreen() {
           <Text style={{ fontSize: 16, fontWeight: "800", color: tokens.status.successStrong, letterSpacing: -0.3 }}>
             +{formatNaira(item.amount)}
           </Text>
-          {item.requestId ? (
+          {item.requestId && !item._cash ? (
             <Ionicons name="chevron-forward" size={16} color={tokens.text.muted} style={{ marginTop: 2 }} />
           ) : null}
         </View>

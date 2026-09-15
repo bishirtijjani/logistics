@@ -18,9 +18,9 @@ const CHART_HEIGHT = 132;
 const BAR_GAP = 8;
 
 function formatYmd(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
@@ -40,7 +40,11 @@ export default function EarningsChart({ daily, selectedDate, onSelectDay }) {
     }
     const out = [];
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    // Bucket keys are UTC (the server's DATE_TRUNC('day', ...) and the
+    // socket bump's ISO date are both UTC); building the 7-day window with
+    // local-time getters would mismatch near UTC+1 midnight when "today"
+    // falls on a different date locally than in UTC.
+    now.setUTCHours(0, 0, 0, 0);
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);

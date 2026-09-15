@@ -36,7 +36,14 @@ export default function EarningsDashboardScreen() {
   const daily = useSelector((s) => s.earnings?.daily) || [];
   const averageRating = useSelector((s) => s.earnings?.averageRating) || 0;
   const isLoading = useSelector((s) => s.earnings?.isLoading);
+  const error = useSelector((s) => s.earnings?.error);
   const walletBalance = useSelector((s) => s.wallet?.balance) || 0;
+  // Gate the "no earnings yet" empty state only once the rider profile has
+  // settled. `hasLoadedOnce` is false while the boot-time profile fetch is in
+  // flight (or just failed transiently) - gating on it earlier would flash the
+  // onboarding empty state at, or worse hide analytics from, an approved rider
+  // whose profile simply didn't hydrate on cold start.
+  const riderLoaded = useSelector((s) => s.rider?.hasLoadedOnce);
   const { isApproved } = useOnboardingStage();
 
   const [activeTab, setActiveTab] = useState("today");
@@ -63,7 +70,9 @@ export default function EarningsDashboardScreen() {
 
   // Not yet an approved rider → there can be no earnings. Show an empty state
   // that points back to Home, where the OnboardingHero drives the next step.
-  if (!isApproved) {
+  // Skipped until the rider profile settles (see `riderLoaded` above) so a
+  // transient profile-fetch failure can't hide a real rider's analytics.
+  if (riderLoaded && !isApproved) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} edges={["top"]}>
         <ScrollView contentContainerStyle={{ padding: 20, flexGrow: 1 }}>
@@ -136,6 +145,50 @@ export default function EarningsDashboardScreen() {
         <Text style={{ fontSize: 13, color: tokens.text.muted, marginBottom: 18 }}>
           {t("earnings.subtitle", "Track how you're earning.")}
         </Text>
+
+        {error && !isLoading ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: tokens.status.errorSoft,
+              borderWidth: 1,
+              borderColor: tokens.status.errorSoftBorder,
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 16,
+            }}
+          >
+            <Ionicons name="cloud-offline-outline" size={18} color={tokens.status.error} />
+            <Text
+              style={{
+                flex: 1, marginLeft: 8, fontSize: 13, lineHeight: 18,
+                color: tokens.status.error,
+              }}
+            >
+              {t(
+                "earnings.loadError",
+                "Couldn't load your earnings. Check your connection and try again.",
+              )}
+            </Text>
+            <TouchableOpacity
+              onPress={onRefresh}
+              accessibilityRole="button"
+              accessibilityLabel={t("earnings.retry", "Retry")}
+              style={{
+                marginLeft: 10,
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderRadius: 8,
+                backgroundColor: tokens.status.error,
+              }}
+            >
+              <Text style={{ color: tokens.text.onBrand, fontWeight: "700", fontSize: 12 }}>
+                {t("earnings.retry", "Retry")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         {/* Big "today" header */}
         <View

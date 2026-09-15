@@ -2221,33 +2221,61 @@ const getAllRiders = async ({ page = 1, limit = 20, status, availability, search
  * Get rider earnings.
  */
 const getRiderEarnings = async (riderId, { startDate, endDate }) => {
-  const rider = await prisma.rider.findUnique({ where: { id: riderId } });
+  const rider = await prisma.rider.findUnique({
+    where: { id: riderId },
+    include: { wallet: true },
+  });
   if (!rider) throw AppError.notFound('Rider not found');
 
-  const where = {
-    riderId,
-    ...(startDate && { createdAt: { gte: new Date(startDate) } }),
-    ...(endDate && { createdAt: { lte: new Date(endDate) } }),
+  // Transaction rows join to riders only via the wallet they credit - there is
+  // no riderId column on transactions (that used to throw a Prisma validation
+  // error and 500 the endpoint). Filter by the rider's wallet instead.
+  const gte = startDate ? new Date(startDate) : null;
+  const lte = endDate ? new Date(endDate) : null;
+  const txnWhere = {
+    ...(rider.wallet && { creditWalletId: rider.wallet.id }),
+    type: 'RIDER_EARNING',
+    ...(gte && { createdAt: { gte } }),
+    ...(lte && { createdAt: { lte } }),
   };
 
-  const [earnings, completedDeliveries, totalEarnings] = await Promise.all([
+  const [earnings, completedDeliveries, walletTotals, cashTotals] = await Promise.all([
     prisma.transaction.findMany({
-      where: { ...where, type: 'RIDER_EARNING' },
+      where: txnWhere,
       orderBy: { createdAt: 'desc' },
     }),
     prisma.request.count({
-      where: { riderId, status: 'DELIVERED' },
+      where: {
+        riderId,
+        status: 'SETTLED',
+        ...(gte && { settledAt: { gte } }),
+        ...(lte && { settledAt: { lte } }),
+      },
     }),
     prisma.transaction.aggregate({
-      where: { ...where, type: 'RIDER_EARNING' },
+      where: txnWhere,
       _sum: { amount: true },
+    }),
+    // CASH deliveries never write a wallet tx - add their earnings so the
+    // admin total matches what the rider app's analytics report.
+    prisma.request.aggregate({
+      where: {
+        riderId,
+        paymentMethod: 'CASH',
+        status: 'SETTLED',
+        riderEarning: { gt: 0 },
+        ...(gte && { settledAt: { gte } }),
+        ...(lte && { settledAt: { lte } }),
+      },
+      _sum: { riderEarning: true },
     }),
   ]);
 
   return {
     earnings,
     completedDeliveries,
-    totalEarnings: totalEarnings._sum.amount || 0,
+    totalEarnings:
+      Number(walletTotals._sum.amount || 0) + Number(cashTotals._sum.riderEarning || 0),
   };
 };
 
