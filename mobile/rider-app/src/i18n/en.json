@@ -1541,7 +1541,9 @@
     },
     "onboardEmptyTitle": "No earnings yet",
     "onboardEmptyBody": "Finish setting up your rider profile to start receiving jobs and earning.",
-    "onboardEmptyCta": "Get started"
+    "onboardEmptyCta": "Get started",
+    "loadError": "Couldn't load your earnings. Check your connection and try again.",
+    "retry": "Retry"
   },
   "transactions": {
     "title": "Transactions",
