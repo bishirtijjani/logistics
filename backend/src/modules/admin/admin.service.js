@@ -13,6 +13,7 @@ const katpayService = require('../../services/katpay.service');
 const vtuProvider = require('../../services/bilalsada.service');
 const alrahuzProvider = require('../../services/alrahuz.service');
 const vtuRouter = require('../../services/vtu/router');
+const paymentsRouter = require('../../services/payments/router');
 const emailService = require('../../services/email.service');
 const settingsService = require('../../services/settings.service');
 const { createAuditLog } = require('../../utils/audit');
@@ -2429,6 +2430,7 @@ const getPlatformSettings = async () => {
   // Flatten them here so the admin form can bind to plain, form-friendly keys.
   const [
     withdrawalFee, withdrawalFeePayer, fundingFeePercent, fundingFeePayer, vtuProviderMode,
+    paymentsProviderMode,
     supportEmail, supportPhone,
     deliveryBaseFare, deliveryPerKmRate, deliveryPlatformFeePercent, deliveryCancellationFee, itemPlatformFeePercent,
     deliveryMatchingEnabled, deliveryBroadcastRadiusRings, deliveryBroadcastRingTimeoutSec,
@@ -2442,6 +2444,7 @@ const getPlatformSettings = async () => {
     settingsService.getSetting('wallet.fundingFeePercent', 1),
     settingsService.getSetting('wallet.fundingFeePayer', 'PLATFORM'),
     settingsService.getSetting(vtuRouter.SETTING_KEY, vtuRouter.DEFAULT_MODE),
+    settingsService.getSetting(paymentsRouter.SETTING_KEY, paymentsRouter.DEFAULT_MODE),
     settingsService.getSetting('platform.supportEmail', 'support@iprime.ng'),
     settingsService.getSetting('platform.supportPhone', '+2348000000000'),
     settingsService.getSetting('delivery.baseFare', config.DELIVERY_BASE_FARE || 200),
@@ -2473,6 +2476,10 @@ const getPlatformSettings = async () => {
     // Active VTU routing: BILALSADASUB_ONLY | ALRAHUZ_ONLY | BOTH (Bilal primary,
     // AlRahuz failover). Drives whether a failed purchase is refunded or retried.
     vtuProviderMode,
+    // Active money-movement gateway: KATPAY | PAYSTACK. One global mode; the
+    // wallet NUBANs, checkout references and payout route codes all come from
+    // whichever provider is active. See services/payments/router.js.
+    paymentsProviderMode,
     defaultCurrency: 'NGN',
     timezone: 'Africa/Lagos',
     supportEmail,
@@ -2583,6 +2590,23 @@ const updatePlatformSettings = async (settings, adminUserId = 'ADMIN') => {
       );
     }
     await settingsService.setSetting(vtuRouter.SETTING_KEY, settings.vtuProviderMode, adminUserId);
+  }
+
+  // Payment gateway routing mode - validate against the known modes before
+  // persist. Webhooks stay registered in either mode so in-flight/legacy
+  // transactions always settle; only NEW operations follow this provider.
+  if (settings.paymentsProviderMode !== undefined) {
+    if (!paymentsRouter.VALID_MODES.includes(settings.paymentsProviderMode)) {
+      throw AppError.badRequest(
+        `Invalid paymentsProviderMode. Expected one of: ${paymentsRouter.VALID_MODES.join(', ')}`,
+      );
+    }
+    await paymentsRouter.getMode(); // warm path - resolves + normalises the mode
+    await settingsService.setSetting(paymentsRouter.SETTING_KEY, settings.paymentsProviderMode, adminUserId);
+    logger.warn('Payment gateway switched', {
+      provider: settings.paymentsProviderMode,
+      adminUserId,
+    });
   }
 
   logger.info('Platform settings updated', { settings, adminUserId });

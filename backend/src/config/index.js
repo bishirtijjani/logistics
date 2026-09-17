@@ -154,12 +154,23 @@ const envSchema = z
       ? z.string().default("http://localhost:3000/webhooks/katpay")
       : z.string().url(),
 
-    // Paystack - used ONLY for bank-account name verification (resolve account).
+    // Paystack - dual role:
+    //   1. bank-account name verification (resolve account) - always on when a
+    //      secret key is set, regardless of the active gateway.
+    //   2. payment gateway when `payments.providerMode` = PAYSTACK (DVA funding,
+    //      checkout top-ups, balance payouts).
     // Optional everywhere: when unset, verification is skipped and the account
-    // name is taken as typed. Payouts always go through KatPay, never Paystack.
+    // name is taken as typed.
     PAYSTACK_BASE_URL: z.string().default("https://api.paystack.co"),
     PAYSTACK_SECRET_KEY: z.string().default(""),
     PAYSTACK_PUBLIC_KEY: z.string().default(""),
+    // Where Paystack redirects the payer after a checkout payment completes.
+    // Only meaningful in PAYSTACK mode; empty in prod → adapter falls back to
+    // the transaction callback default. Dev defaults to the local webhook so a
+    // fresh clone round-trips out of the box.
+    PAYSTACK_CALLBACK_URL: isDev
+      ? z.string().default("http://localhost:3000/webhooks/paystack")
+      : z.string().default(""),
 
     // Delivery Pricing
     DELIVERY_BASE_FARE: z.coerce.number().default(200),

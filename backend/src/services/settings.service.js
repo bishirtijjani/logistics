@@ -130,6 +130,10 @@ const PUBLIC_KEYS = [
   'delivery.requireSignature',
   'delivery.podOtpThresholdNgn',
   'merchant.platformFeePercent',
+  // Active money-movement gateway (KATPAY | PAYSTACK) - tells the apps which
+  // provider has minted the wallet NUBAN / issued checkout references so they
+  // display the right bank name and don't mix providers.
+  'payments.providerMode',
 ];
 
 const getPublicSettings = async () => {
