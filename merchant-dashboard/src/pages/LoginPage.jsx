@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import api from '../lib/api'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
@@ -18,9 +18,11 @@ export default function LoginPage() {
   const [forgotConfirm, setForgotConfirm] = useState('')
   const [forgotLoading, setForgotLoading] = useState(false)
   const [forgotError, setForgotError] = useState('')
+  const [forgotNotice, setForgotNotice] = useState('')
   const [forgotResendCooldown, setForgotResendCooldown] = useState(0)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const forgotSubmittingRef = useRef(false)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -80,8 +82,19 @@ export default function LoginPage() {
   // The backend emails a 6-digit OTP and expects it back via
   // /auth/password/reset - there is no reset *link*. Keep the request generic
   // ("if an account exists...") so we never leak which emails are registered.
+  //
+  // A 429 here is NOT a dead end: the server enforces a 60s cooldown between
+  // sends, so a 429 means a code was generated moments ago and is still valid.
+  // We advance to the code step anyway (with an informational notice) instead
+  // of stranding the user on the email step - that mismatch is what made the
+  // flow look broken.
   const requestResetCode = async () => {
+    // Guard against a rapid double-submit (two clicks/taps before the loading
+    // state paints) firing two requests, the second hitting the cooldown.
+    if (forgotSubmittingRef.current) return
+    forgotSubmittingRef.current = true
     setForgotError('')
+    setForgotNotice('')
     setForgotLoading(true)
     try {
       await api.post('/auth/password/forgot', { email: forgotEmail })
@@ -91,13 +104,28 @@ export default function LoginPage() {
       setForgotStep('reset')
       setForgotResendCooldown(60)
     } catch (err) {
-      setForgotError(
-        err?.response?.data?.message ||
-          (err?.code === 'ERR_NETWORK'
-            ? "Can't reach the server. Check your connection and try again."
-            : 'Failed to send reset code. Please try again.')
-      )
+      const status = err?.response?.status
+      const message = err?.response?.data?.message || ''
+      if (status === 429) {
+        const wait = Number((message.match(/(\d+)\s*second/i) || [])[1]) || 60
+        setForgotCode('')
+        setForgotPassword('')
+        setForgotConfirm('')
+        setForgotStep('reset')
+        setForgotResendCooldown(wait)
+        setForgotNotice(
+          `A code was already sent to ${forgotEmail}. Enter it below - you can request another in ${wait}s.`,
+        )
+      } else {
+        setForgotError(
+          message ||
+            (err?.code === 'ERR_NETWORK'
+              ? "Can't reach the server. Check your connection and try again."
+              : 'Failed to send reset code. Please try again.')
+        )
+      }
     } finally {
+      forgotSubmittingRef.current = false
       setForgotLoading(false)
     }
   }
@@ -115,6 +143,7 @@ export default function LoginPage() {
   const handleResetPassword = async (e) => {
     e.preventDefault()
     setForgotError('')
+    setForgotNotice('')
 
     if (forgotCode.length !== 6) {
       setForgotError('Enter the 6-digit code we emailed you.')
@@ -158,6 +187,7 @@ export default function LoginPage() {
     setForgotPassword('')
     setForgotConfirm('')
     setForgotError('')
+    setForgotNotice('')
     setForgotResendCooldown(0)
     setShowNewPassword(false)
   }
@@ -165,6 +195,7 @@ export default function LoginPage() {
   const openForgotPassword = () => {
     setError('')
     setForgotError('')
+    setForgotNotice('')
     setForgotStep('request')
     setShowForgotPassword(true)
   }
@@ -315,6 +346,12 @@ export default function LoginPage() {
             {forgotError && (
               <div className="bg-error/10 dark:bg-error/20 border border-error/20 dark:border-error/30 text-error px-4 py-3 rounded-lg mb-6">
                 {forgotError}
+              </div>
+            )}
+
+            {forgotNotice && (
+              <div className="bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 text-primary-700 dark:text-primary-400 px-4 py-3 rounded-lg mb-6">
+                {forgotNotice}
               </div>
             )}
 
