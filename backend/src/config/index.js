@@ -165,12 +165,12 @@ const envSchema = z
     PAYSTACK_SECRET_KEY: z.string().default(""),
     PAYSTACK_PUBLIC_KEY: z.string().default(""),
     // Where Paystack redirects the payer after a checkout payment completes.
-    // Only meaningful in PAYSTACK mode; empty in prod → adapter falls back to
-    // the transaction callback default. Dev defaults to the local webhook so a
-    // fresh clone round-trips out of the box.
+    // Only meaningful in PAYSTACK mode. Prod defaults to the webhook endpoint
+    // (the payer lands on a small confirmation page served by that route); dev
+    // defaults to the local webhook so a fresh clone round-trips out of the box.
     PAYSTACK_CALLBACK_URL: isDev
       ? z.string().default("http://localhost:3000/webhooks/paystack")
-      : z.string().default(""),
+      : z.string().default("https://api.iprime.ng/webhooks/paystack"),
 
     // Delivery Pricing
     DELIVERY_BASE_FARE: z.coerce.number().default(200),

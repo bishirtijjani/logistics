@@ -1,24 +1,36 @@
 /**
- * Paystack service - used ONLY for bank-account name verification (name enquiry).
+ * Paystack service - dual role.
  *
- * KatPay has no account-resolution endpoint, so we resolve the account holder
- * name against Paystack's free `/bank/resolve` and treat the result as advisory.
- * Payouts still go through KatPay; Paystack never moves money here.
+ *  1. Bank-account name verification (name enquiry). KatPay has no
+ *     account-resolution endpoint, so we resolve against Paystack's free
+ *     `/bank/resolve`. This runs regardless of the active gateway.
+ *  2. Payment gateway when `payments.providerMode` = PAYSTACK: Dedicated Virtual
+ *     Accounts (DVA) for wallet funding, hosted checkout for ad-hoc top-ups, and
+ *     balance transfers for payouts.
  *
  * Code mismatch note: the dashboards' bank picker is populated from KatPay's
  * bank list, so callers pass a KATPAY bank code. Paystack uses its own codes for
  * fintechs (e.g. OPay = 999992 on Paystack vs 100004 on KatPay), so we map
  * KatPay code → Paystack code by exact-code match (true for NIP-coded banks),
  * an override table (fintechs), then a normalized name match.
+ *
+ * Amounts: every amount that crosses the Paystack boundary is in KOBO (the
+ * smallest unit, ×100). Internal ledger amounts are naira; `toKobo`/`fromKobo`
+ * are the only sanctioned conversions.
+ *
+ * Webhooks: Paystack signs with HMAC-SHA512 over the RAW request body keyed by
+ * the secret key and sends the hex digest in `x-paystack-signature`. Verify with
+ * `verifyWebhookSignature` before trusting any field.
  */
 const axios = require('axios');
+const crypto = require('crypto');
 const { config } = require('../config');
 const { logger } = require('../utils/logger');
 const { AppError } = require('../utils/api-error');
 const katpayService = require('./katpay.service');
 
 const BASE = () => config.PAYSTACK_BASE_URL || 'https://api.paystack.co';
-const authHeaders = () => ({ Authorization: `Bearer ${config.PAYSTACK_SECRET_KEY}` });
+const authHeaders = () => ({ Authorization: `Bearer ${config.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' });
 const isConfigured = () => Boolean(config.PAYSTACK_SECRET_KEY);
 
 // Paystack bank list cache (1h).
@@ -33,6 +45,54 @@ const CODE_OVERRIDES = {
 };
 
 const norm = (s) => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// ─── Money / reference helpers ────────────────────────────────────────────────
+
+/** Naira → kobo. Rounds to the nearest kobo so float drift can't underpay. */
+const toKobo = (naira) => Math.round(Number(naira) * 100);
+
+/** Kobo → naira. */
+const fromKobo = (kobo) => Number(kobo) / 100;
+
+/**
+ * Paystack transfer references must be 16-50 chars of lowercase alphanumerics,
+ * `-`, `_` or `.`. Our ledger references are `WIT-<uuid>` / `TRF-<uuid>` (40
+ * chars), which are already valid once lowercased. This normalises arbitrary
+ * callers and pads anything too short so the request is never rejected on form.
+ */
+const toTransferReference = (reference) => {
+  const cleaned = String(reference || '').toLowerCase().replace(/[^a-z0-9\-_.]/g, '');
+  if (cleaned.length >= 16) return cleaned.slice(0, 50);
+  return `${cleaned}${'0'.repeat(16 - cleaned.length)}`.slice(0, 50);
+};
+
+/** Where Paystack redirects the payer after a hosted checkout completes. */
+const callbackUrl = () => config.PAYSTACK_CALLBACK_URL || 'https://api.iprime.ng/webhooks/paystack';
+
+/**
+ * Build an AppError for a failed Paystack API call, tagging `definitive` so the
+ * payment worker can tell a hard rejection (money never left → refund safe) from
+ * an ambiguous failure (may have gone out → hold/retry, never refund).
+ *
+ * Definitive = the provider actively rejected the request:
+ *   - 4xx other than 408 (timeout) / 429 (rate limit), AND
+ *   - not a "transfer requires OTP" or "reference already exists" response,
+ *     both of which mean the payout may still be in flight.
+ * Everything else (network, timeout, bare 5xx) is ambiguous.
+ */
+const payoutError = (err, providerMessage) => {
+  const status = err.response?.status;
+  const message = providerMessage || err.response?.data?.message || err.message || 'Payout failed';
+  const inFlight = /otp|already exists|already been (created|used)/i.test(message);
+  const definitive = Boolean(!inFlight && status && status >= 400 && status < 500 && status !== 408 && status !== 429);
+  const error = AppError.internal('Payout failed');
+  error.definitive = definitive;
+  error.providerStatus = status || null;
+  error.providerMessage = message;
+  return error;
+};
+
+// ─── Bank list & account name resolution (gateway-independent) ─────────────────
 
 /**
  * Full Paystack NGN bank list (cursor-paginated, cached 1h).
@@ -123,9 +183,302 @@ const resolveAccountName = async ({ accountNumber, bankCode }) => {
   }
 };
 
+// ─── Customers & Dedicated Virtual Accounts (funding) ─────────────────────────
+
+/**
+ * Look up a Paystack customer by email. Returns null if not found.
+ */
+const getCustomerByEmail = async (email) => {
+  try {
+    const res = await axios.get(`${BASE()}/customer/${encodeURIComponent(email)}`, {
+      headers: authHeaders(), timeout: 20000,
+    });
+    const data = res.data?.data;
+    if (!data) return null;
+    return { customerCode: data.customer_code, id: data.id, email: data.email };
+  } catch (err) {
+    if (err.response?.status === 404) return null;
+    throw err;
+  }
+};
+
+/**
+ * Create a Paystack customer (idempotent on email).
+ *
+ * Paystack returns the existing customer when the email already exists, but we
+ * still fall back to a lookup on the duplicate-error paths seen in the wild so
+ * provisioning retries never wedge on an already-created customer.
+ */
+const createCustomer = async ({ email, firstName, lastName, phone }) => {
+  if (!isConfigured()) throw AppError.internal('Paystack is not configured');
+  try {
+    const res = await axios.post(`${BASE()}/customer`, {
+      email,
+      first_name: firstName || undefined,
+      last_name: lastName || undefined,
+      phone: phone || undefined,
+    }, { headers: authHeaders(), timeout: 30000 });
+    const data = res.data?.data || {};
+    return { customerCode: data.customer_code, id: data.id, email: data.email };
+  } catch (err) {
+    const status = err.response?.status;
+    if (status === 400 || status === 409) {
+      const existing = await getCustomerByEmail(email).catch(() => null);
+      if (existing) return existing;
+    }
+    logger.error('Paystack createCustomer failed', {
+      email, status, message: err.response?.data?.message || err.message,
+    });
+    throw AppError.internal('Failed to create payment customer');
+  }
+};
+
+/**
+ * Assign a Dedicated Virtual Account (funding NUBAN) to a Paystack customer.
+ *
+ * Businesses whose Paystack category requires customer validation must supply a
+ * BVN; when one is on file it is forwarded. Returns the wallet-facing fields the
+ * provisioning worker persists (`virtualAccountNumber` = DVA number).
+ */
+const assignDva = async ({ customerCode, bvn, firstName, lastName, phone, preferredBank = 'wema-bank' }) => {
+  if (!isConfigured()) throw AppError.internal('Paystack is not configured');
+  if (!customerCode) throw AppError.internal('Paystack customer code is required for DVA provisioning');
+
+  const body = { customer: customerCode, preferred_bank: preferredBank };
+  if (bvn) body.bvn = String(bvn);
+  if (firstName) body.first_name = firstName;
+  if (lastName) body.last_name = lastName;
+  if (phone) body.phone = phone;
+
+  try {
+    const res = await axios.post(`${BASE()}/dedicated_account`, body, { headers: authHeaders(), timeout: 30000 });
+    const data = res.data?.data || {};
+    const accountNumber = data.account_number;
+    if (!accountNumber) throw AppError.internal('Paystack did not return an account number');
+    return {
+      accountNumber,
+      bankName: data.bank?.name || data.bank_name || preferredBank,
+      accountName: data.account_name || `${firstName || ''} ${lastName || ''}`.trim() || 'Wallet',
+      dedicatedAccountId: data.id != null ? String(data.id) : null,
+      customerCode: data.customer?.customer_code || customerCode,
+    };
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    logger.error('Paystack assignDva failed', {
+      customerCode, status: err.response?.status, message: err.response?.data?.message || err.message,
+    });
+    throw AppError.internal('Failed to provision wallet account');
+  }
+};
+
+// ─── Transfer recipients & payouts (withdrawals/transfers) ────────────────────
+
+/**
+ * Create a transfer recipient for a NUBAN. `bankCode` MUST be a Paystack code -
+ * callers holding a KatPay code should use `createRecipientFromKatpayBank`.
+ */
+const createTransferRecipient = async ({ name, accountNumber, bankCode, currency = 'NGN' }) => {
+  if (!isConfigured()) throw AppError.internal('Paystack is not configured');
+  try {
+    const res = await axios.post(`${BASE()}/transferrecipient`, {
+      type: 'nuban',
+      name: name || accountNumber,
+      account_number: String(accountNumber),
+      bank_code: String(bankCode),
+      currency,
+    }, { headers: authHeaders(), timeout: 30000 });
+    const data = res.data?.data || {};
+    if (!data.recipient_code) throw AppError.internal('Paystack did not return a recipient code');
+    return { recipientCode: data.recipient_code, id: data.id, details: data.details };
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    logger.error('Paystack createTransferRecipient failed', {
+      accountNumber, status: err.response?.status, message: err.response?.data?.message || err.message,
+    });
+    throw AppError.internal('Failed to prepare payout recipient');
+  }
+};
+
+/**
+ * Create a transfer recipient from a KATPAY bank code (what the dashboards and
+ * saved beneficiaries store). Maps the code across, then creates the recipient.
+ * Throws a clean 4xx when the bank can't be mapped so the caller can surface it.
+ */
+const createRecipientFromKatpayBank = async ({ name, accountNumber, katpayBankCode }) => {
+  const psCode = await paystackCodeForKatpayBank(katpayBankCode);
+  if (!psCode) throw AppError.badRequest('This bank is not supported for payouts');
+  return createTransferRecipient({ name, accountNumber, bankCode: psCode });
+};
+
+/**
+ * Initiate a payout (transfer) from the Paystack balance to a recipient.
+ *
+ * Requires transfer OTP to be disabled on the Paystack dashboard; an OTP
+ * response is classified as ambiguous so we never auto-refund a payout that may
+ * still go out. On error, `.definitive` distinguishes a safe refund from a
+ * hold-and-reconcile.
+ */
+const initiatePayout = async ({ amount, recipientCode, reference, reason, currency = 'NGN', source = 'balance' }) => {
+  if (!isConfigured()) throw AppError.internal('Paystack is not configured');
+  if (!recipientCode) throw AppError.internal('Paystack recipient code is required for payouts');
+
+  const ref = toTransferReference(reference);
+  try {
+    const res = await axios.post(`${BASE()}/transfer`, {
+      source,
+      amount: toKobo(amount),
+      recipient: recipientCode,
+      reason: reason || 'Wallet withdrawal',
+      reference: ref,
+      currency,
+    }, { headers: authHeaders(), timeout: 30000 });
+
+    const data = res.data?.data || {};
+    return {
+      reference: data.reference || ref,
+      transferCode: data.transfer_code || null,
+      status: data.status || 'pending',
+    };
+  } catch (err) {
+    const error = payoutError(err, err.response?.data?.message);
+    logger.error('Paystack initiatePayout failed', {
+      reference: ref, status: error.providerStatus, definitive: error.definitive, message: error.providerMessage,
+    });
+    throw error;
+  }
+};
+
+/** Verify a transfer's outcome by reference. Returns the normalised status. */
+const verifyTransfer = async (reference) => {
+  if (!isConfigured()) throw AppError.internal('Paystack is not configured');
+  try {
+    const res = await axios.get(`${BASE()}/transfer/verify/${encodeURIComponent(reference)}`, {
+      headers: authHeaders(), timeout: 20000,
+    });
+    const data = res.data?.data || {};
+    return {
+      reference: data.reference || reference,
+      status: data.status,
+      transferCode: data.transfer_code || null,
+      amount: data.amount != null ? fromKobo(data.amount) : null,
+      reason: data.reason || null,
+      recipient: data.recipient || null,
+    };
+  } catch (err) {
+    logger.error('Paystack verifyTransfer failed', {
+      reference, status: err.response?.status, message: err.response?.data?.message || err.message,
+    });
+    throw AppError.internal('Failed to verify payout');
+  }
+};
+
+// ─── Hosted checkout (ad-hoc wallet top-ups) ──────────────────────────────────
+
+/**
+ * Initialise a hosted checkout transaction. Returns `{ reference, checkout_url }`
+ * so the wallet funding path can normalise KatPay (`uuid`/`checkout_url`) and
+ * Paystack (`reference`/`authorization_url`) behind one envelope.
+ */
+const initializeTransaction = async ({ amount, email, reference, metadata, currency = 'NGN' }) => {
+  if (!isConfigured()) throw AppError.internal('Paystack is not configured');
+  if (!email) throw AppError.badRequest('Customer email is required to start a payment');
+
+  try {
+    const res = await axios.post(`${BASE()}/transaction/initialize`, {
+      email,
+      amount: toKobo(amount),
+      reference,
+      currency,
+      callback_url: callbackUrl(),
+      metadata,
+    }, { headers: authHeaders(), timeout: 30000 });
+
+    const data = res.data?.data || {};
+    if (!data.authorization_url) throw AppError.internal('Paystack did not return a checkout URL');
+    return {
+      reference: data.reference || reference,
+      checkout_url: data.authorization_url,
+      access_code: data.access_code || null,
+    };
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    const message = err.response?.data?.message || err.message;
+    logger.error('Paystack initializeTransaction failed', {
+      reference, status: err.response?.status, message,
+    });
+    throw AppError.badRequest(message || 'Failed to start payment');
+  }
+};
+
+/** Verify a checkout transaction by reference. Returns the normalised status. */
+const verifyTransaction = async (reference) => {
+  if (!isConfigured()) throw AppError.internal('Paystack is not configured');
+  try {
+    const res = await axios.get(`${BASE()}/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: authHeaders(), timeout: 20000,
+    });
+    const data = res.data?.data || {};
+    return {
+      reference: data.reference || reference,
+      status: data.status,
+      amount: data.amount != null ? fromKobo(data.amount) : null,
+      currency: data.currency || null,
+      channel: data.channel || null,
+      customerCode: data.customer?.customer_code || null,
+      customer: data.customer || null,
+      authorization: data.authorization || null,
+      metadata: data.metadata || null,
+      gatewayResponse: data.gateway_response || null,
+      paidAt: data.paid_at || null,
+    };
+  } catch (err) {
+    logger.error('Paystack verifyTransaction failed', {
+      reference, status: err.response?.status, message: err.response?.data?.message || err.message,
+    });
+    throw AppError.internal('Failed to verify payment');
+  }
+};
+
+// ─── Webhook verification ─────────────────────────────────────────────────────
+
+/**
+ * Verify a Paystack webhook signature: HMAC-SHA512 of the RAW request body,
+ * keyed with the secret key, hex-encoded, sent in `x-paystack-signature`.
+ *
+ * The raw bytes MUST be used - re-serialising the parsed JSON changes the bytes
+ * and always fails. Timing-safe comparison prevents signature oracle attacks.
+ */
+const verifyWebhookSignature = (rawBody, signature) => {
+  try {
+    if (!signature) return false;
+    const payload = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(String(rawBody), 'utf8');
+    const expected = crypto.createHmac('sha512', config.PAYSTACK_SECRET_KEY).update(payload).digest('hex');
+    const expectedBuf = Buffer.from(expected);
+    const signatureBuf = Buffer.from(String(signature));
+    if (expectedBuf.length !== signatureBuf.length) return false;
+    return crypto.timingSafeEqual(expectedBuf, signatureBuf);
+  } catch {
+    return false;
+  }
+};
+
 module.exports = {
   isConfigured,
+  toKobo,
+  fromKobo,
+  toTransferReference,
+  callbackUrl,
   getBankList,
   paystackCodeForKatpayBank,
   resolveAccountName,
+  getCustomerByEmail,
+  createCustomer,
+  assignDva,
+  createTransferRecipient,
+  createRecipientFromKatpayBank,
+  initiatePayout,
+  verifyTransfer,
+  initializeTransaction,
+  verifyTransaction,
+  verifyWebhookSignature,
 };
