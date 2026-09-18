@@ -6,6 +6,7 @@ const { prisma } = require('../../config/database');
 const walletService = require('../../modules/wallet/wallet.service');
 const katpayService = require('../../services/katpay.service');
 const paystackService = require('../../services/paystack.service');
+const { provisionVirtualAccount } = require('../../services/payments/provisioning');
 const notifyService = require('../../services/notify.service');
 const reconciliationService = require('../../services/reconciliation.service');
 const { refundFailedWithdrawal } = require('../../services/withdrawal-refund.service');
@@ -337,14 +338,24 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
 
   let payout;
   try {
-    payout = await katpayService.initiatePayout({
-      amount,
-      bank_code: bankCode,
-      account_number: accountNumber,
-      account_name: accountName,
-      reference: transactionId,
-      description: 'Wallet withdrawal',
-    });
+    if ((transaction.provider || 'KATPAY') === 'PAYSTACK') {
+      const recipientCode = await resolvePaystackRecipient({ userId, bankCode, accountNumber, accountName });
+      payout = await paystackService.initiatePayout({
+        amount,
+        recipientCode,
+        reference: transactionId,
+        reason: 'Wallet withdrawal',
+      });
+    } else {
+      payout = await katpayService.initiatePayout({
+        amount,
+        bank_code: bankCode,
+        account_number: accountNumber,
+        account_name: accountName,
+        reference: transactionId,
+        description: 'Wallet withdrawal',
+      });
+    }
   } catch (error) {
     if (!error.definitive) {
       // Ambiguous - the payout may have gone out. Leave it SENT and retry; the
@@ -381,7 +392,40 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
 };
 
 /**
- * Provision KatPay virtual account for a newly verified user.
+ * Resolve (or create + cache) a Paystack transfer recipient for a bank account.
+ * The dashboards/saved beneficiaries store KATPAY bank codes, so mapping to the
+ * Paystack code happens inside `createRecipientFromKatpayBank`. The recipient
+ * code is cached on the matching saved beneficiary when one exists.
+ */
+const resolvePaystackRecipient = async ({ userId, bankCode, accountNumber, accountName }) => {
+  const beneficiary = userId && bankCode && accountNumber
+    ? await prisma.savedBeneficiary.findUnique({
+      where: { userId_accountNumber_bankCode: { userId, accountNumber, bankCode } },
+    }).catch(() => null)
+    : null;
+
+  if (beneficiary?.paystackRecipientCode) return beneficiary.paystackRecipientCode;
+
+  const recipient = await paystackService.createRecipientFromKatpayBank({
+    name: accountName || beneficiary?.name || accountNumber,
+    accountNumber,
+    katpayBankCode: bankCode,
+  });
+
+  if (beneficiary) {
+    await prisma.savedBeneficiary.update({
+      where: { id: beneficiary.id },
+      data: { provider: 'PAYSTACK', paystackRecipientCode: recipient.recipientCode },
+    }).catch((err) => logger.warn('Failed to cache Paystack recipient on beneficiary', {
+      beneficiaryId: beneficiary.id, error: err.message,
+    }));
+  }
+
+  return recipient.recipientCode;
+};
+
+/**
+ * Provision the wallet funding NUBAN under the active gateway.
  */
 const handleProvisionVirtualAccount = async ({ userId, email, name, phoneNumber }) => {
   const existingWallet = await prisma.wallet.findUnique({ where: { userId } });
@@ -390,23 +434,7 @@ const handleProvisionVirtualAccount = async ({ userId, email, name, phoneNumber 
     return;
   }
 
-  const va = await katpayService.createVirtualAccount({
-    email,
-    name,
-    phoneNumber: phoneNumber || '',
-    bankCodes: ['PALMPAY', 'OPAY'],
-  });
-
-  await prisma.wallet.update({
-    where: { userId },
-    data: {
-      virtualAccountNumber: va.accountNumber,
-      virtualAccountBank: va.bankName,
-      virtualAccountName: va.accountName,
-    },
-  });
-
-  logger.info('KatPay virtual account provisioned', { userId, accountNumber: va.accountNumber });
+  await provisionVirtualAccount({ userId, email, name, phoneNumber });
 };
 
 /**
@@ -663,5 +691,5 @@ const reconcilePaystack = async () => {
 
 module.exports = {
   startPaymentWorker,
-  __test: { handlePaystackWebhook, reconcilePaystack },
+  __test: { handlePaystackWebhook, reconcilePaystack, handleWithdrawal, handleProvisionVirtualAccount },
 };

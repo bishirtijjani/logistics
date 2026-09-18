@@ -234,11 +234,34 @@ const createCustomer = async ({ email, firstName, lastName, phone }) => {
 };
 
 /**
+ * Fetch an existing Dedicated Virtual Account for a customer, if any. Used to
+ * make provisioning idempotent: a retry that hits "customer already has a
+ * dedicated account" should adopt the existing one, not fail.
+ */
+const fetchDedicatedAccount = async (customerCode) => {
+  const res = await axios.get(
+    `${BASE()}/dedicated_account?customer=${encodeURIComponent(customerCode)}`,
+    { headers: authHeaders(), timeout: 20000 },
+  );
+  const rows = res.data?.data || [];
+  const data = Array.isArray(rows) ? rows[0] : null;
+  if (!data) return null;
+  return {
+    accountNumber: data.account_number,
+    bankName: data.bank?.name || data.bank_name || 'Wema Bank',
+    accountName: data.account_name || 'Wallet',
+    dedicatedAccountId: data.id != null ? String(data.id) : null,
+    customerCode: data.customer?.customer_code || customerCode,
+  };
+};
+
+/**
  * Assign a Dedicated Virtual Account (funding NUBAN) to a Paystack customer.
  *
  * Businesses whose Paystack category requires customer validation must supply a
  * BVN; when one is on file it is forwarded. Returns the wallet-facing fields the
- * provisioning worker persists (`virtualAccountNumber` = DVA number).
+ * provisioning worker persists (`virtualAccountNumber` = DVA number). A duplicate
+ * DVA response is resolved by adopting the customer's existing dedicated account.
  */
 const assignDva = async ({ customerCode, bvn, firstName, lastName, phone, preferredBank = 'wema-bank' }) => {
   if (!isConfigured()) throw AppError.internal('Paystack is not configured');
@@ -264,9 +287,14 @@ const assignDva = async ({ customerCode, bvn, firstName, lastName, phone, prefer
     };
   } catch (err) {
     if (err instanceof AppError) throw err;
-    logger.error('Paystack assignDva failed', {
-      customerCode, status: err.response?.status, message: err.response?.data?.message || err.message,
-    });
+    const status = err.response?.status;
+    const message = err.response?.data?.message || err.message;
+    // Retry may collide with an already-assigned DVA - adopt it instead of failing.
+    if (status === 400 || status === 409) {
+      const existing = await fetchDedicatedAccount(customerCode).catch(() => null);
+      if (existing) return existing;
+    }
+    logger.error('Paystack assignDva failed', { customerCode, status, message });
     throw AppError.internal('Failed to provision wallet account');
   }
 };
@@ -474,6 +502,7 @@ module.exports = {
   getCustomerByEmail,
   createCustomer,
   assignDva,
+  fetchDedicatedAccount,
   createTransferRecipient,
   createRecipientFromKatpayBank,
   initiatePayout,

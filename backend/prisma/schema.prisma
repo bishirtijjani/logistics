@@ -622,6 +622,8 @@ model SavedBeneficiary {
   bankCode      String? /// For bank withdrawals
   accountNumber String? /// For bank withdrawals
   accountName   String? /// Verified account name
+  provider              PaymentProvider @default(KATPAY) /// Gateway that owns paystackRecipientCode
+  paystackRecipientCode String? /// Cached Paystack transfer recipient (RCP_...) for this account
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

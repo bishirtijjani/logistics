@@ -61,6 +61,10 @@ const getWallet = async (userId) => {
 const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accountName, amount }, opts = {}) => {
   const isTransfer = opts.kind === 'transfer';
   const reference = `${isTransfer ? 'TRF' : 'WIT'}-${uuidv4()}`;
+  // The payout is dispatched on whichever gateway is active at request time;
+  // record it on the ledger so the worker routes the payout correctly even if
+  // the mode is flipped before the job runs.
+  const provider = await paymentsRouter.getMode();
 
   const feeFlat = await settingsService.getSetting('wallet.withdrawalFee', 20);
   const feePayer = await settingsService.getSetting('wallet.withdrawalFeePayer', 'PLATFORM');
@@ -93,7 +97,7 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
           ? `Transfer to ${accountName || accountNumber}`
           : `Withdrawal to ${bankName || bankCode} - ${accountNumber}`,
         debitWalletId: wallet.id,
-        provider: 'KATPAY',
+        provider,
         metadata: { bankCode, bankName, accountNumber, accountName, fee, ...(isTransfer ? { kind: 'transfer' } : {}) },
         balanceBefore: balance,
         balanceAfter: balance - totalDebit,
@@ -134,7 +138,7 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
           amount: totalDebit,
           description: 'Withdrawal reversed - could not queue payout',
           creditWalletId: result.walletId,
-          provider: 'KATPAY',
+          provider,
         },
       });
       return true;

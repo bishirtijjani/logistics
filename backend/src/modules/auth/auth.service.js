@@ -210,7 +210,7 @@ const generateOtp = async (email, { checkCooldown = false } = {}) => {
  * SMS/push announces the new account. Returns the account, or null if deferred.
  */
 const provisionWalletNuban = async (user) => {
-  const katpayService = require('../../services/katpay.service');
+  const { provisionVirtualAccount } = require('../../services/payments/provisioning');
   const messagingService = require('../../services/messaging.service');
   const notificationService = require('../../services/notification.service');
 
@@ -229,19 +229,11 @@ const provisionWalletNuban = async (user) => {
 
   let virtualAccount = null;
   try {
-    virtualAccount = await katpayService.createVirtualAccount({
+    virtualAccount = await provisionVirtualAccount({
+      userId: user.id,
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
       phoneNumber: user.phone || '',
-      bankCodes: ['PALMPAY', 'OPAY'],
-    });
-    await prisma.wallet.update({
-      where: { userId: user.id },
-      data: {
-        virtualAccountNumber: virtualAccount.accountNumber,
-        virtualAccountBank: virtualAccount.bankName,
-        virtualAccountName: virtualAccount.accountName,
-      },
     });
     logger.info('Virtual account provisioned synchronously at signup', { userId: user.id });
   } catch (err) {
@@ -1037,30 +1029,20 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone }, context
   // Try to provision the virtual account synchronously so the response payload
   // can carry the NUBAN. If it fails, enqueue a retry job and return the
   // wallet without a NUBAN - the client will pick it up via socket / refetch.
-  const katpayService = require('../../services/katpay.service');
+  const { provisionVirtualAccount } = require('../../services/payments/provisioning');
   const messagingService = require('../../services/messaging.service');
   const notificationService = require('../../services/notification.service');
 
   let virtualAccount = null;
   try {
-    virtualAccount = await katpayService.createVirtualAccount({
+    virtualAccount = await provisionVirtualAccount({
+      userId,
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
       // Prefer the BVN-linked phone the user supplied on this call - that's
-      // the phone tied to the identity KatPay is creating the NUBAN under.
-      // Fall back to user.phone for the recovery path (where bvnPhone is
-      // optional since the user has already verified once).
+      // the phone tied to the identity the NUBAN is created under. Fall back to
+      // user.phone for the recovery path (bvnPhone optional there).
       phoneNumber: bvnPhone || user.phone || '',
-      bankCodes: ['PALMPAY', 'OPAY'],
-    });
-
-    await prisma.wallet.update({
-      where: { userId },
-      data: {
-        virtualAccountNumber: virtualAccount.accountNumber,
-        virtualAccountBank: virtualAccount.bankName,
-        virtualAccountName: virtualAccount.accountName,
-      },
     });
     logger.info('Virtual account provisioned synchronously on KYC', { userId });
   } catch (err) {
