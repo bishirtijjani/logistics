@@ -12,6 +12,7 @@ const TABS = [
   { id: 'delivery-ops', label: 'Delivery Operations' },
   { id: 'limits', label: 'Limits & Minimums' },
   { id: 'vtu', label: 'VTU Providers' },
+  { id: 'payments', label: 'Payments' },
   { id: 'notifications', label: 'Notifications' },
 ]
 
@@ -27,6 +28,7 @@ const DEFAULT_FORM = {
   fundingFeePercent: 1,
   fundingFeePayer: 'PLATFORM',
   vtuProviderMode: 'BILALSADASUB_ONLY',
+  paymentsProviderMode: 'KATPAY',
 
   deliveryBaseFare: 200,
   deliveryPerKmRate: 100,
@@ -143,6 +145,7 @@ export default function SettingsPage() {
       fundingFeePercent: platformSettings.fundingFeePercent ?? DEFAULT_FORM.fundingFeePercent,
       fundingFeePayer: platformSettings.fundingFeePayer || DEFAULT_FORM.fundingFeePayer,
       vtuProviderMode: platformSettings.vtuProviderMode || DEFAULT_FORM.vtuProviderMode,
+      paymentsProviderMode: platformSettings.paymentsProviderMode || DEFAULT_FORM.paymentsProviderMode,
 
       deliveryBaseFare: platformSettings.deliveryBaseFare ?? DEFAULT_FORM.deliveryBaseFare,
       deliveryPerKmRate: platformSettings.deliveryPerKmRate ?? DEFAULT_FORM.deliveryPerKmRate,
@@ -202,6 +205,7 @@ export default function SettingsPage() {
       fundingFeePercent: Number(form.fundingFeePercent) || 0,
       fundingFeePayer: form.fundingFeePayer,
       vtuProviderMode: form.vtuProviderMode,
+      paymentsProviderMode: form.paymentsProviderMode,
 
       deliveryBaseFare: Number(form.deliveryBaseFare) || 0,
       deliveryPerKmRate: Number(form.deliveryPerKmRate) || 0,
@@ -573,6 +577,29 @@ export default function SettingsPage() {
                   </select>
                   <p className="text-xs text-muted dark:text-dark-muted mt-1">
                     In "Both" mode a purchase that BilalSada fails is retried on AlRahuz before any refund — so a failed transaction doesn't lose the sale. A purchase only fails over when that network/plan has its AlRahuz IDs set.
+                  </p>
+                </Field>
+              </div>
+
+              <SaveButton saving={saving} onClick={() => save()} />
+            </div>
+          )}
+
+          {activeTab === 'payments' && (
+            <div className={cardClass}>
+              <h2 className="text-lg font-semibold text-text dark:text-dark-text mb-1">Payment Gateway</h2>
+              <p className="text-sm text-muted dark:text-dark-muted mb-6">
+                Choose the provider that handles new wallet funding (funding NUBAN + card checkout) and payouts. Existing virtual accounts keep working in either mode.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Field label="Active Gateway">
+                  <select value={form.paymentsProviderMode} onChange={(e) => set('paymentsProviderMode')(e.target.value)} className={inputClass}>
+                    <option value="KATPAY">KatPay</option>
+                    <option value="PAYSTACK">Paystack</option>
+                  </select>
+                  <p className="text-xs text-muted dark:text-dark-muted mt-1">
+                    Switching takes effect on the next funding top-up, signup provisioning, or withdrawal. Both providers' webhooks stay registered so transactions started under the other gateway still settle.
                   </p>
                 </Field>
               </div>
