@@ -14,6 +14,8 @@ const { prisma } = require('../../config/database');
 const { AppError } = require('../../utils/api-error');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
+const paystackService = require('../../services/paystack.service');
+const paymentsRouter = require('../../services/payments/router');
 const notifyService = require('../../services/notify.service');
 const settingsService = require('../../services/settings.service');
 const { Queue } = require('bullmq');
@@ -174,18 +176,33 @@ const withdrawToBank = async (userId, { bankCode, bankName, accountNumber, accou
 const transferToBank = (userId, params) => withdrawToBank(userId, params, { kind: 'transfer' });
 
 /**
- * Process wallet funding from KatPay webhook.
+ * Process wallet funding from a provider webhook.
  * Uses reference-based idempotency - safe to call multiple times.
+ *
+ * `provider` labels the ledger row (KATPAY | PAYSTACK). Wallet resolution order:
+ * userId → funding NUBAN → the pre-created PENDING row's creditWalletId.
+ *
+ * Paystack checkout top-ups are pre-created as PENDING rows at initiate time
+ * (so the reconcile sweep has a handle if the webhook never arrives). For those,
+ * settlement is a compare-and-set - concurrent deliveries credit at most once.
+ * A row already COMPLETED short-circuits; a FAILED row stays settleable because
+ * a later success webhook is authoritative.
  */
-const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
+const fundWallet = async ({ accountNumber, amount, reference, metadata, provider = 'KATPAY', userId = null }) => {
   const existing = await prisma.transaction.findUnique({ where: { reference } });
-  if (existing) {
+  if (existing && existing.status === 'COMPLETED') {
     logger.warn('Duplicate funding attempt', { reference });
     return existing;
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const wallet = await tx.wallet.findUnique({ where: { virtualAccountNumber: accountNumber } });
+    const wallet = userId
+      ? await tx.wallet.findUnique({ where: { userId } })
+      : accountNumber
+        ? await tx.wallet.findUnique({ where: { virtualAccountNumber: accountNumber } })
+        : existing?.creditWalletId
+          ? await tx.wallet.findUnique({ where: { id: existing.creditWalletId } })
+          : null;
     if (!wallet) throw AppError.notFound('Wallet not found for account number');
 
     const currentBalance = Number(wallet.balance);
@@ -194,6 +211,34 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
     const feePayer = await settingsService.getSetting('wallet.fundingFeePayer', 'PLATFORM');
     const fee = feePayer === 'USER' ? (amount * Number(feePercent)) / 100 : 0;
     const creditAmount = amount - fee;
+
+    if (existing) {
+      // Settle the pre-created row atomically. The claim is CAS'd against the
+      // status we just read: a concurrent delivery that wins leaves us count 0
+      // and we bow out without crediting again. A FAILED row (swept/abandoned)
+      // is still settleable - a later success webhook is authoritative.
+      const claim = await tx.transaction.updateMany({
+        where: { reference, status: existing.status },
+        data: {
+          status: 'COMPLETED',
+          amount: creditAmount,
+          fee,
+          description: 'Wallet funding',
+          creditWalletId: wallet.id,
+          provider,
+          providerRef: reference,
+          metadata: { ...(existing.metadata || metadata || {}), originalAmount: amount, fee },
+          balanceBefore: currentBalance,
+          balanceAfter: currentBalance + creditAmount,
+        },
+      });
+      if (claim.count !== 1) {
+        return { alreadySettled: true, transaction: existing, wallet, creditAmount, fee, newBalance: currentBalance };
+      }
+      await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: creditAmount } } });
+      const transaction = await tx.transaction.findUnique({ where: { reference } });
+      return { transaction, wallet, creditAmount, fee, newBalance: currentBalance + creditAmount };
+    }
 
     await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: creditAmount } } });
 
@@ -206,7 +251,7 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
         fee,
         description: 'Wallet funding via bank transfer',
         creditWalletId: wallet.id,
-        provider: 'KATPAY',
+        provider,
         providerRef: reference,
         metadata: { ...metadata, originalAmount: amount, fee },
         balanceBefore: currentBalance,
@@ -217,14 +262,20 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata }) => {
     return { transaction, wallet, creditAmount, fee, newBalance: currentBalance + creditAmount };
   });
 
-  logger.info('Wallet funded', { accountNumber, amount, reference, fee: result.fee });
+  if (result.alreadySettled) {
+    logger.info('Wallet funding already settled by a concurrent delivery', { reference });
+    return result.transaction;
+  }
+
+  logger.info('Wallet funded', { accountNumber, userId, amount, reference, fee: result.fee, provider });
 
   // Live wallet-balance nudge + Notification Center row + push.
-  const ownerWallet = await prisma.wallet.findUnique({ where: { virtualAccountNumber: accountNumber }, select: { userId: true, balance: true } });
-  if (ownerWallet) {
-    notifyService.balanceUpdated(ownerWallet.userId, { balance: Number(ownerWallet.balance) });
-    notifyService.fundingReceived(ownerWallet.userId, { amount: result.creditAmount, reference });
-    notifyService.onWalletEvent(ownerWallet.userId, {
+  const walletUserId = result.wallet?.userId;
+  if (walletUserId) {
+    const freshWallet = await prisma.wallet.findUnique({ where: { id: result.wallet.id }, select: { balance: true } });
+    notifyService.balanceUpdated(walletUserId, { balance: Number(freshWallet?.balance ?? result.newBalance) });
+    notifyService.fundingReceived(walletUserId, { amount: result.creditAmount, reference });
+    notifyService.onWalletEvent(walletUserId, {
       kind: 'FUNDING',
       amount: result.creditAmount,
       transactionId: reference,
@@ -362,7 +413,16 @@ const lookupBankAccount = async ({ bankCode, accountNumber }) => {
 };
 
 /**
- * Initiate a one-time KatPay transfer payment for ad-hoc wallet top-ups.
+ * Initiate an ad-hoc wallet top-up through the active gateway.
+ *
+ * Returns a normalised envelope so clients never branch on provider:
+ *   { reference, checkout_url, provider, ...providerExtras }
+ *   - KATPAY   -> reference = transfer uuid; checkout_url = KatPay checkout_url.
+ *   - PAYSTACK -> reference = Paystack reference; checkout_url = authorization_url.
+ *
+ * In PAYSTACK mode the funding row is pre-created as PENDING with this reference
+ * so the reconcile sweep can settle a top-up whose webhook never arrived. Any
+ * failure during checkout creation marks that row FAILED (no money moved).
  */
 const initiateTransferPaymentFunding = async (userId, { amount }) => {
   const user = await prisma.user.findUnique({
@@ -371,7 +431,47 @@ const initiateTransferPaymentFunding = async (userId, { amount }) => {
   });
   if (!user) throw AppError.notFound('User not found');
 
+  const { provider } = await paymentsRouter.resolveGateway();
   const providerRef = `TOPUP-${uuidv4()}`;
+
+  if (provider === paymentsRouter.MODES.PAYSTACK) {
+    const wallet = await prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet) throw AppError.notFound('Wallet not found');
+
+    await prisma.transaction.create({
+      data: {
+        reference: providerRef,
+        type: 'WALLET_FUNDING',
+        status: 'PENDING',
+        amount,
+        fee: 0,
+        description: 'Wallet top-up via card',
+        creditWalletId: wallet.id,
+        provider: 'PAYSTACK',
+        providerRef,
+        metadata: { userId, purpose: 'WALLET_TOPUP', gateway: 'PAYSTACK' },
+      },
+    });
+
+    try {
+      const result = await paystackService.initializeTransaction({
+        amount,
+        email: user.email,
+        reference: providerRef,
+        metadata: { userId, purpose: 'WALLET_TOPUP' },
+      });
+      logger.info('Paystack transfer payment funding initiated', { userId, amount, providerRef });
+      return { reference: result.reference, checkout_url: result.checkout_url, provider: 'PAYSTACK' };
+    } catch (err) {
+      // No money moved - close the PENDING row so the sweep doesn't chase it.
+      await prisma.transaction.updateMany({
+        where: { reference: providerRef, status: 'PENDING' },
+        data: { status: 'FAILED', description: 'Wallet top-up could not be started' },
+      }).catch((e) => logger.warn('Failed to close unstarted top-up row', { providerRef, error: e.message }));
+      throw err;
+    }
+  }
+
   const result = await katpayService.initiateTransferPayment({
     amount,
     customer: { email: user.email, name: `${user.firstName} ${user.lastName}`, phone: user.phone },
@@ -380,7 +480,60 @@ const initiateTransferPaymentFunding = async (userId, { amount }) => {
   });
 
   logger.info('Transfer payment funding initiated', { userId, amount, providerRef });
-  return result;
+  return {
+    reference: result.uuid,
+    uuid: result.uuid, // legacy field - existing clients may still read it
+    checkout_url: result.checkout_url,
+    payment_account: result.payment_account,
+    expires_at: result.expires_at,
+    provider: 'KATPAY',
+  };
+};
+
+/** Normalise provider funding statuses to the shared COMPLETED|FAILED|PENDING set. */
+const normalizeFundingStatus = (provider, rawStatus) => {
+  const s = String(rawStatus || '').toLowerCase();
+  if (provider === 'PAYSTACK') {
+    if (s === 'success') return 'COMPLETED';
+    if (['failed', 'reversed', 'abandoned'].includes(s)) return 'FAILED';
+    return 'PENDING';
+  }
+  if (['completed', 'success', 'successful', 'paid'].includes(s)) return 'COMPLETED';
+  if (['failed', 'expired', 'cancelled', 'canceled', 'reversed'].includes(s)) return 'FAILED';
+  return 'PENDING';
+};
+
+/**
+ * Status of an ad-hoc top-up by reference. Resolves the provider from the
+ * pre-created ledger row when present, otherwise from the active gateway, and
+ * falls back to KatPay when a Paystack lookup finds nothing.
+ */
+const getTransferPaymentStatus = async (reference) => {
+  const tx = await prisma.transaction.findUnique({ where: { reference } });
+  const provider = tx?.provider || (await paymentsRouter.getMode());
+
+  if (provider === 'PAYSTACK') {
+    try {
+      const r = await paystackService.verifyTransaction(reference);
+      return {
+        reference: r.reference,
+        status: normalizeFundingStatus('PAYSTACK', r.status),
+        amount: r.amount,
+        provider: 'PAYSTACK',
+      };
+    } catch (err) {
+      if (tx) throw err;
+      logger.warn('Paystack top-up status lookup failed - trying KatPay', { reference, error: err.message });
+    }
+  }
+
+  const raw = await katpayService.getTransferPayment(reference);
+  return {
+    reference,
+    status: normalizeFundingStatus('KATPAY', raw?.status || raw?.payment_status || raw?.state),
+    amount: raw?.amount != null ? Number(raw.amount) : null,
+    provider: 'KATPAY',
+  };
 };
 
 // ─── Saved Beneficiaries ──────────────────────────────────────────────────────
@@ -507,6 +660,7 @@ module.exports = {
   withdrawToBank,
   fundWallet,
   initiateTransferPaymentFunding,
+  getTransferPaymentStatus,
   getTransactionHistory,
   lookupBankAccount,
   getBeneficiaries,

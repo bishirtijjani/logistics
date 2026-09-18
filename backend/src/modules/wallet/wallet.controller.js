@@ -1,16 +1,21 @@
 const walletService = require('./wallet.service');
 const authService = require('../auth/auth.service');
 const katpayService = require('../../services/katpay.service');
+const paymentsRouter = require('../../services/payments/router');
 const { ApiResponse } = require('../../utils/api-response');
 
 const getWallet = async (req, res, next) => {
   try {
-    const wallet = await walletService.getWallet(req.user.id);
+    const [wallet, gateway] = await Promise.all([
+      walletService.getWallet(req.user.id),
+      paymentsRouter.getMode(),
+    ]);
     res.json(ApiResponse.success('Wallet retrieved', {
       ...wallet,
       accountNumber: wallet.virtualAccountNumber,
       bankName: wallet.virtualAccountBank,
       accountName: wallet.virtualAccountName,
+      gateway,
     }));
   } catch (error) {
     next(error);
@@ -68,7 +73,7 @@ const initiateFunding = async (req, res, next) => {
 
 const getTransferPaymentStatus = async (req, res, next) => {
   try {
-    const result = await katpayService.getTransferPayment(req.params.uuid);
+    const result = await walletService.getTransferPaymentStatus(req.params.uuid);
     res.json(ApiResponse.success('Payment status', result));
   } catch (error) {
     next(error);
