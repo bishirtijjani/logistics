@@ -5,6 +5,7 @@ const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const walletService = require('../../modules/wallet/wallet.service');
 const katpayService = require('../../services/katpay.service');
+const paystackService = require('../../services/paystack.service');
 const notifyService = require('../../services/notify.service');
 const reconciliationService = require('../../services/reconciliation.service');
 const { refundFailedWithdrawal } = require('../../services/withdrawal-refund.service');
@@ -21,6 +22,9 @@ const startPaymentWorker = () => {
 
         case PAYMENT_JOBS.PROCESS_TRANSFER_PAYMENT_WEBHOOK:
           return handleKatpayTransferPayment(job.data);
+
+        case PAYMENT_JOBS.PROCESS_PAYSTACK_WEBHOOK:
+          return handlePaystackWebhook(job.data);
 
         case PAYMENT_JOBS.PROCESS_WITHDRAWAL:
           return handleWithdrawal(job.data);
@@ -39,6 +43,9 @@ const startPaymentWorker = () => {
 
         case PAYMENT_JOBS.RECONCILE_STUCK_WEBHOOKS:
           return reconcileStuckWebhooks();
+
+        case PAYMENT_JOBS.RECONCILE_PAYSTACK:
+          return reconcilePaystack();
 
         default:
           logger.warn(`Unknown payment job type: ${job.name}`);
@@ -426,4 +433,235 @@ const handleRetry = async ({ transactionId }) => {
   }
 };
 
-module.exports = { startPaymentWorker };
+// ─── Paystack webhook processing ──────────────────────────────────────────────
+
+/**
+ * Find a withdrawal/transfer ledger row by the reference Paystack knows it by.
+ * Paystack transfer references are lowercased; the ledger keeps the original in
+ * `reference` and the sent form in `providerRef`, so match either.
+ */
+const findTransactionByProviderRef = async (providerRef) => {
+  if (!providerRef) return null;
+  return prisma.transaction.findFirst({
+    where: { OR: [{ providerRef }, { reference: providerRef }] },
+  });
+};
+
+/**
+ * Resolve the funding wallet for a Paystack dedicated-NUBAN charge:
+ * receiver NUBAN → customer code → customer email. Returns null if unroutable.
+ */
+const resolveDvaAccountNumber = async (data) => {
+  const authorization = data.authorization || {};
+  if (authorization.receiver_bank_account_number) return authorization.receiver_bank_account_number;
+
+  const customerCode = data.customer?.customer_code || null;
+  if (customerCode) {
+    const wallet = await prisma.wallet.findUnique({ where: { paystackCustomerCode: customerCode } });
+    if (wallet?.virtualAccountNumber) return wallet.virtualAccountNumber;
+  }
+
+  const email = data.customer?.email || null;
+  if (email) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+      if (wallet?.virtualAccountNumber) return wallet.virtualAccountNumber;
+    }
+  }
+  return null;
+};
+
+const handlePaystackChargeSuccess = async (data) => {
+  const reference = data.reference;
+  const amount = Number(data.amount || 0) / 100;
+  const channel = data.channel || data.authorization?.channel;
+  const metadata = data.metadata || {};
+
+  const userId = metadata.userId ? String(metadata.userId) : null;
+  const accountNumber = channel === 'dedicated_nuban' ? await resolveDvaAccountNumber(data) : null;
+
+  if (!userId && !accountNumber) {
+    throw new Error(`unroutable paystack charge (reference=${reference}, channel=${channel})`);
+  }
+
+  await walletService.fundWallet({
+    accountNumber,
+    userId,
+    amount,
+    reference,
+    metadata,
+    provider: 'PAYSTACK',
+  });
+  logger.info('Paystack funding settled', { reference, amount, userId, accountNumber });
+};
+
+const handlePaystackTransferSuccess = async (data) => {
+  const reference = data.reference || data.transfer_code;
+  const transaction = await findTransactionByProviderRef(reference);
+  if (!transaction) {
+    logger.warn('Paystack transfer.success for unknown reference', { reference });
+    return;
+  }
+  if (transaction.status === 'COMPLETED') return;
+
+  const completed = await prisma.transaction.updateMany({
+    where: { reference: transaction.reference, status: 'SENT' },
+    data: { status: 'COMPLETED', providerRef: reference },
+  });
+  if (completed.count !== 1) return;
+
+  logger.info('Paystack payout completed', { reference, transactionId: transaction.reference });
+  if (transaction.debitWalletId) {
+    const wallet = await prisma.wallet.findUnique({ where: { id: transaction.debitWalletId }, select: { userId: true, balance: true } });
+    if (wallet?.userId) {
+      notifyService.balanceUpdated(wallet.userId, { balance: Number(wallet.balance) });
+      notifyService.onWalletEvent(wallet.userId, {
+        kind: 'WITHDRAWAL', amount: Number(transaction.amount), transactionId: transaction.reference, route: '/wallet',
+      }).catch((err) => logger.warn('WITHDRAWAL notification failed', { error: err.message }));
+    }
+  }
+};
+
+const handlePaystackTransferFailure = async (data) => {
+  const reference = data.reference || data.transfer_code;
+  const transaction = await findTransactionByProviderRef(reference);
+  if (!transaction) {
+    logger.warn('Paystack transfer failure for unknown reference', { reference });
+    return;
+  }
+  if (['COMPLETED', 'FAILED', 'REVERSED'].includes(transaction.status)) return;
+
+  // The failure webhook is authoritative, but re-verify before moving money: a
+  // spurious or replayed event must never reverse a payout that actually settled.
+  let status = data.status;
+  try {
+    const verified = await paystackService.verifyTransfer(reference);
+    status = verified.status || status;
+  } catch (err) {
+    logger.warn('Paystack transfer-failure verify failed - leaving for reconcile', { reference, error: err.message });
+    throw err;
+  }
+
+  if (['failed', 'reversed'].includes(String(status))) {
+    logger.error('PAYSTACK_PAYOUT_FAILED reconcile required', { reference, transactionId: transaction.reference, status });
+    await refundFailedWithdrawal({ transactionId: transaction.reference, reason: `paystack transfer ${status}` });
+  } else {
+    logger.warn('Paystack transfer failure webhook but verify shows non-terminal - left for reconcile', { reference, status });
+  }
+};
+
+/**
+ * Claim + settle one Paystack webhook event. The webhookEvent row is the
+ * idempotency lock; a claim miss means it was already processed (or missing).
+ */
+const handlePaystackWebhook = async ({ transactionRef, payload }) => {
+  const claim = await prisma.webhookEvent.updateMany({
+    where: { transactionRef, processed: false },
+    data: { processed: true, processedAt: new Date() },
+  });
+  if (claim.count !== 1) {
+    logger.info('Paystack webhook already processed or missing', { transactionRef });
+    return;
+  }
+
+  const event = payload?.event || 'UNKNOWN';
+  const data = payload?.data || {};
+
+  try {
+    switch (event) {
+      case 'charge.success':
+        return await handlePaystackChargeSuccess(data);
+      case 'transfer.success':
+        return await handlePaystackTransferSuccess(data);
+      case 'transfer.failed':
+      case 'transfer.reversed':
+        return await handlePaystackTransferFailure(data);
+      default:
+        logger.info('Paystack webhook event ignored', { event, transactionRef });
+    }
+  } catch (error) {
+    // Release the claim so a provider retry (or the reconcile sweep) re-enters.
+    await prisma.webhookEvent.update({ where: { transactionRef }, data: { processed: false, error: error.message } });
+    throw error;
+  }
+};
+
+/**
+ * Safety-net sweep for Paystack. Verifies transactions that never got a webhook:
+ *   - WALLET_FUNDING PENDING past the grace window → success settles, definitive
+ *     failure marks FAILED, still-pending is left alone;
+ *   - WITHDRAWAL SENT past the grace window → success completes, failed/reversed
+ *     refunds the wallet. Every path is idempotent (CAS + refund guard).
+ */
+const reconcilePaystack = async () => {
+  const cutoff = new Date(Date.now() - STUCK_WEBHOOK_GRACE_MS);
+  let settled = 0;
+  let failed = 0;
+  let refunded = 0;
+
+  const pendingFunding = await prisma.transaction.findMany({
+    where: { provider: 'PAYSTACK', type: 'WALLET_FUNDING', status: 'PENDING', createdAt: { lt: cutoff } },
+    orderBy: { createdAt: 'asc' },
+    take: 200,
+  });
+  for (const tx of pendingFunding) {
+    try {
+      const verified = await paystackService.verifyTransaction(tx.reference);
+      if (verified.status === 'success') {
+        await walletService.fundWallet({
+          reference: tx.reference,
+          amount: verified.amount,
+          userId: tx.metadata?.userId ? String(tx.metadata.userId) : null,
+          metadata: tx.metadata || {},
+          provider: 'PAYSTACK',
+        });
+        settled += 1;
+      } else if (['failed', 'abandoned', 'reversed'].includes(String(verified.status))) {
+        const claim = await prisma.transaction.updateMany({
+          where: { reference: tx.reference, status: 'PENDING' },
+          data: { status: 'FAILED', description: `Wallet top-up ${verified.status}` },
+        });
+        if (claim.count === 1) failed += 1;
+      }
+    } catch (err) {
+      logger.warn('Paystack funding reconcile errored', { reference: tx.reference, error: err.message });
+    }
+  }
+
+  const sentPayouts = await prisma.transaction.findMany({
+    where: { provider: 'PAYSTACK', type: 'WITHDRAWAL', status: 'SENT', createdAt: { lt: cutoff } },
+    orderBy: { createdAt: 'asc' },
+    take: 200,
+  });
+  for (const tx of sentPayouts) {
+    const reference = tx.providerRef || tx.reference;
+    try {
+      const verified = await paystackService.verifyTransfer(reference);
+      if (verified.status === 'success') {
+        const claim = await prisma.transaction.updateMany({
+          where: { reference: tx.reference, status: 'SENT' },
+          data: { status: 'COMPLETED', providerRef: reference },
+        });
+        if (claim.count === 1) settled += 1;
+      } else if (['failed', 'reversed'].includes(String(verified.status))) {
+        const res = await refundFailedWithdrawal({ transactionId: tx.reference, reason: `paystack transfer ${verified.status}` });
+        if (res.refunded) refunded += 1;
+      } else {
+        logger.warn('Paystack payout still pending after grace window', { reference, status: verified.status });
+      }
+    } catch (err) {
+      logger.warn('Paystack payout reconcile errored', { reference, error: err.message });
+    }
+  }
+
+  logger.info('Paystack reconcile sweep complete', {
+    scannedFunding: pendingFunding.length, scannedPayouts: sentPayouts.length, settled, failed, refunded,
+  });
+  return { settled, failed, refunded };
+};
+
+module.exports = {
+  startPaymentWorker,
+  __test: { handlePaystackWebhook, reconcilePaystack },
+};

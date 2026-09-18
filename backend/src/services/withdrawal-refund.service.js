@@ -60,7 +60,7 @@ const refundFailedWithdrawal = async ({ transactionId, reason }) => {
         amount: totalRefund,
         description: `Withdrawal refund - payout rejected${reason ? ` (${reason})` : ''}`,
         creditWalletId: wallet.id,
-        provider: 'KATPAY',
+        provider: existing.provider || 'KATPAY',
         balanceBefore: currentBalance,
         balanceAfter: currentBalance + totalRefund,
       },

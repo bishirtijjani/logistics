@@ -23,6 +23,8 @@ const PAYMENT_JOBS = {
   PROCESS_KATPAY_WEBHOOK: 'process-katpay-webhook',
   /** Process KatPay transfer_payment.completed - credit user wallet */
   PROCESS_TRANSFER_PAYMENT_WEBHOOK: 'process-transfer-payment-webhook',
+  /** Process a Paystack webhook (charge.success funding, transfer.* payouts) */
+  PROCESS_PAYSTACK_WEBHOOK: 'process-paystack-webhook',
   /** Process withdrawal - call KatPay payout API */
   PROCESS_WITHDRAWAL: 'process-withdrawal',
   /** Provision KatPay virtual account for new user */
@@ -38,6 +40,9 @@ const PAYMENT_JOBS = {
    *  them. Runs every 5 minutes; replay is idempotent (atomic claim + fundWallet's
    *  own reference uniqueness). */
   RECONCILE_STUCK_WEBHOOKS: 'reconcile-stuck-webhooks',
+  /** Safety-net sweep for Paystack: verify PENDING funding and SENT payouts that
+   *  are past the grace window and settle/refund them. Runs every 5 minutes. */
+  RECONCILE_PAYSTACK: 'reconcile-paystack',
 };
 
 // A webhook event is "stuck" once it's sat unprocessed longer than any normal

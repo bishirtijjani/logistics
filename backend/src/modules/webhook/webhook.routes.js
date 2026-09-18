@@ -7,6 +7,13 @@ const router = Router();
 // KatPay webhook - uses raw body parser for HMAC verification
 router.post('/katpay', express.raw({ type: '*/*' }), webhookController.handleKatpay);
 
+// Paystack webhook - HMAC-SHA512 over the raw body (x-paystack-signature).
+// Always registered regardless of the active gateway: legacy KatPay DVAs and
+// in-flight transactions must keep settling across a provider switch. The GET
+// route is where the hosted-checkout payer lands after paying (PAYSTACK_CALLBACK_URL).
+router.post('/paystack', express.raw({ type: '*/*' }), webhookController.handlePaystack);
+router.get('/paystack', webhookController.paystackCallbackPage);
+
 // BilalSada purchase callback - optional accelerator for VTU/bills delivery.
 // Raw body parser for HMAC verification. Inert unless BILALSADASUB_WEBHOOK_SECRET
 // is set; the sync + poll + reconcile flow settles every payment without it.

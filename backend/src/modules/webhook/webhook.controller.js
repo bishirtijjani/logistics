@@ -4,6 +4,7 @@ const { config } = require('../../config');
 const { ApiResponse } = require('../../utils/api-response');
 const { logger } = require('../../utils/logger');
 const katpayService = require('../../services/katpay.service');
+const paystackService = require('../../services/paystack.service');
 const bilalsadaService = require('../../services/bilalsada.service');
 const { Queue } = require('bullmq');
 const { redis } = require('../../config/redis');
@@ -501,8 +502,88 @@ const handleWhatsapp = async (req, res, next) => {
   }
 };
 
+/**
+ * Paystack webhook receiver.
+ *
+ * HMAC-SHA512 over the RAW body (x-paystack-signature) proves authenticity.
+ * Paystack retries non-2xx for up to 72h, so we ACK 200 as soon as the event is
+ * logged and settle asynchronously via the payment queue - the same
+ * log-then-process shape as the KatPay handler. Idempotency is the webhookEvent
+ * row: a row still unprocessed means an earlier attempt failed mid-way, so a
+ * provider retry must re-enter (every downstream write is an idempotent CAS).
+ */
+const handlePaystack = async (req, res, next) => {
+  try {
+    const signature = req.headers['x-paystack-signature'];
+    const rawBody = req.body.toString('utf8');
+
+    if (!paystackService.verifyWebhookSignature(rawBody, signature)) {
+      logger.warn('Invalid Paystack webhook signature', { ip: req.ip });
+      return res.status(401).json(ApiResponse.error('Invalid signature'));
+    }
+
+    const payload = JSON.parse(rawBody);
+    const event = payload.event || 'UNKNOWN';
+    const data = payload.data || {};
+    // data.id is the provider-side unique id for the charge/transfer; fall back
+    // to event + reference when it is absent.
+    const transactionRef = data.id
+      ? `paystack-${data.id}`
+      : `paystack-${event}-${data.reference || Date.now()}`;
+
+    const existing = await prisma.webhookEvent.findUnique({ where: { transactionRef } });
+    if (existing && existing.processed) {
+      logger.info('Duplicate Paystack webhook ignored (already processed)', { transactionRef });
+      return res.json(ApiResponse.success('Already processed'));
+    }
+    if (!existing) {
+      await prisma.webhookEvent.create({
+        data: { provider: 'paystack', eventType: event, transactionRef, payload, processed: false },
+      });
+    }
+
+    // ACK before doing work - KatPay/Paystack both retry on non-2xx.
+    res.json(ApiResponse.success('Webhook received'));
+
+    setImmediate(async () => {
+      try {
+        await paymentQueue.add(
+          PAYMENT_JOBS.PROCESS_PAYSTACK_WEBHOOK,
+          { transactionRef, payload },
+          DEFAULT_JOB_OPTIONS,
+        );
+      } catch (err) {
+        logger.error('Failed to enqueue Paystack webhook processing', { transactionRef, error: err.message });
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Landing page for the hosted-checkout payer (PAYSTACK_CALLBACK_URL). Paystack
+ * redirects the browser here after payment; the webhook - not this page - does
+ * the crediting. Rendered regardless of reference validity.
+ */
+const paystackCallbackPage = (req, res) => {
+  const reference = req.query.reference || req.query.trxref || '';
+  const safeRef = String(reference).replace(/[<>&"]/g, '');
+  res.status(200).type('html').send(
+    '<!doctype html><html><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Payment received</title></head>'
+    + '<body style="font-family:system-ui,sans-serif;text-align:center;padding:48px">'
+    + '<h2>Payment received</h2>'
+    + '<p>Your payment is being confirmed and will reflect in your wallet shortly.</p>'
+    + (safeRef ? `<p style="color:#666;font-size:13px">Reference: ${safeRef}</p>` : '')
+    + '</body></html>',
+  );
+};
+
 module.exports = {
   handleKatpay,
+  handlePaystack,
+  paystackCallbackPage,
   handleBilalsada,
   verifyWhatsapp,
   handleWhatsapp,

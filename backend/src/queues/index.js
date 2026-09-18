@@ -80,6 +80,18 @@ const scheduleRecurringJobs = async () => {
         removeOnFail: { count: 50 },
       },
     );
+    // Paystack safety net: verify PENDING funding and SENT payouts that never
+    // got a webhook (see reconcilePaystack in payment.worker.js). Every 5 minutes.
+    await paymentQueue.add(
+      PAYMENT_JOBS.RECONCILE_PAYSTACK,
+      {},
+      {
+        jobId: 'cron:reconcile-paystack',
+        repeat: { pattern: '*/5 * * * *' }, // every 5 minutes
+        removeOnComplete: { count: 50 },
+        removeOnFail: { count: 50 },
+      },
+    );
     // VTU safety net: sweep payments stuck in PROCESSING/PENDING past the poll
     // window and resolve them (re-query provider → complete or refund). Every
     // 5 minutes so a stranded customer is made whole quickly, not hours later.
