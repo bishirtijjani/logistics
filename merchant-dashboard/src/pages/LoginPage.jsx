@@ -278,8 +278,17 @@ export default function LoginPage() {
 
       {/* Forgot Password Modal */}
       {showForgotPassword && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
-          <div className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl shadow-xl p-6 sm:p-8 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50"
+          onClick={closeForgotPassword}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="forgot-password-title"
+            className="bg-surface dark:bg-dark-surface rounded-t-2xl sm:rounded-2xl shadow-xl p-6 sm:p-8 w-full sm:max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-full mb-4">
                 {forgotStep === 'done' ? (
@@ -288,7 +297,7 @@ export default function LoginPage() {
                   <Lock className="w-6 h-6 text-primary" />
                 )}
               </div>
-              <h2 className="text-xl font-bold text-text dark:text-dark-text">
+              <h2 id="forgot-password-title" className="text-xl font-bold text-text dark:text-dark-text">
                 {forgotStep === 'request' && 'Reset Password'}
                 {forgotStep === 'reset' && 'Enter Reset Code'}
                 {forgotStep === 'done' && 'Password Reset'}
