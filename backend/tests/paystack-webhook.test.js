@@ -139,8 +139,11 @@ const prismaStub = {
 
 stub('../src/config/database.js', { prisma: prismaStub });
 stub('../src/config/redis.js', { redis: { async get() { return null; }, async set() { return 'OK'; }, async del() { return 1; }, async publish() { return 0; } } });
-stub('../src/config/index.js', { config: { NODE_ENV: 'test', PAYSTACK_SECRET_KEY: SECRET } });
+stub('../src/config/index.js', { config: { NODE_ENV: 'test', PAYSTACK_SECRET_KEY: SECRET, ALERT_EMAIL: 'ops@iprime.ng', SMTP_FROM_EMAIL: 'hello@iprime.ng' } });
 stub('../src/utils/logger.js', { logger: { info() {}, warn() {}, error() {}, debug() {} } });
+
+const emailSent = [];
+stub('../src/services/email.service.js', { sendEmail: async (a) => { emailSent.push(a); return {}; } });
 
 const queued = [];
 stub(require.resolve('bullmq'), {
@@ -247,7 +250,9 @@ test.beforeEach(() => {
   refunded.length = 0;
   verifiedTransactions.length = 0;
   verifiedTransfers.length = 0;
+  verifiedTransfers.length = 0;
   verifiedTransfers._next = null;
+  emailSent.length = 0;
 });
 
 // ─── controller ───────────────────────────────────────────────────────────────
@@ -384,7 +389,25 @@ test('paystack transfer.success: marks the SENT payout COMPLETED', async () => {
   assert.equal(transactions.get('WIT-1').status, 'COMPLETED');
 });
 
-test('paystack transfer.failed: refunds only after verify confirms a terminal failure', async () => {
+test('paystack transfer.reversed: refunds the wallet (balance credited back)', async () => {
+  seedWallet('w6', 'u6', { balance: 0 });
+  transactions.set('WIT-2', {
+    reference: 'WIT-2', providerRef: 'wit-0002', provider: 'PAYSTACK', type: 'WITHDRAWAL',
+    status: 'SENT', amount: 700, debitWalletId: 'w6',
+  });
+  verifiedTransfers._next = { reference: 'wit-0002', status: 'reversed' };
+  seedEvent('paystack-6');
+
+  await handlePaystackWebhook({
+    transactionRef: 'paystack-6',
+    payload: { event: 'transfer.reversed', data: { reference: 'wit-0002', status: 'reversed' } },
+  });
+
+  assert.equal(refunded.length, 1);
+  assert.equal(refunded[0].transactionId, 'WIT-2');
+});
+
+test('paystack transfer.failed: holds the payout and alerts (never auto-refunds)', async () => {
   seedWallet('w6', 'u6', { balance: 0 });
   transactions.set('WIT-2', {
     reference: 'WIT-2', providerRef: 'wit-0002', provider: 'PAYSTACK', type: 'WITHDRAWAL',
@@ -398,8 +421,11 @@ test('paystack transfer.failed: refunds only after verify confirms a terminal fa
     payload: { event: 'transfer.failed', data: { reference: 'wit-0002', status: 'failed' } },
   });
 
-  assert.equal(refunded.length, 1);
-  assert.equal(refunded[0].transactionId, 'WIT-2');
+  // Paystack does NOT return the debit on `failed` (only `reversed`) - auto
+  // refunding could double-pay, so we hold + alert and leave the payout SENT.
+  assert.equal(refunded.length, 0);
+  assert.equal(transactions.get('WIT-2').status, 'SENT');
+  assert.equal(emailSent.length, 1);
 });
 
 test('paystack transfer.failed: verify showing still-pending leaves the payout alone', async () => {
@@ -465,7 +491,7 @@ test('reconcilePaystack: completes a SENT payout verify says succeeded', async (
   assert.equal(transactions.get('WIT-11').status, 'COMPLETED');
 });
 
-test('reconcilePaystack: refunds a SENT payout verify says failed', async () => {
+test('reconcilePaystack: refunds a SENT payout verify says reversed', async () => {
   const old = new Date(Date.now() - 10 * 60 * 1000);
   seedWallet('w12', 'u12', { balance: 0 });
   transactions.set('WIT-12', {
@@ -477,4 +503,20 @@ test('reconcilePaystack: refunds a SENT payout verify says failed', async () => 
   const out = await reconcilePaystack();
   assert.equal(out.refunded, 1);
   assert.equal(refunded[0].transactionId, 'WIT-12');
+});
+
+test('reconcilePaystack: holds (does not refund) a SENT payout verify says failed', async () => {
+  const old = new Date(Date.now() - 10 * 60 * 1000);
+  seedWallet('w12', 'u12', { balance: 0 });
+  transactions.set('WIT-13', {
+    reference: 'WIT-13', providerRef: 'wit-0013', provider: 'PAYSTACK', type: 'WITHDRAWAL',
+    status: 'SENT', amount: 500, debitWalletId: 'w12', createdAt: old,
+  });
+  verifiedTransfers._next = { reference: 'wit-0013', status: 'failed' };
+
+  const out = await reconcilePaystack();
+  assert.equal(out.refunded, 0);
+  assert.equal(refunded.length, 0);
+  assert.equal(transactions.get('WIT-13').status, 'SENT');
+  assert.equal(emailSent.length, 1);
 });

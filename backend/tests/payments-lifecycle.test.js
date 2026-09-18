@@ -96,8 +96,11 @@ const prismaStub = {
 
 stub('../src/config/database.js', { prisma: prismaStub });
 stub('../src/config/redis.js', { redis: { async get() { return null; }, async set() { return 'OK'; }, async del() { return 1; }, async publish() { return 0; } } });
-stub('../src/config/index.js', { config: { NODE_ENV: 'test' } });
+stub('../src/config/index.js', { config: { NODE_ENV: 'test', ALERT_EMAIL: 'ops@iprime.ng', SMTP_FROM_EMAIL: 'hello@iprime.ng' } });
 stub('../src/utils/logger.js', { logger: { info() {}, warn() {}, error() {}, debug() {} } });
+
+const emailSent = [];
+stub('../src/services/email.service.js', { sendEmail: async (a) => { emailSent.push(a); return {}; } });
 
 stub(require.resolve('bullmq'), {
   Queue: class { constructor() {} add() { return Promise.resolve({}); } },
@@ -115,6 +118,7 @@ stub('../src/services/payments/router.js', {
 
 const calls = { createCustomer: [], assignDva: [], katpayVa: [], katpayPayout: [], paystackPayout: [], createRecipient: [] };
 let payoutBehaviour = null; // () => value | throws
+let payoutStatus = 'pending'; // live POST /transfer returns `pending` (only test mode returns `success`)
 
 stub('../src/services/paystack.service.js', {
   isConfigured: () => true,
@@ -130,7 +134,7 @@ stub('../src/services/paystack.service.js', {
   initiatePayout: async (a) => {
     calls.paystackPayout.push(a);
     if (payoutBehaviour) return payoutBehaviour();
-    return { reference: 'wit-1', transferCode: 'TRF_1', status: 'pending' };
+    return { reference: 'wit-1', transferCode: 'TRF_1', status: payoutStatus };
   },
   verifyTransfer: async () => ({ status: 'success' }),
 });
@@ -178,7 +182,9 @@ test.beforeEach(() => {
   beneficiaries.clear();
   for (const k of Object.keys(calls)) calls[k].length = 0;
   calls.refund = [];
+  emailSent.length = 0;
   payoutBehaviour = null;
+  payoutStatus = 'pending'; // live POST /transfer queues with status `pending`
   MODE = 'KATPAY';
 });
 
@@ -223,7 +229,7 @@ test('provisionVirtualAccount: idempotent when a NUBAN already exists', async ()
 
 // ─── payouts ──────────────────────────────────────────────────────────────────
 
-test('handleWithdrawal: PAYSTACK payout resolves a recipient and completes', async () => {
+test('handleWithdrawal: PAYSTACK payout resolves a recipient and stays SENT when queued (live pending)', async () => {
   seedWallet('w4', 'u4', { balance: 0 });
   transactions.set('WIT-1', {
     reference: 'WIT-1', type: 'WITHDRAWAL', status: 'PROCESSING', provider: 'PAYSTACK',
@@ -236,8 +242,37 @@ test('handleWithdrawal: PAYSTACK payout resolves a recipient and completes', asy
   assert.equal(calls.createRecipient[0].katpayBankCode, '100004');
   assert.equal(calls.paystackPayout.length, 1);
   assert.equal(calls.paystackPayout[0].recipientCode, 'RCP_new');
-  assert.equal(transactions.get('WIT-1').status, 'COMPLETED');
+  // Live POST /transfer returns status `pending` - the money has NOT left, so
+  // the row must stay SENT for the transfer.success webhook / sweep to complete.
+  assert.equal(transactions.get('WIT-1').status, 'SENT');
   assert.equal(calls.katpayPayout.length, 0);
+});
+
+test('handleWithdrawal: PAYSTACK payout completes only when status is success', async () => {
+  payoutStatus = 'success';
+  seedWallet('w4', 'u4', { balance: 0 });
+  transactions.set('WIT-1', {
+    reference: 'WIT-1', type: 'WITHDRAWAL', status: 'PROCESSING', provider: 'PAYSTACK',
+    amount: 500, fee: 0, debitWalletId: 'w4', metadata: {},
+  });
+
+  await handleWithdrawal({ transactionId: 'WIT-1', bankCode: '100004', accountNumber: '0123456789', accountName: 'Ada', amount: 500, userId: 'u4' });
+
+  assert.equal(transactions.get('WIT-1').status, 'COMPLETED');
+});
+
+test('handleWithdrawal: PAYSTACK payout requiring OTP stays SENT and alerts', async () => {
+  payoutStatus = 'otp';
+  seedWallet('w4', 'u4', { balance: 0 });
+  transactions.set('WIT-1', {
+    reference: 'WIT-1', type: 'WITHDRAWAL', status: 'PROCESSING', provider: 'PAYSTACK',
+    amount: 500, fee: 0, debitWalletId: 'w4', metadata: {},
+  });
+
+  await handleWithdrawal({ transactionId: 'WIT-1', bankCode: '100004', accountNumber: '0123456789', accountName: 'Ada', amount: 500, userId: 'u4' });
+
+  assert.equal(transactions.get('WIT-1').status, 'SENT');
+  assert.equal(emailSent.length, 1);
 });
 
 test('handleWithdrawal: PAYSTACK payout reuses a cached recipient code', async () => {
@@ -252,6 +287,7 @@ test('handleWithdrawal: PAYSTACK payout reuses a cached recipient code', async (
 
   assert.equal(calls.createRecipient.length, 0);
   assert.equal(calls.paystackPayout[0].recipientCode, 'RCP_cached');
+  assert.equal(transactions.get('WIT-2').status, 'SENT');
 });
 
 test('handleWithdrawal: KATPAY payout path is unchanged', async () => {

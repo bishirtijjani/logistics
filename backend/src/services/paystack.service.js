@@ -56,12 +56,13 @@ const fromKobo = (kobo) => Number(kobo) / 100;
 
 /**
  * Paystack transfer references must be 16-50 chars of lowercase alphanumerics,
- * `-`, `_` or `.`. Our ledger references are `WIT-<uuid>` / `TRF-<uuid>` (40
+ * `-` or `_` (see the Transfer API docs - unlike initialize, `.` and `=` are
+ * NOT allowed here). Our ledger references are `WIT-<uuid>` / `TRF-<uuid>` (40
  * chars), which are already valid once lowercased. This normalises arbitrary
  * callers and pads anything too short so the request is never rejected on form.
  */
 const toTransferReference = (reference) => {
-  const cleaned = String(reference || '').toLowerCase().replace(/[^a-z0-9\-_.]/g, '');
+  const cleaned = String(reference || '').toLowerCase().replace(/[^a-z0-9\-_]/g, '');
   if (cleaned.length >= 16) return cleaned.slice(0, 50);
   return `${cleaned}${'0'.repeat(16 - cleaned.length)}`.slice(0, 50);
 };
@@ -258,17 +259,18 @@ const fetchDedicatedAccount = async (customerCode) => {
 /**
  * Assign a Dedicated Virtual Account (funding NUBAN) to a Paystack customer.
  *
- * Businesses whose Paystack category requires customer validation must supply a
- * BVN; when one is on file it is forwarded. Returns the wallet-facing fields the
- * provisioning worker persists (`virtualAccountNumber` = DVA number). A duplicate
- * DVA response is resolved by adopting the customer's existing dedicated account.
+ * BVN is only forwarded for the `/dedicated_account/assign` flow (not the plain
+ * create endpoint we use here) - and since iPrime stores only a bcrypt hash of
+ * the BVN, no plaintext is ever available anyway. Returns the wallet-facing
+ * fields the provisioning worker persists (`virtualAccountNumber` = DVA number).
+ * A duplicate DVA response is resolved by adopting the customer's existing
+ * dedicated account.
  */
 const assignDva = async ({ customerCode, bvn, firstName, lastName, phone, preferredBank = 'wema-bank' }) => {
   if (!isConfigured()) throw AppError.internal('Paystack is not configured');
   if (!customerCode) throw AppError.internal('Paystack customer code is required for DVA provisioning');
 
   const body = { customer: customerCode, preferred_bank: preferredBank };
-  if (bvn) body.bvn = String(bvn);
   if (firstName) body.first_name = firstName;
   if (lastName) body.last_name = lastName;
   if (phone) body.phone = phone;

@@ -1,11 +1,13 @@
 const { Worker } = require('bullmq');
 const { redis } = require('../../config/redis');
+const { config } = require('../../config');
 const { QUEUES, PAYMENT_JOBS, STUCK_WEBHOOK_GRACE_MS } = require('../jobs');
 const { logger } = require('../../utils/logger');
 const { prisma } = require('../../config/database');
 const walletService = require('../../modules/wallet/wallet.service');
 const katpayService = require('../../services/katpay.service');
 const paystackService = require('../../services/paystack.service');
+const emailService = require('../../services/email.service');
 const { provisionVirtualAccount } = require('../../services/payments/provisioning');
 const notifyService = require('../../services/notify.service');
 const reconciliationService = require('../../services/reconciliation.service');
@@ -290,7 +292,47 @@ const reconcileStuckWebhooks = async () => {
 };
 
 /**
- * Process withdrawal - call KatPay payout API.
+ * Alert admins that a Paystack payout is held and needs manual review (e.g.
+ * a transfer that FAILED - Paystack only returns the debit on reversal, so
+ * refunding the wallet automatically on `failed` could double-pay). Best-effort
+ * and de-duped via a Redis NX marker so retries/webhook re-deliveries don't
+ * spam the inbox. Recipient is ALERT_EMAIL, or SMTP_FROM_EMAIL as a fallback.
+ */
+const alertPaystackPayoutHold = async ({ transactionId, reference, reason }) => {
+  const to = config.ALERT_EMAIL || config.SMTP_FROM_EMAIL;
+  if (!to) return;
+
+  const marker = `paystack:payout-hold-alerted:${reference}`;
+  try {
+    const first = await redis.set(marker, '1', 'EX', 24 * 60 * 60, 'NX');
+    if (first === null) return; // already alerted for this reference
+  } catch (err) {
+    logger.warn('Paystack payout-hold alert marker failed (non-fatal)', { reference, error: err.message });
+  }
+
+  try {
+    await emailService.sendEmail({
+      to,
+      subject: `⚠️ Paystack payout needs review — ${transactionId}`,
+      text: [
+        'A Paystack payout could NOT be settled conclusively and needs manual review.',
+        '',
+        `Transaction:  ${transactionId}`,
+        `Paystack ref: ${reference}`,
+        `Reason:       ${reason}`,
+        '',
+        'ACTION: open the Paystack dashboard → Transfers, check the transfer status and whether',
+        'the Paystack balance was debited/returned, then refund the wallet if due or retry the payout.',
+      ].join('\n'),
+    });
+    logger.info('Admin alerted: Paystack payout needs review', { transactionId, reference, to });
+  } catch (err) {
+    logger.warn('Paystack payout-hold alert failed (non-fatal)', { transactionId, error: err.message });
+  }
+};
+
+/**
+ * Process withdrawal - call payout API.
  *
  * Money-safety rules (a payout moves real cash and can't be un-sent):
  *   - Terminal states (COMPLETED/FAILED/REVERSED) never re-run.
@@ -302,6 +344,12 @@ const reconcileStuckWebhooks = async () => {
  *   - On an AMBIGUOUS error (timeout/network/5xx) the payout may have settled -
  *     do NOT refund; leave it SENT and re-throw to retry. Retries see SENT and
  *     return without re-paying; if they exhaust, reconciliation flags it.
+ *   - Paystack: a 200 from POST /transfer only means the transfer was QUEUED
+ *     (`status: pending` in live; `success` only in test mode). Only a status of
+ *     `success` is conclusive - mark COMPLETED. Anything else stays SENT and is
+ *     completed by the transfer.success webhook or the reconcile sweep, and a
+ *     later failure is caught (and held/refunded) instead of being refused as
+ *     "already COMPLETED".
  */
 const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accountName, amount, userId }) => {
   const transaction = await prisma.transaction.findUnique({ where: { reference: transactionId } });
@@ -368,6 +416,31 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
     logger.error('Withdrawal payout rejected - refunding', { transactionId, reason: error.providerMessage });
     await refundFailedWithdrawal({ transactionId, reason: error.providerMessage });
     return; // terminal - do NOT re-throw (no retry, no re-pay)
+  }
+
+  // Paystack: only a `success` status is conclusive that money left. In live
+  // mode POST /transfer returns `pending` (or `otp` if OTP approval is on); the
+  // money has NOT left, so leave the row SENT - the transfer.success webhook or
+  // reconcile sweep will complete it, and a later failure stays refundable.
+  if (payout && (transaction.provider || 'KATPAY') === 'PAYSTACK') {
+    const payoutStatus = String(payout.status || '').toLowerCase();
+    if (payoutStatus !== 'success') {
+      if (payoutStatus === 'otp') {
+        logger.error('PAYSTACK_PAYOUT_HOLD transfer requires OTP - disable "Confirm transfers before sending" in Paystack', {
+          transactionId, status: payout.status,
+        });
+        await alertPaystackPayoutHold({
+          transactionId,
+          reference: payout.reference || transactionId,
+          reason: 'transfer requires OTP - disable "Confirm transfers before sending" in the Paystack dashboard',
+        });
+      } else {
+        logger.info('Paystack payout queued - awaiting transfer.success webhook / reconcile sweep', {
+          transactionId, status: payout.status,
+        });
+      }
+      return; // leave SENT
+    }
   }
 
   // Success → SENT→COMPLETED (compare-and-set).
@@ -503,14 +576,20 @@ const resolveDvaAccountNumber = async (data) => {
 const handlePaystackChargeSuccess = async (data) => {
   const reference = data.reference;
   const amount = Number(data.amount || 0) / 100;
-  const channel = data.channel || data.authorization?.channel;
-  const metadata = data.metadata || {};
+  // DVA funding is signalled by the authorization channel (and mirrored at the
+  // top level) being `dedicated_nuban`.
+  const isDva = data.channel === 'dedicated_nuban' || data.authorization?.channel === 'dedicated_nuban';
+  // metadata is a plain object when passed to initialize; Paystack echoes it as
+  // an object, but tolerate a stringified form defensively.
+  const metadata = typeof data.metadata === 'string'
+    ? (() => { try { return JSON.parse(data.metadata); } catch { return {}; } })()
+    : (data.metadata || {});
 
   const userId = metadata.userId ? String(metadata.userId) : null;
-  const accountNumber = channel === 'dedicated_nuban' ? await resolveDvaAccountNumber(data) : null;
+  const accountNumber = isDva ? await resolveDvaAccountNumber(data) : null;
 
   if (!userId && !accountNumber) {
-    throw new Error(`unroutable paystack charge (reference=${reference}, channel=${channel})`);
+    throw new Error(`unroutable paystack charge (reference=${reference}, channel=${data.channel || data.authorization?.channel})`);
   }
 
   await walletService.fundWallet({
@@ -571,9 +650,24 @@ const handlePaystackTransferFailure = async (data) => {
     throw err;
   }
 
-  if (['failed', 'reversed'].includes(String(status))) {
-    logger.error('PAYSTACK_PAYOUT_FAILED reconcile required', { reference, transactionId: transaction.reference, status });
-    await refundFailedWithdrawal({ transactionId: transaction.reference, reason: `paystack transfer ${status}` });
+  const s = String(status || '').toLowerCase();
+  if (s === 'reversed') {
+    // Paystack credits the transfer amount back to the balance on reversal, so
+    // the wallet debit is safe to reverse too.
+    logger.error('PAYSTACK_PAYOUT_REVERSED - refunding wallet', { reference, transactionId: transaction.reference });
+    await refundFailedWithdrawal({ transactionId: transaction.reference, reason: 'paystack transfer reversed' });
+  } else if (s === 'failed') {
+    // Paystack does NOT return the debit on `failed` - only `reversed` credits
+    // the balance back. Auto-refunding the wallet here could double-pay if the
+    // balance still holds the debit: hold + alert for manual review instead.
+    logger.error('PAYSTACK_PAYOUT_HOLD transfer failed - funds NOT auto-returned, manual review required', {
+      reference, transactionId: transaction.reference, status,
+    });
+    await alertPaystackPayoutHold({
+      transactionId: transaction.reference,
+      reference,
+      reason: 'transfer failed - verify the Paystack balance before refunding the wallet',
+    });
   } else {
     logger.warn('Paystack transfer failure webhook but verify shows non-terminal - left for reconcile', { reference, status });
   }
@@ -619,8 +713,8 @@ const handlePaystackWebhook = async ({ transactionRef, payload }) => {
  * Safety-net sweep for Paystack. Verifies transactions that never got a webhook:
  *   - WALLET_FUNDING PENDING past the grace window → success settles, definitive
  *     failure marks FAILED, still-pending is left alone;
- *   - WITHDRAWAL SENT past the grace window → success completes, failed/reversed
- *     refunds the wallet. Every path is idempotent (CAS + refund guard).
+ *   - WITHDRAWAL SENT past the grace window → success completes, reversed refunds
+ *     (balance credited back), failed holds + alerts (debit not auto-returned).
  */
 const reconcilePaystack = async () => {
   const cutoff = new Date(Date.now() - STUCK_WEBHOOK_GRACE_MS);
@@ -672,9 +766,19 @@ const reconcilePaystack = async () => {
           data: { status: 'COMPLETED', providerRef: reference },
         });
         if (claim.count === 1) settled += 1;
-      } else if (['failed', 'reversed'].includes(String(verified.status))) {
-        const res = await refundFailedWithdrawal({ transactionId: tx.reference, reason: `paystack transfer ${verified.status}` });
+      } else if (String(verified.status).toLowerCase() === 'reversed') {
+        // Reversal credits the Paystack balance back - safe to refund the wallet.
+        const res = await refundFailedWithdrawal({ transactionId: tx.reference, reason: 'paystack transfer reversed (verified)' });
         if (res.refunded) refunded += 1;
+      } else if (String(verified.status).toLowerCase() === 'failed') {
+        // `failed` does NOT return the debit to the balance (only `reversed`
+        // does) - hold + alert, never auto-refund.
+        logger.error('PAYSTACK_PAYOUT_HOLD transfer failed (verified) - funds NOT auto-returned, manual review required', { reference });
+        await alertPaystackPayoutHold({
+          transactionId: tx.reference,
+          reference,
+          reason: 'transfer failed - verify the Paystack balance before refunding the wallet',
+        });
       } else {
         logger.warn('Paystack payout still pending after grace window', { reference, status: verified.status });
       }
