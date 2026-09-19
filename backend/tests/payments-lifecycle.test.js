@@ -89,6 +89,7 @@ const prismaStub = {
   platformSetting: { async findMany() { return []; } },
   webhookEvent: {},
   user: { async findUnique({ where }) { return users.get(where.id) || null; } },
+  $executeRaw: async () => 1,
   $transaction: async (input) => (typeof input === 'function' ? input(prismaStub) : Promise.all(input)),
 };
 

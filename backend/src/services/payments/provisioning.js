@@ -34,6 +34,20 @@ const splitName = (name) => {
 };
 
 /**
+ * Update a wallet's account fields, tolerating a negative balance. A wallet can
+ * hold a small negative balance (cash-commission advance) that the
+ * wallet_balance_nonneg check only permits while app.allow_negative_wallet='on'.
+ * These updates never touch the balance, so relaxing the check for the write is
+ * safe - without it, provisioning would fail for such a wallet.
+ */
+const updateWalletAccounts = async (userId, data) => {
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SET LOCAL app.allow_negative_wallet = 'on'`;
+    await tx.wallet.update({ where: { userId }, data });
+  });
+};
+
+/**
  * The account the user should see for the given mode, falling back to the other
  * provider (then to the legacy mirror) when the active provider's is missing.
  */
@@ -66,13 +80,10 @@ const syncDisplayMirror = async (userId, wallet, mode) => {
   const active = activeAccountFor(wallet, mode);
   if (!active) return;
   if (wallet.virtualAccountNumber === active.accountNumber) return;
-  await prisma.wallet.update({
-    where: { userId },
-    data: {
-      virtualAccountNumber: active.accountNumber,
-      virtualAccountBank: active.bankName,
-      virtualAccountName: active.accountName,
-    },
+  await updateWalletAccounts(userId, {
+    virtualAccountNumber: active.accountNumber,
+    virtualAccountBank: active.bankName,
+    virtualAccountName: active.accountName,
   });
 };
 
@@ -94,15 +105,12 @@ const provisionPaystackAccount = async ({ userId, email, name, phoneNumber }) =>
     preferredBank: 'wema-bank', // Wema only - Paystack-Titan is never used
   });
 
-  await prisma.wallet.update({
-    where: { userId },
-    data: {
-      paystackAccountNumber: dva.accountNumber,
-      paystackAccountBank: dva.bankName,
-      paystackAccountName: dva.accountName,
-      paystackCustomerCode: dva.customerCode || customer.customerCode,
-      dedicatedAccountId: dva.dedicatedAccountId,
-    },
+  await updateWalletAccounts(userId, {
+    paystackAccountNumber: dva.accountNumber,
+    paystackAccountBank: dva.bankName,
+    paystackAccountName: dva.accountName,
+    paystackCustomerCode: dva.customerCode || customer.customerCode,
+    dedicatedAccountId: dva.dedicatedAccountId,
   });
 
   logger.info('Paystack DVA provisioned', {
@@ -126,13 +134,10 @@ const provisionKatpayAccount = async ({ userId, email, name, phoneNumber }) => {
     bankCodes: ['PALMPAY', 'OPAY'],
   });
 
-  await prisma.wallet.update({
-    where: { userId },
-    data: {
-      katpayAccountNumber: va.accountNumber,
-      katpayAccountBank: va.bankName,
-      katpayAccountName: va.accountName,
-    },
+  await updateWalletAccounts(userId, {
+    katpayAccountNumber: va.accountNumber,
+    katpayAccountBank: va.bankName,
+    katpayAccountName: va.accountName,
   });
 
   logger.info('KatPay virtual account provisioned', { userId, accountNumber: va.accountNumber });
