@@ -137,7 +137,7 @@ test('createCustomer: falls back to a lookup when the email already exists', asy
   assert.equal(c.customerCode, 'CUS_existing');
 });
 
-test('assignDva: normalises the DVA fields (BVN is not sent - create endpoint does not accept it)', async () => {
+test('assignDva: normalises the DVA fields and always uses Wema Bank', async () => {
   reset();
   postQueue.push({
     data: {
@@ -150,7 +150,8 @@ test('assignDva: normalises the DVA fields (BVN is not sent - create endpoint do
       },
     },
   });
-  const va = await paystack.assignDva({ customerCode: 'CUS_abc', firstName: 'John' });
+  // Passing a non-Wema provider must be forced back to wema-bank.
+  const va = await paystack.assignDva({ customerCode: 'CUS_abc', firstName: 'John', preferredBank: 'titan-paystack' });
   assert.deepEqual(va, {
     accountNumber: '9999999999',
     bankName: 'Wema Bank',
@@ -160,6 +161,7 @@ test('assignDva: normalises the DVA fields (BVN is not sent - create endpoint do
   });
   const body = last('post').body;
   assert.equal(body.customer, 'CUS_abc');
+  assert.equal(body.preferred_bank, 'wema-bank');
   assert.equal(body.bvn, undefined);
 });
 

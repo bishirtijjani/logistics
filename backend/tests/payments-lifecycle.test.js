@@ -201,6 +201,7 @@ test('provisionVirtualAccount: PAYSTACK mode creates customer + DVA and persists
   assert.equal(calls.createCustomer.length, 1);
   assert.equal(calls.assignDva.length, 1);
   assert.equal(calls.assignDva[0].customerCode, 'CUS_1');
+  assert.equal(calls.assignDva[0].preferredBank, 'wema-bank');
   const w = wallets.get('w1');
   assert.equal(w.virtualAccountNumber, 'DVA1');
   assert.equal(w.paystackCustomerCode, 'CUS_1');

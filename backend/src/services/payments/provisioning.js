@@ -60,6 +60,9 @@ const provisionVirtualAccount = async ({ userId, email, name, phoneNumber }) => 
       firstName,
       lastName,
       phone: phoneNumber,
+      // The platform provisions DVAs on Wema Bank ONLY - Paystack-Titan is never
+      // used (payment rails and user-facing copy assume Wema).
+      preferredBank: 'wema-bank',
     });
 
     await prisma.wallet.update({

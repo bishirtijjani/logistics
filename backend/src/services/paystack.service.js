@@ -265,12 +265,16 @@ const fetchDedicatedAccount = async (customerCode) => {
  * fields the provisioning worker persists (`virtualAccountNumber` = DVA number).
  * A duplicate DVA response is resolved by adopting the customer's existing
  * dedicated account.
+ *
+ * The platform uses Wema Bank ONLY (payments rails, funding copy and bank-name
+ * display all assume Wema); a different preferred_bank is never requested.
  */
-const assignDva = async ({ customerCode, bvn, firstName, lastName, phone, preferredBank = 'wema-bank' }) => {
+const assignDva = async ({ customerCode, bvn, firstName, lastName, phone, preferredBank }) => {
   if (!isConfigured()) throw AppError.internal('Paystack is not configured');
   if (!customerCode) throw AppError.internal('Paystack customer code is required for DVA provisioning');
 
-  const body = { customer: customerCode, preferred_bank: preferredBank };
+  // Wema Bank is the platform's only DVA bank; any other provider is forced back.
+  const body = { customer: customerCode, preferred_bank: preferredBank === 'wema-bank' ? preferredBank : 'wema-bank' };
   if (firstName) body.first_name = firstName;
   if (lastName) body.last_name = lastName;
   if (phone) body.phone = phone;
