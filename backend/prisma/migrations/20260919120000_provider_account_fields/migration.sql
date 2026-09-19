@@ -1,5 +1,12 @@
 -- Per-provider funding account fields: every wallet keeps BOTH a KatPay NUBAN and
 -- a Paystack DVA. The app displays whichever provider is active; both stay valid.
+--
+-- The data backfill below rewrites wallet rows. One legacy wallet can hold a small
+-- NEGATIVE balance (cash-commission advance) which the wallet_balance_nonneg check
+-- only permits while app.allow_negative_wallet='on' - so set it for this migration
+-- (the same flag the cash-commission flow uses). The UPDATEs never touch balances.
+SET LOCAL app.allow_negative_wallet = 'on';
+
 ALTER TABLE "wallets"
   ADD COLUMN "paystackAccountNumber" TEXT,
   ADD COLUMN "paystackAccountBank" TEXT,
