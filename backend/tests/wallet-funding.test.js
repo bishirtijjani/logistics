@@ -48,6 +48,10 @@ const prismaStub = {
       if (select) return Object.fromEntries(Object.keys(select).filter((k) => select[k]).map((k) => [k, row[k]]));
       return row;
     },
+    async findFirst({ where }) {
+      const clauses = where.OR || [where];
+      return [...wallets.values()].find((w) => clauses.some((c) => Object.keys(c).every((k) => w[k] === c[k]))) || null;
+    },
     async update({ where, data }) {
       const row = wallets.get(where.id);
       if (!row) throw new Error('wallet not found');

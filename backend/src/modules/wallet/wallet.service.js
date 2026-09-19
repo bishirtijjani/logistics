@@ -40,6 +40,13 @@ const getWallet = async (userId) => {
       virtualAccountBank: true,
       virtualAccountName: true,
       isLocked: true,
+      paystackCustomerCode: true,
+      paystackAccountNumber: true,
+      paystackAccountBank: true,
+      paystackAccountName: true,
+      katpayAccountNumber: true,
+      katpayAccountBank: true,
+      katpayAccountName: true,
     },
   });
 
@@ -203,7 +210,17 @@ const fundWallet = async ({ accountNumber, amount, reference, metadata, provider
     const wallet = userId
       ? await tx.wallet.findUnique({ where: { userId } })
       : accountNumber
-        ? await tx.wallet.findUnique({ where: { virtualAccountNumber: accountNumber } })
+        // A wallet is credited whichever provider's number the transfer landed on:
+        // the active provider's or the other (older) number a user still has saved.
+        ? await tx.wallet.findFirst({
+          where: {
+            OR: [
+              { virtualAccountNumber: accountNumber },
+              { paystackAccountNumber: accountNumber },
+              { katpayAccountNumber: accountNumber },
+            ],
+          },
+        })
         : existing?.creditWalletId
           ? await tx.wallet.findUnique({ where: { id: existing.creditWalletId } })
           : null;
@@ -606,12 +623,13 @@ const _walletIdForUser = async (userId) => {
 };
 
 /**
- * Re-enqueue a virtual-account provisioning job for a user whose wallet has no
- * NUBAN yet (KatPay was down/misconfigured at signup, or a legacy account that
- * predates signup-time provisioning). Requires a phone on file - no BVN/NIN.
- * Throttled per-user via Redis so the client can't spam KatPay.
+ * Re-enqueue a provisioning job for a user whose wallet is missing either
+ * provider account (a provider was down/misconfigured at signup, or a legacy
+ * account that predates provisioning). Requires a phone on file - no BVN/NIN.
+ * Throttled per-user via Redis so the client can't spam the providers.
  *
- * Worker handler is idempotent - short-circuits if accountNumber already set.
+ * Worker handler is idempotent - each provider short-circuits when its account
+ * already exists.
  */
 const retryVirtualAccountProvisioning = async (userId) => {
   const user = await prisma.user.findUnique({
@@ -619,7 +637,7 @@ const retryVirtualAccountProvisioning = async (userId) => {
     include: { wallet: true },
   });
   if (!user) throw AppError.notFound('User not found');
-  if (user.wallet?.virtualAccountNumber) {
+  if (user.wallet?.paystackAccountNumber && user.wallet?.katpayAccountNumber) {
     return { alreadyProvisioned: true };
   }
 

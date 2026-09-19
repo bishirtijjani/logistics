@@ -163,7 +163,7 @@ stub('../src/services/settings.service.js', {
   getSetting: async (_k, d) => d, getSettings: async () => ({}), setSetting: async () => ({}), getAllSettings: async () => ({}),
 });
 
-const { provisionVirtualAccount } = require('../src/services/payments/provisioning');
+const { provisionVirtualAccount, activeAccountFor } = require('../src/services/payments/provisioning');
 const worker = require('../src/queues/workers/payment.worker');
 const { handleWithdrawal } = worker.__test;
 
@@ -220,12 +220,37 @@ test('provisionVirtualAccount: KATPAY mode is unchanged', async () => {
   assert.equal(wallets.get('w2').virtualAccountNumber, 'KAT1');
 });
 
-test('provisionVirtualAccount: idempotent when a NUBAN already exists', async () => {
-  seedWallet('w3', 'u3', { virtualAccountNumber: 'EXISTING' });
+test('provisionVirtualAccount: idempotent when both provider accounts already exist', async () => {
+  seedWallet('w3', 'u3', { paystackAccountNumber: 'PS-X', katpayAccountNumber: 'KAT-X' });
   const va = await provisionVirtualAccount({ userId: 'u3', email: 'u3@x.co', name: 'D E', phoneNumber: '0803' });
   assert.equal(va.alreadyProvisioned, true);
-  assert.equal(va.accountNumber, 'EXISTING');
+  assert.equal(va.accountNumber, 'KAT-X'); // mode defaults to KATPAY
   assert.equal(calls.createCustomer.length + calls.katpayVa.length, 0);
+});
+
+// ─── display account follows the active provider ──────────────────────────────
+
+test('activeAccountFor: shows the ACTIVE provider\'s account', () => {
+  const wallet = {
+    paystackAccountNumber: 'PS-1', paystackAccountBank: 'Wema Bank', paystackAccountName: 'A',
+    katpayAccountNumber: 'KP-1', katpayAccountBank: 'PalmPay', katpayAccountName: 'A',
+  };
+  assert.deepEqual(activeAccountFor(wallet, 'PAYSTACK'), { accountNumber: 'PS-1', bankName: 'Wema Bank', accountName: 'A', provider: 'PAYSTACK' });
+  assert.deepEqual(activeAccountFor(wallet, 'KATPAY'), { accountNumber: 'KP-1', bankName: 'PalmPay', accountName: 'A', provider: 'KATPAY' });
+});
+
+test('activeAccountFor: falls back to the other provider when the active one is missing', () => {
+  const onlyKatpay = { katpayAccountNumber: 'KP-2', katpayAccountBank: 'PalmPay', katpayAccountName: 'B' };
+  assert.deepEqual(activeAccountFor(onlyKatpay, 'PAYSTACK'), { accountNumber: 'KP-2', bankName: 'PalmPay', accountName: 'B', provider: 'KATPAY' });
+
+  const onlyPaystack = { paystackAccountNumber: 'PS-2', paystackAccountBank: 'Wema Bank', paystackAccountName: 'C' };
+  assert.deepEqual(activeAccountFor(onlyPaystack, 'KATPAY'), { accountNumber: 'PS-2', bankName: 'Wema Bank', accountName: 'C', provider: 'PAYSTACK' });
+});
+
+test('activeAccountFor: falls back to the legacy mirror when neither provider field is set', () => {
+  const mirror = { virtualAccountNumber: 'OLD-1', virtualAccountBank: 'PalmPay', virtualAccountName: 'D', paystackCustomerCode: null };
+  assert.deepEqual(activeAccountFor(mirror, 'PAYSTACK'), { accountNumber: 'OLD-1', bankName: 'PalmPay', accountName: 'D', provider: 'KATPAY' });
+  assert.equal(activeAccountFor({}, 'PAYSTACK'), null);
 });
 
 // ─── payouts ──────────────────────────────────────────────────────────────────

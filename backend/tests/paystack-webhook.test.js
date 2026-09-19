@@ -322,7 +322,7 @@ test('paystack charge.success (DVA): funds the wallet by receiver NUBAN', async 
 });
 
 test('paystack charge.success (DVA): falls back to customer code when no receiver number', async () => {
-  seedWallet('w2', 'u2', { virtualAccountNumber: '8880002222', paystackCustomerCode: 'CUS_x' });
+  seedWallet('w2', 'u2', { paystackAccountNumber: '8880002222', paystackCustomerCode: 'CUS_x' });
   seedEvent('paystack-2');
 
   await handlePaystackWebhook({

@@ -289,11 +289,17 @@ model Wallet {
   paystackCustomerCode String? @unique /// Paystack customer code (CUS_...)
   dedicatedAccountId   String? /// Paystack dedicated_account id (numeric, stored as string)
 
-  // The KatPay minted NUBAN, retained after the Paystack cutover so a straggler
-  // transfer to a number a user saved in their bank app still credits the wallet
-  // (the inbound KatPay webhook resolves the wallet by this field). KatPay cannot
-  // deactivate NUBANs, so this is the only way late funding stays automatic.
-  katpayAccountNumber String? @unique /// KatPay NUBAN (kept when a Paystack DVA replaces it)
+  // Explicit per-provider account fields. EVERY user is minted both a KatPay
+  // NUBAN and a Paystack DVA; the app displays whichever provider is active
+  // (payments.providerMode). Both numbers stay valid so a user who still pays
+  // into the number saved in their bank app is always credited.
+  paystackAccountNumber String? @unique /// Paystack DVA NUBAN
+  paystackAccountBank   String?
+  paystackAccountName   String?
+
+  katpayAccountNumber String? @unique /// KatPay NUBAN
+  katpayAccountBank   String?
+  katpayAccountName   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

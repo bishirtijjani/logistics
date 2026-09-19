@@ -1,21 +1,23 @@
 /**
- * Virtual-account (funding NUBAN) provisioning - gateway-aware.
+ * Virtual-account (funding NUBAN) provisioning - dual provider.
  *
- * Both signup/KYC (auth.service) and the PROVISION_VIRTUAL_ACCOUNT retry worker
- * call this one function, so whichever provider is active mints the wallet's
- * NUBAN consistently and the wallet row is updated in one place.
+ * EVERY wallet is minted BOTH a KatPay NUBAN and a Paystack Dedicated Virtual
+ * Account. Both numbers stay valid for the life of the wallet: the app displays
+ * whichever provider is active (`payments.providerMode`), while a transfer into
+ * the other (older) number a user saved in their bank app is still credited
+ * (fundWallet resolves the wallet by any of its account numbers).
  *
- * Policy (see the gateway switch plan): existing wallets that already hold a
- * NUBAN keep it - a provider flip never force-migrates users (their displayed
- * NUBAN stays valid; the matching provider's webhook keeps settling it). Only
- * wallets without a NUBAN are provisioned, under the ACTIVE gateway.
+ * Each provider is provisioned independently and idempotently (short-circuits
+ * when that provider's account already exists), and best-effort: a failure on
+ * one provider never blocks the other. Callers get the ACTIVE provider's account
+ * back, falling back to the other if the active one isn't available yet.
  *
- * Provisioning Paystack requires the customer's BVN when the business category
- * demands identity validation. iPrime stores only a bcrypt hash of the BVN, so
- * no plaintext is available here - DVA assignment therefore relies on the
- * Paystack account being permitted to create DVAs without per-customer BVN. If
- * the account requires it, assignment fails and the normal retry path keeps the
- * wallet activate-able until Paystack is configured appropriately.
+ * Paystack requires the customer's BVN when the business category demands
+ * identity validation. iPrime stores only a bcrypt hash of the BVN, so no
+ * plaintext is available; DVA creation relies on the Paystack account being
+ * permitted to create DVAs without per-customer BVN (Logistics category - no
+ * validation required). If that changes, assignment fails and the retry path
+ * keeps the wallet activate-able.
  */
 const { prisma } = require('../../config/database');
 const { logger } = require('../../utils/logger');
@@ -32,59 +34,89 @@ const splitName = (name) => {
 };
 
 /**
- * Provision the funding NUBAN for a wallet under the active gateway. Idempotent:
- * returns the existing account when one is already set.
- *
- * @returns {Promise<{accountNumber, bankName, accountName, provider, alreadyProvisioned?}>}
+ * The account the user should see for the given mode, falling back to the other
+ * provider (then to the legacy mirror) when the active provider's is missing.
  */
-const provisionVirtualAccount = async ({ userId, email, name, phoneNumber }) => {
-  const wallet = await prisma.wallet.findUnique({ where: { userId } });
-  if (!wallet) throw AppError.notFound('Wallet not found');
+const activeAccountFor = (wallet, mode) => {
+  const paystack = wallet.paystackAccountNumber
+    ? { accountNumber: wallet.paystackAccountNumber, bankName: wallet.paystackAccountBank, accountName: wallet.paystackAccountName, provider: 'PAYSTACK' }
+    : null;
+  const katpay = wallet.katpayAccountNumber
+    ? { accountNumber: wallet.katpayAccountNumber, bankName: wallet.katpayAccountBank, accountName: wallet.katpayAccountName, provider: 'KATPAY' }
+    : null;
+
+  const preferred = mode === paymentsRouter.MODES.KATPAY ? [katpay, paystack] : [paystack, katpay];
+  const picked = preferred.find(Boolean);
+  if (picked) return picked;
+
+  // Last resort: the legacy mirror (a number minted before the split).
   if (wallet.virtualAccountNumber) {
     return {
       accountNumber: wallet.virtualAccountNumber,
       bankName: wallet.virtualAccountBank,
       accountName: wallet.virtualAccountName,
       provider: wallet.paystackCustomerCode ? 'PAYSTACK' : 'KATPAY',
-      alreadyProvisioned: true,
     };
   }
+  return null;
+};
 
-  const { provider } = await paymentsRouter.resolveGateway();
+/** Mirror the active account into the legacy virtualAccount* fields. */
+const syncDisplayMirror = async (userId, wallet, mode) => {
+  const active = activeAccountFor(wallet, mode);
+  if (!active) return;
+  if (wallet.virtualAccountNumber === active.accountNumber) return;
+  await prisma.wallet.update({
+    where: { userId },
+    data: {
+      virtualAccountNumber: active.accountNumber,
+      virtualAccountBank: active.bankName,
+      virtualAccountName: active.accountName,
+    },
+  });
+};
 
-  if (provider === paymentsRouter.MODES.PAYSTACK) {
-    const { firstName, lastName } = splitName(name);
-    const customer = await paystackService.createCustomer({ email, firstName, lastName, phone: phoneNumber });
-    const dva = await paystackService.assignDva({
-      customerCode: customer.customerCode,
-      firstName,
-      lastName,
-      phone: phoneNumber,
-      // The platform provisions DVAs on Wema Bank ONLY - Paystack-Titan is never
-      // used (payment rails and user-facing copy assume Wema).
-      preferredBank: 'wema-bank',
-    });
+/** Mint the Paystack DVA if the wallet doesn't already have one. Idempotent. */
+const provisionPaystackAccount = async ({ userId, email, name, phoneNumber }) => {
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (!wallet) throw AppError.notFound('Wallet not found');
+  if (wallet.paystackAccountNumber) {
+    return { accountNumber: wallet.paystackAccountNumber, bankName: wallet.paystackAccountBank, accountName: wallet.paystackAccountName, provider: 'PAYSTACK', alreadyProvisioned: true };
+  }
 
-    await prisma.wallet.update({
-      where: { userId },
-      data: {
-        virtualAccountNumber: dva.accountNumber,
-        virtualAccountBank: dva.bankName,
-        virtualAccountName: dva.accountName,
-        paystackCustomerCode: dva.customerCode || customer.customerCode,
-        dedicatedAccountId: dva.dedicatedAccountId,
-      },
-    });
+  const { firstName, lastName } = splitName(name);
+  const customer = await paystackService.createCustomer({ email, firstName, lastName, phone: phoneNumber });
+  const dva = await paystackService.assignDva({
+    customerCode: customer.customerCode,
+    firstName,
+    lastName,
+    phone: phoneNumber,
+    preferredBank: 'wema-bank', // Wema only - Paystack-Titan is never used
+  });
 
-    logger.info('Paystack DVA provisioned', {
-      userId, accountNumber: dva.accountNumber, dedicatedAccountId: dva.dedicatedAccountId,
-    });
-    return {
-      accountNumber: dva.accountNumber,
-      bankName: dva.bankName,
-      accountName: dva.accountName,
-      provider: 'PAYSTACK',
-    };
+  await prisma.wallet.update({
+    where: { userId },
+    data: {
+      paystackAccountNumber: dva.accountNumber,
+      paystackAccountBank: dva.bankName,
+      paystackAccountName: dva.accountName,
+      paystackCustomerCode: dva.customerCode || customer.customerCode,
+      dedicatedAccountId: dva.dedicatedAccountId,
+    },
+  });
+
+  logger.info('Paystack DVA provisioned', {
+    userId, accountNumber: dva.accountNumber, dedicatedAccountId: dva.dedicatedAccountId,
+  });
+  return { accountNumber: dva.accountNumber, bankName: dva.bankName, accountName: dva.accountName, provider: 'PAYSTACK' };
+};
+
+/** Mint the KatPay NUBAN if the wallet doesn't already have one. Idempotent. */
+const provisionKatpayAccount = async ({ userId, email, name, phoneNumber }) => {
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (!wallet) throw AppError.notFound('Wallet not found');
+  if (wallet.katpayAccountNumber) {
+    return { accountNumber: wallet.katpayAccountNumber, bankName: wallet.katpayAccountBank, accountName: wallet.katpayAccountName, provider: 'KATPAY', alreadyProvisioned: true };
   }
 
   const va = await katpayService.createVirtualAccount({
@@ -97,19 +129,58 @@ const provisionVirtualAccount = async ({ userId, email, name, phoneNumber }) => 
   await prisma.wallet.update({
     where: { userId },
     data: {
-      virtualAccountNumber: va.accountNumber,
-      virtualAccountBank: va.bankName,
-      virtualAccountName: va.accountName,
+      katpayAccountNumber: va.accountNumber,
+      katpayAccountBank: va.bankName,
+      katpayAccountName: va.accountName,
     },
   });
 
   logger.info('KatPay virtual account provisioned', { userId, accountNumber: va.accountNumber });
+  return { accountNumber: va.accountNumber, bankName: va.bankName, accountName: va.accountName, provider: 'KATPAY' };
+};
+
+/**
+ * Ensure the wallet has BOTH provider accounts, then return the active
+ * provider's account for the caller (signup/KYC welcome copy, retry worker).
+ *
+ * @returns {Promise<{accountNumber, bankName, accountName, provider, alreadyProvisioned?, errors?}>}
+ */
+const provisionVirtualAccount = async ({ userId, email, name, phoneNumber }) => {
+  const mode = await paymentsRouter.getMode();
+  const errors = [];
+
+  // Best-effort both ways - one provider being down must not block the other.
+  for (const fn of [provisionPaystackAccount, provisionKatpayAccount]) {
+    try {
+      await fn({ userId, email, name, phoneNumber });
+    } catch (err) {
+      errors.push(err);
+      logger.warn('Provider account provisioning failed (will retry)', { userId, error: err.message });
+    }
+  }
+
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (!wallet) throw AppError.notFound('Wallet not found');
+
+  const active = activeAccountFor(wallet, mode);
+  if (!active) {
+    // Neither provider produced (or already had) an account.
+    throw errors[0] || AppError.internal('Failed to provision wallet account');
+  }
+
+  await syncDisplayMirror(userId, wallet, mode);
+
   return {
-    accountNumber: va.accountNumber,
-    bankName: va.bankName,
-    accountName: va.accountName,
-    provider: 'KATPAY',
+    ...active,
+    alreadyProvisioned: Boolean(wallet.paystackAccountNumber && wallet.katpayAccountNumber),
+    ...(errors.length ? { errors: errors.map((e) => e.message) } : {}),
   };
 };
 
-module.exports = { provisionVirtualAccount, splitName };
+module.exports = {
+  provisionVirtualAccount,
+  provisionPaystackAccount,
+  provisionKatpayAccount,
+  activeAccountFor,
+  splitName,
+};

@@ -2,6 +2,7 @@ const walletService = require('./wallet.service');
 const authService = require('../auth/auth.service');
 const katpayService = require('../../services/katpay.service');
 const paymentsRouter = require('../../services/payments/router');
+const { activeAccountFor } = require('../../services/payments/provisioning');
 const { ApiResponse } = require('../../utils/api-response');
 
 const getWallet = async (req, res, next) => {
@@ -10,11 +11,14 @@ const getWallet = async (req, res, next) => {
       walletService.getWallet(req.user.id),
       paymentsRouter.getMode(),
     ]);
+    // Show the account of whichever provider is ACTIVE; both numbers stay valid.
+    const account = activeAccountFor(wallet, gateway);
     res.json(ApiResponse.success('Wallet retrieved', {
       ...wallet,
-      accountNumber: wallet.virtualAccountNumber,
-      bankName: wallet.virtualAccountBank,
-      accountName: wallet.virtualAccountName,
+      accountNumber: account?.accountNumber ?? null,
+      bankName: account?.bankName ?? null,
+      accountName: account?.accountName ?? null,
+      accountProvider: account?.provider ?? null,
       gateway,
     }));
   } catch (error) {

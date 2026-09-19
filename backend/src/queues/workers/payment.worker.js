@@ -202,6 +202,7 @@ const handleKatpayTransferPayment = async ({ transactionRef, amount, ref, metada
     }
 
     await walletService.fundWallet({
+      userId,
       accountNumber: wallet.virtualAccountNumber,
       amount,
       reference: ref || transactionRef,
@@ -498,12 +499,12 @@ const resolvePaystackRecipient = async ({ userId, bankCode, accountNumber, accou
 };
 
 /**
- * Provision the wallet funding NUBAN under the active gateway.
+ * Ensure the wallet has BOTH provider accounts (idempotent per provider).
  */
 const handleProvisionVirtualAccount = async ({ userId, email, name, phoneNumber }) => {
   const existingWallet = await prisma.wallet.findUnique({ where: { userId } });
-  if (existingWallet?.virtualAccountNumber) {
-    logger.info('Virtual account already provisioned', { userId });
+  if (existingWallet?.paystackAccountNumber && existingWallet?.katpayAccountNumber) {
+    logger.info('Both provider accounts already provisioned', { userId });
     return;
   }
 
@@ -559,7 +560,7 @@ const resolveDvaAccountNumber = async (data) => {
   const customerCode = data.customer?.customer_code || null;
   if (customerCode) {
     const wallet = await prisma.wallet.findUnique({ where: { paystackCustomerCode: customerCode } });
-    if (wallet?.virtualAccountNumber) return wallet.virtualAccountNumber;
+    if (wallet?.paystackAccountNumber) return wallet.paystackAccountNumber;
   }
 
   const email = data.customer?.email || null;
@@ -567,7 +568,7 @@ const resolveDvaAccountNumber = async (data) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
       const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
-      if (wallet?.virtualAccountNumber) return wallet.virtualAccountNumber;
+      if (wallet?.paystackAccountNumber) return wallet.paystackAccountNumber;
     }
   }
   return null;
