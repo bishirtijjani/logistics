@@ -42,8 +42,8 @@ const KATSINA_POLYGON = [
 ];
 
 const GEO_RESTRICTION = {
-  // Master switch. Env override wins so it can be flipped without a code change.
-  enabled: process.env.GEO_RESTRICTION_DISABLED === 'true' ? false : true,
+  // Master switch. Set back to true to re-enable the operating-area restriction.
+  enabled: false,
 
   label: 'Katsina',
   country: 'NG',

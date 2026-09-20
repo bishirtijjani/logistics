@@ -48,6 +48,29 @@ stubModule(path.resolve(__dirname, '../src/utils/logger.js'), {
   logger: { info() {}, warn() {}, error() {}, debug() {} },
 });
 
+// The live geo-restriction flag (config/geo-restriction.js `enabled`) is a
+// runtime toggle - off for nationwide rollout, on for a single-state launch -
+// and flipping it must NOT break this suite. So we pin the restriction ON
+// in-memory here, preserving the Katsina-scoping/merge/local-index coverage
+// regardless of the shipped `enabled` value.
+const realGeo = require('../src/config/geo-restriction');
+const PINNED_ON = { ...realGeo.GEO_RESTRICTION, enabled: true };
+const isInAreaPinned = (lat, lng) => {
+  if (typeof lat !== 'number' || typeof lng !== 'number' || Number.isNaN(lat) || Number.isNaN(lng)) return false;
+  const poly = PINNED_ON.polygon;
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1];
+    const xj = poly[j][0], yj = poly[j][1];
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+};
+stubModule(require.resolve('../src/config/geo-restriction'), {
+  GEO_RESTRICTION: PINNED_ON,
+  isInArea: isInAreaPinned,
+});
+
 const mapsService = require('../src/services/maps.service');
 
 const queueResp = (data) => nextResponses.push({ data });
