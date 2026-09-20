@@ -42,8 +42,8 @@ const KATSINA_POLYGON = [
 ];
 
 const GEO_RESTRICTION = {
-  // Master switch. Set back to true to re-enable the operating-area restriction.
-  enabled: false,
+  // Master switch. Set to false to open search/geocoding to all of Nigeria.
+  enabled: true,
 
   label: 'Katsina',
   country: 'NG',

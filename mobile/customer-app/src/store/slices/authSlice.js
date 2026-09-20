@@ -222,6 +222,7 @@ const authSlice = createSlice({
     builder.addCase(logout.fulfilled, (state) => {
       state.user = null;
       state.isAuthenticated = false;
+      state.isHydrating = false;
     });
 
     // Request password reset

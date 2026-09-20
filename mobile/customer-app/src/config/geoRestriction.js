@@ -37,7 +37,7 @@ const POLYGON = [
 const CENTROID = { lng: 7.7484, lat: 12.1779 };
 
 export const GEO_RESTRICTION = {
-  enabled: false,
+  enabled: true,
   label: "Katsina",
   // Default map centre (Katsina city).
   center: { latitude: 13.0059, longitude: 7.6019 },
