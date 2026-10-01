@@ -8,6 +8,7 @@ const { AppError } = require('../../utils/api-error');
 const listNotifications = async (userId, { page, limit, unreadOnly }) => {
   const where = {
     userId,
+    hiddenFromUser: false,
     ...(unreadOnly ? { readAt: null } : {}),
   };
 
@@ -19,14 +20,14 @@ const listNotifications = async (userId, { page, limit, unreadOnly }) => {
       take: limit,
     }),
     prisma.notification.count({ where }),
-    prisma.notification.count({ where: { userId, readAt: null } }),
+    prisma.notification.count({ where: { userId, readAt: null, hiddenFromUser: false } }),
   ]);
 
   return { notifications, total, page, limit, unreadCount };
 };
 
 const getUnreadCount = async (userId) => {
-  const count = await prisma.notification.count({ where: { userId, readAt: null } });
+  const count = await prisma.notification.count({ where: { userId, readAt: null, hiddenFromUser: false } });
   return { count };
 };
 

@@ -338,6 +338,10 @@ model Transaction {
   balanceBefore Decimal? @db.Decimal(15, 2)
   balanceAfter  Decimal? @db.Decimal(15, 2)
 
+  /// Soft-hide an erroneous/corrected row from user-facing history while keeping
+  /// it in the ledger for audit + parity. See hide-erroneous-paystack-refunds.js.
+  hiddenFromUser Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1313,6 +1317,10 @@ model Notification {
 
   requestId     String?
   transactionId String?
+
+  /// Soft-hide a notice that accompanied a corrected/erroneous ledger row so the
+  /// user sees no trace, while the row is retained for audit.
+  hiddenFromUser Boolean @default(false)
 
   readAt    DateTime?
   createdAt DateTime  @default(now())

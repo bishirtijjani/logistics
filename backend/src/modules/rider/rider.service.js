@@ -452,6 +452,7 @@ const getEarnings = async (userId, { page = 1, limit = RECENT_LIMIT_DEFAULT } = 
     creditWalletId: walletId,
     type: 'RIDER_EARNING',
     status: 'COMPLETED',
+    hiddenFromUser: false,
   };
   const cashWhere = {
     riderId: rider.id,

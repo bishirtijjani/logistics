@@ -369,6 +369,9 @@ const getTransactionHistory = async (userId, { page, limit, type, startDate, end
   };
 
   const where = {
+    // Corrected rows (e.g. an erroneous refund reversed by ops) are kept in the
+    // ledger for audit but hidden from the user's history.
+    hiddenFromUser: false,
     AND: [
       walletClause,
       ...(q
