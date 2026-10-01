@@ -399,10 +399,17 @@ const verifyTransfer = async (reference) => {
       recipient: data.recipient || null,
     };
   } catch (err) {
+    const status = err.response?.status || null;
     logger.error('Paystack verifyTransfer failed', {
-      reference, status: err.response?.status, message: err.response?.data?.message || err.message,
+      reference, status, message: err.response?.data?.message || err.message,
     });
-    throw AppError.internal('Failed to verify payout');
+    const wrapped = AppError.internal('Failed to verify payout');
+    // Carry the provider signal so callers can tell "we don't know" (network/5xx)
+    // from "Paystack has no such transfer" (404 => never dispatched => refund is
+    // safe). Never assume not-found on a transient error.
+    wrapped.providerStatus = status;
+    wrapped.notFound = status === 404;
+    throw wrapped;
   }
 };
 

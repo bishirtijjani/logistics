@@ -424,6 +424,16 @@ const handleWithdrawal = async ({ transactionId, bankCode, accountNumber, accoun
   // money has NOT left, so leave the row SENT - the transfer.success webhook or
   // reconcile sweep will complete it, and a later failure stays refundable.
   if (payout && (transaction.provider || 'KATPAY') === 'PAYSTACK') {
+    // Persist the reference Paystack knows this transfer by (lowercased) NOW,
+    // while the row is still SENT and pending. Without this the row carries no
+    // providerRef, so the transfer.success webhook can't resolve it and the
+    // refund sweep treats it as "never dispatched" -> pays the customer twice.
+    const payoutReference = payout.reference || paystackService.toTransferReference(transactionId);
+    await prisma.transaction.updateMany({
+      where: { reference: transactionId, status: 'SENT' },
+      data: { providerRef: payoutReference },
+    });
+
     const payoutStatus = String(payout.status || '').toLowerCase();
     if (payoutStatus !== 'success') {
       if (payoutStatus === 'otp') {
@@ -544,8 +554,17 @@ const handleRetry = async ({ transactionId }) => {
  */
 const findTransactionByProviderRef = async (providerRef) => {
   if (!providerRef) return null;
+  // Paystack lowercases transfer references on the way out, so the webhook echoes
+  // `trf-<uuid>` while the ledger keeps `TRF-<uuid>` in `reference`. Match
+  // case-insensitively or the success webhook silently resolves to nothing and the
+  // payout is later auto-refunded (double-pay).
   return prisma.transaction.findFirst({
-    where: { OR: [{ providerRef }, { reference: providerRef }] },
+    where: {
+      OR: [
+        { providerRef: { equals: providerRef, mode: 'insensitive' } },
+        { reference: { equals: providerRef, mode: 'insensitive' } },
+      ],
+    },
   });
 };
 
@@ -758,7 +777,9 @@ const reconcilePaystack = async () => {
     take: 200,
   });
   for (const tx of sentPayouts) {
-    const reference = tx.providerRef || tx.reference;
+    // Paystack stores the lowercased form; normalise before asking, whether we
+    // have the persisted providerRef or only the ledger reference.
+    const reference = paystackService.toTransferReference(tx.providerRef || tx.reference);
     try {
       const verified = await paystackService.verifyTransfer(reference);
       if (verified.status === 'success') {

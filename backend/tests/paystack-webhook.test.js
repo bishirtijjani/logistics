@@ -81,8 +81,19 @@ const prismaStub = {
     },
     async findFirst({ where }) {
       const clauses = where.OR || [where];
+      const matchesClause = (row, c) =>
+        Object.entries(c).every(([k, v]) => {
+          // Support Prisma's `{ equals, mode: 'insensitive' }` string filter.
+          if (v && typeof v === 'object' && 'equals' in v) {
+            const a = String(row[k] ?? '');
+            return v.mode === 'insensitive'
+              ? a.toLowerCase() === String(v.equals).toLowerCase()
+              : a === String(v.equals);
+          }
+          return row[k] === v;
+        });
       for (const row of transactions.values()) {
-        if (clauses.some((c) => Object.keys(c).every((k) => row[k] === c[k]))) return { ...row };
+        if (clauses.some((c) => matchesClause(row, c))) return { ...row };
       }
       return null;
     },
@@ -174,6 +185,10 @@ const verifiedTransactions = [];
 const verifiedTransfers = [];
 stub('../src/services/paystack.service.js', {
   isConfigured: () => true,
+  toTransferReference: (reference) => {
+    const cleaned = String(reference || '').toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+    return cleaned.length >= 16 ? cleaned.slice(0, 50) : `${cleaned}${'0'.repeat(16 - cleaned.length)}`.slice(0, 50);
+  },
   verifyWebhookSignature: (rawBody, signature) => {
     if (!signature) return false;
     const expected = crypto.createHmac('sha512', SECRET)
@@ -387,6 +402,24 @@ test('paystack transfer.success: marks the SENT payout COMPLETED', async () => {
   });
 
   assert.equal(transactions.get('WIT-1').status, 'COMPLETED');
+});
+
+test('paystack transfer.success: matches a lowercased reference against the ledger (case bug)', async () => {
+  seedWallet('w5b', 'u5b', { balance: 0 });
+  // Ledger keeps the original mixed case and (pre-fix) had no providerRef; the
+  // webhook echoes the all-lowercase form. Must still resolve and complete.
+  transactions.set('TRF-75D5652B-7264-4AE8-A6F9-9F193BAA7155', {
+    reference: 'TRF-75D5652B-7264-4AE8-A6F9-9F193BAA7155', providerRef: null, provider: 'PAYSTACK', type: 'WITHDRAWAL',
+    status: 'SENT', amount: 500, debitWalletId: 'w5b',
+  });
+  seedEvent('paystack-5b');
+
+  await handlePaystackWebhook({
+    transactionRef: 'paystack-5b',
+    payload: { event: 'transfer.success', data: { reference: 'trf-75d5652b-7264-4ae8-a6f9-9f193baa7155', status: 'success' } },
+  });
+
+  assert.equal(transactions.get('TRF-75D5652B-7264-4AE8-A6F9-9F193BAA7155').status, 'COMPLETED');
 });
 
 test('paystack transfer.reversed: refunds the wallet (balance credited back)', async () => {

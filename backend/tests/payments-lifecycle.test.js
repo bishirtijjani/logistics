@@ -123,6 +123,10 @@ let payoutStatus = 'pending'; // live POST /transfer returns `pending` (only tes
 
 stub('../src/services/paystack.service.js', {
   isConfigured: () => true,
+  toTransferReference: (reference) => {
+    const cleaned = String(reference || '').toLowerCase().replace(/[^a-z0-9\-_]/g, '');
+    return cleaned.length >= 16 ? cleaned.slice(0, 50) : `${cleaned}${'0'.repeat(16 - cleaned.length)}`.slice(0, 50);
+  },
   createCustomer: async (a) => { calls.createCustomer.push(a); return { customerCode: 'CUS_1', email: a.email }; },
   assignDva: async (a) => {
     calls.assignDva.push(a);
@@ -273,6 +277,10 @@ test('handleWithdrawal: PAYSTACK payout resolves a recipient and stays SENT when
   // the row must stay SENT for the transfer.success webhook / sweep to complete.
   assert.equal(transactions.get('WIT-1').status, 'SENT');
   assert.equal(calls.katpayPayout.length, 0);
+  // The Paystack reference must be persisted at dispatch so the webhook/sweep can
+  // find the row - without it the sweep treats a really-paid payout as never
+  // dispatched and refunds it (double-pay).
+  assert.equal(transactions.get('WIT-1').providerRef, 'wit-1');
 });
 
 test('handleWithdrawal: PAYSTACK payout completes only when status is success', async () => {

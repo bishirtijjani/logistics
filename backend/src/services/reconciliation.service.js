@@ -23,12 +23,67 @@ const { prisma } = require('../config/database');
 const { logger } = require('../utils/logger');
 const { getSetting } = require('./settings.service');
 const { refundFailedWithdrawal } = require('./withdrawal-refund.service');
+const paystackService = require('./paystack.service');
 
 /**
  * Money-comparison helper. Decimals come back from Prisma as Decimal.js
  * instances or strings; coerce and round to two decimals for kobo precision.
  */
 const round2 = (n) => Math.round(Number(n) * 100) / 100;
+
+/**
+ * Safely resolve one stuck Paystack payout by asking Paystack for its real
+ * status instead of assuming "no providerRef => never dispatched".
+ *
+ * Returns:
+ *   'completed'          - verified success, row settled COMPLETED
+ *   { refunded, total }  - refunded (verified failed/reversed, or 404 not-found)
+ *   null                 - still pending / unknown / update race -> leave for a human
+ */
+const settleStuckPaystackPayout = async (r) => {
+  const reference = paystackService.toTransferReference(r.providerRef || r.reference);
+  let verified;
+  try {
+    verified = await paystackService.verifyTransfer(reference);
+  } catch (err) {
+    // 404 = Paystack has no record => the payout never dispatched => refund safe.
+    if (err?.notFound || err?.providerStatus === 404) {
+      const result = await refundFailedWithdrawal({
+        transactionId: r.reference,
+        reason: 'Paystack has no record of this payout (never dispatched)',
+      });
+      return result.refunded ? result : null;
+    }
+    logger.warn('Stuck Paystack payout verify failed - leaving for a human', { reference: r.reference, error: err.message });
+    return null;
+  }
+
+  const status = String(verified.status || '').toLowerCase();
+  if (status === 'success') {
+    const claim = await prisma.transaction.updateMany({
+      where: { reference: r.reference, status: { in: ['PROCESSING', 'SENT'] } },
+      data: { status: 'COMPLETED', providerRef: reference },
+    });
+    if (claim.count === 1) {
+      logger.info('Stuck Paystack payout completed from verify', { reference: r.reference });
+      return 'completed';
+    }
+    return null;
+  }
+  if (status === 'reversed' || status === 'failed') {
+    // Paystack credits the balance back only on `reversed`; on `failed` the debit
+    // is not returned, so refunding the wallet would double-pay. Hold `failed` for
+    // a human, refund only `reversed`.
+    if (status === 'reversed') {
+      const result = await refundFailedWithdrawal({ transactionId: r.reference, reason: 'Paystack payout reversed (verified)' });
+      return result.refunded ? result : null;
+    }
+    logger.error('PAYSTACK_PAYOUT_HOLD stuck payout verified failed - funds NOT auto-returned, manual review required', { reference: r.reference });
+    return null;
+  }
+  logger.warn('Stuck Paystack payout still pending after grace window', { reference: r.reference, status });
+  return null;
+};
 
 /**
  * Run the full reconciliation. Returns a JSON-serializable report.
@@ -148,14 +203,35 @@ const runReconciliation = async ({ threshold } = {}) => {
   // no provider confirmation; keep the confirmed-but-unsettled ones for a human.
   const stuckUserRows = await prisma.transaction.findMany({
     where: { type: 'WITHDRAWAL', status: { in: ['PROCESSING', 'SENT'] }, createdAt: { lt: stuckCutoff } },
-    select: { id: true, reference: true, amount: true, status: true, providerRef: true, createdAt: true },
+    select: { id: true, reference: true, amount: true, status: true, providerRef: true, provider: true, createdAt: true },
     take: 100,
   });
 
   const autoRefundedUser = [];
+  const autoCompletedUser = [];
   const stuckUserWithdrawals = [];
   for (const r of stuckUserRows) {
-    if (autoRefundStuck && !r.providerRef) {
+    // Paystack payouts expose a status endpoint, so "no providerRef" is NOT proof
+    // the money never left (dispatch can predate providerRef persistence). Verify
+    // before touching money - complete a real success, refund only a definitive
+    // failure/reversal/never-dispatched, otherwise leave for a human.
+    if (r.provider === 'PAYSTACK' && autoRefundStuck) {
+      const settled = await settleStuckPaystackPayout(r);
+      if (settled === 'completed') {
+        autoCompletedUser.push({ reference: r.reference, status: r.status, amount: round2(r.amount) });
+        continue;
+      }
+      if (settled && settled.refunded) {
+        autoRefundedUser.push({
+          reference: r.reference,
+          status: r.status,
+          amount: round2(r.amount),
+          refunded: round2(settled.total),
+        });
+        continue;
+      }
+      // Still pending / unknown / held -> fall through to the stuck list.
+    } else if (autoRefundStuck && !r.providerRef) {
       const result = await refundFailedWithdrawal({
         transactionId: r.reference,
         reason: `Stuck ${stuckAfterHours}h+ with no payout confirmation`,
@@ -215,6 +291,8 @@ const runReconciliation = async ({ threshold } = {}) => {
     userWithdrawals: {
       stuckAfterHours,
       autoRefundEnabled: autoRefundStuck,
+      autoCompletedCount: autoCompletedUser.length,
+      autoCompleted: autoCompletedUser,
       autoRefundedCount: autoRefundedUser.length,
       autoRefunded: autoRefundedUser,
       stuckCount: stuckUserWithdrawals.length,
@@ -271,4 +349,5 @@ const persistReport = async (report) => {
 module.exports = {
   runReconciliation,
   persistReport,
+  __test: { settleStuckPaystackPayout },
 };
