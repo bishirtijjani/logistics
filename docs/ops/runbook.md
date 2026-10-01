@@ -202,6 +202,14 @@ SELECT
 - Manual ledger reconciliation per affected user (case-by-case credit/debit) signed off by you
 - Notify any user whose balance was actually wrong; do NOT preemptively notify users whose balance is fine
 
+> **Known false-positive (2026-10):** the parity math counts `REFUND` credits but
+> excludes the *debits* of `FAILED`/`REVERSED` withdrawals, so every genuine
+> failed-then-refunded withdrawal shows a **negative drift equal to its amount**
+> even though the wallet's net balance is actually correct. Before treating a
+> drift as missing money, compare it to the total of failed withdrawals on that
+> wallet. Full write-up:
+> `docs/ops/incidents/2026-10-01-paystack-double-payout.md`.
+
 ---
 
 ### 7. Mobile crash spike post-deploy
@@ -245,6 +253,50 @@ SELECT
 
 **Recover**
 - Re-enable the cache, verify hit rate
+
+---
+
+### 9. Withdrawals "failed" but actually paid out (provider double-pay)
+
+**Symptoms**
+- Reconciliation refunds withdrawals that the provider says it settled
+- Users paid twice (bank + wallet refund), or a flood of `FAILED` withdrawals
+- App logs say "Transfer not found" / "unknown reference" while the provider
+  dashboard/API shows `success`
+
+**Diagnose** (do this first — the app's own status is not authoritative)
+1. Take a withdrawal reference from a suspected failure and ask the provider
+   directly. For Paystack, **lowercase** the reference:
+   ```sh
+   REF=$(echo "TRF-<uuid>" | tr 'A-Z' 'a-z')
+   curl -s -H "Authorization: Bearer $PAYSTACK_SECRET_KEY" \
+     "https://api.paystack.co/transfer/verify/$REF" | head -c 400
+   ```
+   If it returns `"status":"success"` with a `transferred_at`, the money left.
+2. Cross-check the account's full transfer ledger:
+   `GET https://api.paystack.co/transfer?perPage=100` — count vs the DB's
+   `WITHDRAWAL` rows.
+3. Check `webhook_events` for a `transfer.success` that arrived but left the
+   `transactions` row on `SENT` with no `providerRef` (the case-mismatch bug).
+
+**Mitigate**
+- **Stop the bleeding immediately:** set `withdrawal.autoRefundStuck = false`
+  (PlatformSetting) so the nightly sweep stops refunding unconfirmed payouts, or
+  disable withdrawals. Deploy the fix
+  (`fix(payments): stop Paystack payouts being auto-refunded`, commit `512878f`).
+
+**Recover**
+- Correct the affected rows so the user side looks like a normal completed
+  withdrawal (no refund ever visible):
+  ```sh
+  docker exec -w /app logistics node scripts/hide-erroneous-paystack-refunds.js            # dry run
+  docker exec -w /app logistics node scripts/hide-erroneous-paystack-refunds.js --apply
+  ```
+  This marks each refund `REVERSED` + `hiddenFromUser`, completes the withdrawal,
+  debits the refunded amount, hides the notice, and writes an `AuditLog` snapshot.
+- **Fully reversible:** `… --reverse --batch=<batchId>` restores the prior state
+  per row if the provider later confirms a payout never credited.
+- Post-mortem: `docs/ops/incidents/2026-10-01-paystack-double-payout.md`
 
 ---
 
@@ -301,7 +353,7 @@ gunzip -c /var/backups/iprime/iprime-YYYYMMDD-HHMMSS.sql.gz | psql "$STAGING_DAT
 
 After any SEV-1 or SEV-2:
 
-1. **Write a post-mortem within 48 h** - keep it blameless; focus on what the system did, not who pressed which key
+1. **Write a post-mortem within 48 h** in `docs/ops/incidents/YYYY-MM-DD-<slug>.md` - keep it blameless; focus on what the system did, not who pressed which key (see `docs/ops/incidents/2026-10-01-paystack-double-payout.md` for the template)
 2. Update **this runbook** with the new playbook entry
 3. Update **`docs/ops/known-errors.md`** if a new error code is involved
 4. Open a P0/P1 ticket for the underlying fix if it isn't already merged
