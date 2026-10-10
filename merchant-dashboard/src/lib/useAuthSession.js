@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { logout, refreshToken as refreshTokenThunk } from '../store/slices/authSlice'
+import { isNative } from './nativeBridge'
 
 // Access tokens live ~15m. Silently refresh once we're inside this buffer of
 // the expiry so the merchant never sees an interruption - the 7-day refresh
@@ -57,6 +58,11 @@ export const useAuthSession = () => {
   }, [dispatch, handleLogout])
 
   useEffect(() => {
+    // Under the native shell the app owns the session + rotating refresh token;
+    // running a second refresh poll here would consume the single-use refresh
+    // token out from under the native client. Native fills in as needed.
+    if (isNative()) return undefined
+
     let cancelled = false
 
     const tick = () => {

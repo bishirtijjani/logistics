@@ -157,7 +157,16 @@ const authSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    // Re-read auth state from localStorage. The native shell injects tokens +
+    // merchant_user into localStorage then fires an 'iprime-auth' event; this
+    // rehydrates Redux so routed pages see the injected session immediately.
+    hydrateFromStorage: (state) => {
+      state.user = readStoredUser()
+      state.token = localStorage.getItem('token')
+      state.isAuthenticated = !!localStorage.getItem('token')
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(login.pending, (state) => {
@@ -259,5 +268,7 @@ const authSlice = createSlice({
       })
   },
 })
+
+export const { hydrateFromStorage } = authSlice.actions
 
 export default authSlice.reducer

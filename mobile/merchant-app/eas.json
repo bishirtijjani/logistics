@@ -1,0 +1,55 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
+        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "channel": "staging",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
+        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "staging"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
+        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./iprime-498118-faae7e3aae7d.json",
+        "track": "alpha",
+        "releaseStatus": "draft"
+      },
+      "ios": {}
+    }
+  }
+}

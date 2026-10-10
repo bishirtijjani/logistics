@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { isNative, requestNativeRefresh } from './nativeBridge'
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -48,10 +49,17 @@ api.interceptors.response.use(
       const url = error.config?.url || ''
       const isPublicAuthCall = PUBLIC_AUTH_PATHS.some((p) => url.includes(p))
       if (!isPublicAuthCall) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('merchant_user')
-        window.location.href = '/login'
+        if (isNative()) {
+          // The native shell owns the session and rotating refresh token. Do
+          // NOT clear storage or hard-redirect; ask native to refresh + re-inject
+          // tokens. The failed request rejects and the UI surfaces the error.
+          requestNativeRefresh()
+        } else {
+          localStorage.removeItem('token')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('merchant_user')
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)

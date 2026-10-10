@@ -12,6 +12,7 @@
     "db:reset": "prisma migrate reset",
     "db:seed": "node prisma/seed.js",
     "db:seed:rider": "node scripts/seed-rider.js",
+    "db:seed:merchant": "node scripts/seed-merchant.js",
     "db:studio": "prisma studio",
     "lint": "eslint src/",
     "format": "prettier --write src/",

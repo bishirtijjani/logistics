@@ -1,4 +1,8 @@
+import { useEffect } from 'react'
+import { useDispatch } from 'react-redux'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { isNative } from './lib/nativeBridge.js'
+import { hydrateFromStorage } from './store/slices/authSlice.js'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -65,8 +69,24 @@ function EnrollRoute() {
   return <RegistrationPage enroll />
 }
 
+// Under the native shell, the app injects tokens into localStorage then fires
+// an 'iprime-auth' event. Rehydrate Redux so routed pages pick them up.
+function NativeAuthBridge() {
+  const dispatch = useDispatch()
+  useEffect(() => {
+    if (!isNative()) return undefined
+    const sync = () => dispatch(hydrateFromStorage())
+    window.addEventListener('iprime-auth', sync)
+    sync()
+    return () => window.removeEventListener('iprime-auth', sync)
+  }, [dispatch])
+  return null
+}
+
 function AppContent() {
   return (
+    <>
+    <NativeAuthBridge />
     <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -95,6 +115,7 @@ function AppContent() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
 

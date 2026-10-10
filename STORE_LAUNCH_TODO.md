@@ -88,3 +88,57 @@ These are the BLKs that touch store submission, smallest first:
 4. **BLK-PushOnApproval** (S) - nicer, but polling fallback already works; optional for launch.
 
 **Remaining before submit (not code):** run the seed script against PROD + add reviewer creds to store notes; confirm admin rider detail surfaces the now-stored KYC docs.
+
+---
+
+# iPrime Merchant app (native core + WebView)
+
+New app: `mobile/merchant-app`. Native core (auth, Orders, push with
+Accept/Reject action buttons, biometric lock, notifications, settings) +
+embedded WebView for the long-tail screens (Products, Earnings, Pay Bills,
+Analytics, Support, Marketing, Onboarding wizard) loaded from
+`https://merchant.iprime.ng`. The web dashboard's self-refresh is disabled
+under the native shell (single-use rotating refresh token); tokens are fed +
+synced over a JS bridge.
+
+## Configuration that still needs values (fill before the first build)
+
+- [ ] `mobile/merchant-app/app.json` → replace `REPLACE_WITH_MERCHANT_GOOGLE_MAPS_IOS_KEY`
+      and `REPLACE_WITH_MERCHANT_GOOGLE_MAPS_ANDROID_KEY` with **merchant-specific**
+      restricted Google Maps keys (do not reuse the rider/customer key).
+- [ ] `extra.eas.projectId` is empty → run `eas init` in `mobile/merchant-app`
+      (writes the projectId + creates the Sentry project `iprime-merchant`).
+- [ ] `eas.json` submit placeholders: set the iOS `appleTeamId` / `ascAppId`
+      (or pass via CLI) and drop the Android service-account JSON in place.
+- [ ] Verify the production build points at `https://api.iprime.ng`
+      (already set in `eas.json` per profile).
+- [ ] Confirm the remote origin `https://merchant.iprime.ng` is in the backend
+      `CORS_ALLOWED_ORIGINS` allowlist (it already is).
+
+## Backend
+
+- [x] Merchant new-order push already exists (`pushAndSocket(merchant.userId, {type:'ORDER'})`).
+- [x] `scripts/seed-merchant.js` (`npm run db:seed:merchant`) — APPROVED reviewer
+      demo merchant with PIN, wallet, bank account, and demo products.
+- [ ] Run the seed against PROD and paste creds into App Review notes + Play
+      "App access".
+- [ ] (Optional) add merchant status-change + earnings pushes (today socket-only).
+
+## Store readiness
+
+- [ ] Icons/splash present (`assets/`). Captured screenshots + feature graphic
+      still needed → `store-assets/merchant/` (only `icon-1024.png` seeded).
+- [ ] Apple App Privacy label + Play Data Safety form (same shape as rider:
+      location, personal info, financial, photos).
+- [x] In-app account deletion (`DELETE /auth/account`) in native Settings.
+- [x] Privacy Policy + Terms links in native Settings (`iprime.ng/legal/*`).
+- [ ] Reviewer demo merchant creds in store review notes.
+- [ ] `eas build --profile production` + `eas submit` (see `docs/store/eas-build-and-submit.md`).
+
+## App Store 4.2 note
+
+Apple rejects apps that are "just a repackaged website." The native core
+(auth + Orders + push with action buttons + biometric) is what earns approval;
+the WebView is only used for the management long-tail. If a reviewer still
+objects, graduate the Products editor (and then Earnings) to native, or bundle
+the web assets locally instead of loading the remote URL.
