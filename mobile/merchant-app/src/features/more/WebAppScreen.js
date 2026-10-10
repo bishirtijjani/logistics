@@ -3,6 +3,9 @@ import { View, Text, ActivityIndicator, TouchableOpacity, BackHandler, Platform 
 import { WebView } from "react-native-webview";
 import { useFocusEffect } from "@react-navigation/native";
 import * as WebBrowser from "expo-web-browser";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../theme";
 import { useT } from "../../i18n/useT";
@@ -34,6 +37,47 @@ const BRIDGE_BOOT = `
   document.addEventListener('DOMContentLoaded', function () {
     window.__iprimeNativePost({ type: 'ready' });
   });
+
+  // ── Download shim ─────────────────────────────────────────────────────────
+  // CSV/PDF exports (Orders, Earnings, Analytics) build a Blob and click an
+  // <a download> (often a detached node). WKWebView/Android WebView won't save
+  // those, so we intercept, read the Blob as base64 and hand it to native to
+  // write + share. Wrapped defensively - any failure falls back to the browser.
+  function isBlob(u) { return typeof u === 'string' && u.indexOf('blob:') === 0; }
+  function isData(u) { return typeof u === 'string' && u.indexOf('data:') === 0; }
+  function sendDownload(href, filename) {
+    try {
+      fetch(href).then(function (r) { return r.blob(); }).then(function (blob) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          var res = String(reader.result || '');
+          var comma = res.indexOf(',');
+          var base64 = comma >= 0 ? res.slice(comma + 1) : '';
+          if (!base64) return;
+          window.__iprimeNativePost({
+            type: 'download',
+            filename: filename || 'download',
+            mime: blob.type || 'application/octet-stream',
+            base64: base64,
+          });
+        };
+        reader.readAsDataURL(blob);
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  try {
+    var origClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      try {
+        var href = this.href || '';
+        if (isBlob(href) || isData(href)) {
+          sendDownload(href, this.getAttribute('download'));
+          return;
+        }
+      } catch (e) {}
+      return origClick.apply(this, arguments);
+    };
+  } catch (e) {}
 })();
 true;
 `;
@@ -80,6 +124,22 @@ export default function WebAppScreen({ route }) {
     }
   }, [pushTokensToWeb]);
 
+  const handleDownload = useCallback(async ({ filename, mime, base64 }) => {
+    try {
+      const dir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
+      const safe = (filename || "download").replace(/[^\w.\-]+/g, "_");
+      const uri = `${dir}${Date.now()}-${safe}`;
+      await FileSystem.writeAsStringAsync(uri, base64, { encoding: FileSystem.EncodingType.Base64 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: mime || undefined, dialogTitle: filename || "Download" });
+      } else {
+        Toast.show({ type: "success", text1: t("merchant.saved", "Saved"), text2: safe });
+      }
+    } catch (_) {
+      Toast.show({ type: "error", text1: t("merchant.downloadFailed", "Download failed") });
+    }
+  }, [t]);
+
   const onMessage = useCallback(
     async (event) => {
       let msg;
@@ -89,14 +149,28 @@ export default function WebAppScreen({ route }) {
         pushTokensToWeb();
       } else if (msg.type === "refresh-request") {
         handleRefreshRequest();
+      } else if (msg.type === "download" && msg.base64) {
+        handleDownload(msg);
       } else if (msg.type === "auth-changed" && msg.token) {
         await SecureStore.setItemAsync("accessToken", msg.token);
         if (msg.refreshToken) await SecureStore.setItemAsync("refreshToken", msg.refreshToken);
         if (msg.user) await SecureStore.setItemAsync("merchant_user", JSON.stringify(msg.user));
       }
     },
-    [pushTokensToWeb, handleRefreshRequest],
+    [pushTokensToWeb, handleRefreshRequest, handleDownload],
   );
+
+  // Android: server-side downloads (non-blob) land here.
+  const onFileDownload = useCallback(async ({ nativeEvent }) => {
+    try {
+      const url = nativeEvent?.downloadUrl;
+      if (!url) return;
+      const base = (url.split("/").pop() || "download").split("?")[0];
+      const dest = `${FileSystem.cacheDirectory}${Date.now()}-${base}`;
+      const res = await FileSystem.downloadAsync(url, dest);
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(res.uri);
+    } catch (_) {}
+  }, []);
 
   const onShouldStartLoadWithRequest = useCallback((req) => {
     const url = req.url || "";
@@ -175,6 +249,7 @@ export default function WebAppScreen({ route }) {
             originWhitelist={["*"]}
             injectedJavaScriptBeforeContentLoaded={BRIDGE_BOOT}
             onMessage={onMessage}
+            onFileDownload={Platform.OS === "android" ? onFileDownload : undefined}
             onLoadStart={() => setLoading(true)}
             onLoadEnd={() => setLoading(false)}
             onError={() => { setError(true); setLoading(false); }}
