@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "assets:merchant": "node store-assets/generator/render.mjs"
+  },
   "devDependencies": {
     "playwright": "^1.60.0"
   }

@@ -8,6 +8,26 @@ The answers below are derived from the actual data model (see
 > **Same answers apply to the rider app** unless explicitly flagged
 > "rider only" below.
 
+> **Merchant app deltas** (the `mobile/merchant-app` binary) - the table
+> below still applies, with these differences for the merchant role:
+> - **Location - Precise Location**: collected **only when the merchant
+>   sets/moves their store pickup point** - not continuous, no background
+>   tracking. Merchants don't drive, so there is no "during active trips"
+>   case.
+> - **Financial Info**: merchant wallet balance, pending/available
+>   earnings, transaction history, and the settlement bank account number
+>   for withdrawals. No card-on-file.
+> - **User Content - Photos**: product photos, store images, and support
+>   attachments (instead of POD/prescriptions).
+> - **User Content - Other**: product listings, store details, order
+>   special-instruction replies.
+> - **Purchases - Purchase History**: the merchant's incoming order
+>   history and earnings, not consumer purchases.
+>
+> The merchant app is built on the same backend and third-party inventory
+> (Sentry, FCM, Cloudinary, etc.) as the rider/customer apps, so the
+> Diagnostics / Identifiers / Usage Data rows are identical.
+
 ---
 
 ## Data Types - what we collect

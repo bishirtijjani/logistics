@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Switch, Alert } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigation } from "@react-navigation/native";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import API from "../../services/api";
@@ -40,6 +41,7 @@ function Item({ icon, label, value, onPress, destructive, right }) {
 
 export default function SettingsScreen() {
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const { tokens, mode, setMode } = useTheme();
   const { t } = useT();
   const user = useSelector((s) => s.auth.user);
@@ -91,8 +93,16 @@ export default function SettingsScreen() {
       </View>
 
       <Section title={t("settings.account", "Account")}>
-        <Item icon="person-outline" label={t("settings.profile", "Profile")} onPress={() => {}} />
-        <Item icon="lock-closed-outline" label={t("settings.security", "Security & PIN")} onPress={() => {}} />
+        <Item
+          icon="person-outline"
+          label={t("settings.profile", "Profile")}
+          onPress={() => navigation.navigate("More", { initialPath: "/dashboard/settings" })}
+        />
+        <Item
+          icon="lock-closed-outline"
+          label={t("settings.security", "Security & PIN")}
+          onPress={() => navigation.navigate("More", { initialPath: "/dashboard/settings" })}
+        />
       </Section>
 
       <Section title={t("settings.appearance", "Appearance")}>

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { View, Text, ActivityIndicator, TouchableOpacity, BackHandler, Platform } from "react-native";
 import { WebView } from "react-native-webview";
 import { useFocusEffect } from "@react-navigation/native";
@@ -94,6 +94,28 @@ export default function WebAppScreen({ route }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Resolve the stored session BEFORE the WebView mounts, then seed it into the
+  // page's localStorage in `injectedJavaScriptBeforeContentLoaded`. The web
+  // app's ProtectedRoute reads the token on first render, so it must be present
+  // before the SPA's scripts run - otherwise it bounces to /login and stays.
+  const [authScript, setAuthScript] = useState(BRIDGE_BOOT);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const token = await SecureStore.getItemAsync("accessToken");
+      const refreshToken = await SecureStore.getItemAsync("refreshToken");
+      const userRaw = await SecureStore.getItemAsync("merchant_user");
+      let user = null;
+      try { user = userRaw ? JSON.parse(userRaw) : null; } catch (_) {}
+      if (cancelled) return;
+      setAuthScript(token ? BRIDGE_BOOT + "\n" + applyAuth({ token, refreshToken, user }) : BRIDGE_BOOT);
+      setAuthReady(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const initialUrl = `${WEB_URL}${route?.params?.initialPath || DEFAULT_PATH}`;
 
@@ -224,7 +246,11 @@ export default function WebAppScreen({ route }) {
         </TouchableOpacity>
       </View>
 
-      {error ? (
+      {!authReady ? (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: tokens.bg.canvas }}>
+          <ActivityIndicator size="large" color={tokens.brand.default} />
+        </View>
+      ) : error ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
           <Ionicons name="cloud-offline-outline" size={40} color={tokens.text.muted} />
           <Text style={{ color: tokens.text.primary, fontWeight: "700", marginTop: 12, marginBottom: 6 }}>
@@ -247,7 +273,7 @@ export default function WebAppScreen({ route }) {
             ref={webRef}
             source={{ uri: initialUrl }}
             originWhitelist={["*"]}
-            injectedJavaScriptBeforeContentLoaded={BRIDGE_BOOT}
+            injectedJavaScriptBeforeContentLoaded={authScript}
             onMessage={onMessage}
             onFileDownload={Platform.OS === "android" ? onFileDownload : undefined}
             onLoadStart={() => setLoading(true)}

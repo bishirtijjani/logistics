@@ -7,6 +7,21 @@ inventory in `docs/legal/privacy-policy.md`.
 > Same answers apply to both customer and rider apps unless flagged
 > "rider only".
 
+> **Merchant app deltas** (the `mobile/merchant-app` binary):
+> - **Location**: approximate + precise collected **only to set the
+>   store's pickup point** (one-off, not continuous, no background
+>   location). Not the rider "continuous during trips" case.
+> - **Financial info**: merchant wallet balance, pending/available
+>   earnings, transaction history, and settlement bank account number for
+>   withdrawals.
+> - **Photos**: product/store images and support attachments.
+> - **Other user-generated content**: product listings, store details,
+>   support messages.
+> - **Purchase history**: the merchant's incoming orders/earnings.
+>
+> All other rows (identifiers, web & app activity, app info &
+> performance) are identical - same backend and SDK inventory.
+
 ---
 
 ## Section 1 - Data collection & security

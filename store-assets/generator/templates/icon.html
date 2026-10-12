@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../brand.css">
+  <style>
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body { display: flex; align-items: center; justify-content: center; }
+    body.bg-orange { background: #EA580C; }
+    body.bg-transparent { background: transparent; }
+    #mark { font-family: 'Roboto', sans-serif; font-weight: 700; line-height: 1; white-space: nowrap; }
+    #mark.c-white { color: #fff; }
+    #mark.c-brand { color: #EA580C; }
+  </style>
+</head>
+<body>
+  <div id="mark">iPrime</div>
+  <script>
+    (function () {
+      var p = new URLSearchParams(location.search);
+      var bg = p.get('bg') || 'orange';
+      var ratio = parseFloat(p.get('ratio') || '0.72');
+      var color = p.get('color') || 'white';
+      document.body.className = 'bg-' + bg;
+      document.getElementById('mark').classList.add('c-' + color);
+
+      function fit() {
+        var el = document.getElementById('mark');
+        var W = document.documentElement.clientWidth;
+        var size = W * 0.5;
+        /* Iterate so the glyph width converges on ratio * icon width. */
+        for (var i = 0; i < 8; i++) {
+          el.style.fontSize = size + 'px';
+          var w = el.getBoundingClientRect().width || 1;
+          size = size * (ratio * W) / w;
+        }
+        el.style.fontSize = size + 'px';
+        window.__ready = true;
+      }
+
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      else window.addEventListener('load', fit);
+    })();
+  </script>
+</body>
+</html>

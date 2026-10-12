@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-device="ios">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../../brand.css">
+  <link rel="stylesheet" href="screens.css">
+</head>
+<body>
+  <div class="bezel">
+    <div class="screen">
+      <div data-statusbar></div>
+      <div class="app">
+        <div class="appbar"><div class="h1">Orders</div></div>
+        <div class="pills">
+          <div class="pill active">All</div>
+          <div class="pill">New</div>
+          <div class="pill">Accepted</div>
+          <div class="pill">Preparing</div>
+          <div class="pill">Ready</div>
+          <div class="pill">In transit</div>
+          <div class="pill">Delivered</div>
+        </div>
+        <div class="list">
+          <div class="card">
+            <div class="card-top"><div class="amount">&#8358;8,500</div><div class="badge info">New</div></div>
+            <div class="muted">Aisha Bello</div>
+            <div class="placeholder">3 items &middot; #IP-77421</div>
+            <div class="btnrow"><div class="btn success">Accept</div><div class="btn danger">Reject</div></div>
+          </div>
+          <div class="card">
+            <div class="card-top"><div class="amount">&#8358;3,200</div><div class="badge progress">Preparing</div></div>
+            <div class="muted">Musa Ibrahim</div>
+            <div class="placeholder">1 item &middot; #IP-77398</div>
+            <div class="btnrow"><div class="btn brand">Mark ready for pickup</div></div>
+          </div>
+          <div class="card">
+            <div class="card-top"><div class="amount">&#8358;12,750</div><div class="badge info">Ready &middot; finding rider</div></div>
+            <div class="muted">Fatima Sani</div>
+            <div class="placeholder">5 items &middot; #IP-77355</div>
+            <div class="btnrow"><div class="btn muted">View details</div></div>
+          </div>
+          <div class="card">
+            <div class="card-top"><div class="amount">&#8358;2,000</div><div class="badge success">Delivered</div></div>
+            <div class="muted">Yusuf Garba</div>
+            <div class="placeholder">2 items &middot; #IP-77002</div>
+            <div class="btnrow"><div class="btn muted">View details</div></div>
+          </div>
+        </div>
+      </div>
+      <div data-tabbar="orders"></div>
+      <div data-homebar></div>
+    </div>
+  </div>
+  <script src="frame.js"></script>
+</body>
+</html>

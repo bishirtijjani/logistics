@@ -43,3 +43,5 @@ yarn-error.*
 
 # service account keys (never commit)
 iprime-498118-faae7e3aae7d.json
+
+.env.local

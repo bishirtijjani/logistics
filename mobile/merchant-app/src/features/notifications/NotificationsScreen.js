@@ -44,8 +44,28 @@ export default function NotificationsScreen() {
 
   const onPress = (n) => {
     if (!n.readAt) dispatch(markNotificationRead(n.id));
+
+    // An order-scoped alert opens the native order detail directly.
     const requestId = n.requestId || n.data?.requestId;
-    if (requestId) navigation.navigate("OrderDetail", { requestId });
+    if (requestId) {
+      navigation.navigate("OrderDetail", { requestId });
+      return;
+    }
+
+    // Otherwise route by the server-supplied path. Merchant notifications
+    // carry `data.route` (e.g. '/dashboard/orders', '/dashboard/support/...').
+    const route = n.data?.route || n.route || "";
+    if (/(support|ticket|dispute)/i.test(route)) {
+      navigation.navigate("More", { initialPath: route.startsWith("/") ? route : "/dashboard/support" });
+      return;
+    }
+    if (/(menu|earnings|vtu|bills|analytics|marketing|settings)/i.test(route)) {
+      navigation.navigate("More", { initialPath: `/dashboard/${route.replace(/^\/?(dashboard\/)?/, "")}` });
+      return;
+    }
+
+    // New orders (and anything unrecognised) land on the native Orders tab.
+    navigation.navigate("Orders");
   };
 
   return (

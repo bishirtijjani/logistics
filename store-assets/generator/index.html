@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>iPrime Merchant - asset studio</title>
+  <link rel="stylesheet" href="brand.css">
+  <style>
+    body { background: #0b0b0f; color: #f4f4f5; padding: 40px; }
+    h1 { font-weight: 900; font-size: 28px; margin-bottom: 6px; }
+    p.lead { color: #a1a1aa; margin-bottom: 28px; }
+    h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a1a1aa; margin: 28px 0 12px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 20px; }
+    .tile { background: #16161c; border: 1px solid #27272a; border-radius: 16px; padding: 14px; }
+    .tile .cap { color: #a1a1aa; font-size: 12px; margin-bottom: 10px; }
+    iframe { border: none; border-radius: 10px; background: #111; display: block; }
+    .lg { width: 460px; height: 225px; }
+    .md { width: 220px; height: 220px; }
+    .sm { width: 140px; height: 140px; }
+    .ph { width: 240px; height: 520px; }
+    a { color: #FB923C; }
+  </style>
+</head>
+<body>
+  <h1>iPrime Merchant - asset studio</h1>
+  <p class="lead">Live previews of the HTML/CSS/SVG templates. Run <code>node render.mjs</code> (or <code>npm run assets:merchant</code>) to rasterize to PNG.</p>
+
+  <h2>Brand + store graphics</h2>
+  <div class="grid">
+    <div class="tile"><div class="cap">Feature graphic 1024x500</div><iframe class="lg" src="templates/feature-graphic.html"></iframe></div>
+    <div class="tile"><div class="cap">App icon 1024</div><iframe class="md" src="templates/icon.html?bg=orange&amp;ratio=0.72&amp;color=white"></iframe></div>
+    <div class="tile"><div class="cap">Adaptive icon 1024</div><iframe class="md" src="templates/icon.html?bg=transparent&amp;ratio=0.36&amp;color=white" style="background:#333"></iframe></div>
+    <div class="tile"><div class="cap">Splash mark 1024</div><iframe class="md" src="templates/icon.html?bg=transparent&amp;ratio=0.70&amp;color=white" style="background:#EA580C"></iframe></div>
+    <div class="tile"><div class="cap">Favicon 256</div><iframe class="sm" src="templates/icon.html?bg=orange&amp;ratio=0.72&amp;color=white"></iframe></div>
+  </div>
+
+  <h2>Screens - iOS (tap a device toggle by editing ?device=ios|android|ipad)</h2>
+  <div class="grid">
+    <div class="tile"><div class="cap">01 Orders</div><iframe class="ph" src="templates/screens/01-orders.html?device=ios"></iframe></div>
+    <div class="tile"><div class="cap">02 Order detail</div><iframe class="ph" src="templates/screens/02-order-detail.html?device=ios"></iframe></div>
+    <div class="tile"><div class="cap">03 Push actions</div><iframe class="ph" src="templates/screens/03-push-actions.html?device=ios"></iframe></div>
+    <div class="tile"><div class="cap">04 Products</div><iframe class="ph" src="templates/screens/04-products.html?device=ios"></iframe></div>
+    <div class="tile"><div class="cap">05 Earnings</div><iframe class="ph" src="templates/screens/05-earnings.html?device=ios"></iframe></div>
+    <div class="tile"><div class="cap">06 Store status</div><iframe class="ph" src="templates/screens/06-store-status.html?device=ios"></iframe></div>
+  </div>
+</body>
+</html>

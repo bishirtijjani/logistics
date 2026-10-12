@@ -62,6 +62,17 @@ any one frame. Build a 6-frame story arc.
 | 5 | **Wallet withdraw** | Withdraw screen with available balance, beneficiary chip, "Withdraw" button | Confidence that the money is real and accessible |
 | 6 | **Performance** | Performance screen - acceptance rate, completion rate, customer rating, badges if applicable | Pride + visibility into how they're doing |
 
+### Merchant app - story order
+
+| # | Frame | What's shown | Why |
+|---|---|---|---|
+| 1 | **Orders queue** | Native Orders screen with incoming orders, status chips, and inline Accept/Reject CTAs | The core job - what a merchant opens the app for |
+| 2 | **Order detail** | A single order: line items, customer note, delivery address, assigned rider | Shows the app tracks everything end-to-end |
+| 3 | **Push with actions** | Lock screen notification with inline **Accept** / **Reject** buttons | The headline native capability (strong App Store 4.2 signal) |
+| 4 | **Products** | Catalogue management with product rows, prices, stock | Proves the management long-tail is real, not a stub |
+| 5 | **Earnings + wallet** | Available/pending balance, recent transactions, Withdraw chip | The money story - why merchants stay |
+| 6 | **Store open/close + pickup point** | Store status toggle and pickup-point map | The everyday switch merchants touch daily |
+
 ---
 
 ## Caption strategy (text overlaid on the screenshot)
@@ -91,6 +102,17 @@ phone frame**. Keep these short - 4–7 words. Suggested set:
 | 5 | "Cash out to any Nigerian bank." | "Cire kuɗi zuwa kowane banki." |
 | 6 | "Watch your stats climb." | "Duba yadda ku ke ci gaba." |
 
+### Merchant app
+
+| Frame | EN caption | HA caption |
+|---|---|---|
+| 1 | "Every order, in one place." | "Kowace oda, wuri ɗaya." |
+| 2 | "See the whole order." | "Ga dukan odar." |
+| 3 | "Accept right from the tray." | "Karɓa kai tsaye daga sanarwa." |
+| 4 | "Manage your products." | "Sarrafa kayayyakinka." |
+| 5 | "Get paid, withdraw fast." | "Sami biya, cire da wuri." |
+| 6 | "Open for business in a tap." | "Buɗe shago da taɓawa ɗaya." |
+
 ---
 
 ## How to capture (recommended approach)
@@ -99,7 +121,8 @@ phone frame**. Keep these short - 4–7 words. Suggested set:
    - Open the **iPhone 16 Pro Max** simulator (1290 × 2796).
    - Run `npx expo start --ios` from `mobile/customer-app`.
    - `⌘+S` saves a PNG of the simulator window to the desktop.
-   - Same workflow for rider app from `mobile/rider-app`.
+   - Same workflow for rider app from `mobile/rider-app` and merchant app
+     from `mobile/merchant-app`.
 
 2. **Seed realistic demo data** before capturing.
    - Use a fresh test account so balances/orders/ratings look believable but not staged.
@@ -155,7 +178,15 @@ docs/store/screenshots/
 │   │   └── ha/
 │   │       └── (same 6 files)
 │   └── feature-graphic.png             (1024×500)
-└── rider/
+├── rider/
+│   ├── ios/
+│   │   ├── en/  (6 files)
+│   │   └── ha/  (6 files)
+│   ├── android/
+│   │   ├── en/  (6 files)
+│   │   └── ha/  (6 files)
+│   └── feature-graphic.png
+└── merchant/
     ├── ios/
     │   ├── en/  (6 files)
     │   └── ha/  (6 files)
@@ -165,7 +196,7 @@ docs/store/screenshots/
     └── feature-graphic.png
 ```
 
-26 files per app × 2 apps = 52 image assets total.
+26 files per app × 3 apps = 78 image assets total.
 
 ---
 

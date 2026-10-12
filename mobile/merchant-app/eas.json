@@ -11,7 +11,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
         "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
-        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "development"
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "development",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "preview": {
@@ -23,7 +24,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
         "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
-        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "staging"
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "staging",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
@@ -38,7 +40,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
         "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
-        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "production"
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "production",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },

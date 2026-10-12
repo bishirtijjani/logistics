@@ -21,6 +21,7 @@ import AlertHost from "./src/components/AlertHost";
 import { installWebAlert } from "./src/lib/safeAlert";
 import { initSentry, captureError } from "./src/services/sentry";
 import OfflineBanner from "./src/components/OfflineBanner";
+import * as Sentry from '@sentry/react-native';
 
 initSentry();
 
@@ -86,7 +87,7 @@ function reportToSentry(error, info) {
   }
 }
 
-export default function App() {
+export default Sentry.wrap(function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -105,7 +106,7 @@ export default function App() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
-}
+});
 
 const styles = StyleSheet.create({
   errorContainer: {

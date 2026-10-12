@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../brand.css">
+  <style>
+    html, body { width: 1024px; height: 500px; margin: 0; overflow: hidden; }
+    body {
+      background: linear-gradient(118deg, #F97316 0%, #EA580C 52%, #C2410C 100%);
+      display: flex; align-items: center; gap: 48px;
+      padding: 0 68px; color: #fff;
+    }
+    .tile {
+      width: 200px; height: 200px; flex: none;
+      border-radius: 40px;
+      background: rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 2px 34px rgba(0, 0, 0, 0.12);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tile #mk { font-family: 'Roboto', sans-serif; font-weight: 700; line-height: 1; white-space: nowrap; }
+    .tx .title { font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 72px; letter-spacing: -2px; line-height: 1; }
+    .tx .tag { font-family: 'Roboto', sans-serif; font-weight: 500; font-size: 32px; color: rgba(255, 255, 255, 0.94); margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="tile"><div id="mk">iPrime</div></div>
+  <div class="tx">
+    <div class="title">iPrime Merchant</div>
+    <div class="tag">Accept orders. Sell. Get paid.</div>
+  </div>
+  <script>
+    (function () {
+      function fit() {
+        var el = document.getElementById('mk');
+        var W = el.parentElement.clientWidth; /* tile inner width */
+        var target = W * 0.80;
+        var size = 60;
+        for (var i = 0; i < 8; i++) {
+          el.style.fontSize = size + 'px';
+          var w = el.getBoundingClientRect().width || 1;
+          size = size * target / w;
+        }
+        el.style.fontSize = size + 'px';
+        window.__ready = true;
+      }
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      else window.addEventListener('load', fit);
+    })();
+  </script>
+</body>
+</html>

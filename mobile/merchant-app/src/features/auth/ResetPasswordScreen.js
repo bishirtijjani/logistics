@@ -33,7 +33,7 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <View style={{ flex: 1, padding: 24, justifyContent: "center" }}>
         <Text style={{ fontSize: 24, fontWeight: "800", color: tokens.text.primary, marginBottom: 8 }}>
           {t("auth.resetTitle", "Set a new password")}

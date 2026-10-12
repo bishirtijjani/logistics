@@ -105,6 +105,7 @@ def main() -> None:
     mobile_targets = [
         ROOT / "mobile" / "customer-app" / "assets",
         ROOT / "mobile" / "rider-app" / "assets",
+        ROOT / "mobile" / "merchant-app" / "assets",
     ]
 
     icon = make_icon()

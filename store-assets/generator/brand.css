@@ -1,0 +1,79 @@
+/* iPrime brand tokens + fonts for the asset generator.
+ * Values mirror mobile/merchant-app/src/theme/tokens.js exactly so the
+ * generated mockups and icons stay on-brand with the shipping apps. */
+
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 400;
+  font-style: normal;
+  src: url('fonts/Roboto_400Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 500;
+  font-style: normal;
+  src: url('fonts/Roboto_500Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 700;
+  font-style: normal;
+  src: url('fonts/Roboto_700Bold.ttf') format('truetype');
+}
+/* 900 is aliased to Bold (the Pillow pipeline only shipped 400/500/700). */
+@font-face {
+  font-family: 'Roboto';
+  font-weight: 900;
+  font-style: normal;
+  src: url('fonts/Roboto_700Bold.ttf') format('truetype');
+}
+
+:root {
+  --brand: #EA580C;
+  --brand-2: #F97316;
+  --brand-strong: #C2410C;
+  --brand-soft: #FFF7ED;
+  --brand-soft-border: #FED7AA;
+
+  --canvas: #FAFAFA;
+  --surface: #FFFFFF;
+  --surface-muted: #F3F4F6;
+  --surface-strong: #E5E7EB;
+
+  --text: #09090b;
+  --muted: #6B7280;
+  --placeholder: #9CA3AF;
+
+  --border: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --border-subtle: #F3F4F6;
+
+  --success: #10B981;
+  --success-strong: #059669;
+  --success-soft: #D1FAE5;
+  --error: #EF4444;
+  --error-strong: #DC2626;
+  --error-soft: #FEE2E2;
+  --warning: #D97706;
+  --warning-soft: #FEF3C7;
+  --info: #2563EB;
+  --info-soft: #EFF6FF;
+  --violet: #7C3AED;
+  --violet-soft: #F5F3FF;
+
+  --ink: #0b0b0f;
+
+  /* 1 density-independent unit (dp/pt) as a fraction of viewport width.
+   * Overridden per device class in screens.css via frame.js. */
+  --dp: 0.2564vw;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background: #000;
+}
+svg { display: block; }
