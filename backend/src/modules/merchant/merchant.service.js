@@ -129,6 +129,11 @@ const getMerchants = async (filters) => {
     ...(openNow && { isOpen: true }),
     isActive: true,
     adminActiveOverride: true,
+    // Never surface a store with an empty menu. A merchant whose products are
+    // all hidden (isAvailable=false) has nothing a customer can order, so it
+    // drops out of browse until at least one product is available again.
+    // Mirrors search.service's MERCHANT_VISIBLE_FILTER - keep the two in sync.
+    products: { some: { isAvailable: true } },
   };
 
   // If location provided, filter by radius
