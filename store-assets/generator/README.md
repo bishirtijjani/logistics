@@ -27,9 +27,23 @@ exactly the viewport size.
 | `store-assets/merchant/icon-1024.png` | 1024×1024 |
 | `store-assets/merchant/icon-512.png` | 512×512 |
 | `store-assets/merchant/feature-graphic.png` | 1024×500 |
-| `store-assets/merchant/screenshots/ios-1290x2796/en/*.png` | 1290×2796 ×6 |
-| `store-assets/merchant/screenshots/android-1080x1920/en/*.png` | 1080×1920 ×6 |
-| `store-assets/merchant/screenshots/ipad-2048x2732/en/*.png` | 2048×2732 ×6 |
+| `store-assets/merchant/playstore-merchant-phone-*.png` | 1080×1920 ×7 |
+| `store-assets/merchant/playstore-merchant-tablet-7-*.png` | 1200×1920 ×7 |
+| `store-assets/merchant/playstore-merchant-tablet-10-*.png` | 1600×2560 ×7 |
+| `store-assets/merchant/appstore-merchant-iphone-*.png` | 1320×2868 ×7 (6.9″) |
+| `store-assets/merchant/appstore-merchant-ipad-*.png` | 2064×2752 ×7 (13″) |
+
+App Store sizes differ from Play (Apple rejects Play dimensions); the same
+templates render at both because the layout is viewport-relative. Apple's
+6.9″ set auto-scales to every smaller iPhone, and the 13″ iPad set is
+required because the app declares `supportsTablet: true`.
+
+Screenshots use the approved Play Store marketing style (see
+`store-assets/iprimeriderplaystorescreenshots/`): paper canvas, orange
+eyebrow, big two-tone headline, subtitle, a floating phone mockup showing
+the app, footer brand lockup, and an orange bottom bar. The seven frames
+are `orders, order-detail, products, earnings, store-status, analytics,
+bills`.
 
 ## How it works
 
@@ -37,14 +51,19 @@ exactly the viewport size.
   plus the three Roboto weights (`fonts/`, Apache-2.0).
 - `templates/icon.html` — one parametrized template for the icon / adaptive
   icon / splash / favicon. Query params: `?bg=orange|transparent`,
-  `?ratio=<width fraction of the mark>`, `?color=white|brand`. The wordmark is
-  JS-fitted so its glyph width converges on `ratio` × icon width.
+  `?ratio=<width fraction of the mark>`, `?color=white|brand`,
+  `?label=MERCHANT` (small uppercase marker stacked above `iPrime`). The
+  wordmark/label are JS-fitted so their glyph widths converge on target, and
+  the `MERCHANT` lockup is what distinguishes the merchant icon from the plain
+  rider/customer mark. The splash is intentionally left label-less.
 - `templates/feature-graphic.html` — 1024×500 Play banner.
-- `templates/screens/*.html` — the six mockups. All sizing is in `--dp`
-  (density-independent units) so one template renders correctly on iPhone
-  (430pt), Android (360dp) and iPad (1024pt) logical widths; `frame.js`
-  injects the status bar / tab bar / dynamic island from `?device=`.
-- `templates/screens/screens.css` — device shells + app component styles.
+- `templates/screens/*.html` — the seven marketing frames. Header copy +
+  a floating phone mockup + footer. `frame.js` injects the iOS status bar,
+  dynamic island and home indicator. The phone's internal sizing is in
+  `--dp` (derived from `--phoneH`), so the app UI scales with the mockup at
+  every canvas size.
+- `templates/screens/screens.css` — marketing layout + phone shell + app
+  component styles.
 
 The mockups mirror the real screens in `mobile/merchant-app/src/features`
 (Orders, Order detail, Products, Earnings, Store) and the push-with-actions

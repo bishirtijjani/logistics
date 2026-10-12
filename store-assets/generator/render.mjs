@@ -27,7 +27,6 @@ const ROOT = path.join(__dirname, '..', '..');
 const GEN = __dirname;
 const APP = path.join(ROOT, 'mobile', 'merchant-app', 'assets');
 const STORE = path.join(ROOT, 'store-assets', 'merchant');
-const SHOTS = path.join(STORE, 'screenshots');
 
 const { chromium } = require(path.join(ROOT, 'node_modules', 'playwright'));
 
@@ -62,19 +61,24 @@ function serve() {
   });
 }
 
+// Play Store sizes (approved style, matches store-assets/iprimeriderplaystorescreenshots)
+// + App Store required sizes (Apple rejects Play dimensions).
 const DEVICES = [
-  { key: 'ios', w: 1290, h: 2796, dir: 'ios-1290x2796' },
-  { key: 'android', w: 1080, h: 1920, dir: 'android-1080x1920' },
-  { key: 'ipad', w: 2048, h: 2732, dir: 'ipad-2048x2732' },
+  { key: 'phone', w: 1080, h: 1920, prefix: 'playstore-merchant-phone' },
+  { key: 'tablet-7', w: 1200, h: 1920, prefix: 'playstore-merchant-tablet-7' },
+  { key: 'tablet-10', w: 1600, h: 2560, prefix: 'playstore-merchant-tablet-10' },
+  { key: 'ios-iphone', w: 1320, h: 2868, prefix: 'appstore-merchant-iphone' }, // 6.9"
+  { key: 'ios-ipad', w: 2064, h: 2752, prefix: 'appstore-merchant-ipad' },     // 13"
 ];
 
 const SCREENS = [
-  ['01-orders.html', '01-orders'],
-  ['02-order-detail.html', '02-order-detail'],
-  ['03-push-actions.html', '03-push-actions'],
-  ['04-products.html', '04-products'],
-  ['05-earnings.html', '05-earnings'],
-  ['06-store-status.html', '06-store-status'],
+  ['01-orders.html', 'orders'],
+  ['02-order-detail.html', 'order-detail'],
+  ['03-products.html', 'products'],
+  ['04-earnings.html', 'earnings'],
+  ['05-store-status.html', 'store-status'],
+  ['06-analytics.html', 'analytics'],
+  ['07-bills.html', 'bills'],
 ];
 
 async function shoot(page, url, out, w, h, { transparent = false } = {}) {
@@ -110,21 +114,20 @@ async function main() {
   const icon = (q) => `${base}/templates/icon.html?${q}`;
 
   console.log('Icons + splash:');
-  await shoot(page, icon('bg=orange&ratio=0.72&color=white'), path.join(APP, 'icon.png'), 1024, 1024);
-  await shoot(page, icon('bg=orange&ratio=0.72&color=white'), path.join(STORE, 'icon-1024.png'), 1024, 1024);
-  await shoot(page, icon('bg=orange&ratio=0.72&color=white'), path.join(STORE, 'icon-512.png'), 512, 512);
-  await shoot(page, icon('bg=transparent&ratio=0.36&color=white'), path.join(APP, 'adaptive-icon.png'), 1024, 1024, { transparent: true });
+  await shoot(page, icon('bg=orange&ratio=0.66&color=white&label=MERCHANT'), path.join(APP, 'icon.png'), 1024, 1024);
+  await shoot(page, icon('bg=orange&ratio=0.66&color=white&label=MERCHANT'), path.join(STORE, 'icon-1024.png'), 1024, 1024);
+  await shoot(page, icon('bg=orange&ratio=0.66&color=white&label=MERCHANT'), path.join(STORE, 'icon-512.png'), 512, 512);
+  await shoot(page, icon('bg=transparent&ratio=0.34&color=white&label=MERCHANT'), path.join(APP, 'adaptive-icon.png'), 1024, 1024, { transparent: true });
   await shoot(page, icon('bg=transparent&ratio=0.70&color=white'), path.join(APP, 'splash-icon.png'), 1024, 1024, { transparent: true });
-  await shoot(page, icon('bg=orange&ratio=0.72&color=white'), path.join(APP, 'favicon.png'), 256, 256);
+  await shoot(page, icon('bg=orange&ratio=0.66&color=white&label=MERCHANT'), path.join(APP, 'favicon.png'), 256, 256);
 
   console.log('Feature graphic:');
   await shoot(page, `${base}/templates/feature-graphic.html`, path.join(STORE, 'feature-graphic.png'), 1024, 500);
 
   console.log('Screenshots:');
   for (const d of DEVICES) {
-    const dir = path.join(SHOTS, d.dir, 'en');
     for (const [file, name] of SCREENS) {
-      await shoot(page, `${base}/templates/screens/${file}?device=${d.key}`, path.join(dir, `${name}.png`), d.w, d.h);
+      await shoot(page, `${base}/templates/screens/${file}?device=${d.key}`, path.join(STORE, `${d.prefix}-${name}.png`), d.w, d.h);
     }
   }
 

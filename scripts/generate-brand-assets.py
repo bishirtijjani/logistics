@@ -102,10 +102,12 @@ def main() -> None:
     if not FONT_PATH.exists():
         raise SystemExit(f"Roboto font not found at {FONT_PATH}. Run npm install in mobile/customer-app first.")
 
+    # NOTE: merchant-app icons are owned by store-assets/generator (they carry a
+    # distinct MERCHANT lockup) - do NOT add it here or this script will clobber
+    # them with the plain iPrime mark.
     mobile_targets = [
         ROOT / "mobile" / "customer-app" / "assets",
         ROOT / "mobile" / "rider-app" / "assets",
-        ROOT / "mobile" / "merchant-app" / "assets",
     ]
 
     icon = make_icon()

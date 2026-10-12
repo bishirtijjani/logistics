@@ -8,33 +8,63 @@
     body { display: flex; align-items: center; justify-content: center; }
     body.bg-orange { background: #EA580C; }
     body.bg-transparent { background: transparent; }
+    #group { display: flex; flex-direction: column; align-items: center; }
+    #label {
+      display: none;
+      font-family: 'Roboto', sans-serif;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
     #mark { font-family: 'Roboto', sans-serif; font-weight: 700; line-height: 1; white-space: nowrap; }
-    #mark.c-white { color: #fff; }
-    #mark.c-brand { color: #EA580C; }
+    .c-white { color: #fff; }
+    .c-brand { color: #EA580C; }
   </style>
 </head>
 <body>
-  <div id="mark">iPrime</div>
+  <div id="group" class="c-white">
+    <div id="label">MERCHANT</div>
+    <div id="mark">iPrime</div>
+  </div>
   <script>
     (function () {
       var p = new URLSearchParams(location.search);
       var bg = p.get('bg') || 'orange';
       var ratio = parseFloat(p.get('ratio') || '0.72');
       var color = p.get('color') || 'white';
+      var label = p.get('label') || '';
       document.body.className = 'bg-' + bg;
-      document.getElementById('mark').classList.add('c-' + color);
+      document.getElementById('group').className = 'c-' + color;
 
-      function fit() {
-        var el = document.getElementById('mark');
-        var W = document.documentElement.clientWidth;
-        var size = W * 0.5;
-        /* Iterate so the glyph width converges on ratio * icon width. */
-        for (var i = 0; i < 8; i++) {
+      var group = document.getElementById('group');
+      var mark = document.getElementById('mark');
+      var labelEl = document.getElementById('label');
+      if (label) { labelEl.textContent = label; labelEl.style.display = 'block'; }
+
+      /* Binary-free iterative fit: converge a font-size so the element's
+       * rendered width equals targetW. */
+      function fitWidth(el, targetW) {
+        var size = targetW;
+        for (var i = 0; i < 9; i++) {
           el.style.fontSize = size + 'px';
           var w = el.getBoundingClientRect().width || 1;
-          size = size * (ratio * W) / w;
+          size = size * targetW / w;
         }
         el.style.fontSize = size + 'px';
+      }
+
+      function fit() {
+        var W = document.documentElement.clientWidth;
+        fitWidth(mark, ratio * W);
+        var mw = mark.getBoundingClientRect().width;
+        var mh = mark.getBoundingClientRect().height;
+        if (label) {
+          /* Marker sits above the wordmark, slightly narrower than it, with a
+           * small gap so the pair reads as one lockup. */
+          fitWidth(labelEl, mw * 0.92);
+          group.style.gap = (mh * 0.34) + 'px';
+        }
         window.__ready = true;
       }
 
