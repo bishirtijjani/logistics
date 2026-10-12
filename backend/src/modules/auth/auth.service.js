@@ -29,6 +29,20 @@ const getPaymentQueue = () => {
 
 const SALT_ROUNDS = 12;
 
+// Session/refresh-token lifetime. Derived from JWT_REFRESH_EXPIRY so the
+// persisted session row can never expire before the signed refresh JWT it
+// backs (the two drifting apart silently logs users out early).
+const parseDurationMs = (value, fallbackMs) => {
+  if (typeof value === "number") return value;
+  const m = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d|w|y)?$/i.exec(String(value ?? "").trim());
+  if (!m) return fallbackMs;
+  const factors = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000, y: 31_536_000_000 };
+  return Math.round(Number(m[1]) * (factors[(m[2] || "ms").toLowerCase()] || 1));
+};
+
+const SESSION_TTL_MS = parseDurationMs(config.JWT_REFRESH_EXPIRY, 7 * 24 * 60 * 60 * 1000);
+const sessionExpiry = () => new Date(Date.now() + SESSION_TTL_MS);
+
 /**
  * Case-insensitive email lookup. New registrations are stored lowercase
  * (validator normalizes on the way in), but historical rows may be
@@ -128,7 +142,7 @@ const login = async ({ email, password }, sessionMeta = {}) => {
     data: {
       userId: user.id,
       refreshToken: tokens.refreshToken,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiresAt: sessionExpiry(),
       ipAddress: sessionMeta.ipAddress || null,
       deviceInfo: sessionMeta.deviceInfo || null,
       deviceName: sessionMeta.deviceName || null,
@@ -491,7 +505,7 @@ const verifyOtp = async (email, code, sessionMeta = {}) => {
       data: {
         userId: user.id,
         refreshToken: tokens.refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: sessionExpiry(),
         ipAddress: sessionMeta.ipAddress || null,
         deviceInfo: sessionMeta.deviceInfo || null,
         deviceName: sessionMeta.deviceName || null,
@@ -548,7 +562,7 @@ const refreshAccessToken = async (refreshToken, sessionMeta = {}) => {
       data: {
         userId: session.userId,
         refreshToken: tokens.refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: sessionExpiry(),
         // Prefer freshly-supplied meta (request that hit /refresh) but fall
         // back to the prior session's fingerprint so we never lose attribution.
         ipAddress: sessionMeta.ipAddress || session.ipAddress || null,
@@ -805,15 +819,28 @@ const getProfile = async (userId) => {
       transactionPin: true,
       transactionPinSetByUser: true,
       createdAt: true,
+      merchant: { select: { id: true, status: true } },
+      rider: { select: { id: true, status: true } },
     },
   });
 
   if (!user) throw AppError.notFound("User not found");
 
+  // Match the login user shape (see `login`). Callers - notably the mobile app
+  // restoring a session from /auth/profile - depend on `merchantId` to decide
+  // between the dashboard and the enrollment flow. Nested `merchant`/`rider`
+  // objects are collapsed to ids so the response stays flat.
+  const { merchant, rider, transactionPin, ...rest } = user;
   return {
-    ...user,
-    hasPinSet: !!user.transactionPin,
-    transactionPin: undefined, // Never expose the hash
+    ...rest,
+    merchantId: merchant?.id || null,
+    riderId: rider?.id || null,
+    roles: {
+      customer: true,
+      rider: rider ? rider.status : null,
+      merchant: merchant ? merchant.status : null,
+    },
+    hasPinSet: !!transactionPin,
     // DEPRECATED compat shim. KYC is now trust-based only - there is no phone
     // OTP step. Pinned to false so any older web bundle still cached in a
     // customer's browser keeps showing the BVN confirmation sheet (it reads

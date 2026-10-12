@@ -4,19 +4,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useT } from "../i18n/useT";
 import OrdersScreen from "../features/orders/OrdersScreen";
-import NotificationsScreen from "../features/notifications/NotificationsScreen";
 import WebAppScreen from "../features/more/WebAppScreen";
-import SettingsScreen from "../features/settings/SettingsScreen";
+import MoreScreen from "../features/more/MoreScreen";
 
 const Tab = createBottomTabNavigator();
 
 const ICONS = {
   Orders: ["bag-handle", "bag-handle-outline"],
-  Notifications: ["notifications", "notifications-outline"],
+  Products: ["cube", "cube-outline"],
+  Earnings: ["wallet", "wallet-outline"],
   More: ["grid", "grid-outline"],
-  Settings: ["settings", "settings-outline"],
 };
 
+// Bottom bar mirrors the web dashboard's mobile BottomNav so the two surfaces
+// read as one app. "More" is a native hub; the rest are native or WebView
+// sections.
 export default function MainTabNavigator() {
   const { tokens } = useTheme();
   const { t } = useT();
@@ -44,19 +46,21 @@ export default function MainTabNavigator() {
         options={{ tabBarLabel: t("merchant.tabOrders", "Orders") }}
       />
       <Tab.Screen
-        name="Notifications"
-        component={NotificationsScreen}
-        options={{ tabBarLabel: t("tabs.notifications", "Alerts") }}
+        name="Products"
+        component={WebAppScreen}
+        initialParams={{ initialPath: "/dashboard/menu", title: t("merchant.tabProducts", "Products") }}
+        options={{ tabBarLabel: t("merchant.tabProducts", "Products") }}
+      />
+      <Tab.Screen
+        name="Earnings"
+        component={WebAppScreen}
+        initialParams={{ initialPath: "/dashboard/earnings", title: t("tabs.earnings", "Earnings") }}
+        options={{ tabBarLabel: t("tabs.earnings", "Earnings") }}
       />
       <Tab.Screen
         name="More"
-        component={WebAppScreen}
-        options={{ tabBarLabel: t("merchant.tabMore", "More") }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ tabBarLabel: t("tabs.settings", "Settings") }}
+        component={MoreScreen}
+        options={{ tabBarLabel: t("tabs.more", "More") }}
       />
     </Tab.Navigator>
   );

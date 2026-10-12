@@ -282,7 +282,10 @@
     "me": "Me",
     "orders": "Orders",
     "profile": "Profile",
-    "cart": "Cart"
+    "cart": "Cart",
+    "more": "More",
+    "settings": "Settings",
+    "notifications": "Alerts"
   },
   "orders": {
     "title": "My Orders",
@@ -668,6 +671,12 @@
     }
   },
   "merchant": {
+    "tabOrders": "Orders",
+    "tabProducts": "Products",
+    "sectionVtu": "Pay Bills",
+    "sectionAnalytics": "Analytics",
+    "sectionMarketing": "Marketing",
+    "sectionSupport": "Support",
     "browseTitle": "{{category}} near you",
     "browseFallbackHeader": "Merchants",
     "ordersCount": "({{count}} orders)",

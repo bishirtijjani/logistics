@@ -29,3 +29,31 @@ export const postToNative = (payload) => {
 
 /** Ask the native shell to refresh the session and re-inject fresh tokens. */
 export const requestNativeRefresh = () => postToNative({ type: 'refresh-request' })
+
+/**
+ * Ask the native shell to refresh, resolving once fresh tokens have been
+ * injected (the shell re-injects then fires `iprime-auth`). Rejects if the
+ * shell doesn't respond in time - callers should treat that as "session dead".
+ */
+export const refreshViaNative = (timeoutMs = 12000) =>
+  new Promise((resolve, reject) => {
+    if (!isNative()) {
+      reject(new Error('not-native'))
+      return
+    }
+    let settled = false
+    const onAuth = () => {
+      if (settled) return
+      settled = true
+      window.removeEventListener('iprime-auth', onAuth)
+      resolve()
+    }
+    window.addEventListener('iprime-auth', onAuth)
+    window.setTimeout(() => {
+      if (settled) return
+      settled = true
+      window.removeEventListener('iprime-auth', onAuth)
+      reject(new Error('native-refresh-timeout'))
+    }, timeoutMs)
+    requestNativeRefresh()
+  })

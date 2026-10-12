@@ -12,7 +12,27 @@ export const hydrateAuth = createAsyncThunk("auth/hydrate", async () => {
     const accessToken = await SecureStore.getItemAsync("accessToken");
     if (!accessToken) return null;
     const response = await api.get("/auth/profile");
-    const user = response.data;
+    const profile = response.data || {};
+    // Merge the live profile over the previously-stored user instead of
+    // replacing it. `/auth/profile` is the source of truth for PIN/status
+    // fields but historically omitted login-only fields like `merchantId`;
+    // overwriting here used to strip `merchantId` on every cold start, which
+    // bounced authenticated merchants back to the login screen.
+    let previous = null;
+    try {
+      const raw = await SecureStore.getItemAsync("merchant_user");
+      previous = raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      previous = null;
+    }
+    const user = previous
+      ? {
+          ...previous,
+          ...profile,
+          merchantId: profile.merchantId ?? previous.merchantId ?? null,
+          riderId: profile.riderId ?? previous.riderId ?? null,
+        }
+      : profile;
     await SecureStore.setItemAsync("merchant_user", JSON.stringify(user));
     return { user };
   } catch (error) {
@@ -93,8 +113,16 @@ export const enrollMerchant = createAsyncThunk(
   async (businessInfo, { rejectWithValue }) => {
     try {
       await api.post("/auth/merchant/enroll", businessInfo);
-      const profile = await api.get("/auth/profile");
-      const user = profile.data;
+      const profileRes = await api.get("/auth/profile");
+      const profile = profileRes.data || {};
+      let previous = null;
+      try {
+        const raw = await SecureStore.getItemAsync("merchant_user");
+        previous = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        previous = null;
+      }
+      const user = previous ? { ...previous, ...profile } : profile;
       await SecureStore.setItemAsync("merchant_user", JSON.stringify(user));
       return { user };
     } catch (error) {

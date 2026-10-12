@@ -11,6 +11,7 @@ import { useTheme } from "../../theme";
 import { useT } from "../../i18n/useT";
 import * as SecureStore from "../../lib/storage";
 import api, { BASE_URL } from "../../services/api";
+import ScreenHeader from "../../components/ScreenHeader";
 
 const WEB_URL = process.env.EXPO_PUBLIC_MERCHANT_WEB_URL || "https://merchant.iprime.ng";
 const DEFAULT_PATH = "/dashboard/orders";
@@ -32,6 +33,14 @@ const BRIDGE_BOOT = `
       if (auth && auth.refreshToken) localStorage.setItem('refreshToken', auth.refreshToken);
       if (auth && auth.user) localStorage.setItem('merchant_user', JSON.stringify(auth.user));
       window.dispatchEvent(new Event('iprime-auth'));
+    } catch (e) {}
+  };
+  window.__iprimeApplyTheme = function (dark) {
+    try {
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+      var el = document.documentElement;
+      if (dark) el.classList.add('dark'); else el.classList.remove('dark');
+      window.dispatchEvent(new CustomEvent('iprime-theme', { detail: { dark: !!dark } }));
     } catch (e) {}
   };
   document.addEventListener('DOMContentLoaded', function () {
@@ -85,15 +94,47 @@ true;
 const applyAuth = (auth) =>
   `window.__iprimeApplyAuth && window.__iprimeApplyAuth(${JSON.stringify(auth)}); true;`;
 
-export default function WebAppScreen({ route }) {
-  const { tokens } = useTheme();
+const applyTheme = (dark) =>
+  `window.__iprimeApplyTheme && window.__iprimeApplyTheme(${dark ? "true" : "false"}); true;`;
+
+export default function WebAppScreen({ route, navigation }) {
+  const { tokens, isDark } = useTheme();
   const { t } = useT();
   const webRef = useRef(null);
   const canGoBack = useRef(false);
+  const loadTimer = useRef(null);
+  const isDarkRef = useRef(isDark);
+  isDarkRef.current = isDark;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // Only the pushed stack screen gets a back chevron; the Products/Earnings
+  // tabs are roots and never show one.
+  const showBack = route?.name === "WebSection";
+  const title = route?.params?.title || t("merchant.moreTitle", "Manage");
+
+  // A load that never fires onLoadEnd would otherwise pin the spinner
+  // forever. The timer guarantees the overlay clears; an in-page route change
+  // (onNavigationStateChange) clears it immediately.
+  const clearLoadTimer = useCallback(() => {
+    if (loadTimer.current) {
+      clearTimeout(loadTimer.current);
+      loadTimer.current = null;
+    }
+  }, []);
+  const beginLoading = useCallback(() => {
+    setLoading(true);
+    clearLoadTimer();
+    loadTimer.current = setTimeout(() => setLoading(false), 15000);
+  }, [clearLoadTimer]);
+  const endLoading = useCallback(() => {
+    clearLoadTimer();
+    setLoading(false);
+  }, [clearLoadTimer]);
+
+  useEffect(() => clearLoadTimer, [clearLoadTimer]);
 
   // Resolve the stored session BEFORE the WebView mounts, then seed it into the
   // page's localStorage in `injectedJavaScriptBeforeContentLoaded`. The web
@@ -111,11 +152,17 @@ export default function WebAppScreen({ route }) {
       let user = null;
       try { user = userRaw ? JSON.parse(userRaw) : null; } catch (_) {}
       if (cancelled) return;
-      setAuthScript(token ? BRIDGE_BOOT + "\n" + applyAuth({ token, refreshToken, user }) : BRIDGE_BOOT);
+      const base = BRIDGE_BOOT + "\n" + applyTheme(isDarkRef.current);
+      setAuthScript(token ? base + "\n" + applyAuth({ token, refreshToken, user }) : base);
       setAuthReady(true);
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Keep the embedded page's theme in lock-step with the native toggle.
+  useEffect(() => {
+    webRef.current?.injectJavaScript(applyTheme(isDark));
+  }, [isDark]);
 
   const initialUrl = `${WEB_URL}${route?.params?.initialPath || DEFAULT_PATH}`;
 
@@ -215,8 +262,12 @@ export default function WebAppScreen({ route }) {
       webRef.current.goBack();
       return true;
     }
+    if (showBack && navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return true;
+    }
     return false;
-  }, []);
+  }, [showBack, navigation]);
 
   // Android hardware back → webview history.
   useFocusEffect(
@@ -228,23 +279,15 @@ export default function WebAppScreen({ route }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          paddingVertical: 10,
-          borderBottomWidth: 1,
-          borderBottomColor: tokens.border.default,
-        }}
-      >
-        <Text style={{ flex: 1, fontSize: 18, fontWeight: "800", color: tokens.text.primary }}>
-          {t("merchant.moreTitle", "Manage")}
-        </Text>
-        <TouchableOpacity onPress={() => webRef.current?.reload()} style={{ padding: 6 }}>
-          <Ionicons name="refresh" size={20} color={tokens.text.muted} />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title={title}
+        showBack={showBack}
+        right={
+          <TouchableOpacity onPress={() => webRef.current?.reload()} hitSlop={8} style={{ padding: 8 }} accessibilityLabel="Reload">
+            <Ionicons name="refresh" size={20} color={tokens.text.muted} />
+          </TouchableOpacity>
+        }
+      />
 
       {!authReady ? (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: tokens.bg.canvas }}>
@@ -276,12 +319,17 @@ export default function WebAppScreen({ route }) {
             injectedJavaScriptBeforeContentLoaded={authScript}
             onMessage={onMessage}
             onFileDownload={Platform.OS === "android" ? onFileDownload : undefined}
-            onLoadStart={() => setLoading(true)}
-            onLoadEnd={() => setLoading(false)}
-            onError={() => { setError(true); setLoading(false); }}
-            onHttpError={() => { setError(true); setLoading(false); }}
+            onLoadStart={beginLoading}
+            onLoadEnd={endLoading}
+            onError={() => { setError(true); endLoading(); }}
+            onHttpError={() => { setError(true); endLoading(); }}
             onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
-            onNavigationStateChange={(nav) => { canGoBack.current = nav.canvasGoBack || nav.canGoBack; }}
+            onNavigationStateChange={(nav) => {
+              canGoBack.current = nav.canvasGoBack || nav.canGoBack;
+              // An in-webview route change is not a document load; if one is
+              // pending, treat the URL change as "done" so the overlay clears.
+              endLoading();
+            }}
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             domStorageEnabled

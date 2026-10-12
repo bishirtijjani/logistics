@@ -9,7 +9,9 @@ import { useAuthSession } from '../lib/useAuthSession.js'
 import OnboardingWizard from './OnboardingWizard.jsx'
 import HelpPanel from './HelpPanel.jsx'
 import NotificationBell from './NotificationBell.jsx'
+import BottomNav from './BottomNav.jsx'
 import { SocketProvider } from '../contexts/SocketContext.jsx'
+import { isNative } from '../lib/nativeBridge.js'
 import { showSuccessToast, showErrorToast } from '../utils/toast.js'
 import {
   ShoppingBag,
@@ -45,6 +47,9 @@ export default function Layout() {
   const [wizardOpen, setWizardOpen] = useState(false)
   const [resubmitting, setResubmitting] = useState(false)
   const autoOpenedRef = useRef(false)
+  // Under the native shell the app owns the top bar (title/bell/theme) and the
+  // bottom tab bar, so the web chrome is suppressed to avoid double nav bars.
+  const native = isNative()
   // Mounted purely for its side effect: silently refreshes the access token
   // before it expires so the merchant is never interrupted by a modal.
   useAuthSession()
@@ -155,7 +160,7 @@ export default function Layout() {
     <SocketProvider>
     <div className="min-h-screen bg-background dark:bg-dark-background flex">
       {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
+      {!native && sidebarOpen && (
         <div
           aria-hidden="true"
           className="fixed inset-0 bg-gray-800 bg-opacity-50 z-40 lg:hidden"
@@ -163,7 +168,8 @@ export default function Layout() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar (desktop only; mobile uses BottomNav) */}
+      {!native && (
       <aside
         id="merchant-sidebar"
         className={`fixed top-0 left-0 z-50 w-64 h-[100dvh] bg-surface dark:bg-dark-surface shadow-lg transform transition-transform duration-300 ease-in-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 ${
@@ -233,10 +239,12 @@ export default function Layout() {
           </div>
         </div>
       </aside>
+      )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
+      <div className={`flex-1 flex flex-col min-w-0 ${native ? '' : 'lg:ml-64'}`}>
         {/* Top bar */}
+        {!native && (
         <header className="bg-surface dark:bg-dark-surface shadow-sm border-b border-surface-muted dark:border-dark-surface-muted sticky top-0 z-30">
           <div className="flex items-center justify-between h-16 px-4 sm:px-6">
             <button
@@ -244,7 +252,7 @@ export default function Layout() {
               aria-label="Open menu"
               aria-expanded={sidebarOpen}
               aria-controls="merchant-sidebar"
-              className="lg:hidden text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
+              className="hidden text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -279,9 +287,10 @@ export default function Layout() {
             </div>
           </div>
         </header>
+        )}
 
         {/* Page content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+        <main className={`flex-1 p-4 sm:p-6 lg:p-8 overflow-auto ${native ? '' : 'pb-24 lg:pb-8'}`}>
           {isRejected && (
             <div className="w-full mb-6 flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
               <div className="flex-shrink-0 p-2 bg-red-100 dark:bg-red-900/40 rounded-lg">
@@ -344,6 +353,9 @@ export default function Layout() {
 
       {/* In-app help */}
       <HelpPanel />
+
+      {/* Mobile bottom navigation (web/PWA only; the native shell draws its own) */}
+      {!native && <BottomNav />}
     </div>
     </SocketProvider>
   )

@@ -10,6 +10,7 @@ import { useT } from "../../i18n/useT";
 import { logout, deleteAccount } from "../../store/slices/authSlice";
 import { setLocale, getLocale } from "../../i18n";
 import { isBiometricEnabled, setBiometricEnabled, isBiometricAvailable } from "../../services/biometric";
+import ScreenHeader from "../../components/ScreenHeader";
 
 function Section({ title, children }) {
   const { tokens } = useTheme();
@@ -81,7 +82,9 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: tokens.bg.canvas }} contentContainerStyle={{ paddingBottom: 48 }}>
+      <ScreenHeader title={t("tabs.settings", "Settings")} showBack />
+      <View style={{ paddingHorizontal: 16 }}>
       <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8, marginBottom: 20 }}>
         <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: tokens.brand.soft, alignItems: "center", justifyContent: "center", marginRight: 14 }}>
           <Ionicons name="storefront" size={26} color={tokens.brand.default} />
@@ -96,12 +99,12 @@ export default function SettingsScreen() {
         <Item
           icon="person-outline"
           label={t("settings.profile", "Profile")}
-          onPress={() => navigation.navigate("More", { initialPath: "/dashboard/settings" })}
+          onPress={() => navigation.navigate("WebSection", { initialPath: "/dashboard/settings", title: t("settings.profile", "Profile") })}
         />
         <Item
           icon="lock-closed-outline"
           label={t("settings.security", "Security & PIN")}
-          onPress={() => navigation.navigate("More", { initialPath: "/dashboard/settings" })}
+          onPress={() => navigation.navigate("WebSection", { initialPath: "/dashboard/settings", title: t("settings.security", "Security & PIN") })}
         />
       </Section>
 
@@ -146,6 +149,7 @@ export default function SettingsScreen() {
       <Text style={{ textAlign: "center", color: tokens.text.placeholder, fontSize: 12, marginTop: 8 }}>
         {t("settings.version", "iPrime Merchant")} v1.0.0
       </Text>
+      </View>
     </ScrollView>
   );
 }

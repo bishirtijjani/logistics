@@ -12,6 +12,7 @@ import {
   markAllNotificationsRead,
 } from "../../store/slices/notificationsSlice";
 import EmptyState from "../../components/EmptyState";
+import ScreenHeader from "../../components/ScreenHeader";
 
 const timeAgo = (iso) => {
   if (!iso) return "";
@@ -56,11 +57,15 @@ export default function NotificationsScreen() {
     // carry `data.route` (e.g. '/dashboard/orders', '/dashboard/support/...').
     const route = n.data?.route || n.route || "";
     if (/(support|ticket|dispute)/i.test(route)) {
-      navigation.navigate("More", { initialPath: route.startsWith("/") ? route : "/dashboard/support" });
+      navigation.navigate("WebSection", {
+        initialPath: route.startsWith("/") ? route : "/dashboard/support",
+        title: t("merchant.sectionSupport", "Support"),
+      });
       return;
     }
     if (/(menu|earnings|vtu|bills|analytics|marketing|settings)/i.test(route)) {
-      navigation.navigate("More", { initialPath: `/dashboard/${route.replace(/^\/?(dashboard\/)?/, "")}` });
+      const path = `/dashboard/${route.replace(/^\/?(dashboard\/)?/, "")}`;
+      navigation.navigate("WebSection", { initialPath: path, title: t("merchant.moreTitle", "Manage") });
       return;
     }
 
@@ -70,18 +75,20 @@ export default function NotificationsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
-        <Text style={{ fontSize: 24, fontWeight: "900", color: tokens.text.primary }}>
-          {t("tabs.notifications", "Alerts")}
-        </Text>
-        {unreadCount > 0 ? (
-          <TouchableOpacity onPress={() => dispatch(markAllNotificationsRead())}>
-            <Text style={{ color: tokens.brand.strong, fontWeight: "700", fontSize: 13 }}>
-              {t("merchant.markAllRead", "Mark all read")}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+      <ScreenHeader
+        title={t("tabs.notifications", "Alerts")}
+        showBack
+        showBell={false}
+        right={
+          unreadCount > 0 ? (
+            <TouchableOpacity onPress={() => dispatch(markAllNotificationsRead())} style={{ paddingVertical: 8, paddingHorizontal: 4 }}>
+              <Text style={{ color: tokens.brand.strong, fontWeight: "700", fontSize: 13 }}>
+                {t("merchant.markAllRead", "Mark all read")}
+              </Text>
+            </TouchableOpacity>
+          ) : null
+        }
+      />
 
       {isLoading && list.length === 0 ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>

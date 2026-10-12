@@ -22,6 +22,14 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('theme', isDark ? 'dark' : 'light')
   }, [isDark])
 
+  // Under the native shell the app's theme toggle owns the choice; the shell
+  // fires `iprime-theme` so this provider stays in sync with it.
+  useEffect(() => {
+    const onTheme = (e) => setIsDark(!!e?.detail?.dark)
+    window.addEventListener('iprime-theme', onTheme)
+    return () => window.removeEventListener('iprime-theme', onTheme)
+  }, [])
+
   const toggleTheme = () => {
     setIsDark(!isDark)
   }

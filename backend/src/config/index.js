@@ -33,7 +33,7 @@ const envSchema = z
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
     JWT_ACCESS_EXPIRY: z.string().default("15m"),
-    JWT_REFRESH_EXPIRY: z.string().default("7d"),
+    JWT_REFRESH_EXPIRY: z.string().default("180d"),
 
     // BilalSadaSub - Nigerian VTU/bills provider. Auth (per their docs): the
     // purchase token (`Authorization: Token <...>`) is generated from your

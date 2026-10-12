@@ -34,6 +34,9 @@ import OtpVerificationScreen from "../features/auth/OtpVerificationScreen";
 import ForgotPasswordScreen from "../features/auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../features/auth/ResetPasswordScreen";
 import OrderDetailScreen from "../features/orders/OrderDetailScreen";
+import NotificationsScreen from "../features/notifications/NotificationsScreen";
+import SettingsScreen from "../features/settings/SettingsScreen";
+import WebAppScreen from "../features/more/WebAppScreen";
 import LockScreen from "../features/auth/LockScreen";
 
 const Stack = createNativeStackNavigator();
@@ -184,6 +187,9 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabNavigator} />
             <Stack.Screen name="OrderDetail" component={OrderDetailScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="WebSection" component={WebAppScreen} />
           </>
         )}
       </Stack.Navigator>

@@ -16,6 +16,7 @@ import { fetchOrders, acceptOrder, rejectOrder, updateOrderStatus, setStatusFilt
 import { statusDisplay, statusToneColors, STATUS } from "../../lib/requestStatus";
 import EmptyState from "../../components/EmptyState";
 import ErrorState from "../../components/ErrorState";
+import ScreenHeader from "../../components/ScreenHeader";
 
 const FILTERS = [
   { key: null, label: "All" },
@@ -147,10 +148,8 @@ export default function OrdersScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.bg.canvas }}>
-      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>
-        <Text style={{ fontSize: 24, fontWeight: "900", color: tokens.text.primary, marginBottom: 12 }}>
-          {t("merchant.ordersTitle", "Orders")}
-        </Text>
+      <ScreenHeader title={t("merchant.ordersTitle", "Orders")} />
+      <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}

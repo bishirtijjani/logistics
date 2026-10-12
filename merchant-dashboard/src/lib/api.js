@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { isNative, requestNativeRefresh } from './nativeBridge'
+import { isNative, refreshViaNative } from './nativeBridge'
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -9,6 +9,10 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+// De-dupes concurrent native refresh handshakes so a burst of 401s fires a
+// single `refresh-request` and all callers retry together.
+let nativeRefreshPromise = null
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -44,16 +48,30 @@ const PUBLIC_AUTH_PATHS = [
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
       const url = error.config?.url || ''
       const isPublicAuthCall = PUBLIC_AUTH_PATHS.some((p) => url.includes(p))
       if (!isPublicAuthCall) {
         if (isNative()) {
           // The native shell owns the session and rotating refresh token. Do
-          // NOT clear storage or hard-redirect; ask native to refresh + re-inject
-          // tokens. The failed request rejects and the UI surfaces the error.
-          requestNativeRefresh()
+          // NOT clear storage or hard-redirect; ask native to refresh, then
+          // retry the original request once with the freshly-injected token.
+          // (Without the retry the page just hangs on its loading state.)
+          const original = error.config
+          if (original && !original._nativeRetry) {
+            original._nativeRetry = true
+            try {
+              if (!nativeRefreshPromise) {
+                nativeRefreshPromise = refreshViaNative().finally(() => { nativeRefreshPromise = null })
+              }
+              await nativeRefreshPromise
+              return api(original)
+            } catch {
+              // Refresh failed/timed out - fall through and reject; native
+              // handles the dead-session logout.
+            }
+          }
         } else {
           localStorage.removeItem('token')
           localStorage.removeItem('refreshToken')
