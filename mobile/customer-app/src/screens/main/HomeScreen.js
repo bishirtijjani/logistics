@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { fetchWallet } from "../../store/slices/walletSlice";
 import { hydrateLocation } from "../../store/slices/locationSlice";
 import { fetchCategories, hydrateCategoriesFromCache } from "../../store/slices/categoriesSlice";
+import { fetchPublicSettings } from "../../store/slices/settingsSlice";
 import { fetchUnreadCount } from "../../store/slices/notificationsSlice";
 import {
   fetchActiveRequest,
@@ -36,6 +37,7 @@ import api from "../../services/api";
 import { pickOrderToPrompt, markOrderPromptResolved } from "../../lib/ratingPrompt";
 import { statusDisplay, statusToneColors } from "../../lib/requestStatus";
 import { resolveCategoryIcon } from "../../lib/categoryIcons";
+import { usePlatformSetting } from "../../services/settings";
 import {
   Ionicons,
   MaterialCommunityIcons,
@@ -46,8 +48,11 @@ import {
 // Everything is a Request. The category list is data-driven from /categories;
 // PACKAGE is the only static tile (no merchant - pure courier).
 
-// Home shows only these top-level categories; everything else lives behind
-// the Shops aggregator tile. Order here is the order they appear on the grid.
+// Fallback layout only. The app home grid is normally admin-curated via the
+// `home.categories` platform setting (Dashboard → Categories → Home layout):
+// an ordered list of { id, featured } where sentinel ids __shops__/__package__
+// map to the static tiles below. When the admin has not saved a layout yet we
+// keep this legacy default: these slugs on top, then Shops + Package last.
 const HOME_CATEGORY_SLUGS = ["restaurant", "grocery", "pharmacy"];
 
 // Static tile for the Shops aggregator. Tapping opens ShopsScreen which lists
@@ -182,6 +187,8 @@ export default function HomeScreen({ navigation }) {
   const { list: categories, loading: categoriesLoading, error: categoriesError } = useSelector(
     (state) => state.categories,
   );
+  // Admin-curated home grid layout (`home.categories` public setting).
+  const homeLayout = usePlatformSetting("home.categories", null);
   const dispatch = useDispatch();
   const [showBalance, setShowBalance] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -201,6 +208,7 @@ export default function HomeScreen({ navigation }) {
         dispatch(fetchBanners()),
         dispatch(fetchRecentActivity()),
         dispatch(fetchCategories()),
+        dispatch(fetchPublicSettings()),
       ]);
     } finally {
       setRefreshing(false);
@@ -287,24 +295,52 @@ export default function HomeScreen({ navigation }) {
     };
   }, [dispatch, user?.id]);
 
-  // Home shows a curated set of categories (Food / Grocery / Pharmacy), plus
-  // Shops (aggregator for the long tail) and Package (static courier flow).
-  // The full category list lives behind Shops.
-  const homeCategoryTiles = HOME_CATEGORY_SLUGS
-    .map((slug) => (categories || []).find((c) => c.slug === slug && c.isActive))
-    .filter(Boolean)
-    .map((c) => ({
-      id: c.id,
-      slug: c.slug,
-      name: c.name,
-      icon: resolveCategoryIcon(c),
-      color: c.color || "#7C3AED",
-      bg: tintBackground(c.color),
-      iconType: "MaterialCommunityIcons",
-      description: c.description || "",
-      hasPreparation: c.hasPreparation,
-    }));
-  const tiles = [...homeCategoryTiles, SHOPS_TILE, PACKAGE_TILE];
+  // Build a category-backed tile from a /categories row.
+  const toCategoryTile = (c) => ({
+    id: c.id,
+    slug: c.slug,
+    name: c.name,
+    icon: resolveCategoryIcon(c),
+    color: c.color || "#7C3AED",
+    bg: tintBackground(c.color),
+    iconType: "MaterialCommunityIcons",
+    description: c.description || "",
+    hasPreparation: c.hasPreparation,
+  });
+
+  // Admin-curated tiles: map the ordered `{ id, featured }` list to tile
+  // objects, resolving sentinel ids to the static Shops/Package tiles and the
+  // rest to the matching (active) category. Falls through to null when the
+  // category has been deleted or deactivated, so the grid stays clean.
+  const SPECIAL_TILES = { __shops__: SHOPS_TILE, __package__: PACKAGE_TILE };
+  const curatedItems = Array.isArray(homeLayout?.items)
+    ? homeLayout.items.filter((i) => i && i.featured && i.id)
+    : [];
+
+  const tiles = curatedItems.length
+    ? curatedItems
+        .map((i) => {
+          if (SPECIAL_TILES[i.id]) return SPECIAL_TILES[i.id];
+          const c = (categories || []).find((cat) => cat.id === i.id && cat.isActive);
+          return c ? toCategoryTile(c) : null;
+        })
+        .filter(Boolean)
+    : // Legacy default until an admin saves a layout.
+      [
+        ...HOME_CATEGORY_SLUGS.map((slug) =>
+          (categories || []).find((c) => c.slug === slug && c.isActive),
+        )
+          .filter(Boolean)
+          .map(toCategoryTile),
+        SHOPS_TILE,
+        PACKAGE_TILE,
+      ];
+
+  // Skeleton/error gate. Static Shops/Package tiles exist even before the
+  // category list loads, so gate on the category-backed tiles only.
+  const categoryBackedTiles = tiles.filter((it) => !it.isShops && !it.isPackage);
+  const showTileSkeleton = categoriesLoading && categoryBackedTiles.length === 0;
+  const showTileError = categoriesError && categoryBackedTiles.length === 0;
 
   return (
     <SafeAreaView
@@ -562,7 +598,7 @@ export default function HomeScreen({ navigation }) {
               }}
             />
           </View>
-          {categoriesLoading && homeCategoryTiles.length === 0 ? (
+          {showTileSkeleton ? (
             // Skeleton tiles instead of a spinner - gives the user a sense of
             // the layout that's about to arrive (much faster perceived load).
             <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 24 }}>
@@ -573,7 +609,7 @@ export default function HomeScreen({ navigation }) {
                 </View>
               ))}
             </View>
-          ) : categoriesError && homeCategoryTiles.length === 0 ? (
+          ) : showTileError ? (
             <View style={{ paddingVertical: 16, alignItems: "center" }}>
               <Text style={{ color: tokens.status.errorStrong, fontSize: 13, marginBottom: 8 }}>
                 {t("home.servicesError")}

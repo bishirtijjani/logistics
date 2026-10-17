@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { SlidersHorizontal, Pencil, Ban, Trash2 } from 'lucide-react'
+import { SlidersHorizontal, Pencil, Ban, Trash2, LayoutGrid } from 'lucide-react'
 import ActionMenu from '../components/ActionMenu'
 import {
   fetchCategories,
@@ -236,6 +237,13 @@ export default function CategoriesPage() {
             />
             Show inactive
           </label>
+          <Link
+            to="/home-categories"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-surface-muted dark:border-dark-surface-muted rounded-lg text-sm font-medium text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted w-full sm:w-auto justify-center"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            Home layout
+          </Link>
           <button
             onClick={openCreate}
             className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors w-full sm:w-auto"

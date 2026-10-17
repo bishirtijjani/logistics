@@ -49,6 +49,7 @@ const {
   updateCategorySchema,
   updateAttributeSchemaSchema,
   listCategoriesSchema,
+  updateHomeCategoriesSchema,
   updateTagSchema,
   setMerchantTagsSchema,
   listAllRidersSchema,
@@ -129,6 +130,12 @@ router.post('/categories', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), val
 router.put('/categories/:categoryId', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(updateCategorySchema), adminController.updateCategory);
 router.patch('/categories/:categoryId/attribute-schema', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(updateAttributeSchemaSchema), adminController.updateCategoryAttributeSchema);
 router.delete('/categories/:categoryId', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), adminController.deleteCategory);
+
+// Customer app Home grid layout (which tiles show + their order). Declared on
+// its own '/home/categories' path so it can't be shadowed by the
+// '/categories/:categoryId' param routes above.
+router.get('/home/categories', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), adminController.getHomeCategories);
+router.put('/home/categories', authorize('ADMIN', PERMISSIONS.MANAGE_MERCHANTS), validate(updateHomeCategoriesSchema), adminController.updateHomeCategories);
 
 // Rider management
 // NOTE: literal sub-paths (/pending, /stats, /performance, /realtime) are

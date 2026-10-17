@@ -367,6 +367,21 @@ const listCategoriesSchema = z.object({
   isActive: z.enum(['true', 'false']).optional(),
 });
 
+// Home grid curation - the ordered list of tiles shown on the customer app
+// Home screen ("What do you need?"). Array order = display order. `id` is
+// either a merchant-category UUID or one of the reserved special-tile ids
+// (__shops__, __package__); existence is verified in the service.
+const updateHomeCategoriesSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(64),
+        featured: z.boolean(),
+      }),
+    )
+    .max(50),
+});
+
 // Admin rider management schemas
 const listAllRidersSchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -500,6 +515,7 @@ module.exports = {
   updateCategorySchema,
   updateAttributeSchemaSchema,
   listCategoriesSchema,
+  updateHomeCategoriesSchema,
   listAllRidersSchema,
   suspendRiderSchema,
   unsuspendRiderSchema,

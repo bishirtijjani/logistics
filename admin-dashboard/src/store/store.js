@@ -9,6 +9,7 @@ import transactionsReducer from './slices/transactionsSlice.js'
 import settingsReducer from './slices/settingsSlice.js'
 import auditLogsReducer from './slices/auditLogsSlice.js'
 import categoriesReducer from './slices/categoriesSlice.js'
+import homeCategoriesReducer from './slices/homeCategoriesSlice.js'
 import supportTicketsReducer from './slices/supportTicketsSlice.js'
 import disputesReducer from './slices/disputesSlice.js'
 import waitlistReducer from './slices/waitlistSlice.js'
@@ -26,6 +27,7 @@ export const store = configureStore({
     settings: settingsReducer,
     auditLogs: auditLogsReducer,
     categories: categoriesReducer,
+    homeCategories: homeCategoriesReducer,
     supportTickets: supportTicketsReducer,
     disputes: disputesReducer,
     waitlist: waitlistReducer,
