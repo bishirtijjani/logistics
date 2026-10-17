@@ -8,39 +8,90 @@ import {
   updateHomeCategories,
 } from '../store/slices/homeCategoriesSlice'
 import { useDragReorder } from '../lib/useDragReorder'
+import { useTheme } from '../contexts/ThemeContext'
+import { customerTheme, resolveCategoryIcon } from '../lib/homeTileTheme'
 
-const initialOf = (name) => (name || '?').trim().charAt(0).toUpperCase()
-// Categories store a 6-digit hex; append alpha for a soft tile background.
-const tintFor = (c) => `${c.color || '#7C3AED'}1A`
+// Tile shell mirrors the customer app home tile
 
-function TileShell({ category, dragging }) {
+function TileShell({ category, dragging, accent }) {
+  const { isDark } = useTheme()
+  const theme = customerTheme(isDark)
+  const withAlpha = (hex, alpha) =>
+    typeof hex === 'string' && /^#[0-9a-fA-F]{6}$/.test(hex) ? hex + alpha : hex
+  const accentColor = accent || theme.accentFor(category)
+  const second = withAlpha(accentColor, 'B3')
+  const name = category.name || ''
   return (
     <div
-      className={`flex w-full flex-col overflow-hidden rounded-2xl border bg-surface text-left dark:bg-dark-surface ${
-        dragging
-          ? 'border-primary shadow-2xl ring-2 ring-primary/40'
-          : 'border-surface-muted dark:border-dark-surface-muted'
-      }`}
-      style={{ minHeight: 100 }}
+      className="w-full text-left select-none"
+      style={{
+        borderRadius: 22,
+        paddingTop: 16,
+        paddingBottom: 16,
+        paddingLeft: 8,
+        paddingRight: 8,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
+        boxShadow: dragging ? '0 12px 40px rgba(9,9,11,0.18)' : '0 6px 16px rgba(9,9,11,0.06)',
+        ...(dragging ? { transform: 'scale(1.05)', transition: 'transform 120ms ease' } : {}),
+      }}
     >
       <div
-        className="flex h-[56px] items-center justify-center"
-        style={{ backgroundColor: tintFor(category) }}
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 16,
+          overflow: 'hidden',
+          marginBottom: 10,
+          position: 'relative',
+          background: `linear-gradient(135deg, ${accentColor}, ${second})`,
+          marginLeft: 'auto',
+          marginRight: 'auto',
+        }}
       >
-        <span className="text-xl font-black" style={{ color: category.color || '#7C3AED' }}>
-          {initialOf(category.name)}
-        </span>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <i
+            className={`mdi mdi-${resolveCategoryIcon(category)}`}
+            style={{ fontSize: 26, color: theme.iconOnChip, lineHeight: 1 }}
+          />
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 1,
+            background: 'rgba(255,255,255,0.45)',
+          }}
+        />
       </div>
-      <div className="flex flex-1 flex-col items-center justify-center px-1.5 pb-2 pt-1.5">
-        <span className="line-clamp-2 text-center text-[10px] font-extrabold leading-tight text-text dark:text-dark-text">
-          {category.name}
-        </span>
-        {category.special && (
-          <span className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted dark:text-dark-muted">
-            Tile
-          </span>
-        )}
-      </div>
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          color: theme.nameColor,
+          textAlign: 'center',
+          letterSpacing: '-0.2px',
+          display: 'block',
+          width: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {name}
+      </span>
     </div>
   )
 }
@@ -51,6 +102,8 @@ export default function HomeCategoriesPage() {
   const [order, setOrder] = useState([])
   const [search, setSearch] = useState('')
   const [dirty, setDirty] = useState(false)
+  const { isDark } = useTheme()
+  const theme = customerTheme(isDark)
 
   // Track each tile's geometry so the pointer drag can pick the nearest slot.
   const tiles = useRef(new Map())
@@ -63,6 +116,15 @@ export default function HomeCategoriesPage() {
     const map = new Map()
     categories.forEach((c) => map.set(c.id, c))
     return map
+  }, [categories])
+
+  const defaultOrder = useMemo(() => {
+    const slugs = ['restaurant', 'grocery', 'pharmacy']
+    const bySlug = new Map(categories.map((c) => [c.slug, c.id]))
+    const ids = slugs.map((s) => bySlug.get(s)).filter(Boolean)
+    ids.push('__shops__', '__package__')
+    // avoid duplicates if somehow present
+    return Array.from(new Set(ids))
   }, [categories])
 
   const serverOrder = useMemo(
@@ -79,11 +141,11 @@ export default function HomeCategoriesPage() {
   useEffect(() => {
     if (!categories.length) return
     if (seededRef.current && dirtyRef.current) return
-    setOrder(serverOrder)
+    setOrder(serverOrder.length ? serverOrder : defaultOrder)
     seededRef.current = true
     setDirty(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories])
+  }, [categories, defaultOrder, serverOrder])
 
   const shown = order.map((id) => byId.get(id)).filter(Boolean)
   const shownSet = useMemo(() => new Set(order), [order])
@@ -132,7 +194,7 @@ export default function HomeCategoriesPage() {
 
   const show = (id) => commit([...order, id])
   const hide = (id) => commit(order.filter((x) => x !== id))
-  const resetLayout = () => commit(serverOrder)
+  const resetLayout = () => commit(serverOrder.length ? serverOrder : defaultOrder)
 
   const onSave = async () => {
     try {
@@ -190,10 +252,11 @@ export default function HomeCategoriesPage() {
       </div>
 
       {/* WYSIWYG grid - mirrors the app Home "What do you need?" section */}
-      <div className="rounded-xl border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface p-4">
+      <div className="mx-auto w-full max-w-[390px]">
+        <div className="rounded-[44px] border border-surface-muted dark:border-dark-surface-muted shadow-xl overflow-hidden" style={{ backgroundColor: theme.canvas, padding: '20px' }}>
         <div className="flex items-center justify-between px-1 pb-4">
-          <span className="text-lg font-black text-text dark:text-dark-text">What do you need?</span>
-          <span className="text-xs font-bold text-primary">See all →</span>
+          <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: "-0.5px" }} className="text-text dark:text-dark-text">What do you need?</span>
+          <span style={{ width: 30, height: 3.5, borderRadius: 2 }} className="bg-primary dark:bg-[#FB923C]" />
         </div>
 
         {shown.length === 0 ? (
@@ -201,7 +264,7 @@ export default function HomeCategoriesPage() {
             No tiles yet. Add some from the list below to build the Home grid.
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-[4%] gap-y-5">
+          <div className="flex flex-wrap" style={{ marginLeft: -6, marginRight: -6, rowGap: 12 }}>
             {shown.map((c) => {
               const dragging = dragId === c.id
               return (
@@ -213,11 +276,12 @@ export default function HomeCategoriesPage() {
                     else tiles.current.delete(c.id)
                   }}
                   onPointerDown={startDrag(c.id)}
-                  className={`group relative w-full select-none ${
+                  className={`group relative select-none ${
                     dragging ? 'z-10 touch-none' : 'touch-pan-y'
                   }`}
+                  style={{ width: '33.333%', paddingLeft: 6, paddingRight: 6 }}
                 >
-                  <div className={dragging ? 'scale-105 transition-transform' : ''}>
+                  <div>
                     <TileShell category={c} dragging={dragging} />
                   </div>
 
@@ -242,11 +306,12 @@ export default function HomeCategoriesPage() {
             })}
           </div>
         )}
-
-        <div className="mt-4 px-1 text-xs text-muted dark:text-dark-muted">
-          {shown.length} tile{shown.length === 1 ? '' : 's'} show on the app home
         </div>
       </div>
+
+      <p className="text-center text-xs text-muted dark:text-dark-muted">
+        {shown.length} tile{shown.length === 1 ? '' : 's'} show on the app home
+      </p>
 
       {/* Picker */}
       <div className="rounded-xl border border-surface-muted dark:border-dark-surface-muted bg-surface dark:bg-dark-surface">
@@ -271,13 +336,14 @@ export default function HomeCategoriesPage() {
               Nothing to add - every matching tile is already on Home.
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-x-[4%] gap-y-4">
+            <div className="flex flex-wrap gap-3">
               {available.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => show(c.id)}
-                  className="group relative w-full transition-shadow hover:shadow-md rounded-2xl"
+                  className="group relative transition-shadow hover:shadow-md"
+                  style={{ width: 104 }}
                 >
                   <TileShell category={c} dragging={false} />
                   <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white">
