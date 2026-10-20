@@ -4,7 +4,7 @@
     "slug": "iprime-customer",
     "owner": "mh-prime",
     "scheme": "iprime",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -16,7 +16,7 @@
     },
     "ios": {
       "bundleIdentifier": "ng.iprime.customer",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "iPrime needs your location to show nearby services and delivery options.",

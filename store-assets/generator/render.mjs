@@ -12,7 +12,8 @@
  * Outputs (all at 1x, exact store dimensions):
  *   mobile/merchant-app/assets/{icon,adaptive-icon,splash-icon,favicon}.png
  *   store-assets/merchant/{icon-1024,icon-512,feature-graphic}.png
- *   store-assets/merchant/screenshots/{ios-1290x2796,android-1080x1920,ipad-2048x2732}/en/*.png
+ *   store-assets/merchant/playstore-merchant-{phone-1080x1920,tablet-7-1200x1920,tablet-10-1600x2560}-*.png
+ *   store-assets/merchant/appstore-merchant-{iphone-1206x2622,ipad-2064x2752}-*.png
  */
 import http from 'node:http';
 import path from 'node:path';
@@ -67,7 +68,7 @@ const DEVICES = [
   { key: 'phone', w: 1080, h: 1920, prefix: 'playstore-merchant-phone' },
   { key: 'tablet-7', w: 1200, h: 1920, prefix: 'playstore-merchant-tablet-7' },
   { key: 'tablet-10', w: 1600, h: 2560, prefix: 'playstore-merchant-tablet-10' },
-  { key: 'ios-iphone', w: 1320, h: 2868, prefix: 'appstore-merchant-iphone' }, // 6.9"
+  { key: 'ios-iphone', w: 1206, h: 2622, prefix: 'appstore-merchant-iphone' }, // 6.3" medium - Apple's required iPhone slot
   { key: 'ios-ipad', w: 2064, h: 2752, prefix: 'appstore-merchant-ipad' },     // 13"
 ];
 

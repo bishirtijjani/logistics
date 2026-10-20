@@ -98,9 +98,11 @@ rider/customer + the privacy declarations).
 
 ## 6. Store listing assets
 
-- [ ] `store-assets/merchant/` needs `icon-512.png`, `feature-graphic.png`
-      (1024×500), and phone screenshots (Play min 2; App Store 6.7"
-      required). `icon-1024.png` is already present.
+- [ ] `store-assets/merchant/` has `icon-512.png`, `feature-graphic.png`
+      (1024×500), Play phone/tablet screenshots, and the App Store sets
+      (`appstore-merchant-iphone-*` 1206×2622 required slot,
+      `appstore-merchant-ipad-*` 2064×2752). `icon-1024.png` is present.
+      Regenerate any time with `node store-assets/generator/render.mjs`.
 - [ ] Copy for the listing uses
       `docs/store/listing-merchant-app.md` (EN + HA).
 - [ ] iPad screenshots are required because `supportsTablet: true`.

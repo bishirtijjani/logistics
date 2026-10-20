@@ -30,13 +30,15 @@ exactly the viewport size.
 | `store-assets/merchant/playstore-merchant-phone-*.png` | 1080×1920 ×7 |
 | `store-assets/merchant/playstore-merchant-tablet-7-*.png` | 1200×1920 ×7 |
 | `store-assets/merchant/playstore-merchant-tablet-10-*.png` | 1600×2560 ×7 |
-| `store-assets/merchant/appstore-merchant-iphone-*.png` | 1320×2868 ×7 (6.9″) |
+| `store-assets/merchant/appstore-merchant-iphone-*.png` | 1206×2622 ×7 (6.3″ medium) |
 | `store-assets/merchant/appstore-merchant-ipad-*.png` | 2064×2752 ×7 (13″) |
 
-App Store sizes differ from Play (Apple rejects Play dimensions); the same
-templates render at both because the layout is viewport-relative. Apple's
-6.9″ set auto-scales to every smaller iPhone, and the 13″ iPad set is
-required because the app declares `supportsTablet: true`.
+App Store sizes differ from Play (Apple rejects Play dimensions). Apple's
+**required** iPhone slot is the "Dynamic Island, medium" display
+(1206×2622 or 1179×2556) — since the October 2026 spec change the older
+6.9″ 1320×2868 set is optional-only. The 13″ iPad set is required
+because the app declares `supportsTablet: true`. The same templates
+render at every size because the layout is viewport-relative.
 
 Screenshots use the approved Play Store marketing style (see
 `store-assets/iprimeriderplaystorescreenshots/`): paper canvas, orange

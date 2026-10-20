@@ -14,11 +14,17 @@ listing forms ask for.
 
 | Device class | Pixels | Status | Notes |
 |---|---|---|---|
-| **iPhone 6.7"** (Pro Max, latest) | **1290 × 2796** portrait | **Required** | Apple uses this as the primary preview; all other iPhone sizes auto-derive if you only upload this one |
-| iPhone 6.5" (XS Max, 11 Pro Max) | 1242 × 2688 portrait | Optional but recommended | Covers older devices Apple still requires for some legacy submissions |
-| iPad 13" / 12.9" | 2048 × 2732 portrait | Required IF you check "iPad" support in app.json | `"supportsTablet": true` is set, so yes |
+| **iPhone** (Dynamic Island, medium) | **1206 × 2622** or **1179 × 2556** portrait | **Required** | Apple's required iPhone slot since the Oct 2026 spec change; all other iPhone sizes auto-derive from this set |
+| iPhone (Dynamic Island, large) | 1320 × 2868 portrait | Optional | 6.9"/6.7" class - no longer the required size |
+| iPad 13" | 2064 × 2752 portrait | Required IF you check "iPad" support in app.json | `"supportsTablet": true` is set, so yes |
 
-You can upload up to **10** screenshots per device class. We use **6**.
+You can upload up to **10** screenshots per device class. We use **7**.
+
+> The merchant sets are generated at exact pixel sizes by
+> `store-assets/generator/render.mjs` (see its README) rather than captured
+> from a simulator - `appstore-merchant-iphone-*` is 1206 × 2622 and
+> `appstore-merchant-ipad-*` is 2064 × 2752. The capture-from-simulator
+> instructions below still apply to the customer/rider apps.
 
 ### Google Play Store
 
@@ -29,9 +35,9 @@ You can upload up to **10** screenshots per device class. We use **6**.
 | 10-inch tablet | 1280 × 800 / 800 × 1280 | Optional |
 | **Feature graphic** | **1024 × 500** | **Required** - banner above screenshots in Play listing |
 
-Captures from the iPhone 6.7" form factor (1290 × 2796) sit at the right
-aspect ratio to be cropped down to Play's 9:16 requirement - so you can
-shoot once on iOS simulator and crop down for Android.
+Captures from the required iPhone form factor (1206 × 2622) sit at the
+right aspect ratio to be cropped down to Play's 9:16 requirement - so you
+can shoot once on iOS simulator and crop down for Android.
 
 ---
 
