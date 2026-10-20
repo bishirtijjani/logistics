@@ -2125,6 +2125,112 @@ const deleteCategory = async (categoryId, adminUserId, ipAddress, userAgent) => 
   return { soft: false };
 };
 
+// Reserved ids for the two non-category tiles that also live on the customer
+// Home grid ("Shops" and "Delivery"). They have no DB row, so the layout
+// setting stores these sentinel ids and the customer app maps them to its
+// built-in tiles. Keep in sync with mobile/customer-app HomeScreen.
+const HOME_SPECIAL_TILES = [
+  { id: '__shops__', name: 'Shops', slug: 'shops', icon: 'shopping', color: '#9333EA', special: true },
+  { id: '__package__', name: 'Delivery', slug: 'delivery', icon: 'moped', color: '#2563EB', special: true },
+];
+
+const HOME_CATEGORIES_KEY = 'home.categories';
+
+/**
+ * Read the customer Home grid: every merchant category (plus the two special
+ * tiles) enriched with its saved `featured` flag and home position.
+ *
+ * The layout lives in the `home.categories` platform setting as
+ * `{ items: [{ id, featured }] }`, where array order is the display order.
+ * Items not present in the setting come back with featured=false and
+ * homePosition=null so the admin UI can offer them in the "add" picker.
+ */
+const getHomeCategories = async () => {
+  const [categories, setting] = await Promise.all([
+    prisma.merchantCategory.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      include: { _count: { select: { merchants: true } } },
+    }),
+    settingsService.getSetting(HOME_CATEGORIES_KEY, { items: [] }),
+  ]);
+
+  const orderMap = new Map();
+  const featuredIds = new Set();
+  const items = Array.isArray(setting?.items) ? setting.items : [];
+  items.forEach((item, index) => {
+    if (item && item.id) {
+      orderMap.set(item.id, index);
+      if (item.featured) featuredIds.add(item.id);
+    }
+  });
+
+  const enriched = [...categories, ...HOME_SPECIAL_TILES].map((c) => ({
+    ...c,
+    featured: featuredIds.has(c.id),
+    homePosition: orderMap.has(c.id) ? orderMap.get(c.id) : null,
+  }));
+
+  // Featured tiles first, in saved order; the rest keep category order.
+  enriched.sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    if (a.featured && b.featured) return (a.homePosition ?? 0) - (b.homePosition ?? 0);
+    return 0;
+  });
+
+  return { categories: enriched, featuredIds: [...featuredIds] };
+};
+
+/**
+ * Replace the customer Home grid layout.
+ *
+ * @param {Array<{id:string, featured:boolean}>} items Ordered tiles; array
+ *   order is the display order. Ids must be merchant-category UUIDs or one of
+ *   the reserved special-tile ids.
+ */
+const updateHomeCategories = async (items, adminUserId, ipAddress, userAgent) => {
+  const list = Array.isArray(items) ? items : [];
+
+  const specialIds = new Set(HOME_SPECIAL_TILES.map((t) => t.id));
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const seen = new Set();
+  for (const item of list) {
+    if (!item || !item.id) throw AppError.badRequest('Each home item needs an id');
+    if (seen.has(item.id)) throw AppError.badRequest('Duplicate home items are not allowed');
+    // Guard against malformed ids reaching a Prisma uuid filter (which would
+    // otherwise surface as a 500 DB error instead of a clean 400).
+    if (!specialIds.has(item.id) && !uuidRe.test(item.id)) {
+      throw AppError.badRequest(`Invalid home item id "${item.id}"`);
+    }
+    seen.add(item.id);
+  }
+
+  const uuidIds = [...seen].filter((id) => !specialIds.has(id));
+  if (uuidIds.length) {
+    const found = await prisma.merchantCategory.findMany({
+      where: { id: { in: uuidIds } },
+      select: { id: true },
+    });
+    if (found.length !== uuidIds.length) {
+      throw AppError.badRequest('One or more categories no longer exist');
+    }
+  }
+
+  const value = { items: list.map((i) => ({ id: i.id, featured: !!i.featured })) };
+
+  await settingsService.setSetting(HOME_CATEGORIES_KEY, value, adminUserId);
+  await createAuditLog(
+    adminUserId,
+    'UPDATE_HOME_CATEGORIES',
+    'MERCHANT_CATEGORY',
+    'home',
+    { items: value.items },
+    ipAddress,
+    userAgent,
+  );
+
+  return { updated: value.items.length, items: value.items };
+};
+
 // ============================================================
 // Admin Rider Management
 // ============================================================
@@ -4219,6 +4325,8 @@ module.exports = {
   updateCategory,
   updateCategoryAttributeSchema,
   deleteCategory,
+  getHomeCategories,
+  updateHomeCategories,
   getAllRiders,
   getRiderById,
   getRiderLiveLocation,

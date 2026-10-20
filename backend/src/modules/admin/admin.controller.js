@@ -767,6 +767,29 @@ const deleteCategory = async (req, res, next) => {
   }
 };
 
+const getHomeCategories = async (req, res, next) => {
+  try {
+    const result = await adminService.getHomeCategories();
+    res.json(ApiResponse.success('Home categories retrieved', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateHomeCategories = async (req, res, next) => {
+  try {
+    const result = await adminService.updateHomeCategories(
+      req.body.items,
+      req.user.id,
+      req.ip,
+      req.headers['user-agent'],
+    );
+    res.json(ApiResponse.success('Home categories updated', result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 const setMerchantTags = async (req, res, next) => {
   try {
     const tags = await adminService.setMerchantTags(
@@ -1197,6 +1220,8 @@ module.exports = {
   updateCategory,
   updateCategoryAttributeSchema,
   deleteCategory,
+  getHomeCategories,
+  updateHomeCategories,
   setMerchantTags,
   getAllRiders,
   getRiderById,

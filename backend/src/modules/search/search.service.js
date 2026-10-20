@@ -60,11 +60,14 @@ const haversineKm = (la1, lo1, la2, lo2) => {
 };
 
 // Customer-facing visibility filter - must match what merchant.service.getMerchants
-// uses so search results aren't a superset/subset of the listing.
+// uses so search results aren't a superset/subset of the listing. The `products`
+// clause drops merchants with an empty menu (no available product), matching the
+// browse list.
 const MERCHANT_VISIBLE_FILTER = {
   isActive: true,
   adminActiveOverride: true,
   status: 'APPROVED',
+  products: { some: { isAvailable: true } },
 };
 
 const includeMerchantCategory = {
@@ -150,6 +153,10 @@ const search = async ({ q, type, category, lat, lng, radius }) => {
         WHERE m."isActive" = true
           AND m."adminActiveOverride" = true
           AND m."status" = 'APPROVED'
+          AND EXISTS (
+            SELECT 1 FROM "products" mp
+            WHERE mp."merchantId" = m.id AND mp."isAvailable" = true
+          )
           AND (
             m."search_vector" @@ q.tsq
             OR to_tsvector('simple',

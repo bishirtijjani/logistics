@@ -44,11 +44,13 @@ const searchService = require('../src/modules/search/search.service');
 const seedKatsinaMerchants = () => {
   prismaStub.merchant._rows.clear();
   prismaStub.merchant.seed([
-    { id: 'm1', name: 'Mama K Kitchen', lat: 13.0059, lng: 7.6019, isActive: true, adminActiveOverride: true, averageRating: 4.8, totalOrders: 200, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} } },
-    { id: 'm2', name: 'Sani Pharmacy', lat: 13.0100, lng: 7.6050, isActive: true, adminActiveOverride: true, averageRating: 4.5, totalOrders: 90, category: { id: 'c2', name: 'Pharmacy', slug: 'pharmacy', color: '', icon: '', attributeSchema: {} } },
-    { id: 'm3', name: 'Far Away Shop', lat: 14.0, lng: 8.5, isActive: true, adminActiveOverride: true, averageRating: 3.0, totalOrders: 1, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} } },
-    { id: 'm4', name: 'Inactive Shop', lat: 13.0, lng: 7.6, isActive: false, adminActiveOverride: true, averageRating: 4.5, totalOrders: 50, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} } },
-    { id: 'm5', name: 'Override Off', lat: 13.0, lng: 7.6, isActive: true, adminActiveOverride: false, averageRating: 4.0, totalOrders: 30, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} } },
+    { id: 'm1', name: 'Mama K Kitchen', lat: 13.0059, lng: 7.6019, isActive: true, adminActiveOverride: true, status: 'APPROVED', averageRating: 4.8, totalOrders: 200, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} }, products: [{ isAvailable: true }] },
+    { id: 'm2', name: 'Sani Pharmacy', lat: 13.0100, lng: 7.6050, isActive: true, adminActiveOverride: true, status: 'APPROVED', averageRating: 4.5, totalOrders: 90, category: { id: 'c2', name: 'Pharmacy', slug: 'pharmacy', color: '', icon: '', attributeSchema: {} }, products: [{ isAvailable: true }] },
+    { id: 'm3', name: 'Far Away Shop', lat: 14.0, lng: 8.5, isActive: true, adminActiveOverride: true, status: 'APPROVED', averageRating: 3.0, totalOrders: 1, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} }, products: [{ isAvailable: true }] },
+    { id: 'm4', name: 'Inactive Shop', lat: 13.0, lng: 7.6, isActive: false, adminActiveOverride: true, status: 'APPROVED', averageRating: 4.5, totalOrders: 50, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} }, products: [{ isAvailable: true }] },
+    { id: 'm5', name: 'Override Off', lat: 13.0, lng: 7.6, isActive: true, adminActiveOverride: false, status: 'APPROVED', averageRating: 4.0, totalOrders: 30, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} }, products: [{ isAvailable: true }] },
+    // Approved + active + override-on, but every product is hidden → empty menu.
+    { id: 'm6', name: 'Empty Menu Cafe', lat: 13.0, lng: 7.6, isActive: true, adminActiveOverride: true, status: 'APPROVED', averageRating: 5.0, totalOrders: 0, category: { id: 'c1', name: 'Food', slug: 'food', color: '', icon: '', attributeSchema: {} }, products: [{ isAvailable: false }] },
   ]);
 };
 
@@ -99,6 +101,34 @@ test('search: no query + lat/lng → bounding-box excludes far-away merchants', 
   assert.ok(!ids.includes('m3'));
   assert.ok(ids.includes('m1'));
   assert.ok(ids.includes('m2'));
+});
+
+// --- empty menus ---
+
+test('search: merchants with no available products are excluded', async () => {
+  seedKatsinaMerchants();
+  prismaStub.$queryRaw = async () => [];
+  const out = await searchService.search({ q: '', type: 'merchant' });
+  const ids = out.results.map((r) => r.id);
+  assert.ok(!ids.includes('m6'), 'merchant with no available products must not appear');
+  assert.ok(ids.includes('m1'), 'merchant with an available product still appears');
+});
+
+test('search: a merchant reappears once a product is made available', async () => {
+  seedKatsinaMerchants();
+  // Flip m6's only product to available → it should now survive the filter.
+  prismaStub.merchant._rows.get('m6').products = [{ isAvailable: true }];
+  prismaStub.$queryRaw = async () => [];
+  const out = await searchService.search({ q: '', type: 'merchant' });
+  assert.ok(out.results.map((r) => r.id).includes('m6'));
+});
+
+test('nearby: merchants with no available products are excluded', async () => {
+  seedKatsinaMerchants();
+  const out = await searchService.nearby({ lat: 13.0, lng: 7.6, radius: 50 });
+  const ids = out.merchants.map((m) => m.id);
+  assert.ok(!ids.includes('m6'));
+  assert.ok(ids.includes('m1'));
 });
 
 // --- search (with query, $queryRaw mocked) ---

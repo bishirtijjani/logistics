@@ -33,6 +33,7 @@ import VtuPlansPage from './pages/VtuPlansPage'
 import VtuNetworksPage from './pages/VtuNetworksPage'
 import PlacesPage from './pages/PlacesPage'
 import CategoriesPage from './pages/CategoriesPage'
+import HomeCategoriesPage from './pages/HomeCategoriesPage'
 import WaitlistPage from './pages/WaitlistPage'
 import StaffManagementPage from './pages/StaffManagementPage'
 
@@ -93,6 +94,7 @@ function App() {
           <Route path="requests" element={<RequestsPage />} />
           <Route path="merchants" element={<MerchantsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
+          <Route path="home-categories" element={<HomeCategoriesPage />} />
           <Route path="merchants/:merchantId/analytics" element={<MerchantAnalyticsPage />} />
           <Route path="merchants/:merchantId/products" element={<MerchantProductsPage />} />
           <Route path="riders" element={<RidersPage />} />

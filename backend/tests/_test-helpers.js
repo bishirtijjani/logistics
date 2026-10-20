@@ -414,6 +414,17 @@ const makeAuthPrismaStub = () => {
           if (cond.category?.slug && row.merchant.category?.slug !== cond.category.slug) return false;
           continue;
         }
+        // `products: { some: { isAvailable } }` - the "merchant has at least one
+        // available menu item" filter used by getMerchants + search visibility.
+        if (key === 'products' && cond && cond.some) {
+          const arr = Array.isArray(row.products) ? row.products : [];
+          const some = cond.some;
+          const hit = arr.some((p) =>
+            Object.keys(some).every((f) => (some[f] && typeof some[f] === 'object' ? true : p[f] === some[f]))
+          );
+          if (!hit) return false;
+          continue;
+        }
         if (typeof cond === 'object' && cond !== null) {
           if ('in' in cond) { if (!cond.in.includes(row[key])) return false; continue; }
           if ('gte' in cond && !(row[key] >= cond.gte)) return false;

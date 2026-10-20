@@ -134,6 +134,9 @@ const PUBLIC_KEYS = [
   // provider has minted the wallet NUBAN / issued checkout references so they
   // display the right bank name and don't mix providers.
   'payments.providerMode',
+  // Customer Home grid layout: ordered list of { id, featured } curated by the
+  // admin. Array order = display order; special tiles use sentinel ids.
+  'home.categories',
 ];
 
 const getPublicSettings = async () => {
