@@ -38,7 +38,7 @@ export const PROVIDER_DEFAULT = undefined;
 // with "Maps JavaScript API" enabled); fall back to the app's existing key.
 const API_KEY =
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_KEY ||
-  "AIzaSyBG66pGzjm27QdEBPG84XdGHpki1nvYjbI";
+  "YOUR_GOOGLE_MAPS_API_KEY";
 
 const toLatLng = (c) => ({ lat: c.latitude, lng: c.longitude });
 
