@@ -43,7 +43,7 @@ const Stack = createNativeStackNavigator();
 const navigationRef = createNavigationContainerRef();
 
 const NAV_LINKING = {
-  prefixes: ["iprime://", "https://merchant.iprime.ng"],
+  prefixes: ["logistics://", "https://merchant."],
 };
 
 function navigateToOrder(requestId) {

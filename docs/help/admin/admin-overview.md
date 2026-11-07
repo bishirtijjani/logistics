@@ -1,6 +1,6 @@
 # Getting started with the admin dashboard
 
-The iPrime admin dashboard is your control room for the whole platform -
+The Logistics Platform admin dashboard is your control room for the whole platform -
 merchants, riders, orders, money, and support. This guide orients you so you
 know where everything lives.
 
@@ -9,7 +9,7 @@ know where everything lives.
 ## Logging in
 
 Go to the admin URL and sign in with your **email** and **password** on the
-**iPrime Admin** screen. If you forget your password, contact another admin to
+**Logistics Platform Admin** screen. If you forget your password, contact another admin to
 reset it.
 
 ---

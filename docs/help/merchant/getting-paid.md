@@ -1,6 +1,6 @@
 # Getting paid: earnings and withdrawals
 
-Every sale you make lands in your iPrime wallet. The **Earnings** page shows what
+Every sale you make lands in your Logistics Platform wallet. The **Earnings** page shows what
 you've made and lets you cash out to your bank.
 
 ![Your Earnings page](/help/screenshots/merchant/earnings.png)

@@ -22,7 +22,7 @@
 
 ## Executive Summary
 
-The iPrime platform has three mature surfaces - Customer mobile app, Merchant dashboard, Admin dashboard - and one missing leg: the **Rider mobile app**. Today the rider-app directory holds only a default Expo template (`App.js` with "Open up App.js to start working on your app"), no `src/`, no navigation, no services. Meanwhile the backend is already production-shaped for riders: `rider.routes.js` exposes the full HTTP surface, the BullMQ `BROADCAST_TO_RIDERS` worker fans `rider:job:new` events out to expanding radius rings (5 → 10 → 15 km), the admin's `RiderOperationsPage` polls `/admin/riders/realtime` every 10 s waiting for positions, and the merchant's `OrderDetailsModal` reserves UI slots for a rider's name, plate, ETA, and live location. None of these signals have a client emitting or consuming on the rider side. The rider app is the **last leg of the unified Request lifecycle** (`RIDER_ASSIGNED → DELIVERED → SETTLED`) and the only thing standing between the platform and an end-to-end logistics MVP.
+The Logistics Platform platform has three mature surfaces - Customer mobile app, Merchant dashboard, Admin dashboard - and one missing leg: the **Rider mobile app**. Today the rider-app directory holds only a default Expo template (`App.js` with "Open up App.js to start working on your app"), no `src/`, no navigation, no services. Meanwhile the backend is already production-shaped for riders: `rider.routes.js` exposes the full HTTP surface, the BullMQ `BROADCAST_TO_RIDERS` worker fans `rider:job:new` events out to expanding radius rings (5 → 10 → 15 km), the admin's `RiderOperationsPage` polls `/admin/riders/realtime` every 10 s waiting for positions, and the merchant's `OrderDetailsModal` reserves UI slots for a rider's name, plate, ETA, and live location. None of these signals have a client emitting or consuming on the rider side. The rider app is the **last leg of the unified Request lifecycle** (`RIDER_ASSIGNED → DELIVERED → SETTLED`) and the only thing standing between the platform and an end-to-end logistics MVP.
 
 The app this roadmap describes is an **operations app for approved riders**: receive job offers in real time, run a delivery with map navigation and live customer/merchant tracking, capture proof of delivery, see earnings hit the wallet, and pull money out to a Nigerian bank - all on Android and iOS, with English and Hausa, biometric-gated, PIN-protected for money moves, idempotent under retries, and built on the same Expo 54 / React Native 0.81 / RTK / nativewind stack the customer app already runs on. **Every architectural, design, and tooling decision mirrors the customer app exactly** for cohesiveness - same dep versions, same theme tokens, same navigation patterns, same services (`api.js`, `socket.js`, `biometric.js`, `idempotency.js`, `notifications.js`, `notificationsBus.js`, `settings.js`), and the same dev workflow (Expo Go for development, EAS standalone for production). The rider app diverges from customer **only where its job requires it**: full-screen offer overlay that supersedes other navigation, foreground GPS streaming while ONLINE (screen-on during shifts; background streaming is parked for V2 - see §2.7), camera + signature capture for proof of delivery, and offer-arrival haptics + ringtone.
 
@@ -189,7 +189,7 @@ All additions below are Expo-Go-compatible so the rider app's dev workflow match
 Identical workflow to customer-app: Expo Go for development, EAS standalone for shipping.
 
 - `eas.json` defines two profiles (mirrors `mobile/customer-app/eas.json`):
-  - `preview` → internal distribution APK, `EXPO_PUBLIC_API_URL=https://api.iprime.ng`.
+  - `preview` → internal distribution APK, `EXPO_PUBLIC_API_URL=https://api.`.
   - `production` → app-bundle, Play Store / TestFlight target.
 - **No `developmentClient: true` profile.** Developers run the JS bundle through Expo Go against `npx expo start`. No custom dev-client builds.
 - OTA channel binding: `preview=staging`, `production=production`.
@@ -201,7 +201,7 @@ Identical workflow to customer-app: Expo Go for development, EAS standalone for 
 ```
 mobile/rider-app/
 ├── App.js                          # Mounts SafeAreaProvider, NavigationContainer, Provider, ThemeProvider, ErrorBoundary, Toast
-├── app.json                        # Expo config (permissions, plugins, scheme=iprime, pkg id=ng.iprime.rider)
+├── app.json                        # Expo config (permissions, plugins, scheme=logistics, pkg id=ng.logistics.rider)
 ├── babel.config.js                 # nativewind/babel
 ├── eas.json                        # preview / production profiles (mirrors customer-app)
 ├── eslint.config.js                # Mirrored from customer-app (incl. starts-with-/ rule for axios paths)
@@ -731,7 +731,7 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
 
 **RA - Step 0b: re-baseline from customer-app** ✅
 - ✅ Copy `customer-app/package.json` → rename `"name": "rider-app"`. Every shared dep version identical.
-- ✅ Copy `customer-app/app.json` with the rider-targeted edits (`slug=vtu-rider-app`, iOS bundleId / Android package = `ng.iprime.rider`, scheme `iprime`, EAS projectId cleared). [Note: renamed pre-launch from the original `com.codeket.logistics.rider` / `riderapp` during Phase 10 #5.0.]
+- ✅ Copy `customer-app/app.json` with the rider-targeted edits (`slug=vtu-rider-app`, iOS bundleId / Android package = `ng.logistics.rider`, scheme `logistics`, EAS projectId cleared). [Note: renamed pre-launch from the original `com.logistics.rider` / `riderapp` during Phase 10 #5.0.]
 - ✅ Copy `tailwind.config.js`, `babel.config.js`, `metro.config.js`, `global.css`, `eslint.config.js` verbatim.
 - ✅ Create `eas.json` with `preview` + `production` profiles only (no `developmentClient` - dev runs in Expo Go).
 
@@ -756,7 +756,7 @@ Replace the bare Expo template currently sitting in `mobile/rider-app/` with a p
 - ✅ `navigation/MainTabNavigator.js`: 4 tabs - Home / Earnings / Wallet / Me (Trip tab is added in Phase 4). Active tab uses brand orange.
 - ✅ `navigation/OfferOverlayNavigator.js`: scrim + sheet stub mounted at the root of `AppNavigator`. Hosts `JobOfferScreen` body in Phase 3.
 - ✅ Push-tap + deep-link routing wired via `notifications.addNotificationResponseReceivedListener` + `lib/notificationRoute.js` (rider routes: `/offer/:id`, `/trip/:id`, `/wallet`, `/wallet/withdraw`, `/earnings`, `/kyc`, `/performance`, `/support/*`).
-- ✅ Deep-link scheme: `iprime://` + `https://rider.iprime.ng`. (Renamed pre-launch from `riderapp://` / `rider.vtulogistics.app` during Phase 10 #5.0; legacy URLs still parse for back-compat.)
+- ✅ Deep-link scheme: `logistics://` + `https://rider.`. (Renamed pre-launch from `riderapp://` / `rider.vtulogistics.app` during Phase 10 #5.0; legacy URLs still parse for back-compat.)
 
 **RA - Step 0f: observability bootstrap** ⚠
 - ⏸ Sentry init - deferred to Phase 8 to match customer-app's posture (customer-app does not init Sentry either; cross-app cohesiveness wins over early observability).
@@ -1090,7 +1090,7 @@ After accepting, the rider runs the entire delivery from a single cockpit screen
 
 ## Phase 5 - Proof of Delivery (POD)
 
-> **Status: ✅ COMPLETE.** Full POD pipeline live: photo + optional signature + high-value OTP, gated by platform settings (`delivery.requirePodPhoto`, `delivery.requireSignature`, `delivery.podOtpThresholdNgn`). Cockpit's "Complete delivery" tap walks the rider through a stage machine (`photo → signature → otp → submit`) that auto-skips disabled stages and re-mounts the right sheet on server-side 422s (`POD_PHOTO_REQUIRED`, `POD_PHOTO_INVALID`, `POD_SIGNATURE_REQUIRED`, `POD_SIGNATURE_INVALID`, `POD_OTP_REQUIRED`, `POD_OTP_NOT_ISSUED`, `POD_OTP_MISMATCH`). POD draft persists in SecureStore under `pod:draft:{requestId}`, restored on cockpit mount, cleared on DELIVERED 200. Settlement animation: cockpit subscribes to `wallet:balance:updated`, swaps the success card to `+₦XXX earned` when the RIDER_EARNING transaction lands, and auto-clears after 8 s. Backend additions: `add_pod_to_request` migration (4 nullable columns on Request); `POST /requests/:id/pod-otp/generate` (RIDER-gated, idempotent, rate-limited 3/10 min per request, bcrypt OTP, push + Notification Center to customer with `data.otp` flowing through FCM); request-scoped Cloudinary upload kinds `pod` + `pod_signature` (folder `iprime/pod/{requestId}`, rider-only writes, window-gated to PICKED_UP/IN_TRANSIT/DELIVERED); `updateStatus(DELIVERED)` validates the three POD gates against current settings + bcrypt-compares the OTP; settle/refund workers reset rider availability ON_DELIVERY → ONLINE; `request:status:changed` on DELIVERED carries POD URLs so the customer's tracking screen flips without a refetch. Customer-app: prominent OTP banner driven by `notification:new POD_OTP_GENERATED`, POD photo card on DELIVERED. Merchant dashboard `OrderDetailsModal`: Proof of Delivery card (photo + signature thumbnails) on DELIVERED/SETTLED. Admin: POD strip in `RidersPage` delivery history + full POD card in `RequestsPage` request detail. Full i18n via `pod.*` keys with English fallback (Hausa translations land in Phase 7).
+> **Status: ✅ COMPLETE.** Full POD pipeline live: photo + optional signature + high-value OTP, gated by platform settings (`delivery.requirePodPhoto`, `delivery.requireSignature`, `delivery.podOtpThresholdNgn`). Cockpit's "Complete delivery" tap walks the rider through a stage machine (`photo → signature → otp → submit`) that auto-skips disabled stages and re-mounts the right sheet on server-side 422s (`POD_PHOTO_REQUIRED`, `POD_PHOTO_INVALID`, `POD_SIGNATURE_REQUIRED`, `POD_SIGNATURE_INVALID`, `POD_OTP_REQUIRED`, `POD_OTP_NOT_ISSUED`, `POD_OTP_MISMATCH`). POD draft persists in SecureStore under `pod:draft:{requestId}`, restored on cockpit mount, cleared on DELIVERED 200. Settlement animation: cockpit subscribes to `wallet:balance:updated`, swaps the success card to `+₦XXX earned` when the RIDER_EARNING transaction lands, and auto-clears after 8 s. Backend additions: `add_pod_to_request` migration (4 nullable columns on Request); `POST /requests/:id/pod-otp/generate` (RIDER-gated, idempotent, rate-limited 3/10 min per request, bcrypt OTP, push + Notification Center to customer with `data.otp` flowing through FCM); request-scoped Cloudinary upload kinds `pod` + `pod_signature` (folder `logistics/pod/{requestId}`, rider-only writes, window-gated to PICKED_UP/IN_TRANSIT/DELIVERED); `updateStatus(DELIVERED)` validates the three POD gates against current settings + bcrypt-compares the OTP; settle/refund workers reset rider availability ON_DELIVERY → ONLINE; `request:status:changed` on DELIVERED carries POD URLs so the customer's tracking screen flips without a refetch. Customer-app: prominent OTP banner driven by `notification:new POD_OTP_GENERATED`, POD photo card on DELIVERED. Merchant dashboard `OrderDetailsModal`: Proof of Delivery card (photo + signature thumbnails) on DELIVERED/SETTLED. Admin: POD strip in `RidersPage` delivery history + full POD card in `RequestsPage` request detail. Full i18n via `pod.*` keys with English fallback (Hausa translations land in Phase 7).
 
 ### 5.1 Goals
 
@@ -1378,18 +1378,18 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 >   - `src/components/OfflineBanner.js` - global strip rendered above the NavigationContainer in `ThemedRoot`. Hidden when online; shows "You're offline - actions will retry when you reconnect." with appropriate `accessibilityLiveRegion`.
 >   - `api.js` interceptor calls `markOffline('api-network-error')` on network-level failures (no `error.response`) and `markOnline()` on the next successful response.
 > - **Release configuration**
->   - `app.json`: `jsEngine: "hermes"`, `userInterfaceStyle: "automatic"`, `ios.buildNumber: "1"`, `android.versionCode: 1`, `ios.associatedDomains: ["applinks:rider.iprime.ng"]`, `android.intentFilters` for `https://rider.iprime.ng`.
+>   - `app.json`: `jsEngine: "hermes"`, `userInterfaceStyle: "automatic"`, `ios.buildNumber: "1"`, `android.versionCode: 1`, `ios.associatedDomains: ["applinks:rider."]`, `android.intentFilters` for `https://rider.`.
 >   - `eas.json`: development / preview / production profiles each with their own `channel` (development / staging / production), `EXPO_PUBLIC_SENTRY_ENVIRONMENT`, `autoIncrement: true` on production, iOS `appleTeamId` / `ascAppId` placeholders, and `submit.production.android.releaseStatus: draft` for safer initial uploads.
 >   - `babel.config.js` strips `console.*` (excluding `error`/`warn`) when `NODE_ENV=production` via `babel-plugin-transform-remove-console` (added to `devDependencies`).
 > - **Deep-link completeness**
->   - `NAV_LINKING.prefixes` extended to `["iprime://", "https://rider.iprime.ng", "riderapp://"]` (legacy for back-compat with pre-rebrand notifications).
+>   - `NAV_LINKING.prefixes` extended to `["logistics://", "https://rider.", "riderapp://"]` (legacy for back-compat with pre-rebrand notifications).
 >   - `NAV_LINKING.config.screens` now exhaustively maps every reachable stack screen: wallet sub-tree, earnings, notifications, KYC, performance, profile, security, sessions, change-PIN, phone change, biometric, language, theme, legal, support home + ticket / dispute detail + create flows.
->   - `lib/notificationRoute.parseDeepLink` already strips any scheme before matching - `riderapp://`, `iprime://`, and `https://rider.iprime.ng/*` all resolve via the same code path; verified by `__tests__/lib/notificationRoute.test.js`.
+>   - `lib/notificationRoute.parseDeepLink` already strips any scheme before matching - `riderapp://`, `logistics://`, and `https://rider./*` all resolve via the same code path; verified by `__tests__/lib/notificationRoute.test.js`.
 > - **Testing**
 >   - `package.json` adds `jest`, `jest-expo`, `@testing-library/react-native`, `@testing-library/jest-native`, `babel-plugin-transform-remove-console`; embedded `jest` config uses `jest-expo` preset with `transformIgnorePatterns` covering RN/Expo/Redux/NativeWind, and a `__mocks__/fileMock.js` for static assets.
 >   - 7 test files / 50+ assertions in `__tests__/`:
 >     - `lib/formatters.test.js`, `lib/time.test.js`, `lib/polyline.test.js` - pure utilities.
->     - `lib/notificationRoute.test.js` - string forms, payload forms, deep-link parsing across iprime:// + riderapp:// + universal links.
+>     - `lib/notificationRoute.test.js` - string forms, payload forms, deep-link parsing across logistics:// + riderapp:// + universal links.
 >     - `store/notificationsSlice.test.js` - receive/dedupe, fetch happy & rejected, mark-read, mark-all-read, reset.
 >     - `store/earningsSlice.test.js` - socket dedup against fetched rows, 50-entry log cap, paginated append dedup, error path.
 >     - `store/offersSlice.test.js` - enqueue / reject / take / expire / accept-thunk fulfilled/409/410/500 paths; mocks the socket service for isolation.
@@ -1404,7 +1404,7 @@ A fully-furnished "Me" tab and notification center. Every notification the backe
 >   - `src/i18n/HAUSA_REVIEW.md` - section-by-section checklist for the native-Hausa review, inheriting the customer-app's conventions and adding rider-specific sections (onboarding, offers, trip, POD, earnings, KYC, performance, support, security, offline).
 > - **Misc**
 >   - `offline.banner` / `offline.bannerRetry` keys added to `en.json` + `ha.json`.
->   - `AppNavigator.NAV_LINKING.prefixes` accepts the legacy `riderapp://` scheme so notifications minted pre-iprime rebrand still parse.
+>   - `AppNavigator.NAV_LINKING.prefixes` accepts the legacy `riderapp://` scheme so notifications minted pre-logistics rebrand still parse.
 >
 > **Engineering acceptance criteria met** (per §8.3):
 > - ✅ Unit tests written (Jest + RTL deps wired; 50+ assertions across utilities and slices).
@@ -1438,12 +1438,12 @@ The app is ready for the store. Every screen has loading / empty / error / offli
 - Verify every `api.<verb>` path starts with `/` (ESLint rule enforces; CI fails otherwise).
 
 **RA - Deep-link coverage**
-- `iprime://offer/:id` → `JobOfferScreen` if offer is still valid in `offersSlice.queue`; else show `JobMissedScreen`.
-- `iprime://trip/:id` → `TripCockpitScreen` if the rider is the assigned rider.
-- `iprime://earnings` → `EarningsDashboardScreen`.
-- `iprime://wallet` → `WalletHomeScreen`; `iprime://wallet/withdraw` → `WithdrawScreen`.
-- `iprime://support/:ticketId` → `TicketDetailScreen`.
-- Universal links: `https://rider.iprime.ng/*` mapped equivalently. Legacy `riderapp://` URLs still parse for back-compat (pre-Phase-10 notifications).
+- `logistics://offer/:id` → `JobOfferScreen` if offer is still valid in `offersSlice.queue`; else show `JobMissedScreen`.
+- `logistics://trip/:id` → `TripCockpitScreen` if the rider is the assigned rider.
+- `logistics://earnings` → `EarningsDashboardScreen`.
+- `logistics://wallet` → `WalletHomeScreen`; `logistics://wallet/withdraw` → `WithdrawScreen`.
+- `logistics://support/:ticketId` → `TicketDetailScreen`.
+- Universal links: `https://rider./*` mapped equivalently. Legacy `riderapp://` URLs still parse for back-compat (pre-Phase-10 notifications).
 
 **RA - Accessibility**
 - Tap targets ≥ 44 px.

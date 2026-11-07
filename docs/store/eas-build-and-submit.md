@@ -1,6 +1,6 @@
 # EAS - build & submit guide
 
-How to take an iPrime mobile app from `git push` to a TestFlight/Play
+How to take an Logistics Platform mobile app from `git push` to a TestFlight/Play
 Console upload. Applies to both `mobile/customer-app` and
 `mobile/rider-app` - same commands, run inside whichever app directory.
 

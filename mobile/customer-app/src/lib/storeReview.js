@@ -3,7 +3,7 @@ import { Linking, Platform } from 'react-native';
 import { canAskForStoreReview, markStoreReviewAsked } from './ratingPrompt';
 
 const IOS_APP_STORE_ID = '6793998826';
-const ANDROID_PACKAGE = 'ng.iprime.customer';
+const ANDROID_PACKAGE = 'ng.logistics.customer';
 
 // Nudges the user toward a store review. Only call this after a happy
 // signal (e.g. a high in-app rating) - never cold. Prefers the native

@@ -4,7 +4,7 @@
     "_note": "All translations are a working draft. Every key needs review by a native Hausa speaker before launch. Track progress in mobile/customer-app/src/i18n/HAUSA_REVIEW.md."
   },
   "common": {
-    "appName": "iPrime",
+    "appName": "Logistics Platform",
     "ok": "To",
     "cancel": "Soke",
     "save": "Ajiye",
@@ -305,7 +305,7 @@
       "balanceBefore": "Ma'auni kafin",
       "balanceAfter": "Ma'auni bayan",
       "date": "Kwanan wata",
-      "footer": "iPrime Rasit na hukuma",
+      "footer": "Logistics Platform Rasit na hukuma",
       "copyRef": "Kwafi lamba",
       "share": "Raba",
       "shareDialogTitle": "Rasit na mu'amalla",
@@ -1004,7 +1004,7 @@
   },
   "about": {
     "title": "Game da",
-    "appName": "iPrime",
+    "appName": "Logistics Platform",
     "tagline": "Sabis na hanya don Katsina da bayanta.",
     "version": "Sigar {{version}}",
     "build": "Build {{build}}",
@@ -1028,9 +1028,9 @@
     "chatLabel": "Taɗi kai tsaye",
     "chatSub": "Yi taɗi da masu tallafi",
     "emailLabel": "Imel na tallafi",
-    "emailValue": "support@iprime.ng",
+    "emailValue": "support@",
     "phoneLabel": "Wayar tallafi",
-    "phoneValue": "0800-IPRIME",
+    "phoneValue": "0800-LOGISTICS",
     "phone": "Kira tallafi",
     "email": "Aika imel zuwa tallafi",
     "whatsapp": "Aika saƙo a WhatsApp",

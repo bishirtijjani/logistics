@@ -24,7 +24,7 @@ const stubModule = (filename, exports) => {
 };
 
 const SECRET = 'sk_test_secret';
-const CALLBACK = 'https://api.iprime.ng/webhooks/paystack';
+const CALLBACK = 'https://api./webhooks/paystack';
 
 const calls = [];
 const getQueue = [];

@@ -17,10 +17,10 @@ const TABS = [
 ]
 
 const DEFAULT_FORM = {
-  platformName: 'iPrime',
+  platformName: 'Logistics Platform',
   defaultCurrency: 'NGN',
   timezone: 'Africa/Lagos',
-  supportEmail: 'support@iprime.ng',
+  supportEmail: 'support@',
   supportPhone: '+2348000000000',
 
   withdrawalFee: 20,

@@ -17,8 +17,8 @@ const channels = [
   {
     Icon: Mail,
     label: "Email us",
-    value: "hello@iprime.ng",
-    href: "mailto:hello@iprime.ng",
+    value: "hello@",
+    href: "mailto:hello@",
   },
   {
     Icon: Phone,
@@ -97,7 +97,7 @@ export default function Contact() {
       setStatus("error");
       setErrorMsg(
         err.message ||
-          "Network error. Please try again or email hello@iprime.ng.",
+          "Network error. Please try again or email hello@.",
       );
     }
   };

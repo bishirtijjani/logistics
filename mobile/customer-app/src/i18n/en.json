@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "iPrime",
+    "appName": "Logistics Platform",
     "ok": "OK",
     "cancel": "Cancel",
     "save": "Save",
@@ -314,7 +314,7 @@
       "balanceBefore": "Balance before",
       "balanceAfter": "Balance after",
       "date": "Date",
-      "footer": "iPrime Official Receipt",
+      "footer": "Logistics Platform Official Receipt",
       "copyRef": "Copy Ref",
       "share": "Share",
       "shareDialogTitle": "Transaction Receipt",
@@ -460,7 +460,7 @@
       "noData": "No receipt data available.",
       "share": "Share receipt",
       "shareDialogTitle": "Share order receipt",
-      "shareLine": "iPrime order receipt for {{title}} · {{amount}}",
+      "shareLine": "Logistics Platform order receipt for {{title}} · {{amount}}",
       "copyRef": "Copy reference",
       "refCopied": "Reference copied",
       "rider": "Rider",
@@ -531,7 +531,7 @@
     "payment": {
       "title": "Payment method",
       "wallet": "Wallet",
-      "walletHint": "Pay now from your iPrime balance",
+      "walletHint": "Pay now from your Logistics Platform balance",
       "cash": "Cash on delivery",
       "cashHint": "Pay the rider in cash on handover",
       "cashBanner": "You'll pay {{amount}} in cash to your rider on handover. Nothing leaves your wallet now."
@@ -736,7 +736,7 @@
       "tokenHint": "Present this token to your meter or enter it manually.",
       "share": "Share receipt",
       "shareDialogTitle": "Share receipt",
-      "shareLine": "iPrime receipt · {{type}} · {{amount}}"
+      "shareLine": "Logistics Platform receipt · {{type}} · {{amount}}"
     },
     "data": "Data",
     "electricity": "Electricity",
@@ -1133,9 +1133,9 @@
     "chatLabel": "Live Chat",
     "chatSub": "Chat with our support team",
     "emailLabel": "Email Support",
-    "emailValue": "support@iprime.ng",
+    "emailValue": "support@",
     "phoneLabel": "Phone Support",
-    "phoneValue": "0800-IPRIME",
+    "phoneValue": "0800-LOGISTICS",
     "phone": "Call support",
     "email": "Email support",
     "whatsapp": "Message on WhatsApp",

@@ -21,7 +21,7 @@ const OUT = path.resolve(__dirname, "../src/data/katsina-places.json");
 const WARDS_URL =
   "https://raw.githubusercontent.com/temikeezy/nigeria-geojson-data/main/data/wards.json";
 
-const UA = "iprime-katsina-index/1.0 (+https://iprime.ng)";
+const UA = "logistics-katsina-index/1.0 (+https://)";
 
 const getJSON = (url) =>
   new Promise((resolve, reject) => {

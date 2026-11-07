@@ -1,4 +1,4 @@
-/* iPrime PWA service worker.
+/* Logistics Platform PWA service worker.
  *
  * Deliberately conservative so a new deploy never serves a stale app:
  *   - Content-hashed build assets (/_expo/, /assets/) are cache-first - their
@@ -8,7 +8,7 @@
  *   - Cross-origin requests (API, Google Maps, Cloudinary) are never touched.
  * The presence of a fetch handler is also what makes the app installable.
  */
-const CACHE = "iprime-rider-shell-v1";
+const CACHE = "logistics-rider-shell-v1";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -61,7 +61,7 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch (_) {
-    payload = { title: "iPrime Rider", body: event.data ? event.data.text() : "" };
+    payload = { title: "Logistics Platform Rider", body: event.data ? event.data.text() : "" };
   }
   const data = payload.data || {};
   const options = {
@@ -71,7 +71,7 @@ self.addEventListener("push", (event) => {
     data,
     tag: data.notificationId || undefined,
   };
-  event.waitUntil(self.registration.showNotification(payload.title || "iPrime Rider", options));
+  event.waitUntil(self.registration.showNotification(payload.title || "Logistics Platform Rider", options));
 });
 
 self.addEventListener("notificationclick", (event) => {

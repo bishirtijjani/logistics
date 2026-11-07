@@ -97,7 +97,7 @@ const prismaStub = {
 
 stub('../src/config/database.js', { prisma: prismaStub });
 stub('../src/config/redis.js', { redis: { async get() { return null; }, async set() { return 'OK'; }, async del() { return 1; }, async publish() { return 0; } } });
-stub('../src/config/index.js', { config: { NODE_ENV: 'test', ALERT_EMAIL: 'ops@iprime.ng', SMTP_FROM_EMAIL: 'hello@iprime.ng' } });
+stub('../src/config/index.js', { config: { NODE_ENV: 'test', ALERT_EMAIL: 'ops@', SMTP_FROM_EMAIL: 'hello@' } });
 stub('../src/utils/logger.js', { logger: { info() {}, warn() {}, error() {}, debug() {} } });
 
 const emailSent = [];

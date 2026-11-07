@@ -1,7 +1,7 @@
 # Troubleshooting & FAQ
 
 Quick answers to the most common questions merchants ask. Can't find yours? Raise
-a ticket from **Support**, or email **support@iprime.ng**.
+a ticket from **Support**, or email **support@**.
 
 ---
 
@@ -104,13 +104,13 @@ your rating.
 
 ### How do I change my business category?
 
-You can't change it yourself - contact **support@iprime.ng** and we'll update it
+You can't change it yourself - contact **support@** and we'll update it
 for you.
 
 ### I saw a login I don't recognise
 
 Change your password immediately under **Settings → Security**, then email
-**support@iprime.ng** so we can help secure your account.
+**support@** so we can help secure your account.
 
 ---
 

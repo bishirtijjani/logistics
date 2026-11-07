@@ -46,7 +46,7 @@ all three at once and bump the "Last verified" date below.
 |---|---|---|---|
 | `INSUFFICIENT_BALANCE` | "Your wallet balance is too low for this." | Wallet balance < requested amount. | Suggest funding the wallet. No support work needed. |
 | `DUPLICATE_TRANSACTION` | "Looks like you already made this transaction." | Idempotency hit - same Idempotency-Key replayed within window. | Usually the user tapped twice on a slow network - the first one succeeded; show them the receipt. |
-| `RECIPIENT_NOT_FOUND` | "We couldn't find an iPrime user at that phone/email." | The transfer recipient lookup returned 0 rows. | If user is sure the recipient is on iPrime, double-check the phone formatting (no country code prefix is allowed in our input; `08012345678`, not `+2348012345678`). |
+| `RECIPIENT_NOT_FOUND` | "We couldn't find an Logistics Platform user at that phone/email." | The transfer recipient lookup returned 0 rows. | If user is sure the recipient is on Logistics Platform, double-check the phone formatting (no country code prefix is allowed in our input; `08012345678`, not `+2348012345678`). |
 | `TRANSFER_TO_SELF` | "You can't send money to yourself." | Recipient `userId === sender userId`. | n/a; explain the rule. |
 | `AMOUNT_TOO_LOW` | "Amount is below the minimum for this." | Action below platform-setting floor. | Confirm the minimum in the relevant utility/wallet screen; not a bug. |
 | `AMOUNT_TOO_HIGH` | "Amount exceeds the maximum allowed." | Action above platform-setting ceiling, or above user's KYC tier limit. | If a legit business case, escalate for KYC-tier review. |

@@ -6,10 +6,10 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const OPT_OUT_KEY = '@iprime/rating_prompt_opt_out';
-const SEEN_ORDERS_KEY = '@iprime/rating_prompt_seen_orders';
-const LAST_ASKED_KEY = '@iprime/rating_prompt_last_asked';
-const STORE_REVIEW_LAST_ASKED_KEY = '@iprime/store_review_last_asked';
+const OPT_OUT_KEY = '@logistics/rating_prompt_opt_out';
+const SEEN_ORDERS_KEY = '@logistics/rating_prompt_seen_orders';
+const LAST_ASKED_KEY = '@logistics/rating_prompt_last_asked';
+const STORE_REVIEW_LAST_ASKED_KEY = '@logistics/store_review_last_asked';
 
 // Don't nudge again for a few days after a "not now" / dismiss, even across
 // different orders - one prompt per visit at most.

@@ -68,7 +68,7 @@ const toTransferReference = (reference) => {
 };
 
 /** Where Paystack redirects the payer after a hosted checkout completes. */
-const callbackUrl = () => config.PAYSTACK_CALLBACK_URL || 'https://api.iprime.ng/webhooks/paystack';
+const callbackUrl = () => config.PAYSTACK_CALLBACK_URL || 'https://api./webhooks/paystack';
 
 /**
  * Build an AppError for a failed Paystack API call, tagging `definitive` so the
@@ -260,7 +260,7 @@ const fetchDedicatedAccount = async (customerCode) => {
  * Assign a Dedicated Virtual Account (funding NUBAN) to a Paystack customer.
  *
  * BVN is only forwarded for the `/dedicated_account/assign` flow (not the plain
- * create endpoint we use here) - and since iPrime stores only a bcrypt hash of
+ * create endpoint we use here) - and since Logistics Platform stores only a bcrypt hash of
  * the BVN, no plaintext is ever available anyway. Returns the wallet-facing
  * fields the provisioning worker persists (`virtualAccountNumber` = DVA number).
  * A duplicate DVA response is resolved by adopting the customer's existing

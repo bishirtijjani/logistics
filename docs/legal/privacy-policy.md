@@ -1,4 +1,4 @@
-# iPrime Privacy Policy
+# Logistics Platform Privacy Policy
 
 **Effective date:** 2026-05-22  
 **Last updated:** {{TODAY}}
@@ -7,14 +7,14 @@
 
 ## 1. Who we are
 
-iPrime ("**iPrime**", "**we**", "**us**", "**our**") is a logistics, payments,
+Logistics Platform ("**Logistics Platform**", "**we**", "**us**", "**our**") is a logistics, payments,
 and digital-services platform operated by **MH Prime**, a business
 registered with the Corporate Affairs Commission of Nigeria under
 business name number **9518859**, with its registered office at
-**2, Liyafa Street, Katsina, Katsina State, Nigeria**.
+**2, Liyafa Street, Katsina, **.
 
 We are the **data controller** for personal data you provide while using
-the iPrime customer app, iPrime rider app, or merchant tools. This policy
+the Logistics Platform customer app, Logistics Platform rider app, or merchant tools. This policy
 explains what we collect, why, how long we keep it, who we share it with,
 and the rights you have under the **Nigeria Data Protection Act, 2023
 (NDPA)** and the **NDPR** (its implementing regulation).
@@ -179,7 +179,7 @@ You have the right to:
 - **Withdraw consent** to marketing or optional features at any time
 - **Lodge a complaint** with the **Nigeria Data Protection Commission (NDPC)** at https://ndpc.gov.ng
 
-To exercise any of these rights, email **contact@iprime.ng**. We respond within
+To exercise any of these rights, email **contact@**. We respond within
 30 days as required by the NDPA. Identity verification may be required for
 sensitive requests to prevent account takeover.
 
@@ -205,7 +205,7 @@ required by the NDPA (currently 72 hours for high-risk breaches).
 
 ## 9. Children's privacy
 
-iPrime is not intended for users under **18**. CBN regulations also
+Logistics Platform is not intended for users under **18**. CBN regulations also
 require account holders to be of legal age. If we learn we have collected
 data from a minor, we delete it.
 
@@ -221,9 +221,9 @@ they take effect. The "Last updated" date at the top is authoritative.
 
 ## 11. Contact us
 
-- **General support:** contact@iprime.ng
-- **Data Protection Officer (DPO):** contact@iprime.ng
-- **Postal:** MH Prime, 2, Liyafa Street, Katsina, Katsina State, Nigeria
+- **General support:** contact@
+- **Data Protection Officer (DPO):** contact@
+- **Postal:** MH Prime, 2, Liyafa Street, Katsina, 
 - **NDPC:** https://ndpc.gov.ng - if you believe we have not handled your data correctly
 
 ---

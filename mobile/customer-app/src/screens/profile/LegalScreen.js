@@ -25,12 +25,12 @@ export default function LegalScreen({ navigation }) {
     {
       icon: "document-text-outline",
       label: t("legal.terms"),
-      url: "https://iprime.ng/legal/terms",
+      url: "https:///legal/terms",
     },
     {
       icon: "shield-outline",
       label: t("legal.privacy"),
-      url: "https://iprime.ng/legal/privacy",
+      url: "https:///legal/privacy",
     },
   ];
 

@@ -419,11 +419,11 @@ export default function RegistrationPage({ enroll = false }) {
             className="text-4xl font-bold text-text dark:text-dark-text mb-2"
             style={{ fontFamily: "Roboto, sans-serif" }}
           >
-            {enroll ? "Register your business" : "Join iPrime"}
+            {enroll ? "Register your business" : "Join Logistics Platform"}
           </h1>
           <p className="text-muted dark:text-dark-muted">
             {enroll
-              ? "Add a merchant profile to your existing iPrime account"
+              ? "Add a merchant profile to your existing Logistics Platform account"
               : "Start delivering your products to customers in Katsina"}
           </p>
         </div>

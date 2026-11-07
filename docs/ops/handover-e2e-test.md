@@ -1,4 +1,4 @@
-# iPrime - pre-handover end-to-end manual test
+# Logistics Platform - pre-handover end-to-end manual test
 
 A single linear smoke pass across **website + merchant dashboard + admin dashboard**.
 Tick each box; **🔴 = must-pass** (a fail here blocks handover). Target: ~45 min.
@@ -49,7 +49,7 @@ node backend/scripts/seed-demo-orders.js
 ## 2. Merchant - new-shop sign-up + OTP (8 min)
 
 - [ ] Open **http://localhost:5174/** → header shows **Guides** link (and in the footer); the Guides link opens the Help Center.
-- [ ] Click **Register** → **Step 1** name/email (use a NEW email, e.g. `qa1@iprime.ng`)/phone (`08011112222`)/password → **Next**.
+- [ ] Click **Register** → **Step 1** name/email (use a NEW email, e.g. `qa1@`)/phone (`08011112222`)/password → **Next**.
 - [ ] 🔴 **Step 2** pick a **category**, business name/phone/email → **Next**. **Step 3** set hours → **Complete Registration**.
 - [ ] 🔴 OTP screen → read the **6-digit code from the backend terminal** → **Verify Email** → see **"pending admin approval."**
 - [ ] (Try logging in now → it should refuse, because you're not approved yet. Leave it - you'll approve in Part 3.)
@@ -80,7 +80,7 @@ node backend/scripts/seed-demo-orders.js
 ## 4. Merchant - onboarding wizard + daily use (15 min)
 
 **4a. The freshly-approved shop (the wizard):**
-- [ ] 🔴 Log in at **http://localhost:5174** as the **shop you just approved** (`qa1@iprime.ng`).
+- [ ] 🔴 Log in at **http://localhost:5174** as the **shop you just approved** (`qa1@`).
 - [ ] 🔴 The **"Setup Your Business"** wizard auto-opens → **Step 1 of 3** Welcome → Next.
 - [ ] 🔴 **Pin Your Business Location** (Step 2) → search an address / drag the pin → "Location saved" → Next. *(There should be **NO separate hours step** - it's Welcome → Location → Product.)*
 - [ ] 🔴 **Add Your First Product** (Step 3) → fill name + price → **Create product** → "First product added!" → **Complete Setup**.
@@ -108,6 +108,6 @@ node backend/scripts/seed-demo-orders.js
 - **In-app help** ("?" panel) + **search** in both dashboards; **Help Center** role gating (admin not public); **Guides** links on the website /merchants page and the dashboard landing.
 
 **Before deploying (not part of the smoke test):**
-- Both dashboards' `.env` currently point at **`http://localhost:3000`** for local testing - **revert to `https://api.iprime.ng`** before building for production.
-- Dashboard-landing **Guides** links are hardcoded to `https://iprime.ng/help/...` - confirm that's the real Help Center URL.
-- Admin account is **`admin@vtulogistics.com`** (a pre-rebrand email) - decide whether to migrate it to the iPrime domain.
+- Both dashboards' `.env` currently point at **`http://localhost:3000`** for local testing - **revert to `https://api.`** before building for production.
+- Dashboard-landing **Guides** links are hardcoded to `https:///help/...` - confirm that's the real Help Center URL.
+- Admin account is **`admin@vtulogistics.com`** (a pre-rebrand email) - decide whether to migrate it to the Logistics Platform domain.

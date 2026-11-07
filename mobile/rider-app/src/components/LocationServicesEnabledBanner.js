@@ -70,7 +70,7 @@ export default function LocationServicesEnabledBanner() {
       ? "Location permission needed"
       : "Location services are off";
     const body = isPermissionIssue
-      ? "Allow iPrime Rider to use your location so you can receive nearby jobs."
+      ? "Allow Logistics Platform Rider to use your location so you can receive nearby jobs."
       : "Turn on Location on your device to start receiving jobs.";
 
     const openSettings = async () => {
@@ -80,7 +80,7 @@ export default function LocationServicesEnabledBanner() {
             await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.LOCATION_SOURCE_SETTINGS);
           } else {
             await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS, {
-              data: "package:ng.iprime.rider",
+              data: "package:ng.logistics.rider",
             });
           }
         } else {

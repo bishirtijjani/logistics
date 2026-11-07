@@ -16,15 +16,15 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  metadataBase: new URL("https://iprime.ng"),
+  metadataBase: new URL("https://"),
   title: {
-    default: "iPrime - Delivery, Wallet & Bills for Katsina",
-    template: "%s · iPrime",
+    default: "Logistics Platform - Delivery, Wallet & Bills for Katsina",
+    template: "%s · Logistics Platform",
   },
   description:
-    "iPrime is Katsina's delivery app. Order food, groceries, pharmacy and parcels with live rider tracking - plus a built-in wallet that handles airtime, data and electricity bills.",
+    "Logistics Platform is Katsina's delivery app. Order food, groceries, pharmacy and parcels with live rider tracking - plus a built-in wallet that handles airtime, data and electricity bills.",
   keywords: [
-    "iPrime",
+    "Logistics Platform",
     "Katsina delivery",
     "Nigeria wallet app",
     "airtime data Nigeria",
@@ -34,24 +34,24 @@ export const metadata = {
     "courier Katsina",
     "super-app Nigeria",
   ],
-  authors: [{ name: "iPrime" }],
-  creator: "iPrime",
-  publisher: "iPrime",
+  authors: [{ name: "Logistics Platform" }],
+  creator: "Logistics Platform",
+  publisher: "Logistics Platform",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "en_NG",
-    url: "https://iprime.ng",
-    title: "iPrime - Delivery, Wallet & Bills for Katsina",
+    url: "https://",
+    title: "Logistics Platform - Delivery, Wallet & Bills for Katsina",
     description:
-      "Door-to-door delivery across Katsina State - food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
-    siteName: "iPrime",
+      "Door-to-door delivery across  - food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
+    siteName: "Logistics Platform",
   },
   twitter: {
     card: "summary_large_image",
-    title: "iPrime - Delivery, Wallet & Bills for Katsina",
+    title: "Logistics Platform - Delivery, Wallet & Bills for Katsina",
     description:
-      "Door-to-door delivery across Katsina State - food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
+      "Door-to-door delivery across  - food, groceries, pharmacy and parcels, with a built-in wallet and bill payments.",
   },
   robots: {
     index: true,

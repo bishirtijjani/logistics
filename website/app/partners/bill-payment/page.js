@@ -18,7 +18,7 @@ import Footer from "../../components/Footer";
 export const metadata = {
   title: "Bill payment partners",
   description:
-    "Partner with iPrime to offer your airtime, data, electricity, or TV bill product to thousands of Katsina households through the iPrime wallet.",
+    "Partner with Logistics Platform to offer your airtime, data, electricity, or TV bill product to thousands of Katsina households through the Logistics Platform wallet.",
   alternates: { canonical: "/partners/bill-payment" },
 };
 
@@ -49,12 +49,12 @@ const benefits = [
   {
     Icon: Network,
     title: "A new distribution channel - no field sales required.",
-    body: "Customers already in the iPrime wallet see your product the moment they tap their utility tile. No leaflets, no agent networks, no onboarding costs from your side.",
+    body: "Customers already in the Logistics Platform wallet see your product the moment they tap their utility tile. No leaflets, no agent networks, no onboarding costs from your side.",
   },
   {
     Icon: BadgeCheck,
     title: "Verified, KYC-cleared customers.",
-    body: "Every iPrime user is BVN-verified before they can hold a wallet balance. The transactions you process for us are from real, traceable Nigerian residents - not throwaway accounts.",
+    body: "Every Logistics Platform user is BVN-verified before they can hold a wallet balance. The transactions you process for us are from real, traceable Nigerian residents - not throwaway accounts.",
   },
   {
     Icon: ShieldCheck,
@@ -91,14 +91,14 @@ export default function BillPaymentPartnersPage() {
               </h1>
               <p className="text-lg md:text-xl text-gray-600 font-medium leading-relaxed max-w-2xl mb-8">
                 We integrate telcos, electricity discos, TV providers and
-                recurring-bill issuers directly into the iPrime wallet. If
+                recurring-bill issuers directly into the Logistics Platform wallet. If
                 you have a product Nigerian households pay for monthly, we
                 want to surface it to ours.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="mailto:partnerships@iprime.ng?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
+                  href="mailto:partnerships@?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
                   className="ui-btn ui-btn-primary"
                 >
                   Email the partnerships team
@@ -151,7 +151,7 @@ export default function BillPaymentPartnersPage() {
         <section className="ui-section bg-bg-secondary">
           <div className="ui-container">
             <header className="max-w-2xl mb-12">
-              <span className="ui-eyebrow">Why partner with iPrime</span>
+              <span className="ui-eyebrow">Why partner with Logistics Platform</span>
               <h2 className="ui-title">
                 What you get,{" "}
                 <span className="text-accent">in concrete terms.</span>
@@ -247,10 +247,10 @@ export default function BillPaymentPartnersPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:partnerships@iprime.ng?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
+                    href="mailto:partnerships@?subject=Bill%20payment%20partnership%20%E2%80%94%20%5BCompany%5D"
                     className="ui-btn ui-btn-primary"
                   >
-                    partnerships@iprime.ng
+                    partnerships@
                     <ArrowRight size={16} strokeWidth={2.5} />
                   </a>
                   <Link href="/partners/banking" className="ui-btn ui-btn-ghost">

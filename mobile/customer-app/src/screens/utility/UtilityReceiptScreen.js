@@ -139,8 +139,8 @@ export default function UtilityReceiptScreen({ navigation, route }) {
   const handleShare = async () => {
     if (Platform.OS === "web") {
       try {
-        await captureAndShareWeb("iprime-utility-receipt", {
-          fileName: `utility-${reference || "iprime"}.png`,
+        await captureAndShareWeb("logistics-utility-receipt", {
+          fileName: `utility-${reference || "logistics"}.png`,
           shareTitle: t("utility.receipt.shareDialogTitle"),
           shareText: t("utility.receipt.shareLine", { type: typeLabel, amount: formatNaira(amount) }),
         });
@@ -204,7 +204,7 @@ export default function UtilityReceiptScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
         <ViewShot ref={receiptRef} options={{ format: "png", quality: 1 }} style={{ backgroundColor: tokens.bg.canvas }}>
-          <View nativeID="iprime-utility-receipt">
+          <View nativeID="logistics-utility-receipt">
             <View style={{ alignItems: "center", paddingVertical: 28 }}>
               <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: color + "18", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
                 <Ionicons name={meta.icon} size={34} color={color} />

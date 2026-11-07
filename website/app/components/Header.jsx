@@ -41,7 +41,7 @@ export default function Header() {
               className="text-[1.15rem] font-bold tracking-tight text-text-primary hidden md:block"
               style={{ fontFamily: "var(--font-roboto)" }}
             >
-              iPrime
+              Logistics Platform
             </div>
           </a>
 

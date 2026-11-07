@@ -2,7 +2,7 @@
  * seed-merchant.js - create (or refresh) a single APPROVED merchant account.
  *
  * Purpose: hand App Store / Play Store reviewers - and QA - a merchant login
- * that lands straight in the iPrime Merchant app (dashboard + native Orders)
+ * that lands straight in the Logistics Platform Merchant app (dashboard + native Orders)
  * instead of the "Pending Approval" gate. It creates a merchant that is:
  *   - User: role MERCHANT, status ACTIVE, kycStatus VERIFIED
  *   - Merchant: status APPROVED, isActive/isOpen true, real Katsina coordinates
@@ -18,7 +18,7 @@
  *   node scripts/seed-merchant.js
  *
  * Override any field via env vars:
- *   MERCHANT_EMAIL=review@iprime.ng MERCHANT_PASSWORD='Secret123!' MERCHANT_PIN=335577 \
+ *   MERCHANT_EMAIL=review@ MERCHANT_PASSWORD='Secret123!' MERCHANT_PIN=335577 \
  *   node scripts/seed-merchant.js
  */
 
@@ -30,13 +30,13 @@ const { prisma } = require('../src/config/database');
 
 const SALT_ROUNDS = 12;
 
-const EMAIL = process.env.MERCHANT_EMAIL || 'merchant.review@iprime.ng';
+const EMAIL = process.env.MERCHANT_EMAIL || 'merchant.review@';
 const PASSWORD = process.env.MERCHANT_PASSWORD || 'MerchantReview123!';
 const PIN = process.env.MERCHANT_PIN || '335577';
 const PHONE = process.env.MERCHANT_PHONE || '08090000002';
 const FIRST_NAME = process.env.MERCHANT_FIRST_NAME || 'Review';
 const LAST_NAME = process.env.MERCHANT_LAST_NAME || 'Merchant';
-const BUSINESS_NAME = process.env.MERCHANT_BUSINESS_NAME || 'iPrime Review Store';
+const BUSINESS_NAME = process.env.MERCHANT_BUSINESS_NAME || 'Logistics Platform Review Store';
 
 // Katsina city centre - inside the platform's geo-restriction polygon.
 const LAT = 13.0059;
@@ -90,7 +90,7 @@ async function main() {
     categoryId: category.id,
     status: 'APPROVED',
     name: BUSINESS_NAME,
-    description: 'Reviewer demo store for the iPrime Merchant app.',
+    description: 'Reviewer demo store for the Logistics Platform Merchant app.',
     phone: PHONE,
     email: EMAIL,
     address: 'Kofar Kaura, Katsina',

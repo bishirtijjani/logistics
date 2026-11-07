@@ -36,14 +36,14 @@ export default function About() {
           </div>
 
           <div className="order-1 lg:order-2">
-            <span className="ui-eyebrow">About iPrime</span>
+            <span className="ui-eyebrow">About Logistics Platform</span>
             <h2 className="ui-title mb-6">
               Built in Katsina, <br />
               <span className="text-accent">for Katsina.</span>
             </h2>
             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-5">
-              iPrime is a homegrown delivery platform for the people of
-              Katsina State - connecting local restaurants, supermarkets,
+              Logistics Platform is a homegrown delivery platform for the people of
+               - connecting local restaurants, supermarkets,
               pharmacies, and independent riders to the doors that need them.
             </p>
             <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-8">

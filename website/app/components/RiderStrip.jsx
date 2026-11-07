@@ -3,7 +3,7 @@ import { RIDER_URL } from "../lib/links";
 
 // Slim rider entry band on the homepage. The hero is customer-first; this gives
 // riders a visible path near the top without crowding it. Primary CTA opens the
-// live rider app (rider.iprime.ng); secondary goes to the /riders detail page.
+// live rider app (rider.); secondary goes to the /riders detail page.
 export default function RiderStrip() {
   return (
     <section className="py-10 md:py-14 bg-white">

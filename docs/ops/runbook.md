@@ -1,4 +1,4 @@
-# Production runbook - iPrime
+# Production runbook - Logistics Platform
 
 Operational playbook for the on-call engineer. The goal of every entry
 is: **diagnose in 5 minutes, mitigate in 15, post-mortem afterwards.**
@@ -47,21 +47,21 @@ runbook.
 ### 1. Backend totally down (5xx storm)
 
 **Symptoms**
-- Health-check fails: `curl https://api.iprime.ng/health`
+- Health-check fails: `curl https://api./health`
 - Sentry shows a `5xx` spike in the last few minutes
 - Customer app's session-expired toast firing for all users (interceptor falls back to NETWORK_ERROR)
 
 **Diagnose**
-1. SSH to the production host: `ssh deploy@prod.iprime`
-2. `systemctl status iprime-backend` - service running?
-3. `journalctl -u iprime-backend -n 200` - recent fatals?
+1. SSH to the production host: `ssh deploy@prod.logistics`
+2. `systemctl status logistics-backend` - service running?
+3. `journalctl -u logistics-backend -n 200` - recent fatals?
 4. `df -h` - disk full?
 5. `free -m` - out of memory?
 
 **Mitigate**
 | Cause | Fix |
 |---|---|
-| OOM / disk full | Restart service (`systemctl restart iprime-backend`); cleanup `logs/*.log.*` if disk |
+| OOM / disk full | Restart service (`systemctl restart logistics-backend`); cleanup `logs/*.log.*` if disk |
 | Crash loop on a bad commit | Roll back to previous release via `git checkout <prev-sha> && pm2 reload` |
 | Postgres unreachable | Check Postgres host; restart the connection pool by restarting backend |
 | Redis unreachable | See §2 (Redis incident) |
@@ -91,7 +91,7 @@ runbook.
 - **Too many connections:** `redis-cli CLIENT KILL TYPE normal` (be careful - kills all)
 
 **Recover**
-- After Redis is healthy, restart workers: `systemctl restart iprime-workers`
+- After Redis is healthy, restart workers: `systemctl restart logistics-workers`
 - Drain the stalled queue: `eas` admin tool or direct Bull-Board action
 
 ---
@@ -305,20 +305,20 @@ SELECT
 ### Deploy backend
 
 ```sh
-ssh deploy@prod.iprime
-cd /opt/iprime/backend
+ssh deploy@prod.logistics
+cd /opt/logistics/backend
 git pull origin main
 npm ci --omit=dev
 npx prisma migrate deploy
-systemctl reload iprime-backend
+systemctl reload logistics-backend
 # Smoke test
-curl https://api.iprime.ng/health
+curl https://api./health
 ```
 
 ### Run a manual reconciliation
 
 ```sh
-cd /opt/iprime/backend
+cd /opt/logistics/backend
 node ./scripts/reconcile.js --dry-run
 # If clean:
 node ./scripts/reconcile.js --apply
@@ -327,13 +327,13 @@ node ./scripts/reconcile.js --apply
 ### Take a backup before a risky change
 
 ```sh
-sudo /opt/iprime/scripts/backup-postgres.sh
+sudo /opt/logistics/scripts/backup-postgres.sh
 ```
 
 ### Restore from backup (rehearsal - never run in prod without a test)
 
 ```sh
-gunzip -c /var/backups/iprime/iprime-YYYYMMDD-HHMMSS.sql.gz | psql "$STAGING_DATABASE_URL"
+gunzip -c /var/backups/logistics/logistics-YYYYMMDD-HHMMSS.sql.gz | psql "$STAGING_DATABASE_URL"
 ```
 
 ---

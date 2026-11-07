@@ -72,8 +72,8 @@ const sendOtpEmail = async (email, otp) => {
               <!-- Header -->
               <tr>
                 <td style="padding:32px 32px 0;text-align:center;">
-                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">iPrime</h1>
-                  <p style="margin:8px 0 0;font-size:14px;color:#6b7280;">Katsina State</p>
+                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">Logistics Platform</h1>
+                  <p style="margin:8px 0 0;font-size:14px;color:#6b7280;"></p>
                 </td>
               </tr>
               <!-- Content -->
@@ -92,7 +92,7 @@ const sendOtpEmail = async (email, otp) => {
                 <td style="padding:0 32px 32px;text-align:center;">
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
                   <p style="margin:0;font-size:12px;color:#9ca3af;">
-                    &copy; ${new Date().getFullYear()} iPrime. All rights reserved.
+                    &copy; ${new Date().getFullYear()} Logistics Platform. All rights reserved.
                   </p>
                 </td>
               </tr>
@@ -106,7 +106,7 @@ const sendOtpEmail = async (email, otp) => {
 
   return sendEmail({
     to: email,
-    subject: `${otp} - Your iPrime verification code`,
+    subject: `${otp} - Your Logistics Platform verification code`,
     html,
     text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
   });
@@ -130,7 +130,7 @@ const sendWelcomeEmail = async (email, firstName) => {
             <table width="100%" style="max-width:480px;background-color:#ffffff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
               <tr>
                 <td style="padding:32px 32px 0;text-align:center;">
-                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">Welcome to iPrime!</h1>
+                  <h1 style="margin:0;font-size:24px;color:#1a1a2e;font-weight:700;">Welcome to Logistics Platform!</h1>
                 </td>
               </tr>
               <tr>
@@ -143,7 +143,7 @@ const sendWelcomeEmail = async (email, firstName) => {
                     <li style="margin-bottom:8px;">Fund your wallet via bank transfer</li>
                     <li style="margin-bottom:8px;">Buy airtime, data, and pay electricity bills</li>
                     <li style="margin-bottom:8px;">Send & receive money instantly</li>
-                    <li>Request deliveries across Katsina State</li>
+                    <li>Request deliveries across </li>
                   </ul>
                   <p style="margin:0;font-size:14px;color:#6b7280;">Set up your transaction PIN to start using financial features.</p>
                 </td>
@@ -152,7 +152,7 @@ const sendWelcomeEmail = async (email, firstName) => {
                 <td style="padding:0 32px 32px;text-align:center;">
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
                   <p style="margin:0;font-size:12px;color:#9ca3af;">
-                    &copy; ${new Date().getFullYear()} iPrime
+                    &copy; ${new Date().getFullYear()} Logistics Platform
                   </p>
                 </td>
               </tr>
@@ -166,9 +166,9 @@ const sendWelcomeEmail = async (email, firstName) => {
 
   return sendEmail({
     to: email,
-    subject: `Welcome to iPrime, ${firstName}!`,
+    subject: `Welcome to Logistics Platform, ${firstName}!`,
     html,
-    text: `Hi ${firstName}, welcome to iPrime! Your account is ready.`,
+    text: `Hi ${firstName}, welcome to Logistics Platform! Your account is ready.`,
   });
 };
 
@@ -209,7 +209,7 @@ const sendPasswordResetEmail = async (email, otp) => {
                 <td style="padding:0 32px 32px;text-align:center;">
                   <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px;">
                   <p style="margin:0;font-size:12px;color:#9ca3af;">
-                    &copy; ${new Date().getFullYear()} iPrime
+                    &copy; ${new Date().getFullYear()} Logistics Platform
                   </p>
                 </td>
               </tr>
@@ -247,7 +247,7 @@ const emailBase = (content) => `
         <table width="100%" style="max-width:520px;background-color:#ffffff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
           <tr>
             <td style="background:linear-gradient(135deg,#EA580C,#C2410C);padding:28px 32px;border-radius:16px 16px 0 0;">
-              <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">iPrime</h1>
+              <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">Logistics Platform</h1>
               <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">Merchant Notification</p>
             </td>
           </tr>
@@ -258,8 +258,8 @@ const emailBase = (content) => `
           </tr>
           <tr>
             <td style="padding:0 32px 28px;text-align:center;border-top:1px solid #f3f4f6;">
-              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} iPrime. All rights reserved.</p>
-              <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@iprime.ng" style="color:#EA580C;text-decoration:none;">support@iprime.ng</a></p>
+              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} Logistics Platform. All rights reserved.</p>
+              <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@" style="color:#EA580C;text-decoration:none;">support@</a></p>
             </td>
           </tr>
         </table>
@@ -287,7 +287,7 @@ const sendMerchantApprovedEmail = async (email, merchantName) => {
     <h2 style="margin:0 0 8px;font-size:22px;color:#10b981;font-weight:700;">Application Approved!</h2>
     <p style="margin:0 0 16px;font-size:16px;color:#374151;">Congratulations, <strong>${merchantName}</strong>!</p>
     <p style="margin:0 0 20px;font-size:15px;color:#6b7280;line-height:1.6;">
-      Your merchant application on iPrime has been <strong style="color:#10b981;">approved</strong>.
+      Your merchant application on Logistics Platform has been <strong style="color:#10b981;">approved</strong>.
       You can now log in to your merchant dashboard and start listing your products.
     </p>
     <div style="background:#f0fdf4;border-radius:10px;padding:20px;margin:20px 0;">
@@ -306,7 +306,7 @@ const sendMerchantApprovedEmail = async (email, merchantName) => {
 
   return sendEmail({
     to: email,
-    subject: `Your iPrime merchant application is approved - ${merchantName}`,
+    subject: `Your Logistics Platform merchant application is approved - ${merchantName}`,
     html,
     text: `Congratulations! Your merchant application for ${merchantName} has been approved. Log in to your dashboard to get started.`,
   });
@@ -333,15 +333,15 @@ const sendMerchantRejectedEmail = async (email, merchantName, reason) => {
     </div>
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you believe this decision was made in error, please contact us at
-      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>.
+      <a href="mailto:support@" style="color:#EA580C;">support@</a>.
     </p>
   `);
 
   return sendEmail({
     to: email,
-    subject: `Update on your iPrime merchant application`,
+    subject: `Update on your Logistics Platform merchant application`,
     html,
-    text: `Dear ${merchantName}, your merchant application was not approved. Reason: ${reason}. Please contact support@iprime.ng for more information.`,
+    text: `Dear ${merchantName}, your merchant application was not approved. Reason: ${reason}. Please contact support@ for more information.`,
   });
 };
 
@@ -359,7 +359,7 @@ const sendMerchantSuspendedEmail = async (email, merchantName, reason) => {
     ${infoBox('#f59e0b', '#fffbeb', [['Suspension Reason', reason || 'Account review in progress.']])}
     <p style="margin:20px 0;font-size:14px;color:#6b7280;line-height:1.6;">
       To appeal this decision or get more information, please contact our merchant support team at
-      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>
+      <a href="mailto:support@" style="color:#EA580C;">support@</a>
       or call <strong>+234-800-000-0000</strong>.
     </p>
     <p style="margin:0;font-size:13px;color:#9ca3af;">We aim to resolve all suspensions as quickly as possible.</p>
@@ -367,9 +367,9 @@ const sendMerchantSuspendedEmail = async (email, merchantName, reason) => {
 
   return sendEmail({
     to: email,
-    subject: `Important: Your iPrime merchant account has been suspended`,
+    subject: `Important: Your Logistics Platform merchant account has been suspended`,
     html,
-    text: `Dear ${merchantName}, your merchant account has been suspended. Reason: ${reason}. Contact support@iprime.ng to appeal.`,
+    text: `Dear ${merchantName}, your merchant account has been suspended. Reason: ${reason}. Contact support@ to appeal.`,
   });
 };
 
@@ -396,7 +396,7 @@ const sendMerchantUnsuspendedEmail = async (email, merchantName) => {
 
   return sendEmail({
     to: email,
-    subject: `Your iPrime merchant account has been restored - ${merchantName}`,
+    subject: `Your Logistics Platform merchant account has been restored - ${merchantName}`,
     html,
     text: `Dear ${merchantName}, your merchant account suspension has been lifted. You can now log in and resume operations.`,
   });
@@ -420,14 +420,14 @@ const sendWithdrawalApprovedEmail = async (email, merchantName, amount, referenc
     ])}
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you don't receive the funds within 24 hours, please contact us at
-      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>
+      <a href="mailto:support@" style="color:#EA580C;">support@</a>
       quoting your reference number.
     </p>
   `);
 
   return sendEmail({
     to: email,
-    subject: `Withdrawal of ${formattedAmount} approved - iPrime`,
+    subject: `Withdrawal of ${formattedAmount} approved - Logistics Platform`,
     html,
     text: `Dear ${merchantName}, your withdrawal of ${formattedAmount} has been approved. Reference: ${reference}.`,
   });
@@ -453,13 +453,13 @@ const sendWithdrawalRejectedEmail = async (email, merchantName, amount, reason) 
     </div>
     <p style="margin:0;font-size:14px;color:#6b7280;">
       To retry, log in to your dashboard and submit a new withdrawal request. If you need assistance,
-      contact <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>.
+      contact <a href="mailto:support@" style="color:#EA580C;">support@</a>.
     </p>
   `);
 
   return sendEmail({
     to: email,
-    subject: `Withdrawal request could not be processed - iPrime`,
+    subject: `Withdrawal request could not be processed - Logistics Platform`,
     html,
     text: `Dear ${merchantName}, your withdrawal of ${formattedAmount} could not be processed. Reason: ${reason}. The funds have been returned to your wallet.`,
   });
@@ -485,13 +485,13 @@ const sendCommissionChangedEmail = async (email, merchantName, previousRate, new
     ])}
     <p style="margin:20px 0 0;font-size:14px;color:#6b7280;">
       If you have questions about this change, please contact your account manager or reach us at
-      <a href="mailto:support@iprime.ng" style="color:#EA580C;">support@iprime.ng</a>.
+      <a href="mailto:support@" style="color:#EA580C;">support@</a>.
     </p>
   `);
 
   return sendEmail({
     to: email,
-    subject: `Your iPrime commission rate has been updated to ${newRate}%`,
+    subject: `Your Logistics Platform commission rate has been updated to ${newRate}%`,
     html,
     text: `Dear ${merchantName}, your commission rate has changed from ${previousRate}% to ${newRate}%. This takes effect immediately.`,
   });
@@ -521,7 +521,7 @@ const sendContactInquiryEmail = async ({ to, name, email, message, source }) => 
 
   const html = emailBase(`
     <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">New contact form message</h2>
-    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">Someone reached out via the iPrime website contact form.</p>
+    <p style="margin:0 0 20px;font-size:14px;color:#6b7280;">Someone reached out via the Logistics Platform website contact form.</p>
     ${infoBox('#EA580C', '#fff7ed', [
       ['Name', safeName],
       ['Email', `<a href="mailto:${safeEmail}" style="color:#EA580C;">${safeEmail}</a>`],
@@ -535,7 +535,7 @@ const sendContactInquiryEmail = async ({ to, name, email, message, source }) => 
   `);
 
   return getTransporter().sendMail({
-    from: `"iPrime Website" <${config.SMTP_FROM_EMAIL}>`,
+    from: `"Logistics Platform Website" <${config.SMTP_FROM_EMAIL}>`,
     to,
     replyTo: email,
     subject: `Website contact - ${name}`,
@@ -556,24 +556,24 @@ const sendContactConfirmationEmail = async ({ name, email }) => {
     <h2 style="margin:0 0 8px;font-size:22px;color:#111827;font-weight:700;">We got your message</h2>
     <p style="margin:0 0 16px;font-size:16px;color:#374151;">Hi ${safeName},</p>
     <p style="margin:0 0 20px;font-size:15px;color:#6b7280;line-height:1.6;">
-      Thanks for reaching out to iPrime. A human on our team will get back to you
+      Thanks for reaching out to Logistics Platform. A human on our team will get back to you
       within one business day at this email address.
     </p>
     <div style="background:#f0fdf4;border-radius:10px;padding:16px 20px;margin:20px 0;">
       <p style="margin:0;font-size:14px;color:#166534;">
         Need a faster response? You can also email us at
-        <a href="mailto:hello@iprime.ng" style="color:#EA580C;">hello@iprime.ng</a>
+        <a href="mailto:hello@" style="color:#EA580C;">hello@</a>
         or message us on WhatsApp.
       </p>
     </div>
-    <p style="margin:0;font-size:13px;color:#9ca3af;">- The iPrime team</p>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">- The Logistics Platform team</p>
   `);
 
   return sendEmail({
     to: email,
-    subject: 'We received your message - iPrime',
+    subject: 'We received your message - Logistics Platform',
     html,
-    text: `Hi ${name},\n\nThanks for reaching out to iPrime. A human on our team will get back to you within one business day.\n\n- The iPrime team`,
+    text: `Hi ${name},\n\nThanks for reaching out to Logistics Platform. A human on our team will get back to you within one business day.\n\n- The Logistics Platform team`,
   });
 };
 
@@ -669,7 +669,7 @@ const notifyEmailBase = (subtitle, content) => `
         <table width="100%" style="max-width:520px;background-color:#ffffff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
           <tr>
             <td style="background:linear-gradient(135deg,#EA580C,#C2410C);padding:28px 32px;border-radius:16px 16px 0 0;">
-              <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">iPrime</h1>
+              <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:-0.3px;">Logistics Platform</h1>
               <p style="margin:4px 0 0;font-size:13px;color:rgba(255,255,255,0.8);">${subtitle}</p>
             </td>
           </tr>
@@ -680,8 +680,8 @@ const notifyEmailBase = (subtitle, content) => `
           </tr>
           <tr>
             <td style="padding:0 32px 28px;text-align:center;border-top:1px solid #f3f4f6;">
-              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} iPrime. All rights reserved.</p>
-              <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@iprime.ng" style="color:#EA580C;text-decoration:none;">support@iprime.ng</a></p>
+              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} Logistics Platform. All rights reserved.</p>
+              <p style="margin:4px 0 0;font-size:12px;color:#9ca3af;">Questions? Contact <a href="mailto:support@" style="color:#EA580C;text-decoration:none;">support@</a></p>
             </td>
           </tr>
         </table>
@@ -719,7 +719,7 @@ const sendCashOrderConfirmationEmail = async (email, { firstName, requestId, amo
         You'll only ever pay the amount shown above.
       </p>
     </div>
-    <p style="margin:0;font-size:13px;color:#9ca3af;">Track your delivery live in the iPrime app.</p>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">Track your delivery live in the Logistics Platform app.</p>
   `);
 
   return sendEmail({
@@ -756,12 +756,12 @@ const sendRiderOutstandingFeesEmail = async (email, { firstName, amountOwed }) =
         into the same balance.
       </p>
     </div>
-    <p style="margin:0;font-size:13px;color:#9ca3af;">Open the iPrime rider app → Wallet → Top up.</p>
+    <p style="margin:0;font-size:13px;color:#9ca3af;">Open the Logistics Platform rider app → Wallet → Top up.</p>
   `);
 
   return sendEmail({
     to: email,
-    subject: `Clear ${owed} in platform fees to keep accepting jobs - iPrime`,
+    subject: `Clear ${owed} in platform fees to keep accepting jobs - Logistics Platform`,
     html,
     text: `Hi ${firstName || 'there'}, you owe ${owed} in platform fees from a cash delivery and your wallet balance is negative. Top up to a non-negative balance to resume accepting jobs.`,
   });

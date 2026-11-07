@@ -273,7 +273,7 @@ const provisionWalletNuban = async (user) => {
     messagingService
       .sendSms(
         user.phone,
-        `Welcome to ${config.APP_NAME || 'iPrime'}! Your wallet is now active${virtualAccount ? ` - fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
+        `Welcome to ${config.APP_NAME || 'Logistics Platform'}! Your wallet is now active${virtualAccount ? ` - fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
       )
       .catch((err) => logger.warn('Signup welcome SMS failed', { userId: user.id, error: err.message }));
   }
@@ -1100,7 +1100,7 @@ const verifyBvn = async (userId, { bvn, firstName, lastName, bvnPhone }, context
       messagingService
         .sendSms(
           user.phone,
-          `Welcome to ${config.APP_NAME || 'iPrime'}! Your wallet is now active${virtualAccount ? ` - fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
+          `Welcome to ${config.APP_NAME || 'Logistics Platform'}! Your wallet is now active${virtualAccount ? ` - fund it via account ${virtualAccount.accountNumber} (${virtualAccount.bankName})` : ''}.`,
         )
         .catch((err) => logger.warn('KYC welcome SMS failed', { userId, error: err.message }));
     }
@@ -1214,10 +1214,10 @@ const updateNotificationPreferences = async (userId, data) => {
  * Generate Cloudinary upload signature for direct upload from the client.
  *
  * `kind` selects the folder + publicId convention:
- *   - "profile"      → iprime/profiles/{userId}/profile_{ts}      (default)
- *   - "prescription" → iprime/prescriptions/{userId}/rx_{ts}_{nonce}
- *   - "return"       → iprime/returns/{userId}/return_{ts}_{nonce} (Phase 8.5)
- *   - "product"      → iprime/products/{userId}/prod_{ts}_{nonce}
+ *   - "profile"      → logistics/profiles/{userId}/profile_{ts}      (default)
+ *   - "prescription" → logistics/prescriptions/{userId}/rx_{ts}_{nonce}
+ *   - "return"       → logistics/returns/{userId}/return_{ts}_{nonce} (Phase 8.5)
+ *   - "product"      → logistics/products/{userId}/prod_{ts}_{nonce}
  *
  * Each issued signature is logged with the customer id + folder. The durable
  * audit trail of *which* prescription was used for *which* order lives on
@@ -1237,13 +1237,13 @@ const UPLOAD_KINDS = {
   dispute: { root: "disputes", prefix: "ev" },
   ticket: { root: "tickets", prefix: "att" },
   // Phase 5 - Proof of Delivery assets. Stored under
-  // `iprime/pod/{requestId}/...` so retention/lifecycle rules can be
+  // `logistics/pod/{requestId}/...` so retention/lifecycle rules can be
   // scoped per delivery rather than per uploading user, and so disputes can
   // be investigated by listing the folder. Scope is `request` (not `user`).
   pod: { root: "pod", prefix: "pod", scope: "request" },
   pod_signature: { root: "pod", prefix: "sig", scope: "request" },
   // Phase 7 - rider re-uploadable KYC documents (generic re-upload bucket
-  // from the KYC status screen). Stored under `iprime/rider-docs/{userId}/...`.
+  // from the KYC status screen). Stored under `logistics/rider-docs/{userId}/...`.
   // Role-gated to RIDER below.
   rider_doc: { root: "rider-docs", prefix: "doc", scope: "rider" },
   // Phase 1 - rider onboarding KYC kinds. Each doc type lands in its own
@@ -1263,8 +1263,8 @@ const UPLOAD_KINDS = {
  * Issue a Cloudinary upload signature.
  *
  * `kind` controls folder layout + scope:
- *   - User-scoped kinds (default): `iprime/<root>/<userId>/...`
- *   - Request-scoped kinds (POD): `iprime/<root>/<requestId>/...`
+ *   - User-scoped kinds (default): `logistics/<root>/<userId>/...`
+ *   - Request-scoped kinds (POD): `logistics/<root>/<requestId>/...`
  *     - caller MUST pass `scopeId = requestId` and the server verifies the
  *       user is the assigned rider on that request (or admin).
  */
@@ -1330,7 +1330,7 @@ const getCloudinaryUploadSignature = async (userId, userRole, kind = "profile", 
 
   const crypto = require("crypto");
   const timestamp = Math.round(new Date().getTime() / 1000);
-  const folder = `iprime/${spec.root}/${folderScopeId}`;
+  const folder = `logistics/${spec.root}/${folderScopeId}`;
   // Prescription / return docs add a short nonce so two uploads in the same
   // second don't collide on publicId. Profiles keep the legacy shape.
   const publicId = kind === "profile"
@@ -1697,7 +1697,7 @@ const confirmPhoneChange = async (userId, { newPhone, otp }) => {
     messagingService
       .sendSms(
         oldPhone,
-        `Security notice: the phone number on your ${config.APP_NAME || 'iPrime'} account was changed to ${maskedNew}. If this wasn't you, contact support immediately.`,
+        `Security notice: the phone number on your ${config.APP_NAME || 'Logistics Platform'} account was changed to ${maskedNew}. If this wasn't you, contact support immediately.`,
       )
       .catch((err) => logger.warn('Old-phone change-notice SMS failed', { userId, error: err.message }));
   }

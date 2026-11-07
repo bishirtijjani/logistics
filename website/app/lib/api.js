@@ -1,5 +1,5 @@
 /**
- * Resolves the iPrime backend base URL for the statically exported website.
+ * Resolves the Logistics Platform backend base URL for the statically exported website.
  *
  * The export is built ahead of time (`next build`), so the URL is baked in
  * at build time via NEXT_PUBLIC_API_URL. Fallback hits the production
@@ -7,4 +7,4 @@
  */
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "https://api.iprime.ng";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "https://api.";

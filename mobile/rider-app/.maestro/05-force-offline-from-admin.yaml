@@ -1,6 +1,6 @@
 # Admin invokes force-offline on the rider; the rider's app should flip
 # OFFLINE within 3 s and surface a kill-switch toast.
-appId: ng.iprime.rider
+appId: ng.logistics.rider
 env:
   RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
   RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}

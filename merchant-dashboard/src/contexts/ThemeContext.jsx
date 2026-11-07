@@ -23,11 +23,11 @@ export function ThemeProvider({ children }) {
   }, [isDark])
 
   // Under the native shell the app's theme toggle owns the choice; the shell
-  // fires `iprime-theme` so this provider stays in sync with it.
+  // fires `logistics-theme` so this provider stays in sync with it.
   useEffect(() => {
     const onTheme = (e) => setIsDark(!!e?.detail?.dark)
-    window.addEventListener('iprime-theme', onTheme)
-    return () => window.removeEventListener('iprime-theme', onTheme)
+    window.addEventListener('logistics-theme', onTheme)
+    return () => window.removeEventListener('logistics-theme', onTheme)
   }, [])
 
   const toggleTheme = () => {

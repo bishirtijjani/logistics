@@ -105,18 +105,18 @@ function collectScreenNames(state) {
   return out;
 }
 
-// Deep-link prefixes - paired with the `iprime` scheme in app.json. The
+// Deep-link prefixes - paired with the `logistics` scheme in app.json. The
 // scheme is shared with the customer app (each binary registers its own
 // handler on-device); we keep them apart on universal links via separate
-// hostnames (rider.iprime.ng here, customer.iprime.ng in the customer app).
+// hostnames (rider. here, customer. in the customer app).
 //
 // `riderapp://` is kept as a legacy prefix so notifications minted before
-// Phase 8's iprime:// rebrand still parse correctly. parseDeepLink() in
+// Phase 8's logistics:// rebrand still parse correctly. parseDeepLink() in
 // lib/notificationRoute.js strips any scheme:// prefix before matching.
 const NAV_LINKING = {
   prefixes: [
-    "iprime://",
-    "https://rider.iprime.ng",
+    "logistics://",
+    "https://rider.",
     "riderapp://", // legacy - keep for back-compat
   ],
   config: {
@@ -241,7 +241,7 @@ export default function AppNavigator() {
           return;
         }
         setBioGate("required");
-        const ok = await authenticateWithBiometric("Unlock iPrime Rider");
+        const ok = await authenticateWithBiometric("Unlock Logistics Platform Rider");
         setBioGate(ok ? "passed" : "required");
       } catch (_) {
         setBioGate("passed");
@@ -458,11 +458,11 @@ export default function AppNavigator() {
           Locked
         </Text>
         <Text style={{ color: tokens.text.muted, textAlign: "center", marginBottom: 24 }}>
-          Unlock iPrime Rider with biometrics to continue.
+          Unlock Logistics Platform Rider with biometrics to continue.
         </Text>
         <TouchableOpacity
           onPress={async () => {
-            const ok = await authenticateWithBiometric("Unlock iPrime Rider");
+            const ok = await authenticateWithBiometric("Unlock Logistics Platform Rider");
             if (ok) setBioGate("passed");
           }}
           style={{

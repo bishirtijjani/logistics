@@ -23,9 +23,9 @@ import { useTheme } from "../../theme";
 // stable across releases - coordinate a migration if the marketing domain
 // ever moves to a brand-aligned host.
 const URLS = {
-  terms: "https://iprime.ng/legal/terms",
-  privacy: "https://iprime.ng/legal/privacy",
-  about: "https://iprime.ng",
+  terms: "https:///legal/terms",
+  privacy: "https:///legal/privacy",
+  about: "https://",
 };
 
 export default function LegalScreen() {
@@ -36,7 +36,7 @@ export default function LegalScreen() {
   const items = [
     { icon: "document-text-outline", label: t("legal.terms", "Terms of Service"), url: URLS.terms },
     { icon: "shield-outline", label: t("legal.privacy", "Privacy Policy"), url: URLS.privacy },
-    { icon: "information-circle-outline", label: t("legal.about", "About iPrime"), url: URLS.about },
+    { icon: "information-circle-outline", label: t("legal.about", "About Logistics Platform"), url: URLS.about },
   ];
 
   return (

@@ -63,7 +63,7 @@ const MapView = forwardRef(function MapView(props, ref) {
   } = props;
 
   const { isLoaded } = useJsApiLoader({
-    id: "iprime-gmaps",
+    id: "logistics-gmaps",
     googleMapsApiKey: API_KEY,
   });
   const mapRef = useRef(null);

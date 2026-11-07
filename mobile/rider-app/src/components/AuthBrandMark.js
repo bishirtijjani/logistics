@@ -14,7 +14,7 @@ export default function AuthBrandMark({ style }) {
       ]}
       accessible
       accessibilityRole="image"
-      accessibilityLabel="iPrime Rider"
+      accessibilityLabel="Logistics Platform Rider"
     >
       <View
         style={{
@@ -37,7 +37,7 @@ export default function AuthBrandMark({ style }) {
           letterSpacing: -0.5,
         }}
       >
-        iPrime
+        Logistics Platform
       </Text>
       <View
         style={{

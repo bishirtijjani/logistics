@@ -15,11 +15,11 @@ import Footer from "./components/Footer";
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "iPrime",
-  url: "https://iprime.ng",
-  logo: "https://iprime.ng/favicon.ico",
+  name: "Logistics Platform",
+  url: "https://",
+  logo: "https:///favicon.ico",
   description:
-    "Wallet, utilities, and delivery super-app for Katsina State, Nigeria.",
+    "Wallet, utilities, and delivery super-app for .",
   address: {
     "@type": "PostalAddress",
     addressRegion: "Katsina",
@@ -27,7 +27,7 @@ const organizationSchema = {
   },
   contactPoint: {
     "@type": "ContactPoint",
-    email: "hello@iprime.ng",
+    email: "hello@",
     contactType: "customer support",
     areaServed: "NG",
   },

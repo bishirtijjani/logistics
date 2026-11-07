@@ -48,7 +48,7 @@ const main = async () => {
 
   console.log('Paystack adapter smoke check (read-only)');
   console.log(`  base: ${process.env.PAYSTACK_BASE_URL || 'https://api.paystack.co'}`);
-  console.log(`  callback: ${process.env.PAYSTACK_CALLBACK_URL || 'https://api.iprime.ng/webhooks/paystack'}`);
+  console.log(`  callback: ${process.env.PAYSTACK_CALLBACK_URL || 'https://api./webhooks/paystack'}`);
 
   if (!paystack.isConfigured()) {
     console.error('\nFAIL: PAYSTACK_SECRET_KEY is not set - nothing to check.');

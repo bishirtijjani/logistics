@@ -1,4 +1,4 @@
-# iPrime Compliance Statement
+# Logistics Platform Compliance Statement
 
 **Effective date:** 2026-05-22  
 **Last updated:** {{TODAY}}
@@ -7,26 +7,26 @@
 
 ## 1. Purpose
 
-This page sets out how **MH Prime** ("**iPrime**", "**we**",
+This page sets out how **MH Prime** ("**Logistics Platform**", "**we**",
 "**us**") complies with the laws and regulations that apply to a
 Nigerian platform handling personal data, financial transactions, and
 last-mile logistics. MH Prime is a business registered with the
 Corporate Affairs Commission of Nigeria under business name number
 **9518859**, with its registered office at **2, Liyafa Street, Katsina,
-Katsina State, Nigeria**.
+**.
 
 This page is written for users, partners, journalists, and regulators
 alike - and is deliberately specific so you can verify each claim
 against the source.
 
 If you're a regulator or compliance counterparty and need formal
-attestations, contact **contact@iprime.ng**.
+attestations, contact **contact@**.
 
 ---
 
 ## 2. Regulatory framework
 
-iPrime operates inside a stack of Nigerian and international regulations.
+Logistics Platform operates inside a stack of Nigerian and international regulations.
 This section names every one we hold ourselves to.
 
 ### 2.1 Data protection
@@ -41,17 +41,17 @@ This section names every one we hold ourselves to.
   Protection Commission (NDPC)** as a Data Controller of Major
   Importance once we cross the relevant processing thresholds.
 - **Data Protection Officer (DPO)** - appointed and reachable at
-  **contact@iprime.ng**. The DPO is empowered to halt any processing
+  **contact@**. The DPO is empowered to halt any processing
   activity they assess as non-compliant.
 
 ### 2.2 Financial services
 
 - **Central Bank of Nigeria (CBN)** - wallet, virtual-account, and
   payment functionality is delivered through one or more CBN-licensed
-  Payment Service Providers. iPrime does not hold customer funds
+  Payment Service Providers. Logistics Platform does not hold customer funds
   directly; balances are held in segregated accounts at the partner
   institution.
-- **NIBSS rules** - instant transfers in and out of the iPrime wallet
+- **NIBSS rules** - instant transfers in and out of the Logistics Platform wallet
   use the NIBSS Instant Payment (NIP) rail through our partner. We
   follow NIBSS reconciliation timelines and abide by their failed-transfer
   reversal rules.
@@ -76,7 +76,7 @@ This section names every one we hold ourselves to.
   who maintains) a courier licence under the **NIPOST Act** for
   inter-city parcel delivery.
 - **State transport authority compliance** - our riders operate in line
-  with Katsina State motorcycle / dispatch transport requirements,
+  with  motorcycle / dispatch transport requirements,
   including helmet rules and route restrictions where applicable.
 
 ---
@@ -136,15 +136,15 @@ with the statutory "tipping-off" prohibition.
 
 ## 6. User rights
 
-The following rights apply to every iPrime user, and we provide
+The following rights apply to every Logistics Platform user, and we provide
 self-service or human-assisted ways to exercise each one:
 
 | Right | How to exercise it |
 |---|---|
-| **Access your data** | Profile → Settings → "Download my data" (or email **contact@iprime.ng**) |
+| **Access your data** | Profile → Settings → "Download my data" (or email **contact@**) |
 | **Correct your data** | Profile → Edit details, for fields you can change yourself; via support for KYC-locked fields |
 | **Delete your account** | Profile → Settings → "Delete account" (with a 30-day grace period for fraud-related holds) |
-| **Object to processing** | Email **contact@iprime.ng** describing the processing you object to |
+| **Object to processing** | Email **contact@** describing the processing you object to |
 | **Lodge a complaint with the regulator** | NDPC at https://ndpc.gov.ng |
 
 Statutory response time is **30 days** under the NDPA; we aim for **7
@@ -166,7 +166,7 @@ assessment. The minimum bar:
 This applies equally to our payment partners, our analytics providers,
 our SMS and push-notification gateways, and our cloud infrastructure
 provider. The full vendor list is available on request to
-**contact@iprime.ng**.
+**contact@**.
 
 ---
 
@@ -190,11 +190,11 @@ response.
 
 ## 9. Reporting concerns
 
-If you believe iPrime is not living up to the standards on this page -
+If you believe Logistics Platform is not living up to the standards on this page -
 whether you're a user, a partner, a regulator, or an employee:
 
-- **General compliance concerns:** email **contact@iprime.ng**.
-- **Data protection concerns:** email **contact@iprime.ng**, or contact the
+- **General compliance concerns:** email **contact@**.
+- **Data protection concerns:** email **contact@**, or contact the
   NDPC directly.
 - **Anonymous whistleblowing:** use the contact form on the homepage
   (free text, no account required) and start the message with the word

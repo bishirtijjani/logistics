@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "iPrime Merchant",
-    "slug": "iprime-merchant",
+    "name": "Logistics Platform Merchant",
+    "slug": "logistics-merchant",
     "owner": "mh-prime",
-    "scheme": "iprime",
+    "scheme": "logistics",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,13 +16,13 @@
       "backgroundColor": "#EA580C"
     },
     "ios": {
-      "bundleIdentifier": "ng.iprime.merchant",
+      "bundleIdentifier": "ng.logistics.merchant",
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "iPrime Merchant needs your location to set your store's pickup point and show nearby delivery coverage.",
-        "NSCameraUsageDescription": "iPrime Merchant needs the camera to capture product and store photos.",
-        "NSPhotoLibraryUsageDescription": "iPrime Merchant needs photo access so you can attach product, store, and support images.",
+        "NSLocationWhenInUseUsageDescription": "Logistics Platform Merchant needs your location to set your store's pickup point and show nearby delivery coverage.",
+        "NSCameraUsageDescription": "Logistics Platform Merchant needs the camera to capture product and store photos.",
+        "NSPhotoLibraryUsageDescription": "Logistics Platform Merchant needs photo access so you can attach product, store, and support images.",
         "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions like withdrawals.",
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -35,7 +35,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#EA580C"
       },
-      "package": "ng.iprime.merchant",
+      "package": "ng.logistics.merchant",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "config": {
@@ -66,14 +66,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "iPrime Merchant needs your location to set your store's pickup point."
+          "locationWhenInUsePermission": "Logistics Platform Merchant needs your location to set your store's pickup point."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "iPrime Merchant needs photo access so you can attach product, store, and support images.",
-          "cameraPermission": "iPrime Merchant needs the camera to capture product and store photos."
+          "photosPermission": "Logistics Platform Merchant needs photo access so you can attach product, store, and support images.",
+          "cameraPermission": "Logistics Platform Merchant needs the camera to capture product and store photos."
         }
       ],
       "expo-local-authentication",
@@ -88,7 +88,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "mh-prime",
-          "project": "iprime-merchant",
+          "project": "logistics-merchant",
           "url": "https://sentry.io/"
         }
       ],

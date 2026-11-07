@@ -89,7 +89,7 @@ This means **no AppTrackingTransparency prompt is required** for V1.
 ## Privacy Policy URL
 
 ```
-https://iprime.ng/legal/privacy
+https:///legal/privacy
 ```
 
 (This URL must resolve and contain the document at submission time -
@@ -102,7 +102,7 @@ see `docs/store/legal-hosting.md` / Phase 10 #5.3, already deployed.)
 For reference - Apple defines exactly these purposes; every "Yes" row
 above must map to at least one:
 
-- **Third-Party Advertising** - ✗ NEVER selected for any iPrime data
+- **Third-Party Advertising** - ✗ NEVER selected for any Logistics Platform data
 - **Developer's Advertising or Marketing** - ✗ NEVER selected
 - **Analytics** - ✓ used for Usage Data, Diagnostics, Search History
 - **Product Personalization** - ✓ used for Name (greeting), home tile ordering

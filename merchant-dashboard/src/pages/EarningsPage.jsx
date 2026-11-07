@@ -86,7 +86,7 @@ export default function EarningsPage() {
   });
   const [editingBank, setEditingBank] = useState(false);
   const [bankNudgeDismissed, setBankNudgeDismissed] = useState(
-    () => localStorage.getItem("iprime_merchant_bank_nudge_dismissed") === "1",
+    () => localStorage.getItem("logistics_merchant_bank_nudge_dismissed") === "1",
   );
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionDetails, setShowTransactionDetails] = useState(false);
@@ -1631,7 +1631,7 @@ Thank you for your business!
               <button
                 onClick={() => {
                   localStorage.setItem(
-                    "iprime_merchant_bank_nudge_dismissed",
+                    "logistics_merchant_bank_nudge_dismissed",
                     "1",
                   );
                   setBankNudgeDismissed(true);

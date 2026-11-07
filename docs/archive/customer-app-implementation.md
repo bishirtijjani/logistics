@@ -539,7 +539,7 @@ Configure for:
 - Wallet exists to eliminate payment friction for deliveries. No complex banking features needed for MVP.
 - VTU is a retention hook - users open app for airtime, stay for logistics.
 - Real-time tracking is the key differentiator - invest heavily in socket reliability.
-- Katsina State launch: Focus on Katsina city → Funtua → Daura triangle initially.
+-  launch: Focus on Katsina city → Funtua → Daura triangle initially.
 
 ---
 

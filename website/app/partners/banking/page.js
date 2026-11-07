@@ -19,7 +19,7 @@ import Footer from "../../components/Footer";
 export const metadata = {
   title: "Bank & payment partners",
   description:
-    "Partner with iPrime as a bank or licensed payment provider - virtual accounts, wallet rails, settlements, and KYC for thousands of Katsina users.",
+    "Partner with Logistics Platform as a bank or licensed payment provider - virtual accounts, wallet rails, settlements, and KYC for thousands of Katsina users.",
   alternates: { canonical: "/partners/banking" },
 };
 
@@ -27,7 +27,7 @@ const opportunities = [
   {
     Icon: Wallet,
     title: "Virtual account issuance",
-    body: "Issue a unique, dedicated NUBAN to every iPrime user at signup. We handle UI, support, and reconciliation; you provide the rail and the licence.",
+    body: "Issue a unique, dedicated NUBAN to every Logistics Platform user at signup. We handle UI, support, and reconciliation; you provide the rail and the licence.",
   },
   {
     Icon: Banknote,
@@ -37,7 +37,7 @@ const opportunities = [
   {
     Icon: CreditCard,
     title: "Card acquiring & funding",
-    body: "Process card top-ups from Verve, Visa, and Mastercard into the iPrime wallet. We pass the cost down transparently and split the fee with you.",
+    body: "Process card top-ups from Verve, Visa, and Mastercard into the Logistics Platform wallet. We pass the cost down transparently and split the fee with you.",
   },
   {
     Icon: ShieldCheck,
@@ -50,7 +50,7 @@ const reasonsToPartner = [
   {
     Icon: Layers,
     title: "Embedded distribution into a daily-use super-app.",
-    body: "iPrime isn't a once-a-month bill-pay app. Customers open it to order food, send packages, top up airtime, and pay electricity - your rail powers every one of those flows.",
+    body: "Logistics Platform isn't a once-a-month bill-pay app. Customers open it to order food, send packages, top up airtime, and pay electricity - your rail powers every one of those flows.",
   },
   {
     Icon: BarChart3,
@@ -60,7 +60,7 @@ const reasonsToPartner = [
   {
     Icon: Lock,
     title: "Reconciliation done right.",
-    body: "Every transaction in the iPrime wallet is double-entry ledgered and reconciled daily against your settlement reports. Disputes are rare; investigations are fast.",
+    body: "Every transaction in the Logistics Platform wallet is double-entry ledgered and reconciled daily against your settlement reports. Disputes are rare; investigations are fast.",
   },
   {
     Icon: FileCheck2,
@@ -98,7 +98,7 @@ export default function BankingPartnersPage() {
                 <span className="text-accent">a state-wide super-app.</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 font-medium leading-relaxed max-w-2xl mb-8">
-                iPrime is built on top of licensed Nigerian financial-service
+                Logistics Platform is built on top of licensed Nigerian financial-service
                 providers. If you&apos;re a bank, microfinance bank, PSP, or
                 switching company looking for embedded distribution in
                 northern Nigeria - let&apos;s talk.
@@ -106,7 +106,7 @@ export default function BankingPartnersPage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="mailto:partnerships@iprime.ng?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
+                  href="mailto:partnerships@?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
                   className="ui-btn ui-btn-primary"
                 >
                   Email partnerships
@@ -159,7 +159,7 @@ export default function BankingPartnersPage() {
           <div className="ui-container">
             <div className="grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-16 items-center">
               <div>
-                <span className="ui-eyebrow">Why partner with iPrime</span>
+                <span className="ui-eyebrow">Why partner with Logistics Platform</span>
                 <h2 className="ui-title mb-6">
                   Built like a financial product,{" "}
                   <span className="text-accent">not a side feature.</span>
@@ -290,10 +290,10 @@ export default function BankingPartnersPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:partnerships@iprime.ng?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
+                    href="mailto:partnerships@?subject=Banking%20partnership%20%E2%80%94%20%5BInstitution%5D"
                     className="ui-btn ui-btn-primary"
                   >
-                    partnerships@iprime.ng
+                    partnerships@
                     <ArrowRight size={16} strokeWidth={2.5} />
                   </a>
                   <Link

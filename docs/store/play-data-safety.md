@@ -41,7 +41,7 @@ sub-type, we declare: (a) is it **collected**, (b) is it **shared**
 with third parties, (c) is collection **optional or required**, (d)
 the **purpose**.
 
-For iPrime, **"shared"** means **transferred to a third party**, NOT
+For Logistics Platform, **"shared"** means **transferred to a third party**, NOT
 "used by our service providers under DPA". Per Play's definitions, our
 service providers (KatPay, Termii, Cloudinary, Sentry, etc.) count as
 data-processing partners, not data sharers, when they only process on
@@ -141,7 +141,7 @@ our behalf.
 **No data is "shared" in the Play Console sense.** The vendors we use
 (KatPay, Termii, Cloudinary, Google Maps Platform, Firebase Cloud
 Messaging, Sentry, Posthog) are data-processing partners contracted
-under Data Processing Addenda - they only process data on iPrime's
+under Data Processing Addenda - they only process data on Logistics Platform's
 instructions for the stated purposes. Per Google's definitions, this is
 not "sharing" and should NOT be declared in the sharing column.
 
@@ -153,7 +153,7 @@ If the form's framing makes this ambiguous, the canonical reference is
 ## Section 5 - Privacy Policy URL
 
 ```
-https://iprime.ng/legal/privacy
+https:///legal/privacy
 ```
 
 (Must resolve at the time of review - deployed via Phase 10 #5.3.)

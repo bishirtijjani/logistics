@@ -5,7 +5,7 @@
 set -euo pipefail
 
 : "${ADMIN_TOKEN:?ADMIN_TOKEN is required to trigger force-offline}"
-: "${API_URL:=https://api.iprime.ng}"
+: "${API_URL:=https://api.}"
 : "${RIDER_ID:?RIDER_ID is required (rider record id, not the user id)}"
 
 curl --fail --silent --show-error \

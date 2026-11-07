@@ -10,14 +10,14 @@ to a rider picking it up.
 
 ## How an order moves
 
-Every order moves through a few clear stages. You handle the first three; iPrime
+Every order moves through a few clear stages. You handle the first three; Logistics Platform
 handles the rest.
 
 1. **Requested** - a new order just came in. *(You: accept or reject it.)*
 2. **Accepted** - you've taken the order. *(You: start preparing.)*
 3. **Processing** - you're making it. *(You: mark it ready when packed.)*
 4. **Ready for Pickup** - a rider is called to collect it.
-5. **Rider Assigned → Delivered** - iPrime's rider takes it from here.
+5. **Rider Assigned → Delivered** - Logistics Platform's rider takes it from here.
 
 New orders appear **instantly** - watch the little connection indicator at the
 top-right; when it's green, you're live and receiving in real time.

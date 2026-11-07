@@ -7,7 +7,7 @@ const audiences = [
     title: "Anything you need, at your door.",
     blurb:
       "One app for food, groceries, pharmacy and parcels - paid from a wallet that also covers your airtime and bills.",
-    cta: { label: "Download iPrime", href: "#download" },
+    cta: { label: "Download Logistics Platform", href: "#download" },
     image: "/images/audience-customer.png",
     fallback: "bg-orange-500",
     kenburns: "ken-burns-a",
@@ -28,7 +28,7 @@ const audiences = [
     eyebrow: "For riders",
     title: "Become A Rider. Get paid same-day.",
     blurb:
-      "Accept jobs near you, deliver, settle. Earnings reflect instantly in your iPrime wallet - withdraw anytime.",
+      "Accept jobs near you, deliver, settle. Earnings reflect instantly in your Logistics Platform wallet - withdraw anytime.",
     cta: { label: "Apply to ride", href: "/riders" },
     image: "/images/audience-rider.png",
     fallback: "bg-zinc-800",
@@ -48,7 +48,7 @@ export default function Audience() {
             <span className="text-accent">and riders.</span>
           </h2>
           <p className="ui-sub mx-auto">
-            Every order on iPrime is a handshake between three apps. Here&apos;s
+            Every order on Logistics Platform is a handshake between three apps. Here&apos;s
             what each side gets.
           </p>
         </header>

@@ -76,14 +76,14 @@ export default function CareersPage() {
         <section className="relative pt-36 pb-16 md:pt-40 md:pb-20 bg-bg-secondary">
           <div className="ui-container">
             <div className="max-w-3xl">
-              <span className="ui-eyebrow">Careers at iPrime</span>
+              <span className="ui-eyebrow">Careers at Logistics Platform</span>
               <h1 className="text-4xl md:text-5xl xl:text-[3.5rem] font-black tracking-tighter leading-[1.05] text-text-primary mb-6">
                 Build Katsina&apos;s next big company.{" "}
                 <span className="text-accent">From Katsina.</span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 font-medium leading-relaxed max-w-2xl">
                 We&apos;re a small team building the wallet, delivery, and bill
-                payment app that thousands of households across Katsina State
+                payment app that thousands of households across 
                 use every week. If you want real ownership, fast shipping, and
                 work that visibly changes how your neighbours live - read on.
               </p>
@@ -132,7 +132,7 @@ export default function CareersPage() {
               </h2>
               <p className="ui-sub">
                 We don&apos;t always have an open job posting for every role -
-                but if you fit one of these tracks and want to work on iPrime,
+                but if you fit one of these tracks and want to work on Logistics Platform,
                 we want to hear from you.
               </p>
             </header>
@@ -186,10 +186,10 @@ export default function CareersPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:careers@iprime.ng?subject=iPrime%20Careers%20%E2%80%94%20application"
+                    href="mailto:careers@?subject=Logistics Platform%20Careers%20%E2%80%94%20application"
                     className="ui-btn ui-btn-primary"
                   >
-                    Email careers@iprime.ng
+                    Email careers@
                     <Send size={16} strokeWidth={2.5} />
                   </a>
                   <Link href="/#contact" className="ui-btn ui-btn-ghost">
@@ -200,7 +200,7 @@ export default function CareersPage() {
 
                 <p className="text-xs text-white/40 font-semibold mt-6">
                   Riders: don&apos;t use this email - apply directly inside the
-                  iPrime Rider app, or via the{" "}
+                  Logistics Platform Rider app, or via the{" "}
                   <Link href="/#contact" className="underline hover:text-white">
                     contact form
                   </Link>

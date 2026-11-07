@@ -1,4 +1,4 @@
-# Manual QA Scenario Matrix - iPrime Rider
+# Manual QA Scenario Matrix - Logistics Platform Rider
 
 Reflects §8.2 of the rider roadmap. Rows that are Maestro-automated link
 to the `.maestro/` flow that covers them; the rest are run by hand on a

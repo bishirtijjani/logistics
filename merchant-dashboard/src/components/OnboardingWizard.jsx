@@ -238,7 +238,7 @@ export default function OnboardingWizard({ open, onClose }) {
       showErrorToast('Add your first product to finish setup')
       return
     }
-    showSuccessToast('Welcome to iPrime! Your dashboard is ready.')
+    showSuccessToast('Welcome to Logistics Platform! Your dashboard is ready.')
     onClose?.()
   }
 

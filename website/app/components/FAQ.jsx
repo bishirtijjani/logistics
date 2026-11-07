@@ -5,8 +5,8 @@ import { Plus, Minus } from "lucide-react";
 
 const faqs = [
   {
-    q: "Where does iPrime deliver?",
-    a: "We're rolling out deliveries city-by-city across Katsina State. Wallet, airtime, data, and electricity payments work everywhere in Nigeria from day one.",
+    q: "Where does Logistics Platform deliver?",
+    a: "We're rolling out deliveries city-by-city across . Wallet, airtime, data, and electricity payments work everywhere in Nigeria from day one.",
   },
   {
     q: "Can I track my delivery rider live?",

@@ -45,35 +45,35 @@ const channels = [
   {
     Icon: InstagramIcon,
     name: "Instagram",
-    handle: "@iprime.ng",
+    handle: "@",
     href: "#",
     accent: "from-fuchsia-500 to-amber-500",
   },
   {
     Icon: TikTokIcon,
     name: "TikTok",
-    handle: "@iprime.ng",
+    handle: "@",
     href: "#",
     accent: "from-cyan-400 to-rose-500",
   },
   {
     Icon: TwitterIcon,
     name: "X / Twitter",
-    handle: "@iprime_ng",
+    handle: "@logistics_app",
     href: "#",
     accent: "from-zinc-700 to-zinc-900",
   },
   {
     Icon: FacebookIcon,
     name: "Facebook",
-    handle: "iPrime Katsina",
+    handle: "Logistics Platform Katsina",
     href: "#",
     accent: "from-blue-500 to-blue-700",
   },
   {
     Icon: LinkedinIcon,
     name: "LinkedIn",
-    handle: "iPrime",
+    handle: "Logistics Platform",
     href: "#",
     accent: "from-sky-600 to-sky-800",
   },
@@ -100,7 +100,7 @@ export default function Social() {
             <li key={name}>
               <a
                 href={href}
-                aria-label={`Follow iPrime on ${name}`}
+                aria-label={`Follow Logistics Platform on ${name}`}
                 className="group relative flex flex-col bg-white border border-gray-200 rounded-2xl p-5 hover:border-accent/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden no-underline h-full"
               >
                 <div

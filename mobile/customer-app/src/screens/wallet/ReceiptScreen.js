@@ -136,8 +136,8 @@ export default function ReceiptScreen({ navigation, route }) {
   const handleShare = async () => {
     if (Platform.OS === "web") {
       try {
-        await captureAndShareWeb("iprime-receipt-capture", {
-          fileName: `receipt-${transaction.reference || "iprime"}.png`,
+        await captureAndShareWeb("logistics-receipt-capture", {
+          fileName: `receipt-${transaction.reference || "logistics"}.png`,
           shareTitle: t("wallet.receipt.shareDialogTitle"),
           shareText: t("wallet.receipt.shareLine", { label: typeLabel, amount: formatNaira(transaction.amount) }),
         });
@@ -213,7 +213,7 @@ export default function ReceiptScreen({ navigation, route }) {
           options={{ format: "png", quality: 1 }}
           style={{ backgroundColor: tokens.bg.canvas }}
         >
-          <View nativeID="iprime-receipt-capture">
+          <View nativeID="logistics-receipt-capture">
           {/* Amount header */}
           <View style={{ alignItems: "center", paddingVertical: 32 }}>
             <View

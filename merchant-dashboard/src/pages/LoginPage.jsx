@@ -67,7 +67,7 @@ export default function LoginPage() {
       if (result.user.merchantId) {
         navigate('/dashboard')
       } else {
-        // Valid iPrime login but no merchant profile yet. Instead of logging
+        // Valid Logistics Platform login but no merchant profile yet. Instead of logging
         // them back out, keep the session and send them to merchant enrollment
         // so an existing customer/rider can add a merchant profile to the same
         // account - no second email, same wallet. ProtectedRoute applies the

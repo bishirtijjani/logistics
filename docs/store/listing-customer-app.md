@@ -1,4 +1,4 @@
-# Store listing - iPrime (customer app)
+# Store listing - Logistics Platform (customer app)
 
 Copy for the App Store + Google Play submission. Each store has slightly
 different field lengths and conventions; this file covers both.
@@ -6,7 +6,7 @@ different field lengths and conventions; this file covers both.
 ## English
 
 ### App name (≤ 30 chars on both stores)
-`iPrime - Wallet & Delivery`  *(26 chars)*
+`Logistics Platform - Wallet & Delivery`  *(26 chars)*
 
 ### Subtitle (App Store only, ≤ 30 chars)
 `Pay bills, deliver, top up`  *(26 chars)*
@@ -22,11 +22,11 @@ different field lengths and conventions; this file covers both.
 
 ### Full description
 
-> iPrime is the everyday wallet and delivery app for Katsina State. One app - pay bills, send money, order food, get medicine delivered, restock your kitchen, and have packages run across town.
+> Logistics Platform is the everyday wallet and delivery app for . One app - pay bills, send money, order food, get medicine delivered, restock your kitchen, and have packages run across town.
 
 **Wallet & money**
 - Free NUBAN wallet - get a dedicated bank account number for instant funding
-- Send money to anyone with an iPrime account, free
+- Send money to anyone with an Logistics Platform account, free
 - Withdraw to any Nigerian bank account in minutes
 - Six-digit transaction PIN; no transaction moves without it
 - Saved beneficiaries and one-tap repeat transfers
@@ -55,7 +55,7 @@ different field lengths and conventions; this file covers both.
 - Customer support inside the app, replies within hours
 - Works on slow networks; skeleton loaders, not spinners
 
-iPrime is operated under agreements with licensed Nigerian payment partners. Your wallet balance is held in segregated accounts with regulated banks.
+Logistics Platform is operated under agreements with licensed Nigerian payment partners. Your wallet balance is held in segregated accounts with regulated banks.
 
 **Permissions we ask for, and why**
 - Location: to show options near you, and to track your delivery on the map
@@ -69,7 +69,7 @@ iPrime is operated under agreements with licensed Nigerian payment partners. You
 ## Hausa (HA)
 
 ### App name
-`iPrime - Walat & Isar`  *(21 chars)*
+`Logistics Platform - Walat & Isar`  *(21 chars)*
 
 ### Subtitle (App Store)
 `Biyan kuɗi, isarwa, cajin lambar`  *(31 chars - needs trim to ≤30)*
@@ -87,11 +87,11 @@ iPrime is operated under agreements with licensed Nigerian payment partners. You
 
 ### Full description
 
-> iPrime shi ne app ɗin walat da isarwa na yau da kullum a Jihar Katsina. App ɗaya - biyan kuɗin lissafi, aika kuɗi, sayan abinci, isar da magunguna, cika kicin, ko aika fakiti a cikin gari.
+> Logistics Platform shi ne app ɗin walat da isarwa na yau da kullum a Jihar Katsina. App ɗaya - biyan kuɗin lissafi, aika kuɗi, sayan abinci, isar da magunguna, cika kicin, ko aika fakiti a cikin gari.
 
 **Walat da kuɗi**
 - Walat na NUBAN kyauta - sami lambar banki ta musamman don sake cika nan da nan
-- Aika kuɗi ga duk wanda yake da asusun iPrime, kyauta
+- Aika kuɗi ga duk wanda yake da asusun Logistics Platform, kyauta
 - Cire kuɗi zuwa kowane banki na Najeriya cikin mintoci
 - PIN mai lambobi shida; babu wani aiki na kuɗi da zai gudana ba tare da PIN ba
 - Ajiyayyun masu karɓa da turawa mai sauri
@@ -120,7 +120,7 @@ iPrime is operated under agreements with licensed Nigerian payment partners. You
 - Tallafin abokin ciniki cikin app, amsa cikin awoyi
 - Aiki kan ƙananan haɗin gwiwa; nuna sifofin ɗanɗano (skeleton), ba spinners ba
 
-iPrime yana aiki ƙarƙashin yarjejeniya da abokan biya na Najeriya da aka ba su izini. An riƙe ma'aunin walat ɗinka a asusu na musamman a bankuna da aka tsara.
+Logistics Platform yana aiki ƙarƙashin yarjejeniya da abokan biya na Najeriya da aka ba su izini. An riƙe ma'aunin walat ɗinka a asusu na musamman a bankuna da aka tsara.
 
 **Izinin da muke nema, da dalili**
 - Wuri: don nuna zaɓuɓɓuka kusa da kai, da bin diddigin isarwarka a taswira

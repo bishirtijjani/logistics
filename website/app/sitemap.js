@@ -2,7 +2,7 @@
 // addition. Legal pages are explicitly listed so search engines discover
 // them (Apple / Google store review also fetches the URLs we declare, but
 // they don't need to be indexed).
-const SITE = "https://iprime.ng";
+const SITE = "https://";
 
 // Required by Next 16 under `output: 'export'` - sitemap is emitted at
 // build time into out/sitemap.xml.

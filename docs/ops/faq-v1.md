@@ -36,8 +36,8 @@ Each entry has both an **EN** and a **HA** answer.
 
 ### 5. "I funded my wallet from my bank but the balance hasn't updated."
 
-- **EN:** NUBAN deposits usually credit within 30 seconds. If after 30 minutes the balance hasn't moved: (a) confirm you transferred to your dedicated iPrime NUBAN account number, not someone else's, (b) keep the bank receipt - we'll need the reference. We resolve every funding query; if your money is stuck somewhere, we recover it from KatPay (our payment partner) within 1–2 business days.
-- **HA:** Cika NUBAN yawanci yana shiga cikin daƙiƙa 30. Idan bayan minti 30 ma'auni bai canza ba: (a) tabbatar kun canja zuwa lambar NUBAN na iPrime ku ta musamman, ba na wani ba, (b) riƙe rasid ɗin banki - za mu buƙaci tushen rajistar. Muna warware kowace tambaya ta cika; idan kuɗin ku yana makale, muna dawowa daga abokin biyar mu cikin kwanaki 1-2 na aiki.
+- **EN:** NUBAN deposits usually credit within 30 seconds. If after 30 minutes the balance hasn't moved: (a) confirm you transferred to your dedicated Logistics Platform NUBAN account number, not someone else's, (b) keep the bank receipt - we'll need the reference. We resolve every funding query; if your money is stuck somewhere, we recover it from KatPay (our payment partner) within 1–2 business days.
+- **HA:** Cika NUBAN yawanci yana shiga cikin daƙiƙa 30. Idan bayan minti 30 ma'auni bai canza ba: (a) tabbatar kun canja zuwa lambar NUBAN na Logistics Platform ku ta musamman, ba na wani ba, (b) riƙe rasid ɗin banki - za mu buƙaci tushen rajistar. Muna warware kowace tambaya ta cika; idan kuɗin ku yana makale, muna dawowa daga abokin biyar mu cikin kwanaki 1-2 na aiki.
 
 ### 6. "How long does a withdrawal take?"
 
@@ -49,10 +49,10 @@ Each entry has both an **EN** and a **HA** answer.
 - **EN:** Withdrawal fee is shown on the Withdraw screen before you confirm. We charge a flat fee (currently ₦25) regardless of the amount - this covers the bank-transfer cost on our side. No hidden fees.
 - **HA:** Ana nuna kuɗin cirewa a allon Cirewa kafin ku tabbatar. Muna cajin kuɗi madaidaici (a halin yanzu ₦25) ba tare da la'akari da adadin ba.
 
-### 8. "Can I send money to someone who doesn't have iPrime?"
+### 8. "Can I send money to someone who doesn't have Logistics Platform?"
 
-- **EN:** Yes - use Withdraw to any Nigerian bank account. iPrime-to-iPrime transfers are instant and free; bank transfers carry the ₦25 withdrawal fee.
-- **HA:** I - yi amfani da Cirewa zuwa kowane asusun banki na Najeriya. Canja iPrime-zuwa-iPrime nan da nan ne kuma kyauta; canja banki yana ɗaukar kuɗin cirewa na ₦25.
+- **EN:** Yes - use Withdraw to any Nigerian bank account. Logistics Platform-to-Logistics Platform transfers are instant and free; bank transfers carry the ₦25 withdrawal fee.
+- **HA:** I - yi amfani da Cirewa zuwa kowane asusun banki na Najeriya. Canja Logistics Platform-zuwa-Logistics Platform nan da nan ne kuma kyauta; canja banki yana ɗaukar kuɗin cirewa na ₦25.
 
 ---
 
@@ -70,7 +70,7 @@ Each entry has both an **EN** and a **HA** answer.
 
 ### 11. "The wrong item was delivered."
 
-- **EN:** Open the order, tap **Report an issue** → **Wrong item**. Attach a photo of what arrived. Our support team reviews disputes within 4 business hours. If your dispute is upheld, the refund hits your iPrime wallet immediately - no waiting on the bank.
+- **EN:** Open the order, tap **Report an issue** → **Wrong item**. Attach a photo of what arrived. Our support team reviews disputes within 4 business hours. If your dispute is upheld, the refund hits your Logistics Platform wallet immediately - no waiting on the bank.
 - **HA:** Buɗe odar, latsa **Bayar da rahoton matsala** → **Kuskuren abu**. Haɗa hoton abin da ya iso. Ƙungiyar tallafi mu ta duba gardandami cikin awoyi 4 na aiki.
 
 ### 12. "I never got my order."
@@ -103,8 +103,8 @@ Each entry has both an **EN** and a **HA** answer.
 
 ### 16. "Why do I need a prescription for some pharmacy items?"
 
-- **EN:** Nigerian pharmacy regulations require a valid doctor's prescription for certain medications. iPrime enforces this for any product flagged as prescription-only - you upload a photo of the prescription at checkout, and the pharmacist reviews it before dispensing. Submitting a forged prescription is a criminal offence; we report attempts to the relevant authorities.
-- **HA:** Dokokin magunguna na Najeriya suna buƙatar takardar likita mai inganci ga wasu magunguna. iPrime yana tilasta wannan ga kowane samfurin da aka yi alama a matsayin takardar likita kawai - kuna ɗora hoton takardar likita lokacin biya, kuma likitan magani yana dubawa kafin bayarwa.
+- **EN:** Nigerian pharmacy regulations require a valid doctor's prescription for certain medications. Logistics Platform enforces this for any product flagged as prescription-only - you upload a photo of the prescription at checkout, and the pharmacist reviews it before dispensing. Submitting a forged prescription is a criminal offence; we report attempts to the relevant authorities.
+- **HA:** Dokokin magunguna na Najeriya suna buƙatar takardar likita mai inganci ga wasu magunguna. Logistics Platform yana tilasta wannan ga kowane samfurin da aka yi alama a matsayin takardar likita kawai - kuna ɗora hoton takardar likita lokacin biya, kuma likitan magani yana dubawa kafin bayarwa.
 
 ---
 

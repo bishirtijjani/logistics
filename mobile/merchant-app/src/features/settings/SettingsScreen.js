@@ -137,8 +137,8 @@ export default function SettingsScreen() {
       </Section>
 
       <Section title={t("settings.legal", "Legal")}>
-        <Item icon="shield-checkmark-outline" label={t("settings.privacyPolicy", "Privacy policy")} onPress={() => WebBrowser.openBrowserAsync("https://iprime.ng/legal/privacy")} />
-        <Item icon="document-text-outline" label={t("settings.terms", "Terms of service")} onPress={() => WebBrowser.openBrowserAsync("https://iprime.ng/legal/terms")} />
+        <Item icon="shield-checkmark-outline" label={t("settings.privacyPolicy", "Privacy policy")} onPress={() => WebBrowser.openBrowserAsync("https:///legal/privacy")} />
+        <Item icon="document-text-outline" label={t("settings.terms", "Terms of service")} onPress={() => WebBrowser.openBrowserAsync("https:///legal/terms")} />
       </Section>
 
       <Section title={t("settings.danger", "Account actions")}>
@@ -147,7 +147,7 @@ export default function SettingsScreen() {
       </Section>
 
       <Text style={{ textAlign: "center", color: tokens.text.placeholder, fontSize: 12, marginTop: 8 }}>
-        {t("settings.version", "iPrime Merchant")} v1.0.0
+        {t("settings.version", "Logistics Platform Merchant")} v1.0.0
       </Text>
       </View>
     </ScrollView>

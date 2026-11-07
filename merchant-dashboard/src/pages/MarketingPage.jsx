@@ -173,7 +173,7 @@ export default function MarketingPage() {
 
   const mockLoyaltyProgram = {
     id: 1,
-    name: 'iPrime Rewards',
+    name: 'Logistics Platform Rewards',
     pointsPerNaira: 1,
     redemptionRate: 100,
     welcomeBonus: 50,

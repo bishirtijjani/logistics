@@ -12,7 +12,7 @@ All variables required to run the backend. Copy `.env.example` to `.env` and fil
 |---|---|---|---|
 | `NODE_ENV` | Yes | `development` | Environment: `development`, `staging`, `production` |
 | `PORT` | Yes | `3000` | HTTP server port |
-| `APP_NAME` | No | `iPrime` | Application name (used in logs) |
+| `APP_NAME` | No | `Logistics Platform` | Application name (used in logs) |
 
 ## Database (PostgreSQL)
 
@@ -101,7 +101,7 @@ Sends OTPs via an approved authentication template. Requires a Meta Business Acc
 | `WHATSAPP_PHONE_NUMBER_ID` | Prod (when active) | - | Phone Number ID from WhatsApp Manager → Phone Numbers |
 | `WHATSAPP_BUSINESS_ACCOUNT_ID` | No | - | WABA ID - informational, used in logs |
 | `WHATSAPP_ACCESS_TOKEN` | Prod (when active) | - | Long-lived System User access token (NOT a User token - those expire in 60 days) |
-| `WHATSAPP_AUTH_TEMPLATE_NAME` | No | `iprime_otp` | Name of the approved authentication template |
+| `WHATSAPP_AUTH_TEMPLATE_NAME` | No | `logistics_otp` | Name of the approved authentication template |
 | `WHATSAPP_AUTH_TEMPLATE_LANGUAGE` | No | `en_US` | Template language code |
 | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | No | - | Shared secret echoed back to Meta on the GET handshake at `/webhooks/whatsapp` |
 | `WHATSAPP_APP_SECRET` | No | - | Meta App secret used to verify `X-Hub-Signature-256` on inbound webhook POSTs |
@@ -113,7 +113,7 @@ Sends OTPs via an approved authentication template. Requires a Meta Business Acc
 3. **Add a phone number** to the WhatsApp Business Account (fresh number, or use the 2024 Coexistence flow to keep an existing consumer-WhatsApp number)
 4. **Display name approval** - must match registered brand
 5. **Authentication template** - submit a template like:
-   `"{{1}} is your iPrime verification code. For your security, do not share this code."` with a "Copy code" button. Use the OTP / authentication category, not utility/marketing.
+   `"{{1}} is your Logistics Platform verification code. For your security, do not share this code."` with a "Copy code" button. Use the OTP / authentication category, not utility/marketing.
 6. **System User access token** - under Meta Business Settings → System Users → generate token with `whatsapp_business_messaging` + `whatsapp_business_management` scopes. Pick "Never" for expiration.
 7. **Webhook** - configure the production URL `https://<host>/webhooks/whatsapp`, subscribe to `messages` field, set Verify Token to whatever you've put in `WHATSAPP_WEBHOOK_VERIFY_TOKEN`.
 
@@ -138,8 +138,8 @@ Transactional email for merchant approvals, withdrawal receipts, etc.
 |---|---|---|
 | `SMTP_USER` | Yes | SMTP account email address |
 | `SMTP_PASS` | Yes | SMTP account password or app password |
-| `SMTP_FROM_NAME` | No | Display name for outgoing emails (default: `iPrime`) |
-| `CONTACT_INBOX_EMAIL` | No | Inbox that receives marketing-site contact-form submissions (default: `hello@iprime.ng`) |
+| `SMTP_FROM_NAME` | No | Display name for outgoing emails (default: `Logistics Platform`) |
+| `CONTACT_INBOX_EMAIL` | No | Inbox that receives marketing-site contact-form submissions (default: `hello@`) |
 
 ## Cloudinary (Image Uploads)
 

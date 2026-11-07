@@ -1,5 +1,5 @@
 {
-  "_comment": "Source of truth for the iPrime Help Center. Each guide's markdown body lives in docs/help/<file>. Screenshots live in website/public/help/screenshots/. keywords drive search relevance (synonyms/alternate phrasings users actually type). titleHa/summaryHa hold the Hausa strings (added in a later pass).",
+  "_comment": "Source of truth for the Logistics Platform Help Center. Each guide's markdown body lives in docs/help/<file>. Screenshots live in website/public/help/screenshots/. keywords drive search relevance (synonyms/alternate phrasings users actually type). titleHa/summaryHa hold the Hausa strings (added in a later pass).",
   "_roles_note": "public:false means the role's guides are NOT published to the public web Help Center; they remain available only inside that role's authenticated in-app help panel.",
   "roles": [
     { "id": "merchant", "label": "For Merchants", "labelHa": "Ga 'yan kasuwa", "order": 1, "public": true },

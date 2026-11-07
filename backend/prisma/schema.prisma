@@ -1,5 +1,5 @@
 // ============================================================
-// iPRIME - PRISMA SCHEMA
+// LOGISTICS - PRISMA SCHEMA
 // Single Source of Truth for all data models
 // ============================================================
 
@@ -1391,7 +1391,7 @@ model Banner {
   title    String
   subtitle String?
   imageUrl String
-  deepLink String? /// e.g. `/wallet`, `/utility/airtime`, or `iprime://...`
+  deepLink String? /// e.g. `/wallet`, `/utility/airtime`, or `logistics://...`
   bgColor  String? /// optional accent colour hint for fallback rendering
 
   startsAt DateTime?

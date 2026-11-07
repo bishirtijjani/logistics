@@ -1,7 +1,7 @@
 # Wait for the offer's 60 s timeout without action and verify the sheet
 # dismisses. Acceptance-rate stat should reflect the expiry (server-side
 # offer log row flips to EXPIRED).
-appId: ng.iprime.rider
+appId: ng.logistics.rider
 env:
   RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
   RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}

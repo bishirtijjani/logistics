@@ -1,4 +1,4 @@
-# iPrime Merchant - "Get Started Today" 🎬 Screen-Recording Script
+# Logistics Platform Merchant - "Get Started Today" 🎬 Screen-Recording Script
 
 A complete, click-by-click script for a single screen recording (Captura) that
 walks a brand-new merchant from sign-up to taking their first order and getting
@@ -58,13 +58,13 @@ A brand-new shop has no orders. Pick one:
 
 ### Scene 0 - Cold open / intro  ·  ~20s  ·  *(talk only, login screen on screen)*
 **Say:**
-> "Welcome to iPrime for Merchants. In the next few minutes I'll show you
+> "Welcome to Logistics Platform for Merchants. In the next few minutes I'll show you
 > everything to start selling - sign up, set up your shop, add your products, take
 > orders, and get paid. Let's go."
 
 ---
 
-### Scene 1 - Create your account  ·  ~90s  ·  Screen: `/register` ("Join iPrime")
+### Scene 1 - Create your account  ·  ~90s  ·  Screen: `/register` ("Join Logistics Platform")
 **Do:**
 1. From the login screen, click **"Register as a Merchant"**.
 2. **Step 1 - "Personal Information":** **First Name**, **Last Name**, **Email
@@ -193,7 +193,7 @@ over the list + status filter):
 **Say:**
 > "When a customer orders, it lands here instantly as 'Requested.' Tap the green
 > check to accept, 'Process' while you prepare it, and 'Ready' when it's packed -
-> that calls a rider to pick it up. iPrime handles the rider and delivery from
+> that calls a rider to pick it up. Logistics Platform handles the rider and delivery from
 > there. You can also view details, print a receipt, search, filter, and export."
 
 **Watch out:** if there are **no orders**, the page shows *"No orders found."* -
@@ -223,7 +223,7 @@ payout has a small (~2%) fee, standard is free.
 ### Scene 9 - Wrap  ·  ~20s
 **Say:**
 > "And that's it - you're set up and ready to sell. Add more products whenever you
-> like, watch orders come in, and cash out anytime. Welcome to iPrime - let's get
+> like, watch orders come in, and cash out anytime. Welcome to Logistics Platform - let's get
 > you selling."
 
 ---

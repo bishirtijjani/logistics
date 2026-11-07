@@ -1,4 +1,4 @@
-# iPrime Refund Policy
+# Logistics Platform Refund Policy
 
 **Effective date:** 2026-05-22  
 **Last updated:** {{TODAY}}
@@ -7,8 +7,8 @@
 
 ## 1. What this policy covers
 
-This Refund Policy explains when and how **MH Prime** ("**iPrime**",
-"**we**", "**us**") refunds money you spent through the iPrime customer
+This Refund Policy explains when and how **MH Prime** ("**Logistics Platform**",
+"**we**", "**us**") refunds money you spent through the Logistics Platform customer
 app, rider app, or merchant tools. It applies to every transaction
 type the platform supports:
 
@@ -30,7 +30,7 @@ preserved regardless of what this policy says.
 ## 2. The principle
 
 > **If we didn't deliver what you paid for, you get your money back -
-> usually automatically, and usually to your iPrime wallet within
+> usually automatically, and usually to your Logistics Platform wallet within
 > minutes.**
 
 We don't make you wait, fill in long forms, or chase support for
@@ -41,7 +41,7 @@ the SLA is published below and we stick to it.
 
 ## 3. Automatic refunds (no support ticket needed)
 
-The following scenarios trigger an automatic refund to your iPrime
+The following scenarios trigger an automatic refund to your Logistics Platform
 wallet. You'll receive an in-app notification and a transaction-ledger
 entry confirming the reversal.
 
@@ -56,7 +56,7 @@ entry confirming the reversal.
 | Order cancelled by you before a rider is assigned | Wallet | Instant |
 
 If you don't see the refund within the window above, contact us at
-**contact@iprime.ng** with the transaction ID - we'll investigate the
+**contact@** with the transaction ID - we'll investigate the
 same business day.
 
 ---
@@ -76,7 +76,7 @@ request.
 | Unauthorised transaction on your wallet | 24 hours | Confirmation that you didn't approve it, and any details (time, device) |
 
 To raise one of these, open the order in the customer app and tap
-**"Get help with this order"**, or email **contact@iprime.ng** with the
+**"Get help with this order"**, or email **contact@** with the
 transaction ID. Once approved, the refund hits your wallet within 60
 seconds.
 
@@ -84,7 +84,7 @@ seconds.
 
 ## 5. Withdrawing the refund to a bank account
 
-Refunds always land in your iPrime wallet first. From the wallet, you
+Refunds always land in your Logistics Platform wallet first. From the wallet, you
 can:
 
 - Spend the balance on any product on the platform (deliveries, bills,
@@ -148,7 +148,7 @@ If you funded your wallet by card or bank transfer and want to dispute
 that funding through your bank, you're entitled to do so under your
 bank's rules - this policy does not remove that right. However:
 
-- Raising a chargeback before contacting **contact@iprime.ng** delays
+- Raising a chargeback before contacting **contact@** delays
   resolution by weeks. We can almost always refund a legitimate complaint
   in-app within 24 hours.
 - Chargebacks that turn out to be fraudulent (i.e. you received the value
@@ -162,7 +162,7 @@ bank's rules - this policy does not remove that right. However:
 If you're not happy with how a refund was handled:
 
 1. Reply to the original support thread asking for an escalation.
-2. If still unresolved, email **contact@iprime.ng** with the transaction ID
+2. If still unresolved, email **contact@** with the transaction ID
    and a summary. A senior team member responds within 3 business days.
 3. If you remain unsatisfied, you have the right to refer the matter to
    the **Central Bank of Nigeria Consumer Protection Department** (for
@@ -185,6 +185,6 @@ change.
 
 | Channel | Address |
 |---|---|
-| General refund queries | **contact@iprime.ng** |
-| Escalated disputes | **contact@iprime.ng** |
+| General refund queries | **contact@** |
+| Escalated disputes | **contact@** |
 | In-app | Profile → Help → "Refund a transaction" |

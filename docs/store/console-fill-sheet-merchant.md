@@ -1,4 +1,4 @@
-# Console fill sheet - iPrime Merchant
+# Console fill sheet - Logistics Platform Merchant
 
 Everything you have to type into **App Store Connect** and **Google Play
 Console**, in the order the consoles ask for it, with the exact value to
@@ -22,7 +22,7 @@ You can't fill either form until the app record exists.
 `All apps → Create app`
 | Field | Value |
 |---|---|
-| App name | `iPrime Merchant` |
+| App name | `Logistics Platform Merchant` |
 | Default language | `English (United States)` |
 | App or game | `App` |
 | Free or paid | `Free` |
@@ -33,10 +33,10 @@ You can't fill either form until the app record exists.
 | Field | Value |
 |---|---|
 | Platform | `iOS` |
-| Name | `iPrime Merchant` |
+| Name | `Logistics Platform Merchant` |
 | Primary language | `English (U.S.)` |
-| Bundle ID | `ng.iprime.merchant` (must match `app.json`) |
-| SKU | `NGIPRIMEMERCHANT01` (internal only, never shown, can't be changed) |
+| Bundle ID | `ng.logistics.merchant` (must match `app.json`) |
+| SKU | `NGLOGISTICSMERCHANT01` (internal only, never shown, can't be changed) |
 | User Access | `Full Access` |
 
 ---
@@ -48,16 +48,16 @@ You can't fill either form until the app record exists.
 |---|---|
 | App category | `Business` |
 | Tags | `Business`, `Productivity`, `Finance` |
-| Contact email | TODO: (e.g. `support@iprime.ng`) |
+| Contact email | TODO: (e.g. `support@`) |
 | Contact phone | TODO: |
-| Website | `https://iprime.ng` |
+| Website | `https://` |
 | Countries/regions | `Nigeria` (add more later if you want) |
 
 ### 1.2 Main store listing
 | Field | Limit | Value |
 |---|---|---|
-| App name | 30 | `iPrime Merchant` *(15)* |
-| Short description | 80 | `Run your shop on iPrime. Take orders, track sales, get paid fast.` *(65)* |
+| App name | 30 | `Logistics Platform Merchant` *(15)* |
+| Short description | 80 | `Run your shop on Logistics Platform. Take orders, track sales, get paid fast.` *(65)* |
 | Full description | 4000 | *(the EN full description in `listing-merchant-app.md`)* |
 | App icon | 512×512 PNG | `store-assets/merchant/icon-512.png` |
 | Feature graphic | 1024×500 | `store-assets/merchant/feature-graphic.png` |
@@ -71,7 +71,7 @@ for the name-adjacent text (short + full description from the HA block).
 ### 1.3 App content (the long left-hand list - do all of these)
 | Section | Answer |
 |---|---|
-| **Privacy policy** | `https://iprime.ng/legal/privacy` |
+| **Privacy policy** | `https:///legal/privacy` |
 | **App access** | *"All or some functionality is restricted"* → **Add instructions** → paste the §4 block (demo merchant login) |
 | **Ads** | `No, my app does not contain ads` |
 | **Content rating** | Start questionnaire → category `Utility, Productivity, Communication, or Other` → see §1.4 |
@@ -82,7 +82,7 @@ for the name-adjacent text (short + full description from the HA block).
 | **Financial features** | `Yes` *(wallet, payments, withdrawals)* |
 | **Health apps** | `No` |
 | **COVID-19 contact tracing** | `No` |
-| **Data deletion** | Provide `https://iprime.ng/legal/account-deletion` (or the account-deletion URL the legal site serves) + DPO email |
+| **Data deletion** | Provide `https:///legal/account-deletion` (or the account-deletion URL the legal site serves) + DPO email |
 
 ### 1.4 Content rating questionnaire (IARC)
 Category: `Utility, Productivity, Communication, or Other`
@@ -124,7 +124,7 @@ The merchant/rider/customer apps all land in the same band.
 ### 2.1 App Information
 | Field | Value |
 |---|---|
-| Name | `iPrime Merchant` |
+| Name | `Logistics Platform Merchant` |
 | Subtitle | `Manage orders, get paid fast` *(28)* |
 | Primary category | `Business` |
 | Secondary category | `Finance` *(optional)* |
@@ -144,12 +144,12 @@ The merchant/rider/customer apps all land in the same band.
 | Promotional text | 170 | *(the EN promotional text in `listing-merchant-app.md`)* |
 | Description | 4000 | *(the EN full description)* |
 | Keywords | 100 | `merchant,seller,vendor,shop,business,orders,store,Katsina,Nigeria,wallet,earnings,inventory` |
-| Support URL | - | `https://iprime.ng/support` (TODO: confirm it resolves) |
-| Marketing URL | - | `https://iprime.ng` *(optional)* |
-| Privacy Policy URL | - | `https://iprime.ng/legal/privacy` |
+| Support URL | - | `https:///support` (TODO: confirm it resolves) |
+| Marketing URL | - | `https://` *(optional)* |
+| Privacy Policy URL | - | `https:///legal/privacy` |
 | Version | - | `1.0.0` |
 | Copyright | - | `TODO: 2026 <COMPANY LEGAL NAME>` |
-| What's New | - | `First release. For shop owners and vendors on iPrime in Katsina: accept orders, manage your shop, and get paid - wherever your shop is.` |
+| What's New | - | `First release. For shop owners and vendors on Logistics Platform in Katsina: accept orders, manage your shop, and get paid - wherever your shop is.` |
 | Screenshots iPhone (required slot) | 3–10 | `appstore-merchant-iphone-*` |
 | Screenshots 13" iPad | 3–10 | `appstore-merchant-ipad-*` |
 | App icon 1024 | 1024×1024 | `store-assets/merchant/icon-1024.png` (no alpha) |
@@ -232,7 +232,7 @@ Run `npm run db:seed:merchant` against PROD first, then paste this into
 the password to a dedicated review value before you seed.
 
 ```
-iPrime Merchant is the seller-facing app for shops on the iPrime
+Logistics Platform Merchant is the seller-facing app for shops on the Logistics Platform
 marketplace (Katsina, Nigeria). Native features: email/password login,
 biometric app lock, a live order queue, and push notifications with
 inline Accept / Reject action buttons (a merchant can act on a new
@@ -241,7 +241,7 @@ Settings. The embedded web view is used only for the management
 long-tail - catalogue, analytics, bills.
 
 Sign in with this approved demo merchant:
-  Email:    merchant.review@iprime.ng
+  Email:    merchant.review@
   Password: MerchantReview123!
   PIN:      335577  (needed for wallet withdrawal)
 
@@ -251,7 +251,7 @@ bank transfers; no card or bank-login credentials are stored.
 
 Note: the marketplace is local to Katsina, Nigeria. Registration and
 delivery are geo-fenced to that area - use the demo login above rather
-than registering. Questions: support@iprime.ng
+than registering. Questions: support@
 ```
 
 ---
@@ -272,7 +272,7 @@ than registering. Questions: support@iprime.ng
 
 - [ ] App records created (§0)
 - [ ] Demo merchant seeded to PROD, creds pasted into §4 in both stores
-- [ ] `https://iprime.ng/legal/privacy`, `/legal/terms`,
+- [ ] `https:///legal/privacy`, `/legal/terms`,
       `/legal/account-deletion` all resolve
 - [ ] Support URL + contact email/phone decided
 - [ ] Company legal name + copyright line decided

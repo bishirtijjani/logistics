@@ -14,31 +14,31 @@ const SLUGS = {
     file: "privacy-policy.md",
     title: "Privacy Policy",
     description:
-      "How iPrime collects, uses, stores, and shares your personal data - written for the Nigeria Data Protection Act.",
+      "How Logistics Platform collects, uses, stores, and shares your personal data - written for the Nigeria Data Protection Act.",
   },
   terms: {
     file: "terms-of-service.md",
     title: "Terms of Service",
     description:
-      "The agreement that governs your use of iPrime - wallet, deliveries, and the platform overall.",
+      "The agreement that governs your use of Logistics Platform - wallet, deliveries, and the platform overall.",
   },
   refund: {
     file: "refund-policy.md",
     title: "Refund Policy",
     description:
-      "When and how iPrime refunds money - bill payments, wallet operations, delivery orders, and cancellations.",
+      "When and how Logistics Platform refunds money - bill payments, wallet operations, delivery orders, and cancellations.",
   },
   compliance: {
     file: "compliance.md",
     title: "Compliance Statement",
     description:
-      "How iPrime complies with the NDPA, CBN, FCCPA, and NIPOST rules that apply to a Nigerian wallet and delivery platform.",
+      "How Logistics Platform complies with the NDPA, CBN, FCCPA, and NIPOST rules that apply to a Nigerian wallet and delivery platform.",
   },
   "account-deletion": {
     file: "account-deletion.md",
     title: "Delete your account",
     description:
-      "How to delete your iPrime account, and what data is removed or retained when you do.",
+      "How to delete your Logistics Platform account, and what data is removed or retained when you do.",
   },
 };
 
@@ -92,7 +92,7 @@ export default async function LegalPage({ params }) {
           href="/"
           className="inline-block text-sm font-semibold text-orange-700 hover:underline"
         >
-          ← Back to iPrime
+          ← Back to Logistics Platform
         </Link>
 
         <article className="legal-prose mt-8">

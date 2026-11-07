@@ -1,10 +1,10 @@
 /**
- * Native shell bridge (iPrime Merchant app).
+ * Native shell bridge (Logistics Platform Merchant app).
  *
  * The native app (mobile/merchant-app) loads this dashboard inside a WebView
- * and owns the auth session. It flags itself by setting `window.__IPRIME_NATIVE__`
- * and injecting a `window.__iprimeNativePost(payload)` postMessage helper plus
- * a `window.__iprimeApplyAuth({ token, refreshToken, user })` setter (see the
+ * and owns the auth session. It flags itself by setting `window.__LOGISTICS_NATIVE__`
+ * and injecting a `window.__logisticsNativePost(payload)` postMessage helper plus
+ * a `window.__logisticsApplyAuth({ token, refreshToken, user })` setter (see the
  * app's WebAppScreen injectedJavaScriptBeforeContentLoaded).
  *
  * When running under the native shell:
@@ -16,12 +16,12 @@
  */
 
 export const isNative = () =>
-  typeof window !== 'undefined' && window.__IPRIME_NATIVE__ === true
+  typeof window !== 'undefined' && window.__LOGISTICS_NATIVE__ === true
 
 export const postToNative = (payload) => {
   if (!isNative()) return
   try {
-    window.__iprimeNativePost?.(payload)
+    window.__logisticsNativePost?.(payload)
   } catch {
     // Never let a bridge failure break the web app.
   }
@@ -32,7 +32,7 @@ export const requestNativeRefresh = () => postToNative({ type: 'refresh-request'
 
 /**
  * Ask the native shell to refresh, resolving once fresh tokens have been
- * injected (the shell re-injects then fires `iprime-auth`). Rejects if the
+ * injected (the shell re-injects then fires `logistics-auth`). Rejects if the
  * shell doesn't respond in time - callers should treat that as "session dead".
  */
 export const refreshViaNative = (timeoutMs = 12000) =>
@@ -45,14 +45,14 @@ export const refreshViaNative = (timeoutMs = 12000) =>
     const onAuth = () => {
       if (settled) return
       settled = true
-      window.removeEventListener('iprime-auth', onAuth)
+      window.removeEventListener('logistics-auth', onAuth)
       resolve()
     }
-    window.addEventListener('iprime-auth', onAuth)
+    window.addEventListener('logistics-auth', onAuth)
     window.setTimeout(() => {
       if (settled) return
       settled = true
-      window.removeEventListener('iprime-auth', onAuth)
+      window.removeEventListener('logistics-auth', onAuth)
       reject(new Error('native-refresh-timeout'))
     }, timeoutMs)
     requestNativeRefresh()

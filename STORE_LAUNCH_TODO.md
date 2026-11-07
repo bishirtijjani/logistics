@@ -1,4 +1,4 @@
-# Store Launch TODO - iPrime Rider & Customer apps
+# Store Launch TODO - Logistics Platform Rider & Customer apps
 
 Last reviewed: 2026-06-04
 
@@ -17,19 +17,19 @@ Two parts:
 ### 🔴 Blockers (submission will fail without these)
 
 - [x] **Tooling: one-command approved rider for reviewers.** ✅ DONE
-  `backend/scripts/seed-rider.js` (`npm run db:seed:rider`) creates/refreshes a single APPROVED rider with a PIN set, KYC VERIFIED, and a wallet - idempotent, touches nothing else, safe to run on prod. Default login `rider.review@iprime.ng` / `RiderReview123!` / PIN `224466` (override via env).
+  `backend/scripts/seed-rider.js` (`npm run db:seed:rider`) creates/refreshes a single APPROVED rider with a PIN set, KYC VERIFIED, and a wallet - idempotent, touches nothing else, safe to run on prod. Default login `rider.review@` / `RiderReview123!` / PIN `224466` (override via env).
 - [ ] **Rider: actually run the seed against PROD + put creds in review notes.**
-  Run `npm run db:seed:rider` with `DATABASE_URL` pointed at the **production** DB the store build connects to (`api.iprime.ng`), change the default password, and paste the credentials into App Review notes + Play "App access". (The script ran against local during dev - prod still pending.)
+  Run `npm run db:seed:rider` with `DATABASE_URL` pointed at the **production** DB the store build connects to (`api.`), change the default password, and paste the credentials into App Review notes + Play "App access". (The script ran against local during dev - prod still pending.)
 
 - [ ] **Confirm the store builds point at the right server.**
-  Check the EAS build profiles: `EXPO_PUBLIC_API_URL` must be `https://api.iprime.ng` for production builds (rider app currently defaults to `127.0.0.1:3000` if unset). If it's wrong, the demo login above fails.
+  Check the EAS build profiles: `EXPO_PUBLIC_API_URL` must be `https://api.` for production builds (rider app currently defaults to `127.0.0.1:3000` if unset). If it's wrong, the demo login above fails.
 
 - [x] **Rider: stop collecting documents you don't store.** ✅ RESOLVED (KEEP path taken)
   `POST /rider/register` now persists the full payload: driver's licence (number/url/expiry), vehicle registration (url/expiry), insurance (url/expiry), ID + vehicle photo, plus DOB/address onto the User. Added the `driverLicenceNumber` column (migration `add_driver_licence_number_to_rider`), reconciled the American→British spelling mismatch in the service, and derive `vehicleDocExpiresAt` for the expiry-reminder cron. Verified end-to-end. No more collected-but-discarded data.
   - **Follow-up (not blocking):** confirm the admin rider detail view actually *surfaces* these stored docs so approvers can review them before approving.
 
 - [ ] **Admin ↔ app on the same server.**
-  Admin dashboard `.env` points at `http://api.iprime.ng` while the rider app dev default is local. Make sure admin can actually see/approve riders on the same DB the apps use - otherwise approvals (incl. the demo rider) won't work.
+  Admin dashboard `.env` points at `http://api.` while the rider app dev default is local. Make sure admin can actually see/approve riders on the same DB the apps use - otherwise approvals (incl. the demo rider) won't work.
 
 ### 🟡 Should-fix before launch
 
@@ -42,7 +42,7 @@ Two parts:
   Customers get in immediately (good), but wallet funding needs BVN + Nigerian SMS OTP a reviewer can't complete. Give them a demo account that's already BVN-verified if you want wallet features tested.
 
 - [ ] **Privacy declarations match reality.**
-  Fill the Apple App Privacy label + Play Data Safety form to match what's *actually* collected/stored after the cut/keep decision above. Confirm `iprime.ng/legal/privacy` and `/legal/terms` are live and describe NIN/ID/location/photos.
+  Fill the Apple App Privacy label + Play Data Safety form to match what's *actually* collected/stored after the cut/keep decision above. Confirm `/legal/privacy` and `/legal/terms` are live and describe NIN/ID/location/photos.
 
 ### 🟢 Already done (verified) - no action
 
@@ -91,13 +91,13 @@ These are the BLKs that touch store submission, smallest first:
 
 ---
 
-# iPrime Merchant app (native core + WebView)
+# Logistics Platform Merchant app (native core + WebView)
 
 New app: `mobile/merchant-app`. Native core (auth, Orders, push with
 Accept/Reject action buttons, biometric lock, notifications, settings) +
 embedded WebView for the long-tail screens (Products, Earnings, Pay Bills,
 Analytics, Support, Marketing, Onboarding wizard) loaded from
-`https://merchant.iprime.ng`. The web dashboard's self-refresh is disabled
+`https://merchant.`. The web dashboard's self-refresh is disabled
 under the native shell (single-use rotating refresh token); tokens are fed +
 synced over a JS bridge.
 
@@ -107,12 +107,12 @@ synced over a JS bridge.
       and `REPLACE_WITH_MERCHANT_GOOGLE_MAPS_ANDROID_KEY` with **merchant-specific**
       restricted Google Maps keys (do not reuse the rider/customer key).
 - [ ] `extra.eas.projectId` is empty → run `eas init` in `mobile/merchant-app`
-      (writes the projectId + creates the Sentry project `iprime-merchant`).
+      (writes the projectId + creates the Sentry project `logistics-merchant`).
 - [ ] `eas.json` submit placeholders: set the iOS `appleTeamId` / `ascAppId`
       (or pass via CLI) and drop the Android service-account JSON in place.
-- [ ] Verify the production build points at `https://api.iprime.ng`
+- [ ] Verify the production build points at `https://api.`
       (already set in `eas.json` per profile).
-- [ ] Confirm the remote origin `https://merchant.iprime.ng` is in the backend
+- [ ] Confirm the remote origin `https://merchant.` is in the backend
       `CORS_ALLOWED_ORIGINS` allowlist (it already is).
 
 ## Backend
@@ -131,7 +131,7 @@ synced over a JS bridge.
 - [ ] Apple App Privacy label + Play Data Safety form (same shape as rider:
       location, personal info, financial, photos).
 - [x] In-app account deletion (`DELETE /auth/account`) in native Settings.
-- [x] Privacy Policy + Terms links in native Settings (`iprime.ng/legal/*`).
+- [x] Privacy Policy + Terms links in native Settings (`/legal/*`).
 - [ ] Reviewer demo merchant creds in store review notes.
 - [ ] `eas build --profile production` + `eas submit` (see `docs/store/eas-build-and-submit.md`).
 

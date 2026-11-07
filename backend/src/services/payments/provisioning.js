@@ -13,7 +13,7 @@
  * back, falling back to the other if the active one isn't available yet.
  *
  * Paystack requires the customer's BVN when the business category demands
- * identity validation. iPrime stores only a bcrypt hash of the BVN, so no
+ * identity validation. Logistics Platform stores only a bcrypt hash of the BVN, so no
  * plaintext is available; DVA creation relies on the Paystack account being
  * permitted to create DVAs without per-customer BVN (Logistics category - no
  * validation required). If that changes, assignment fails and the retry path

@@ -19,7 +19,7 @@ let _configured = false;
 if (config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY) {
   try {
     webpush.setVapidDetails(
-      config.VAPID_SUBJECT || 'mailto:hello@iprime.ng',
+      config.VAPID_SUBJECT || 'mailto:hello@',
       config.VAPID_PUBLIC_KEY,
       config.VAPID_PRIVATE_KEY,
     );

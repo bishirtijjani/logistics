@@ -9,7 +9,7 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
+        "EXPO_PUBLIC_API_URL": "https://api.",
         "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "development"
       }
     },
@@ -20,7 +20,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
+        "EXPO_PUBLIC_API_URL": "https://api.",
         "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "staging"
       }
     },
@@ -34,7 +34,7 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
+        "EXPO_PUBLIC_API_URL": "https://api.",
         "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "production"
       }
     }
@@ -42,7 +42,7 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "./iprime-498118-faae7e3aae7d.json",
+        "serviceAccountKeyPath": "./logistics-service-account.json",
         "track": "alpha",
         "releaseStatus": "draft"
       },

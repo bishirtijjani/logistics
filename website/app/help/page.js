@@ -5,7 +5,7 @@ import HelpBrowser from "./HelpBrowser";
 export const metadata = {
   title: "Help Center",
   description:
-    "Step-by-step guides for using iPrime - set up your shop, manage orders, get paid, and more.",
+    "Step-by-step guides for using Logistics Platform - set up your shop, manage orders, get paid, and more.",
   alternates: { canonical: "/help" },
 };
 
@@ -18,10 +18,10 @@ export default async function HelpHome() {
       <header className="bg-white border-b border-gray-200">
         <div className="ui-container flex items-center justify-between h-16">
           <Link href="/" className="font-black text-lg tracking-tight no-underline text-text-primary">
-            iPrime <span className="text-accent">Help</span>
+            Logistics Platform <span className="text-accent">Help</span>
           </Link>
           <Link href="/" className="text-sm font-semibold text-accent no-underline hover:underline">
-            ← Back to iPrime
+            ← Back to Logistics Platform
           </Link>
         </div>
       </header>
@@ -31,7 +31,7 @@ export default async function HelpHome() {
         <span className="ui-eyebrow">Help Center</span>
         <h1 className="ui-title">How can we help?</h1>
         <p className="ui-sub mx-auto">
-          Friendly, step-by-step guides for getting the most out of iPrime.
+          Friendly, step-by-step guides for getting the most out of Logistics Platform.
         </p>
       </section>
 

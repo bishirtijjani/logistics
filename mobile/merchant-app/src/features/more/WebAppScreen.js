@@ -13,7 +13,7 @@ import * as SecureStore from "../../lib/storage";
 import api, { BASE_URL } from "../../services/api";
 import ScreenHeader from "../../components/ScreenHeader";
 
-const WEB_URL = process.env.EXPO_PUBLIC_MERCHANT_WEB_URL || "https://merchant.iprime.ng";
+const WEB_URL = process.env.EXPO_PUBLIC_MERCHANT_WEB_URL || "https://merchant.";
 const DEFAULT_PATH = "/dashboard/orders";
 
 /**
@@ -23,28 +23,28 @@ const DEFAULT_PATH = "/dashboard/orders";
  */
 const BRIDGE_BOOT = `
 (function () {
-  window.__IPRIME_NATIVE__ = true;
-  window.__iprimeNativePost = function (payload) {
+  window.__LOGISTICS_NATIVE__ = true;
+  window.__logisticsNativePost = function (payload) {
     try { window.ReactNativeWebView.postMessage(JSON.stringify(payload)); } catch (e) {}
   };
-  window.__iprimeApplyAuth = function (auth) {
+  window.__logisticsApplyAuth = function (auth) {
     try {
       if (auth && auth.token) localStorage.setItem('token', auth.token);
       if (auth && auth.refreshToken) localStorage.setItem('refreshToken', auth.refreshToken);
       if (auth && auth.user) localStorage.setItem('merchant_user', JSON.stringify(auth.user));
-      window.dispatchEvent(new Event('iprime-auth'));
+      window.dispatchEvent(new Event('logistics-auth'));
     } catch (e) {}
   };
-  window.__iprimeApplyTheme = function (dark) {
+  window.__logisticsApplyTheme = function (dark) {
     try {
       localStorage.setItem('theme', dark ? 'dark' : 'light');
       var el = document.documentElement;
       if (dark) el.classList.add('dark'); else el.classList.remove('dark');
-      window.dispatchEvent(new CustomEvent('iprime-theme', { detail: { dark: !!dark } }));
+      window.dispatchEvent(new CustomEvent('logistics-theme', { detail: { dark: !!dark } }));
     } catch (e) {}
   };
   document.addEventListener('DOMContentLoaded', function () {
-    window.__iprimeNativePost({ type: 'ready' });
+    window.__logisticsNativePost({ type: 'ready' });
   });
 
   // ── Download shim ─────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ const BRIDGE_BOOT = `
           var comma = res.indexOf(',');
           var base64 = comma >= 0 ? res.slice(comma + 1) : '';
           if (!base64) return;
-          window.__iprimeNativePost({
+          window.__logisticsNativePost({
             type: 'download',
             filename: filename || 'download',
             mime: blob.type || 'application/octet-stream',
@@ -92,10 +92,10 @@ true;
 `;
 
 const applyAuth = (auth) =>
-  `window.__iprimeApplyAuth && window.__iprimeApplyAuth(${JSON.stringify(auth)}); true;`;
+  `window.__logisticsApplyAuth && window.__logisticsApplyAuth(${JSON.stringify(auth)}); true;`;
 
 const applyTheme = (dark) =>
-  `window.__iprimeApplyTheme && window.__iprimeApplyTheme(${dark ? "true" : "false"}); true;`;
+  `window.__logisticsApplyTheme && window.__logisticsApplyTheme(${dark ? "true" : "false"}); true;`;
 
 export default function WebAppScreen({ route, navigation }) {
   const { tokens, isDark } = useTheme();

@@ -109,7 +109,7 @@ import ShopsScreen from "../screens/main/ShopsScreen";
 
 const Stack = createNativeStackNavigator();
 
-// react-navigation deep-link config - pairs with the `iprime` scheme in app.json.
+// react-navigation deep-link config - pairs with the `logistics` scheme in app.json.
 // The route paths mirror the conventions in services/notify.service.js so the
 // server can produce a `data.route` like "/request/abc" and either:
 //   - in-app: notificationRoute.routeToScreen handles dispatch via navigation.navigate
@@ -121,12 +121,12 @@ const Stack = createNativeStackNavigator();
 // the same screen names. Profile moved off the tab bar and into a top-level
 // stack screen reachable from the home avatar.
 //
-// Note on scheme: `iprime://` is shared with the rider app - each binary
+// Note on scheme: `logistics://` is shared with the rider app - each binary
 // registers it on its own device. Universal-link domains (https://) are split
-// per role to keep cross-app handoff unambiguous: customer.iprime.ng here,
-// rider.iprime.ng in the rider app.
+// per role to keep cross-app handoff unambiguous: customer. here,
+// rider. in the rider app.
 const NAV_LINKING = {
-  prefixes: ["iprime://", "https://customer.iprime.ng"],
+  prefixes: ["logistics://", "https://customer."],
   config: {
     screens: {
       MainTabs: {
@@ -297,7 +297,7 @@ export default function AppNavigator() {
         return;
       }
       setBioGate("required");
-      const ok = await authenticateWithBiometric("Unlock iPrime");
+      const ok = await authenticateWithBiometric("Unlock Logistics Platform");
       if (cancelled) return;
       setBioGate(ok ? "passed" : "required");
     })();
@@ -307,7 +307,7 @@ export default function AppNavigator() {
   }, [isHydrating, isAuthenticated]);
 
   const retryBiometric = async () => {
-    const ok = await authenticateWithBiometric("Unlock iPrime");
+    const ok = await authenticateWithBiometric("Unlock Logistics Platform");
     if (ok) setBioGate("passed");
   };
 

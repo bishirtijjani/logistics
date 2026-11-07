@@ -1,6 +1,6 @@
 /**
  * Geo-restriction (web) - keeps the map view inside the operating area
- * (currently Katsina State). Place SEARCH is biased + gated on the backend
+ * (currently ). Place SEARCH is biased + gated on the backend
  * (config/geo-restriction.js, which also returns `outOfArea` on resolved
  * coordinates); this file snaps the map centre / pin back to the nearest
  * in-area point when a user pans outside, and exposes the boundary so the
@@ -13,7 +13,7 @@
  * EASY UNDO: set `enabled: false` and the map roams freely again.
  */
 
-// Katsina State outer boundary, [lng, lat] pairs, closed ring. Mirror of the
+//  outer boundary, [lng, lat] pairs, closed ring. Mirror of the
 // backend polygon in backend/src/config/geo-restriction.js - keep them in sync.
 const POLYGON = [
   [6.8894,11.3836], [7.0062,11.3618], [7.0087,11.2938], [6.9677,11.2452], [7.069,11.2033], [7.1521,11.1288],

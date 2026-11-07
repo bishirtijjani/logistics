@@ -1,5 +1,5 @@
 # Switch language to Hausa and verify the primary UI strings flip.
-appId: ng.iprime.rider
+appId: ng.logistics.rider
 env:
   RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
   RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}

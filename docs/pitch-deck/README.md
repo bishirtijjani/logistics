@@ -1,7 +1,7 @@
-# iPrime pitch deck — Founders Friday
+# Logistics Platform pitch deck — Founders Friday
 
 Self-contained web deck. All images are embedded as data URIs, so
-`iprime-founders-friday.html` runs offline from any machine — just open it
+`logistics-founders-friday.html` runs offline from any machine — just open it
 in a browser. No build step, no assets folder, no network needed.
 
 ## Published artifact
@@ -49,7 +49,7 @@ for the Q&A that follows.
   slide so they can be argued with. Confirm they match what is actually intended.
 - **Phase-1 numbers on slide 10** (50 riders, 100 merchants) are estimates.
 
-Slide 7 states plainly that iPrime is pre-launch with no public users, and
+Slide 7 states plainly that Logistics Platform is pre-launch with no public users, and
 every forward figure after it is labelled a projection. Keep that framing.
 
 ## Figures that are real, not estimated

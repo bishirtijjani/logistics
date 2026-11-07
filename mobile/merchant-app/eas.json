@@ -9,8 +9,8 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
-        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
+        "EXPO_PUBLIC_API_URL": "https://api.",
+        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.",
         "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "development",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
@@ -22,8 +22,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
-        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
+        "EXPO_PUBLIC_API_URL": "https://api.",
+        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.",
         "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "staging",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
@@ -38,8 +38,8 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.iprime.ng",
-        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.iprime.ng",
+        "EXPO_PUBLIC_API_URL": "https://api.",
+        "EXPO_PUBLIC_MERCHANT_WEB_URL": "https://merchant.",
         "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "production",
         "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
@@ -48,7 +48,7 @@
   "submit": {
     "production": {
       "android": {
-        "serviceAccountKeyPath": "./iprime-498118-faae7e3aae7d.json",
+        "serviceAccountKeyPath": "./logistics-service-account.json",
         "track": "alpha",
         "releaseStatus": "draft"
       },

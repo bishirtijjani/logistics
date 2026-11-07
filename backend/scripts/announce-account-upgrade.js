@@ -24,9 +24,9 @@
  *
  * Usage (from backend/, with live .env):
  *   ENV_FILE=/path/to/.env node scripts/announce-account-upgrade.js --test \
- *     --emails customer@codeket.com,rider@codeket.com --dry-run      # report
+ *     --emails customer@,rider@ --dry-run      # report
  *   ENV_FILE=/path/to/.env node scripts/announce-account-upgrade.js --test \
- *     --emails customer@codeket.com,rider@codeket.com                # live test
+ *     --emails customer@,rider@                # live test
  *   ENV_FILE=/path/to/.env node scripts/announce-account-upgrade.js --blast --yes
  *   LIMIT=10 DELAY_MS=250 node scripts/announce-account-upgrade.js --blast --yes
  */
@@ -124,7 +124,7 @@ const emailHtmlFor = ({ firstName, accountNumber, bankName }) => {
               </tr>
               <tr>
                 <td style="padding:0 32px 32px;color:#6b7280;font-size:13px;line-height:1.6;">
-                  Warm regards,<br>The iPrime Team
+                  Warm regards,<br>The Logistics Platform Team
                 </td>
               </tr>
             </table>
@@ -139,7 +139,7 @@ const emailHtmlFor = ({ firstName, accountNumber, bankName }) => {
 const textFor = ({ firstName, accountNumber, bankName }) => {
   const start = `Hi ${firstName || 'there'},\n\nWe've been working behind the scenes to make wallet top-ups smoother and more reliable. As part of that upgrade, your personal top-up account now has a brand-new number and bank.`;
   const numberLine = accountNumber ? `\n\nYour new top-up account:\n${accountNumber}${bankName ? ` (${bankName})` : ''}\n\nUse this number for wallet top-ups.` : '';
-  const rest = `\n\nOpen the app and head to Wallet → Fund to see it anytime, and update it wherever you've saved your top-up details so nothing ever gets delayed. If you recently sent money to your old number, no worries at all — everything's already been handled on our side.\n\nYour balance, transaction history, and the rest of your experience stay exactly the same. Questions? Just reply — we're happy to help.\n\nWarm regards,\nThe iPrime Team`;
+  const rest = `\n\nOpen the app and head to Wallet → Fund to see it anytime, and update it wherever you've saved your top-up details so nothing ever gets delayed. If you recently sent money to your old number, no worries at all — everything's already been handled on our side.\n\nYour balance, transaction history, and the rest of your experience stay exactly the same. Questions? Just reply — we're happy to help.\n\nWarm regards,\nThe Logistics Platform Team`;
   return start + numberLine + rest;
 };
 

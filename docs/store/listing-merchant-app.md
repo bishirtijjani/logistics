@@ -1,19 +1,19 @@
-# Store listing - iPrime Merchant
+# Store listing - Logistics Platform Merchant
 
 Copy for the App Store + Google Play submission of the merchant-facing
 binary. Audience is shop owners and vendors in Katsina running their
-business on iPrime - accept orders, manage the shop, get paid.
+business on Logistics Platform - accept orders, manage the shop, get paid.
 
 ## English
 
 ### App name (≤ 30 chars)
-`iPrime Merchant`  *(15 chars)*
+`Logistics Platform Merchant`  *(15 chars)*
 
 ### Subtitle (App Store, ≤ 30 chars)
 `Manage orders, get paid fast`  *(28 chars)*
 
 ### Short description (Google Play, ≤ 80 chars)
-`Run your shop on iPrime. Take orders, track sales, get paid fast.`  *(65 chars)*
+`Run your shop on Logistics Platform. Take orders, track sales, get paid fast.`  *(65 chars)*
 
 ### Promotional text (App Store, ≤ 170 chars)
 `Accept new orders, manage your products and stock, track your earnings, and withdraw to any Nigerian bank - all from your phone, wherever your shop is.`
@@ -23,7 +23,7 @@ business on iPrime - accept orders, manage the shop, get paid.
 
 ### Full description
 
-> iPrime Merchant is the work app for shop owners and vendors selling on iPrime in Katsina State. Get your orders the moment they land, accept or decline in one tap, manage your catalogue, and watch the money reach your wallet.
+> Logistics Platform Merchant is the work app for shop owners and vendors selling on Logistics Platform in . Get your orders the moment they land, accept or decline in one tap, manage your catalogue, and watch the money reach your wallet.
 
 **Never miss an order**
 - New-order push with inline **Accept** / **Reject** actions - act straight from the notification tray, no need to open the app
@@ -43,10 +43,10 @@ business on iPrime - accept orders, manage the shop, get paid.
 
 **More than orders**
 - Pay bills and buy airtime/data directly from the app
-- In-app support and dispute handling with the iPrime team
+- In-app support and dispute handling with the Logistics Platform team
 - Marketing tools to reach more customers nearby
 
-**Sell on iPrime**
+**Sell on Logistics Platform**
 - Merchants complete a short onboarding and KYC review
 - Approval typically within 1-2 working days
 - Built for real shop owners - upload your products, set your hours, go live
@@ -61,13 +61,13 @@ business on iPrime - accept orders, manage the shop, get paid.
 ## Hausa (HA)
 
 ### App name
-`iPrime Merchant`  *(unchanged - proper noun)*
+`Logistics Platform Merchant`  *(unchanged - proper noun)*
 
 ### Subtitle (App Store)
 `Sarrafa oda, sami biya da wuri`  *(30 chars)*
 
 ### Short description (Google Play, ≤ 80 chars)
-`Gudanar da shagonka a iPrime. Karɓi oda, duba tallace-tallace, sami biya.`
+`Gudanar da shagonka a Logistics Platform. Karɓi oda, duba tallace-tallace, sami biya.`
 
 ### Promotional text (App Store)
 `Karɓi sabbin oda, sarrafa kayayyakinka da ajiya, duba kuɗin shiga, kuma cire kuɗi zuwa kowane banki na Nijeriya - duk daga wayarka.`
@@ -77,7 +77,7 @@ business on iPrime - accept orders, manage the shop, get paid.
 
 ### Full description
 
-> iPrime Merchant shi ne app ɗin aiki ga masu shago da dillalai da ke sayarwa a iPrime a Jihar Katsina. Sami odarka da zarar ta shigo, karɓa ko ƙi da taɓawa ɗaya, sarrafa kayayyakinka, kuma duba kuɗin yana shiga walatka.
+> Logistics Platform Merchant shi ne app ɗin aiki ga masu shago da dillalai da ke sayarwa a Logistics Platform a Jihar Katsina. Sami odarka da zarar ta shigo, karɓa ko ƙi da taɓawa ɗaya, sarrafa kayayyakinka, kuma duba kuɗin yana shiga walatka.
 
 **Kada ka rasa oda**
 - Sanarwar sabon oda tare da maɓallin **Karɓa** / **Ƙi** kai tsaye - yi aiki daga sanarwar, ba sai ka buɗe app ɗin ba
@@ -97,10 +97,10 @@ business on iPrime - accept orders, manage the shop, get paid.
 
 **Fiye da oda**
 - Biya kuɗin sabis da sayan caji/data kai tsaye daga app ɗin
-- Tallafi da warware takaddama tare da ƙungiyar iPrime cikin app
+- Tallafi da warware takaddama tare da ƙungiyar Logistics Platform cikin app
 - Kayan aikin tallatawa don isa ga ƙarin abokan ciniki kusa
 
-**Sayarwa a iPrime**
+**Sayarwa a Logistics Platform**
 - Dillalai suna kammala ɗan gajeren rajista da tantancewar KYC
 - Yarda yawanci cikin kwanaki 1-2 na aiki
 - An gina shi domin ainihin masu shago - ɗora kayayyakinka, saita awanninka, fara aiki

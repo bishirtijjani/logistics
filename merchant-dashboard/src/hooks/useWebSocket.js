@@ -71,7 +71,7 @@ export function useWebSocket(merchantId) {
     const token = localStorage.getItem('token')
     if (!token) return undefined
 
-    // API_URL is the REST base (e.g. https://api.iprime.ng in prod,
+    // API_URL is the REST base (e.g. https://api. in prod,
     // http://localhost:3000 in dev). Socket.io connects to the same origin
     // over its own /socket.io handshake - no custom path needed. Auth goes in
     // the handshake `auth` payload, where the server's middleware reads it.

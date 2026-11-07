@@ -158,7 +158,7 @@ phone frame**. Keep these short - 4–7 words. Suggested set:
 
 6. **Feature graphic** (Play Store only).
    - 1024 × 500 banner.
-   - The simplest version: brand-orange background, the iPrime logo lockup centered, tagline below ("Wallet, deliveries, bills - Katsina.").
+   - The simplest version: brand-orange background, the Logistics Platform logo lockup centered, tagline below ("Wallet, deliveries, bills - Katsina.").
    - Avoid putting screenshots inside the feature graphic - they get tiny.
 
 ---

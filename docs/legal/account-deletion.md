@@ -1,10 +1,10 @@
-# Delete your iPrime account
+# Delete your Logistics Platform account
 
 **Last updated:** {{TODAY}}
 
-This page explains how to delete your **iPrime** account and what happens to
-your data when you do. It applies to both the **iPrime customer app** and the
-**iPrime rider app**, operated by **MH Prime**.
+This page explains how to delete your **Logistics Platform** account and what happens to
+your data when you do. It applies to both the **Logistics Platform customer app** and the
+**Logistics Platform rider app**, operated by **MH Prime**.
 
 ---
 
@@ -12,7 +12,7 @@ your data when you do. It applies to both the **iPrime customer app** and the
 
 ### Option 1 - In the app (fastest)
 
-1. Open the iPrime app and sign in.
+1. Open the Logistics Platform app and sign in.
 2. Go to **Profile → Settings**.
 3. Tap **Delete account**.
 4. Confirm when prompted. Your account is deleted immediately once the checks
@@ -53,7 +53,7 @@ Your account is then deactivated and can no longer be used to sign in.
 
 ## What is kept, and for how long
 
-Because iPrime provides a wallet and processes payments, Nigerian law (including
+Because Logistics Platform provides a wallet and processes payments, Nigerian law (including
 **Central Bank of Nigeria** rules and the **Nigeria Data Protection Act, 2023**)
 requires us to retain certain **financial and transaction records** even after
 your account is deleted. These records are kept in a **de-identified** form

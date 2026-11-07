@@ -1,7 +1,7 @@
 # Withdraw to a saved beneficiary; PIN bottom sheet authorises the transfer.
 # Idempotency key is set internally - re-running this flow within seconds
 # should NOT double-charge.
-appId: ng.iprime.rider
+appId: ng.logistics.rider
 env:
   RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
   RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}

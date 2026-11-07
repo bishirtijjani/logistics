@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "ng.iprime.customer",
+      "package_name": "ng.logistics.customer",
       "sha256_cert_fingerprints": ["REPLACE_WITH_ANDROID_SHA256_FINGERPRINT_FROM_EAS"]
     }
   },
@@ -11,7 +11,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "ng.iprime.rider",
+      "package_name": "ng.logistics.rider",
       "sha256_cert_fingerprints": ["REPLACE_WITH_ANDROID_SHA256_FINGERPRINT_FROM_EAS"]
     }
   }

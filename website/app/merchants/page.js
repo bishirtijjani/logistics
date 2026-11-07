@@ -21,7 +21,7 @@ import Footer from "../components/Footer";
 export const metadata = {
   title: "For merchants",
   description:
-    "List your restaurant, supermarket, pharmacy, or retail shop on iPrime. Daily payouts, integrated riders, no fixed monthly fee - sign up from your phone.",
+    "List your restaurant, supermarket, pharmacy, or retail shop on Logistics Platform. Daily payouts, integrated riders, no fixed monthly fee - sign up from your phone.",
   alternates: { canonical: "/merchants" },
 };
 
@@ -29,7 +29,7 @@ const verticals = [
   {
     Icon: ChefHat,
     title: "Restaurants & street food",
-    body: "From buka kitchens to QSR chains. We surface your menu, photograph hero items, and route every order to a nearby iPrime rider for pickup.",
+    body: "From buka kitchens to QSR chains. We surface your menu, photograph hero items, and route every order to a nearby Logistics Platform rider for pickup.",
   },
   {
     Icon: ShoppingCart,
@@ -57,12 +57,12 @@ const benefits = [
   {
     Icon: BadgeDollarSign,
     title: "No fixed monthly fee.",
-    body: "We earn only when you do - a percentage commission on the orders iPrime actually delivers. Slow week? You pay nothing.",
+    body: "We earn only when you do - a percentage commission on the orders Logistics Platform actually delivers. Slow week? You pay nothing.",
   },
   {
     Icon: Truck,
     title: "Riders included, no fleet to manage.",
-    body: "Every accepted order is auto-routed to a vetted iPrime rider nearby. You don't hire drivers, manage helmets, or chase missing parcels - we handle that side end-to-end.",
+    body: "Every accepted order is auto-routed to a vetted Logistics Platform rider nearby. You don't hire drivers, manage helmets, or chase missing parcels - we handle that side end-to-end.",
   },
   {
     Icon: TrendingUp,
@@ -85,7 +85,7 @@ const steps = [
   {
     n: "03",
     title: "Accept your first orders.",
-    body: "Orders come into the iPrime Merchant app. You confirm, prepare, hand off to the assigned rider, and the customer gets a live track to their door.",
+    body: "Orders come into the Logistics Platform Merchant app. You confirm, prepare, hand off to the assigned rider, and the customer gets a live track to their door.",
   },
   {
     n: "04",
@@ -98,7 +98,7 @@ const requirements = [
   "Your business is registered with CAC (RC or BN) - or you have a clear plan to be within 30 days.",
   "A bank account in the business's name (or the proprietor's, for a BN).",
   "Where applicable: NAFDAC registration for pharmacy and packaged food categories; valid pharmacist licence for prescription dispensing.",
-  "A smartphone (Android 9+ / iOS 14+) running the iPrime Merchant app.",
+  "A smartphone (Android 9+ / iOS 14+) running the Logistics Platform Merchant app.",
   "Willingness to keep menu / availability honest in real time - accurate stock is the #1 driver of repeat customers.",
 ];
 
@@ -130,13 +130,13 @@ export default function MerchantsPage() {
               </h1>
               <p className="text-lg md:text-xl text-white/80 font-medium leading-relaxed max-w-2xl mb-8">
                 Plug your restaurant, supermarket, pharmacy, or retail shop
-                into the iPrime customer base. We handle delivery, payment,
+                into the Logistics Platform customer base. We handle delivery, payment,
                 and customer support - you focus on what you make.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="https://merchant.iprime.ng/register"
+                  href="https://merchant./register"
                   className="ui-btn ui-btn-primary"
                 >
                   Register your business
@@ -192,7 +192,7 @@ export default function MerchantsPage() {
         <section className="ui-section bg-bg-secondary">
           <div className="ui-container">
             <header className="max-w-2xl mb-12">
-              <span className="ui-eyebrow">Why merchants choose iPrime</span>
+              <span className="ui-eyebrow">Why merchants choose Logistics Platform</span>
               <h2 className="ui-title">
                 Four reasons,{" "}
                 <span className="text-accent">in plain terms.</span>
@@ -335,7 +335,7 @@ export default function MerchantsPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="https://merchant.iprime.ng/register"
+                    href="https://merchant./register"
                     className="ui-btn ui-btn-primary"
                   >
                     Register your business
@@ -347,7 +347,7 @@ export default function MerchantsPage() {
                   </Link>
                 </div>
                 <p className="mt-6 text-sm text-white/60 font-medium">
-                  New to selling on iPrime?{" "}
+                  New to selling on Logistics Platform?{" "}
                   <Link
                     href="/help"
                     className="text-accent font-semibold hover:underline"

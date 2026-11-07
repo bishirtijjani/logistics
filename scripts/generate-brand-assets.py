@@ -1,4 +1,4 @@
-"""Generate iPrime brand assets (app icons, splash, favicon) for both mobile apps.
+"""Generate Logistics Platform brand assets (app icons, splash, favicon) for both mobile apps.
 
 Re-run this whenever the brand colors or wordmark need to change.
 
@@ -21,7 +21,7 @@ FONT_PATH = (
 ORANGE = (234, 88, 12, 255)        # #EA580C - already used for notifications + website themeColor
 WHITE = (255, 255, 255, 255)
 TRANSPARENT = (0, 0, 0, 0)
-WORDMARK = "iPrime"   # Full lettermark - used on every surface (icon, splash, favicon).
+WORDMARK = "Logistics Platform"   # Full lettermark - used on every surface (icon, splash, favicon).
 
 
 def fit_font(text: str, font_path: Path, max_w: int, max_h: int) -> ImageFont.FreeTypeFont:
@@ -55,14 +55,14 @@ def draw_centered(img: Image.Image, text: str, color, font_path: Path, width_rat
 
 
 def make_icon(size: int = 1024) -> Image.Image:
-    """App icon: solid orange canvas, white "iPrime" wordmark. No transparency (iOS rejects it)."""
+    """App icon: solid orange canvas, white "Logistics Platform" wordmark. No transparency (iOS rejects it)."""
     img = Image.new("RGBA", (size, size), ORANGE)
     draw_centered(img, WORDMARK, WHITE, FONT_PATH, width_ratio=0.72)
     return img.convert("RGB")  # iOS icons must be opaque RGB
 
 
 def make_adaptive_icon(size: int = 1024) -> Image.Image:
-    """Android adaptive icon foreground: white "iPrime" wordmark on transparent.
+    """Android adaptive icon foreground: white "Logistics Platform" wordmark on transparent.
 
     The 432/1024 ≈ 0.42 inner region is the documented Android safe area; everything
     outside may be cropped to a circle/squircle by the launcher, so we keep the mark
@@ -75,7 +75,7 @@ def make_adaptive_icon(size: int = 1024) -> Image.Image:
 
 
 def make_splash_icon(size: int = 1024) -> Image.Image:
-    """Splash centerpiece: white iPrime wordmark on transparent.
+    """Splash centerpiece: white Logistics Platform wordmark on transparent.
 
     Composites against app.json's splash.backgroundColor (#EA580C) for a solid
     orange brand splash with white wordmark - matches the iOS icon treatment.
@@ -104,7 +104,7 @@ def main() -> None:
 
     # NOTE: merchant-app icons are owned by store-assets/generator (they carry a
     # distinct MERCHANT lockup) - do NOT add it here or this script will clobber
-    # them with the plain iPrime mark.
+    # them with the plain Logistics Platform mark.
     mobile_targets = [
         ROOT / "mobile" / "customer-app" / "assets",
         ROOT / "mobile" / "rider-app" / "assets",

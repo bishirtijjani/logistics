@@ -1,7 +1,7 @@
 # Getting help: support and disputes
 
 Stuck on something, or a customer has raised an issue? The **Support** page is
-your direct line to the iPrime team. It has four tabs: **My Tickets**,
+your direct line to the Logistics Platform team. It has four tabs: **My Tickets**,
 **Disputes**, **FAQ**, and **Knowledge Base**.
 
 ![The Support page](/help/screenshots/merchant/support.png)
@@ -51,6 +51,6 @@ common questions are answered there instantly, no waiting required.
 
 ---
 
-You can also reach us anytime by email at **support@iprime.ng**.
+You can also reach us anytime by email at **support@**.
 
 **Next:** [Troubleshooting & FAQ](/help/merchant/troubleshooting)

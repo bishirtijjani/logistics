@@ -108,7 +108,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 24 }}>
-          <Text style={{ color: tokens.text.muted }}>{t("auth.noAccount", "New to iPrime? ")}</Text>
+          <Text style={{ color: tokens.text.muted }}>{t("auth.noAccount", "New to Logistics Platform? ")}</Text>
           <TouchableOpacity onPress={() => navigation.navigate("Register")}>
             <Text style={{ color: tokens.brand.strong, fontWeight: "800" }}>
               {t("auth.registerCta", "Register your store")}

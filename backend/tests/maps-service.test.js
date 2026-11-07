@@ -142,7 +142,7 @@ test('geocodeAddress: returns lat/lng + placeId for a valid address', async () =
   assert.equal(
     lastRequest.params.components,
     'country:NG|administrative_area:Katsina',
-    'must scope to Katsina State',
+    'must scope to ',
   );
 });
 
@@ -171,7 +171,7 @@ test('reverseGeocode: returns formatted address for valid coords', async () => {
 
 test('reverseGeocode: flags a point outside the operating polygon', async () => {
   resetState();
-  // Lagos - well outside Katsina State.
+  // Lagos - well outside .
   queueResp({ results: [{ formatted_address: 'Lagos, Nigeria', place_id: 'ChIJlagos' }] });
   const out = await mapsService.reverseGeocode(6.5244, 3.3792);
   assert.equal(out.outOfArea, true, 'Lagos must be flagged out of area');

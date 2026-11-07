@@ -31,7 +31,7 @@ import * as Location from 'expo-location';
 import axios from 'axios';
 import * as SecureStore from '../lib/storage';
 
-export const BACKGROUND_LOCATION_TASK = 'iprime-rider-background-location';
+export const BACKGROUND_LOCATION_TASK = 'logistics-rider-background-location';
 
 const IS_NATIVE = Platform.OS !== 'web';
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:3000';
@@ -131,7 +131,7 @@ export async function startBackgroundLocation() {
       // the process while the rider is minimised. Users can swipe this away;
       // the FGS keeps running regardless.
       foregroundService: {
-        notificationTitle: 'iPrime Rider is online',
+        notificationTitle: 'Logistics Platform Rider is online',
         notificationBody: 'Receiving jobs near you - keep this running while you work.',
         notificationColor: '#EA580C',
       },

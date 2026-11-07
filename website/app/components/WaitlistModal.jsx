@@ -8,12 +8,12 @@ import Honeypot from "./Honeypot";
 const COPY = {
   CUSTOMER: {
     eyebrow: "Customer waitlist",
-    title: "The iPrime app isn't in the stores yet.",
+    title: "The Logistics Platform app isn't in the stores yet.",
     body: "Drop your details and we'll text you the moment it goes live in Katsina.",
   },
   RIDER: {
     eyebrow: "Rider waitlist",
-    title: "The iPrime Rider app isn't in the stores yet.",
+    title: "The Logistics Platform Rider app isn't in the stores yet.",
     body: "Leave your details and we'll be in touch as soon as onboarding opens for new riders.",
   },
   UNKNOWN: {

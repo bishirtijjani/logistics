@@ -18,7 +18,7 @@ import RiderDownloadButtons from "../components/RiderDownloadButtons";
 export const metadata = {
   title: "For riders",
   description:
-    "Earn delivering for iPrime in Katsina. Choose your hours, accept jobs near you, and withdraw to your bank the same day. Apply through the iPrime Rider app.",
+    "Earn delivering for Logistics Platform in Katsina. Choose your hours, accept jobs near you, and withdraw to your bank the same day. Apply through the Logistics Platform Rider app.",
   alternates: { canonical: "/riders" },
 };
 
@@ -31,12 +31,12 @@ const earnings = [
   {
     Icon: Wallet,
     title: "Instant payout to your wallet.",
-    body: "Your earnings hit your iPrime Rider wallet the moment a customer marks the order delivered. No 30-day pay cycle; no waiting for end-of-week settlement.",
+    body: "Your earnings hit your Logistics Platform Rider wallet the moment a customer marks the order delivered. No 30-day pay cycle; no waiting for end-of-week settlement.",
   },
   {
     Icon: Star,
     title: "Tips, all yours.",
-    body: "Customers can add a tip after delivery. Every naira of every tip goes directly to you - iPrime takes 0% on tips.",
+    body: "Customers can add a tip after delivery. Every naira of every tip goes directly to you - Logistics Platform takes 0% on tips.",
   },
   {
     Icon: Clock,
@@ -67,7 +67,7 @@ const onboarding = [
   {
     n: "01",
     title: "Download the app & sign up.",
-    body: "iPrime Rider is on iOS and Android. Create an account with your phone number; you'll go through OTP verification.",
+    body: "Logistics Platform Rider is on iOS and Android. Create an account with your phone number; you'll go through OTP verification.",
   },
   {
     n: "02",
@@ -77,7 +77,7 @@ const onboarding = [
   {
     n: "03",
     title: "Complete the safety briefing.",
-    body: "A short in-app walkthrough covers helmet rules, customer etiquette, and the iPrime rider Code of Conduct. Mandatory before your first job.",
+    body: "A short in-app walkthrough covers helmet rules, customer etiquette, and the Logistics Platform rider Code of Conduct. Mandatory before your first job.",
   },
   {
     n: "04",
@@ -123,7 +123,7 @@ export default function RidersPage() {
                 <span className="text-accent">Get paid same-day.</span>
               </h1>
               <p className="text-lg md:text-xl text-white/80 font-medium leading-relaxed max-w-2xl mb-8">
-                iPrime is a delivery platform for independent motorcycle
+                Logistics Platform is a delivery platform for independent motorcycle
                 riders in Katsina. Accept jobs near you, deliver, and watch
                 your earnings land in your wallet the second the customer
                 receives the order. Withdraw to any Nigerian bank, anytime.
@@ -144,7 +144,7 @@ export default function RidersPage() {
               </h2>
               <p className="ui-sub">
                 We're a platform that connects you to delivery work -
-                you're an independent contractor, not an iPrime employee.
+                you're an independent contractor, not an Logistics Platform employee.
                 That means flexibility, and it also means you keep what you
                 earn.
               </p>
@@ -259,7 +259,7 @@ export default function RidersPage() {
                   <span className="text-accent">to start riding.</span>
                 </h2>
                 <p className="text-base md:text-lg text-gray-500 font-medium leading-relaxed mb-6">
-                  iPrime is for independent riders. You bring your bike, your
+                  Logistics Platform is for independent riders. You bring your bike, your
                   licence, and your time; we bring the customers, the
                   navigation, and the payout rail. If you're missing
                   one of the items on this list, ask us - we may be able to

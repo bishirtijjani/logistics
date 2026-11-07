@@ -16,54 +16,54 @@ import Footer from "../components/Footer";
 export const metadata = {
   title: "Press & Media",
   description:
-    "Press kit for iPrime - Katsina's delivery, wallet, and bill payment app. Boilerplate, brand assets, fast facts, and a direct media contact.",
+    "Press kit for Logistics Platform - Katsina's delivery, wallet, and bill payment app. Boilerplate, brand assets, fast facts, and a direct media contact.",
   alternates: { canonical: "/press" },
 };
 
 const facts = [
   { Icon: MapPin, label: "Headquarters", value: "Katsina, Nigeria" },
   { Icon: Calendar, label: "Founded", value: "2025" },
-  { Icon: Truck, label: "Service area", value: "Katsina State" },
+  { Icon: Truck, label: "Service area", value: "" },
   { Icon: Wallet, label: "Core products", value: "Delivery · Wallet · Bills" },
   { Icon: Smartphone, label: "Apps", value: "Customer · Rider · Merchant" },
-  { Icon: Mail, label: "Press contact", value: "press@iprime.ng" },
+  { Icon: Mail, label: "Press contact", value: "press@" },
 ];
 
 const oneLiners = [
   {
     label: "Twitter bio (160 chars)",
-    text: "iPrime - order anything, track it live, and pay every bill from one wallet. Built in Katsina, for Katsina.",
+    text: "Logistics Platform - order anything, track it live, and pay every bill from one wallet. Built in Katsina, for Katsina.",
   },
   {
     label: "Short boilerplate (40 words)",
-    text: "iPrime is Katsina's home-grown delivery and wallet super-app. Customers order food, groceries, pharmacy, and parcels with live rider tracking - and pay airtime, data, and electricity bills from the same balance.",
+    text: "Logistics Platform is Katsina's home-grown delivery and wallet super-app. Customers order food, groceries, pharmacy, and parcels with live rider tracking - and pay airtime, data, and electricity bills from the same balance.",
   },
   {
     label: "Long boilerplate (90 words)",
-    text: "iPrime is a logistics and payments platform serving Katsina State, Nigeria. The customer app connects households to local restaurants, supermarkets, pharmacies, and independent riders for door-to-door delivery, while a built-in wallet handles airtime top-ups, data bundles, electricity bill payments, and TV subscriptions. Independent riders earn through the iPrime Rider app, and local businesses sell through the iPrime Merchant tools. The company is headquartered in Katsina and operates under Nigerian Data Protection Act 2023 and Central Bank of Nigeria regulations for wallet services.",
+    text: "Logistics Platform is a logistics and payments platform serving . The customer app connects households to local restaurants, supermarkets, pharmacies, and independent riders for door-to-door delivery, while a built-in wallet handles airtime top-ups, data bundles, electricity bill payments, and TV subscriptions. Independent riders earn through the Logistics Platform Rider app, and local businesses sell through the Logistics Platform Merchant tools. The company is headquartered in Katsina and operates under Nigerian Data Protection Act 2023 and Central Bank of Nigeria regulations for wallet services.",
   },
 ];
 
 const assets = [
   {
     title: "Logo - primary (PNG)",
-    desc: "Burnt-orange iPrime mark on transparent background.",
-    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20logo%20request",
+    desc: "Burnt-orange Logistics Platform mark on transparent background.",
+    href: "mailto:press@?subject=Press%20kit%20%E2%80%94%20logo%20request",
   },
   {
     title: "Logo - monochrome (SVG)",
     desc: "Single-colour SVG for print and dark backgrounds.",
-    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20logo%20request",
+    href: "mailto:press@?subject=Press%20kit%20%E2%80%94%20logo%20request",
   },
   {
     title: "App screenshots",
     desc: "Customer, rider, and merchant app shots at 3x retina.",
-    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20screenshots",
+    href: "mailto:press@?subject=Press%20kit%20%E2%80%94%20screenshots",
   },
   {
     title: "Founder headshots",
     desc: "High-res portraits for editorial use.",
-    href: "mailto:press@iprime.ng?subject=Press%20kit%20%E2%80%94%20headshots",
+    href: "mailto:press@?subject=Press%20kit%20%E2%80%94%20headshots",
   },
 ];
 
@@ -89,10 +89,10 @@ export default function PressPage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <a
-                  href="mailto:press@iprime.ng?subject=Press%20enquiry"
+                  href="mailto:press@?subject=Press%20enquiry"
                   className="ui-btn ui-btn-primary"
                 >
-                  Email press@iprime.ng
+                  Email press@
                   <ArrowRight size={16} strokeWidth={2.5} />
                 </a>
                 <a href="#assets" className="ui-btn ui-btn-ghost">
@@ -145,7 +145,7 @@ export default function PressPage() {
                 <span className="text-accent">company copy.</span>
               </h2>
               <p className="ui-sub">
-                Use whichever fits your word count. Cite as &quot;iPrime&quot;
+                Use whichever fits your word count. Cite as &quot;Logistics Platform&quot;
                 on first reference; &quot;the company&quot; thereafter.
               </p>
             </header>
@@ -232,10 +232,10 @@ export default function PressPage() {
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a
-                    href="mailto:press@iprime.ng?subject=Press%20enquiry%20%E2%80%94%20%5BOutlet%5D"
+                    href="mailto:press@?subject=Press%20enquiry%20%E2%80%94%20%5BOutlet%5D"
                     className="ui-btn ui-btn-primary"
                   >
-                    press@iprime.ng
+                    press@
                     <Mail size={16} strokeWidth={2.5} />
                   </a>
                   <Link href="/#contact" className="ui-btn ui-btn-ghost">

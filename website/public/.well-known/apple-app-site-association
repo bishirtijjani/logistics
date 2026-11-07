@@ -2,13 +2,13 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.ng.iprime.customer"],
+        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.ng.logistics.customer"],
         "components": [
           { "/": "/*" }
         ]
       },
       {
-        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.ng.iprime.rider"],
+        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.ng.logistics.rider"],
         "components": [
           { "/": "/*" }
         ]

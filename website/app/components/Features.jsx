@@ -29,7 +29,7 @@ const pillars = [
     tint: "bg-emerald-500",
     title: "Wallet & Transfers",
     blurb:
-      "Pay for what's delivered straight from your iPrime balance. Get a virtual NUBAN on signup, fund from any Nigerian bank, send to anyone on iPrime in seconds.",
+      "Pay for what's delivered straight from your Logistics Platform balance. Get a virtual NUBAN on signup, fund from any Nigerian bank, send to anyone on Logistics Platform in seconds.",
     bullets: [
       { Icon: Banknote, label: "Virtual account on signup" },
       { Icon: ShieldCheck, label: "PIN-protected transactions" },
@@ -61,7 +61,7 @@ export default function Features() {
             <span className="text-accent">Everything else, included.</span>
           </h2>
           <p className="ui-sub mx-auto">
-            iPrime is built around getting things to your door. The wallet and
+            Logistics Platform is built around getting things to your door. The wallet and
             bill payments share the same balance so you never juggle apps to
             pay for what you ordered.
           </p>

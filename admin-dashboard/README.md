@@ -1,6 +1,6 @@
-# iPrime Admin Dashboard
+# Logistics Platform Admin Dashboard
 
-Admin dashboard for managing the iPrime platform.
+Admin dashboard for managing the Logistics Platform platform.
 
 ## Features
 
@@ -222,4 +222,4 @@ The build output will be in the `dist/` directory and can be deployed to any sta
 
 ## License
 
-Proprietary - iPrime
+Proprietary - Logistics Platform

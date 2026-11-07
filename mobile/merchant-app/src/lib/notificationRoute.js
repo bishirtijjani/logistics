@@ -133,7 +133,7 @@ export const routeToScreen = (n) => {
 };
 
 /**
- * Parse a deep-link URL like `iprime://offer/abc-123` into the same action
+ * Parse a deep-link URL like `logistics://offer/abc-123` into the same action
  * shape. The scheme-agnostic regex below still accepts legacy `riderapp://`
  * URLs so notifications pushed before the v1 rename keep working.
  */
@@ -141,7 +141,7 @@ export const parseDeepLink = (url) => {
   if (!url) return null;
   try {
     // http(s) URLs carry a hostname between `://` and the first `/` -
-    // strip both. Custom schemes like `iprime://trip/abc` have no host;
+    // strip both. Custom schemes like `logistics://trip/abc` have no host;
     // strip only the scheme so the first path segment ("trip") isn't
     // mistaken for a hostname and discarded.
     const isHttp = /^https?:\/\//i.test(url);

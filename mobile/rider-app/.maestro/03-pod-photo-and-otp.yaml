@@ -1,6 +1,6 @@
 # High-value delivery: order total > podOtpThresholdNgn requires the
 # customer's OTP. Seeded offer in staging is ₦80,000 to trip the threshold.
-appId: ng.iprime.rider
+appId: ng.logistics.rider
 env:
   RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
   RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}

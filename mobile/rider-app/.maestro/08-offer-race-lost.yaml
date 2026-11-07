@@ -2,7 +2,7 @@
 # `simulate-offer-race.sh` enqueues an offer and immediately calls
 # /rider/accept as a sibling rider, so the rider running this flow
 # sees a 409 OFFER_TAKEN when they tap Accept.
-appId: ng.iprime.rider
+appId: ng.logistics.rider
 env:
   RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
   RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}

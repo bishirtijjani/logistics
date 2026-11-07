@@ -175,7 +175,7 @@ export default function Layout() {
               <h1
                 className="text-xl font-bold text-text dark:text-dark-text leading-tight"
                 style={{ fontFamily: "Roboto, sans-serif" }}
-              >iPrime</h1>
+              >Logistics Platform</h1>
               <p className="text-xs text-muted dark:text-dark-muted">Admin Dashboard</p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 # Handoff — read this first
 
-Context for continuing the iPrime pitch deck in a fresh session, on any
+Context for continuing the Logistics Platform pitch deck in a fresh session, on any
 machine. The conversation that produced the deck does not transfer; this
 file is the replacement.
 
@@ -16,12 +16,12 @@ update it, give it that URL and say to update in place. Otherwise the old
 link keeps serving the old deck and anyone already holding it sees stale
 content.
 
-Source of truth is `iprime-founders-friday.html` in this folder. Edit that,
+Source of truth is `logistics-founders-friday.html` in this folder. Edit that,
 then republish it to the URL above.
 
 ## Who is pitching
 
-**Muhammad Umar Lawal** is the founder, the owner of iPrime, and the person
+**Muhammad Umar Lawal** is the founder, the owner of Logistics Platform, and the person
 presenting. The deck is written in his voice.
 
 The development agency that built the platform must not appear anywhere in
@@ -45,7 +45,7 @@ dense body copy.
 
 ## The honesty position — do not quietly erode this
 
-iPrime is **pre-launch**. Both apps sit in Google Play closed testing. There
+Logistics Platform is **pre-launch**. Both apps sit in Google Play closed testing. There
 are zero public users and no revenue.
 
 Slide 7 says this outright, and every figure after it is labelled a
@@ -73,7 +73,7 @@ argued with rather than taken on faith:
 
 ### Market data, with sources on slide A4
 
-- Katsina State: 10.5M people, 3rd most populous state (NPC/NBS projections)
+- : 10.5M people, 3rd most populous state (NPC/NBS projections)
 - North West is Nigeria's most financially excluded region, ~51% of adults (EFInA)
 - 26M Nigerian adults financially excluded nationally (EFInA)
 - ₦447bn monthly national VTU volume (Mobifin, via The Guardian Nigeria)

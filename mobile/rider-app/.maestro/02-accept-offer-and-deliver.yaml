@@ -1,7 +1,7 @@
 # End-to-end delivery: receive offer → accept → arrived pickup → confirm
 # pickup → arrived dropoff → POD photo → DELIVERED. Wallet should reflect
 # the credit on return to Home.
-appId: ng.iprime.rider
+appId: ng.logistics.rider
 env:
   RIDER_PHONE: ${RIDER_PHONE:-2348000000001}
   RIDER_PASSWORD: ${RIDER_PASSWORD:-Password123!}

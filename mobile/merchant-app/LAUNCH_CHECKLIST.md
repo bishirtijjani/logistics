@@ -1,4 +1,4 @@
-# Launch checklist - iPrime Merchant (Play Store + App Store)
+# Launch checklist - Logistics Platform Merchant (Play Store + App Store)
 
 Run through these in order. The native core (auth, Orders, push with
 Accept/Reject actions, biometric lock, settings) plus the embedded WebView
@@ -35,14 +35,14 @@ npx eas update:configure # writes updates.url into app.json
 ```
 
 Both commands edit `app.json` in place. Commit the result once reviewed.
-This also creates the Sentry project `iprime-merchant` referenced by the
+This also creates the Sentry project `logistics-merchant` referenced by the
 `@sentry/react-native/expo` plugin entry.
 
 ## 2. Sentry
 
-- [x] Sentry project `iprime-merchant` created (org `mh-prime`, EU).
+- [x] Sentry project `logistics-merchant` created (org `mh-prime`, EU).
 - [x] Plugin org/project already set in `app.json` (`mh-prime` /
-      `iprime-merchant`).
+      `logistics-merchant`).
 - [x] `EXPO_PUBLIC_SENTRY_DSN` set on EAS for `production` + `preview`.
 - [ ] _(Deferred for v1)_ `SENTRY_AUTH_TOKEN` (secret) on EAS for
       `production` + `preview` - enables source-map upload so stack traces
@@ -63,7 +63,7 @@ rider/customer + the privacy declarations).
 - [x] `ios.config.googleMapsApiKey` + `android.config.googleMaps.apiKey`
       set to the shared key (matches rider/customer).
 - [x] `web.favicon` + `jsEngine: hermes` added to match the published apps.
-- [x] Android service-account JSON (`iprime-498118-faae7e3aae7d.json`)
+- [x] Android service-account JSON (`logistics-service-account.json`)
       copied into `mobile/merchant-app/` (gitignored - never commit it).
 - [ ] iOS: `eas.json` `submit.production.ios` stays `{}`; EAS-managed
       credentials (same as the other two apps). EAS will prompt for the
@@ -83,7 +83,7 @@ rider/customer + the privacy declarations).
   MERCHANT_PASSWORD='<rotate-me>' DATABASE_URL='postgres://...prod...' npm run db:seed:merchant
   ```
 - [ ] Confirm the backend's `CORS_ALLOWED_ORIGINS` includes
-      `https://merchant.iprime.ng` (needed for the WebView surface).
+      `https://merchant.` (needed for the WebView surface).
 - [ ] (Optional) add merchant status-change + earnings pushes (today
       socket-only).
 
@@ -93,7 +93,7 @@ rider/customer + the privacy declarations).
       `docs/store/app-store-privacy.md` (see the **merchant deltas** block).
 - [ ] Play Console → Data Safety: use `docs/store/play-data-safety.md`
       (merchant deltas block).
-- [ ] Confirm `https://iprime.ng/legal/privacy` and `/legal/terms` serve
+- [ ] Confirm `https:///legal/privacy` and `/legal/terms` serve
       (already live; the in-app Settings screen links to both).
 
 ## 6. Store listing assets
@@ -144,7 +144,7 @@ If a reviewer still objects:
 1. Graduate the **Products** editor to native (closest to the core order
    flow), then **Earnings**.
 2. Or bundle the web assets locally instead of loading
-   `https://merchant.iprime.ng` remotely.
+   `https://merchant.` remotely.
 
 ## Quick-reference: what's hard-coded and might need swapping
 
@@ -153,5 +153,5 @@ If a reviewer still objects:
   (`scripts/generate-brand-assets.py`).
 - `googleMapsApiKey` in `app.json` - reused from the other apps; issue a
   merchant-specific restricted key later if desired.
-- `EXPO_PUBLIC_MERCHANT_WEB_URL` - `https://merchant.iprime.ng`, set per
+- `EXPO_PUBLIC_MERCHANT_WEB_URL` - `https://merchant.`, set per
   profile in `eas.json`.

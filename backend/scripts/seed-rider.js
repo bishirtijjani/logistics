@@ -19,7 +19,7 @@
  *   node scripts/seed-rider.js --provision-nuban  # also provision a real KatPay NUBAN
  *
  * Override any field via env vars:
- *   RIDER_EMAIL=review@iprime.ng RIDER_PASSWORD='Secret123!' RIDER_PIN=224466 \
+ *   RIDER_EMAIL=review@ RIDER_PASSWORD='Secret123!' RIDER_PIN=224466 \
  *   RIDER_PHONE=08090000001 node scripts/seed-rider.js
  */
 
@@ -33,7 +33,7 @@ const SALT_ROUNDS = 12;
 const PROVISION_NUBAN = process.argv.includes('--provision-nuban');
 
 // Reviewer/QA credentials - overridable via env so you don't bake secrets in.
-const EMAIL = process.env.RIDER_EMAIL || 'rider.review@iprime.ng';
+const EMAIL = process.env.RIDER_EMAIL || 'rider.review@';
 const PASSWORD = process.env.RIDER_PASSWORD || 'RiderReview123!';
 const PIN = process.env.RIDER_PIN || '224466';
 const PHONE = process.env.RIDER_PHONE || '08090000001';
@@ -89,7 +89,7 @@ async function main() {
       balance: 15000,
       virtualAccountNumber: PLACEHOLDER_NUBAN,
       virtualAccountBank: 'Wema Bank',
-      virtualAccountName: `iPrime-${FIRST_NAME} ${LAST_NAME}`,
+      virtualAccountName: `Logistics Platform-${FIRST_NAME} ${LAST_NAME}`,
     },
   });
   console.log(

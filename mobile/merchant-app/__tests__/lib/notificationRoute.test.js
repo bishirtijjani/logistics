@@ -89,8 +89,8 @@ describe("routeToScreen - notification payload forms", () => {
 });
 
 describe("parseDeepLink", () => {
-  it("strips iprime:// before matching", () => {
-    expect(parseDeepLink("iprime://trip/abc")).toEqual({
+  it("strips logistics:// before matching", () => {
+    expect(parseDeepLink("logistics://trip/abc")).toEqual({
       name: "TripCockpit",
       params: { requestId: "abc" },
     });
@@ -105,7 +105,7 @@ describe("parseDeepLink", () => {
 
   it("strips a universal-link host before matching", () => {
     expect(
-      parseDeepLink("https://rider.iprime.ng/wallet/withdraw"),
+      parseDeepLink("https://rider./wallet/withdraw"),
     ).toEqual({ name: "Withdraw", params: {} });
   });
 

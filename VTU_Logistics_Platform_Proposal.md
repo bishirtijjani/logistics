@@ -1,7 +1,7 @@
-# iPrime
+# Logistics Platform
 ## Development Proposal & Project Scope
 
-*A complete mobile super-app for Katsina State*
+*A complete mobile super-app for *
 
 | | |
 |---|---|
@@ -16,13 +16,13 @@
 
 ## 1. What We Are Building
 
-This proposal covers the design, development, and deployment of iPrime - a mobile super-app for Android and iOS targeting users across Katsina State. The platform brings three essential services together under a single app, eliminating the need for residents to use multiple separate applications.
+This proposal covers the design, development, and deployment of Logistics Platform - a mobile super-app for Android and iOS targeting users across . The platform brings three essential services together under a single app, eliminating the need for residents to use multiple separate applications.
 
 | Module | What It Does | Powered By |
 |---|---|---|
 | **Digital Wallet** | Each user gets a unique Nigerian bank account number. Fund your wallet by transferring to it from any bank app. Send money to other users, withdraw to your bank, or use your balance to pay for everything else in the app. | KatPay |
 | **Utility Payments** | Buy airtime and data bundles for MTN, Airtel, Glo, and 9mobile. Pay electricity bills for any DISCO merchant across Nigeria. Everything is instant and paid from your wallet balance. | AlRahuz |
-| **Delivery & Logistics** | Request pickup and dropoff of any item within Katsina State. A registered rider accepts the job, collects the item, and delivers it while you track them live on a map. Payment is automatic from your wallet on delivery. | Google Maps + In-house |
+| **Delivery & Logistics** | Request pickup and dropoff of any item within . A registered rider accepts the job, collects the item, and delivers it while you track them live on a map. Payment is automatic from your wallet on delivery. | Google Maps + In-house |
 
 The platform consists of two mobile applications - a **Customer App** for end users and a **Rider App** for delivery personnel - both connected to the same backend system.
 

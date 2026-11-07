@@ -15,7 +15,7 @@ export default function LockScreen({ onUnlock, onSignOut }) {
 
   const tryUnlock = useCallback(async () => {
     setError("");
-    const ok = await authenticateWithBiometric(t("lock.prompt", "Unlock iPrime Merchant"));
+    const ok = await authenticateWithBiometric(t("lock.prompt", "Unlock Logistics Platform Merchant"));
     if (ok) onUnlock();
     else setError(t("lock.failed", "Couldn't verify. Try again."));
   }, [onUnlock, t]);

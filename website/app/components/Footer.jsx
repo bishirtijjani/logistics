@@ -118,11 +118,11 @@ export default function Footer() {
                 className="text-lg font-bold tracking-tight text-white"
                 style={{ fontFamily: "var(--font-roboto)" }}
               >
-                iPrime
+                Logistics Platform
               </span>
             </a>
             <p className="text-sm text-white/50 font-medium leading-relaxed max-w-xs mb-6">
-              The wallet, utilities, and delivery super-app for Katsina State.
+              The wallet, utilities, and delivery super-app for .
               One login, one balance, one tracking history.
             </p>
             <div className="flex gap-2">
@@ -162,7 +162,7 @@ export default function Footer() {
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8">
           <div className="text-xs text-white/40 font-semibold">
-            © {new Date().getFullYear()} iPrime. Built in Katsina,
+            © {new Date().getFullYear()} Logistics Platform. Built in Katsina,
             Nigeria.
           </div>
           <div className="text-xs text-white/40 font-semibold flex items-center">

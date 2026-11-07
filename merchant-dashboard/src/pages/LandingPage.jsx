@@ -29,12 +29,12 @@ const benefits = [
   {
     Icon: BadgeDollarSign,
     title: "No fixed monthly fee",
-    body: "We earn only when you do - a percentage commission on orders iPrime actually delivers. Slow week? You pay nothing.",
+    body: "We earn only when you do - a percentage commission on orders Logistics Platform actually delivers. Slow week? You pay nothing.",
   },
   {
     Icon: Truck,
     title: "Riders included",
-    body: "Every accepted order is auto-routed to a vetted iPrime rider nearby. No fleet to hire, no parcels to chase.",
+    body: "Every accepted order is auto-routed to a vetted Logistics Platform rider nearby. No fleet to hire, no parcels to chase.",
   },
   {
     Icon: TrendingUp,
@@ -95,7 +95,7 @@ export default function LandingPage() {
   const isAuthenticated = Boolean(localStorage.getItem("token"));
 
   const navLinks = [
-    { href: "#benefits", label: "Why iPrime" },
+    { href: "#benefits", label: "Why Logistics Platform" },
     { href: "#categories", label: "Who we list" },
     { href: "#how-it-works", label: "How it works" },
   ];
@@ -113,7 +113,7 @@ export default function LandingPage() {
               <Store className="w-5 h-5" />
             </span>
             <span className="font-bold text-lg tracking-tight">
-              iPrime{" "}
+              Logistics Platform{" "}
               <span className="text-muted dark:text-dark-muted font-medium">
                 Merchant
               </span>
@@ -131,7 +131,7 @@ export default function LandingPage() {
               </a>
             ))}
             <a
-              href="https://iprime.ng/help/merchant/set-up-your-shop"
+              href="https:///help/merchant/set-up-your-shop"
               target="_blank"
               rel="noreferrer"
               className="text-sm font-medium text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer"
@@ -265,7 +265,7 @@ export default function LandingPage() {
               </h1>
               <p className="text-lg md:text-xl text-white/80 font-medium leading-relaxed max-w-xl mb-8">
                 Plug your restaurant, supermarket, pharmacy, or retail shop into
-                the iPrime customer base. We handle delivery, payments, and
+                the Logistics Platform customer base. We handle delivery, payments, and
                 support - you focus on what you make.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -304,7 +304,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <header className="max-w-2xl mb-12">
               <span className="inline-block text-xs font-bold uppercase tracking-widest text-primary mb-3">
-                Why merchants choose iPrime
+                Why merchants choose Logistics Platform
               </span>
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
                 Four reasons, in plain terms.
@@ -402,7 +402,7 @@ export default function LandingPage() {
 
             <div className="mt-10">
               <a
-                href="https://iprime.ng/help/merchant/set-up-your-shop"
+                href="https:///help/merchant/set-up-your-shop"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold border border-surface-muted dark:border-dark-surface-muted text-text dark:text-dark-text hover:bg-surface-muted dark:hover:bg-dark-surface-muted transition-colors duration-200 cursor-pointer"
@@ -464,12 +464,12 @@ export default function LandingPage() {
           <div className="flex items-center gap-2 text-sm text-muted dark:text-dark-muted">
             <Store className="w-4 h-4 text-primary" />
             <span>
-              © {new Date().getFullYear()} iPrime. All rights reserved.
+              © {new Date().getFullYear()} Logistics Platform. All rights reserved.
             </span>
           </div>
           <div className="flex items-center gap-6 text-sm">
             <a
-              href="https://iprime.ng/help/merchant/set-up-your-shop"
+              href="https:///help/merchant/set-up-your-shop"
               target="_blank"
               rel="noreferrer"
               className="text-muted dark:text-dark-muted hover:text-text dark:hover:text-dark-text transition-colors duration-200 cursor-pointer"

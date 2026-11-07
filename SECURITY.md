@@ -1,4 +1,4 @@
-# Security - iPrime
+# Security - Logistics Platform
 
 Operational guidance for the platform's security posture. Lives in-repo so
 on-call has a single source to consult.

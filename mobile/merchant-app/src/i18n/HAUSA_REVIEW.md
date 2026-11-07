@@ -1,4 +1,4 @@
-# Hausa translation review checklist - iPrime Rider
+# Hausa translation review checklist - Logistics Platform Rider
 
 The rider app's `ha.json` was written alongside the English keys as new
 features landed (Phases 2 → 7). Every section below needs a native-Hausa

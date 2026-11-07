@@ -1,4 +1,4 @@
-# Launch checklist - iPrime Rider (Play Store + App Store)
+# Launch checklist - Logistics Platform Rider (Play Store + App Store)
 
 Run through these in order. Engineering work is complete (see
 `ROADMAP.md` § Phase 8); everything below requires credentials, store
@@ -79,7 +79,7 @@ as the request worker).
 ## 6. Privacy + Data Safety
 
 - [ ] Privacy Policy URL hosted publicly (the in-app `LegalScreen`
-  already links to `https://iprime.ng/legal/privacy`).
+  already links to `https:///legal/privacy`).
   Confirm that URL serves.
 - [ ] Play Console → Data Safety form:
   - Location: **collected**, **used in-app**, **not shared**,
@@ -98,7 +98,7 @@ as the request worker).
   the EAS preview build on a real device.
 - [ ] Short description (Play, max 80 chars).
 - [ ] Full description (Play, max 4000 chars). Lead with the value prop
-  ("Drive for iPrime in Katsina - flexible hours, weekly payouts").
+  ("Drive for Logistics Platform in Katsina - flexible hours, weekly payouts").
 - [ ] App icon: `assets/icon.png` already shipped; verify it scales
   cleanly at 192×192.
 
@@ -160,7 +160,7 @@ Internal → Production staged rollout per `RUNBOOKS.md` § 3.
 ## Quick-reference: what's still hard-coded that you might want to swap
 
 - `assets/icon.png`, `assets/splash-icon.png`, `assets/adaptive-icon.png`
-  - verify these are the final iPrime brand assets.
+  - verify these are the final Logistics Platform brand assets.
 - `googleMapsApiKey` in [app.json](app.json) - currently shared with
   staging. Issue a separate restricted key for production iOS/Android
   packages and replace before submitting.

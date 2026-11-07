@@ -1,6 +1,6 @@
 /**
  * Geo-restriction - confine maps & place-search to a single operating area
- * (currently Katsina State). This is the ONE place that controls server-side
+ * (currently ). This is the ONE place that controls server-side
  * search/geocoding scope for every app (customer, rider, merchant, admin),
  * since they all proxy Google through maps.service.
  *
@@ -22,7 +22,7 @@
  * as [lng, lat] pairs (GeoJSON order). To refresh, re-run the same simplify.
  */
 
-// Katsina State outer boundary, [lng, lat] pairs, closed ring.
+//  outer boundary, [lng, lat] pairs, closed ring.
 const KATSINA_POLYGON = [
   [6.8894,11.3836], [7.0062,11.3618], [7.0087,11.2938], [6.9677,11.2452], [7.069,11.2033], [7.1521,11.1288],
   [7.2003,11.1517], [7.2197,11.1942], [7.1948,11.2576], [7.2896,11.2843], [7.3578,11.2643], [7.3979,11.378],

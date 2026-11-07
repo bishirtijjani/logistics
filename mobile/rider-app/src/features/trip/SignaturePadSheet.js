@@ -26,7 +26,7 @@ import { uploadPodAsset } from "../../services/cloudinary";
 /**
  * SignaturePadSheet - recipient signs on the screen with a finger; we export
  * the signature as a PNG dataURL, stash it to a local file, and upload to
- * Cloudinary into the same `iprime/pod/{requestId}/` folder as the
+ * Cloudinary into the same `logistics/pod/{requestId}/` folder as the
  * doorstep photo.
  *
  * Only rendered when `delivery.requireSignature` setting is on.

@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "iPrime Rider",
-    "slug": "iprime-rider",
+    "name": "Logistics Platform Rider",
+    "slug": "logistics-rider",
     "owner": "mh-prime",
-    "scheme": "iprime",
+    "scheme": "logistics",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,14 +17,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ng.iprime.rider",
+      "bundleIdentifier": "ng.logistics.rider",
       "buildNumber": "1",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "iPrime Rider needs your location to deliver jobs near you.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "iPrime Rider keeps your location active in the background so you keep receiving jobs when the app is minimised or the screen is off.",
+        "NSLocationWhenInUseUsageDescription": "Logistics Platform Rider needs your location to deliver jobs near you.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Logistics Platform Rider keeps your location active in the background so you keep receiving jobs when the app is minimised or the screen is off.",
         "UIBackgroundModes": ["location", "fetch"],
-        "NSCameraUsageDescription": "iPrime Rider needs the camera to capture proof of delivery and identity documents.",
-        "NSPhotoLibraryUsageDescription": "iPrime Rider needs photo access so you can attach KYC documents and proof-of-delivery images.",
+        "NSCameraUsageDescription": "Logistics Platform Rider needs the camera to capture proof of delivery and identity documents.",
+        "NSPhotoLibraryUsageDescription": "Logistics Platform Rider needs photo access so you can attach KYC documents and proof-of-delivery images.",
         "NSPhotoLibraryAddUsageDescription": "Optionally save proof-of-delivery photos to your gallery.",
         "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions.",
         "ITSAppUsesNonExemptEncryption": false
@@ -38,7 +38,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#EA580C"
       },
-      "package": "ng.iprime.rider",
+      "package": "ng.logistics.rider",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "config": {
@@ -74,12 +74,12 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "iPrime Rider needs your location to deliver jobs near you.",
-          "locationAlwaysAndWhenInUsePermission": "iPrime Rider keeps your location active in the background so you keep receiving jobs when the app is minimised or the screen is off.",
+          "locationWhenInUsePermission": "Logistics Platform Rider needs your location to deliver jobs near you.",
+          "locationAlwaysAndWhenInUsePermission": "Logistics Platform Rider keeps your location active in the background so you keep receiving jobs when the app is minimised or the screen is off.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true,
-          "androidForegroundServiceNotificationTitle": "iPrime Rider is online",
+          "androidForegroundServiceNotificationTitle": "Logistics Platform Rider is online",
           "androidForegroundServiceNotificationBody": "Receiving jobs near you - keep this running while you work.",
           "androidForegroundServiceNotificationColor": "#EA580C"
         }
@@ -88,7 +88,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "iPrime Rider needs the camera to capture proof of delivery and identity documents."
+          "cameraPermission": "Logistics Platform Rider needs the camera to capture proof of delivery and identity documents."
         }
       ],
       [
@@ -101,7 +101,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "mh-prime",
-          "project": "iprime-rider",
+          "project": "logistics-rider",
           "url": "https://sentry.io/"
         }
       ],

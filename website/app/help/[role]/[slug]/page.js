@@ -40,7 +40,7 @@ export default async function GuidePage({ params }) {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="ui-container flex items-center justify-between h-16">
           <Link href="/help" className="font-black text-lg tracking-tight no-underline text-text-primary">
-            iPrime <span className="text-accent">Help</span>
+            Logistics Platform <span className="text-accent">Help</span>
           </Link>
           <Link href="/help" className="text-sm font-semibold text-accent no-underline hover:underline">
             ← All guides
@@ -64,8 +64,8 @@ export default async function GuidePage({ params }) {
           <footer className="mt-16 border-t border-gray-200 pt-6 text-sm text-gray-500">
             Was this helpful? Reach us anytime from{" "}
             <strong>Support</strong> in your dashboard, or email{" "}
-            <a className="text-accent hover:underline" href="mailto:support@iprime.ng">
-              support@iprime.ng
+            <a className="text-accent hover:underline" href="mailto:support@">
+              support@
             </a>
             .
           </footer>

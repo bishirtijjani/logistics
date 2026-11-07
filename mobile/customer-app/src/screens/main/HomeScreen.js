@@ -1338,11 +1338,11 @@ function PromoBanner({ banner, navigation }) {
   const { tokens } = useTheme();
   const handleTap = () => {
     if (!banner.deepLink) return;
-    // Local schemes like `/wallet`, `/orders`, `iprime://request/abc`. The
+    // Local schemes like `/wallet`, `/orders`, `logistics://request/abc`. The
     // legacy `customerapp://` prefix is still accepted here so a banner
     // pushed before the v1 rename keeps routing correctly.
     if (
-      banner.deepLink.startsWith("iprime://") ||
+      banner.deepLink.startsWith("logistics://") ||
       banner.deepLink.startsWith("customerapp://") ||
       banner.deepLink.startsWith("http")
     ) {

@@ -1,6 +1,6 @@
 # Set up your shop
 
-Welcome to iPrime! This guide takes you from sign-up all the way to your first
+Welcome to Logistics Platform! This guide takes you from sign-up all the way to your first
 sale - it only takes about **5 minutes**. You'll create your account, get
 approved, pin your shop on the map, set your hours, and add your first product.
 

@@ -70,7 +70,7 @@ async function main() {
 
   // ============ 1. Registration + OTP (public) ============
   const stamp = Date.now()
-  const email = 'shot' + stamp + '@iprime.ng'
+  const email = 'shot' + stamp + '@'
   const phone = '080' + String(stamp % 1e8).padStart(8, '0')
   try {
     await page.goto(MERCHANT_URL + '/register', { waitUntil: 'networkidle' })

@@ -62,7 +62,7 @@ function serve() {
   });
 }
 
-// Play Store sizes (approved style, matches store-assets/iprimeriderplaystorescreenshots)
+// Play Store sizes (approved style, matches store-assets/logisticsriderplaystorescreenshots)
 // + App Store required sizes (Apple rejects Play dimensions).
 const DEVICES = [
   { key: 'phone', w: 1080, h: 1920, prefix: 'playstore-merchant-phone' },

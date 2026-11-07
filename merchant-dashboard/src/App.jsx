@@ -54,7 +54,7 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />
   }
   // Logged in on a live token but no merchant profile yet → route to
-  // enrollment instead of a broken merchant-scoped dashboard. One iPrime
+  // enrollment instead of a broken merchant-scoped dashboard. One Logistics Platform
   // account can be a customer/rider and add a merchant profile later.
   if (!hasMerchantProfile()) return <Navigate to="/enroll" replace />
   return children
@@ -70,15 +70,15 @@ function EnrollRoute() {
 }
 
 // Under the native shell, the app injects tokens into localStorage then fires
-// an 'iprime-auth' event. Rehydrate Redux so routed pages pick them up.
+// an 'logistics-auth' event. Rehydrate Redux so routed pages pick them up.
 function NativeAuthBridge() {
   const dispatch = useDispatch()
   useEffect(() => {
     if (!isNative()) return undefined
     const sync = () => dispatch(hydrateFromStorage())
-    window.addEventListener('iprime-auth', sync)
+    window.addEventListener('logistics-auth', sync)
     sync()
-    return () => window.removeEventListener('iprime-auth', sync)
+    return () => window.removeEventListener('logistics-auth', sync)
   }, [dispatch])
   return null
 }

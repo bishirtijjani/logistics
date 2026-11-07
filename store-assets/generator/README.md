@@ -1,6 +1,6 @@
 # Merchant visual asset generator
 
-Renders every iPrime **Merchant** store/brand asset from HTML/CSS/SVG — no
+Renders every Logistics Platform **Merchant** store/brand asset from HTML/CSS/SVG — no
 Figma, Inkscape, or Pillow required. One command, exact store dimensions.
 
 ## Run
@@ -41,7 +41,7 @@ because the app declares `supportsTablet: true`. The same templates
 render at every size because the layout is viewport-relative.
 
 Screenshots use the approved Play Store marketing style (see
-`store-assets/iprimeriderplaystorescreenshots/`): paper canvas, orange
+`store-assets/logisticsriderplaystorescreenshots/`): paper canvas, orange
 eyebrow, big two-tone headline, subtitle, a floating phone mockup showing
 the app, footer brand lockup, and an orange bottom bar. The seven frames
 are `orders, order-detail, products, earnings, store-status, analytics,
@@ -54,7 +54,7 @@ bills`.
 - `templates/icon.html` — one parametrized template for the icon / adaptive
   icon / splash / favicon. Query params: `?bg=orange|transparent`,
   `?ratio=<width fraction of the mark>`, `?color=white|brand`,
-  `?label=MERCHANT` (small uppercase marker stacked above `iPrime`). The
+  `?label=MERCHANT` (small uppercase marker stacked above `Logistics Platform`). The
   wordmark/label are JS-fitted so their glyph widths converge on target, and
   the `MERCHANT` lockup is what distinguishes the merchant icon from the plain
   rider/customer mark. The splash is intentionally left label-less.

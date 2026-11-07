@@ -19,7 +19,7 @@ const envSchema = z
       .enum(["development", "staging", "production"])
       .default("development"),
     PORT: z.coerce.number().default(3000),
-    APP_NAME: z.string().default("iPrime"),
+    APP_NAME: z.string().default("Logistics Platform"),
 
     // Database
     DATABASE_URL: z.string().url(),
@@ -81,7 +81,7 @@ const envSchema = z
     // VAPID_SUBJECT must be a mailto: or https: URL identifying the sender.
     VAPID_PUBLIC_KEY: z.string().optional().default(""),
     VAPID_PRIVATE_KEY: z.string().optional().default(""),
-    VAPID_SUBJECT: z.string().optional().default("mailto:hello@iprime.ng"),
+    VAPID_SUBJECT: z.string().optional().default("mailto:hello@"),
 
     // Cloudinary - required in production, optional in dev
     CLOUDINARY_CLOUD_NAME: isDev ? z.string().default("") : z.string().min(1),
@@ -111,7 +111,7 @@ const envSchema = z
     WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(""),
     WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default(""),
     WHATSAPP_ACCESS_TOKEN: z.string().optional().default(""),
-    WHATSAPP_AUTH_TEMPLATE_NAME: z.string().default("iprime_otp"),
+    WHATSAPP_AUTH_TEMPLATE_NAME: z.string().default("logistics_otp"),
     WHATSAPP_AUTH_TEMPLATE_LANGUAGE: z.string().default("en_US"),
     // Webhook security - verify token is shown in Meta's UI during webhook
     // setup; app secret is used to validate X-Hub-Signature-256 on each event.
@@ -134,13 +134,13 @@ const envSchema = z
     // the visible "From" address is tracked separately via SMTP_FROM_EMAIL.
     SMTP_USER: isDev ? z.string().optional().default("") : z.string().min(1),
     SMTP_PASS: isDev ? z.string().optional().default("") : z.string().min(1),
-    SMTP_FROM_NAME: z.string().default("iPrime"),
+    SMTP_FROM_NAME: z.string().default("Logistics Platform"),
     SMTP_FROM_EMAIL: isDev
       ? z.string().optional().default("")
       : z.string().email(),
     // Inbox that receives marketing-site contact-form submissions. Defaults
     // to the public support address; override to route to a shared inbox.
-    CONTACT_INBOX_EMAIL: z.string().email().default("hello@iprime.ng"),
+    CONTACT_INBOX_EMAIL: z.string().email().default("hello@"),
     // Operational alerts (e.g. a utility payment HELD for manual review because
     // the provider outcome was indeterminate). Empty → falls back to SMTP_FROM_EMAIL.
     ALERT_EMAIL: z.string().default(""),
@@ -170,7 +170,7 @@ const envSchema = z
     // defaults to the local webhook so a fresh clone round-trips out of the box.
     PAYSTACK_CALLBACK_URL: isDev
       ? z.string().default("http://localhost:3000/webhooks/paystack")
-      : z.string().default("https://api.iprime.ng/webhooks/paystack"),
+      : z.string().default("https://api./webhooks/paystack"),
 
     // Delivery Pricing
     DELIVERY_BASE_FARE: z.coerce.number().default(200),
@@ -192,7 +192,7 @@ const envSchema = z
     // and production it MUST be an explicit list; setting '*' there is a hard
     // misconfiguration (browsers don't even honor it with credentials).
     //
-    // Example: CORS_ALLOWED_ORIGINS=https://app.iprime.ng,https://admin.iprime.ng
+    // Example: CORS_ALLOWED_ORIGINS=https://app.,https://admin.
     CORS_ALLOWED_ORIGINS: isDev
       ? z.string().optional().default("*")
       : z.string().min(1, "CORS_ALLOWED_ORIGINS must be set in non-dev"),

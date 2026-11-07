@@ -35,7 +35,7 @@ stubModule(path.resolve(__dirname, '../src/config/index.js'), {
     JWT_REFRESH_SECRET: 'test-refresh-secret',
     JWT_ACCESS_EXPIRY: '15m',
     JWT_REFRESH_EXPIRY: '7d',
-    APP_NAME: 'iPrime',
+    APP_NAME: 'Logistics Platform',
     SKIP_KYC_PHONE_OTP: true,
     CLOUDINARY_CLOUD_NAME: 'test',
     CLOUDINARY_API_KEY: 'test',

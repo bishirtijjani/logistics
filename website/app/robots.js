@@ -8,6 +8,6 @@ export default function robots() {
         allow: "/",
       },
     ],
-    sitemap: "https://iprime.ng/sitemap.xml",
+    sitemap: "https:///sitemap.xml",
   };
 }

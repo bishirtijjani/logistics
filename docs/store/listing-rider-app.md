@@ -1,4 +1,4 @@
-# Store listing - iPrime Rider
+# Store listing - Logistics Platform Rider
 
 Copy for the App Store + Google Play submission of the rider-facing
 binary. Shorter than the customer listing because the audience is
@@ -7,7 +7,7 @@ narrower (working riders, not the general public).
 ## English
 
 ### App name (≤ 30 chars)
-`iPrime Rider`  *(12 chars)*
+`Logistics Platform Rider`  *(12 chars)*
 
 ### Subtitle (App Store, ≤ 30 chars)
 `Deliver, earn, withdraw fast`  *(28 chars)*
@@ -23,7 +23,7 @@ narrower (working riders, not the general public).
 
 ### Full description
 
-> iPrime Rider is the work app for delivery riders in Katsina State. Get matched to nearby jobs, navigate to pickup and dropoff, capture proof of delivery, and watch the money land in your wallet on every trip.
+> Logistics Platform Rider is the work app for delivery riders in . Get matched to nearby jobs, navigate to pickup and dropoff, capture proof of delivery, and watch the money land in your wallet on every trip.
 
 **Earn**
 - Get paid per trip - fees shown before you accept
@@ -54,16 +54,16 @@ narrower (working riders, not the general public).
 - Re-upload expiring documents directly in-app - never miss a job because your insurance lapsed last week
 
 **For riders who already know how to ride**
-- iPrime is for riders with a licensed vehicle (motorcycle, scooter, or small car)
+- Logistics Platform is for riders with a licensed vehicle (motorcycle, scooter, or small car)
 - 18+ only
-- You are an independent contractor, not an iPrime employee - terms in the rider agreement
+- You are an independent contractor, not an Logistics Platform employee - terms in the rider agreement
 
 ---
 
 ## Hausa (HA)
 
 ### App name
-`iPrime Rider`  *(unchanged - proper noun)*
+`Logistics Platform Rider`  *(unchanged - proper noun)*
 
 ### Subtitle (App Store)
 `Isarwa, samun kuɗi, cire`  *(24 chars)*
@@ -81,7 +81,7 @@ narrower (working riders, not the general public).
 
 ### Full description
 
-> iPrime Rider shi ne app ɗin aiki ga masu isarwa a Jihar Katsina. Sami ayyuka kusa da kai, kewaya zuwa wurin ɗauka da sauke, ɗauki shaidar isarwa, kuma duba kuɗin yana shiga cikin walatka a kowane tafiya.
+> Logistics Platform Rider shi ne app ɗin aiki ga masu isarwa a Jihar Katsina. Sami ayyuka kusa da kai, kewaya zuwa wurin ɗauka da sauke, ɗauki shaidar isarwa, kuma duba kuɗin yana shiga cikin walatka a kowane tafiya.
 
 **Samun kuɗi**
 - A biya ka kowane tafiya - kuɗi suna fitowa kafin ka karɓi aikin
@@ -111,9 +111,9 @@ narrower (working riders, not the general public).
 - Sake ɗora takardun da ke ƙarewa kai tsaye a app - kar a rasa aiki saboda inshorarka ta ƙare makon da ya gabata
 
 **Ga masu kekuna da suka riga sun san yadda ake tuƙi**
-- iPrime na ne ga masu keke da ke da lasisi (babur, scooter, ko ƙaramin mota)
+- Logistics Platform na ne ga masu keke da ke da lasisi (babur, scooter, ko ƙaramin mota)
 - 18+ ne kawai
-- Kai mai kwangila ne mai zaman kansa, ba ma'aikacin iPrime ba - sharuɗɗa a yarjejeniyar mai keke
+- Kai mai kwangila ne mai zaman kansa, ba ma'aikacin Logistics Platform ba - sharuɗɗa a yarjejeniyar mai keke
 
 ---
 

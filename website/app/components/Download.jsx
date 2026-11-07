@@ -5,7 +5,7 @@ import { APP_URL, RIDER_URL } from "../lib/links";
 const screens = [
   {
     src: "/images/home-screen.png",
-    alt: "iPrime home - wallet balance, category tiles, active order",
+    alt: "Logistics Platform home - wallet balance, category tiles, active order",
     rotate: "-rotate-3",
     translate: "translate-y-4 md:translate-y-8",
     z: "z-10",
@@ -44,7 +44,7 @@ export default function Download() {
           </h2>
 
           <p className="text-base md:text-lg text-white/60 font-medium leading-relaxed mb-8 max-w-xl mx-auto">
-            No install needed - iPrime runs right on the web. Sign up with your
+            No install needed - Logistics Platform runs right on the web. Sign up with your
             phone number and place your first delivery in under two minutes.
           </p>
 
@@ -62,7 +62,7 @@ export default function Download() {
               className="ui-btn bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:-translate-y-px"
             >
               <Truck size={18} strokeWidth={2.5} />
-              Deliver with iPrime
+              Deliver with Logistics Platform
             </a>
           </div>
 

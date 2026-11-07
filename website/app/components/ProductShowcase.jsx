@@ -60,7 +60,7 @@ export default function ProductShowcase() {
           >
             <Image
               src="/images/mock-with-packages.png"
-              alt="iPrime home screen showing wallet balance and category tiles"
+              alt="Logistics Platform home screen showing wallet balance and category tiles"
               width={864}
               height={1222}
               priority

@@ -23,13 +23,13 @@ async function main() {
   const adminPin = await bcrypt.hash('000000', SALT_ROUNDS);
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@iprime.ng' },
+    where: { email: 'admin@' },
     update: {},
     create: {
       phone: '09000000001',
       firstName: 'Platform',
       lastName: 'Admin',
-      email: 'admin@iprime.ng',
+      email: 'admin@',
       passwordHash: adminPassword,
       transactionPin: adminPin,
       role: 'ADMIN',
@@ -574,7 +574,7 @@ async function main() {
     { key: 'auth.pinLockoutMinutes', value: 30, description: 'PIN lockout duration in minutes' },
     { key: 'platform.currency', value: 'NGN', description: 'Default platform currency' },
     { key: 'platform.supportPhone', value: '08012345678', description: 'Customer support phone number' },
-    { key: 'platform.supportEmail', value: 'support@iprime.ng', description: 'Customer support email' },
+    { key: 'platform.supportEmail', value: 'support@', description: 'Customer support email' },
   ];
 
   for (const s of settings) {
@@ -690,7 +690,7 @@ async function main() {
 
   console.log('\n🌱 Seeding complete!');
   console.log('---');
-  console.log('Admin login:    admin@iprime.ng / admin123456 (PIN: 000000)');
+  console.log('Admin login:    admin@ / admin123456 (PIN: 000000)');
   console.log('Customer login: customer@test.com / customer123 (PIN: 111111)');
   console.log('Rider login:    rider@test.com / rider123456 (PIN: 222222)');
   console.log('Merchant login: merchant@test.com / merchant123 (PIN: 333333)');

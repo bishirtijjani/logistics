@@ -60,7 +60,7 @@ export default function LocationPermissionRecoveryScreen({ navigation }) {
     try {
       if (Platform.OS === "android") {
         await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS, {
-          data: "package:ng.iprime.rider",
+          data: "package:ng.logistics.rider",
         });
       } else {
         await Linking.openSettings();
@@ -126,14 +126,14 @@ export default function LocationPermissionRecoveryScreen({ navigation }) {
         </Text>
 
         <Text style={{ fontSize: 15, color: tokens.text.muted, marginBottom: 24, lineHeight: 22 }}>
-          iPrime Rider needs your location to find nearby jobs and let customers track their deliveries in real time.
+          Logistics Platform Rider needs your location to find nearby jobs and let customers track their deliveries in real time.
         </Text>
 
         {needsPermission ? (
           <Step
             tokens={tokens}
             num="1"
-            title="Allow location for iPrime Rider"
+            title="Allow location for Logistics Platform Rider"
             body="Grant the app permission to use your phone's location."
             ctaLabel={check.permission === "denied" ? "Open app settings" : "Allow location"}
             onPress={check.permission === "denied" ? openAppSettings : requestPermission}

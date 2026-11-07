@@ -2551,7 +2551,7 @@ const getPlatformSettings = async () => {
     settingsService.getSetting('wallet.fundingFeePayer', 'PLATFORM'),
     settingsService.getSetting(vtuRouter.SETTING_KEY, vtuRouter.DEFAULT_MODE),
     settingsService.getSetting(paymentsRouter.SETTING_KEY, paymentsRouter.DEFAULT_MODE),
-    settingsService.getSetting('platform.supportEmail', 'support@iprime.ng'),
+    settingsService.getSetting('platform.supportEmail', 'support@'),
     settingsService.getSetting('platform.supportPhone', '+2348000000000'),
     settingsService.getSetting('delivery.baseFare', config.DELIVERY_BASE_FARE || 200),
     settingsService.getSetting('delivery.perKmRate', config.DELIVERY_PER_KM_RATE || 100),
@@ -2578,7 +2578,7 @@ const getPlatformSettings = async () => {
   const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1';
 
   return {
-    platformName: 'iPrime',
+    platformName: 'Logistics Platform',
     // Active VTU routing: BILALSADASUB_ONLY | ALRAHUZ_ONLY | BOTH (Bilal primary,
     // AlRahuz failover). Drives whether a failed purchase is refunded or retried.
     vtuProviderMode,

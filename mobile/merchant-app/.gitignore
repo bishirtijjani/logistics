@@ -42,6 +42,6 @@ yarn-error.*
 /android
 
 # service account keys (never commit)
-iprime-498118-faae7e3aae7d.json
+logistics-service-account.json
 
 .env.local

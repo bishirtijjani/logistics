@@ -1,6 +1,6 @@
-# iPrime
+# Logistics Platform
 
-A mobile super-app for Android and iOS targeting users across Katsina State, Nigeria. The platform brings together digital wallet services, utility bill payments, and delivery logistics under a single app.
+A mobile super-app for Android and iOS for digital wallet, utility payments, and delivery logistics. The platform brings together digital wallet services, utility bill payments, and delivery logistics under a single app.
 
 ## System Overview
 

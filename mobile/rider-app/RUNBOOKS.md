@@ -1,4 +1,4 @@
-# Operations runbooks - iPrime Rider
+# Operations runbooks - Logistics Platform Rider
 
 Step-by-step playbooks for the situations the on-call team must handle.
 Add to this file when an incident reveals a gap; never let a one-off
@@ -14,7 +14,7 @@ sees a permission banner; or just nothing happens.
 **Diagnostic order:**
 
 1. **Permissions.** Ask the rider to open phone Settings → Apps →
-   iPrime Rider → Permissions and confirm Location is set to
+   Logistics Platform Rider → Permissions and confirm Location is set to
    *Allow while using the app* (Android) / *While Using* (iOS). If
    denied, the `LocationServicesEnabledBanner` would already be visible
    in-app - if it's not, force-quit and relaunch.
@@ -29,7 +29,7 @@ sees a permission banner; or just nothing happens.
 4. **Active delivery.** If `availability === ON_DELIVERY`, the rider is
    mid-trip. The trip must complete (or be force-cancelled by an admin
    - see runbook 4) before they can go offline → back online.
-5. **Backend reachable?** Check `https://api.iprime.ng/health`
+5. **Backend reachable?** Check `https://api./health`
    from a browser. If it 503's, the rider's problem is the platform's
    problem - escalate to the platform on-call.
 6. **Socket connection.** The rider app's `OfflineBanner` shows when the
@@ -188,7 +188,7 @@ sending but no riders responding.
 4. **OEM killer.** Some Tecno / Infinix builds aggressively kill
    background apps. If the analytics show drops at the same minute of
    day each time, you're seeing OEM throttling. Mitigation: tell those
-   riders to enable "no battery optimization" for iPrime Rider.
+   riders to enable "no battery optimization" for Logistics Platform Rider.
 
 If 1-4 don't recover within 15 minutes, page the platform lead and the
 backend on-call.

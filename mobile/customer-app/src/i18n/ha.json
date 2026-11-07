@@ -4,7 +4,7 @@
     "_note": "All translations are a working draft. Every key needs review by a native Hausa speaker before launch. Track progress in mobile/customer-app/src/i18n/HAUSA_REVIEW.md."
   },
   "common": {
-    "appName": "iPrime",
+    "appName": "Logistics Platform",
     "ok": "To",
     "cancel": "Soke",
     "save": "Ajiye",
@@ -318,7 +318,7 @@
       "balanceBefore": "Ma'auni kafin",
       "balanceAfter": "Ma'auni bayan",
       "date": "Kwanan wata",
-      "footer": "iPrime Rasit na hukuma",
+      "footer": "Logistics Platform Rasit na hukuma",
       "copyRef": "Kwafi lamba",
       "share": "Raba",
       "shareDialogTitle": "Rasit na mu'amalla",
@@ -462,7 +462,7 @@
       "noData": "Babu bayanan lissafi.",
       "share": "Raba lissafi",
       "shareDialogTitle": "Raba lissafin oda",
-      "shareLine": "Lissafin oda na iPrime don {{title}} · {{amount}}",
+      "shareLine": "Lissafin oda na Logistics Platform don {{title}} · {{amount}}",
       "copyRef": "Kwafi reference",
       "refCopied": "An kwafi reference",
       "rider": "Rider",
@@ -533,7 +533,7 @@
     "payment": {
       "title": "Hanyar biya",
       "wallet": "Wallet",
-      "walletHint": "Biya yanzu daga ma'ajiyar iPrime",
+      "walletHint": "Biya yanzu daga ma'ajiyar Logistics Platform",
       "cash": "Kuɗi a hannu",
       "cashHint": "Biya direba kuɗi a hannu lokacin mika kaya",
       "cashBanner": "Za ka biya {{amount}} kuɗi a hannu ga direba lokacin mika kaya. Babu abin da zai fita daga wallet yanzu."
@@ -738,7 +738,7 @@
       "tokenHint": "Gabatar da wannan token ga mitarka ko shigar da shi da hannu.",
       "share": "Raba lissafi",
       "shareDialogTitle": "Raba lissafi",
-      "shareLine": "Lissafin iPrime · {{type}} · {{amount}}"
+      "shareLine": "Lissafin Logistics Platform · {{type}} · {{amount}}"
     },
     "data": "Data",
     "electricity": "Wuta",
@@ -1134,9 +1134,9 @@
     "chatLabel": "Taɗi kai tsaye",
     "chatSub": "Yi taɗi da masu tallafi",
     "emailLabel": "Imel na tallafi",
-    "emailValue": "support@iprime.ng",
+    "emailValue": "support@",
     "phoneLabel": "Wayar tallafi",
-    "phoneValue": "0800-IPRIME",
+    "phoneValue": "0800-LOGISTICS",
     "phone": "Kira tallafi",
     "email": "Aika imel zuwa tallafi",
     "whatsapp": "Aika saƙo a WhatsApp",

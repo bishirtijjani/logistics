@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "iPrime",
-    "slug": "iprime-customer",
+    "name": "Logistics Platform",
+    "slug": "logistics-customer",
     "owner": "mh-prime",
-    "scheme": "iprime",
+    "scheme": "logistics",
     "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,14 +15,14 @@
       "backgroundColor": "#EA580C"
     },
     "ios": {
-      "bundleIdentifier": "ng.iprime.customer",
+      "bundleIdentifier": "ng.logistics.customer",
       "buildNumber": "2",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "iPrime needs your location to show nearby services and delivery options.",
-        "NSCameraUsageDescription": "iPrime needs the camera to capture your profile photo and prescription images.",
-        "NSPhotoLibraryUsageDescription": "iPrime needs photo access so you can attach prescriptions, support tickets, and your profile photo.",
-        "NSPhotoLibraryAddUsageDescription": "iPrime saves receipts and order images to your gallery when you tap save.",
+        "NSLocationWhenInUseUsageDescription": "Logistics Platform needs your location to show nearby services and delivery options.",
+        "NSCameraUsageDescription": "Logistics Platform needs the camera to capture your profile photo and prescription images.",
+        "NSPhotoLibraryUsageDescription": "Logistics Platform needs photo access so you can attach prescriptions, support tickets, and your profile photo.",
+        "NSPhotoLibraryAddUsageDescription": "Logistics Platform saves receipts and order images to your gallery when you tap save.",
         "NSFaceIDUsageDescription": "Use Face ID to unlock the app and confirm sensitive actions like withdrawals.",
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -35,7 +35,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#EA580C"
       },
-      "package": "ng.iprime.customer",
+      "package": "ng.logistics.customer",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "config": {
@@ -67,14 +67,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "iPrime needs your location to show nearby services and delivery options."
+          "locationWhenInUsePermission": "Logistics Platform needs your location to show nearby services and delivery options."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "iPrime needs photo access so you can attach prescriptions, support tickets, and your profile photo.",
-          "cameraPermission": "iPrime needs the camera to capture your profile photo and prescription images."
+          "photosPermission": "Logistics Platform needs photo access so you can attach prescriptions, support tickets, and your profile photo.",
+          "cameraPermission": "Logistics Platform needs the camera to capture your profile photo and prescription images."
         }
       ],
       "expo-localization",
@@ -82,7 +82,7 @@
         "@sentry/react-native/expo",
         {
           "organization": "mh-prime",
-          "project": "iprime-customer",
+          "project": "logistics-customer",
           "url": "https://sentry.io/"
         }
       ],

@@ -123,8 +123,8 @@ export default function RequestReceiptScreen({ navigation, route }) {
   const handleShare = async () => {
     if (Platform.OS === "web") {
       try {
-        await captureAndShareWeb("iprime-request-receipt", {
-          fileName: `order-${request?.id || "iprime"}.png`,
+        await captureAndShareWeb("logistics-request-receipt", {
+          fileName: `order-${request?.id || "logistics"}.png`,
           shareTitle: t("request.receipt.shareDialogTitle"),
           shareText: t("request.receipt.shareLine", { amount: formatNaira(request?.total) }),
         });
@@ -201,7 +201,7 @@ export default function RequestReceiptScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
         <ViewShot ref={receiptRef} options={{ format: "png", quality: 1 }} style={{ backgroundColor: tokens.bg.canvas }}>
-          <View nativeID="iprime-request-receipt">
+          <View nativeID="logistics-request-receipt">
             {/* Header */}
             <View style={{ alignItems: "center", paddingVertical: 28 }}>
               <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: stColor.bg, alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
