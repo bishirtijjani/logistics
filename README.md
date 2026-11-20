@@ -2,6 +2,8 @@
 
 A mobile super-app for Android and iOS for digital wallet, utility payments, and delivery logistics. The platform brings together digital wallet services, utility bill payments, and delivery logistics under a single app.
 
+**In production:** live on the App Store and Google Play · 473 registered users · 90 merchants · 36 riders · 1,281 wallet transactions (including 525 utility payments)
+
 ## System Overview
 
 | Component | Technology |
