@@ -1,8 +1,31 @@
-# Logistics Platform
+# Logistics: Delivery App
 
-A mobile super-app for Android and iOS for digital wallet, utility payments, and delivery logistics. The platform brings together digital wallet services, utility bill payments, and delivery logistics under a single app.
+A complete on-demand delivery platform: customers order from local merchants or send packages, riders are dispatched automatically, and every naira moves through an escrow-backed wallet. It ships as **three React Native apps** (customer, rider, merchant), **two web dashboards** (admin, merchant) and a **Node.js backend**.
 
 **In production:** live on the App Store and Google Play · 473 registered users · 90 merchants · 36 riders · 1,281 wallet transactions (including 525 utility payments)
+
+## Highlights
+- **Automatic rider dispatch:** riders live in a Redis geo index; the matcher offers each job to the nearest available riders in an expanding radius (4 → 8 → 10 → 12 → 16 km), with timed offers, missed-offer tracking and availability reconciliation so "online" always means reachable.
+- **Real-time tracking:** rider GPS streams over Socket.IO roughly every 3 seconds; customers watch the trip live through an 11-step order lifecycle (requested → accepted → preparing → ready → rider assigned → en route → picked up → in transit → delivered → settled, or cancelled).
+- **Escrow-backed payments:** wallet orders are held in platform escrow and released on delivery, then split automatically into platform, rider and merchant earnings (with per-merchant commission rates and history). Cash orders are supported too.
+- **Money you can audit:** idempotency keys on payment endpoints, a stored webhook event log, a full audit log, and a daily **ledger reconciliation** job that proves every wallet balance equals the sum of its transactions.
+- **Bill payments built in:** airtime, data, electricity, cable TV and education PINs, plus airtime-to-cash, routed across multiple providers with failover; saved beneficiaries for repeat payments.
+- **Tested:** 37 backend test files, ~390 test cases.
+
+## What's inside
+| App | Who uses it | Key screens / features |
+|---|---|---|
+| **Customer app** (React Native) | Shoppers & senders | Browse merchants and menus, cart & checkout, send a package, live trip tracking, ratings, receipts, wallet funding & P2P transfers, bill payments, saved addresses, disputes & support tickets |
+| **Rider app** (React Native) | Delivery riders | Job offers with countdown, trip cockpit, earnings dashboard & breakdown, performance stats, wallet & withdrawals, KYC status, vehicle info (motorcycle / bicycle / car / van), biometric login |
+| **Merchant app** (React Native) | Merchants on the go | Incoming orders and order details, notifications, quick access to the merchant dashboard |
+| **Merchant dashboard** (React) | Merchants | Orders, menu & product variants, earnings, bills, analytics, marketing, disputes, support, self-registration |
+| **Admin dashboard** (React) | Operations team | Live requests, riders, merchants (+ products & analytics), customers, transactions & financials, disputes, support, marketing (banners, discount codes, campaigns), VTU networks & plans, safety, staff roles, audit log, analytics |
+
+## Security & reliability
+- Transaction PIN, biometric login, session management and BVN-based KYC verification
+- Role-based access control, request IDs, rate limiting and schema validation on every route
+- Background work (notifications, payments, dispatch, utilities) runs in dedicated BullMQ workers
+- Notifications across push (FCM), web push, in-app notification centre, SMS, email and WhatsApp
 
 ## System Overview
 
