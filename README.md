@@ -1,16 +1,16 @@
 # Logistics: Delivery App
 
-A complete on-demand delivery platform: customers order from local merchants or send packages, riders are dispatched automatically, and every naira moves through an escrow-backed wallet. It ships as **three React Native apps** (customer, rider, merchant), **two web dashboards** (admin, merchant) and a **Node.js backend**.
+A complete on-demand delivery platform: customers order from local merchants or send packages, riders are dispatched automatically, and payments move through an escrow-backed wallet. It ships as **React Native apps** for customers, riders and merchants, **web dashboards** for admins and merchants, and a **Node.js backend**.
 
-**In production:** live on the App Store and Google Play · 473 registered users · 90 merchants · 36 riders · 1,281 wallet transactions (including 525 utility payments)
+**Live on the iOS App Store and Google Play.**
 
 ## Highlights
-- **Automatic rider dispatch:** riders live in a Redis geo index; the matcher offers each job to the nearest available riders in an expanding radius (4 → 8 → 10 → 12 → 16 km), with timed offers, missed-offer tracking and availability reconciliation so "online" always means reachable.
-- **Real-time tracking:** rider GPS streams over Socket.IO roughly every 3 seconds; customers watch the trip live through an 11-step order lifecycle (requested → accepted → preparing → ready → rider assigned → en route → picked up → in transit → delivered → settled, or cancelled).
+- **Automatic rider dispatch:** riders live in a Redis geo index; the matcher offers each job to the nearest available riders in an expanding search radius, with timed offers, missed-offer tracking and availability reconciliation so "online" always means reachable.
+- **Real-time tracking:** rider GPS streams live over Socket.IO, and customers follow every stage of the order, from request through pickup to delivery.
 - **Escrow-backed payments:** wallet orders are held in platform escrow and released on delivery, then split automatically into platform, rider and merchant earnings (with per-merchant commission rates and history). Cash orders are supported too.
 - **Money you can audit:** idempotency keys on payment endpoints, a stored webhook event log, a full audit log, and a daily **ledger reconciliation** job that proves every wallet balance equals the sum of its transactions.
 - **Bill payments built in:** airtime, data, electricity, cable TV and education PINs, plus airtime-to-cash, routed across multiple providers with failover; saved beneficiaries for repeat payments.
-- **Tested:** 37 backend test files, ~390 test cases.
+- **Tested:** an automated backend test suite.
 
 ## What's inside
 | App | Who uses it | Key screens / features |
